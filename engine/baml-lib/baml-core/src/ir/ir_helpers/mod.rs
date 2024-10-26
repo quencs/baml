@@ -13,7 +13,7 @@ use crate::{
     },
 };
 use anyhow::Result;
-use baml_types::{BamlMap, BamlValue, BamlValueWithMeta, FieldType, TypeValue};
+use baml_types::{BamlMap, BamlValue, BamlValueWithMeta, FieldType, LiteralValue, TypeValue};
 pub use to_baml_arg::ArgCoercer;
 
 use super::repr;
@@ -206,7 +206,16 @@ impl IRHelper for IntermediateRepr {
             {
                 Ok(BamlValueWithMeta::String(s, field_type))
             }
-            BamlValue::String(_) => anyhow::bail!("Could not unify String with {:?}", field_type),
+
+            BamlValue::String(s) => {
+                if let FieldType::Literal(LiteralValue::String(l)) = &field_type {
+                    if s == *l {
+                        return Ok(BamlValueWithMeta::String(s, field_type));
+                    }
+                }
+
+                anyhow::bail!("Could not unify String with {:?}", field_type)
+            }
 
             BamlValue::Int(i)
                 if FieldType::Primitive(TypeValue::Int).is_subtype_of(&field_type) =>
@@ -214,7 +223,15 @@ impl IRHelper for IntermediateRepr {
                 Ok(BamlValueWithMeta::Int(i, field_type))
             }
 
-            BamlValue::Int(_) => anyhow::bail!("Could not unify Int with {:?}", field_type),
+            BamlValue::Int(i) => {
+                if let FieldType::Literal(LiteralValue::Int(l)) = &field_type {
+                    if i == *l {
+                        return Ok(BamlValueWithMeta::Int(i, field_type));
+                    }
+                }
+
+                anyhow::bail!("Could not unify Int with {:?}", field_type)
+            }
 
             BamlValue::Float(f)
                 if FieldType::Primitive(TypeValue::Float).is_subtype_of(&field_type) =>
@@ -228,7 +245,16 @@ impl IRHelper for IntermediateRepr {
             {
                 Ok(BamlValueWithMeta::Bool(b, field_type))
             }
-            BamlValue::Bool(_) => anyhow::bail!("Could not unify Bool with {:?}", field_type),
+
+            BamlValue::Bool(b) => {
+                if let FieldType::Literal(LiteralValue::Bool(l)) = &field_type {
+                    if b == *l {
+                        return Ok(BamlValueWithMeta::Bool(b, field_type));
+                    }
+                }
+
+                anyhow::bail!("Could not unify Bool with {:?}", field_type)
+            }
 
             BamlValue::Null if FieldType::Primitive(TypeValue::Null).is_subtype_of(&field_type) => {
                 Ok(BamlValueWithMeta::Null(field_type))
@@ -313,13 +339,13 @@ impl IRHelper for IntermediateRepr {
                 if FieldType::Enum(name.clone()).is_subtype_of(&field_type) {
                     Ok(BamlValueWithMeta::Enum(name, val, field_type))
                 } else {
-                    anyhow::bail!("Could not unify Enum {name} with {:?}", field_type)
+                    anyhow::bail!("Could not unify Enum {} with {:?}", name, field_type)
                 }
             }
 
             BamlValue::Class(name, fields) => {
                 if !FieldType::Class(name.clone()).is_subtype_of(&field_type) {
-                    anyhow::bail!("Could not unify Class {name} with {:?}", field_type);
+                    anyhow::bail!("Could not unify Class {} with {:?}", name, field_type);
                 } else {
                     let class_type = &self.find_class(&name)?.item.elem;
                     let class_fields: BamlMap<String, FieldType> = class_type
