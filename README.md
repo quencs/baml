@@ -1,7 +1,7 @@
 <a href="https://boundaryml.com?utm_source=github" target="_blank" rel="noopener noreferrer">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/baml-lamb-white.png">
-    <img src="docs/assets/baml-lamb-white.png" height="64">
+    <img src="docs/assets/baml-lamb-white.png" height="64" id="top">
   </picture>
   
 </a>
@@ -341,3 +341,9 @@ Made with ❤️ by Boundary
 HQ in Seattle, WA
 
 P.S. We're hiring for software engineers. [Email us](founders@boundaryml.com) or reach out on [discord](https://discord.gg/ENtBB6kkXH)!
+
+<div align="left" style="align-items: left;">
+        <a href="#top">
+            <img src="https://img.shields.io/badge/Back%20to%20Top-000000?style=for-the-badge&logo=github&logoColor=white" alt="Back to Top">
+        </a>
+</div>
