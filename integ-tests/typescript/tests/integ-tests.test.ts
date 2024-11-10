@@ -619,7 +619,7 @@ describe('Integ tests', () => {
 
   it('should raise an error when appropriate', async () => {
     await expect(async () => {
-      await b.TestCaching(111 as unknown as string) // intentionally passing an int instead of a string
+      await b.TestCaching(111 as unknown as string, "fiction") // intentionally passing an int instead of a string
     }).rejects.toThrow('BamlInvalidArgumentError')
 
     await expect(async () => {
@@ -703,6 +703,50 @@ describe('Integ tests', () => {
     )
     expect(people.length).toBeGreaterThan(0)
   })
+
+  it('should handle non-terminal finish reason', async () => {
+    const cr = new ClientRegistry()
+    cr.addLlmClient('MyClient', 'openai', { model: 'gpt-4o-mini', max_tokens: 1, finish_reason_allowlist: ['stop'] })
+    cr.setPrimary('MyClient')
+
+    try {
+      await b.TestCaching('Tell me a story about food!', "fiction", {
+        clientRegistry: cr,
+      })
+      fail('Expected BamlValidationError to be thrown')
+    } catch (error: any) {
+      if (error instanceof BamlValidationError) {
+        console.log('Exception message:', error)
+        expect(error.message).toContain('Non-terminal finish reason')
+      } else {
+        fail('Expected error to be an instance of BamlValidationError')
+      }
+    }
+  })
+
+  it('should handle non-terminal finish reason in streaming', async () => {
+    const cr = new ClientRegistry()
+    cr.addLlmClient('MyClient', 'openai', { model: 'gpt-4o-mini', max_tokens: 1, finish_reason_allowlist: ['stop'] })
+    cr.setPrimary('MyClient')
+
+    try {
+      const stream = b.stream.TestCaching('Tell me a story about food!', "fiction", {
+        clientRegistry: cr,
+      })
+      for await (const msg of stream) {
+        console.log('streamed', msg)
+      }
+      await stream.getFinalResponse()
+      fail('Expected BamlValidationError to be thrown')
+    } catch (error: any) {
+      if (error instanceof BamlValidationError) {
+        console.log('Exception message:', error)
+        expect(error.message).toContain('Non-terminal finish reason')
+      } else {
+        fail('Expected error to be an instance of BamlValidationError')
+      }
+    }
+  });
 
   it('should use aliases when serializing input objects - classes', async () => {
     const res = await b.AliasedInputClass({ key: 'hello', key2: 'world' })
@@ -872,12 +916,8 @@ describe('Integ tests', () => {
   })
 })
 
-interface MyInterface {
-  key: string
-  key_two: boolean
-  key_three: number
-}
+  afterAll(async () => {
+    flush()
+  });
 
-afterAll(async () => {
-  flush()
 })
