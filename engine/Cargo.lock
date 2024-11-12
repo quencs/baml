@@ -2693,6 +2693,7 @@ name = "internal-baml-schema-ast"
 version = "0.68.0"
 dependencies = [
  "baml-types",
+ "bstd",
  "either",
  "internal-baml-diagnostics",
  "log",
@@ -2800,6 +2801,7 @@ dependencies = [
  "anyhow",
  "assert-json-diff",
  "baml-types",
+ "bstd",
  "colored",
  "either",
  "indexmap 2.2.6",
