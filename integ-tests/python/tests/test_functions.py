@@ -748,7 +748,7 @@ async def test_dynamic_class_output():
         baml_options={"tb": tb},
     )
     print(output.model_dump_json())
-    assert output.hair_color == "black" # type: ignore (dynamic property)
+    assert output.hair_color == "black"  # type: ignore (dynamic property)
 
 
 @pytest.mark.asyncio
@@ -834,7 +834,7 @@ async def test_stream_dynamic_class_output():
     print("final ", final)
     print("final ", final.model_dump())
     print("final ", final.model_dump_json())
-    assert final.hair_color == "black" # type: ignore (dynamic property)
+    assert final.hair_color == "black"  # type: ignore (dynamic property)
 
 
 @pytest.mark.asyncio
@@ -868,12 +868,12 @@ async def test_dynamic_inputs_list2():
         ],
         {"tb": tb},
     )
-    assert res[0].new_key == "hi1" # type: ignore (dynamic property)
+    assert res[0].new_key == "hi1"  # type: ignore (dynamic property)
     assert res[0].testKey == "myTest"
-    assert res[0].blah["nestedKey1"] == "nestedVal" # type: ignore (dynamic property)
-    assert res[1].new_key == "hi" # type: ignore (dynamic property)
+    assert res[0].blah["nestedKey1"] == "nestedVal"  # type: ignore (dynamic property)
+    assert res[1].new_key == "hi"  # type: ignore (dynamic property)
     assert res[1].testKey == "myTest"
-    assert res[1].blah["nestedKey1"] == "nestedVal" # type: ignore (dynamic property)
+    assert res[1].blah["nestedKey1"] == "nestedVal"  # type: ignore (dynamic property)
 
 
 @pytest.mark.asyncio
@@ -954,12 +954,12 @@ async def test_dynamic_inputs_list():
         ],
         {"tb": tb},
     )
-    assert res[0].new_key == "hi" # type: ignore (dynamic property)
+    assert res[0].new_key == "hi"  # type: ignore (dynamic property)
     assert res[0].testKey == "myTest"
-    assert res[0].blah["nestedKey1"] == "nestedVal" # type: ignore (dynamic property)
-    assert res[1].new_key == "hi" # type: ignore (dynamic property)
+    assert res[0].blah["nestedKey1"] == "nestedVal"  # type: ignore (dynamic property)
+    assert res[1].new_key == "hi"  # type: ignore (dynamic property)
     assert res[1].testKey == "myTest"
-    assert res[1].blah["nestedKey1"] == "nestedVal" # type: ignore (dynamic property)
+    assert res[1].blah["nestedKey1"] == "nestedVal"  # type: ignore (dynamic property)
 
 
 @pytest.mark.asyncio
@@ -981,9 +981,9 @@ async def test_dynamic_output_map():
     print("final ", res)
     print("final ", res.model_dump())
     print("final ", res.model_dump_json())
-    assert res.hair_color == "black" # type: ignore (dynamic property)
-    assert res.attributes["eye_color"] == "blue" # type: ignore (dynamic property)
-    assert res.attributes["facial_hair"] == "beard" # type: ignore (dynamic property)
+    assert res.hair_color == "black"  # type: ignore (dynamic property)
+    assert res.attributes["eye_color"] == "blue"  # type: ignore (dynamic property)
+    assert res.attributes["facial_hair"] == "beard"  # type: ignore (dynamic property)
 
 
 @pytest.mark.asyncio
@@ -1015,10 +1015,10 @@ async def test_dynamic_output_union():
     print("final ", res)
     print("final ", res.model_dump())
     print("final ", res.model_dump_json())
-    assert res.hair_color == "black" # type: ignore (dynamic property)
-    assert res.attributes["eye_color"] == "blue" # type: ignore (dynamic property)
-    assert res.attributes["facial_hair"] == "beard" # type: ignore (dynamic property)
-    assert res.height["feet"] == 6 # type: ignore (dynamic property)
+    assert res.hair_color == "black"  # type: ignore (dynamic property)
+    assert res.attributes["eye_color"] == "blue"  # type: ignore (dynamic property)
+    assert res.attributes["facial_hair"] == "beard"  # type: ignore (dynamic property)
+    assert res.height["feet"] == 6  # type: ignore (dynamic property)
 
     res = await b.MyFunc(
         input="My name is Harrison. My hair is black and I'm 1.8 meters tall. I have blue eyes and a beard. I am 30 years old.",
@@ -1028,10 +1028,10 @@ async def test_dynamic_output_union():
     print("final ", res)
     print("final ", res.model_dump())
     print("final ", res.model_dump_json())
-    assert res.hair_color == "black" # type: ignore (dynamic property)
-    assert res.attributes["eye_color"] == "blue" # type: ignore (dynamic property)
-    assert res.attributes["facial_hair"] == "beard" # type: ignore (dynamic property)
-    assert res.height["meters"] == 1.8 # type: ignore (dynamic property)
+    assert res.hair_color == "black"  # type: ignore (dynamic property)
+    assert res.attributes["eye_color"] == "blue"  # type: ignore (dynamic property)
+    assert res.attributes["facial_hair"] == "beard"  # type: ignore (dynamic property)
+    assert res.height["meters"] == 1.8  # type: ignore (dynamic property)
 
 
 @pytest.mark.asyncio
