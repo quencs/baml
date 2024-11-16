@@ -7,7 +7,7 @@ use itertools::Itertools;
 use crate::{field_type_attributes, type_check_attributes, TypeCheckAttributes};
 
 use super::ruby_language_features::ToRuby;
-use internal_baml_core::ir::{repr::IntermediateRepr, ClassWalker, EnumWalker, FieldType};
+use internal_baml_core::ir::{repr::{Docstring, IntermediateRepr}, ClassWalker, EnumWalker, FieldType};
 
 #[derive(askama::Template)]
 #[template(path = "types.rb.j2", escape = "none")]
@@ -20,12 +20,14 @@ struct RubyEnum<'ir> {
     pub name: &'ir str,
     pub values: Vec<&'ir str>,
     dynamic: bool,
+    docstring: Option<String>,
 }
 
 struct RubyStruct<'ir> {
     name: Cow<'ir, str>,
-    fields: Vec<(Cow<'ir, str>, String)>,
+    fields: Vec<(Cow<'ir, str>, String, Option<String>)>,
     dynamic: bool,
+    docstring: Option<String>,
 }
 
 #[derive(askama::Template)]
@@ -37,8 +39,9 @@ pub(crate) struct RubyStreamTypes<'ir> {
 /// The Python class corresponding to Partial<TypeDefinedjInBaml>
 struct PartialRubyStruct<'ir> {
     name: &'ir str,
-    // the name, and the type of the field
-    fields: Vec<(&'ir str, String)>,
+    // the name, type and docstring of the field
+    fields: Vec<(&'ir str, String, Option<String>)>,
+    docstring: Option<String>,
 }
 
 #[derive(askama::Template)]
@@ -69,8 +72,9 @@ impl<'ir> From<EnumWalker<'ir>> for RubyEnum<'ir> {
                 .elem
                 .values
                 .iter()
-                .map(|v| v.elem.0.as_str())
+                .map(|v| v.0.elem.0.as_str())
                 .collect(),
+            docstring: e.item.elem.docstring.as_ref().map(|d| render_docstring(d, true))
         }
     }
 }
@@ -85,8 +89,13 @@ impl<'ir> From<ClassWalker<'ir>> for RubyStruct<'ir> {
                 .elem
                 .static_fields
                 .iter()
-                .map(|f| (Cow::Borrowed(f.elem.name.as_str()), f.elem.r#type.elem.to_type_ref()))
+                .map(|f| (
+                    Cow::Borrowed(f.elem.name.as_str()),
+                    f.elem.r#type.elem.to_type_ref(),
+                    f.elem.docstring.as_ref().map(|d| render_docstring(d, true))
+                ))
                 .collect(),
+            docstring: c.item.elem.docstring.as_ref().map(|d| render_docstring(d, false)),
         }
     }
 }
@@ -114,9 +123,11 @@ impl<'ir> From<ClassWalker<'ir>> for PartialRubyStruct<'ir> {
                     (
                         f.elem.name.as_str(),
                         f.elem.r#type.elem.to_partial_type_ref(),
+                        f.elem.docstring.as_ref().map(|d| render_docstring(d, true))
                     )
                 })
                 .collect(),
+            docstring: c.item.elem.docstring.as_ref().map(|d| render_docstring(d, false)),
         }
     }
 }
@@ -192,5 +203,17 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for TypeReg
             enums: ir.walk_enums().map(RubyEnum::from).collect::<Vec<_>>(),
             classes: ir.walk_classes().map(RubyStruct::from).collect::<Vec<_>>(),
         })
+    }
+}
+
+/// Render the BAML documentation (a bare string with padding stripped)
+/// into a Ruby docstring.
+fn render_docstring(d: &Docstring, indented: bool) -> String {
+    if indented {
+        let lines = d.0.as_str().replace("\n", "\n      # ");
+        format!("# {lines}")
+    } else {
+        let lines = d.0.as_str().replace("\n", "\n    # ");
+        format!("# {lines}")
     }
 }
