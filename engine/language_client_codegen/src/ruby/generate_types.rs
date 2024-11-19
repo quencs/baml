@@ -2,12 +2,16 @@ use std::borrow::Cow;
 use std::collections::HashSet;
 
 use anyhow::Result;
+use baml_types::LiteralValue;
 use itertools::Itertools;
 
 use crate::{field_type_attributes, type_check_attributes, TypeCheckAttributes};
 
 use super::ruby_language_features::ToRuby;
-use internal_baml_core::ir::{repr::{Docstring, IntermediateRepr}, ClassWalker, EnumWalker, FieldType};
+use internal_baml_core::ir::{
+    repr::{Docstring, IntermediateRepr},
+    ClassWalker, EnumWalker, FieldType,
+};
 
 #[derive(askama::Template)]
 #[template(path = "types.rb.j2", escape = "none")]
@@ -74,7 +78,12 @@ impl<'ir> From<EnumWalker<'ir>> for RubyEnum<'ir> {
                 .iter()
                 .map(|v| v.0.elem.0.as_str())
                 .collect(),
-            docstring: e.item.elem.docstring.as_ref().map(|d| render_docstring(d, true))
+            docstring: e
+                .item
+                .elem
+                .docstring
+                .as_ref()
+                .map(|d| render_docstring(d, true)),
         }
     }
 }
@@ -89,13 +98,20 @@ impl<'ir> From<ClassWalker<'ir>> for RubyStruct<'ir> {
                 .elem
                 .static_fields
                 .iter()
-                .map(|f| (
-                    Cow::Borrowed(f.elem.name.as_str()),
-                    f.elem.r#type.elem.to_type_ref(),
-                    f.elem.docstring.as_ref().map(|d| render_docstring(d, true))
-                ))
+                .map(|f| {
+                    (
+                        Cow::Borrowed(f.elem.name.as_str()),
+                        f.elem.r#type.elem.to_type_ref(),
+                        f.elem.docstring.as_ref().map(|d| render_docstring(d, true)),
+                    )
+                })
                 .collect(),
-            docstring: c.item.elem.docstring.as_ref().map(|d| render_docstring(d, false)),
+            docstring: c
+                .item
+                .elem
+                .docstring
+                .as_ref()
+                .map(|d| render_docstring(d, false)),
         }
     }
 }
@@ -123,11 +139,16 @@ impl<'ir> From<ClassWalker<'ir>> for PartialRubyStruct<'ir> {
                     (
                         f.elem.name.as_str(),
                         f.elem.r#type.elem.to_partial_type_ref(),
-                        f.elem.docstring.as_ref().map(|d| render_docstring(d, true))
+                        f.elem.docstring.as_ref().map(|d| render_docstring(d, true)),
                     )
                 })
                 .collect(),
-            docstring: c.item.elem.docstring.as_ref().map(|d| render_docstring(d, false)),
+            docstring: c
+                .item
+                .elem
+                .docstring
+                .as_ref()
+                .map(|d| render_docstring(d, false)),
         }
     }
 }
@@ -151,13 +172,17 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             FieldType::Literal(value) => value.literal_base_type().to_partial_type_ref(),
             // https://sorbet.org/docs/stdlib-generics
             FieldType::List(inner) => format!("T::Array[{}]", inner.to_partial_type_ref()),
-            FieldType::Map(key, value) => {
-                format!(
-                    "T::Hash[{}, {}]",
-                    key.to_type_ref(),
-                    value.to_partial_type_ref()
-                )
-            }
+            FieldType::Map(key, value) => format!(
+                "T::Hash[{}, {}]",
+                match key.as_ref() {
+                    // For enums just default to strings.
+                    FieldType::Enum(_)
+                    | FieldType::Literal(LiteralValue::String(_))
+                    | FieldType::Union(_) => FieldType::string().to_type_ref(),
+                    _ => key.to_type_ref(),
+                },
+                value.to_partial_type_ref()
+            ),
             FieldType::Primitive(_) => format!("T.nilable({})", self.to_type_ref()),
             FieldType::Union(inner) => format!(
                 // https://sorbet.org/docs/union-types
@@ -178,16 +203,12 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                     .join(", ")
             ),
             FieldType::Optional(inner) => inner.to_partial_type_ref(),
-            FieldType::Constrained{base,..} => {
-                match field_type_attributes(self) {
-                    Some(checks) => {
-                        let base_type_ref = base.to_partial_type_ref();
-                        format!("Baml::Checked[{base_type_ref}]")
-                    }
-                    None => {
-                        base.to_partial_type_ref()
-                    }
+            FieldType::Constrained { base, .. } => match field_type_attributes(self) {
+                Some(checks) => {
+                    let base_type_ref = base.to_partial_type_ref();
+                    format!("Baml::Checked[{base_type_ref}]")
                 }
+                None => base.to_partial_type_ref(),
             },
         }
     }

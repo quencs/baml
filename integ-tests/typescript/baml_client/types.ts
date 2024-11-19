@@ -111,6 +111,12 @@ export enum Hobby {
   READING = "READING",
 }
 
+export enum MapKey {
+  A = "A",
+  B = "B",
+  C = "C",
+}
+
 export enum NamedArgsSingleEnum {
   ONE = "ONE",
   TWO = "TWO",
