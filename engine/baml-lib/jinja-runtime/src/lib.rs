@@ -25,6 +25,7 @@ pub struct RenderContext_Client {
     pub name: String,
     pub provider: String,
     pub default_role: String,
+    pub allowed_roles: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -49,6 +50,7 @@ fn render_minijinja(
     mut ctx: RenderContext,
     template_string_macros: &[TemplateStringMacro],
     default_role: String,
+    allowed_roles: Vec<String>,
 ) -> Result<RenderedPrompt, minijinja::Error> {
     let mut env = get_env();
 
@@ -240,7 +242,11 @@ fn render_minijinja(
             // Only add the message if it contains meaningful content
             if !parts.is_empty() {
                 chat_messages.push(RenderedChatMessage {
-                    role: role.as_ref().unwrap_or(&default_role).to_string(),
+                    role: match role.as_ref() {
+                        Some(r) if allowed_roles.contains(r) => r.clone(),
+                        Some(_) => default_role.clone(),
+                        None => default_role.clone(),
+                    },
                     allow_duplicate_role,
                     parts,
                 });
@@ -410,12 +416,14 @@ pub fn render_prompt(
     let eval_ctx = EvaluationContext::new(env_vars, false);
     let minijinja_args: minijinja::Value = args.clone().to_minijinja_value(ir, &eval_ctx);
     let default_role = ctx.client.default_role.clone();
+    let allowed_roles = ctx.client.allowed_roles.clone();
     let rendered = render_minijinja(
         template,
         &minijinja_args,
         ctx,
         template_string_macros,
         default_role,
+        allowed_roles,
     );
 
     match rendered {
@@ -505,6 +513,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -565,6 +574,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -623,6 +633,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -690,6 +701,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string(), "john doe".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -767,6 +779,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -817,6 +830,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -856,6 +870,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -895,6 +910,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -934,6 +950,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -995,6 +1012,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -1054,6 +1072,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string(), "john doe".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -1099,6 +1118,91 @@ mod render_tests {
         Ok(())
     }
 
+
+    #[test]
+    fn render_with_kwargs_default_role() -> anyhow::Result<()> {
+        setup_logging();
+
+        let args: BamlValue = BamlValue::Map(BamlMap::from([(
+            "haiku_subject".to_string(),
+            BamlValue::String("sakura".to_string()),
+        )]));
+
+        let ir = make_test_ir(
+            "
+            class C {
+                
+            }
+            ",
+        )?;
+
+        let rendered = render_prompt(
+            r#"
+
+                    You are an assistant that always responds
+                    in a very excited way with emojis
+                    and also outputs this word 4 times
+                    after giving a response: {{ haiku_subject }}
+
+                    {{ _.chat(role=ctx.tags.ROLE) }}
+
+                    Tell me a haiku about {{ haiku_subject }}. {{ ctx.output_format }}
+
+                    {{ _.chat("user") }}
+                    End the haiku with a line about your maker, {{ ctx.client.provider }}.
+            "#,
+            &args,
+            RenderContext {
+                client: RenderContext_Client {
+                    name: "gpt4".to_string(),
+                    provider: "openai".to_string(),
+                    default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string(), "user".to_string()],
+                },
+                output_format: OutputFormatContent::new_string(),
+                tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+            },
+            &[],
+            &ir,
+            &HashMap::new(),
+        )?;
+
+        assert_eq!(
+            rendered,
+            RenderedPrompt::Chat(vec![
+                RenderedChatMessage {
+                    role: "system".to_string(),
+                    allow_duplicate_role: false,
+                    parts: vec![ChatMessagePart::Text(
+                        [
+                            "You are an assistant that always responds",
+                            "in a very excited way with emojis",
+                            "and also outputs this word 4 times",
+                            "after giving a response: sakura"
+                        ]
+                        .join("\n")
+                    )]
+                },
+                RenderedChatMessage {
+                    role: "system".to_string(),
+                    allow_duplicate_role: false,
+                    parts: vec![ChatMessagePart::Text(
+                        "Tell me a haiku about sakura.".to_string()
+                    )]
+                },
+                RenderedChatMessage {
+                    role: "user".to_string(),
+                    allow_duplicate_role: false,
+                    parts: vec![ChatMessagePart::Text(
+                        "End the haiku with a line about your maker, openai.".to_string()
+                    )]
+                }
+            ])
+        );
+
+        Ok(())
+    }
+
     #[test]
     fn render_chat_starts_with_system() -> anyhow::Result<()> {
         setup_logging();
@@ -1131,6 +1235,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
@@ -1185,6 +1290,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1235,6 +1341,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1281,6 +1388,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1300,6 +1408,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1342,6 +1451,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1361,6 +1471,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1403,6 +1514,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1476,6 +1588,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1569,6 +1682,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1674,6 +1788,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1750,6 +1865,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1809,6 +1925,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
@@ -1913,6 +2030,7 @@ mod render_tests {
                     name: "gpt4".to_string(),
                     provider: "openai".to_string(),
                     default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
