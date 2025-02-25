@@ -1,0 +1,25 @@
+[package]
+name = "hello"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# If you only wanted dynamic library, you'd use only "cdylib".
+# If you only wanted static library, you'd use only "staticlib".
+# This demo shows both. See https://doc.rust-lang.org/reference/linkage.html
+# for more information.
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+libc = "0.2.2"
+baml-cli.workspace = true
+baml-types.workspace = true
+baml-runtime = { path = "../../../baml-runtime", default-features = false, features = [
+  "internal",
+] }
+internal-baml-codegen.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["full"] }
+once_cell.workspace = true

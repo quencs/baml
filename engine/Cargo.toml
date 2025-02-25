@@ -11,6 +11,7 @@ members = [
   "language_client_python",
   "language_client_ruby/ext/ruby_ffi",
   "language_client_typescript",
+  "language_client_go/lib/baml",
   "sandbox",
 ]
 default-members = [
@@ -28,6 +29,7 @@ default-members = [
   "language_client_python",
   "language_client_ruby/ext/ruby_ffi",
   "language_client_typescript",
+  "language_client_go/lib/baml",
 ]
 
 [workspace.dependencies]
