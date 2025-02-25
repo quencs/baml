@@ -7,7 +7,7 @@ use secrecy::ExposeSecret;
 use std::collections::HashMap;
 
 use anyhow::{Context, Result};
-use baml_types::{BamlMap, BamlMedia, BamlMediaContent};
+use baml_types::{tracing::events::HttpRequestId, BamlMap, BamlMedia, BamlMediaContent};
 use eventsource_stream::Eventsource;
 use futures::StreamExt;
 use internal_baml_core::ir::ClientWalker;
@@ -115,8 +115,9 @@ impl WithNoCompletion for AnthropicClient {}
 impl WithStreamChat for AnthropicClient {
     async fn stream_chat(
         &self,
-        _ctx: &RuntimeContext,
+        ctx: &RuntimeContext,
         prompt: &[RenderedChatMessage],
+        http_request_id: HttpRequestId,
     ) -> StreamResponse {
         let model_name = self
             .request_options()
@@ -128,6 +129,8 @@ impl WithStreamChat for AnthropicClient {
             either::Either::Right(prompt),
             model_name,
             ResponseType::Anthropic,
+            ctx,
+            http_request_id,
         )
         .await
     }
@@ -247,7 +250,12 @@ impl RequestBuilder for AnthropicClient {
 }
 
 impl WithChat for AnthropicClient {
-    async fn chat(&self, _ctx: &RuntimeContext, prompt: &[RenderedChatMessage]) -> LLMResponse {
+    async fn chat(
+        &self,
+        ctx: &RuntimeContext,
+        prompt: &[RenderedChatMessage],
+        http_request_id: HttpRequestId,
+    ) -> LLMResponse {
         let model_name = self
             .request_options()
             .get("model")
@@ -259,6 +267,8 @@ impl WithChat for AnthropicClient {
             either::Either::Right(prompt),
             false,
             ResponseType::Anthropic,
+            ctx,
+            http_request_id,
         )
         .await
     }

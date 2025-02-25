@@ -24,6 +24,7 @@ use crate::{
     request::create_client,
 };
 use anyhow::{Context, Result};
+use baml_types::tracing::events::HttpRequestId;
 use chrono::{Duration, Utc};
 use futures::StreamExt;
 #[cfg(not(target_arch = "wasm32"))]
@@ -116,9 +117,18 @@ impl WithStreamChat for VertexClient {
         &self,
         ctx: &RuntimeContext,
         prompt: &[RenderedChatMessage],
+        http_request_id: HttpRequestId,
     ) -> StreamResponse {
         //incomplete, streaming response object is returned
-        make_stream_request(self, either::Either::Right(prompt), Some(self.properties.model.clone()), ResponseType::Vertex).await
+        make_stream_request(
+            self,
+            either::Either::Right(prompt),
+            Some(self.properties.model.clone()),
+            ResponseType::Vertex,
+            ctx,
+            http_request_id,
+        )
+        .await
     }
 }
 
@@ -252,7 +262,12 @@ impl RequestBuilder for VertexClient {
 }
 
 impl WithChat for VertexClient {
-    async fn chat(&self, _ctx: &RuntimeContext, prompt: &[RenderedChatMessage]) -> LLMResponse {
+    async fn chat(
+        &self,
+        ctx: &RuntimeContext,
+        prompt: &[RenderedChatMessage],
+        http_request_id: HttpRequestId,
+    ) -> LLMResponse {
         let model_name = self.properties.model.clone();
         //non-streaming, complete response is returned
         make_parsed_request(
@@ -261,6 +276,8 @@ impl WithChat for VertexClient {
             either::Either::Right(prompt),
             false,
             ResponseType::Vertex,
+            ctx,
+            http_request_id,
         )
         .await
     }
