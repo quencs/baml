@@ -1,6 +1,6 @@
-function TestOllama(input: string) -> string {
+function TestOllama() -> string {
   client Ollama
   prompt #"
-    Write a nice haiku about {{ input }}
+    Write a nice haiku about donkey
   "#
 }

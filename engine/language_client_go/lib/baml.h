@@ -22,21 +22,8 @@ typedef struct CKwargs {
 } CKwargs;
 
 /*
- * Callback function type.
- * The callback receives a pointer to a null-terminated C string containing the JSON result.
- * Note: The returned string is allocated by Rust and must be freed using free_string.
- */
-typedef void (*ResultCallback)(const char *result);
-
-/*
  * Extern "C" functions exported from the Rust CFFI layer.
  */
-
-// Prints a hello message. `name` must be a null-terminated string.
-void hello(const char *name);
-
-// Prints a whispered message. `message` must be a null-terminated string.
-void whisper(const char *message);
 
 // Creates and returns a pointer to a Baml runtime instance.
 const void* create_baml_runtime(void);
@@ -58,23 +45,20 @@ void destroy_baml_runtime(const void *runtime);
 void call_function_from_c(const void *runtime,
                           const char *function_name,
                           const CKwargs *kwargs,
-                          ResultCallback callback);
+                          uint32_t callback_id);
+
+void call_function_stream_from_c(const void *runtime,
+                          const char *function_name,
+                          const CKwargs *kwargs,
+                          uint32_t callback_id);
+
+typedef void (*callback_fcn)(uint32_t, bool, const char *);
+
+// Registers a callback function to be called when a function is called.
+void register_callback(callback_fcn callback);
 
 // Invokes the runtime CLI. `args` is a null-terminated array of null-terminated C strings.
 void invoke_runtime_cli(const char * const* args);
-
-/*
- * Frees a C string that was allocated by the Rust runtime (e.g., in call_function_from_c).
- * Call this function on any string returned via a callback once it is no longer needed.
- */
-void free_string(char *s);
-
-
-// In baml.h
-typedef void (*callback_func)(char*);
-extern bool register_callback(uint32_t id, callback_func callback);
-extern bool unregister_callback(uint32_t id);
-extern bool trigger_callback(uint32_t id, char* message);
 
 #ifdef __cplusplus
 }
