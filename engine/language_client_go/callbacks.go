@@ -9,7 +9,6 @@ package main
 import "C"
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
 )
@@ -33,7 +32,6 @@ func trigger_callback(id C.uint32_t, isDone C.bool, result *C.char) {
 
 	if exists {
 		my_string := C.GoString(result)
-		fmt.Println("callback triggered", my_string)
 		callback <- ResultCallback{data: my_string}
 		if isDone {
 			close(callback)

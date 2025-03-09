@@ -12,6 +12,7 @@ import "C"
 
 import (
 	"fmt"
+	"sync"
 	"unsafe"
 )
 
@@ -90,18 +91,27 @@ func init() {
 	}
 }
 
-func main() {
-	channel := DoSomethingStream("Hello, world!")
+func processStream(id int, channel <-chan DoSomethingStreamResult, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for result := range channel {
 		if result.Error() != nil {
-			fmt.Println("Error:")
-			fmt.Println(result.Error())
+			fmt.Printf("Stream %d Error: %v\n", id, result.Error())
 		} else if result.IsPartial() {
-			fmt.Println("Partial:")
-			fmt.Println(result.Partial())
+			fmt.Printf("Stream %d Partial: %s\n", id, result.Partial())
 		} else if result.IsFinal() {
-			fmt.Println("Final:")
-			fmt.Println(result.Final())
+			fmt.Printf("Stream %d Final: %s\n", id, result.Final())
 		}
 	}
+}
+
+func main() {
+	numStreams := 5 // Change this to run X parallel streams
+	var wg sync.WaitGroup
+
+	for i := 0; i < numStreams; i++ {
+		wg.Add(1)
+		go processStream(i, DoSomethingStream("Hello, world!"), &wg)
+	}
+
+	wg.Wait()
 }
