@@ -1,7 +1,7 @@
 use std::{ffi::CStr, path::Path};
 
 extern crate baml_runtime;
-use baml_runtime::BamlRuntime;
+use baml_runtime::{BamlRuntime, FunctionResult, FunctionResultStream};
 
 #[no_mangle]
 pub extern "C" fn hello(name: *const libc::c_char) {
@@ -178,8 +178,7 @@ pub extern "C" fn call_function_stream_from_c(
     let func_name = match unsafe { CStr::from_ptr(function_name) }.to_str() {
         Ok(s) => s.to_owned(),
         Err(_) => {
-            safe_trigger_callback(id, true, "Failed to convert function name to string");
-            return;
+            panic!("Failed to convert function name to string");
         }
     };
 
@@ -187,13 +186,20 @@ pub extern "C" fn call_function_stream_from_c(
     let keyword_args = unsafe { ckwargs_to_map(kwargs) };
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
-    let stream = runtime.stream_function(func_name, &keyword_args, &ctx, None, None);
+    let mut stream = match runtime.stream_function(func_name, &keyword_args, &ctx, None, None) {
+        Ok(stream) => stream,
+        Err(e) => {
+            safe_trigger_callback(id, true, &e.to_string());
+            return;
+        }
+    };
 
-    // Spawn an async task to await the future and call the callback when done.
-    // Ensure that a Tokio runtime is running in your application.
+    let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
+
     let rt = unsafe { RUNTIME.as_ref().unwrap() };
+
     rt.spawn(async move {
-        let (result, _) = future.await;
+        let (result, _) = stream.run(Some(|r| on_event(id, r)), &ctx, None, None).await;
         match result {
             Ok(result) => match result.content() {
                 Ok(content) => safe_trigger_callback(id, true, &content),
@@ -201,11 +207,15 @@ pub extern "C" fn call_function_stream_from_c(
             },
             Err(e) => safe_trigger_callback(id, true, &e.to_string()),
         };
-        
-        // Note: Responsibility for freeing the returned string lies with the caller.
     });
 }
 
+pub fn on_event(id: u32, result: FunctionResult) {
+    match result.content() {
+        Ok(content) => safe_trigger_callback(id, false, &content),
+        Err(e) => safe_trigger_callback(id, false, &e.to_string()),
+    }
+}
 
 // This is present so it's easy to test that the code works natively in Rust via `cargo test`
 #[cfg(test)]

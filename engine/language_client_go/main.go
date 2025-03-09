@@ -60,7 +60,7 @@ func DoSomethingStream(arg string) <-chan DoSomethingStreamResult {
 
 	callback_id, callback := create_unique_id()
 
-	C.call_function_from_c(runtime, function_name, &kwargs, callback_id)
+	C.call_function_stream_from_c(runtime, function_name, &kwargs, callback_id)
 
 	return_channel := make(chan DoSomethingStreamResult)
 	go func() {
@@ -93,17 +93,15 @@ func init() {
 func main() {
 	channel := DoSomethingStream("Hello, world!")
 	for result := range channel {
-		if result.IsPartial() {
-			fmt.Println("Partial:")
-			fmt.Println(result.Partial())
-		}
-		if result.IsFinal() {
-			fmt.Println("Final:")
-			fmt.Println(result.Final())
-		}
 		if result.Error() != nil {
 			fmt.Println("Error:")
 			fmt.Println(result.Error())
+		} else if result.IsPartial() {
+			fmt.Println("Partial:")
+			fmt.Println(result.Partial())
+		} else if result.IsFinal() {
+			fmt.Println("Final:")
+			fmt.Println(result.Final())
 		}
 	}
 }

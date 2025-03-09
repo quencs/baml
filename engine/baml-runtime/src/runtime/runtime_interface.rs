@@ -421,7 +421,7 @@ impl RuntimeInterface for InternalBamlRuntime {
         FunctionResult::new_chain(history)
     }
 
-    fn stream_function_impl(
+fn stream_function_impl(
         &self,
         function_name: String,
         params: &BamlMap<String, BamlValue>,
