@@ -1,7 +1,7 @@
 package baml
 
 /*
-#cgo LDFLAGS: ./lib/libhello.dylib -ldl
+#cgo LDFLAGS: ./ext/libbaml.dylib -ldl
 #include <stdlib.h>
 #include <stdbool.h>
 */
