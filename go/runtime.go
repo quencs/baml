@@ -121,7 +121,11 @@ func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName strin
 			case <-ctx.Done():
 				close(return_channel)
 				return
-			case result := <-callback:
+			case result, ok := <-callback:
+				if !ok {
+					close(return_channel)
+					return
+				}
 				// TODO: Handle the result
 				// error handling, type checking, etc.
 				return_channel <- result
