@@ -17,27 +17,27 @@ import (
 	"unsafe"
 )
 
-type bamlRuntime struct {
+type BamlRuntime struct {
 	runtime unsafe.Pointer
 }
 
-var instance *bamlRuntime
+var instance *BamlRuntime
 var once sync.Once
 
 func CreateRuntime(
 	root_path string,
 	src_files map[string]string,
 	env_vars map[string]string,
-) (bamlRuntime, error) {
+) (BamlRuntime, error) {
 
 	src_files_json, err := json.Marshal(src_files)
 	if err != nil {
-		return bamlRuntime{}, err
+		return BamlRuntime{}, err
 	}
 
 	env_vars_json, err := json.Marshal(env_vars)
 	if err != nil {
-		return bamlRuntime{}, err
+		return BamlRuntime{}, err
 	}
 
 	src_files_c := C.CString(string(src_files_json))
@@ -50,10 +50,10 @@ func CreateRuntime(
 	defer C.free(unsafe.Pointer(root_path_c))
 
 	runtime := C.create_baml_runtime(root_path_c, src_files_c, env_vars_c)
-	return bamlRuntime{runtime: runtime}, nil
+	return BamlRuntime{runtime: runtime}, nil
 }
 
-func (r *bamlRuntime) CallFunction(ctx context.Context, functionName string, arg_names []string, args ...any) (*ResultCallback, error) {
+func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, arg_names []string, args ...any) (*ResultCallback, error) {
 	functionNameC := C.CString(functionName)
 	defer C.free(unsafe.Pointer(functionNameC))
 
@@ -94,7 +94,7 @@ func (r *bamlRuntime) CallFunction(ctx context.Context, functionName string, arg
 	}
 }
 
-func (r *bamlRuntime) CallFunctionStream(ctx context.Context, functionName string, arg_names []string, args ...any) (<-chan ResultCallback, error) {
+func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName string, arg_names []string, args ...any) (<-chan ResultCallback, error) {
 	functionNameC := C.CString(functionName)
 	defer C.free(unsafe.Pointer(functionNameC))
 
