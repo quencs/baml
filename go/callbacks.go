@@ -17,6 +17,10 @@ type ResultCallback struct {
 	data string // JSON string
 }
 
+func (r *ResultCallback) Raw() string {
+	return r.data
+}
+
 type CallbackData struct {
 	channel chan ResultCallback
 	ctx     context.Context
