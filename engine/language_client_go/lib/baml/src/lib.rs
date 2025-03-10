@@ -1,4 +1,4 @@
-use std::{ffi::CStr, path::Path};
+use std::{collections::HashMap, ffi::CStr, path::Path};
 
 extern crate baml_runtime;
 use baml_runtime::{BamlRuntime, FunctionResult, FunctionResultStream};
@@ -18,13 +18,18 @@ pub extern "C" fn whisper(message: *const libc::c_char) {
 }
 
 #[no_mangle]
-pub extern "C" fn create_baml_runtime() -> *const libc::c_void {
-    const BAML_DIR: &str = "/Users/vbv/repos/gloo-lang/integ-tests/baml_src";
-    let env_vars = std::env::vars()
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .collect();
-    let runtime = BamlRuntime::from_directory(&Path::new(BAML_DIR), env_vars);
+pub extern "C" fn create_baml_runtime(
+    root_path: *const libc::c_char,
+    src_files_json: *const libc::c_char,
+    env_vars_json: *const libc::c_char,
+) -> *const libc::c_void {
+    let src_files = serde_json::from_str::<HashMap<String, String>>(unsafe { CStr::from_ptr(src_files_json).to_str().unwrap() }).unwrap();
+    let env_vars = serde_json::from_str::<HashMap<String, String>>(unsafe { CStr::from_ptr(env_vars_json).to_str().unwrap() }).unwrap();
+    let runtime = BamlRuntime::from_file_content(
+        unsafe { CStr::from_ptr(root_path).to_str().unwrap() },
+        &src_files,
+        env_vars,
+    );
     Box::into_raw(Box::new(runtime)) as *const libc::c_void
 }
 
