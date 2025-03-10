@@ -24,6 +24,10 @@ type BamlRuntime struct {
 var instance *BamlRuntime
 var once sync.Once
 
+func init() {
+	C.register_callback((C.callback_fcn)(C.trigger_callback))
+}
+
 func CreateRuntime(
 	root_path string,
 	src_files map[string]string,
