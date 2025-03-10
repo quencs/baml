@@ -55,7 +55,7 @@ func CreateRuntime(
 
 func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, arg_names []string, args ...any) (*ResultCallback, error) {
 	functionNameC := C.CString(functionName)
-	defer C.free(unsafe.Pointer(functionNameC))
+	// defer C.free(unsafe.Pointer(functionNameC))
 
 	callback_id, callback := create_unique_id(ctx)
 
@@ -68,7 +68,7 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, arg
 		return nil, err
 	}
 	kwargsC := C.CString(string(kwargs))
-	defer C.free(unsafe.Pointer(kwargsC))
+	// defer C.free(unsafe.Pointer(kwargsC))
 
 	return_channel := make(chan ResultCallback)
 	go func() {
@@ -96,7 +96,7 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, arg
 
 func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName string, arg_names []string, args ...any) (<-chan ResultCallback, error) {
 	functionNameC := C.CString(functionName)
-	defer C.free(unsafe.Pointer(functionNameC))
+	// defer C.free(unsafe.Pointer(functionNameC))
 
 	callback_id, callback := create_unique_id(ctx)
 	kwargsMap := make(map[string]any)
@@ -108,7 +108,7 @@ func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName strin
 		return nil, err
 	}
 	kwargsC := C.CString(string(kwargs))
-	defer C.free(unsafe.Pointer(kwargsC))
+	// defer C.free(unsafe.Pointer(kwargsC))
 
 	return_channel := make(chan ResultCallback)
 	go func() {
