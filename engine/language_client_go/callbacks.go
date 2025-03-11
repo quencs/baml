@@ -2,13 +2,13 @@ package main
 
 /*
 #cgo LDFLAGS: ./lib/libhello.dylib -ldl
-#include "./lib/baml.h"
 #include <stdlib.h>
 #include <stdbool.h>
 */
 import "C"
 
 import (
+	"context"
 	"math/rand"
 	"sync"
 )
@@ -17,9 +17,14 @@ type ResultCallback struct {
 	data string // JSON string
 }
 
+type CallbackData struct {
+	channel chan ResultCallback
+	ctx     context.Context
+}
+
 // Map to store callbacks by ID
 var (
-	dynamicCallbacks = make(map[uint32]chan ResultCallback)
+	dynamicCallbacks = make(map[uint32]CallbackData)
 	callbackMutex    sync.RWMutex
 )
 
@@ -32,9 +37,19 @@ func trigger_callback(id C.uint32_t, isDone C.bool, result *C.char) {
 
 	if exists {
 		my_string := C.GoString(result)
-		callback <- ResultCallback{data: my_string}
-		if isDone {
-			close(callback)
+		force_close := false
+
+		select {
+		case <-callback.ctx.Done():
+			force_close = true
+			// TODO: Somehow tell rust to die
+			break
+		case callback.channel <- ResultCallback{data: my_string}:
+			break
+		}
+
+		if bool(isDone) || force_close {
+			close(callback.channel)
 			callbackMutex.Lock()
 			defer callbackMutex.Unlock()
 			delete(dynamicCallbacks, id_uint)
@@ -42,13 +57,13 @@ func trigger_callback(id C.uint32_t, isDone C.bool, result *C.char) {
 	}
 }
 
-func create_unique_id() (C.uint32_t, chan ResultCallback) {
+func create_unique_id(ctx context.Context) (C.uint32_t, chan ResultCallback) {
 	callbackMutex.Lock()
 	defer callbackMutex.Unlock()
 	id := uint32(rand.Intn(1000000))
 	for _, exists := dynamicCallbacks[id]; exists; {
 		id = uint32(rand.Intn(1000000))
 	}
-	dynamicCallbacks[id] = make(chan ResultCallback)
-	return C.uint32_t(id), dynamicCallbacks[id]
+	dynamicCallbacks[id] = CallbackData{channel: make(chan ResultCallback), ctx: ctx}
+	return C.uint32_t(id), dynamicCallbacks[id].channel
 }

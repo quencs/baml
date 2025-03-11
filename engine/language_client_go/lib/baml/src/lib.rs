@@ -71,35 +71,14 @@ pub extern "C" fn invoke_runtime_cli(args: *const *const libc::c_char) {
 
 use std::ffi::CString;
 use std::os::raw::c_char;
-use std::ptr;
 
 use baml_types::{BamlMap, BamlValue};
 
-#[repr(C)]
-pub struct CKwargs {
-    pub len: libc::size_t,
-    pub keys: *const *const c_char,
-    pub values: *const *const c_char,
-}
-
 /// Convert CKwargs to a BamlMap<String, BamlValue>
-unsafe fn ckwargs_to_map(kwargs: *const CKwargs) -> BamlMap<String, BamlValue> {
-    let mut map = BamlMap::new();
-    if kwargs.is_null() {
-        return map;
-    }
-    let kwargs_ref = &*kwargs;
-    for i in 0..(kwargs_ref.len as isize) {
-        let key_ptr = *kwargs_ref.keys.offset(i);
-        let value_ptr = *kwargs_ref.values.offset(i);
-        if let (Ok(key), Ok(value)) = (
-            CStr::from_ptr(key_ptr).to_str(),
-            serde_json::from_str::<BamlValue>(CStr::from_ptr(value_ptr).to_str().unwrap()),
-        ) {
-            map.insert(key.to_owned(), value.to_owned());
-        }
-    }
-    map
+unsafe fn ckwargs_to_map(kwargs: *const libc::c_char) -> BamlMap<String, BamlValue> {
+    let kwargs_str = unsafe { CStr::from_ptr(kwargs) };
+    let kwargs_map = serde_json::from_str::<BamlMap<String, BamlValue>>(kwargs_str.to_str().unwrap()).unwrap();
+    kwargs_map
 }
 
 static mut CALLBACK_FN: Option<extern "C" fn(u32, bool, *const c_char)> = None;
@@ -129,7 +108,7 @@ static mut RUNTIME: Option<std::sync::Arc<tokio::runtime::Runtime>> = None;
 pub extern "C" fn call_function_from_c(
     runtime: *const libc::c_void,
     function_name: *const c_char,
-    kwargs: *const CKwargs,
+    kwargs: *const libc::c_char,
     id: u32,
 ) {
     // Safety: assume that the pointers provided are valid.
@@ -173,7 +152,7 @@ pub extern "C" fn call_function_from_c(
 pub extern "C" fn call_function_stream_from_c(
     runtime: *const libc::c_void,
     function_name: *const c_char,
-    kwargs: *const CKwargs,
+    kwargs: *const libc::c_char,
     id: u32,
 ) {
     // Safety: assume that the pointers provided are valid.
