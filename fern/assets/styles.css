@@ -105,7 +105,10 @@ body, p, ul, h1, h2, h3, h4, h5, h6, span:not(a span) {
 
 .w-content-width {
   max-width: 860px !important;
+  width: 100% !important;
 }
+
+
 
 .fern-sidebar-link-container[data-state="active"] {
   background-color: var(--tag-primary) !important;
