@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-	b.types.Category2Question
 	var v = types.Category2Question
 	fmt.Println(v)
 }

@@ -52,6 +52,9 @@ type {{ class.name }} struct {
     {%- endif %}
     {{ name|exported_name }} {{ type }} `json:"{{ name }}"`
     {% endfor %}
+    {% if class.dynamic %}
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    {% endif %}
 }
 {% endfor %}
 

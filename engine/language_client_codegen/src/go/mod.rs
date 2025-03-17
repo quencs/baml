@@ -46,6 +46,10 @@ pub(crate) fn generate(
     collector.add_template::<generate_types::GoTypes>("types/types.go", (ir, generator))?;
     collector.add_template::<generate_types::GoEnums>("types/enums.go", (ir, generator))?;
     collector.add_template::<generate_types::GoUnions>("types/unions.go", (ir, generator))?;
+    collector.add_template::<generate_types::GoStreamTypes>(
+        "stream_types/stream_types.go",
+        (ir, generator),
+    )?;
 
     collector.commit(&generator.output_dir())
 }
@@ -114,6 +118,7 @@ trait ToUnionName {
 
 impl ToUnionName for FieldType {
     fn find_union_types(&self) -> IndexSet<FieldType> {
+        // TODO: its pretty hard to get type aliases here
         let value = self.simplify();
         match &value {
             FieldType::Union(_) => IndexSet::from_iter([value]),

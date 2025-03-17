@@ -10,6 +10,13 @@
 // BAML files and re-generate this code using: baml-cli generate
 package types
 
+import (
+  "encoding/json"
+  "fmt"
+  baml "github.com/boundaryml/baml/go"
+)
+
+
 // Check corresponds to the Python Check model.
 type Check struct {
 	Name       string `json:"name"`
@@ -20,7 +27,7 @@ type Check struct {
 // Checked is a generic struct that contains a value of any type T and a map of checks,
 // where the key type CN has an underlying type string.
 type Checked[T any] struct {
-	Value  T                `json:"value"`
+	Value  T `json:"value"`
 	Checks map[string]Check `json:"checks"`
 }
 
@@ -43,622 +50,910 @@ func (c *Checked[T]) AllSucceeded() bool {
 	return true
 }
 
+
+
 type AnotherObject struct {
-	Id string `json:"id"`
-
-	Thingy2 string `json:"thingy2"`
-
-	Thingy3 string `json:"thingy3"`
+    
+    Id string `json:"id"`
+    
+    Thingy2 string `json:"thingy2"`
+    
+    Thingy3 string `json:"thingy3"`
+    
+    
 }
 
 type BigNumbers struct {
-	A int32 `json:"a"`
-
-	B float32 `json:"b"`
+    
+    A int64 `json:"a"`
+    
+    B float64 `json:"b"`
+    
+    
 }
 
 type BinaryNode struct {
-	Data int32 `json:"data"`
-
-	Left *BinaryNode `json:"left"`
-
-	Right *BinaryNode `json:"right"`
+    
+    Data int64 `json:"data"`
+    
+    Left *BinaryNode `json:"left"`
+    
+    Right *BinaryNode `json:"right"`
+    
+    
 }
 
 type Blah struct {
-	Prop4 *string `json:"prop4"`
+    
+    Prop4 *string `json:"prop4"`
+    
+    
 }
 
 type BlockConstraint struct {
-	Foo int32 `json:"foo"`
-
-	Bar string `json:"bar"`
+    
+    Foo int64 `json:"foo"`
+    
+    Bar string `json:"bar"`
+    
+    
 }
 
 type BlockConstraintForParam struct {
-	Bcfp int32 `json:"bcfp"`
-
-	Bcfp2 string `json:"bcfp2"`
+    
+    Bcfp int64 `json:"bcfp"`
+    
+    Bcfp2 string `json:"bcfp2"`
+    
+    
 }
 
 type BookOrder struct {
-	OrderId string `json:"orderId"`
-
-	Title string `json:"title"`
-
-	Quantity int32 `json:"quantity"`
-
-	Price float32 `json:"price"`
+    
+    OrderId string `json:"orderId"`
+    
+    Title string `json:"title"`
+    
+    Quantity int64 `json:"quantity"`
+    
+    Price float64 `json:"price"`
+    
+    
 }
 
 type ClassForNullLiteral struct {
-	A string `json:"a"`
+    
+    A string `json:"a"`
+    
+    
 }
 
 type ClassOptionalOutput struct {
-	Prop1 string `json:"prop1"`
-
-	Prop2 string `json:"prop2"`
+    
+    Prop1 string `json:"prop1"`
+    
+    Prop2 string `json:"prop2"`
+    
+    
 }
 
 type ClassOptionalOutput2 struct {
-	Prop1 *string `json:"prop1"`
-
-	Prop2 *string `json:"prop2"`
-
-	Prop3 *Blah `json:"prop3"`
+    
+    Prop1 *string `json:"prop1"`
+    
+    Prop2 *string `json:"prop2"`
+    
+    Prop3 *Blah `json:"prop3"`
+    
+    
 }
 
 type ClassToRecAlias struct {
-	List LinkedListAliasNode `json:"list"`
+    
+    List LinkedListAliasNode `json:"list"`
+    
+    
 }
 
 type ClassWithBlockDone struct {
-	I_16_digits int32 `json:"i_16_digits"`
-
-	S_20_words string `json:"s_20_words"`
+    
+    I_16_digits int64 `json:"i_16_digits"`
+    
+    S_20_words string `json:"s_20_words"`
+    
+    
 }
 
 type ClassWithImage struct {
-	MyImage any `json:"myImage"`
-
-	Param2 string `json:"param2"`
-
-	Fake_image FakeImage `json:"fake_image"`
+    
+    MyImage any `json:"myImage"`
+    
+    Param2 string `json:"param2"`
+    
+    Fake_image FakeImage `json:"fake_image"`
+    
+    
 }
 
 type ClassWithoutDone struct {
-	I_16_digits int32 `json:"i_16_digits"`
-
-	S_20_words string `json:"s_20_words"`
+    
+    I_16_digits int64 `json:"i_16_digits"`
+    
+    S_20_words string `json:"s_20_words"`
+    
+    
 }
 
 type ComplexMemoryObject struct {
-	Id string `json:"id"`
-
-	Name string `json:"name"`
-
-	Description string `json:"description"`
-
-	Metadata []any/* Union[string, int32, float32] */ `json:"metadata"`
+    
+    Id string `json:"id"`
+    
+    Name string `json:"name"`
+    
+    Description string `json:"description"`
+    
+    Metadata []Union__string__int64__float64 `json:"metadata"`
+    
+    
 }
 
 type CompoundBigNumbers struct {
-	Big BigNumbers `json:"big"`
-
-	Big_nums []BigNumbers `json:"big_nums"`
-
-	Another BigNumbers `json:"another"`
+    
+    Big BigNumbers `json:"big"`
+    
+    Big_nums []BigNumbers `json:"big_nums"`
+    
+    Another BigNumbers `json:"another"`
+    
+    
 }
 
 type ContactInfo struct {
-	Primary any/* Union[PhoneNumber, EmailAddress] */ `json:"primary"`
-
-	Secondary *any/* Union[PhoneNumber, EmailAddress] */ `json:"secondary"`
+    
+    Primary Union__PhoneNumber__EmailAddress `json:"primary"`
+    
+    Secondary *Union__PhoneNumber__EmailAddress `json:"secondary"`
+    
+    
 }
 
 type CustomTaskResult struct {
-	BookOrder *BookOrder `json:"bookOrder"`
-
-	FlightConfirmation *FlightConfirmation `json:"flightConfirmation"`
-
-	GroceryReceipt *GroceryReceipt `json:"groceryReceipt"`
+    
+    BookOrder *BookOrder `json:"bookOrder"`
+    
+    FlightConfirmation *FlightConfirmation `json:"flightConfirmation"`
+    
+    GroceryReceipt *GroceryReceipt `json:"groceryReceipt"`
+    
+    
 }
 
 type DummyOutput struct {
-	Nonce string `json:"nonce"`
-
-	Nonce2 string `json:"nonce2"`
+    
+    Nonce string `json:"nonce"`
+    
+    Nonce2 string `json:"nonce2"`
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
 }
 
 type DynInputOutput struct {
-	TestKey string `json:"testKey"`
+    
+    TestKey string `json:"testKey"`
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
 }
 
 type DynamicClassOne struct {
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
 }
 
 type DynamicClassTwo struct {
-	Hi string `json:"hi"`
-
-	Some_class SomeClassNestedDynamic `json:"some_class"`
-
-	Status DynEnumOne `json:"status"`
+    
+    Hi string `json:"hi"`
+    
+    Some_class SomeClassNestedDynamic `json:"some_class"`
+    
+    Status DynEnumOne `json:"status"`
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
 }
 
 type DynamicOutput struct {
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
 }
 
 type Earthling struct {
-	Age Checked[int32] `json:"age"`
+    
+    Age Checked[int64] `json:"age"`
+    
+    
 }
 
 type Education struct {
-	Institution string `json:"institution"`
-
-	Location string `json:"location"`
-
-	Degree string `json:"degree"`
-
-	Major []string `json:"major"`
-
-	Graduation_date *string `json:"graduation_date"`
+    
+    Institution string `json:"institution"`
+    
+    Location string `json:"location"`
+    
+    Degree string `json:"degree"`
+    
+    Major []string `json:"major"`
+    
+    Graduation_date *string `json:"graduation_date"`
+    
+    
 }
 
 type Email struct {
-	Subject string `json:"subject"`
-
-	Body string `json:"body"`
-
-	From_address string `json:"from_address"`
+    
+    Subject string `json:"subject"`
+    
+    Body string `json:"body"`
+    
+    From_address string `json:"from_address"`
+    
+    
 }
 
 type EmailAddress struct {
-	Value string `json:"value"`
+    
+    Value string `json:"value"`
+    
+    
 }
 
 type Event struct {
-	Title string `json:"title"`
-
-	Date string `json:"date"`
-
-	Location string `json:"location"`
-
-	Description string `json:"description"`
+    
+    Title string `json:"title"`
+    
+    Date string `json:"date"`
+    
+    Location string `json:"location"`
+    
+    Description string `json:"description"`
+    
+    
 }
 
 type FakeImage struct {
-	Url string `json:"url"`
+    
+    Url string `json:"url"`
+    
+    
 }
 
 type FlightConfirmation struct {
-	ConfirmationNumber string `json:"confirmationNumber"`
-
-	FlightNumber string `json:"flightNumber"`
-
-	DepartureTime string `json:"departureTime"`
-
-	ArrivalTime string `json:"arrivalTime"`
-
-	SeatNumber string `json:"seatNumber"`
+    
+    ConfirmationNumber string `json:"confirmationNumber"`
+    
+    FlightNumber string `json:"flightNumber"`
+    
+    DepartureTime string `json:"departureTime"`
+    
+    ArrivalTime string `json:"arrivalTime"`
+    
+    SeatNumber string `json:"seatNumber"`
+    
+    
 }
 
 type FooAny struct {
-	Planetary_age any/* Union[Martian, Earthling] */ `json:"planetary_age"`
-
-	Certainty Checked[int32] `json:"certainty"`
-
-	Species Checked[string] `json:"species"`
+    
+    Planetary_age Union__Martian__Earthling `json:"planetary_age"`
+    
+    Certainty Checked[int64] `json:"certainty"`
+    
+    Species Checked[string] `json:"species"`
+    
+    
 }
 
 type Forest struct {
-	Trees []Tree `json:"trees"`
+    
+    Trees []Tree `json:"trees"`
+    
+    
 }
 
 type FormatterTest0 struct {
-	Lorem string `json:"lorem"`
-
-	Ipsum string `json:"ipsum"`
+    
+    Lorem string `json:"lorem"`
+    
+    Ipsum string `json:"ipsum"`
+    
+    
 }
 
 type FormatterTest1 struct {
-	Lorem string `json:"lorem"`
-
-	Ipsum string `json:"ipsum"`
+    
+    Lorem string `json:"lorem"`
+    
+    Ipsum string `json:"ipsum"`
+    
+    
 }
 
 type FormatterTest2 struct {
-	Lorem string `json:"lorem"`
-
-	Ipsum string `json:"ipsum"`
+    
+    Lorem string `json:"lorem"`
+    
+    Ipsum string `json:"ipsum"`
+    
+    
 }
 
 type FormatterTest3 struct {
-	Lorem string `json:"lorem"`
-
-	Ipsum string `json:"ipsum"`
+    
+    Lorem string `json:"lorem"`
+    
+    Ipsum string `json:"ipsum"`
+    
+    
 }
 
 type GroceryReceipt struct {
-	ReceiptId string `json:"receiptId"`
-
-	StoreName string `json:"storeName"`
-
-	Items []any/* Union[string, int32, float32] */ `json:"items"`
-
-	TotalAmount float32 `json:"totalAmount"`
+    
+    ReceiptId string `json:"receiptId"`
+    
+    StoreName string `json:"storeName"`
+    
+    Items []Union__string__int64__float64 `json:"items"`
+    
+    TotalAmount float64 `json:"totalAmount"`
+    
+    
 }
 
 type InnerClass struct {
-	Prop1 string `json:"prop1"`
-
-	Prop2 string `json:"prop2"`
-
-	Inner InnerClass2 `json:"inner"`
+    
+    Prop1 string `json:"prop1"`
+    
+    Prop2 string `json:"prop2"`
+    
+    Inner InnerClass2 `json:"inner"`
+    
+    
 }
 
 type InnerClass2 struct {
-	Prop2 int32 `json:"prop2"`
-
-	Prop3 float32 `json:"prop3"`
+    
+    Prop2 int64 `json:"prop2"`
+    
+    Prop3 float64 `json:"prop3"`
+    
+    
 }
 
 type InputClass struct {
-	Key string `json:"key"`
-
-	Key2 string `json:"key2"`
+    
+    Key string `json:"key"`
+    
+    Key2 string `json:"key2"`
+    
+    
 }
 
 type InputClassNested struct {
-	Key string `json:"key"`
-
-	Nested InputClass `json:"nested"`
+    
+    Key string `json:"key"`
+    
+    Nested InputClass `json:"nested"`
+    
+    
 }
 
 type LinkedList struct {
-	Head *Node `json:"head"`
-
-	Len int32 `json:"len"`
+    
+    Head *Node `json:"head"`
+    
+    Len int64 `json:"len"`
+    
+    
 }
 
 type LinkedListAliasNode struct {
-	Value int32 `json:"value"`
-
-	Next *LinkedListAliasNode `json:"next"`
+    
+    Value int64 `json:"value"`
+    
+    Next *LinkedListAliasNode `json:"next"`
+    
+    
 }
 
 type LiteralClassHello struct {
-	Prop string `json:"prop"`
+    
+    Prop string `json:"prop"`
+    
+    
 }
 
 type LiteralClassOne struct {
-	Prop string `json:"prop"`
+    
+    Prop string `json:"prop"`
+    
+    
 }
 
 type LiteralClassTwo struct {
-	Prop string `json:"prop"`
+    
+    Prop string `json:"prop"`
+    
+    
 }
 
 type MalformedConstraints struct {
-	Foo Checked[int32] `json:"foo"`
+    
+    Foo Checked[int64] `json:"foo"`
+    
+    
 }
 
 type MalformedConstraints2 struct {
-	Foo int32 `json:"foo"`
+    
+    Foo int64 `json:"foo"`
+    
+    
 }
 
 // A Martian organism with an age.
 // Such a nice type.
 type Martian struct {
-	// The age of the Martian in Mars years.
-	// So many Mars years.
-	Age Checked[int32] `json:"age"`
+    // The age of the Martian in Mars years.
+// So many Mars years.
+    Age Checked[int64] `json:"age"`
+    
+    
 }
 
 type MemoryObject struct {
-	Id string `json:"id"`
-
-	Name string `json:"name"`
-
-	Description string `json:"description"`
+    
+    Id string `json:"id"`
+    
+    Name string `json:"name"`
+    
+    Description string `json:"description"`
+    
+    
 }
 
 type MergeAttrs struct {
-	Amount Checked[int32] `json:"amount"`
+    
+    Amount Checked[int64] `json:"amount"`
+    
+    
 }
 
 type NamedArgsSingleClass struct {
-	Key string `json:"key"`
-
-	Key_two bool `json:"key_two"`
-
-	Key_three int32 `json:"key_three"`
+    
+    Key string `json:"key"`
+    
+    Key_two bool `json:"key_two"`
+    
+    Key_three int64 `json:"key_three"`
+    
+    
 }
 
 type Nested struct {
-	Prop3 *string `json:"prop3"`
-
-	Prop4 *string `json:"prop4"`
-
-	Prop20 Nested2 `json:"prop20"`
+    
+    Prop3 *string `json:"prop3"`
+    
+    Prop4 *string `json:"prop4"`
+    
+    Prop20 Nested2 `json:"prop20"`
+    
+    
 }
 
 type Nested2 struct {
-	Prop11 *string `json:"prop11"`
-
-	Prop12 *string `json:"prop12"`
+    
+    Prop11 *string `json:"prop11"`
+    
+    Prop12 *string `json:"prop12"`
+    
+    
 }
 
 type NestedBlockConstraint struct {
-	Nbc Checked[BlockConstraint] `json:"nbc"`
+    
+    Nbc Checked[BlockConstraint] `json:"nbc"`
+    
+    
 }
 
 type NestedBlockConstraintForParam struct {
-	Nbcfp BlockConstraintForParam `json:"nbcfp"`
+    
+    Nbcfp BlockConstraintForParam `json:"nbcfp"`
+    
+    
 }
 
 type Node struct {
-	Data int32 `json:"data"`
-
-	Next *Node `json:"next"`
+    
+    Data int64 `json:"data"`
+    
+    Next *Node `json:"next"`
+    
+    
 }
 
 type NodeWithAliasIndirection struct {
-	Value int32 `json:"value"`
-
-	Next *NodeWithAliasIndirection `json:"next"`
+    
+    Value int64 `json:"value"`
+    
+    Next *NodeWithAliasIndirection `json:"next"`
+    
+    
 }
 
 type OptionalListAndMap struct {
-	P *[]string `json:"p"`
-
-	Q *map[string]string `json:"q"`
+    
+    P *[]string `json:"p"`
+    
+    Q *map[string]string `json:"q"`
+    
+    
 }
 
 type OptionalTest_Prop1 struct {
-	Omega_a string `json:"omega_a"`
-
-	Omega_b int32 `json:"omega_b"`
+    
+    Omega_a string `json:"omega_a"`
+    
+    Omega_b int64 `json:"omega_b"`
+    
+    
 }
 
 type OptionalTest_ReturnType struct {
-	Omega_1 *OptionalTest_Prop1 `json:"omega_1"`
-
-	Omega_2 *string `json:"omega_2"`
-
-	Omega_3 []*OptionalTest_CategoryType `json:"omega_3"`
+    
+    Omega_1 *OptionalTest_Prop1 `json:"omega_1"`
+    
+    Omega_2 *string `json:"omega_2"`
+    
+    Omega_3 []*OptionalTest_CategoryType `json:"omega_3"`
+    
+    
 }
 
 type OrderInfo struct {
-	Order_status OrderStatus `json:"order_status"`
-
-	Tracking_number *string `json:"tracking_number"`
-
-	Estimated_arrival_date *string `json:"estimated_arrival_date"`
+    
+    Order_status OrderStatus `json:"order_status"`
+    
+    Tracking_number *string `json:"tracking_number"`
+    
+    Estimated_arrival_date *string `json:"estimated_arrival_date"`
+    
+    
 }
 
 type OriginalA struct {
-	Value int32 `json:"value"`
+    
+    Value int64 `json:"value"`
+    
+    
 }
 
 type OriginalB struct {
-	Value int32 `json:"value"`
+    
+    Value int64 `json:"value"`
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
 }
 
 type Person struct {
-	Name *string `json:"name"`
-
-	Hair_color *Color `json:"hair_color"`
+    
+    Name *string `json:"name"`
+    
+    Hair_color *Color `json:"hair_color"`
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
 }
 
 type PhoneNumber struct {
-	Value string `json:"value"`
+    
+    Value string `json:"value"`
+    
+    
 }
 
 type Quantity struct {
-	Amount any/* Union[int32, float32] */ `json:"amount"`
-
-	Unit *string `json:"unit"`
+    
+    Amount Union__int64__float64 `json:"amount"`
+    
+    Unit *string `json:"unit"`
+    
+    
 }
 
 type RaysData struct {
-	DataType DataType `json:"dataType"`
-
-	Value any/* Union[Resume, Event] */ `json:"value"`
+    
+    DataType DataType `json:"dataType"`
+    
+    Value Union__Resume__Event `json:"value"`
+    
+    
 }
 
 type ReceiptInfo struct {
-	Items []ReceiptItem `json:"items"`
-
-	Total_cost *float32 `json:"total_cost"`
-
-	Venue any/* Union[string, string] */ `json:"venue"`
+    
+    Items []ReceiptItem `json:"items"`
+    
+    Total_cost *float64 `json:"total_cost"`
+    
+    Venue Union__string_barisa__string_ox_burger `json:"venue"`
+    
+    
 }
 
 type ReceiptItem struct {
-	Name string `json:"name"`
-
-	Description *string `json:"description"`
-
-	Quantity int32 `json:"quantity"`
-
-	Price float32 `json:"price"`
+    
+    Name string `json:"name"`
+    
+    Description *string `json:"description"`
+    
+    Quantity int64 `json:"quantity"`
+    
+    Price float64 `json:"price"`
+    
+    
 }
 
 type Recipe struct {
-	Ingredients map[string]Quantity `json:"ingredients"`
-
-	Recipe_type any/* Union[string, string] */ `json:"recipe_type"`
+    
+    Ingredients map[string]Quantity `json:"ingredients"`
+    
+    Recipe_type Union__string_breakfast__string_dinner `json:"recipe_type"`
+    
+    
 }
 
 type RecursiveAliasDependency struct {
-	Value JsonValue `json:"value"`
+    
+    Value JsonValue `json:"value"`
+    
+    
 }
 
 type Resume struct {
-	Name string `json:"name"`
-
-	Email string `json:"email"`
-
-	Phone string `json:"phone"`
-
-	Experience []Education `json:"experience"`
-
-	Education []string `json:"education"`
-
-	Skills []string `json:"skills"`
+    
+    Name string `json:"name"`
+    
+    Email string `json:"email"`
+    
+    Phone string `json:"phone"`
+    
+    Experience []Education `json:"experience"`
+    
+    Education []string `json:"education"`
+    
+    Skills []string `json:"skills"`
+    
+    
 }
 
 type Schema struct {
-	Prop1 *string `json:"prop1"`
-
-	Prop2 any/* Union[Nested, string] */ `json:"prop2"`
-
-	Prop5 []*string `json:"prop5"`
-
-	Prop6 any/* Union[string, []Nested] */ `json:"prop6"`
-
-	Nested_attrs []*any/* Union[string, Nested] */ `json:"nested_attrs"`
-
-	Parens *string `json:"parens"`
-
-	Other_group any/* Union[string, int32] */ `json:"other_group"`
+    
+    Prop1 *string `json:"prop1"`
+    
+    Prop2 Union__Nested__string `json:"prop2"`
+    
+    Prop5 []*string `json:"prop5"`
+    
+    Prop6 Union__string__List__Nested `json:"prop6"`
+    
+    Nested_attrs []*Union__string__Nested `json:"nested_attrs"`
+    
+    Parens *string `json:"parens"`
+    
+    Other_group Union__string__int64 `json:"other_group"`
+    
+    
 }
 
 type SearchParams struct {
-	DateRange *int32 `json:"dateRange"`
-
-	Location []string `json:"location"`
-
-	JobTitle *WithReasoning `json:"jobTitle"`
-
-	Company *WithReasoning `json:"company"`
-
-	Description []WithReasoning `json:"description"`
-
-	Tags []any/* Union[Tag, string] */ `json:"tags"`
+    
+    DateRange *int64 `json:"dateRange"`
+    
+    Location []string `json:"location"`
+    
+    JobTitle *WithReasoning `json:"jobTitle"`
+    
+    Company *WithReasoning `json:"company"`
+    
+    Description []WithReasoning `json:"description"`
+    
+    Tags []Union__Tag__string `json:"tags"`
+    
+    
 }
 
 type SemanticContainer struct {
-	Sixteen_digit_number int32 `json:"sixteen_digit_number"`
-
-	String_with_twenty_words string `json:"string_with_twenty_words"`
-
-	Class_1 ClassWithoutDone `json:"class_1"`
-
-	Class_2 ClassWithBlockDone `json:"class_2"`
-
-	Class_done_needed ClassWithBlockDone `json:"class_done_needed"`
-
-	Class_needed ClassWithoutDone `json:"class_needed"`
-
-	Three_small_things []SmallThing `json:"three_small_things"`
-
-	Final_string string `json:"final_string"`
+    
+    Sixteen_digit_number int64 `json:"sixteen_digit_number"`
+    
+    String_with_twenty_words string `json:"string_with_twenty_words"`
+    
+    Class_1 ClassWithoutDone `json:"class_1"`
+    
+    Class_2 ClassWithBlockDone `json:"class_2"`
+    
+    Class_done_needed ClassWithBlockDone `json:"class_done_needed"`
+    
+    Class_needed ClassWithoutDone `json:"class_needed"`
+    
+    Three_small_things []SmallThing `json:"three_small_things"`
+    
+    Final_string string `json:"final_string"`
+    
+    
 }
 
 type SimpleTag struct {
-	Field string `json:"field"`
+    
+    Field string `json:"field"`
+    
+    
 }
 
 type SmallThing struct {
-	I_16_digits int32 `json:"i_16_digits"`
-
-	I_8_digits int32 `json:"i_8_digits"`
+    
+    I_16_digits int64 `json:"i_16_digits"`
+    
+    I_8_digits int64 `json:"i_8_digits"`
+    
+    
 }
 
 type SomeClassNestedDynamic struct {
-	Hi string `json:"hi"`
+    
+    Hi string `json:"hi"`
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
 }
 
 type StringToClassEntry struct {
-	Word string `json:"word"`
+    
+    Word string `json:"word"`
+    
+    
 }
 
 type TestClassAlias struct {
-	Key string `json:"key"`
-
-	Key2 string `json:"key2"`
-
-	Key3 string `json:"key3"`
-
-	Key4 string `json:"key4"`
-
-	Key5 string `json:"key5"`
+    
+    Key string `json:"key"`
+    
+    Key2 string `json:"key2"`
+    
+    Key3 string `json:"key3"`
+    
+    Key4 string `json:"key4"`
+    
+    Key5 string `json:"key5"`
+    
+    
 }
 
 type TestClassNested struct {
-	Prop1 string `json:"prop1"`
-
-	Prop2 InnerClass `json:"prop2"`
+    
+    Prop1 string `json:"prop1"`
+    
+    Prop2 InnerClass `json:"prop2"`
+    
+    
 }
 
 type TestClassWithEnum struct {
-	Prop1 string `json:"prop1"`
-
-	Prop2 EnumInClass `json:"prop2"`
+    
+    Prop1 string `json:"prop1"`
+    
+    Prop2 EnumInClass `json:"prop2"`
+    
+    
 }
 
 type TestMemoryOutput struct {
-	Items []any/* Union[MemoryObject, ComplexMemoryObject, AnotherObject] */ `json:"items"`
-
-	More_items []any/* Union[MemoryObject, ComplexMemoryObject, AnotherObject] */ `json:"more_items"`
+    
+    Items []Union__MemoryObject__ComplexMemoryObject__AnotherObject `json:"items"`
+    
+    More_items []Union__MemoryObject__ComplexMemoryObject__AnotherObject `json:"more_items"`
+    
+    
 }
 
 type TestOutputClass struct {
-	Prop1 string `json:"prop1"`
-
-	Prop2 int32 `json:"prop2"`
+    
+    Prop1 string `json:"prop1"`
+    
+    Prop2 int64 `json:"prop2"`
+    
+    
 }
 
 type Tree struct {
-	Data int32 `json:"data"`
-
-	Children Forest `json:"children"`
+    
+    Data int64 `json:"data"`
+    
+    Children Forest `json:"children"`
+    
+    
 }
 
 type TwoStoriesOneTitle struct {
-	Title string `json:"title"`
-
-	Story_a string `json:"story_a"`
-
-	Story_b string `json:"story_b"`
+    
+    Title string `json:"title"`
+    
+    Story_a string `json:"story_a"`
+    
+    Story_b string `json:"story_b"`
+    
+    
 }
 
 type UnionTest_ReturnType struct {
-	Prop1 any/* Union[string, bool] */ `json:"prop1"`
-
-	Prop2 []any/* Union[float32, bool] */ `json:"prop2"`
-
-	Prop3 any/* Union[[]bool, []int32] */ `json:"prop3"`
+    
+    Prop1 Union__string__bool `json:"prop1"`
+    
+    Prop2 []Union__float64__bool `json:"prop2"`
+    
+    Prop3 Union__List__bool__List__int64 `json:"prop3"`
+    
+    
 }
 
 // my docs
 type UniverseQuestion struct {
-	Question string `json:"question"`
-
-	Answer string `json:"answer"`
+    
+    Question string `json:"question"`
+    
+    Answer string `json:"answer"`
+    
+    
 }
 
 type UniverseQuestionInput struct {
-	Question string `json:"question"`
+    
+    Question string `json:"question"`
+    
+    
 }
 
 type WithReasoning struct {
-	Value string `json:"value"`
-
-	Reasoning string `json:"reasoning"`
+    
+    Value string `json:"value"`
+    
+    Reasoning string `json:"reasoning"`
+    
+    
 }
 
 type JsonArray []JsonValue
 
-type JsonEntry any /* Union[SimpleTag, JsonTemplate] */
+type JsonEntry Union__SimpleTag__JsonTemplate
 
 type JsonObject map[string]JsonValue
 
 type JsonTemplate map[string]JsonEntry
 
-type JsonValue any /* Union[int32, string, bool, float32, JsonObject, JsonArray] */
+type JsonValue Union__int64__string__bool__float64__JsonObject__JsonArray
 
 type RecAliasOne RecAliasTwo
 

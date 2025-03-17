@@ -27,8 +27,8 @@ impl ToGo for TypeValue {
     fn to_go(&self) -> String {
         match self {
             TypeValue::Bool => "bool",
-            TypeValue::Float => "float32",
-            TypeValue::Int => "int32",
+            TypeValue::Float => "float64",
+            TypeValue::Int => "int64",
             TypeValue::String => "string",
             TypeValue::Null => "nil",
             // TODO: add media types
