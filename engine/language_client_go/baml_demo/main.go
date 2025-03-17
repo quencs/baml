@@ -13,6 +13,7 @@ func main() {
 
 	fmt.Println("Streaming TestOllama")
 	count := 0
+
 	for result := range b.TestOllama.Stream(ctx) {
 		fmt.Println("--------------------------------")
 		fmt.Println("Count:", count)

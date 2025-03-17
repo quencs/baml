@@ -307,7 +307,8 @@ mod tests {
     use super::*;
 
     fn mk_ir() -> IntermediateRepr {
-        make_test_ir(r#"
+        make_test_ir(
+            r#"
 class Greg {
   inner Foo? @stream.not_null @stream.with_state @check(foo, {{ true }})
 }
@@ -337,11 +338,24 @@ class Foo {
 //   inner_done_str string
 //   @@stream.done
 // }
-        "#).unwrap()
+        "#,
+        )
+        .unwrap()
     }
 
     fn mk_gen() -> GeneratorArgs {
-        GeneratorArgs::new("baml_client", "baml_src", vec![], "no_version".to_string(), true, GeneratorDefaultClientMode::Async, Vec::new(), Some(GeneratorOutputType::PythonPydantic)).unwrap()
+        GeneratorArgs::new(
+            "baml_client",
+            "baml_src",
+            vec![],
+            "no_version".to_string(),
+            true,
+            GeneratorDefaultClientMode::Async,
+            Vec::new(),
+            Some(GeneratorOutputType::PythonPydantic),
+            None,
+        )
+        .unwrap()
     }
 
     #[test]

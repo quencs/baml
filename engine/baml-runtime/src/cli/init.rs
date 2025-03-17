@@ -92,6 +92,7 @@ impl InitArgs {
                     None => "REST clients".to_string(),
                 },
                 GeneratorOutputType::TypescriptReact => "TypeScript React clients".to_string(),
+                GeneratorOutputType::Go => "Go clients".to_string(),
             }
         );
         log::info!(
@@ -102,6 +103,7 @@ impl InitArgs {
                 GeneratorOutputType::RubySorbet => "ruby",
                 GeneratorOutputType::OpenApi => "openapi",
                 GeneratorOutputType::TypescriptReact => "typescript-react",
+                GeneratorOutputType::Go => "go",
             }
         );
 
@@ -115,8 +117,12 @@ fn generate_main_baml_content(
     openapi_client_type: Option<&str>,
 ) -> String {
     let default_client_mode = match output_type {
-        GeneratorOutputType::OpenApi | GeneratorOutputType::RubySorbet => "".to_string(),
-        GeneratorOutputType::PythonPydantic | GeneratorOutputType::Typescript | GeneratorOutputType::TypescriptReact => format!(
+        GeneratorOutputType::OpenApi
+        | GeneratorOutputType::RubySorbet
+        | GeneratorOutputType::Go => "".to_string(),
+        GeneratorOutputType::PythonPydantic
+        | GeneratorOutputType::Typescript
+        | GeneratorOutputType::TypescriptReact => format!(
             r#"
     // Valid values: "sync", "async"
     // This controls what `b.FunctionName()` will be (sync or async).

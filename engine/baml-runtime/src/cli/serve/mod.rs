@@ -623,6 +623,7 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
             GeneratorDefaultClientMode::Sync,
             Vec::new(),
             None,
+            None,
         )
         .map_err(|_| BamlError::InternalError {
             message: "Failed to make placeholder generator".to_string(),
@@ -754,20 +755,20 @@ mod tests {
             "client_registry should be Some"
         );
         let client_registry = baml_options.client_registry.unwrap();
-        
-        
+
         let provider = ClientProvider::OpenAI(OpenAIClientProviderVariant::Base);
         let retry_policy = None;
-        let options = BamlMap::from_iter(vec![(
-            "model".to_string(),
-            BamlValue::String("gpt-4o".to_string()),
-        ), (
-            "api_key".to_string(),
-            BamlValue::String("[redacted]".to_string()),
-        ), (
-            "base_url".to_string(),
-            BamlValue::String("[redacted]".to_string()),
-        ),]);
+        let options = BamlMap::from_iter(vec![
+            ("model".to_string(), BamlValue::String("gpt-4o".to_string())),
+            (
+                "api_key".to_string(),
+                BamlValue::String("[redacted]".to_string()),
+            ),
+            (
+                "base_url".to_string(),
+                BamlValue::String("[redacted]".to_string()),
+            ),
+        ]);
         let client_property =
             ClientProperty::new("testing".into(), provider, retry_policy, options);
 

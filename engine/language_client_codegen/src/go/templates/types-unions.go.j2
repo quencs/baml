@@ -1,0 +1,24 @@
+package types
+
+{% for union in unions %}
+type {{ union.name }} struct {
+    variant string
+    {% for variant in union.variants %}
+    variant_{{ variant.0 }} *{{ variant.1 }}
+    {% endfor %}
+}
+
+{% for variant in union.variants %}
+func (u *{{ union.name }}) Is{{ variant.0|exported_name }}() bool {
+    return u.variant == "{{ variant.0 }}"
+}
+
+func (u *{{ union.name }}) {{ variant.0|exported_name }}() *{{ variant.1 }} {
+    if !u.Is{{ variant.0|exported_name }}() {
+        return nil
+    }
+    return u.variant_{{ variant.0 }}
+}
+{% endfor %}
+
+{% endfor %}

@@ -4593,13 +4593,10 @@ components:
             title: TestOllamaRequest
             type: object
             properties:
-              input:
-                type: string
               __baml_options__:
                 nullable: true
                 $ref: '#/components/schemas/BamlOptions'
-            required:
-            - input
+            required: []
             additionalProperties: false
     TestOpenAI:
       required: true

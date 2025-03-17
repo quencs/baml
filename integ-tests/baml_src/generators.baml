@@ -28,3 +28,11 @@ generator openapi {
   version "0.76.2"
   on_generate "rm .gitignore"
 }
+
+
+generator lang_go {
+  output_type go
+  output_dir "../go"
+  version "0.76.2"
+  client_package_name "example.com/integ-tests"
+}

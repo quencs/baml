@@ -2732,15 +2732,12 @@ export const TestNamedArgsLiteralString = async (
  * This action initiates a streaming response by calling the corresponding
  * BAML stream function. The returned stream yields incremental updates.
  *
- * @param { string } input - Input parameter.
  *
  * @returns {ReadableStream<Uint8Array>} A stream that yields incremental updates from the action.
  */
 export const TestOllama = async (
-  input: string,
 ): Promise<ReadableStream<Uint8Array>> => {
   const stream = b.stream.TestOllama(
-    input,
   );
   return Promise.resolve(stream.toStreamable());
 };

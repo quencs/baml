@@ -2866,14 +2866,14 @@ export class BamlAsyncClient {
   }
   
   async TestOllama(
-      input: string,
+      
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
   ): Promise<string> {
     try {
       const raw = await this.runtime.callFunction(
         "TestOllama",
         {
-          "input": input
+          
         },
         this.ctx_manager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -6918,14 +6918,14 @@ class BamlStreamClient {
   }
   
   TestOllama(
-      input: string,
+      
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
   ): BamlStream<string, string> {
     try {
       const raw = this.runtime.streamFunction(
         "TestOllama",
         {
-          "input": input
+          
         },
         undefined,
         this.ctx_manager.cloneContext(),

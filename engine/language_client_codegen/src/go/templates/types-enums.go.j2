@@ -1,0 +1,72 @@
+package types
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+{# enums -#}
+{% for enum in enums %}
+{%- if let Some(docstring) = enum.docstring %}
+{{docstring}}
+{%- endif %}
+type {{ enum.name }} string
+
+const (
+    {% if enum.values.is_empty() %}
+    // no values defined for {{ enum.name }}
+    {%- else %}
+    {%- for (value, m_docstring) in enum.values %}
+    {%- if let Some(docstring) = m_docstring %}
+    {{ docstring }}
+    {%- endif %}
+    {{ enum.name }}{{ value }} {{ enum.name }} = "{{ value }}"
+    {%- endfor %}
+    {%- endif %}
+)
+
+// Values returns all allowed values for the {{ enum.name }} type.
+func ({{ enum.name }}) Values() []{{ enum.name }} {
+	return []{{ enum.name }}{
+		{%- for (value, _) in enum.values %}
+		{{ enum.name }}{{ value }},
+		{%- endfor %}
+	}
+}
+
+// IsValid checks whether the given {{ enum.name }} value is valid.
+func (e {{ enum.name }}) IsValid() bool {
+  {% if enum.dynamic %}
+  // dynamic enums are always valid
+  return true
+  {% else %}
+  for _, v := range e.Values() {
+      if e == v {
+          return true
+      }
+  }
+  return false
+  {% endif %}
+}
+
+// MarshalJSON customizes JSON marshaling for {{ enum.name }}.
+func (e {{ enum.name }}) MarshalJSON() ([]byte, error) {
+    if !e.IsValid() {
+        return nil, fmt.Errorf("invalid {{ enum.name }}: %q", e)
+    }
+    return json.Marshal(string(e))
+}
+
+// UnmarshalJSON customizes JSON unmarshaling for {{ enum.name }}.
+func (e *{{ enum.name }}) UnmarshalJSON(data []byte) error {
+    var s string
+    if err := json.Unmarshal(data, &s); err != nil {
+        return err
+    }
+    *e = {{ enum.name }}(s)
+    if !e.IsValid() {
+        return fmt.Errorf("invalid {{ enum.name }}: %q", s)
+    }
+    return nil
+}
+{% endfor %}

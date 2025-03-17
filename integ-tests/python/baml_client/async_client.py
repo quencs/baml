@@ -3295,7 +3295,7 @@ class BamlAsyncClient:
     
     async def TestOllama(
         self,
-        input: str,
+        
         baml_options: BamlCallOptions = {},
     ) -> str:
       __tb__ = baml_options.get("tb", None)
@@ -3308,7 +3308,7 @@ class BamlAsyncClient:
       raw = await self.__runtime.call_function(
         "TestOllama",
         {
-          "input": input,
+          
         },
         self.__ctx_manager.get(),
         tb,
@@ -7979,7 +7979,7 @@ class BamlStreamClient:
     
     def TestOllama(
         self,
-        input: str,
+        
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlStream[Optional[str], str]:
       __tb__ = baml_options.get("tb", None)
@@ -7992,7 +7992,6 @@ class BamlStreamClient:
       raw = self.__runtime.stream_function(
         "TestOllama",
         {
-          "input": input,
         },
         None,
         self.__ctx_manager.get(),

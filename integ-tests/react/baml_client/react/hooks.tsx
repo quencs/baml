@@ -7410,8 +7410,6 @@ export function useTestNamedArgsLiteralString(
  *
  * **Input Types:**
  *
- * - input: string
- *
  *
  * **Return Type:**
  * - **Non‑streaming:** string

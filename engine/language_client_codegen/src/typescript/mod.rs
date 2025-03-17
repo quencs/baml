@@ -35,6 +35,7 @@ mod framework {
                 Some(GeneratorOutputType::OpenApi) => None,
                 Some(GeneratorOutputType::PythonPydantic) => None,
                 Some(GeneratorOutputType::RubySorbet) => None,
+                Some(GeneratorOutputType::Go) => None,
             }
         }
     }

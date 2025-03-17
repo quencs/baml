@@ -2867,14 +2867,14 @@ export class BamlSyncClient {
   }
   
   TestOllama(
-      input: string,
+      
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
   ): string {
     try {
     const raw = this.runtime.callFunctionSync(
       "TestOllama",
       {
-        "input": input
+        
       },
       this.ctx_manager.cloneContext(),
       __baml_options__?.tb?.__tb(),

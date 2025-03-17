@@ -1,0 +1,89 @@
+package baml_client
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"strings"
+
+	"{{ package_name }}/baml_client/types"
+	baml "github.com/boundaryml/baml/go"
+)
+
+var bamlRuntime *baml.BamlRuntime
+
+func init() {
+	var env_vars = map[string]string{}
+	for _, env_var := range os.Environ() {
+		key, value, _ := strings.Cut(env_var, "=")
+		env_vars[key] = value
+	}
+	runtime, err := baml.CreateRuntime("./baml_src", getBamlFiles(), env_vars)
+	if err != nil {
+		panic(err)
+	}
+	bamlRuntime = &runtime
+}
+
+type stream struct {}
+
+var Stream = &stream{}
+
+{% for fn in funcs %}
+
+func {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
+        , {{name}} {{type}}
+        {%- endfor %}) (*{{ fn.return_type }}, error) {
+	arg_names := []string{ {% for (name, type) in fn.args -%}"{{name}}",{% endfor %} }
+	raw, err := bamlRuntime.CallFunction(ctx, "{{ fn.name }}", arg_names{% for (name, type) in fn.args -%}
+        , {{name}}
+		{%- endfor %}, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var ret {{ fn.return_type }}
+	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
+		return nil, err
+	}
+
+	return &ret, nil
+}
+
+func (*stream) {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
+		, {{name}} {{type}}
+		{%- endfor %}) <-chan {{ fn.return_type }} {
+	arg_names := []string{ {% for (name, type) in fn.args -%}"{{name}}",{% endfor %} }
+	channel := make(chan {{ fn.return_type }})
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "{{ fn.name }}", arg_names{% for (name, type) in fn.args -%}
+        , {{name}}
+		{%- endfor %}, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				var ret {{ fn.return_type }}
+				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+					close(channel)
+					return
+				}
+				channel <- ret
+			}
+		}
+	}()
+	return channel
+}
+
+{% endfor %}

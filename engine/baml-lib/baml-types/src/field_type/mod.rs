@@ -1,9 +1,10 @@
 use crate::BamlMediaType;
 use crate::Constraint;
+use itertools::Itertools;
 
 mod builder;
 
-#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, Eq, Hash)]
 pub enum TypeValue {
     String,
     Int,
@@ -46,7 +47,7 @@ impl std::fmt::Display for TypeValue {
 }
 
 /// Subset of [`crate::BamlValue`] allowed for literal type definitions.
-#[derive(serde::Serialize, Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(serde::Serialize, Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub enum LiteralValue {
     String(String),
     Int(i64),
@@ -74,7 +75,7 @@ impl std::fmt::Display for LiteralValue {
 }
 
 /// FieldType represents the type of either a class field or a function arg.
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FieldType {
     Primitive(TypeValue),
     Enum(String),
@@ -133,6 +134,46 @@ impl std::fmt::Display for FieldType {
 }
 
 impl FieldType {
+    fn flatten(&self) -> Vec<FieldType> {
+        match self {
+            FieldType::Union(inner) => inner.iter().flat_map(|t| t.flatten()).collect(),
+            FieldType::Optional(inner) => {
+                let mut values = inner.flatten();
+                values.push(FieldType::Primitive(TypeValue::Null));
+                values
+            }
+            _ => vec![self.clone()],
+        }
+    }
+
+    pub fn simplify(&self) -> FieldType {
+        match self {
+            FieldType::Union(inner) => {
+                let flattened = inner.iter().flat_map(|t| t.flatten()).collect::<Vec<_>>();
+                let unique = flattened.into_iter().unique().collect::<Vec<_>>();
+                let has_null = unique.contains(&FieldType::Primitive(TypeValue::Null));
+                // if the union contains null, we'll detect that here.
+                let unique_without_null = unique
+                    .into_iter()
+                    .filter(|t| t != &FieldType::Primitive(TypeValue::Null))
+                    .collect::<Vec<_>>();
+
+                let simplified = match unique_without_null.len() {
+                    0 => return FieldType::Primitive(TypeValue::Null),
+                    1 => unique_without_null[0].clone(),
+                    _ => FieldType::Union(unique_without_null),
+                };
+
+                if has_null {
+                    FieldType::Optional(Box::new(simplified))
+                } else {
+                    simplified
+                }
+            }
+            _ => self.clone(),
+        }
+    }
+
     pub fn is_primitive(&self) -> bool {
         match self {
             FieldType::Primitive(_) => true,
@@ -173,7 +214,7 @@ impl FieldType {
 }
 
 /// Metadata on a type that determines how it behaves under streaming conditions.
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, Eq, Hash)]
 pub struct StreamingBehavior {
     /// A type with the `done` property will not be visible in a stream until
     /// we are certain that it is completely available (i.e. the parser did

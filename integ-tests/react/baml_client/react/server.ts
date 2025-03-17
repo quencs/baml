@@ -2591,15 +2591,12 @@ export const TestNamedArgsLiteralString = async (
  * This server action calls the underlying BAML function "TestOllama"
  * with the specified parameters.
  *
- * @param { string } input - Input parameter.
  *
  * @returns {Promise<string>} A promise that resolves with the result of the action.
  */
 export const TestOllama = async (
-  input: string,
 ): Promise<string> => {
   return b.TestOllama(
-    input,
   );
 };
 
