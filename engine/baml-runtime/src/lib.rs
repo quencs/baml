@@ -13,6 +13,9 @@ pub mod request;
 mod runtime;
 pub mod runtime_interface;
 pub mod test_constraints;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod test_executor;
+
 pub mod tracing;
 pub mod tracingv2;
 pub mod type_builder;
@@ -34,6 +37,8 @@ use baml_types::BamlValue;
 use baml_types::Constraint;
 use cfg_if::cfg_if;
 use client_registry::ClientRegistry;
+use futures::future::join;
+use futures::future::join_all;
 use indexmap::IndexMap;
 use internal::llm_client::llm_provider::LLMProvider;
 use internal::llm_client::orchestrator::OrchestrationScope;
