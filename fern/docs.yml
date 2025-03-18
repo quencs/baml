@@ -145,6 +145,9 @@ navigation:
 
       - section: BAML Advanced
         contents:
+          - page: Collector (track tokens)
+            icon: fa-regular fa-wave-pulse
+            path: 01-guide/05-baml-advanced/collector.mdx
           - page: LLM Client Registry
             icon: fa-regular fa-gears
             path: 01-guide/05-baml-advanced/client-registry.mdx
@@ -417,6 +420,11 @@ navigation:
       - section: Generated baml_client
         slug: baml_client
         contents:
+          - page: with_options(..)
+            path: 03-reference/baml_client/with_options.mdx
+          - page: Collector
+            path: 03-reference/baml_client/collector.mdx
+            slug: collector
           - page: logging / env vars
             slug: config
             path: 03-reference/baml_client/config.mdx
@@ -508,7 +516,7 @@ navigation:
             path: 03-reference/baml/clients/strategy/fallback.mdx
           - page: "Round Robin"
             path: 03-reference/baml/clients/strategy/round-robin.mdx
-
+  
       - section: Prompt Syntax
         contents:
           - page: What is jinja?
