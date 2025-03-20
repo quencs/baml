@@ -1,9 +1,9 @@
 package types
 
 import (
-  "encoding/json"
-  "fmt"
-  baml "github.com/boundaryml/baml/go"
+	_"encoding/json"
+	_ "fmt"
+	_ "github.com/boundaryml/baml/go"
 )
 
 
@@ -56,6 +56,21 @@ type {{ class.name }} struct {
     DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
     {% endif %}
 }
+
+func (c *{{ class.name }}) BamlDecode(decodedMap map[string]any) {
+	{% if class.fields|length > 0 %}
+	for name, value := range decodedMap {
+		switch name {
+		{% for (name, type, _) in class.fields %}
+		case "{{ name|exported_name }}":
+			coercedValue := value.({{ type|type_without_pointer }})
+			c.{{ name|exported_name }} = {% if type|is_pointer %}&{% endif %}coercedValue
+		{% endfor %}
+		}
+	}
+	{% endif %}
+}
+
 {% endfor %}
 
 

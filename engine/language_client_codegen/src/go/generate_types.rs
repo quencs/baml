@@ -31,6 +31,13 @@ pub(crate) struct GoUnions {
     unions: Vec<GoUnion>,
 }
 
+#[derive(askama::Template)]
+#[template(path = "decoder.go.j2", escape = "none")]
+pub(crate) struct GoDecoder<'ir> {
+    package_name: String,
+    classes: Vec<GoClass<'ir>>,
+}
+
 // Any filter defined in the module `filters` is accessible in your template.
 mod filters {
     // This filter does not have extra arguments
@@ -40,6 +47,22 @@ mod filters {
         let first_letter = s.chars().next().unwrap().to_uppercase();
         let rest = s[1..].to_string();
         Ok(format!("{}{}", first_letter, rest))
+    }
+
+    pub fn length<T>(v: &Vec<T>) -> Result<usize, askama::Error> {
+        Ok(v.len())
+    }
+
+    pub fn is_pointer(s: &str) -> Result<bool, askama::Error> {
+        Ok(s.starts_with("*"))
+    }
+
+    pub fn type_without_pointer(s: &str) -> Result<String, askama::Error> {
+        if s.starts_with("*") {
+            Ok(s[1..].to_string())
+        } else {
+            Ok(s.to_string())
+        }
     }
 }
 
@@ -102,6 +125,19 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoEnums
     ) -> Result<GoEnums<'ir>> {
         Ok(GoEnums {
             enums: ir.walk_enums().map(GoEnum::from).collect::<Vec<_>>(),
+        })
+    }
+}
+
+impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoDecoder<'ir> {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        (ir, gen): (&'ir IntermediateRepr, &'_ crate::GeneratorArgs),
+    ) -> Result<GoDecoder<'ir>> {
+        Ok(GoDecoder {
+            package_name: gen.client_package_name.as_ref().unwrap().clone(),
+            classes: ir.walk_classes().map(GoClass::from).collect::<Vec<_>>(),
         })
     }
 }
@@ -356,9 +392,9 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 // The enum owns its own dynamicism.
                 format!("{module_prefix}{name}")
             }
-            FieldType::RecursiveTypeAlias(name) => format!("{name}"),
+            FieldType::RecursiveTypeAlias(name) => format!("{module_prefix}{name}"),
             FieldType::Literal(value) => to_go_literal(value),
-            FieldType::Class(name) => format!("{name}"),
+            FieldType::Class(name) => format!("{module_prefix}{name}"),
             FieldType::List(inner) => format!("[]{}", inner.to_type_ref(ir, use_module_prefix)),
             FieldType::Map(key, value) => {
                 format!(
@@ -368,7 +404,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 )
             }
             FieldType::Primitive(r#type) => r#type.to_go(),
-            FieldType::Union(inner) => self.to_union_name(),
+            FieldType::Union(inner) => format!("{module_prefix}{}", self.to_union_name()),
             FieldType::Tuple(inner) => format!(
                 "Tuple[{}]",
                 inner
@@ -383,7 +419,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
                 Some(_) => {
                     let base_type_ref = base.to_type_ref(ir, use_module_prefix);
-                    format!("Checked[{base_type_ref}]")
+                    format!("{module_prefix}Checked[{base_type_ref}]")
                 }
                 None => base.to_type_ref(ir, use_module_prefix),
             },

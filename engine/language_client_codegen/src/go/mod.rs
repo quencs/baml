@@ -43,6 +43,7 @@ pub(crate) fn generate(
 
     collector.add_template::<GoClient>("client.go", (ir, generator))?;
     collector.add_template::<InlinedBaml>("inlinedbaml.go", (ir, generator))?;
+    collector.add_template::<generate_types::GoDecoder>("decoder.go", (ir, generator))?;
     collector.add_template::<generate_types::GoTypes>("types/types.go", (ir, generator))?;
     collector.add_template::<generate_types::GoEnums>("types/enums.go", (ir, generator))?;
     collector.add_template::<generate_types::GoUnions>("types/unions.go", (ir, generator))?;

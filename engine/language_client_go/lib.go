@@ -1,7 +1,7 @@
 package main
 
 /*
-#cgo LDFLAGS: ./lib/libhello.dylib -ldl
+#cgo LDFLAGS: ./lib/libbaml.dylib -ldl
 #include <stdlib.h>
 #include <stdbool.h>
 #include "./lib/baml.h"

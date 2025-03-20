@@ -1,9 +1,6 @@
 package stream_types
 
 import (
-  "encoding/json"
-  "fmt"
-  baml "github.com/boundaryml/baml/go"
 	"{{ package_name }}/baml_client/types"
 )
 
@@ -20,7 +17,7 @@ func (StreamStateType) Values() []StreamStateType {
 	return []StreamStateType{
 		StreamStatePending,
 		StreamStateIncomplete,
-        StreamStateComplete,
+		StreamStateComplete,
 	}
 }
 

@@ -11,9 +11,9 @@
 package types
 
 import (
-  "encoding/json"
-  "fmt"
-  baml "github.com/boundaryml/baml/go"
+	_"encoding/json"
+	_ "fmt"
+	_ "github.com/boundaryml/baml/go"
 )
 
 
@@ -63,6 +63,29 @@ type AnotherObject struct {
     
 }
 
+func (c *AnotherObject) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Id":
+			coercedValue := value.(string)
+			c.Id = coercedValue
+		
+		case "Thingy2":
+			coercedValue := value.(string)
+			c.Thingy2 = coercedValue
+		
+		case "Thingy3":
+			coercedValue := value.(string)
+			c.Thingy3 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type BigNumbers struct {
     
     A int64 `json:"a"`
@@ -71,6 +94,25 @@ type BigNumbers struct {
     
     
 }
+
+func (c *BigNumbers) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "A":
+			coercedValue := value.(int64)
+			c.A = coercedValue
+		
+		case "B":
+			coercedValue := value.(float64)
+			c.B = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type BinaryNode struct {
     
@@ -83,12 +125,50 @@ type BinaryNode struct {
     
 }
 
+func (c *BinaryNode) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Data":
+			coercedValue := value.(int64)
+			c.Data = coercedValue
+		
+		case "Left":
+			coercedValue := value.(BinaryNode)
+			c.Left = &coercedValue
+		
+		case "Right":
+			coercedValue := value.(BinaryNode)
+			c.Right = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type Blah struct {
     
     Prop4 *string `json:"prop4"`
     
     
 }
+
+func (c *Blah) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop4":
+			coercedValue := value.(string)
+			c.Prop4 = &coercedValue
+		
+		}
+	}
+	
+}
+
 
 type BlockConstraint struct {
     
@@ -99,6 +179,25 @@ type BlockConstraint struct {
     
 }
 
+func (c *BlockConstraint) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Foo":
+			coercedValue := value.(int64)
+			c.Foo = coercedValue
+		
+		case "Bar":
+			coercedValue := value.(string)
+			c.Bar = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type BlockConstraintForParam struct {
     
     Bcfp int64 `json:"bcfp"`
@@ -107,6 +206,25 @@ type BlockConstraintForParam struct {
     
     
 }
+
+func (c *BlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Bcfp":
+			coercedValue := value.(int64)
+			c.Bcfp = coercedValue
+		
+		case "Bcfp2":
+			coercedValue := value.(string)
+			c.Bcfp2 = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type BookOrder struct {
     
@@ -121,12 +239,54 @@ type BookOrder struct {
     
 }
 
+func (c *BookOrder) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "OrderId":
+			coercedValue := value.(string)
+			c.OrderId = coercedValue
+		
+		case "Title":
+			coercedValue := value.(string)
+			c.Title = coercedValue
+		
+		case "Quantity":
+			coercedValue := value.(int64)
+			c.Quantity = coercedValue
+		
+		case "Price":
+			coercedValue := value.(float64)
+			c.Price = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type ClassForNullLiteral struct {
     
     A string `json:"a"`
     
     
 }
+
+func (c *ClassForNullLiteral) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "A":
+			coercedValue := value.(string)
+			c.A = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type ClassOptionalOutput struct {
     
@@ -136,6 +296,25 @@ type ClassOptionalOutput struct {
     
     
 }
+
+func (c *ClassOptionalOutput) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop1":
+			coercedValue := value.(string)
+			c.Prop1 = coercedValue
+		
+		case "Prop2":
+			coercedValue := value.(string)
+			c.Prop2 = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type ClassOptionalOutput2 struct {
     
@@ -148,12 +327,50 @@ type ClassOptionalOutput2 struct {
     
 }
 
+func (c *ClassOptionalOutput2) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop1":
+			coercedValue := value.(string)
+			c.Prop1 = &coercedValue
+		
+		case "Prop2":
+			coercedValue := value.(string)
+			c.Prop2 = &coercedValue
+		
+		case "Prop3":
+			coercedValue := value.(Blah)
+			c.Prop3 = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type ClassToRecAlias struct {
     
     List LinkedListAliasNode `json:"list"`
     
     
 }
+
+func (c *ClassToRecAlias) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "List":
+			coercedValue := value.(LinkedListAliasNode)
+			c.List = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type ClassWithBlockDone struct {
     
@@ -163,6 +380,25 @@ type ClassWithBlockDone struct {
     
     
 }
+
+func (c *ClassWithBlockDone) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "I_16_digits":
+			coercedValue := value.(int64)
+			c.I_16_digits = coercedValue
+		
+		case "S_20_words":
+			coercedValue := value.(string)
+			c.S_20_words = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type ClassWithImage struct {
     
@@ -175,6 +411,29 @@ type ClassWithImage struct {
     
 }
 
+func (c *ClassWithImage) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "MyImage":
+			coercedValue := value.(any)
+			c.MyImage = coercedValue
+		
+		case "Param2":
+			coercedValue := value.(string)
+			c.Param2 = coercedValue
+		
+		case "Fake_image":
+			coercedValue := value.(FakeImage)
+			c.Fake_image = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type ClassWithoutDone struct {
     
     I_16_digits int64 `json:"i_16_digits"`
@@ -183,6 +442,25 @@ type ClassWithoutDone struct {
     
     
 }
+
+func (c *ClassWithoutDone) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "I_16_digits":
+			coercedValue := value.(int64)
+			c.I_16_digits = coercedValue
+		
+		case "S_20_words":
+			coercedValue := value.(string)
+			c.S_20_words = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type ComplexMemoryObject struct {
     
@@ -197,6 +475,33 @@ type ComplexMemoryObject struct {
     
 }
 
+func (c *ComplexMemoryObject) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Id":
+			coercedValue := value.(string)
+			c.Id = coercedValue
+		
+		case "Name":
+			coercedValue := value.(string)
+			c.Name = coercedValue
+		
+		case "Description":
+			coercedValue := value.(string)
+			c.Description = coercedValue
+		
+		case "Metadata":
+			coercedValue := value.([]Union__string__int64__float64)
+			c.Metadata = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type CompoundBigNumbers struct {
     
     Big BigNumbers `json:"big"`
@@ -208,6 +513,29 @@ type CompoundBigNumbers struct {
     
 }
 
+func (c *CompoundBigNumbers) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Big":
+			coercedValue := value.(BigNumbers)
+			c.Big = coercedValue
+		
+		case "Big_nums":
+			coercedValue := value.([]BigNumbers)
+			c.Big_nums = coercedValue
+		
+		case "Another":
+			coercedValue := value.(BigNumbers)
+			c.Another = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type ContactInfo struct {
     
     Primary Union__PhoneNumber__EmailAddress `json:"primary"`
@@ -216,6 +544,25 @@ type ContactInfo struct {
     
     
 }
+
+func (c *ContactInfo) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Primary":
+			coercedValue := value.(Union__PhoneNumber__EmailAddress)
+			c.Primary = coercedValue
+		
+		case "Secondary":
+			coercedValue := value.(Union__PhoneNumber__EmailAddress)
+			c.Secondary = &coercedValue
+		
+		}
+	}
+	
+}
+
 
 type CustomTaskResult struct {
     
@@ -228,6 +575,29 @@ type CustomTaskResult struct {
     
 }
 
+func (c *CustomTaskResult) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "BookOrder":
+			coercedValue := value.(BookOrder)
+			c.BookOrder = &coercedValue
+		
+		case "FlightConfirmation":
+			coercedValue := value.(FlightConfirmation)
+			c.FlightConfirmation = &coercedValue
+		
+		case "GroceryReceipt":
+			coercedValue := value.(GroceryReceipt)
+			c.GroceryReceipt = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type DummyOutput struct {
     
     Nonce string `json:"nonce"`
@@ -239,6 +609,25 @@ type DummyOutput struct {
     
 }
 
+func (c *DummyOutput) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Nonce":
+			coercedValue := value.(string)
+			c.Nonce = coercedValue
+		
+		case "Nonce2":
+			coercedValue := value.(string)
+			c.Nonce2 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type DynInputOutput struct {
     
     TestKey string `json:"testKey"`
@@ -248,12 +637,32 @@ type DynInputOutput struct {
     
 }
 
+func (c *DynInputOutput) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "TestKey":
+			coercedValue := value.(string)
+			c.TestKey = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type DynamicClassOne struct {
     
     
     DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
     
 }
+
+func (c *DynamicClassOne) BamlDecode(decodedMap map[string]any) {
+	
+}
+
 
 type DynamicClassTwo struct {
     
@@ -268,6 +677,29 @@ type DynamicClassTwo struct {
     
 }
 
+func (c *DynamicClassTwo) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Hi":
+			coercedValue := value.(string)
+			c.Hi = coercedValue
+		
+		case "Some_class":
+			coercedValue := value.(SomeClassNestedDynamic)
+			c.Some_class = coercedValue
+		
+		case "Status":
+			coercedValue := value.(DynEnumOne)
+			c.Status = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type DynamicOutput struct {
     
     
@@ -275,12 +707,32 @@ type DynamicOutput struct {
     
 }
 
+func (c *DynamicOutput) BamlDecode(decodedMap map[string]any) {
+	
+}
+
+
 type Earthling struct {
     
     Age Checked[int64] `json:"age"`
     
     
 }
+
+func (c *Earthling) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Age":
+			coercedValue := value.(Checked[int64])
+			c.Age = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type Education struct {
     
@@ -297,6 +749,37 @@ type Education struct {
     
 }
 
+func (c *Education) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Institution":
+			coercedValue := value.(string)
+			c.Institution = coercedValue
+		
+		case "Location":
+			coercedValue := value.(string)
+			c.Location = coercedValue
+		
+		case "Degree":
+			coercedValue := value.(string)
+			c.Degree = coercedValue
+		
+		case "Major":
+			coercedValue := value.([]string)
+			c.Major = coercedValue
+		
+		case "Graduation_date":
+			coercedValue := value.(string)
+			c.Graduation_date = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type Email struct {
     
     Subject string `json:"subject"`
@@ -308,12 +791,50 @@ type Email struct {
     
 }
 
+func (c *Email) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Subject":
+			coercedValue := value.(string)
+			c.Subject = coercedValue
+		
+		case "Body":
+			coercedValue := value.(string)
+			c.Body = coercedValue
+		
+		case "From_address":
+			coercedValue := value.(string)
+			c.From_address = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type EmailAddress struct {
     
     Value string `json:"value"`
     
     
 }
+
+func (c *EmailAddress) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Value":
+			coercedValue := value.(string)
+			c.Value = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type Event struct {
     
@@ -328,12 +849,54 @@ type Event struct {
     
 }
 
+func (c *Event) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Title":
+			coercedValue := value.(string)
+			c.Title = coercedValue
+		
+		case "Date":
+			coercedValue := value.(string)
+			c.Date = coercedValue
+		
+		case "Location":
+			coercedValue := value.(string)
+			c.Location = coercedValue
+		
+		case "Description":
+			coercedValue := value.(string)
+			c.Description = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type FakeImage struct {
     
     Url string `json:"url"`
     
     
 }
+
+func (c *FakeImage) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Url":
+			coercedValue := value.(string)
+			c.Url = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type FlightConfirmation struct {
     
@@ -350,6 +913,37 @@ type FlightConfirmation struct {
     
 }
 
+func (c *FlightConfirmation) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "ConfirmationNumber":
+			coercedValue := value.(string)
+			c.ConfirmationNumber = coercedValue
+		
+		case "FlightNumber":
+			coercedValue := value.(string)
+			c.FlightNumber = coercedValue
+		
+		case "DepartureTime":
+			coercedValue := value.(string)
+			c.DepartureTime = coercedValue
+		
+		case "ArrivalTime":
+			coercedValue := value.(string)
+			c.ArrivalTime = coercedValue
+		
+		case "SeatNumber":
+			coercedValue := value.(string)
+			c.SeatNumber = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type FooAny struct {
     
     Planetary_age Union__Martian__Earthling `json:"planetary_age"`
@@ -361,12 +955,50 @@ type FooAny struct {
     
 }
 
+func (c *FooAny) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Planetary_age":
+			coercedValue := value.(Union__Martian__Earthling)
+			c.Planetary_age = coercedValue
+		
+		case "Certainty":
+			coercedValue := value.(Checked[int64])
+			c.Certainty = coercedValue
+		
+		case "Species":
+			coercedValue := value.(Checked[string])
+			c.Species = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type Forest struct {
     
     Trees []Tree `json:"trees"`
     
     
 }
+
+func (c *Forest) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Trees":
+			coercedValue := value.([]Tree)
+			c.Trees = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type FormatterTest0 struct {
     
@@ -377,6 +1009,25 @@ type FormatterTest0 struct {
     
 }
 
+func (c *FormatterTest0) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Lorem":
+			coercedValue := value.(string)
+			c.Lorem = coercedValue
+		
+		case "Ipsum":
+			coercedValue := value.(string)
+			c.Ipsum = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type FormatterTest1 struct {
     
     Lorem string `json:"lorem"`
@@ -385,6 +1036,25 @@ type FormatterTest1 struct {
     
     
 }
+
+func (c *FormatterTest1) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Lorem":
+			coercedValue := value.(string)
+			c.Lorem = coercedValue
+		
+		case "Ipsum":
+			coercedValue := value.(string)
+			c.Ipsum = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type FormatterTest2 struct {
     
@@ -395,6 +1065,25 @@ type FormatterTest2 struct {
     
 }
 
+func (c *FormatterTest2) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Lorem":
+			coercedValue := value.(string)
+			c.Lorem = coercedValue
+		
+		case "Ipsum":
+			coercedValue := value.(string)
+			c.Ipsum = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type FormatterTest3 struct {
     
     Lorem string `json:"lorem"`
@@ -403,6 +1092,25 @@ type FormatterTest3 struct {
     
     
 }
+
+func (c *FormatterTest3) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Lorem":
+			coercedValue := value.(string)
+			c.Lorem = coercedValue
+		
+		case "Ipsum":
+			coercedValue := value.(string)
+			c.Ipsum = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type GroceryReceipt struct {
     
@@ -417,6 +1125,33 @@ type GroceryReceipt struct {
     
 }
 
+func (c *GroceryReceipt) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "ReceiptId":
+			coercedValue := value.(string)
+			c.ReceiptId = coercedValue
+		
+		case "StoreName":
+			coercedValue := value.(string)
+			c.StoreName = coercedValue
+		
+		case "Items":
+			coercedValue := value.([]Union__string__int64__float64)
+			c.Items = coercedValue
+		
+		case "TotalAmount":
+			coercedValue := value.(float64)
+			c.TotalAmount = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type InnerClass struct {
     
     Prop1 string `json:"prop1"`
@@ -428,6 +1163,29 @@ type InnerClass struct {
     
 }
 
+func (c *InnerClass) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop1":
+			coercedValue := value.(string)
+			c.Prop1 = coercedValue
+		
+		case "Prop2":
+			coercedValue := value.(string)
+			c.Prop2 = coercedValue
+		
+		case "Inner":
+			coercedValue := value.(InnerClass2)
+			c.Inner = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type InnerClass2 struct {
     
     Prop2 int64 `json:"prop2"`
@@ -436,6 +1194,25 @@ type InnerClass2 struct {
     
     
 }
+
+func (c *InnerClass2) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop2":
+			coercedValue := value.(int64)
+			c.Prop2 = coercedValue
+		
+		case "Prop3":
+			coercedValue := value.(float64)
+			c.Prop3 = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type InputClass struct {
     
@@ -446,6 +1223,25 @@ type InputClass struct {
     
 }
 
+func (c *InputClass) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Key":
+			coercedValue := value.(string)
+			c.Key = coercedValue
+		
+		case "Key2":
+			coercedValue := value.(string)
+			c.Key2 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type InputClassNested struct {
     
     Key string `json:"key"`
@@ -454,6 +1250,25 @@ type InputClassNested struct {
     
     
 }
+
+func (c *InputClassNested) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Key":
+			coercedValue := value.(string)
+			c.Key = coercedValue
+		
+		case "Nested":
+			coercedValue := value.(InputClass)
+			c.Nested = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type LinkedList struct {
     
@@ -464,6 +1279,25 @@ type LinkedList struct {
     
 }
 
+func (c *LinkedList) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Head":
+			coercedValue := value.(Node)
+			c.Head = &coercedValue
+		
+		case "Len":
+			coercedValue := value.(int64)
+			c.Len = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type LinkedListAliasNode struct {
     
     Value int64 `json:"value"`
@@ -473,12 +1307,46 @@ type LinkedListAliasNode struct {
     
 }
 
+func (c *LinkedListAliasNode) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Value":
+			coercedValue := value.(int64)
+			c.Value = coercedValue
+		
+		case "Next":
+			coercedValue := value.(LinkedListAliasNode)
+			c.Next = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type LiteralClassHello struct {
     
     Prop string `json:"prop"`
     
     
 }
+
+func (c *LiteralClassHello) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop":
+			coercedValue := value.(string)
+			c.Prop = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type LiteralClassOne struct {
     
@@ -487,12 +1355,42 @@ type LiteralClassOne struct {
     
 }
 
+func (c *LiteralClassOne) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop":
+			coercedValue := value.(string)
+			c.Prop = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type LiteralClassTwo struct {
     
     Prop string `json:"prop"`
     
     
 }
+
+func (c *LiteralClassTwo) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop":
+			coercedValue := value.(string)
+			c.Prop = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type MalformedConstraints struct {
     
@@ -501,12 +1399,42 @@ type MalformedConstraints struct {
     
 }
 
+func (c *MalformedConstraints) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Foo":
+			coercedValue := value.(Checked[int64])
+			c.Foo = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type MalformedConstraints2 struct {
     
     Foo int64 `json:"foo"`
     
     
 }
+
+func (c *MalformedConstraints2) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Foo":
+			coercedValue := value.(int64)
+			c.Foo = coercedValue
+		
+		}
+	}
+	
+}
+
 
 // A Martian organism with an age.
 // Such a nice type.
@@ -517,6 +1445,21 @@ type Martian struct {
     
     
 }
+
+func (c *Martian) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Age":
+			coercedValue := value.(Checked[int64])
+			c.Age = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type MemoryObject struct {
     
@@ -529,12 +1472,50 @@ type MemoryObject struct {
     
 }
 
+func (c *MemoryObject) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Id":
+			coercedValue := value.(string)
+			c.Id = coercedValue
+		
+		case "Name":
+			coercedValue := value.(string)
+			c.Name = coercedValue
+		
+		case "Description":
+			coercedValue := value.(string)
+			c.Description = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type MergeAttrs struct {
     
     Amount Checked[int64] `json:"amount"`
     
     
 }
+
+func (c *MergeAttrs) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Amount":
+			coercedValue := value.(Checked[int64])
+			c.Amount = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type NamedArgsSingleClass struct {
     
@@ -547,6 +1528,29 @@ type NamedArgsSingleClass struct {
     
 }
 
+func (c *NamedArgsSingleClass) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Key":
+			coercedValue := value.(string)
+			c.Key = coercedValue
+		
+		case "Key_two":
+			coercedValue := value.(bool)
+			c.Key_two = coercedValue
+		
+		case "Key_three":
+			coercedValue := value.(int64)
+			c.Key_three = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type Nested struct {
     
     Prop3 *string `json:"prop3"`
@@ -558,6 +1562,29 @@ type Nested struct {
     
 }
 
+func (c *Nested) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop3":
+			coercedValue := value.(string)
+			c.Prop3 = &coercedValue
+		
+		case "Prop4":
+			coercedValue := value.(string)
+			c.Prop4 = &coercedValue
+		
+		case "Prop20":
+			coercedValue := value.(Nested2)
+			c.Prop20 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type Nested2 struct {
     
     Prop11 *string `json:"prop11"`
@@ -567,6 +1594,25 @@ type Nested2 struct {
     
 }
 
+func (c *Nested2) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop11":
+			coercedValue := value.(string)
+			c.Prop11 = &coercedValue
+		
+		case "Prop12":
+			coercedValue := value.(string)
+			c.Prop12 = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type NestedBlockConstraint struct {
     
     Nbc Checked[BlockConstraint] `json:"nbc"`
@@ -574,12 +1620,42 @@ type NestedBlockConstraint struct {
     
 }
 
+func (c *NestedBlockConstraint) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Nbc":
+			coercedValue := value.(Checked[BlockConstraint])
+			c.Nbc = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type NestedBlockConstraintForParam struct {
     
     Nbcfp BlockConstraintForParam `json:"nbcfp"`
     
     
 }
+
+func (c *NestedBlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Nbcfp":
+			coercedValue := value.(BlockConstraintForParam)
+			c.Nbcfp = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type Node struct {
     
@@ -590,6 +1666,25 @@ type Node struct {
     
 }
 
+func (c *Node) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Data":
+			coercedValue := value.(int64)
+			c.Data = coercedValue
+		
+		case "Next":
+			coercedValue := value.(Node)
+			c.Next = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type NodeWithAliasIndirection struct {
     
     Value int64 `json:"value"`
@@ -598,6 +1693,25 @@ type NodeWithAliasIndirection struct {
     
     
 }
+
+func (c *NodeWithAliasIndirection) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Value":
+			coercedValue := value.(int64)
+			c.Value = coercedValue
+		
+		case "Next":
+			coercedValue := value.(NodeWithAliasIndirection)
+			c.Next = &coercedValue
+		
+		}
+	}
+	
+}
+
 
 type OptionalListAndMap struct {
     
@@ -608,6 +1722,25 @@ type OptionalListAndMap struct {
     
 }
 
+func (c *OptionalListAndMap) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "P":
+			coercedValue := value.([]string)
+			c.P = &coercedValue
+		
+		case "Q":
+			coercedValue := value.(map[string]string)
+			c.Q = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type OptionalTest_Prop1 struct {
     
     Omega_a string `json:"omega_a"`
@@ -616,6 +1749,25 @@ type OptionalTest_Prop1 struct {
     
     
 }
+
+func (c *OptionalTest_Prop1) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Omega_a":
+			coercedValue := value.(string)
+			c.Omega_a = coercedValue
+		
+		case "Omega_b":
+			coercedValue := value.(int64)
+			c.Omega_b = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type OptionalTest_ReturnType struct {
     
@@ -628,6 +1780,29 @@ type OptionalTest_ReturnType struct {
     
 }
 
+func (c *OptionalTest_ReturnType) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Omega_1":
+			coercedValue := value.(OptionalTest_Prop1)
+			c.Omega_1 = &coercedValue
+		
+		case "Omega_2":
+			coercedValue := value.(string)
+			c.Omega_2 = &coercedValue
+		
+		case "Omega_3":
+			coercedValue := value.([]*OptionalTest_CategoryType)
+			c.Omega_3 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type OrderInfo struct {
     
     Order_status OrderStatus `json:"order_status"`
@@ -639,12 +1814,50 @@ type OrderInfo struct {
     
 }
 
+func (c *OrderInfo) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Order_status":
+			coercedValue := value.(OrderStatus)
+			c.Order_status = coercedValue
+		
+		case "Tracking_number":
+			coercedValue := value.(string)
+			c.Tracking_number = &coercedValue
+		
+		case "Estimated_arrival_date":
+			coercedValue := value.(string)
+			c.Estimated_arrival_date = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type OriginalA struct {
     
     Value int64 `json:"value"`
     
     
 }
+
+func (c *OriginalA) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Value":
+			coercedValue := value.(int64)
+			c.Value = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type OriginalB struct {
     
@@ -654,6 +1867,21 @@ type OriginalB struct {
     DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
     
 }
+
+func (c *OriginalB) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Value":
+			coercedValue := value.(int64)
+			c.Value = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type Person struct {
     
@@ -666,12 +1894,46 @@ type Person struct {
     
 }
 
+func (c *Person) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Name":
+			coercedValue := value.(string)
+			c.Name = &coercedValue
+		
+		case "Hair_color":
+			coercedValue := value.(Color)
+			c.Hair_color = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type PhoneNumber struct {
     
     Value string `json:"value"`
     
     
 }
+
+func (c *PhoneNumber) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Value":
+			coercedValue := value.(string)
+			c.Value = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type Quantity struct {
     
@@ -682,6 +1944,25 @@ type Quantity struct {
     
 }
 
+func (c *Quantity) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Amount":
+			coercedValue := value.(Union__int64__float64)
+			c.Amount = coercedValue
+		
+		case "Unit":
+			coercedValue := value.(string)
+			c.Unit = &coercedValue
+		
+		}
+	}
+	
+}
+
+
 type RaysData struct {
     
     DataType DataType `json:"dataType"`
@@ -690,6 +1971,25 @@ type RaysData struct {
     
     
 }
+
+func (c *RaysData) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "DataType":
+			coercedValue := value.(DataType)
+			c.DataType = coercedValue
+		
+		case "Value":
+			coercedValue := value.(Union__Resume__Event)
+			c.Value = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type ReceiptInfo struct {
     
@@ -701,6 +2001,29 @@ type ReceiptInfo struct {
     
     
 }
+
+func (c *ReceiptInfo) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Items":
+			coercedValue := value.([]ReceiptItem)
+			c.Items = coercedValue
+		
+		case "Total_cost":
+			coercedValue := value.(float64)
+			c.Total_cost = &coercedValue
+		
+		case "Venue":
+			coercedValue := value.(Union__string_barisa__string_ox_burger)
+			c.Venue = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type ReceiptItem struct {
     
@@ -715,6 +2038,33 @@ type ReceiptItem struct {
     
 }
 
+func (c *ReceiptItem) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Name":
+			coercedValue := value.(string)
+			c.Name = coercedValue
+		
+		case "Description":
+			coercedValue := value.(string)
+			c.Description = &coercedValue
+		
+		case "Quantity":
+			coercedValue := value.(int64)
+			c.Quantity = coercedValue
+		
+		case "Price":
+			coercedValue := value.(float64)
+			c.Price = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type Recipe struct {
     
     Ingredients map[string]Quantity `json:"ingredients"`
@@ -724,12 +2074,46 @@ type Recipe struct {
     
 }
 
+func (c *Recipe) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Ingredients":
+			coercedValue := value.(map[string]Quantity)
+			c.Ingredients = coercedValue
+		
+		case "Recipe_type":
+			coercedValue := value.(Union__string_breakfast__string_dinner)
+			c.Recipe_type = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type RecursiveAliasDependency struct {
     
     Value JsonValue `json:"value"`
     
     
 }
+
+func (c *RecursiveAliasDependency) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Value":
+			coercedValue := value.(JsonValue)
+			c.Value = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type Resume struct {
     
@@ -747,6 +2131,41 @@ type Resume struct {
     
     
 }
+
+func (c *Resume) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Name":
+			coercedValue := value.(string)
+			c.Name = coercedValue
+		
+		case "Email":
+			coercedValue := value.(string)
+			c.Email = coercedValue
+		
+		case "Phone":
+			coercedValue := value.(string)
+			c.Phone = coercedValue
+		
+		case "Experience":
+			coercedValue := value.([]Education)
+			c.Experience = coercedValue
+		
+		case "Education":
+			coercedValue := value.([]string)
+			c.Education = coercedValue
+		
+		case "Skills":
+			coercedValue := value.([]string)
+			c.Skills = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type Schema struct {
     
@@ -767,6 +2186,45 @@ type Schema struct {
     
 }
 
+func (c *Schema) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop1":
+			coercedValue := value.(string)
+			c.Prop1 = &coercedValue
+		
+		case "Prop2":
+			coercedValue := value.(Union__Nested__string)
+			c.Prop2 = coercedValue
+		
+		case "Prop5":
+			coercedValue := value.([]*string)
+			c.Prop5 = coercedValue
+		
+		case "Prop6":
+			coercedValue := value.(Union__string__List__Nested)
+			c.Prop6 = coercedValue
+		
+		case "Nested_attrs":
+			coercedValue := value.([]*Union__string__Nested)
+			c.Nested_attrs = coercedValue
+		
+		case "Parens":
+			coercedValue := value.(string)
+			c.Parens = &coercedValue
+		
+		case "Other_group":
+			coercedValue := value.(Union__string__int64)
+			c.Other_group = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type SearchParams struct {
     
     DateRange *int64 `json:"dateRange"`
@@ -783,6 +2241,41 @@ type SearchParams struct {
     
     
 }
+
+func (c *SearchParams) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "DateRange":
+			coercedValue := value.(int64)
+			c.DateRange = &coercedValue
+		
+		case "Location":
+			coercedValue := value.([]string)
+			c.Location = coercedValue
+		
+		case "JobTitle":
+			coercedValue := value.(WithReasoning)
+			c.JobTitle = &coercedValue
+		
+		case "Company":
+			coercedValue := value.(WithReasoning)
+			c.Company = &coercedValue
+		
+		case "Description":
+			coercedValue := value.([]WithReasoning)
+			c.Description = coercedValue
+		
+		case "Tags":
+			coercedValue := value.([]Union__Tag__string)
+			c.Tags = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type SemanticContainer struct {
     
@@ -805,12 +2298,70 @@ type SemanticContainer struct {
     
 }
 
+func (c *SemanticContainer) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Sixteen_digit_number":
+			coercedValue := value.(int64)
+			c.Sixteen_digit_number = coercedValue
+		
+		case "String_with_twenty_words":
+			coercedValue := value.(string)
+			c.String_with_twenty_words = coercedValue
+		
+		case "Class_1":
+			coercedValue := value.(ClassWithoutDone)
+			c.Class_1 = coercedValue
+		
+		case "Class_2":
+			coercedValue := value.(ClassWithBlockDone)
+			c.Class_2 = coercedValue
+		
+		case "Class_done_needed":
+			coercedValue := value.(ClassWithBlockDone)
+			c.Class_done_needed = coercedValue
+		
+		case "Class_needed":
+			coercedValue := value.(ClassWithoutDone)
+			c.Class_needed = coercedValue
+		
+		case "Three_small_things":
+			coercedValue := value.([]SmallThing)
+			c.Three_small_things = coercedValue
+		
+		case "Final_string":
+			coercedValue := value.(string)
+			c.Final_string = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type SimpleTag struct {
     
     Field string `json:"field"`
     
     
 }
+
+func (c *SimpleTag) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Field":
+			coercedValue := value.(string)
+			c.Field = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type SmallThing struct {
     
@@ -821,6 +2372,25 @@ type SmallThing struct {
     
 }
 
+func (c *SmallThing) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "I_16_digits":
+			coercedValue := value.(int64)
+			c.I_16_digits = coercedValue
+		
+		case "I_8_digits":
+			coercedValue := value.(int64)
+			c.I_8_digits = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type SomeClassNestedDynamic struct {
     
     Hi string `json:"hi"`
@@ -830,12 +2400,42 @@ type SomeClassNestedDynamic struct {
     
 }
 
+func (c *SomeClassNestedDynamic) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Hi":
+			coercedValue := value.(string)
+			c.Hi = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type StringToClassEntry struct {
     
     Word string `json:"word"`
     
     
 }
+
+func (c *StringToClassEntry) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Word":
+			coercedValue := value.(string)
+			c.Word = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type TestClassAlias struct {
     
@@ -852,6 +2452,37 @@ type TestClassAlias struct {
     
 }
 
+func (c *TestClassAlias) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Key":
+			coercedValue := value.(string)
+			c.Key = coercedValue
+		
+		case "Key2":
+			coercedValue := value.(string)
+			c.Key2 = coercedValue
+		
+		case "Key3":
+			coercedValue := value.(string)
+			c.Key3 = coercedValue
+		
+		case "Key4":
+			coercedValue := value.(string)
+			c.Key4 = coercedValue
+		
+		case "Key5":
+			coercedValue := value.(string)
+			c.Key5 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type TestClassNested struct {
     
     Prop1 string `json:"prop1"`
@@ -860,6 +2491,25 @@ type TestClassNested struct {
     
     
 }
+
+func (c *TestClassNested) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop1":
+			coercedValue := value.(string)
+			c.Prop1 = coercedValue
+		
+		case "Prop2":
+			coercedValue := value.(InnerClass)
+			c.Prop2 = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type TestClassWithEnum struct {
     
@@ -870,6 +2520,25 @@ type TestClassWithEnum struct {
     
 }
 
+func (c *TestClassWithEnum) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop1":
+			coercedValue := value.(string)
+			c.Prop1 = coercedValue
+		
+		case "Prop2":
+			coercedValue := value.(EnumInClass)
+			c.Prop2 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type TestMemoryOutput struct {
     
     Items []Union__MemoryObject__ComplexMemoryObject__AnotherObject `json:"items"`
@@ -878,6 +2547,25 @@ type TestMemoryOutput struct {
     
     
 }
+
+func (c *TestMemoryOutput) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Items":
+			coercedValue := value.([]Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+			c.Items = coercedValue
+		
+		case "More_items":
+			coercedValue := value.([]Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+			c.More_items = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type TestOutputClass struct {
     
@@ -888,6 +2576,25 @@ type TestOutputClass struct {
     
 }
 
+func (c *TestOutputClass) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop1":
+			coercedValue := value.(string)
+			c.Prop1 = coercedValue
+		
+		case "Prop2":
+			coercedValue := value.(int64)
+			c.Prop2 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type Tree struct {
     
     Data int64 `json:"data"`
@@ -896,6 +2603,25 @@ type Tree struct {
     
     
 }
+
+func (c *Tree) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Data":
+			coercedValue := value.(int64)
+			c.Data = coercedValue
+		
+		case "Children":
+			coercedValue := value.(Forest)
+			c.Children = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type TwoStoriesOneTitle struct {
     
@@ -908,6 +2634,29 @@ type TwoStoriesOneTitle struct {
     
 }
 
+func (c *TwoStoriesOneTitle) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Title":
+			coercedValue := value.(string)
+			c.Title = coercedValue
+		
+		case "Story_a":
+			coercedValue := value.(string)
+			c.Story_a = coercedValue
+		
+		case "Story_b":
+			coercedValue := value.(string)
+			c.Story_b = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type UnionTest_ReturnType struct {
     
     Prop1 Union__string__bool `json:"prop1"`
@@ -919,6 +2668,29 @@ type UnionTest_ReturnType struct {
     
 }
 
+func (c *UnionTest_ReturnType) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Prop1":
+			coercedValue := value.(Union__string__bool)
+			c.Prop1 = coercedValue
+		
+		case "Prop2":
+			coercedValue := value.([]Union__float64__bool)
+			c.Prop2 = coercedValue
+		
+		case "Prop3":
+			coercedValue := value.(Union__List__bool__List__int64)
+			c.Prop3 = coercedValue
+		
+		}
+	}
+	
+}
+
+
 // my docs
 type UniverseQuestion struct {
     
@@ -929,12 +2701,46 @@ type UniverseQuestion struct {
     
 }
 
+func (c *UniverseQuestion) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Question":
+			coercedValue := value.(string)
+			c.Question = coercedValue
+		
+		case "Answer":
+			coercedValue := value.(string)
+			c.Answer = coercedValue
+		
+		}
+	}
+	
+}
+
+
 type UniverseQuestionInput struct {
     
     Question string `json:"question"`
     
     
 }
+
+func (c *UniverseQuestionInput) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Question":
+			coercedValue := value.(string)
+			c.Question = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type WithReasoning struct {
     
@@ -944,6 +2750,25 @@ type WithReasoning struct {
     
     
 }
+
+func (c *WithReasoning) BamlDecode(decodedMap map[string]any) {
+	
+	for name, value := range decodedMap {
+		switch name {
+		
+		case "Value":
+			coercedValue := value.(string)
+			c.Value = coercedValue
+		
+		case "Reasoning":
+			coercedValue := value.(string)
+			c.Reasoning = coercedValue
+		
+		}
+	}
+	
+}
+
 
 type JsonArray []JsonValue
 
