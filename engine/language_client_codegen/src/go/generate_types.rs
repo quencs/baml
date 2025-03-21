@@ -19,6 +19,76 @@ pub(crate) struct GoTypes<'ir> {
     structural_recursive_alias_cycles: Vec<GoTypeAlias<'ir>>,
 }
 
+fn render_value_coercion(
+    destination_variable_name: &str,
+    source_variable_name: &str,
+    field_type: &GoType,
+) -> String {
+    let mut rendering = String::new();
+    if field_type.is_class {
+        rendering.push_str(
+            format!(
+                "{} := {}{{}}\n",
+                destination_variable_name,
+                filters::type_name_without_pointer(&field_type.name)
+                    .ok()
+                    .unwrap()
+            )
+            .as_str(),
+        );
+        rendering.push_str(
+            format!(
+                "{}.BamlDecode({}.(map[string]any))\n",
+                destination_variable_name, source_variable_name
+            )
+            .as_str(),
+        );
+    } else if field_type.is_slice {
+        rendering.push_str(
+            format!(
+                "{} := make({}, len({}.([]any)))\n",
+                destination_variable_name, field_type.name, source_variable_name
+            )
+            .as_str(),
+        );
+        rendering
+            .push_str(format!("for i, v := range {}.([]any) {{\n", source_variable_name).as_str());
+        let inner_variable_name = format!("inner{}", destination_variable_name);
+        rendering.push_str(
+            render_value_coercion(
+                &inner_variable_name.as_str(),
+                "v",
+                field_type.underlying_type.as_ref().unwrap(),
+            )
+            .as_str(),
+        );
+        rendering.push_str(
+            format!(
+                "  {}[i] = {}{}\n",
+                destination_variable_name,
+                if field_type.underlying_type.as_ref().unwrap().is_pointer {
+                    "&"
+                } else {
+                    ""
+                },
+                inner_variable_name
+            )
+            .as_str(),
+        );
+        rendering.push_str("}\n");
+    } else {
+        rendering.push_str(
+            format!(
+                "{} := {}.({})\n",
+                destination_variable_name,
+                source_variable_name,
+                filters::type_name_without_pointer(&field_type.name).unwrap()
+            )
+            .as_str(),
+        );
+    }
+    rendering
+}
 #[derive(askama::Template)]
 #[template(path = "types-enums.go.j2", escape = "none")]
 pub(crate) struct GoEnums<'ir> {

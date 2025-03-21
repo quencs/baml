@@ -11,9 +11,7 @@
 package types
 
 import (
-	_"encoding/json"
 	_ "fmt"
-	_ "github.com/boundaryml/baml/go"
 )
 
 
@@ -69,21 +67,18 @@ func (c *AnotherObject) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Id":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Id = coercedValue
 		
 		case "Thingy2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Thingy2 = coercedValue
 		
 		case "Thingy3":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Thingy3 = coercedValue
 		
 		}
@@ -107,15 +102,13 @@ func (c *BigNumbers) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "A":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.A = coercedValue
 		
 		case "B":
-			
-			coercedValue := value.(float64)
-			
+		  coercedValue := value.(float64)
+
 			c.B = coercedValue
 		
 		}
@@ -141,21 +134,18 @@ func (c *BinaryNode) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Data":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Data = coercedValue
 		
 		case "Left":
-			
-			coercedValue := value.(BinaryNode)
-			
+		  coercedValue := value.(BinaryNode)
+
 			c.Left = &coercedValue
 		
 		case "Right":
-			
-			coercedValue := value.(BinaryNode)
-			
+		  coercedValue := value.(BinaryNode)
+
 			c.Right = &coercedValue
 		
 		}
@@ -177,9 +167,8 @@ func (c *Blah) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop4":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop4 = &coercedValue
 		
 		}
@@ -203,15 +192,13 @@ func (c *BlockConstraint) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Foo":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Foo = coercedValue
 		
 		case "Bar":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Bar = coercedValue
 		
 		}
@@ -235,15 +222,13 @@ func (c *BlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Bcfp":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Bcfp = coercedValue
 		
 		case "Bcfp2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Bcfp2 = coercedValue
 		
 		}
@@ -271,27 +256,23 @@ func (c *BookOrder) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "OrderId":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.OrderId = coercedValue
 		
 		case "Title":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Title = coercedValue
 		
 		case "Quantity":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Quantity = coercedValue
 		
 		case "Price":
-			
-			coercedValue := value.(float64)
-			
+		  coercedValue := value.(float64)
+
 			c.Price = coercedValue
 		
 		}
@@ -313,9 +294,8 @@ func (c *ClassForNullLiteral) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "A":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.A = coercedValue
 		
 		}
@@ -339,15 +319,13 @@ func (c *ClassOptionalOutput) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop1":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop1 = coercedValue
 		
 		case "Prop2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop2 = coercedValue
 		
 		}
@@ -373,21 +351,18 @@ func (c *ClassOptionalOutput2) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop1":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop1 = &coercedValue
 		
 		case "Prop2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop2 = &coercedValue
 		
 		case "Prop3":
-			
-			coercedValue := value.(Blah)
-			
+		  coercedValue := value.(Blah)
+
 			c.Prop3 = &coercedValue
 		
 		}
@@ -409,10 +384,9 @@ func (c *ClassToRecAlias) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "List":
-			
-			coercedValue := LinkedListAliasNode{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := LinkedListAliasNode{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.List = coercedValue
 		
 		}
@@ -436,15 +410,13 @@ func (c *ClassWithBlockDone) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "I_16_digits":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.I_16_digits = coercedValue
 		
 		case "S_20_words":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.S_20_words = coercedValue
 		
 		}
@@ -470,22 +442,19 @@ func (c *ClassWithImage) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "MyImage":
-			
-			coercedValue := value.(any)
-			
+		  coercedValue := value.(any)
+
 			c.MyImage = coercedValue
 		
 		case "Param2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Param2 = coercedValue
 		
 		case "Fake_image":
-			
-			coercedValue := FakeImage{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := FakeImage{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Fake_image = coercedValue
 		
 		}
@@ -509,15 +478,13 @@ func (c *ClassWithoutDone) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "I_16_digits":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.I_16_digits = coercedValue
 		
 		case "S_20_words":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.S_20_words = coercedValue
 		
 		}
@@ -545,30 +512,27 @@ func (c *ComplexMemoryObject) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Id":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Id = coercedValue
 		
 		case "Name":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Name = coercedValue
 		
 		case "Description":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Description = coercedValue
 		
 		case "Metadata":
-			
-			coercedValue := make([]Union__string__int64__float64, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(Union__string__int64__float64)
-			}
-			
+		  coercedValue := make([]Union__string__int64__float64, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(Union__string__int64__float64)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Metadata = coercedValue
 		
 		}
@@ -594,26 +558,25 @@ func (c *CompoundBigNumbers) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Big":
-			
-			coercedValue := BigNumbers{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := BigNumbers{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Big = coercedValue
 		
 		case "Big_nums":
-			
-			coercedValue := make([]BigNumbers, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(BigNumbers)
-			}
-			
+		  coercedValue := make([]BigNumbers, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := BigNumbers{}
+innercoercedValue.BamlDecode(v.(map[string]any))
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Big_nums = coercedValue
 		
 		case "Another":
-			
-			coercedValue := BigNumbers{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := BigNumbers{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Another = coercedValue
 		
 		}
@@ -637,15 +600,13 @@ func (c *ContactInfo) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Primary":
-			
-			coercedValue := value.(Union__PhoneNumber__EmailAddress)
-			
+		  coercedValue := value.(Union__PhoneNumber__EmailAddress)
+
 			c.Primary = coercedValue
 		
 		case "Secondary":
-			
-			coercedValue := value.(Union__PhoneNumber__EmailAddress)
-			
+		  coercedValue := value.(Union__PhoneNumber__EmailAddress)
+
 			c.Secondary = &coercedValue
 		
 		}
@@ -671,21 +632,18 @@ func (c *CustomTaskResult) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "BookOrder":
-			
-			coercedValue := value.(BookOrder)
-			
+		  coercedValue := value.(BookOrder)
+
 			c.BookOrder = &coercedValue
 		
 		case "FlightConfirmation":
-			
-			coercedValue := value.(FlightConfirmation)
-			
+		  coercedValue := value.(FlightConfirmation)
+
 			c.FlightConfirmation = &coercedValue
 		
 		case "GroceryReceipt":
-			
-			coercedValue := value.(GroceryReceipt)
-			
+		  coercedValue := value.(GroceryReceipt)
+
 			c.GroceryReceipt = &coercedValue
 		
 		}
@@ -711,15 +669,13 @@ func (c *DummyOutput) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Nonce":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Nonce = coercedValue
 		
 		case "Nonce2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Nonce2 = coercedValue
 		
 		}
@@ -743,9 +699,8 @@ func (c *DynInputOutput) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "TestKey":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.TestKey = coercedValue
 		
 		}
@@ -785,22 +740,19 @@ func (c *DynamicClassTwo) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Hi":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Hi = coercedValue
 		
 		case "Some_class":
-			
-			coercedValue := SomeClassNestedDynamic{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := SomeClassNestedDynamic{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Some_class = coercedValue
 		
 		case "Status":
-			
-			coercedValue := value.(DynEnumOne)
-			
+		  coercedValue := value.(DynEnumOne)
+
 			c.Status = coercedValue
 		
 		}
@@ -834,9 +786,8 @@ func (c *Earthling) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Age":
-			
-			coercedValue := value.(Checked[int64])
-			
+		  coercedValue := value.(Checked[int64])
+
 			c.Age = coercedValue
 		
 		}
@@ -866,36 +817,32 @@ func (c *Education) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Institution":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Institution = coercedValue
 		
 		case "Location":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Location = coercedValue
 		
 		case "Degree":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Degree = coercedValue
 		
 		case "Major":
-			
-			coercedValue := make([]string, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(string)
-			}
-			
+		  coercedValue := make([]string, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(string)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Major = coercedValue
 		
 		case "Graduation_date":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Graduation_date = &coercedValue
 		
 		}
@@ -921,21 +868,18 @@ func (c *Email) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Subject":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Subject = coercedValue
 		
 		case "Body":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Body = coercedValue
 		
 		case "From_address":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.From_address = coercedValue
 		
 		}
@@ -957,9 +901,8 @@ func (c *EmailAddress) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Value = coercedValue
 		
 		}
@@ -987,27 +930,23 @@ func (c *Event) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Title":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Title = coercedValue
 		
 		case "Date":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Date = coercedValue
 		
 		case "Location":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Location = coercedValue
 		
 		case "Description":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Description = coercedValue
 		
 		}
@@ -1029,9 +968,8 @@ func (c *FakeImage) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Url":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Url = coercedValue
 		
 		}
@@ -1061,33 +999,28 @@ func (c *FlightConfirmation) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "ConfirmationNumber":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.ConfirmationNumber = coercedValue
 		
 		case "FlightNumber":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.FlightNumber = coercedValue
 		
 		case "DepartureTime":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.DepartureTime = coercedValue
 		
 		case "ArrivalTime":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.ArrivalTime = coercedValue
 		
 		case "SeatNumber":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.SeatNumber = coercedValue
 		
 		}
@@ -1113,21 +1046,18 @@ func (c *FooAny) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Planetary_age":
-			
-			coercedValue := value.(Union__Martian__Earthling)
-			
+		  coercedValue := value.(Union__Martian__Earthling)
+
 			c.Planetary_age = coercedValue
 		
 		case "Certainty":
-			
-			coercedValue := value.(Checked[int64])
-			
+		  coercedValue := value.(Checked[int64])
+
 			c.Certainty = coercedValue
 		
 		case "Species":
-			
-			coercedValue := value.(Checked[string])
-			
+		  coercedValue := value.(Checked[string])
+
 			c.Species = coercedValue
 		
 		}
@@ -1149,12 +1079,13 @@ func (c *Forest) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Trees":
-			
-			coercedValue := make([]Tree, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(Tree)
-			}
-			
+		  coercedValue := make([]Tree, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := Tree{}
+innercoercedValue.BamlDecode(v.(map[string]any))
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Trees = coercedValue
 		
 		}
@@ -1178,15 +1109,13 @@ func (c *FormatterTest0) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Lorem":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Lorem = coercedValue
 		
 		case "Ipsum":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Ipsum = coercedValue
 		
 		}
@@ -1210,15 +1139,13 @@ func (c *FormatterTest1) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Lorem":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Lorem = coercedValue
 		
 		case "Ipsum":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Ipsum = coercedValue
 		
 		}
@@ -1242,15 +1169,13 @@ func (c *FormatterTest2) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Lorem":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Lorem = coercedValue
 		
 		case "Ipsum":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Ipsum = coercedValue
 		
 		}
@@ -1274,15 +1199,13 @@ func (c *FormatterTest3) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Lorem":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Lorem = coercedValue
 		
 		case "Ipsum":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Ipsum = coercedValue
 		
 		}
@@ -1310,30 +1233,27 @@ func (c *GroceryReceipt) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "ReceiptId":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.ReceiptId = coercedValue
 		
 		case "StoreName":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.StoreName = coercedValue
 		
 		case "Items":
-			
-			coercedValue := make([]Union__string__int64__float64, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(Union__string__int64__float64)
-			}
-			
+		  coercedValue := make([]Union__string__int64__float64, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(Union__string__int64__float64)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Items = coercedValue
 		
 		case "TotalAmount":
-			
-			coercedValue := value.(float64)
-			
+		  coercedValue := value.(float64)
+
 			c.TotalAmount = coercedValue
 		
 		}
@@ -1359,22 +1279,19 @@ func (c *InnerClass) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop1":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop1 = coercedValue
 		
 		case "Prop2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop2 = coercedValue
 		
 		case "Inner":
-			
-			coercedValue := InnerClass2{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := InnerClass2{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Inner = coercedValue
 		
 		}
@@ -1398,15 +1315,13 @@ func (c *InnerClass2) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop2":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Prop2 = coercedValue
 		
 		case "Prop3":
-			
-			coercedValue := value.(float64)
-			
+		  coercedValue := value.(float64)
+
 			c.Prop3 = coercedValue
 		
 		}
@@ -1430,15 +1345,13 @@ func (c *InputClass) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Key":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key = coercedValue
 		
 		case "Key2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key2 = coercedValue
 		
 		}
@@ -1462,16 +1375,14 @@ func (c *InputClassNested) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Key":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key = coercedValue
 		
 		case "Nested":
-			
-			coercedValue := InputClass{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := InputClass{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Nested = coercedValue
 		
 		}
@@ -1495,15 +1406,13 @@ func (c *LinkedList) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Head":
-			
-			coercedValue := value.(Node)
-			
+		  coercedValue := value.(Node)
+
 			c.Head = &coercedValue
 		
 		case "Len":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Len = coercedValue
 		
 		}
@@ -1527,15 +1436,13 @@ func (c *LinkedListAliasNode) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Value = coercedValue
 		
 		case "Next":
-			
-			coercedValue := value.(LinkedListAliasNode)
-			
+		  coercedValue := value.(LinkedListAliasNode)
+
 			c.Next = &coercedValue
 		
 		}
@@ -1557,9 +1464,8 @@ func (c *LiteralClassHello) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop = coercedValue
 		
 		}
@@ -1581,9 +1487,8 @@ func (c *LiteralClassOne) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop = coercedValue
 		
 		}
@@ -1605,9 +1510,8 @@ func (c *LiteralClassTwo) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop = coercedValue
 		
 		}
@@ -1629,9 +1533,8 @@ func (c *MalformedConstraints) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Foo":
-			
-			coercedValue := value.(Checked[int64])
-			
+		  coercedValue := value.(Checked[int64])
+
 			c.Foo = coercedValue
 		
 		}
@@ -1653,9 +1556,8 @@ func (c *MalformedConstraints2) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Foo":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Foo = coercedValue
 		
 		}
@@ -1680,9 +1582,8 @@ func (c *Martian) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Age":
-			
-			coercedValue := value.(Checked[int64])
-			
+		  coercedValue := value.(Checked[int64])
+
 			c.Age = coercedValue
 		
 		}
@@ -1708,21 +1609,18 @@ func (c *MemoryObject) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Id":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Id = coercedValue
 		
 		case "Name":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Name = coercedValue
 		
 		case "Description":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Description = coercedValue
 		
 		}
@@ -1744,9 +1642,8 @@ func (c *MergeAttrs) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Amount":
-			
-			coercedValue := value.(Checked[int64])
-			
+		  coercedValue := value.(Checked[int64])
+
 			c.Amount = coercedValue
 		
 		}
@@ -1772,21 +1669,18 @@ func (c *NamedArgsSingleClass) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Key":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key = coercedValue
 		
 		case "Key_two":
-			
-			coercedValue := value.(bool)
-			
+		  coercedValue := value.(bool)
+
 			c.Key_two = coercedValue
 		
 		case "Key_three":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Key_three = coercedValue
 		
 		}
@@ -1812,22 +1706,19 @@ func (c *Nested) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop3":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop3 = &coercedValue
 		
 		case "Prop4":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop4 = &coercedValue
 		
 		case "Prop20":
-			
-			coercedValue := Nested2{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := Nested2{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Prop20 = coercedValue
 		
 		}
@@ -1851,15 +1742,13 @@ func (c *Nested2) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop11":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop11 = &coercedValue
 		
 		case "Prop12":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop12 = &coercedValue
 		
 		}
@@ -1881,9 +1770,8 @@ func (c *NestedBlockConstraint) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Nbc":
-			
-			coercedValue := value.(Checked[BlockConstraint])
-			
+		  coercedValue := value.(Checked[BlockConstraint])
+
 			c.Nbc = coercedValue
 		
 		}
@@ -1905,9 +1793,8 @@ func (c *NestedBlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Nbcfp":
-			
-			coercedValue := value.(BlockConstraintForParam)
-			
+		  coercedValue := value.(BlockConstraintForParam)
+
 			c.Nbcfp = coercedValue
 		
 		}
@@ -1931,15 +1818,13 @@ func (c *Node) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Data":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Data = coercedValue
 		
 		case "Next":
-			
-			coercedValue := value.(Node)
-			
+		  coercedValue := value.(Node)
+
 			c.Next = &coercedValue
 		
 		}
@@ -1963,15 +1848,13 @@ func (c *NodeWithAliasIndirection) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Value = coercedValue
 		
 		case "Next":
-			
-			coercedValue := value.(NodeWithAliasIndirection)
-			
+		  coercedValue := value.(NodeWithAliasIndirection)
+
 			c.Next = &coercedValue
 		
 		}
@@ -1995,15 +1878,13 @@ func (c *OptionalListAndMap) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "P":
-			
-			coercedValue := value.([]string)
-			
+		  coercedValue := value.([]string)
+
 			c.P = &coercedValue
 		
 		case "Q":
-			
-			coercedValue := value.(map[string]string)
-			
+		  coercedValue := value.(map[string]string)
+
 			c.Q = &coercedValue
 		
 		}
@@ -2027,15 +1908,13 @@ func (c *OptionalTest_Prop1) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Omega_a":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Omega_a = coercedValue
 		
 		case "Omega_b":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Omega_b = coercedValue
 		
 		}
@@ -2061,24 +1940,22 @@ func (c *OptionalTest_ReturnType) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Omega_1":
-			
-			coercedValue := value.(OptionalTest_Prop1)
-			
+		  coercedValue := value.(OptionalTest_Prop1)
+
 			c.Omega_1 = &coercedValue
 		
 		case "Omega_2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Omega_2 = &coercedValue
 		
 		case "Omega_3":
-			
-			coercedValue := make([]*OptionalTest_CategoryType, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(*OptionalTest_CategoryType)
-			}
-			
+		  coercedValue := make([]*OptionalTest_CategoryType, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(OptionalTest_CategoryType)
+  coercedValue[i] = &innercoercedValue
+}
+
 			c.Omega_3 = coercedValue
 		
 		}
@@ -2104,21 +1981,18 @@ func (c *OrderInfo) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Order_status":
-			
-			coercedValue := value.(OrderStatus)
-			
+		  coercedValue := value.(OrderStatus)
+
 			c.Order_status = coercedValue
 		
 		case "Tracking_number":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Tracking_number = &coercedValue
 		
 		case "Estimated_arrival_date":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Estimated_arrival_date = &coercedValue
 		
 		}
@@ -2140,9 +2014,8 @@ func (c *OriginalA) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Value = coercedValue
 		
 		}
@@ -2166,9 +2039,8 @@ func (c *OriginalB) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Value = coercedValue
 		
 		}
@@ -2194,15 +2066,13 @@ func (c *Person) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Name":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Name = &coercedValue
 		
 		case "Hair_color":
-			
-			coercedValue := value.(Color)
-			
+		  coercedValue := value.(Color)
+
 			c.Hair_color = &coercedValue
 		
 		}
@@ -2224,9 +2094,8 @@ func (c *PhoneNumber) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Value = coercedValue
 		
 		}
@@ -2250,15 +2119,13 @@ func (c *Quantity) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Amount":
-			
-			coercedValue := value.(Union__int64__float64)
-			
+		  coercedValue := value.(Union__int64__float64)
+
 			c.Amount = coercedValue
 		
 		case "Unit":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Unit = &coercedValue
 		
 		}
@@ -2282,15 +2149,13 @@ func (c *RaysData) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "DataType":
-			
-			coercedValue := value.(DataType)
-			
+		  coercedValue := value.(DataType)
+
 			c.DataType = coercedValue
 		
 		case "Value":
-			
-			coercedValue := value.(Union__Resume__Event)
-			
+		  coercedValue := value.(Union__Resume__Event)
+
 			c.Value = coercedValue
 		
 		}
@@ -2316,24 +2181,23 @@ func (c *ReceiptInfo) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Items":
-			
-			coercedValue := make([]ReceiptItem, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(ReceiptItem)
-			}
-			
+		  coercedValue := make([]ReceiptItem, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := ReceiptItem{}
+innercoercedValue.BamlDecode(v.(map[string]any))
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Items = coercedValue
 		
 		case "Total_cost":
-			
-			coercedValue := value.(float64)
-			
+		  coercedValue := value.(float64)
+
 			c.Total_cost = &coercedValue
 		
 		case "Venue":
-			
-			coercedValue := value.(Union__string_barisa__string_ox_burger)
-			
+		  coercedValue := value.(Union__string_barisa__string_ox_burger)
+
 			c.Venue = coercedValue
 		
 		}
@@ -2361,27 +2225,23 @@ func (c *ReceiptItem) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Name":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Name = coercedValue
 		
 		case "Description":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Description = &coercedValue
 		
 		case "Quantity":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Quantity = coercedValue
 		
 		case "Price":
-			
-			coercedValue := value.(float64)
-			
+		  coercedValue := value.(float64)
+
 			c.Price = coercedValue
 		
 		}
@@ -2405,15 +2265,13 @@ func (c *Recipe) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Ingredients":
-			
-			coercedValue := value.(map[string]Quantity)
-			
+		  coercedValue := value.(map[string]Quantity)
+
 			c.Ingredients = coercedValue
 		
 		case "Recipe_type":
-			
-			coercedValue := value.(Union__string_breakfast__string_dinner)
-			
+		  coercedValue := value.(Union__string_breakfast__string_dinner)
+
 			c.Recipe_type = coercedValue
 		
 		}
@@ -2435,9 +2293,8 @@ func (c *RecursiveAliasDependency) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-			
-			coercedValue := value.(JsonValue)
-			
+		  coercedValue := value.(JsonValue)
+
 			c.Value = coercedValue
 		
 		}
@@ -2469,48 +2326,46 @@ func (c *Resume) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Name":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Name = coercedValue
 		
 		case "Email":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Email = coercedValue
 		
 		case "Phone":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Phone = coercedValue
 		
 		case "Experience":
-			
-			coercedValue := make([]Education, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(Education)
-			}
-			
+		  coercedValue := make([]Education, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := Education{}
+innercoercedValue.BamlDecode(v.(map[string]any))
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Experience = coercedValue
 		
 		case "Education":
-			
-			coercedValue := make([]string, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(string)
-			}
-			
+		  coercedValue := make([]string, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(string)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Education = coercedValue
 		
 		case "Skills":
-			
-			coercedValue := make([]string, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(string)
-			}
-			
+		  coercedValue := make([]string, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(string)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Skills = coercedValue
 		
 		}
@@ -2544,51 +2399,46 @@ func (c *Schema) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop1":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop1 = &coercedValue
 		
 		case "Prop2":
-			
-			coercedValue := value.(Union__Nested__string)
-			
+		  coercedValue := value.(Union__Nested__string)
+
 			c.Prop2 = coercedValue
 		
 		case "Prop5":
-			
-			coercedValue := make([]*string, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(*string)
-			}
-			
+		  coercedValue := make([]*string, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(string)
+  coercedValue[i] = &innercoercedValue
+}
+
 			c.Prop5 = coercedValue
 		
 		case "Prop6":
-			
-			coercedValue := value.(Union__string__List__Nested)
-			
+		  coercedValue := value.(Union__string__List__Nested)
+
 			c.Prop6 = coercedValue
 		
 		case "Nested_attrs":
-			
-			coercedValue := make([]*Union__string__Nested, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(*Union__string__Nested)
-			}
-			
+		  coercedValue := make([]*Union__string__Nested, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(Union__string__Nested)
+  coercedValue[i] = &innercoercedValue
+}
+
 			c.Nested_attrs = coercedValue
 		
 		case "Parens":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Parens = &coercedValue
 		
 		case "Other_group":
-			
-			coercedValue := value.(Union__string__int64)
-			
+		  coercedValue := value.(Union__string__int64)
+
 			c.Other_group = coercedValue
 		
 		}
@@ -2620,48 +2470,46 @@ func (c *SearchParams) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "DateRange":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.DateRange = &coercedValue
 		
 		case "Location":
-			
-			coercedValue := make([]string, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(string)
-			}
-			
+		  coercedValue := make([]string, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(string)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Location = coercedValue
 		
 		case "JobTitle":
-			
-			coercedValue := value.(WithReasoning)
-			
+		  coercedValue := value.(WithReasoning)
+
 			c.JobTitle = &coercedValue
 		
 		case "Company":
-			
-			coercedValue := value.(WithReasoning)
-			
+		  coercedValue := value.(WithReasoning)
+
 			c.Company = &coercedValue
 		
 		case "Description":
-			
-			coercedValue := make([]WithReasoning, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(WithReasoning)
-			}
-			
+		  coercedValue := make([]WithReasoning, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := WithReasoning{}
+innercoercedValue.BamlDecode(v.(map[string]any))
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Description = coercedValue
 		
 		case "Tags":
-			
-			coercedValue := make([]Union__Tag__string, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(Union__Tag__string)
-			}
-			
+		  coercedValue := make([]Union__Tag__string, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(Union__Tag__string)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Tags = coercedValue
 		
 		}
@@ -2697,58 +2545,52 @@ func (c *SemanticContainer) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Sixteen_digit_number":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Sixteen_digit_number = coercedValue
 		
 		case "String_with_twenty_words":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.String_with_twenty_words = coercedValue
 		
 		case "Class_1":
-			
-			coercedValue := ClassWithoutDone{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := ClassWithoutDone{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Class_1 = coercedValue
 		
 		case "Class_2":
-			
-			coercedValue := ClassWithBlockDone{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := ClassWithBlockDone{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Class_2 = coercedValue
 		
 		case "Class_done_needed":
-			
-			coercedValue := ClassWithBlockDone{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := ClassWithBlockDone{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Class_done_needed = coercedValue
 		
 		case "Class_needed":
-			
-			coercedValue := ClassWithoutDone{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := ClassWithoutDone{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Class_needed = coercedValue
 		
 		case "Three_small_things":
-			
-			coercedValue := make([]SmallThing, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(SmallThing)
-			}
-			
+		  coercedValue := make([]SmallThing, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := SmallThing{}
+innercoercedValue.BamlDecode(v.(map[string]any))
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Three_small_things = coercedValue
 		
 		case "Final_string":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Final_string = coercedValue
 		
 		}
@@ -2770,9 +2612,8 @@ func (c *SimpleTag) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Field":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Field = coercedValue
 		
 		}
@@ -2796,15 +2637,13 @@ func (c *SmallThing) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "I_16_digits":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.I_16_digits = coercedValue
 		
 		case "I_8_digits":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.I_8_digits = coercedValue
 		
 		}
@@ -2828,9 +2667,8 @@ func (c *SomeClassNestedDynamic) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Hi":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Hi = coercedValue
 		
 		}
@@ -2852,9 +2690,8 @@ func (c *StringToClassEntry) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Word":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Word = coercedValue
 		
 		}
@@ -2884,33 +2721,28 @@ func (c *TestClassAlias) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Key":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key = coercedValue
 		
 		case "Key2":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key2 = coercedValue
 		
 		case "Key3":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key3 = coercedValue
 		
 		case "Key4":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key4 = coercedValue
 		
 		case "Key5":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Key5 = coercedValue
 		
 		}
@@ -2934,16 +2766,14 @@ func (c *TestClassNested) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop1":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop1 = coercedValue
 		
 		case "Prop2":
-			
-			coercedValue := InnerClass{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := InnerClass{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Prop2 = coercedValue
 		
 		}
@@ -2967,15 +2797,13 @@ func (c *TestClassWithEnum) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop1":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop1 = coercedValue
 		
 		case "Prop2":
-			
-			coercedValue := value.(EnumInClass)
-			
+		  coercedValue := value.(EnumInClass)
+
 			c.Prop2 = coercedValue
 		
 		}
@@ -2999,21 +2827,21 @@ func (c *TestMemoryOutput) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Items":
-			
-			coercedValue := make([]Union__MemoryObject__ComplexMemoryObject__AnotherObject, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
-			}
-			
+		  coercedValue := make([]Union__MemoryObject__ComplexMemoryObject__AnotherObject, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Items = coercedValue
 		
 		case "More_items":
-			
-			coercedValue := make([]Union__MemoryObject__ComplexMemoryObject__AnotherObject, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
-			}
-			
+		  coercedValue := make([]Union__MemoryObject__ComplexMemoryObject__AnotherObject, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.More_items = coercedValue
 		
 		}
@@ -3037,15 +2865,13 @@ func (c *TestOutputClass) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop1":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Prop1 = coercedValue
 		
 		case "Prop2":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Prop2 = coercedValue
 		
 		}
@@ -3069,16 +2895,14 @@ func (c *Tree) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Data":
-			
-			coercedValue := value.(int64)
-			
+		  coercedValue := value.(int64)
+
 			c.Data = coercedValue
 		
 		case "Children":
-			
-			coercedValue := Forest{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			
+		  coercedValue := Forest{}
+coercedValue.BamlDecode(value.(map[string]any))
+
 			c.Children = coercedValue
 		
 		}
@@ -3104,21 +2928,18 @@ func (c *TwoStoriesOneTitle) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Title":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Title = coercedValue
 		
 		case "Story_a":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Story_a = coercedValue
 		
 		case "Story_b":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Story_b = coercedValue
 		
 		}
@@ -3144,24 +2965,22 @@ func (c *UnionTest_ReturnType) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop1":
-			
-			coercedValue := value.(Union__string__bool)
-			
+		  coercedValue := value.(Union__string__bool)
+
 			c.Prop1 = coercedValue
 		
 		case "Prop2":
-			
-			coercedValue := make([]Union__float64__bool, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.(Union__float64__bool)
-			}
-			
+		  coercedValue := make([]Union__float64__bool, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(Union__float64__bool)
+  coercedValue[i] = innercoercedValue
+}
+
 			c.Prop2 = coercedValue
 		
 		case "Prop3":
-			
-			coercedValue := value.(Union__List__bool__List__int64)
-			
+		  coercedValue := value.(Union__List__bool__List__int64)
+
 			c.Prop3 = coercedValue
 		
 		}
@@ -3186,15 +3005,13 @@ func (c *UniverseQuestion) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Question":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Question = coercedValue
 		
 		case "Answer":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Answer = coercedValue
 		
 		}
@@ -3216,9 +3033,8 @@ func (c *UniverseQuestionInput) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Question":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Question = coercedValue
 		
 		}
@@ -3242,15 +3058,13 @@ func (c *WithReasoning) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Value = coercedValue
 		
 		case "Reasoning":
-			
-			coercedValue := value.(string)
-			
+		  coercedValue := value.(string)
+
 			c.Reasoning = coercedValue
 		
 		}

@@ -1,9 +1,7 @@
 package types
 
 import (
-	_"encoding/json"
 	_ "fmt"
-	_ "github.com/boundaryml/baml/go"
 )
 
 
@@ -63,17 +61,7 @@ func (c *{{ class.name }}) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		{% for field in class.fields %}
 		case "{{ field.name|exported_name }}":
-			{% if field.go_type.is_class %}
-			coercedValue := {{ field.go_type.name|type_name_without_pointer }}{}
-			coercedValue.BamlDecode(value.(map[string]any))
-			{% else if field.go_type.is_slice %}
-			coercedValue := make({{ field.go_type.name }}, len(value.([]any)))
-			for i, v := range value.([]any) {
-				coercedValue[i] = v.({{ field.go_type.underlying_type.as_ref().unwrap().name }})
-			}
-			{% else %}
-			coercedValue := value.({{ field.go_type.name|type_name_without_pointer }})
-			{% endif %}
+		  {{ crate::go::generate_types::render_value_coercion("coercedValue", "value",field.go_type) }}
 			c.{{ field.name|exported_name }} = {% if field.go_type.is_pointer %}&{% endif %}coercedValue
 		{% endfor %}
 		}
@@ -82,7 +70,6 @@ func (c *{{ class.name }}) BamlDecode(decodedMap map[string]any) {
 }
 
 {% endfor %}
-
 
 {#- Type Aliases -#}
 {% for alias in structural_recursive_alias_cycles %}
