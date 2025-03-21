@@ -46,11 +46,11 @@ func (c *Checked[T]) AllSucceeded() bool {
 {{ docstring }}
 {%- endif %}
 type {{ class.name }} struct {
-    {% for (name, type, docstring) in class.fields %}
-    {%- if let Some(docstring) = docstring -%}
+    {% for field in class.fields %}
+    {%- if let Some(docstring) = field.docstring -%}
     {{ docstring }}
     {%- endif %}
-    {{ name|exported_name }} {{ type }} `json:"{{ name }}"`
+    {{ field.name|exported_name }} {{ field.go_type.name }} `json:"{{ field.name }}"`
     {% endfor %}
     {% if class.dynamic %}
     DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
@@ -59,12 +59,22 @@ type {{ class.name }} struct {
 
 func (c *{{ class.name }}) BamlDecode(decodedMap map[string]any) {
 	{% if class.fields|length > 0 %}
-	for name, value := range decodedMap {
+	for name, value := range decodedMap["values"].(map[string]any) {
 		switch name {
-		{% for (name, type, _) in class.fields %}
-		case "{{ name|exported_name }}":
-			coercedValue := value.({{ type|type_without_pointer }})
-			c.{{ name|exported_name }} = {% if type|is_pointer %}&{% endif %}coercedValue
+		{% for field in class.fields %}
+		case "{{ field.name|exported_name }}":
+			{% if field.go_type.is_class %}
+			coercedValue := {{ field.go_type.name|type_name_without_pointer }}{}
+			coercedValue.BamlDecode(value.(map[string]any))
+			{% else if field.go_type.is_slice %}
+			coercedValue := make({{ field.go_type.name }}, len(value.([]any)))
+			for i, v := range value.([]any) {
+				coercedValue[i] = v.({{ field.go_type.underlying_type.as_ref().unwrap().name }})
+			}
+			{% else %}
+			coercedValue := value.({{ field.go_type.name|type_name_without_pointer }})
+			{% endif %}
+			c.{{ field.name|exported_name }} = {% if field.go_type.is_pointer %}&{% endif %}coercedValue
 		{% endfor %}
 		}
 	}

@@ -22,7 +22,9 @@ func TestDeserialization(t *testing.T) {
 		{`12.3`, float64(12.3)},
 		{`true`, true},
 		{`false`, false},
-		{`{ "class_name": "Blah", "Prop4": "test" }`, &types.Blah{Prop4: &[]string{"test"}[0]}},
+		{`{ "class_name": "Blah", "values": { "Prop4": "test" } }`, &types.Blah{Prop4: &[]string{"test"}[0]}},
+		{`{ "class_name": "InputClassNested", "values": { "Key": "test", "Nested": { "class_name": "InputClass", "values": { "Key": "test" } } } }`, &types.InputClassNested{Key: "test", Nested: types.InputClass{Key: "test"}}},
+		{`{ "class_name": "Education", "values": { "Institution": "test", "Location": "test", "Degree": "test", "Major": ["test"], "Graduation_date": "test" } }`, &types.Education{Institution: "test", Location: "test", Degree: "test", Major: []string{"test"}, Graduation_date: &[]string{"test"}[0]}},
 	}
 
 	for _, test := range deserializationTests {

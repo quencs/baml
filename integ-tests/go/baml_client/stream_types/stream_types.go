@@ -11,6 +11,9 @@
 package stream_types
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"example.com/integ-tests/baml_client/types"
 )
 
