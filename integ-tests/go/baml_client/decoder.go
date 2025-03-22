@@ -14,219 +14,220 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"example.com/integ-tests/baml_client/types"
+  "example.com/integ-tests/baml_client/types"
 )
 
 type BamlDecoder interface {
-	BamlDecode(decodedMap map[string]any)
+  BamlDecode(decodedMap map[string]any)
 }
 
 var typeMap = map[string]reflect.Type{
-
-	"AnotherObject": reflect.TypeOf(types.AnotherObject{}),
-
-	"BigNumbers": reflect.TypeOf(types.BigNumbers{}),
-
-	"BinaryNode": reflect.TypeOf(types.BinaryNode{}),
-
-	"Blah": reflect.TypeOf(types.Blah{}),
-
-	"BlockConstraint": reflect.TypeOf(types.BlockConstraint{}),
-
-	"BlockConstraintForParam": reflect.TypeOf(types.BlockConstraintForParam{}),
-
-	"BookOrder": reflect.TypeOf(types.BookOrder{}),
-
-	"ClassForNullLiteral": reflect.TypeOf(types.ClassForNullLiteral{}),
-
-	"ClassOptionalOutput": reflect.TypeOf(types.ClassOptionalOutput{}),
-
-	"ClassOptionalOutput2": reflect.TypeOf(types.ClassOptionalOutput2{}),
-
-	"ClassToRecAlias": reflect.TypeOf(types.ClassToRecAlias{}),
-
-	"ClassWithBlockDone": reflect.TypeOf(types.ClassWithBlockDone{}),
-
-	"ClassWithImage": reflect.TypeOf(types.ClassWithImage{}),
-
-	"ClassWithoutDone": reflect.TypeOf(types.ClassWithoutDone{}),
-
-	"ComplexMemoryObject": reflect.TypeOf(types.ComplexMemoryObject{}),
-
-	"CompoundBigNumbers": reflect.TypeOf(types.CompoundBigNumbers{}),
-
-	"ContactInfo": reflect.TypeOf(types.ContactInfo{}),
-
-	"CustomTaskResult": reflect.TypeOf(types.CustomTaskResult{}),
-
-	"DummyOutput": reflect.TypeOf(types.DummyOutput{}),
-
-	"DynInputOutput": reflect.TypeOf(types.DynInputOutput{}),
-
-	"DynamicClassOne": reflect.TypeOf(types.DynamicClassOne{}),
-
-	"DynamicClassTwo": reflect.TypeOf(types.DynamicClassTwo{}),
-
-	"DynamicOutput": reflect.TypeOf(types.DynamicOutput{}),
-
-	"Earthling": reflect.TypeOf(types.Earthling{}),
-
-	"Education": reflect.TypeOf(types.Education{}),
-
-	"Email": reflect.TypeOf(types.Email{}),
-
-	"EmailAddress": reflect.TypeOf(types.EmailAddress{}),
-
-	"Event": reflect.TypeOf(types.Event{}),
-
-	"FakeImage": reflect.TypeOf(types.FakeImage{}),
-
-	"FlightConfirmation": reflect.TypeOf(types.FlightConfirmation{}),
-
-	"FooAny": reflect.TypeOf(types.FooAny{}),
-
-	"Forest": reflect.TypeOf(types.Forest{}),
-
-	"FormatterTest0": reflect.TypeOf(types.FormatterTest0{}),
-
-	"FormatterTest1": reflect.TypeOf(types.FormatterTest1{}),
-
-	"FormatterTest2": reflect.TypeOf(types.FormatterTest2{}),
-
-	"FormatterTest3": reflect.TypeOf(types.FormatterTest3{}),
-
-	"GroceryReceipt": reflect.TypeOf(types.GroceryReceipt{}),
-
-	"InnerClass": reflect.TypeOf(types.InnerClass{}),
-
-	"InnerClass2": reflect.TypeOf(types.InnerClass2{}),
-
-	"InputClass": reflect.TypeOf(types.InputClass{}),
-
-	"InputClassNested": reflect.TypeOf(types.InputClassNested{}),
-
-	"LinkedList": reflect.TypeOf(types.LinkedList{}),
-
-	"LinkedListAliasNode": reflect.TypeOf(types.LinkedListAliasNode{}),
-
-	"LiteralClassHello": reflect.TypeOf(types.LiteralClassHello{}),
-
-	"LiteralClassOne": reflect.TypeOf(types.LiteralClassOne{}),
-
-	"LiteralClassTwo": reflect.TypeOf(types.LiteralClassTwo{}),
-
-	"MalformedConstraints": reflect.TypeOf(types.MalformedConstraints{}),
-
-	"MalformedConstraints2": reflect.TypeOf(types.MalformedConstraints2{}),
-
-	"Martian": reflect.TypeOf(types.Martian{}),
-
-	"MemoryObject": reflect.TypeOf(types.MemoryObject{}),
-
-	"MergeAttrs": reflect.TypeOf(types.MergeAttrs{}),
-
-	"NamedArgsSingleClass": reflect.TypeOf(types.NamedArgsSingleClass{}),
-
-	"Nested": reflect.TypeOf(types.Nested{}),
-
-	"Nested2": reflect.TypeOf(types.Nested2{}),
-
-	"NestedBlockConstraint": reflect.TypeOf(types.NestedBlockConstraint{}),
-
-	"NestedBlockConstraintForParam": reflect.TypeOf(types.NestedBlockConstraintForParam{}),
-
-	"Node": reflect.TypeOf(types.Node{}),
-
-	"NodeWithAliasIndirection": reflect.TypeOf(types.NodeWithAliasIndirection{}),
-
-	"OptionalListAndMap": reflect.TypeOf(types.OptionalListAndMap{}),
-
-	"OptionalTest_Prop1": reflect.TypeOf(types.OptionalTest_Prop1{}),
-
-	"OptionalTest_ReturnType": reflect.TypeOf(types.OptionalTest_ReturnType{}),
-
-	"OrderInfo": reflect.TypeOf(types.OrderInfo{}),
-
-	"OriginalA": reflect.TypeOf(types.OriginalA{}),
-
-	"OriginalB": reflect.TypeOf(types.OriginalB{}),
-
-	"Person": reflect.TypeOf(types.Person{}),
-
-	"PhoneNumber": reflect.TypeOf(types.PhoneNumber{}),
-
-	"Quantity": reflect.TypeOf(types.Quantity{}),
-
-	"RaysData": reflect.TypeOf(types.RaysData{}),
-
-	"ReceiptInfo": reflect.TypeOf(types.ReceiptInfo{}),
-
-	"ReceiptItem": reflect.TypeOf(types.ReceiptItem{}),
-
-	"Recipe": reflect.TypeOf(types.Recipe{}),
-
-	"RecursiveAliasDependency": reflect.TypeOf(types.RecursiveAliasDependency{}),
-
-	"Resume": reflect.TypeOf(types.Resume{}),
-
-	"Schema": reflect.TypeOf(types.Schema{}),
-
-	"SearchParams": reflect.TypeOf(types.SearchParams{}),
-
-	"SemanticContainer": reflect.TypeOf(types.SemanticContainer{}),
-
-	"SimpleTag": reflect.TypeOf(types.SimpleTag{}),
-
-	"SmallThing": reflect.TypeOf(types.SmallThing{}),
-
-	"SomeClassNestedDynamic": reflect.TypeOf(types.SomeClassNestedDynamic{}),
-
-	"StringToClassEntry": reflect.TypeOf(types.StringToClassEntry{}),
-
-	"TestClassAlias": reflect.TypeOf(types.TestClassAlias{}),
-
-	"TestClassNested": reflect.TypeOf(types.TestClassNested{}),
-
-	"TestClassWithEnum": reflect.TypeOf(types.TestClassWithEnum{}),
-
-	"TestMemoryOutput": reflect.TypeOf(types.TestMemoryOutput{}),
-
-	"TestOutputClass": reflect.TypeOf(types.TestOutputClass{}),
-
-	"Tree": reflect.TypeOf(types.Tree{}),
-
-	"TwoStoriesOneTitle": reflect.TypeOf(types.TwoStoriesOneTitle{}),
-
-	"UnionTest_ReturnType": reflect.TypeOf(types.UnionTest_ReturnType{}),
-
-	"UniverseQuestion": reflect.TypeOf(types.UniverseQuestion{}),
-
-	"UniverseQuestionInput": reflect.TypeOf(types.UniverseQuestionInput{}),
-
-	"WithReasoning": reflect.TypeOf(types.WithReasoning{}),
+  
+  "AnotherObject": reflect.TypeOf(types.AnotherObject{}),
+  
+  "BigNumbers": reflect.TypeOf(types.BigNumbers{}),
+  
+  "BinaryNode": reflect.TypeOf(types.BinaryNode{}),
+  
+  "Blah": reflect.TypeOf(types.Blah{}),
+  
+  "BlockConstraint": reflect.TypeOf(types.BlockConstraint{}),
+  
+  "BlockConstraintForParam": reflect.TypeOf(types.BlockConstraintForParam{}),
+  
+  "BookOrder": reflect.TypeOf(types.BookOrder{}),
+  
+  "ClassForNullLiteral": reflect.TypeOf(types.ClassForNullLiteral{}),
+  
+  "ClassOptionalOutput": reflect.TypeOf(types.ClassOptionalOutput{}),
+  
+  "ClassOptionalOutput2": reflect.TypeOf(types.ClassOptionalOutput2{}),
+  
+  "ClassToRecAlias": reflect.TypeOf(types.ClassToRecAlias{}),
+  
+  "ClassWithBlockDone": reflect.TypeOf(types.ClassWithBlockDone{}),
+  
+  "ClassWithImage": reflect.TypeOf(types.ClassWithImage{}),
+  
+  "ClassWithoutDone": reflect.TypeOf(types.ClassWithoutDone{}),
+  
+  "ComplexMemoryObject": reflect.TypeOf(types.ComplexMemoryObject{}),
+  
+  "CompoundBigNumbers": reflect.TypeOf(types.CompoundBigNumbers{}),
+  
+  "ContactInfo": reflect.TypeOf(types.ContactInfo{}),
+  
+  "CustomTaskResult": reflect.TypeOf(types.CustomTaskResult{}),
+  
+  "DummyOutput": reflect.TypeOf(types.DummyOutput{}),
+  
+  "DynInputOutput": reflect.TypeOf(types.DynInputOutput{}),
+  
+  "DynamicClassOne": reflect.TypeOf(types.DynamicClassOne{}),
+  
+  "DynamicClassTwo": reflect.TypeOf(types.DynamicClassTwo{}),
+  
+  "DynamicOutput": reflect.TypeOf(types.DynamicOutput{}),
+  
+  "Earthling": reflect.TypeOf(types.Earthling{}),
+  
+  "Education": reflect.TypeOf(types.Education{}),
+  
+  "Email": reflect.TypeOf(types.Email{}),
+  
+  "EmailAddress": reflect.TypeOf(types.EmailAddress{}),
+  
+  "Event": reflect.TypeOf(types.Event{}),
+  
+  "FakeImage": reflect.TypeOf(types.FakeImage{}),
+  
+  "FlightConfirmation": reflect.TypeOf(types.FlightConfirmation{}),
+  
+  "FooAny": reflect.TypeOf(types.FooAny{}),
+  
+  "Forest": reflect.TypeOf(types.Forest{}),
+  
+  "FormatterTest0": reflect.TypeOf(types.FormatterTest0{}),
+  
+  "FormatterTest1": reflect.TypeOf(types.FormatterTest1{}),
+  
+  "FormatterTest2": reflect.TypeOf(types.FormatterTest2{}),
+  
+  "FormatterTest3": reflect.TypeOf(types.FormatterTest3{}),
+  
+  "GroceryReceipt": reflect.TypeOf(types.GroceryReceipt{}),
+  
+  "InnerClass": reflect.TypeOf(types.InnerClass{}),
+  
+  "InnerClass2": reflect.TypeOf(types.InnerClass2{}),
+  
+  "InputClass": reflect.TypeOf(types.InputClass{}),
+  
+  "InputClassNested": reflect.TypeOf(types.InputClassNested{}),
+  
+  "LinkedList": reflect.TypeOf(types.LinkedList{}),
+  
+  "LinkedListAliasNode": reflect.TypeOf(types.LinkedListAliasNode{}),
+  
+  "LiteralClassHello": reflect.TypeOf(types.LiteralClassHello{}),
+  
+  "LiteralClassOne": reflect.TypeOf(types.LiteralClassOne{}),
+  
+  "LiteralClassTwo": reflect.TypeOf(types.LiteralClassTwo{}),
+  
+  "MalformedConstraints": reflect.TypeOf(types.MalformedConstraints{}),
+  
+  "MalformedConstraints2": reflect.TypeOf(types.MalformedConstraints2{}),
+  
+  "Martian": reflect.TypeOf(types.Martian{}),
+  
+  "MemoryObject": reflect.TypeOf(types.MemoryObject{}),
+  
+  "MergeAttrs": reflect.TypeOf(types.MergeAttrs{}),
+  
+  "NamedArgsSingleClass": reflect.TypeOf(types.NamedArgsSingleClass{}),
+  
+  "Nested": reflect.TypeOf(types.Nested{}),
+  
+  "Nested2": reflect.TypeOf(types.Nested2{}),
+  
+  "NestedBlockConstraint": reflect.TypeOf(types.NestedBlockConstraint{}),
+  
+  "NestedBlockConstraintForParam": reflect.TypeOf(types.NestedBlockConstraintForParam{}),
+  
+  "Node": reflect.TypeOf(types.Node{}),
+  
+  "NodeWithAliasIndirection": reflect.TypeOf(types.NodeWithAliasIndirection{}),
+  
+  "OptionalListAndMap": reflect.TypeOf(types.OptionalListAndMap{}),
+  
+  "OptionalTest_Prop1": reflect.TypeOf(types.OptionalTest_Prop1{}),
+  
+  "OptionalTest_ReturnType": reflect.TypeOf(types.OptionalTest_ReturnType{}),
+  
+  "OrderInfo": reflect.TypeOf(types.OrderInfo{}),
+  
+  "OriginalA": reflect.TypeOf(types.OriginalA{}),
+  
+  "OriginalB": reflect.TypeOf(types.OriginalB{}),
+  
+  "Person": reflect.TypeOf(types.Person{}),
+  
+  "PhoneNumber": reflect.TypeOf(types.PhoneNumber{}),
+  
+  "Quantity": reflect.TypeOf(types.Quantity{}),
+  
+  "RaysData": reflect.TypeOf(types.RaysData{}),
+  
+  "ReceiptInfo": reflect.TypeOf(types.ReceiptInfo{}),
+  
+  "ReceiptItem": reflect.TypeOf(types.ReceiptItem{}),
+  
+  "Recipe": reflect.TypeOf(types.Recipe{}),
+  
+  "RecursiveAliasDependency": reflect.TypeOf(types.RecursiveAliasDependency{}),
+  
+  "Resume": reflect.TypeOf(types.Resume{}),
+  
+  "Schema": reflect.TypeOf(types.Schema{}),
+  
+  "SearchParams": reflect.TypeOf(types.SearchParams{}),
+  
+  "SemanticContainer": reflect.TypeOf(types.SemanticContainer{}),
+  
+  "SimpleTag": reflect.TypeOf(types.SimpleTag{}),
+  
+  "SmallThing": reflect.TypeOf(types.SmallThing{}),
+  
+  "SomeClassNestedDynamic": reflect.TypeOf(types.SomeClassNestedDynamic{}),
+  
+  "StringToClassEntry": reflect.TypeOf(types.StringToClassEntry{}),
+  
+  "TestClassAlias": reflect.TypeOf(types.TestClassAlias{}),
+  
+  "TestClassNested": reflect.TypeOf(types.TestClassNested{}),
+  
+  "TestClassWithEnum": reflect.TypeOf(types.TestClassWithEnum{}),
+  
+  "TestMemoryOutput": reflect.TypeOf(types.TestMemoryOutput{}),
+  
+  "TestOutputClass": reflect.TypeOf(types.TestOutputClass{}),
+  
+  "Tree": reflect.TypeOf(types.Tree{}),
+  
+  "TwoStoriesOneTitle": reflect.TypeOf(types.TwoStoriesOneTitle{}),
+  
+  "UnionTest_ReturnType": reflect.TypeOf(types.UnionTest_ReturnType{}),
+  
+  "UniverseQuestion": reflect.TypeOf(types.UniverseQuestion{}),
+  
+  "UniverseQuestionInput": reflect.TypeOf(types.UniverseQuestionInput{}),
+  
+  "WithReasoning": reflect.TypeOf(types.WithReasoning{}),
+  
 }
 
 func Decode(data []byte) (any, error) {
-	var decoded any
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return nil, err
-	}
+  var decoded any
+  if err := json.Unmarshal(data, &decoded); err != nil {
+    return nil, err
+  }
 
-	var result any
-	if reflect.TypeOf(decoded).Kind() == reflect.Map {
-		decodedMap := decoded.(map[string]any)
-		if decodedMap["class_name"] != nil {
-			className := decodedMap["class_name"].(string)
-			newObject := reflect.New(typeMap[className]).Interface().(BamlDecoder)
-			newObject.BamlDecode(decodedMap)
-			result = newObject
-		}
-	} else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
-		decodedSlice := decoded.([]any)
-		// determine the map key and value types
-		if len(decodedSlice) > 0 {
+  var result any
+  if reflect.TypeOf(decoded).Kind() == reflect.Map {
+    decodedMap := decoded.(map[string]any)
+    if decodedMap["class_name"] != nil {
+      className := decodedMap["class_name"].(string)
+      newObject := reflect.New(typeMap[className]).Interface().(BamlDecoder)
+      newObject.BamlDecode(decodedMap)
+      result = newObject
+    }
+  } else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
+    decodedSlice := decoded.([]any)
+    
+    if len(decodedSlice) > 0 {
 			keyType := reflect.TypeOf("")
-			// this is insane but it works
+			
 			valueType := reflect.TypeOf((*any)(nil)).Elem()
 
 			newMap := reflect.MakeMap(reflect.MapOf(keyType, valueType))
@@ -237,12 +238,12 @@ func Decode(data []byte) (any, error) {
 				newMap.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
 			}
 			result = newMap.Interface()
-		} else {
-			result = map[string]any{}
-		}
-	} else {
-		result = decoded
-	}
+    } else {
+      result = map[string]any{}
+    }
+  } else {
+    result = decoded
+  }
 
 	return result, nil
 }

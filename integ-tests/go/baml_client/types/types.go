@@ -102,7 +102,7 @@ func (c *BigNumbers) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "A":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.A = coercedValue
 		
@@ -134,7 +134,7 @@ func (c *BinaryNode) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Data":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Data = coercedValue
 		
@@ -192,7 +192,7 @@ func (c *BlockConstraint) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Foo":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Foo = coercedValue
 		
@@ -222,7 +222,7 @@ func (c *BlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Bcfp":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Bcfp = coercedValue
 		
@@ -266,7 +266,7 @@ func (c *BookOrder) BamlDecode(decodedMap map[string]any) {
 			c.Title = coercedValue
 		
 		case "Quantity":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Quantity = coercedValue
 		
@@ -410,7 +410,7 @@ func (c *ClassWithBlockDone) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "I_16_digits":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.I_16_digits = coercedValue
 		
@@ -478,7 +478,7 @@ func (c *ClassWithoutDone) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "I_16_digits":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.I_16_digits = coercedValue
 		
@@ -1315,7 +1315,7 @@ func (c *InnerClass2) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Prop2":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Prop2 = coercedValue
 		
@@ -1411,7 +1411,7 @@ func (c *LinkedList) BamlDecode(decodedMap map[string]any) {
 			c.Head = &coercedValue
 		
 		case "Len":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Len = coercedValue
 		
@@ -1436,7 +1436,7 @@ func (c *LinkedListAliasNode) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Value = coercedValue
 		
@@ -1679,7 +1679,7 @@ func (c *NamedArgsSingleClass) BamlDecode(decodedMap map[string]any) {
 			c.Key_two = coercedValue
 		
 		case "Key_three":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Key_three = coercedValue
 		
@@ -1818,7 +1818,7 @@ func (c *Node) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Data":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Data = coercedValue
 		
@@ -1848,7 +1848,7 @@ func (c *NodeWithAliasIndirection) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Value = coercedValue
 		
@@ -1913,7 +1913,7 @@ func (c *OptionalTest_Prop1) BamlDecode(decodedMap map[string]any) {
 			c.Omega_a = coercedValue
 		
 		case "Omega_b":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Omega_b = coercedValue
 		
@@ -2014,7 +2014,7 @@ func (c *OriginalA) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Value = coercedValue
 		
@@ -2039,7 +2039,7 @@ func (c *OriginalB) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Value":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Value = coercedValue
 		
@@ -2235,7 +2235,7 @@ func (c *ReceiptItem) BamlDecode(decodedMap map[string]any) {
 			c.Description = &coercedValue
 		
 		case "Quantity":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Quantity = coercedValue
 		
@@ -2545,7 +2545,7 @@ func (c *SemanticContainer) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Sixteen_digit_number":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Sixteen_digit_number = coercedValue
 		
@@ -2637,12 +2637,12 @@ func (c *SmallThing) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "I_16_digits":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.I_16_digits = coercedValue
 		
 		case "I_8_digits":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.I_8_digits = coercedValue
 		
@@ -2870,7 +2870,7 @@ func (c *TestOutputClass) BamlDecode(decodedMap map[string]any) {
 			c.Prop1 = coercedValue
 		
 		case "Prop2":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Prop2 = coercedValue
 		
@@ -2895,7 +2895,7 @@ func (c *Tree) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Data":
-		  coercedValue := value.(int64)
+		  coercedValue := int64(value.(float64))
 
 			c.Data = coercedValue
 		

@@ -77,15 +77,25 @@ fn render_value_coercion(
         );
         rendering.push_str("}\n");
     } else {
-        rendering.push_str(
-            format!(
-                "{} := {}.({})\n",
-                destination_variable_name,
-                source_variable_name,
-                filters::type_name_without_pointer(&field_type.name).unwrap()
-            )
-            .as_str(),
-        );
+        if field_type.is_integer {
+            rendering.push_str(
+                format!(
+                    "{} := int64({}.(float64))\n",
+                    destination_variable_name, source_variable_name
+                )
+                .as_str(),
+            );
+        } else {
+            rendering.push_str(
+                format!(
+                    "{} := {}.({})\n",
+                    destination_variable_name,
+                    source_variable_name,
+                    filters::type_name_without_pointer(&field_type.name).unwrap()
+                )
+                .as_str(),
+            );
+        }
     }
     rendering
 }
@@ -177,6 +187,7 @@ struct GoType {
     is_slice: bool,
     is_primitive: bool,
     is_class: bool,
+    is_integer: bool,
     underlying_type: Option<Box<GoType>>,
 }
 
@@ -465,6 +476,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             is_slice: matches!(self.simplify(), FieldType::List(_)),
             is_primitive: self.is_primitive(),
             is_class: matches!(self.simplify(), FieldType::Class(_)),
+            is_integer: matches!(self.simplify(), FieldType::Primitive(TypeValue::Int)),
             underlying_type: match self.simplify() {
                 FieldType::List(value) => Some(Box::new(value.to_type_ref(ir, module_prefix))),
                 FieldType::Optional(value) => Some(Box::new(value.to_type_ref(ir, module_prefix))),
