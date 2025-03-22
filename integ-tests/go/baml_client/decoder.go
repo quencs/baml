@@ -14,486 +14,235 @@ import (
 	"encoding/json"
 	"reflect"
 
-  "example.com/integ-tests/baml_client/types"
+	"example.com/integ-tests/baml_client/types"
 )
 
 type BamlDecoder interface {
-  BamlDecode(decodedMap map[string]any)
+	BamlDecode(decodedMap map[string]any)
+}
+
+var typeMap = map[string]reflect.Type{
+
+	"AnotherObject": reflect.TypeOf(types.AnotherObject{}),
+
+	"BigNumbers": reflect.TypeOf(types.BigNumbers{}),
+
+	"BinaryNode": reflect.TypeOf(types.BinaryNode{}),
+
+	"Blah": reflect.TypeOf(types.Blah{}),
+
+	"BlockConstraint": reflect.TypeOf(types.BlockConstraint{}),
+
+	"BlockConstraintForParam": reflect.TypeOf(types.BlockConstraintForParam{}),
+
+	"BookOrder": reflect.TypeOf(types.BookOrder{}),
+
+	"ClassForNullLiteral": reflect.TypeOf(types.ClassForNullLiteral{}),
+
+	"ClassOptionalOutput": reflect.TypeOf(types.ClassOptionalOutput{}),
+
+	"ClassOptionalOutput2": reflect.TypeOf(types.ClassOptionalOutput2{}),
+
+	"ClassToRecAlias": reflect.TypeOf(types.ClassToRecAlias{}),
+
+	"ClassWithBlockDone": reflect.TypeOf(types.ClassWithBlockDone{}),
+
+	"ClassWithImage": reflect.TypeOf(types.ClassWithImage{}),
+
+	"ClassWithoutDone": reflect.TypeOf(types.ClassWithoutDone{}),
+
+	"ComplexMemoryObject": reflect.TypeOf(types.ComplexMemoryObject{}),
+
+	"CompoundBigNumbers": reflect.TypeOf(types.CompoundBigNumbers{}),
+
+	"ContactInfo": reflect.TypeOf(types.ContactInfo{}),
+
+	"CustomTaskResult": reflect.TypeOf(types.CustomTaskResult{}),
+
+	"DummyOutput": reflect.TypeOf(types.DummyOutput{}),
+
+	"DynInputOutput": reflect.TypeOf(types.DynInputOutput{}),
+
+	"DynamicClassOne": reflect.TypeOf(types.DynamicClassOne{}),
+
+	"DynamicClassTwo": reflect.TypeOf(types.DynamicClassTwo{}),
+
+	"DynamicOutput": reflect.TypeOf(types.DynamicOutput{}),
+
+	"Earthling": reflect.TypeOf(types.Earthling{}),
+
+	"Education": reflect.TypeOf(types.Education{}),
+
+	"Email": reflect.TypeOf(types.Email{}),
+
+	"EmailAddress": reflect.TypeOf(types.EmailAddress{}),
+
+	"Event": reflect.TypeOf(types.Event{}),
+
+	"FakeImage": reflect.TypeOf(types.FakeImage{}),
+
+	"FlightConfirmation": reflect.TypeOf(types.FlightConfirmation{}),
+
+	"FooAny": reflect.TypeOf(types.FooAny{}),
+
+	"Forest": reflect.TypeOf(types.Forest{}),
+
+	"FormatterTest0": reflect.TypeOf(types.FormatterTest0{}),
+
+	"FormatterTest1": reflect.TypeOf(types.FormatterTest1{}),
+
+	"FormatterTest2": reflect.TypeOf(types.FormatterTest2{}),
+
+	"FormatterTest3": reflect.TypeOf(types.FormatterTest3{}),
+
+	"GroceryReceipt": reflect.TypeOf(types.GroceryReceipt{}),
+
+	"InnerClass": reflect.TypeOf(types.InnerClass{}),
+
+	"InnerClass2": reflect.TypeOf(types.InnerClass2{}),
+
+	"InputClass": reflect.TypeOf(types.InputClass{}),
+
+	"InputClassNested": reflect.TypeOf(types.InputClassNested{}),
+
+	"LinkedList": reflect.TypeOf(types.LinkedList{}),
+
+	"LinkedListAliasNode": reflect.TypeOf(types.LinkedListAliasNode{}),
+
+	"LiteralClassHello": reflect.TypeOf(types.LiteralClassHello{}),
+
+	"LiteralClassOne": reflect.TypeOf(types.LiteralClassOne{}),
+
+	"LiteralClassTwo": reflect.TypeOf(types.LiteralClassTwo{}),
+
+	"MalformedConstraints": reflect.TypeOf(types.MalformedConstraints{}),
+
+	"MalformedConstraints2": reflect.TypeOf(types.MalformedConstraints2{}),
+
+	"Martian": reflect.TypeOf(types.Martian{}),
+
+	"MemoryObject": reflect.TypeOf(types.MemoryObject{}),
+
+	"MergeAttrs": reflect.TypeOf(types.MergeAttrs{}),
+
+	"NamedArgsSingleClass": reflect.TypeOf(types.NamedArgsSingleClass{}),
+
+	"Nested": reflect.TypeOf(types.Nested{}),
+
+	"Nested2": reflect.TypeOf(types.Nested2{}),
+
+	"NestedBlockConstraint": reflect.TypeOf(types.NestedBlockConstraint{}),
+
+	"NestedBlockConstraintForParam": reflect.TypeOf(types.NestedBlockConstraintForParam{}),
+
+	"Node": reflect.TypeOf(types.Node{}),
+
+	"NodeWithAliasIndirection": reflect.TypeOf(types.NodeWithAliasIndirection{}),
+
+	"OptionalListAndMap": reflect.TypeOf(types.OptionalListAndMap{}),
+
+	"OptionalTest_Prop1": reflect.TypeOf(types.OptionalTest_Prop1{}),
+
+	"OptionalTest_ReturnType": reflect.TypeOf(types.OptionalTest_ReturnType{}),
+
+	"OrderInfo": reflect.TypeOf(types.OrderInfo{}),
+
+	"OriginalA": reflect.TypeOf(types.OriginalA{}),
+
+	"OriginalB": reflect.TypeOf(types.OriginalB{}),
+
+	"Person": reflect.TypeOf(types.Person{}),
+
+	"PhoneNumber": reflect.TypeOf(types.PhoneNumber{}),
+
+	"Quantity": reflect.TypeOf(types.Quantity{}),
+
+	"RaysData": reflect.TypeOf(types.RaysData{}),
+
+	"ReceiptInfo": reflect.TypeOf(types.ReceiptInfo{}),
+
+	"ReceiptItem": reflect.TypeOf(types.ReceiptItem{}),
+
+	"Recipe": reflect.TypeOf(types.Recipe{}),
+
+	"RecursiveAliasDependency": reflect.TypeOf(types.RecursiveAliasDependency{}),
+
+	"Resume": reflect.TypeOf(types.Resume{}),
+
+	"Schema": reflect.TypeOf(types.Schema{}),
+
+	"SearchParams": reflect.TypeOf(types.SearchParams{}),
+
+	"SemanticContainer": reflect.TypeOf(types.SemanticContainer{}),
+
+	"SimpleTag": reflect.TypeOf(types.SimpleTag{}),
+
+	"SmallThing": reflect.TypeOf(types.SmallThing{}),
+
+	"SomeClassNestedDynamic": reflect.TypeOf(types.SomeClassNestedDynamic{}),
+
+	"StringToClassEntry": reflect.TypeOf(types.StringToClassEntry{}),
+
+	"TestClassAlias": reflect.TypeOf(types.TestClassAlias{}),
+
+	"TestClassNested": reflect.TypeOf(types.TestClassNested{}),
+
+	"TestClassWithEnum": reflect.TypeOf(types.TestClassWithEnum{}),
+
+	"TestMemoryOutput": reflect.TypeOf(types.TestMemoryOutput{}),
+
+	"TestOutputClass": reflect.TypeOf(types.TestOutputClass{}),
+
+	"Tree": reflect.TypeOf(types.Tree{}),
+
+	"TwoStoriesOneTitle": reflect.TypeOf(types.TwoStoriesOneTitle{}),
+
+	"UnionTest_ReturnType": reflect.TypeOf(types.UnionTest_ReturnType{}),
+
+	"UniverseQuestion": reflect.TypeOf(types.UniverseQuestion{}),
+
+	"UniverseQuestionInput": reflect.TypeOf(types.UniverseQuestionInput{}),
+
+	"WithReasoning": reflect.TypeOf(types.WithReasoning{}),
 }
 
 func Decode(data []byte) (any, error) {
-  var decoded any
-  if err := json.Unmarshal(data, &decoded); err != nil {
-    return nil, err
-  }
+	var decoded any
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return nil, err
+	}
 
-  var result any
-  if reflect.TypeOf(decoded).Kind() == reflect.Map {
-    decodedMap := decoded.(map[string]any)
-    if decodedMap["class_name"] != nil {
-      className := decodedMap["class_name"].(string)
-      switch className {
-        
-        case "AnotherObject":
-          dec := &types.AnotherObject{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "BigNumbers":
-          dec := &types.BigNumbers{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "BinaryNode":
-          dec := &types.BinaryNode{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Blah":
-          dec := &types.Blah{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "BlockConstraint":
-          dec := &types.BlockConstraint{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "BlockConstraintForParam":
-          dec := &types.BlockConstraintForParam{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "BookOrder":
-          dec := &types.BookOrder{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ClassForNullLiteral":
-          dec := &types.ClassForNullLiteral{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ClassOptionalOutput":
-          dec := &types.ClassOptionalOutput{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ClassOptionalOutput2":
-          dec := &types.ClassOptionalOutput2{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ClassToRecAlias":
-          dec := &types.ClassToRecAlias{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ClassWithBlockDone":
-          dec := &types.ClassWithBlockDone{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ClassWithImage":
-          dec := &types.ClassWithImage{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ClassWithoutDone":
-          dec := &types.ClassWithoutDone{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ComplexMemoryObject":
-          dec := &types.ComplexMemoryObject{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "CompoundBigNumbers":
-          dec := &types.CompoundBigNumbers{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ContactInfo":
-          dec := &types.ContactInfo{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "CustomTaskResult":
-          dec := &types.CustomTaskResult{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "DummyOutput":
-          dec := &types.DummyOutput{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "DynInputOutput":
-          dec := &types.DynInputOutput{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "DynamicClassOne":
-          dec := &types.DynamicClassOne{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "DynamicClassTwo":
-          dec := &types.DynamicClassTwo{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "DynamicOutput":
-          dec := &types.DynamicOutput{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Earthling":
-          dec := &types.Earthling{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Education":
-          dec := &types.Education{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Email":
-          dec := &types.Email{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "EmailAddress":
-          dec := &types.EmailAddress{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Event":
-          dec := &types.Event{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "FakeImage":
-          dec := &types.FakeImage{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "FlightConfirmation":
-          dec := &types.FlightConfirmation{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "FooAny":
-          dec := &types.FooAny{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Forest":
-          dec := &types.Forest{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "FormatterTest0":
-          dec := &types.FormatterTest0{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "FormatterTest1":
-          dec := &types.FormatterTest1{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "FormatterTest2":
-          dec := &types.FormatterTest2{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "FormatterTest3":
-          dec := &types.FormatterTest3{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "GroceryReceipt":
-          dec := &types.GroceryReceipt{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "InnerClass":
-          dec := &types.InnerClass{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "InnerClass2":
-          dec := &types.InnerClass2{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "InputClass":
-          dec := &types.InputClass{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "InputClassNested":
-          dec := &types.InputClassNested{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "LinkedList":
-          dec := &types.LinkedList{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "LinkedListAliasNode":
-          dec := &types.LinkedListAliasNode{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "LiteralClassHello":
-          dec := &types.LiteralClassHello{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "LiteralClassOne":
-          dec := &types.LiteralClassOne{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "LiteralClassTwo":
-          dec := &types.LiteralClassTwo{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "MalformedConstraints":
-          dec := &types.MalformedConstraints{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "MalformedConstraints2":
-          dec := &types.MalformedConstraints2{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Martian":
-          dec := &types.Martian{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "MemoryObject":
-          dec := &types.MemoryObject{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "MergeAttrs":
-          dec := &types.MergeAttrs{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "NamedArgsSingleClass":
-          dec := &types.NamedArgsSingleClass{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Nested":
-          dec := &types.Nested{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Nested2":
-          dec := &types.Nested2{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "NestedBlockConstraint":
-          dec := &types.NestedBlockConstraint{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "NestedBlockConstraintForParam":
-          dec := &types.NestedBlockConstraintForParam{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Node":
-          dec := &types.Node{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "NodeWithAliasIndirection":
-          dec := &types.NodeWithAliasIndirection{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "OptionalListAndMap":
-          dec := &types.OptionalListAndMap{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "OptionalTest_Prop1":
-          dec := &types.OptionalTest_Prop1{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "OptionalTest_ReturnType":
-          dec := &types.OptionalTest_ReturnType{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "OrderInfo":
-          dec := &types.OrderInfo{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "OriginalA":
-          dec := &types.OriginalA{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "OriginalB":
-          dec := &types.OriginalB{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Person":
-          dec := &types.Person{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "PhoneNumber":
-          dec := &types.PhoneNumber{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Quantity":
-          dec := &types.Quantity{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "RaysData":
-          dec := &types.RaysData{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ReceiptInfo":
-          dec := &types.ReceiptInfo{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "ReceiptItem":
-          dec := &types.ReceiptItem{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Recipe":
-          dec := &types.Recipe{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "RecursiveAliasDependency":
-          dec := &types.RecursiveAliasDependency{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Resume":
-          dec := &types.Resume{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Schema":
-          dec := &types.Schema{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "SearchParams":
-          dec := &types.SearchParams{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "SemanticContainer":
-          dec := &types.SemanticContainer{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "SimpleTag":
-          dec := &types.SimpleTag{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "SmallThing":
-          dec := &types.SmallThing{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "SomeClassNestedDynamic":
-          dec := &types.SomeClassNestedDynamic{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "StringToClassEntry":
-          dec := &types.StringToClassEntry{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "TestClassAlias":
-          dec := &types.TestClassAlias{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "TestClassNested":
-          dec := &types.TestClassNested{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "TestClassWithEnum":
-          dec := &types.TestClassWithEnum{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "TestMemoryOutput":
-          dec := &types.TestMemoryOutput{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "TestOutputClass":
-          dec := &types.TestOutputClass{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "Tree":
-          dec := &types.Tree{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "TwoStoriesOneTitle":
-          dec := &types.TwoStoriesOneTitle{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "UnionTest_ReturnType":
-          dec := &types.UnionTest_ReturnType{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "UniverseQuestion":
-          dec := &types.UniverseQuestion{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "UniverseQuestionInput":
-          dec := &types.UniverseQuestionInput{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-        case "WithReasoning":
-          dec := &types.WithReasoning{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        
-      }
-    }
-  } else {
-    result = decoded
-  }
+	var result any
+	if reflect.TypeOf(decoded).Kind() == reflect.Map {
+		decodedMap := decoded.(map[string]any)
+		if decodedMap["class_name"] != nil {
+			className := decodedMap["class_name"].(string)
+			newObject := reflect.New(typeMap[className]).Interface().(BamlDecoder)
+			newObject.BamlDecode(decodedMap)
+			result = newObject
+		}
+	} else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
+		decodedSlice := decoded.([]any)
+		// determine the map key and value types
+		if len(decodedSlice) > 0 {
+			keyType := reflect.TypeOf("")
+			// this is insane but it works
+			valueType := reflect.TypeOf((*any)(nil)).Elem()
+
+			newMap := reflect.MakeMap(reflect.MapOf(keyType, valueType))
+			for _, item := range decodedSlice {
+				itemMap := item.(map[string]any)
+				key := itemMap["key"].(string)
+				value := itemMap["value"]
+				newMap.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
+			}
+			result = newMap.Interface()
+		} else {
+			result = map[string]any{}
+		}
+	} else {
+		result = decoded
+	}
 
 	return result, nil
 }

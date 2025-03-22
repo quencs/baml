@@ -11,6 +11,12 @@ type BamlDecoder interface {
   BamlDecode(decodedMap map[string]any)
 }
 
+var typeMap = map[string]reflect.Type{
+  {% for class in classes %}
+  "{{ class.name }}": reflect.TypeOf(types.{{ class.name }}{}),
+  {% endfor %}
+}
+
 func Decode(data []byte) (any, error) {
   var decoded any
   if err := json.Unmarshal(data, &decoded); err != nil {
@@ -22,14 +28,28 @@ func Decode(data []byte) (any, error) {
     decodedMap := decoded.(map[string]any)
     if decodedMap["class_name"] != nil {
       className := decodedMap["class_name"].(string)
-      switch className {
-        {% for class in classes %}
-        case "{{ class.name }}":
-          dec := &types.{{ class.name }}{}
-          dec.BamlDecode(decodedMap)
-          result = dec
-        {% endfor %}
-      }
+      newObject := reflect.New(typeMap[className]).Interface().(BamlDecoder)
+      newObject.BamlDecode(decodedMap)
+      result = newObject
+    }
+  } else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
+    decodedSlice := decoded.([]any)
+    {# // determine the map key and value types #}
+    if len(decodedSlice) > 0 {
+			keyType := reflect.TypeOf("")
+			{# this is insane but it works #}
+			valueType := reflect.TypeOf((*any)(nil)).Elem()
+
+			newMap := reflect.MakeMap(reflect.MapOf(keyType, valueType))
+			for _, item := range decodedSlice {
+				itemMap := item.(map[string]any)
+				key := itemMap["key"].(string)
+				value := itemMap["value"]
+				newMap.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
+			}
+			result = newMap.Interface()
+    } else {
+      result = map[string]any{}
     }
   } else {
     result = decoded
