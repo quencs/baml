@@ -28,6 +28,7 @@ func TestDeserialization(t *testing.T) {
 		{`{ "class_name": "Forest", "values": { "Trees": [{"class_name": "Tree", "values": { "Children": { "class_name": "Forest", "values": { "Trees": [] } } }}] } }`, &types.Forest{Trees: []types.Tree{{Children: types.Forest{Trees: []types.Tree{}}}}}},
 		{`[{ "key": "testKey", "value": "testValue" }]`, map[string]any{"testKey": "testValue"}},
 		{`{ "class_name": "BookOrder", "values": { "OrderId": "123", "Title": "test", "Quantity": 1, "Price": 12.3 } }`, &types.BookOrder{OrderId: "123", Title: "test", Quantity: 1, Price: 12.3}},
+		{`{ "enum_class": "Category", "enum_value": "Refund" }`, types.CategoryRefund},
 	}
 
 	for _, test := range deserializationTests {

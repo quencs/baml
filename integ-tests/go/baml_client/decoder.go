@@ -205,6 +205,43 @@ var typeMap = map[string]reflect.Type{
   
   "WithReasoning": reflect.TypeOf(types.WithReasoning{}),
   
+  
+  "AliasedEnum": reflect.TypeOf(types.AliasedEnum("")),
+  
+  "Category": reflect.TypeOf(types.Category("")),
+  
+  "Category2": reflect.TypeOf(types.Category2("")),
+  
+  "Category3": reflect.TypeOf(types.Category3("")),
+  
+  "Color": reflect.TypeOf(types.Color("")),
+  
+  "DataType": reflect.TypeOf(types.DataType("")),
+  
+  "DynEnumOne": reflect.TypeOf(types.DynEnumOne("")),
+  
+  "DynEnumTwo": reflect.TypeOf(types.DynEnumTwo("")),
+  
+  "EnumInClass": reflect.TypeOf(types.EnumInClass("")),
+  
+  "EnumOutput": reflect.TypeOf(types.EnumOutput("")),
+  
+  "Hobby": reflect.TypeOf(types.Hobby("")),
+  
+  "MapKey": reflect.TypeOf(types.MapKey("")),
+  
+  "NamedArgsSingleEnum": reflect.TypeOf(types.NamedArgsSingleEnum("")),
+  
+  "NamedArgsSingleEnumList": reflect.TypeOf(types.NamedArgsSingleEnumList("")),
+  
+  "OptionalTest_CategoryType": reflect.TypeOf(types.OptionalTest_CategoryType("")),
+  
+  "OrderStatus": reflect.TypeOf(types.OrderStatus("")),
+  
+  "Tag": reflect.TypeOf(types.Tag("")),
+  
+  "TestEnum": reflect.TypeOf(types.TestEnum("")),
+  
 }
 
 func Decode(data []byte) (any, error) {
@@ -221,6 +258,12 @@ func Decode(data []byte) (any, error) {
       newObject := reflect.New(typeMap[className]).Interface().(BamlDecoder)
       newObject.BamlDecode(decodedMap)
       result = newObject
+    } else if decodedMap["enum_class"] != nil {
+      enumClassName := decodedMap["enum_class"].(string)
+      enumValue := decodedMap["enum_value"].(string)
+      enum := reflect.New(typeMap[enumClassName]).Elem()
+      enum.SetString(enumValue)
+      result = enum.Interface()
     }
   } else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
     decodedSlice := decoded.([]any)
