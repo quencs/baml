@@ -751,7 +751,7 @@ coercedValue.BamlDecode(value.(map[string]any))
 			c.Some_class = coercedValue
 		
 		case "Status":
-		  coercedValue := value.(DynEnumOne)
+		  coercedValue := DynEnumOne(value.(map[string]any)["enum_value"].(string))
 
 			c.Status = coercedValue
 		
@@ -1981,7 +1981,7 @@ func (c *OrderInfo) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "Order_status":
-		  coercedValue := value.(OrderStatus)
+		  coercedValue := OrderStatus(value.(map[string]any)["enum_value"].(string))
 
 			c.Order_status = coercedValue
 		
@@ -2149,7 +2149,7 @@ func (c *RaysData) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		
 		case "DataType":
-		  coercedValue := value.(DataType)
+		  coercedValue := DataType(value.(map[string]any)["enum_value"].(string))
 
 			c.DataType = coercedValue
 		
@@ -2802,7 +2802,7 @@ func (c *TestClassWithEnum) BamlDecode(decodedMap map[string]any) {
 			c.Prop1 = coercedValue
 		
 		case "Prop2":
-		  coercedValue := value.(EnumInClass)
+		  coercedValue := EnumInClass(value.(map[string]any)["enum_value"].(string))
 
 			c.Prop2 = coercedValue
 		

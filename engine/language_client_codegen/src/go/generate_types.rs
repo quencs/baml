@@ -76,6 +76,14 @@ fn render_value_coercion(
             .as_str(),
         );
         rendering.push_str("}\n");
+    } else if field_type.is_enum {
+        rendering.push_str(
+            format!(
+                "{} := {}({}.(map[string]any)[\"enum_value\"].(string))\n",
+                destination_variable_name, field_type.name, source_variable_name
+            )
+            .as_str(),
+        );
     } else {
         if field_type.is_integer {
             rendering.push_str(
@@ -189,6 +197,7 @@ struct GoType {
     is_primitive: bool,
     is_class: bool,
     is_integer: bool,
+    is_enum: bool,
     underlying_type: Option<Box<GoType>>,
 }
 
@@ -479,6 +488,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             is_primitive: self.is_primitive(),
             is_class: matches!(self.simplify(), FieldType::Class(_)),
             is_integer: matches!(self.simplify(), FieldType::Primitive(TypeValue::Int)),
+            is_enum: matches!(self.simplify(), FieldType::Enum(_)),
             underlying_type: match self.simplify() {
                 FieldType::List(value) => Some(Box::new(value.to_type_ref(ir, module_prefix))),
                 FieldType::Optional(value) => Some(Box::new(value.to_type_ref(ir, module_prefix))),
