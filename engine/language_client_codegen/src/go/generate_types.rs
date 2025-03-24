@@ -120,8 +120,8 @@ pub(crate) struct GoUnions {
 }
 
 #[derive(askama::Template)]
-#[template(path = "decoder.go.j2", escape = "none")]
-pub(crate) struct GoDecoder<'ir> {
+#[template(path = "encode.go.j2", escape = "none")]
+pub(crate) struct GoEncode<'ir> {
     package_name: String,
     classes: Vec<GoClass<'ir>>,
     enums: Vec<GoEnum<'ir>>,
@@ -236,13 +236,13 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoEnums
     }
 }
 
-impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoDecoder<'ir> {
+impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoEncode<'ir> {
     type Error = anyhow::Error;
 
     fn try_from(
         (ir, gen): (&'ir IntermediateRepr, &'_ crate::GeneratorArgs),
-    ) -> Result<GoDecoder<'ir>> {
-        Ok(GoDecoder {
+    ) -> Result<GoEncode<'ir>> {
+        Ok(GoEncode {
             package_name: gen.client_package_name.as_ref().unwrap().clone(),
             classes: ir.walk_classes().map(GoClass::from).collect::<Vec<_>>(),
             enums: ir.walk_enums().map(GoEnum::from).collect::<Vec<_>>(),
