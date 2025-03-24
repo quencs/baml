@@ -61,7 +61,7 @@ func (c *{{ class.name }}) BamlDecode(decodedMap map[string]any) {
 		switch name {
 		{% for field in class.fields %}
 		case "{{ field.name|exported_name }}":
-		  {{ crate::go::generate_types::render_value_coercion("coercedValue", "value",field.go_type) }}
+		  {{ crate::go::generate_types::render_value_coercion("coercedValue", "value", field.go_type) }}
 			c.{{ field.name|exported_name }} = {% if field.go_type.is_pointer %}&{% endif %}coercedValue
 		{% endfor %}
 		}

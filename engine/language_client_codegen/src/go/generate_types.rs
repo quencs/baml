@@ -125,6 +125,7 @@ pub(crate) struct GoDecoder<'ir> {
     package_name: String,
     classes: Vec<GoClass<'ir>>,
     enums: Vec<GoEnum<'ir>>,
+    unions: Vec<GoUnion>,
 }
 
 // Any filter defined in the module `filters` is accessible in your template.
@@ -171,7 +172,7 @@ struct GoEnum<'ir> {
 
 struct GoUnion {
     name: String,
-    variants: Vec<(String, String)>,
+    variants: Vec<(String, GoType)>,
     docstring: Option<String>,
 }
 
@@ -245,6 +246,7 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoDecod
             package_name: gen.client_package_name.as_ref().unwrap().clone(),
             classes: ir.walk_classes().map(GoClass::from).collect::<Vec<_>>(),
             enums: ir.walk_enums().map(GoEnum::from).collect::<Vec<_>>(),
+            unions: GoUnions::try_from((ir, gen))?.unions,
         })
     }
 }
@@ -284,7 +286,7 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoUnion
                 name: FieldType::Union(variants.clone()).to_union_name(),
                 variants: variants
                     .iter()
-                    .map(|v| (v.to_union_name(), v.to_type_ref(ir, false).name))
+                    .map(|v| (v.to_union_name(), v.to_type_ref(ir, false)))
                     .collect(),
                 docstring: None,
             })

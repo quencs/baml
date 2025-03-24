@@ -22,6 +22,33 @@ type Union__BookOrder__FlightConfirmation__GroceryReceipt struct {
     
 }
 
+func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "BookOrder":
+        coercedValue := BookOrder{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_BookOrder = &coercedValue
+    
+    case "FlightConfirmation":
+        coercedValue := FlightConfirmation{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_FlightConfirmation = &coercedValue
+    
+    case "GroceryReceipt":
+        coercedValue := GroceryReceipt{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_GroceryReceipt = &coercedValue
+    
+    }
+}
+
 
 func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) IsBookOrder() bool {
     return u.variant == "BookOrder"
@@ -32,6 +59,13 @@ func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) BookOrder() *Book
         return nil
     }
     return u.variant_BookOrder
+}
+
+func Union__BookOrder__FlightConfirmation__GroceryReceiptNewWithBookOrder(v *BookOrder) *Union__BookOrder__FlightConfirmation__GroceryReceipt {
+    return &Union__BookOrder__FlightConfirmation__GroceryReceipt{
+        variant: "BookOrder",
+        variant_BookOrder: v,
+    }
 }
 
 func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) IsFlightConfirmation() bool {
@@ -45,6 +79,13 @@ func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) FlightConfirmatio
     return u.variant_FlightConfirmation
 }
 
+func Union__BookOrder__FlightConfirmation__GroceryReceiptNewWithFlightConfirmation(v *FlightConfirmation) *Union__BookOrder__FlightConfirmation__GroceryReceipt {
+    return &Union__BookOrder__FlightConfirmation__GroceryReceipt{
+        variant: "FlightConfirmation",
+        variant_FlightConfirmation: v,
+    }
+}
+
 func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) IsGroceryReceipt() bool {
     return u.variant == "GroceryReceipt"
 }
@@ -56,6 +97,13 @@ func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) GroceryReceipt() 
     return u.variant_GroceryReceipt
 }
 
+func Union__BookOrder__FlightConfirmation__GroceryReceiptNewWithGroceryReceipt(v *GroceryReceipt) *Union__BookOrder__FlightConfirmation__GroceryReceipt {
+    return &Union__BookOrder__FlightConfirmation__GroceryReceipt{
+        variant: "GroceryReceipt",
+        variant_GroceryReceipt: v,
+    }
+}
+
 
 
 type Union__OriginalA__OriginalB struct {
@@ -65,6 +113,27 @@ type Union__OriginalA__OriginalB struct {
     
     variant_OriginalB *OriginalB
     
+}
+
+func (u *Union__OriginalA__OriginalB) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "OriginalA":
+        coercedValue := OriginalA{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_OriginalA = &coercedValue
+    
+    case "OriginalB":
+        coercedValue := OriginalB{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_OriginalB = &coercedValue
+    
+    }
 }
 
 
@@ -79,6 +148,13 @@ func (u *Union__OriginalA__OriginalB) OriginalA() *OriginalA {
     return u.variant_OriginalA
 }
 
+func Union__OriginalA__OriginalBNewWithOriginalA(v *OriginalA) *Union__OriginalA__OriginalB {
+    return &Union__OriginalA__OriginalB{
+        variant: "OriginalA",
+        variant_OriginalA: v,
+    }
+}
+
 func (u *Union__OriginalA__OriginalB) IsOriginalB() bool {
     return u.variant == "OriginalB"
 }
@@ -90,6 +166,13 @@ func (u *Union__OriginalA__OriginalB) OriginalB() *OriginalB {
     return u.variant_OriginalB
 }
 
+func Union__OriginalA__OriginalBNewWithOriginalB(v *OriginalB) *Union__OriginalA__OriginalB {
+    return &Union__OriginalA__OriginalB{
+        variant: "OriginalB",
+        variant_OriginalB: v,
+    }
+}
+
 
 
 type Union__string_curiosity__string_personal_finance struct {
@@ -99,6 +182,25 @@ type Union__string_curiosity__string_personal_finance struct {
     
     variant_string_personal_finance *string
     
+}
+
+func (u *Union__string_curiosity__string_personal_finance) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string_curiosity":
+        coercedValue := value.(string)
+
+        u.variant_string_curiosity = &coercedValue
+    
+    case "string_personal_finance":
+        coercedValue := value.(string)
+
+        u.variant_string_personal_finance = &coercedValue
+    
+    }
 }
 
 
@@ -113,6 +215,13 @@ func (u *Union__string_curiosity__string_personal_finance) String_curiosity() *s
     return u.variant_string_curiosity
 }
 
+func Union__string_curiosity__string_personal_financeNewWithString_curiosity(v *string) *Union__string_curiosity__string_personal_finance {
+    return &Union__string_curiosity__string_personal_finance{
+        variant: "string_curiosity",
+        variant_string_curiosity: v,
+    }
+}
+
 func (u *Union__string_curiosity__string_personal_finance) IsString_personal_finance() bool {
     return u.variant == "string_personal_finance"
 }
@@ -124,6 +233,13 @@ func (u *Union__string_curiosity__string_personal_finance) String_personal_finan
     return u.variant_string_personal_finance
 }
 
+func Union__string_curiosity__string_personal_financeNewWithString_personal_finance(v *string) *Union__string_curiosity__string_personal_finance {
+    return &Union__string_curiosity__string_personal_finance{
+        variant: "string_personal_finance",
+        variant_string_personal_finance: v,
+    }
+}
+
 
 
 type Union__LiteralClassOne__LiteralClassTwo struct {
@@ -133,6 +249,27 @@ type Union__LiteralClassOne__LiteralClassTwo struct {
     
     variant_LiteralClassTwo *LiteralClassTwo
     
+}
+
+func (u *Union__LiteralClassOne__LiteralClassTwo) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "LiteralClassOne":
+        coercedValue := LiteralClassOne{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_LiteralClassOne = &coercedValue
+    
+    case "LiteralClassTwo":
+        coercedValue := LiteralClassTwo{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_LiteralClassTwo = &coercedValue
+    
+    }
 }
 
 
@@ -147,6 +284,13 @@ func (u *Union__LiteralClassOne__LiteralClassTwo) LiteralClassOne() *LiteralClas
     return u.variant_LiteralClassOne
 }
 
+func Union__LiteralClassOne__LiteralClassTwoNewWithLiteralClassOne(v *LiteralClassOne) *Union__LiteralClassOne__LiteralClassTwo {
+    return &Union__LiteralClassOne__LiteralClassTwo{
+        variant: "LiteralClassOne",
+        variant_LiteralClassOne: v,
+    }
+}
+
 func (u *Union__LiteralClassOne__LiteralClassTwo) IsLiteralClassTwo() bool {
     return u.variant == "LiteralClassTwo"
 }
@@ -156,6 +300,13 @@ func (u *Union__LiteralClassOne__LiteralClassTwo) LiteralClassTwo() *LiteralClas
         return nil
     }
     return u.variant_LiteralClassTwo
+}
+
+func Union__LiteralClassOne__LiteralClassTwoNewWithLiteralClassTwo(v *LiteralClassTwo) *Union__LiteralClassOne__LiteralClassTwo {
+    return &Union__LiteralClassOne__LiteralClassTwo{
+        variant: "LiteralClassTwo",
+        variant_LiteralClassTwo: v,
+    }
 }
 
 
@@ -173,6 +324,35 @@ type Union__string_one__string_two__string_three__string_four struct {
     
 }
 
+func (u *Union__string_one__string_two__string_three__string_four) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string_one":
+        coercedValue := value.(string)
+
+        u.variant_string_one = &coercedValue
+    
+    case "string_two":
+        coercedValue := value.(string)
+
+        u.variant_string_two = &coercedValue
+    
+    case "string_three":
+        coercedValue := value.(string)
+
+        u.variant_string_three = &coercedValue
+    
+    case "string_four":
+        coercedValue := value.(string)
+
+        u.variant_string_four = &coercedValue
+    
+    }
+}
+
 
 func (u *Union__string_one__string_two__string_three__string_four) IsString_one() bool {
     return u.variant == "string_one"
@@ -183,6 +363,13 @@ func (u *Union__string_one__string_two__string_three__string_four) String_one() 
         return nil
     }
     return u.variant_string_one
+}
+
+func Union__string_one__string_two__string_three__string_fourNewWithString_one(v *string) *Union__string_one__string_two__string_three__string_four {
+    return &Union__string_one__string_two__string_three__string_four{
+        variant: "string_one",
+        variant_string_one: v,
+    }
 }
 
 func (u *Union__string_one__string_two__string_three__string_four) IsString_two() bool {
@@ -196,6 +383,13 @@ func (u *Union__string_one__string_two__string_three__string_four) String_two() 
     return u.variant_string_two
 }
 
+func Union__string_one__string_two__string_three__string_fourNewWithString_two(v *string) *Union__string_one__string_two__string_three__string_four {
+    return &Union__string_one__string_two__string_three__string_four{
+        variant: "string_two",
+        variant_string_two: v,
+    }
+}
+
 func (u *Union__string_one__string_two__string_three__string_four) IsString_three() bool {
     return u.variant == "string_three"
 }
@@ -207,6 +401,13 @@ func (u *Union__string_one__string_two__string_three__string_four) String_three(
     return u.variant_string_three
 }
 
+func Union__string_one__string_two__string_three__string_fourNewWithString_three(v *string) *Union__string_one__string_two__string_three__string_four {
+    return &Union__string_one__string_two__string_three__string_four{
+        variant: "string_three",
+        variant_string_three: v,
+    }
+}
+
 func (u *Union__string_one__string_two__string_three__string_four) IsString_four() bool {
     return u.variant == "string_four"
 }
@@ -216,6 +417,13 @@ func (u *Union__string_one__string_two__string_three__string_four) String_four()
         return nil
     }
     return u.variant_string_four
+}
+
+func Union__string_one__string_two__string_three__string_fourNewWithString_four(v *string) *Union__string_one__string_two__string_three__string_four {
+    return &Union__string_one__string_two__string_three__string_four{
+        variant: "string_four",
+        variant_string_four: v,
+    }
 }
 
 
@@ -231,6 +439,30 @@ type Union__int_1__bool_true__string_string_output struct {
     
 }
 
+func (u *Union__int_1__bool_true__string_string_output) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "int_1":
+        coercedValue := value.(int)
+
+        u.variant_int_1 = &coercedValue
+    
+    case "bool_true":
+        coercedValue := value.(bool)
+
+        u.variant_bool_true = &coercedValue
+    
+    case "string_string_output":
+        coercedValue := value.(string)
+
+        u.variant_string_string_output = &coercedValue
+    
+    }
+}
+
 
 func (u *Union__int_1__bool_true__string_string_output) IsInt_1() bool {
     return u.variant == "int_1"
@@ -241,6 +473,13 @@ func (u *Union__int_1__bool_true__string_string_output) Int_1() *int {
         return nil
     }
     return u.variant_int_1
+}
+
+func Union__int_1__bool_true__string_string_outputNewWithInt_1(v *int) *Union__int_1__bool_true__string_string_output {
+    return &Union__int_1__bool_true__string_string_output{
+        variant: "int_1",
+        variant_int_1: v,
+    }
 }
 
 func (u *Union__int_1__bool_true__string_string_output) IsBool_true() bool {
@@ -254,6 +493,13 @@ func (u *Union__int_1__bool_true__string_string_output) Bool_true() *bool {
     return u.variant_bool_true
 }
 
+func Union__int_1__bool_true__string_string_outputNewWithBool_true(v *bool) *Union__int_1__bool_true__string_string_output {
+    return &Union__int_1__bool_true__string_string_output{
+        variant: "bool_true",
+        variant_bool_true: v,
+    }
+}
+
 func (u *Union__int_1__bool_true__string_string_output) IsString_string_output() bool {
     return u.variant == "string_string_output"
 }
@@ -263,6 +509,13 @@ func (u *Union__int_1__bool_true__string_string_output) String_string_output() *
         return nil
     }
     return u.variant_string_string_output
+}
+
+func Union__int_1__bool_true__string_string_outputNewWithString_string_output(v *string) *Union__int_1__bool_true__string_string_output {
+    return &Union__int_1__bool_true__string_string_output{
+        variant: "string_string_output",
+        variant_string_string_output: v,
+    }
 }
 
 
@@ -284,6 +537,49 @@ type Union__int64__string__bool__float64__List__string__Map__string_List__string
     
 }
 
+func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "int64":
+        coercedValue := int64(value.(float64))
+
+        u.variant_int64 = &coercedValue
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    case "bool":
+        coercedValue := value.(bool)
+
+        u.variant_bool = &coercedValue
+    
+    case "float64":
+        coercedValue := value.(float64)
+
+        u.variant_float64 = &coercedValue
+    
+    case "List__string":
+        coercedValue := make([]string, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(string)
+  coercedValue[i] = innercoercedValue
+}
+
+        u.variant_List__string = &coercedValue
+    
+    case "Map__string_List__string":
+        coercedValue := value.(map[string][]string)
+
+        u.variant_Map__string_List__string = &coercedValue
+    
+    }
+}
+
 
 func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsInt64() bool {
     return u.variant == "int64"
@@ -294,6 +590,13 @@ func (u *Union__int64__string__bool__float64__List__string__Map__string_List__st
         return nil
     }
     return u.variant_int64
+}
+
+func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithInt64(v *int64) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
+    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+        variant: "int64",
+        variant_int64: v,
+    }
 }
 
 func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsString() bool {
@@ -307,6 +610,13 @@ func (u *Union__int64__string__bool__float64__List__string__Map__string_List__st
     return u.variant_string
 }
 
+func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithString(v *string) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
+    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsBool() bool {
     return u.variant == "bool"
 }
@@ -316,6 +626,13 @@ func (u *Union__int64__string__bool__float64__List__string__Map__string_List__st
         return nil
     }
     return u.variant_bool
+}
+
+func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithBool(v *bool) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
+    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+        variant: "bool",
+        variant_bool: v,
+    }
 }
 
 func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsFloat64() bool {
@@ -329,6 +646,13 @@ func (u *Union__int64__string__bool__float64__List__string__Map__string_List__st
     return u.variant_float64
 }
 
+func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithFloat64(v *float64) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
+    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+        variant: "float64",
+        variant_float64: v,
+    }
+}
+
 func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsList__string() bool {
     return u.variant == "List__string"
 }
@@ -340,6 +664,13 @@ func (u *Union__int64__string__bool__float64__List__string__Map__string_List__st
     return u.variant_List__string
 }
 
+func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithList__string(v *[]string) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
+    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+        variant: "List__string",
+        variant_List__string: v,
+    }
+}
+
 func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsMap__string_List__string() bool {
     return u.variant == "Map__string_List__string"
 }
@@ -349,6 +680,13 @@ func (u *Union__int64__string__bool__float64__List__string__Map__string_List__st
         return nil
     }
     return u.variant_Map__string_List__string
+}
+
+func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithMap__string_List__string(v *map[string][]string) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
+    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+        variant: "Map__string_List__string",
+        variant_Map__string_List__string: v,
+    }
 }
 
 
@@ -366,6 +704,35 @@ type Union__int64__string__bool__float64 struct {
     
 }
 
+func (u *Union__int64__string__bool__float64) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "int64":
+        coercedValue := int64(value.(float64))
+
+        u.variant_int64 = &coercedValue
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    case "bool":
+        coercedValue := value.(bool)
+
+        u.variant_bool = &coercedValue
+    
+    case "float64":
+        coercedValue := value.(float64)
+
+        u.variant_float64 = &coercedValue
+    
+    }
+}
+
 
 func (u *Union__int64__string__bool__float64) IsInt64() bool {
     return u.variant == "int64"
@@ -376,6 +743,13 @@ func (u *Union__int64__string__bool__float64) Int64() *int64 {
         return nil
     }
     return u.variant_int64
+}
+
+func Union__int64__string__bool__float64NewWithInt64(v *int64) *Union__int64__string__bool__float64 {
+    return &Union__int64__string__bool__float64{
+        variant: "int64",
+        variant_int64: v,
+    }
 }
 
 func (u *Union__int64__string__bool__float64) IsString() bool {
@@ -389,6 +763,13 @@ func (u *Union__int64__string__bool__float64) String() *string {
     return u.variant_string
 }
 
+func Union__int64__string__bool__float64NewWithString(v *string) *Union__int64__string__bool__float64 {
+    return &Union__int64__string__bool__float64{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 func (u *Union__int64__string__bool__float64) IsBool() bool {
     return u.variant == "bool"
 }
@@ -398,6 +779,13 @@ func (u *Union__int64__string__bool__float64) Bool() *bool {
         return nil
     }
     return u.variant_bool
+}
+
+func Union__int64__string__bool__float64NewWithBool(v *bool) *Union__int64__string__bool__float64 {
+    return &Union__int64__string__bool__float64{
+        variant: "bool",
+        variant_bool: v,
+    }
 }
 
 func (u *Union__int64__string__bool__float64) IsFloat64() bool {
@@ -411,6 +799,13 @@ func (u *Union__int64__string__bool__float64) Float64() *float64 {
     return u.variant_float64
 }
 
+func Union__int64__string__bool__float64NewWithFloat64(v *float64) *Union__int64__string__bool__float64 {
+    return &Union__int64__string__bool__float64{
+        variant: "float64",
+        variant_float64: v,
+    }
+}
+
 
 
 type Union__int64__string struct {
@@ -420,6 +815,25 @@ type Union__int64__string struct {
     
     variant_string *string
     
+}
+
+func (u *Union__int64__string) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "int64":
+        coercedValue := int64(value.(float64))
+
+        u.variant_int64 = &coercedValue
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    }
 }
 
 
@@ -434,6 +848,13 @@ func (u *Union__int64__string) Int64() *int64 {
     return u.variant_int64
 }
 
+func Union__int64__stringNewWithInt64(v *int64) *Union__int64__string {
+    return &Union__int64__string{
+        variant: "int64",
+        variant_int64: v,
+    }
+}
+
 func (u *Union__int64__string) IsString() bool {
     return u.variant == "string"
 }
@@ -445,6 +866,13 @@ func (u *Union__int64__string) String() *string {
     return u.variant_string
 }
 
+func Union__int64__stringNewWithString(v *string) *Union__int64__string {
+    return &Union__int64__string{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 
 
 type Union__string__bool struct {
@@ -454,6 +882,25 @@ type Union__string__bool struct {
     
     variant_bool *bool
     
+}
+
+func (u *Union__string__bool) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    case "bool":
+        coercedValue := value.(bool)
+
+        u.variant_bool = &coercedValue
+    
+    }
 }
 
 
@@ -468,6 +915,13 @@ func (u *Union__string__bool) String() *string {
     return u.variant_string
 }
 
+func Union__string__boolNewWithString(v *string) *Union__string__bool {
+    return &Union__string__bool{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 func (u *Union__string__bool) IsBool() bool {
     return u.variant == "bool"
 }
@@ -477,6 +931,13 @@ func (u *Union__string__bool) Bool() *bool {
         return nil
     }
     return u.variant_bool
+}
+
+func Union__string__boolNewWithBool(v *bool) *Union__string__bool {
+    return &Union__string__bool{
+        variant: "bool",
+        variant_bool: v,
+    }
 }
 
 
@@ -492,6 +953,30 @@ type Union__string__int64__float64 struct {
     
 }
 
+func (u *Union__string__int64__float64) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    case "int64":
+        coercedValue := int64(value.(float64))
+
+        u.variant_int64 = &coercedValue
+    
+    case "float64":
+        coercedValue := value.(float64)
+
+        u.variant_float64 = &coercedValue
+    
+    }
+}
+
 
 func (u *Union__string__int64__float64) IsString() bool {
     return u.variant == "string"
@@ -502,6 +987,13 @@ func (u *Union__string__int64__float64) String() *string {
         return nil
     }
     return u.variant_string
+}
+
+func Union__string__int64__float64NewWithString(v *string) *Union__string__int64__float64 {
+    return &Union__string__int64__float64{
+        variant: "string",
+        variant_string: v,
+    }
 }
 
 func (u *Union__string__int64__float64) IsInt64() bool {
@@ -515,6 +1007,13 @@ func (u *Union__string__int64__float64) Int64() *int64 {
     return u.variant_int64
 }
 
+func Union__string__int64__float64NewWithInt64(v *int64) *Union__string__int64__float64 {
+    return &Union__string__int64__float64{
+        variant: "int64",
+        variant_int64: v,
+    }
+}
+
 func (u *Union__string__int64__float64) IsFloat64() bool {
     return u.variant == "float64"
 }
@@ -526,6 +1025,13 @@ func (u *Union__string__int64__float64) Float64() *float64 {
     return u.variant_float64
 }
 
+func Union__string__int64__float64NewWithFloat64(v *float64) *Union__string__int64__float64 {
+    return &Union__string__int64__float64{
+        variant: "float64",
+        variant_float64: v,
+    }
+}
+
 
 
 type Union__PhoneNumber__EmailAddress struct {
@@ -535,6 +1041,27 @@ type Union__PhoneNumber__EmailAddress struct {
     
     variant_EmailAddress *EmailAddress
     
+}
+
+func (u *Union__PhoneNumber__EmailAddress) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "PhoneNumber":
+        coercedValue := PhoneNumber{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_PhoneNumber = &coercedValue
+    
+    case "EmailAddress":
+        coercedValue := EmailAddress{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_EmailAddress = &coercedValue
+    
+    }
 }
 
 
@@ -549,6 +1076,13 @@ func (u *Union__PhoneNumber__EmailAddress) PhoneNumber() *PhoneNumber {
     return u.variant_PhoneNumber
 }
 
+func Union__PhoneNumber__EmailAddressNewWithPhoneNumber(v *PhoneNumber) *Union__PhoneNumber__EmailAddress {
+    return &Union__PhoneNumber__EmailAddress{
+        variant: "PhoneNumber",
+        variant_PhoneNumber: v,
+    }
+}
+
 func (u *Union__PhoneNumber__EmailAddress) IsEmailAddress() bool {
     return u.variant == "EmailAddress"
 }
@@ -560,6 +1094,13 @@ func (u *Union__PhoneNumber__EmailAddress) EmailAddress() *EmailAddress {
     return u.variant_EmailAddress
 }
 
+func Union__PhoneNumber__EmailAddressNewWithEmailAddress(v *EmailAddress) *Union__PhoneNumber__EmailAddress {
+    return &Union__PhoneNumber__EmailAddress{
+        variant: "EmailAddress",
+        variant_EmailAddress: v,
+    }
+}
+
 
 
 type Union__Martian__Earthling struct {
@@ -569,6 +1110,27 @@ type Union__Martian__Earthling struct {
     
     variant_Earthling *Earthling
     
+}
+
+func (u *Union__Martian__Earthling) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "Martian":
+        coercedValue := Martian{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_Martian = &coercedValue
+    
+    case "Earthling":
+        coercedValue := Earthling{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_Earthling = &coercedValue
+    
+    }
 }
 
 
@@ -583,6 +1145,13 @@ func (u *Union__Martian__Earthling) Martian() *Martian {
     return u.variant_Martian
 }
 
+func Union__Martian__EarthlingNewWithMartian(v *Martian) *Union__Martian__Earthling {
+    return &Union__Martian__Earthling{
+        variant: "Martian",
+        variant_Martian: v,
+    }
+}
+
 func (u *Union__Martian__Earthling) IsEarthling() bool {
     return u.variant == "Earthling"
 }
@@ -594,6 +1163,13 @@ func (u *Union__Martian__Earthling) Earthling() *Earthling {
     return u.variant_Earthling
 }
 
+func Union__Martian__EarthlingNewWithEarthling(v *Earthling) *Union__Martian__Earthling {
+    return &Union__Martian__Earthling{
+        variant: "Earthling",
+        variant_Earthling: v,
+    }
+}
+
 
 
 type Union__int64__float64 struct {
@@ -603,6 +1179,25 @@ type Union__int64__float64 struct {
     
     variant_float64 *float64
     
+}
+
+func (u *Union__int64__float64) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "int64":
+        coercedValue := int64(value.(float64))
+
+        u.variant_int64 = &coercedValue
+    
+    case "float64":
+        coercedValue := value.(float64)
+
+        u.variant_float64 = &coercedValue
+    
+    }
 }
 
 
@@ -617,6 +1212,13 @@ func (u *Union__int64__float64) Int64() *int64 {
     return u.variant_int64
 }
 
+func Union__int64__float64NewWithInt64(v *int64) *Union__int64__float64 {
+    return &Union__int64__float64{
+        variant: "int64",
+        variant_int64: v,
+    }
+}
+
 func (u *Union__int64__float64) IsFloat64() bool {
     return u.variant == "float64"
 }
@@ -628,6 +1230,13 @@ func (u *Union__int64__float64) Float64() *float64 {
     return u.variant_float64
 }
 
+func Union__int64__float64NewWithFloat64(v *float64) *Union__int64__float64 {
+    return &Union__int64__float64{
+        variant: "float64",
+        variant_float64: v,
+    }
+}
+
 
 
 type Union__Resume__Event struct {
@@ -637,6 +1246,27 @@ type Union__Resume__Event struct {
     
     variant_Event *Event
     
+}
+
+func (u *Union__Resume__Event) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "Resume":
+        coercedValue := Resume{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_Resume = &coercedValue
+    
+    case "Event":
+        coercedValue := Event{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_Event = &coercedValue
+    
+    }
 }
 
 
@@ -651,6 +1281,13 @@ func (u *Union__Resume__Event) Resume() *Resume {
     return u.variant_Resume
 }
 
+func Union__Resume__EventNewWithResume(v *Resume) *Union__Resume__Event {
+    return &Union__Resume__Event{
+        variant: "Resume",
+        variant_Resume: v,
+    }
+}
+
 func (u *Union__Resume__Event) IsEvent() bool {
     return u.variant == "Event"
 }
@@ -662,6 +1299,13 @@ func (u *Union__Resume__Event) Event() *Event {
     return u.variant_Event
 }
 
+func Union__Resume__EventNewWithEvent(v *Event) *Union__Resume__Event {
+    return &Union__Resume__Event{
+        variant: "Event",
+        variant_Event: v,
+    }
+}
+
 
 
 type Union__string_barisa__string_ox_burger struct {
@@ -671,6 +1315,25 @@ type Union__string_barisa__string_ox_burger struct {
     
     variant_string_ox_burger *string
     
+}
+
+func (u *Union__string_barisa__string_ox_burger) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string_barisa":
+        coercedValue := value.(string)
+
+        u.variant_string_barisa = &coercedValue
+    
+    case "string_ox_burger":
+        coercedValue := value.(string)
+
+        u.variant_string_ox_burger = &coercedValue
+    
+    }
 }
 
 
@@ -685,6 +1348,13 @@ func (u *Union__string_barisa__string_ox_burger) String_barisa() *string {
     return u.variant_string_barisa
 }
 
+func Union__string_barisa__string_ox_burgerNewWithString_barisa(v *string) *Union__string_barisa__string_ox_burger {
+    return &Union__string_barisa__string_ox_burger{
+        variant: "string_barisa",
+        variant_string_barisa: v,
+    }
+}
+
 func (u *Union__string_barisa__string_ox_burger) IsString_ox_burger() bool {
     return u.variant == "string_ox_burger"
 }
@@ -696,6 +1366,13 @@ func (u *Union__string_barisa__string_ox_burger) String_ox_burger() *string {
     return u.variant_string_ox_burger
 }
 
+func Union__string_barisa__string_ox_burgerNewWithString_ox_burger(v *string) *Union__string_barisa__string_ox_burger {
+    return &Union__string_barisa__string_ox_burger{
+        variant: "string_ox_burger",
+        variant_string_ox_burger: v,
+    }
+}
+
 
 
 type Union__string_breakfast__string_dinner struct {
@@ -705,6 +1382,25 @@ type Union__string_breakfast__string_dinner struct {
     
     variant_string_dinner *string
     
+}
+
+func (u *Union__string_breakfast__string_dinner) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string_breakfast":
+        coercedValue := value.(string)
+
+        u.variant_string_breakfast = &coercedValue
+    
+    case "string_dinner":
+        coercedValue := value.(string)
+
+        u.variant_string_dinner = &coercedValue
+    
+    }
 }
 
 
@@ -719,6 +1415,13 @@ func (u *Union__string_breakfast__string_dinner) String_breakfast() *string {
     return u.variant_string_breakfast
 }
 
+func Union__string_breakfast__string_dinnerNewWithString_breakfast(v *string) *Union__string_breakfast__string_dinner {
+    return &Union__string_breakfast__string_dinner{
+        variant: "string_breakfast",
+        variant_string_breakfast: v,
+    }
+}
+
 func (u *Union__string_breakfast__string_dinner) IsString_dinner() bool {
     return u.variant == "string_dinner"
 }
@@ -730,6 +1433,13 @@ func (u *Union__string_breakfast__string_dinner) String_dinner() *string {
     return u.variant_string_dinner
 }
 
+func Union__string_breakfast__string_dinnerNewWithString_dinner(v *string) *Union__string_breakfast__string_dinner {
+    return &Union__string_breakfast__string_dinner{
+        variant: "string_dinner",
+        variant_string_dinner: v,
+    }
+}
+
 
 
 type Union__Nested__string struct {
@@ -739,6 +1449,26 @@ type Union__Nested__string struct {
     
     variant_string *string
     
+}
+
+func (u *Union__Nested__string) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "Nested":
+        coercedValue := Nested{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_Nested = &coercedValue
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    }
 }
 
 
@@ -753,6 +1483,13 @@ func (u *Union__Nested__string) Nested() *Nested {
     return u.variant_Nested
 }
 
+func Union__Nested__stringNewWithNested(v *Nested) *Union__Nested__string {
+    return &Union__Nested__string{
+        variant: "Nested",
+        variant_Nested: v,
+    }
+}
+
 func (u *Union__Nested__string) IsString() bool {
     return u.variant == "string"
 }
@@ -764,6 +1501,13 @@ func (u *Union__Nested__string) String() *string {
     return u.variant_string
 }
 
+func Union__Nested__stringNewWithString(v *string) *Union__Nested__string {
+    return &Union__Nested__string{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 
 
 type Union__string__List__Nested struct {
@@ -773,6 +1517,30 @@ type Union__string__List__Nested struct {
     
     variant_List__Nested *[]Nested
     
+}
+
+func (u *Union__string__List__Nested) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    case "List__Nested":
+        coercedValue := make([]Nested, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := Nested{}
+innercoercedValue.BamlDecode(v.(map[string]any))
+  coercedValue[i] = innercoercedValue
+}
+
+        u.variant_List__Nested = &coercedValue
+    
+    }
 }
 
 
@@ -787,6 +1555,13 @@ func (u *Union__string__List__Nested) String() *string {
     return u.variant_string
 }
 
+func Union__string__List__NestedNewWithString(v *string) *Union__string__List__Nested {
+    return &Union__string__List__Nested{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 func (u *Union__string__List__Nested) IsList__Nested() bool {
     return u.variant == "List__Nested"
 }
@@ -798,6 +1573,13 @@ func (u *Union__string__List__Nested) List__Nested() *[]Nested {
     return u.variant_List__Nested
 }
 
+func Union__string__List__NestedNewWithList__Nested(v *[]Nested) *Union__string__List__Nested {
+    return &Union__string__List__Nested{
+        variant: "List__Nested",
+        variant_List__Nested: v,
+    }
+}
+
 
 
 type Union__string__Nested struct {
@@ -807,6 +1589,26 @@ type Union__string__Nested struct {
     
     variant_Nested *Nested
     
+}
+
+func (u *Union__string__Nested) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    case "Nested":
+        coercedValue := Nested{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_Nested = &coercedValue
+    
+    }
 }
 
 
@@ -821,6 +1623,13 @@ func (u *Union__string__Nested) String() *string {
     return u.variant_string
 }
 
+func Union__string__NestedNewWithString(v *string) *Union__string__Nested {
+    return &Union__string__Nested{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 func (u *Union__string__Nested) IsNested() bool {
     return u.variant == "Nested"
 }
@@ -832,6 +1641,13 @@ func (u *Union__string__Nested) Nested() *Nested {
     return u.variant_Nested
 }
 
+func Union__string__NestedNewWithNested(v *Nested) *Union__string__Nested {
+    return &Union__string__Nested{
+        variant: "Nested",
+        variant_Nested: v,
+    }
+}
+
 
 
 type Union__string__int64 struct {
@@ -841,6 +1657,25 @@ type Union__string__int64 struct {
     
     variant_int64 *int64
     
+}
+
+func (u *Union__string__int64) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    case "int64":
+        coercedValue := int64(value.(float64))
+
+        u.variant_int64 = &coercedValue
+    
+    }
 }
 
 
@@ -855,6 +1690,13 @@ func (u *Union__string__int64) String() *string {
     return u.variant_string
 }
 
+func Union__string__int64NewWithString(v *string) *Union__string__int64 {
+    return &Union__string__int64{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 func (u *Union__string__int64) IsInt64() bool {
     return u.variant == "int64"
 }
@@ -866,6 +1708,13 @@ func (u *Union__string__int64) Int64() *int64 {
     return u.variant_int64
 }
 
+func Union__string__int64NewWithInt64(v *int64) *Union__string__int64 {
+    return &Union__string__int64{
+        variant: "int64",
+        variant_int64: v,
+    }
+}
+
 
 
 type Union__Tag__string struct {
@@ -875,6 +1724,25 @@ type Union__Tag__string struct {
     
     variant_string *string
     
+}
+
+func (u *Union__Tag__string) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "Tag":
+        coercedValue := Tag(value.(map[string]any)["enum_value"].(string))
+
+        u.variant_Tag = &coercedValue
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    }
 }
 
 
@@ -889,6 +1757,13 @@ func (u *Union__Tag__string) Tag() *Tag {
     return u.variant_Tag
 }
 
+func Union__Tag__stringNewWithTag(v *Tag) *Union__Tag__string {
+    return &Union__Tag__string{
+        variant: "Tag",
+        variant_Tag: v,
+    }
+}
+
 func (u *Union__Tag__string) IsString() bool {
     return u.variant == "string"
 }
@@ -898,6 +1773,13 @@ func (u *Union__Tag__string) String() *string {
         return nil
     }
     return u.variant_string
+}
+
+func Union__Tag__stringNewWithString(v *string) *Union__Tag__string {
+    return &Union__Tag__string{
+        variant: "string",
+        variant_string: v,
+    }
 }
 
 
@@ -913,6 +1795,33 @@ type Union__MemoryObject__ComplexMemoryObject__AnotherObject struct {
     
 }
 
+func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "MemoryObject":
+        coercedValue := MemoryObject{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_MemoryObject = &coercedValue
+    
+    case "ComplexMemoryObject":
+        coercedValue := ComplexMemoryObject{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_ComplexMemoryObject = &coercedValue
+    
+    case "AnotherObject":
+        coercedValue := AnotherObject{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_AnotherObject = &coercedValue
+    
+    }
+}
+
 
 func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) IsMemoryObject() bool {
     return u.variant == "MemoryObject"
@@ -923,6 +1832,13 @@ func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) MemoryObject()
         return nil
     }
     return u.variant_MemoryObject
+}
+
+func Union__MemoryObject__ComplexMemoryObject__AnotherObjectNewWithMemoryObject(v *MemoryObject) *Union__MemoryObject__ComplexMemoryObject__AnotherObject {
+    return &Union__MemoryObject__ComplexMemoryObject__AnotherObject{
+        variant: "MemoryObject",
+        variant_MemoryObject: v,
+    }
 }
 
 func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) IsComplexMemoryObject() bool {
@@ -936,6 +1852,13 @@ func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) ComplexMemoryO
     return u.variant_ComplexMemoryObject
 }
 
+func Union__MemoryObject__ComplexMemoryObject__AnotherObjectNewWithComplexMemoryObject(v *ComplexMemoryObject) *Union__MemoryObject__ComplexMemoryObject__AnotherObject {
+    return &Union__MemoryObject__ComplexMemoryObject__AnotherObject{
+        variant: "ComplexMemoryObject",
+        variant_ComplexMemoryObject: v,
+    }
+}
+
 func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) IsAnotherObject() bool {
     return u.variant == "AnotherObject"
 }
@@ -947,6 +1870,13 @@ func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) AnotherObject(
     return u.variant_AnotherObject
 }
 
+func Union__MemoryObject__ComplexMemoryObject__AnotherObjectNewWithAnotherObject(v *AnotherObject) *Union__MemoryObject__ComplexMemoryObject__AnotherObject {
+    return &Union__MemoryObject__ComplexMemoryObject__AnotherObject{
+        variant: "AnotherObject",
+        variant_AnotherObject: v,
+    }
+}
+
 
 
 type Union__float64__bool struct {
@@ -956,6 +1886,25 @@ type Union__float64__bool struct {
     
     variant_bool *bool
     
+}
+
+func (u *Union__float64__bool) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "float64":
+        coercedValue := value.(float64)
+
+        u.variant_float64 = &coercedValue
+    
+    case "bool":
+        coercedValue := value.(bool)
+
+        u.variant_bool = &coercedValue
+    
+    }
 }
 
 
@@ -970,6 +1919,13 @@ func (u *Union__float64__bool) Float64() *float64 {
     return u.variant_float64
 }
 
+func Union__float64__boolNewWithFloat64(v *float64) *Union__float64__bool {
+    return &Union__float64__bool{
+        variant: "float64",
+        variant_float64: v,
+    }
+}
+
 func (u *Union__float64__bool) IsBool() bool {
     return u.variant == "bool"
 }
@@ -981,6 +1937,13 @@ func (u *Union__float64__bool) Bool() *bool {
     return u.variant_bool
 }
 
+func Union__float64__boolNewWithBool(v *bool) *Union__float64__bool {
+    return &Union__float64__bool{
+        variant: "bool",
+        variant_bool: v,
+    }
+}
+
 
 
 type Union__List__bool__List__int64 struct {
@@ -990,6 +1953,33 @@ type Union__List__bool__List__int64 struct {
     
     variant_List__int64 *[]int64
     
+}
+
+func (u *Union__List__bool__List__int64) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "List__bool":
+        coercedValue := make([]bool, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := v.(bool)
+  coercedValue[i] = innercoercedValue
+}
+
+        u.variant_List__bool = &coercedValue
+    
+    case "List__int64":
+        coercedValue := make([]int64, len(value.([]any)))
+for i, v := range value.([]any) {
+innercoercedValue := int64(v.(float64))
+  coercedValue[i] = innercoercedValue
+}
+
+        u.variant_List__int64 = &coercedValue
+    
+    }
 }
 
 
@@ -1004,6 +1994,13 @@ func (u *Union__List__bool__List__int64) List__bool() *[]bool {
     return u.variant_List__bool
 }
 
+func Union__List__bool__List__int64NewWithList__bool(v *[]bool) *Union__List__bool__List__int64 {
+    return &Union__List__bool__List__int64{
+        variant: "List__bool",
+        variant_List__bool: v,
+    }
+}
+
 func (u *Union__List__bool__List__int64) IsList__int64() bool {
     return u.variant == "List__int64"
 }
@@ -1015,6 +2012,13 @@ func (u *Union__List__bool__List__int64) List__int64() *[]int64 {
     return u.variant_List__int64
 }
 
+func Union__List__bool__List__int64NewWithList__int64(v *[]int64) *Union__List__bool__List__int64 {
+    return &Union__List__bool__List__int64{
+        variant: "List__int64",
+        variant_List__int64: v,
+    }
+}
+
 
 
 type Union__SimpleTag__JsonTemplate struct {
@@ -1024,6 +2028,26 @@ type Union__SimpleTag__JsonTemplate struct {
     
     variant_JsonTemplate *JsonTemplate
     
+}
+
+func (u *Union__SimpleTag__JsonTemplate) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "SimpleTag":
+        coercedValue := SimpleTag{}
+coercedValue.BamlDecode(value.(map[string]any))
+
+        u.variant_SimpleTag = &coercedValue
+    
+    case "JsonTemplate":
+        coercedValue := value.(JsonTemplate)
+
+        u.variant_JsonTemplate = &coercedValue
+    
+    }
 }
 
 
@@ -1038,6 +2062,13 @@ func (u *Union__SimpleTag__JsonTemplate) SimpleTag() *SimpleTag {
     return u.variant_SimpleTag
 }
 
+func Union__SimpleTag__JsonTemplateNewWithSimpleTag(v *SimpleTag) *Union__SimpleTag__JsonTemplate {
+    return &Union__SimpleTag__JsonTemplate{
+        variant: "SimpleTag",
+        variant_SimpleTag: v,
+    }
+}
+
 func (u *Union__SimpleTag__JsonTemplate) IsJsonTemplate() bool {
     return u.variant == "JsonTemplate"
 }
@@ -1047,6 +2078,13 @@ func (u *Union__SimpleTag__JsonTemplate) JsonTemplate() *JsonTemplate {
         return nil
     }
     return u.variant_JsonTemplate
+}
+
+func Union__SimpleTag__JsonTemplateNewWithJsonTemplate(v *JsonTemplate) *Union__SimpleTag__JsonTemplate {
+    return &Union__SimpleTag__JsonTemplate{
+        variant: "JsonTemplate",
+        variant_JsonTemplate: v,
+    }
 }
 
 
@@ -1068,6 +2106,45 @@ type Union__int64__string__bool__float64__JsonObject__JsonArray struct {
     
 }
 
+func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) BamlDecode(decoded map[string]any) {
+    u.variant = decoded["union_variant"].(string)
+    value := decoded["value"]
+
+    switch u.variant {
+    
+    case "int64":
+        coercedValue := int64(value.(float64))
+
+        u.variant_int64 = &coercedValue
+    
+    case "string":
+        coercedValue := value.(string)
+
+        u.variant_string = &coercedValue
+    
+    case "bool":
+        coercedValue := value.(bool)
+
+        u.variant_bool = &coercedValue
+    
+    case "float64":
+        coercedValue := value.(float64)
+
+        u.variant_float64 = &coercedValue
+    
+    case "JsonObject":
+        coercedValue := value.(JsonObject)
+
+        u.variant_JsonObject = &coercedValue
+    
+    case "JsonArray":
+        coercedValue := value.(JsonArray)
+
+        u.variant_JsonArray = &coercedValue
+    
+    }
+}
+
 
 func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsInt64() bool {
     return u.variant == "int64"
@@ -1078,6 +2155,13 @@ func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) Int64() *in
         return nil
     }
     return u.variant_int64
+}
+
+func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithInt64(v *int64) *Union__int64__string__bool__float64__JsonObject__JsonArray {
+    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
+        variant: "int64",
+        variant_int64: v,
+    }
 }
 
 func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsString() bool {
@@ -1091,6 +2175,13 @@ func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) String() *s
     return u.variant_string
 }
 
+func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithString(v *string) *Union__int64__string__bool__float64__JsonObject__JsonArray {
+    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
 func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsBool() bool {
     return u.variant == "bool"
 }
@@ -1100,6 +2191,13 @@ func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) Bool() *boo
         return nil
     }
     return u.variant_bool
+}
+
+func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithBool(v *bool) *Union__int64__string__bool__float64__JsonObject__JsonArray {
+    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
+        variant: "bool",
+        variant_bool: v,
+    }
 }
 
 func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsFloat64() bool {
@@ -1113,6 +2211,13 @@ func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) Float64() *
     return u.variant_float64
 }
 
+func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithFloat64(v *float64) *Union__int64__string__bool__float64__JsonObject__JsonArray {
+    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
+        variant: "float64",
+        variant_float64: v,
+    }
+}
+
 func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsJsonObject() bool {
     return u.variant == "JsonObject"
 }
@@ -1124,6 +2229,13 @@ func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) JsonObject(
     return u.variant_JsonObject
 }
 
+func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithJsonObject(v *JsonObject) *Union__int64__string__bool__float64__JsonObject__JsonArray {
+    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
+        variant: "JsonObject",
+        variant_JsonObject: v,
+    }
+}
+
 func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsJsonArray() bool {
     return u.variant == "JsonArray"
 }
@@ -1133,6 +2245,13 @@ func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) JsonArray()
         return nil
     }
     return u.variant_JsonArray
+}
+
+func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithJsonArray(v *JsonArray) *Union__int64__string__bool__float64__JsonObject__JsonArray {
+    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
+        variant: "JsonArray",
+        variant_JsonArray: v,
+    }
 }
 
 

@@ -18,6 +18,9 @@ var typeMap = map[string]reflect.Type{
   {% for enum in enums %}
   "{{ enum.name }}": reflect.TypeOf(types.{{ enum.name}}("")),
   {% endfor %}
+  {% for union in unions %}
+  "{{ union.name }}": reflect.TypeOf(types.{{ union.name }}{}),
+  {% endfor %}
 }
 
 func Decode(data []byte) (any, error) {
@@ -40,6 +43,11 @@ func Decode(data []byte) (any, error) {
       enum := reflect.New(typeMap[enumClassName]).Elem()
       enum.SetString(enumValue)
       result = enum.Interface()
+    } else if decodedMap["union_name"] != nil {
+      unionClassName := decodedMap["union_name"].(string)
+      union := reflect.New(typeMap[unionClassName]).Interface().(BamlDecoder)
+      union.BamlDecode(decodedMap)
+      result = union
     }
   } else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
     decodedSlice := decoded.([]any)

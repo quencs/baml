@@ -30,6 +30,7 @@ func TestDeserialization(t *testing.T) {
 		{`{ "class_name": "BookOrder", "values": { "OrderId": "123", "Title": "test", "Quantity": 1, "Price": 12.3 } }`, &types.BookOrder{OrderId: "123", Title: "test", Quantity: 1, Price: 12.3}},
 		{`{ "enum_class": "Category", "enum_value": "Refund" }`, types.CategoryRefund},
 		{`{ "class_name": "TestClassWithEnum", "values": { "Prop1": "test", "Prop2": { "enum_class": "EnumInClass", "enum_value": "ONE" } } }`, &types.TestClassWithEnum{Prop1: "test", Prop2: types.EnumInClassONE}},
+		{`{ "union_name": "Union__string__int64__float64", "union_variant": "string", "value": "test" }`, types.Union__string__int64__float64NewWithString(&[]string{"test"}[0])},
 	}
 
 	for _, test := range deserializationTests {

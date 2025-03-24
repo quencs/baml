@@ -242,6 +242,61 @@ var typeMap = map[string]reflect.Type{
   
   "TestEnum": reflect.TypeOf(types.TestEnum("")),
   
+  
+  "Union__BookOrder__FlightConfirmation__GroceryReceipt": reflect.TypeOf(types.Union__BookOrder__FlightConfirmation__GroceryReceipt{}),
+  
+  "Union__OriginalA__OriginalB": reflect.TypeOf(types.Union__OriginalA__OriginalB{}),
+  
+  "Union__string_curiosity__string_personal_finance": reflect.TypeOf(types.Union__string_curiosity__string_personal_finance{}),
+  
+  "Union__LiteralClassOne__LiteralClassTwo": reflect.TypeOf(types.Union__LiteralClassOne__LiteralClassTwo{}),
+  
+  "Union__string_one__string_two__string_three__string_four": reflect.TypeOf(types.Union__string_one__string_two__string_three__string_four{}),
+  
+  "Union__int_1__bool_true__string_string_output": reflect.TypeOf(types.Union__int_1__bool_true__string_string_output{}),
+  
+  "Union__int64__string__bool__float64__List__string__Map__string_List__string": reflect.TypeOf(types.Union__int64__string__bool__float64__List__string__Map__string_List__string{}),
+  
+  "Union__int64__string__bool__float64": reflect.TypeOf(types.Union__int64__string__bool__float64{}),
+  
+  "Union__int64__string": reflect.TypeOf(types.Union__int64__string{}),
+  
+  "Union__string__bool": reflect.TypeOf(types.Union__string__bool{}),
+  
+  "Union__string__int64__float64": reflect.TypeOf(types.Union__string__int64__float64{}),
+  
+  "Union__PhoneNumber__EmailAddress": reflect.TypeOf(types.Union__PhoneNumber__EmailAddress{}),
+  
+  "Union__Martian__Earthling": reflect.TypeOf(types.Union__Martian__Earthling{}),
+  
+  "Union__int64__float64": reflect.TypeOf(types.Union__int64__float64{}),
+  
+  "Union__Resume__Event": reflect.TypeOf(types.Union__Resume__Event{}),
+  
+  "Union__string_barisa__string_ox_burger": reflect.TypeOf(types.Union__string_barisa__string_ox_burger{}),
+  
+  "Union__string_breakfast__string_dinner": reflect.TypeOf(types.Union__string_breakfast__string_dinner{}),
+  
+  "Union__Nested__string": reflect.TypeOf(types.Union__Nested__string{}),
+  
+  "Union__string__List__Nested": reflect.TypeOf(types.Union__string__List__Nested{}),
+  
+  "Union__string__Nested": reflect.TypeOf(types.Union__string__Nested{}),
+  
+  "Union__string__int64": reflect.TypeOf(types.Union__string__int64{}),
+  
+  "Union__Tag__string": reflect.TypeOf(types.Union__Tag__string{}),
+  
+  "Union__MemoryObject__ComplexMemoryObject__AnotherObject": reflect.TypeOf(types.Union__MemoryObject__ComplexMemoryObject__AnotherObject{}),
+  
+  "Union__float64__bool": reflect.TypeOf(types.Union__float64__bool{}),
+  
+  "Union__List__bool__List__int64": reflect.TypeOf(types.Union__List__bool__List__int64{}),
+  
+  "Union__SimpleTag__JsonTemplate": reflect.TypeOf(types.Union__SimpleTag__JsonTemplate{}),
+  
+  "Union__int64__string__bool__float64__JsonObject__JsonArray": reflect.TypeOf(types.Union__int64__string__bool__float64__JsonObject__JsonArray{}),
+  
 }
 
 func Decode(data []byte) (any, error) {
@@ -264,6 +319,11 @@ func Decode(data []byte) (any, error) {
       enum := reflect.New(typeMap[enumClassName]).Elem()
       enum.SetString(enumValue)
       result = enum.Interface()
+    } else if decodedMap["union_name"] != nil {
+      unionClassName := decodedMap["union_name"].(string)
+      union := reflect.New(typeMap[unionClassName]).Interface().(BamlDecoder)
+      union.BamlDecode(decodedMap)
+      result = union
     }
   } else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
     decodedSlice := decoded.([]any)
