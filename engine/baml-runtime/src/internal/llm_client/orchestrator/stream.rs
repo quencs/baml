@@ -66,7 +66,7 @@ where
                             let response_value = partial_parse_fn(&s.content);
                             let response_value_without_flags = match response_value {
                                 Ok(baml_value) => Ok(ResponseBamlValue(
-                                    baml_value.0.map_meta_owned(|m| (vec![], m.1, m.2)),
+                                    baml_value.0.map_meta_owned(|m| (vec![], m.1, m.2, m.3)),
                                 )),
                                 Err(e) => Err(e),
                             };
@@ -114,15 +114,22 @@ where
                     Some(parse_fn(&s.content))
                 }
             }
-            LLMResponse::LLMFailure(LLMErrorResponse { code, client, message, .. }) => {
+            LLMResponse::LLMFailure(LLMErrorResponse {
+                code,
+                client,
+                message,
+                ..
+            }) => {
                 match code {
                     // This is some internal BAML error, so handle it like any other error
                     crate::internal::llm_client::ErrorCode::Other(2) => None,
-                    _ => Some(Err(anyhow::anyhow!(crate::errors::ExposedError::ClientHttpError {
-                        client_name: client.clone(),
-                        message: message.clone(),
-                        status_code: code.clone(),
-                    }))),
+                    _ => Some(Err(anyhow::anyhow!(
+                        crate::errors::ExposedError::ClientHttpError {
+                            client_name: client.clone(),
+                            message: message.clone(),
+                            status_code: code.clone(),
+                        }
+                    ))),
                 }
             }
             _ => None,

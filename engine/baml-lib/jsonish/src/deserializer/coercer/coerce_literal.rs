@@ -23,22 +23,12 @@ impl TypeCoercer for LiteralValue {
         target: &FieldType,
         value: Option<&jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
-        assert!(matches!(target, FieldType::Literal(_)));
-
         log::debug!(
             "scope: {scope} :: coercing to: {name:?} (current: {current})",
             name = self,
             scope = ctx.display_scope(),
             current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
         );
-
-        let literal = match target {
-            FieldType::Literal(literal) if literal == self => literal,
-            // Received non-literal type or literal value doesn't match expected value.
-            _ => {
-                return Err(ctx.error_unexpected_type(&FieldType::Literal(self.clone()), target));
-            }
-        };
 
         // Get rid of nulls.
         let value = match value {
@@ -54,9 +44,14 @@ impl TypeCoercer for LiteralValue {
                 let (key, inner_value) = obj.iter().next().unwrap();
                 // only extract value if it's a primitive (not an object or array, hoping to god its fixed)
                 match inner_value {
-                    jsonish::Value::Number(_, _) | jsonish::Value::Boolean(_) | jsonish::Value::String(_, _) => {
+                    jsonish::Value::Number(_, _)
+                    | jsonish::Value::Boolean(_)
+                    | jsonish::Value::String(_, _) => {
                         let mut result = self.coerce(ctx, target, Some(&inner_value))?;
-                        result.add_flag(Flag::ObjectToPrimitive(jsonish::Value::Object(obj.clone(), completion_state.clone())));
+                        result.add_flag(Flag::ObjectToPrimitive(jsonish::Value::Object(
+                            obj.clone(),
+                            completion_state.clone(),
+                        )));
                         return Ok(result);
                     }
                     _ => {}
@@ -64,7 +59,7 @@ impl TypeCoercer for LiteralValue {
             }
         }
 
-        match literal {
+        match self {
             LiteralValue::Int(literal_int) => {
                 let BamlValueWithFlags::Int(coerced_int) = coerce_int(ctx, target, Some(value))?
                 else {

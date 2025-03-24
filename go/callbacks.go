@@ -4,13 +4,19 @@ package baml
 #cgo LDFLAGS: ./ext/libbaml.dylib -ldl
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
 */
 import "C"
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"sync"
+	"unsafe"
+
+	"github.com/boundaryml/baml/go/CFFI"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type ResultCallback struct {
@@ -33,14 +39,19 @@ var (
 )
 
 //export trigger_callback
-func trigger_callback(id C.uint32_t, isDone C.bool, result *C.char) {
+func trigger_callback(id C.uint32_t, isDone C.bool, content *C.char, length C.int) {
 	callbackMutex.RLock()
 	id_uint := uint32(id)
 	callback, exists := dynamicCallbacks[id_uint]
 	callbackMutex.RUnlock()
 
 	if exists {
-		my_string := C.GoString(result)
+		content_bytes := C.GoBytes(unsafe.Pointer(content), length)
+
+		parsed_data := CFFI.CFFIValueHolder{}
+		flatbuffers.GetRootAs(content_bytes, 0, &parsed_data)
+
+		my_string := fmt.Sprintf("Length: %d, Type: %s", length, parsed_data.ValueType().String())
 		force_close := false
 
 		select {
