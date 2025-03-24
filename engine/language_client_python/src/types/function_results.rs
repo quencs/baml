@@ -206,7 +206,7 @@ fn pythonize_strict(
         BamlValueWithMeta::Null(_) => Ok(py.None()),
     }?;
 
-    let (_, checks, completion_state) = meta;
+    let (_, checks, completion_state, _) = meta;
     if checks.is_empty() && !completion_state.display {
         Ok(py_value_without_constraints)
     } else {

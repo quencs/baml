@@ -55,6 +55,7 @@ macro_rules! test_deserializer {
 
             let value = result.unwrap();
             log::trace!("Score: {}", value.score());
+            assert_eq!(value.field_type(), &$target_type);
             let value: BamlValue = value.into();
             log::info!("{}", value);
             let json_value = json!(value);
@@ -80,6 +81,7 @@ macro_rules! test_deserializer_with_expected_score {
             assert!(result.is_ok(), "Failed to parse: {:?}", result);
 
             let value = result.unwrap();
+            assert_eq!(value.field_type(), &$target_type);
             dbg!(&value);
             log::trace!("Score: {}", value.score());
             assert_eq!(value.score(), $target_score);

@@ -4,21 +4,28 @@ package baml
 #cgo LDFLAGS: ./ext/libbaml.dylib -ldl
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include "./ext/baml.h"
 */
 import "C"
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"sync"
+	"unsafe"
+
+	"github.com/boundaryml/baml/go/CFFI"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type ResultCallback struct {
-	data string // JSON string
+	data CFFI.CFFIValueHolder // JSON string
 }
 
 func (r *ResultCallback) Raw() string {
-	return r.data
+	return fmt.Sprintf("%s: %s", r.data.ValueType().String(), len(r.data.Table().Bytes))
 }
 
 type CallbackData struct {
@@ -33,14 +40,20 @@ var (
 )
 
 //export trigger_callback
-func trigger_callback(id C.uint32_t, isDone C.bool, result *C.char) {
+func trigger_callback(id C.uint32_t, isDone C.bool, content *C.int8_t, length C.int) {
 	callbackMutex.RLock()
 	id_uint := uint32(id)
 	callback, exists := dynamicCallbacks[id_uint]
 	callbackMutex.RUnlock()
 
 	if exists {
-		my_string := C.GoString(result)
+		content_bytes := C.GoBytes(unsafe.Pointer(content), length)
+
+		parsed_data := CFFI.CFFIValueHolder{}
+		flatbuffers.GetRootAs(content_bytes, 0, &parsed_data)
+
+		my_string := fmt.Sprintf("Length: %d, Type: %s", length, parsed_data.ValueType().String())
+		fmt.Println("My string: ", my_string)
 		force_close := false
 
 		select {
@@ -48,11 +61,13 @@ func trigger_callback(id C.uint32_t, isDone C.bool, result *C.char) {
 			force_close = true
 			// TODO: Somehow tell rust to die
 			break
-		case callback.channel <- ResultCallback{data: my_string}:
+		case callback.channel <- ResultCallback{data: parsed_data}:
+			fmt.Println("Sending data to channel")
 			break
 		}
 
 		if bool(isDone) || force_close {
+			fmt.Println("Closing channel")
 			close(callback.channel)
 			callbackMutex.Lock()
 			defer callbackMutex.Unlock()

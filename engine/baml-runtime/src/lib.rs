@@ -267,8 +267,9 @@ impl BamlRuntime {
             } else {
                 match val {
                     Some(Ok(value)) => {
-                        let value_with_constraints =
-                            value.0.map_meta(|(_, constraints, _)| constraints.clone());
+                        let value_with_constraints = value
+                            .0
+                            .map_meta(|(_, constraints, _, _)| constraints.clone());
                         evaluate_test_constraints(
                             &params,
                             &value_with_constraints,

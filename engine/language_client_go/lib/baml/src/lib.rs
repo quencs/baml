@@ -1,21 +1,8 @@
 use std::{collections::HashMap, ffi::CStr, path::Path};
 
 extern crate baml_runtime;
+use anyhow::Result;
 use baml_runtime::{BamlRuntime, FunctionResult, FunctionResultStream};
-
-#[no_mangle]
-pub extern "C" fn hello(name: *const libc::c_char) {
-    let name_cstr = unsafe { CStr::from_ptr(name) };
-    let name = name_cstr.to_str().unwrap();
-    println!("Hello {}!", name);
-}
-
-#[no_mangle]
-pub extern "C" fn whisper(message: *const libc::c_char) {
-    let message_cstr = unsafe { CStr::from_ptr(message) };
-    let message = message_cstr.to_str().unwrap();
-    println!("({})", message);
-}
 
 #[no_mangle]
 pub extern "C" fn create_baml_runtime(
@@ -23,8 +10,14 @@ pub extern "C" fn create_baml_runtime(
     src_files_json: *const libc::c_char,
     env_vars_json: *const libc::c_char,
 ) -> *const libc::c_void {
-    let src_files = serde_json::from_str::<HashMap<String, String>>(unsafe { CStr::from_ptr(src_files_json).to_str().unwrap() }).unwrap();
-    let env_vars = serde_json::from_str::<HashMap<String, String>>(unsafe { CStr::from_ptr(env_vars_json).to_str().unwrap() }).unwrap();
+    let src_files = serde_json::from_str::<HashMap<String, String>>(unsafe {
+        CStr::from_ptr(src_files_json).to_str().unwrap()
+    })
+    .unwrap();
+    let env_vars = serde_json::from_str::<HashMap<String, String>>(unsafe {
+        CStr::from_ptr(env_vars_json).to_str().unwrap()
+    })
+    .unwrap();
     let runtime = BamlRuntime::from_file_content(
         unsafe { CStr::from_ptr(root_path).to_str().unwrap() },
         &src_files,
@@ -75,29 +68,57 @@ use std::os::raw::c_char;
 use baml_types::{BamlMap, BamlValue};
 
 /// Convert CKwargs to a BamlMap<String, BamlValue>
-unsafe fn ckwargs_to_map(kwargs: *const libc::c_char) -> BamlMap<String, BamlValue> {
+fn ckwargs_to_map(kwargs: *const libc::c_char) -> Result<BamlMap<String, BamlValue>> {
     let kwargs_str = unsafe { CStr::from_ptr(kwargs) };
-    let kwargs_map = serde_json::from_str::<BamlMap<String, BamlValue>>(kwargs_str.to_str().unwrap()).unwrap();
-    kwargs_map
+    let kwargs_map = serde_json::from_str::<BamlMap<String, BamlValue>>(kwargs_str.to_str()?)?;
+    Ok(kwargs_map)
 }
 
-static mut CALLBACK_FN: Option<extern "C" fn(u32, bool, *const c_char)> = None;
+static mut RESULT_CALLBACK_FN: Option<
+    extern "C" fn(call_id: u32, is_done: bool, content: *const c_char),
+> = None;
+static mut ERROR_CALLBACK_FN: Option<
+    extern "C" fn(call_id: u32, name: *const c_char, message: *const c_char),
+> = None;
 
 #[no_mangle]
-extern "C" fn register_callback(callback_fn: *const libc::c_void) {
+extern "C" fn register_callbacks(
+    callback_fn: *const libc::c_void,
+    error_callback_fn: *const libc::c_void,
+) {
     // Create a global runtime or pass it along as needed.
     let _rt = tokio::runtime::Runtime::new().unwrap();
     // Store _rt somewhere accessible if needed.
     unsafe {
         RUNTIME = Some(std::sync::Arc::new(_rt));
-        CALLBACK_FN = Some(std::mem::transmute(callback_fn));
+        RESULT_CALLBACK_FN = Some(std::mem::transmute(callback_fn));
+        ERROR_CALLBACK_FN = Some(std::mem::transmute(error_callback_fn));
     }
 }
 
-fn safe_trigger_callback(id: u32, is_done: bool, message: &str) {
-    let callback_fn = unsafe { CALLBACK_FN.unwrap() };
-    let c_message = CString::new(message).unwrap();
-    callback_fn(id, is_done, c_message.as_ptr() as *const libc::c_char);
+fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>) {
+    let callback_fn = unsafe { RESULT_CALLBACK_FN.unwrap() };
+    let error_callback_fn = unsafe { ERROR_CALLBACK_FN.unwrap() };
+
+    match result {
+        Ok(result) => match result.parsed() {
+            Some(Ok(content)) => {
+                let c_message = CString::new(content).unwrap();
+                callback_fn(id, is_done, c_message.as_ptr() as *const libc::c_char);
+            }
+            Some(Err(e)) => {
+                let c_message = CString::new(e.to_string()).unwrap();
+                error_callback_fn(id, c_message.as_ptr() as *const libc::c_char);
+            }
+            None => {
+                error_callback_fn(id, c_message.as_ptr() as *const libc::c_char);
+            }
+        },
+        Err(e) => {
+            let c_message = CString::new(e.to_string()).unwrap();
+            error_callback_fn(id, c_message.as_ptr() as *const libc::c_char);
+        }
+    }
 }
 
 static mut RUNTIME: Option<std::sync::Arc<tokio::runtime::Runtime>> = None;
@@ -110,7 +131,7 @@ pub extern "C" fn call_function_from_c(
     function_name: *const c_char,
     kwargs: *const libc::c_char,
     id: u32,
-) {
+) -> Result<()> {
     // Safety: assume that the pointers provided are valid.
     let runtime = unsafe { &*(runtime as *const BamlRuntime) };
 
@@ -118,13 +139,12 @@ pub extern "C" fn call_function_from_c(
     let func_name = match unsafe { CStr::from_ptr(function_name) }.to_str() {
         Ok(s) => s.to_owned(),
         Err(_) => {
-            safe_trigger_callback(id, true, "Failed to convert function name to string");
-            return;
+            return Err(anyhow::anyhow!("Failed to convert function name to string"));
         }
     };
 
     // Convert keyword arguments.
-    let keyword_args = unsafe { ckwargs_to_map(kwargs) };
+    let keyword_args = ckwargs_to_map(kwargs)?;
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
 
@@ -132,18 +152,13 @@ pub extern "C" fn call_function_from_c(
     // Ensure that a Tokio runtime is running in your application.
     let rt = unsafe { RUNTIME.as_ref().unwrap() };
     rt.spawn(async move {
-        let future = runtime.call_function(func_name, &keyword_args, &ctx, None, None);
-        let (result, _) = future.await;
-        match result {
-            Ok(result) => match result.content() {
-                Ok(content) => safe_trigger_callback(id, true, &content),
-                Err(e) => safe_trigger_callback(id, true, &e.to_string()),
-            },
-            Err(e) => safe_trigger_callback(id, true, &e.to_string()),
-        };
-        
-        // Note: Responsibility for freeing the returned string lies with the caller.
+        let (result, _) = runtime
+            .call_function(func_name, &keyword_args, &ctx, None, None)
+            .await;
+        safe_trigger_callback(id, true, result);
     });
+
+    Ok(())
 }
 
 /// Extern "C" function that returns immediately, scheduling the async call.
@@ -154,7 +169,7 @@ pub extern "C" fn call_function_stream_from_c(
     function_name: *const c_char,
     kwargs: *const libc::c_char,
     id: u32,
-) {
+) -> Result<()> {
     // Safety: assume that the pointers provided are valid.
     let runtime = unsafe { &*(runtime as *const BamlRuntime) };
 
@@ -162,19 +177,18 @@ pub extern "C" fn call_function_stream_from_c(
     let func_name = match unsafe { CStr::from_ptr(function_name) }.to_str() {
         Ok(s) => s.to_owned(),
         Err(_) => {
-            panic!("Failed to convert function name to string");
+            return Err(anyhow::anyhow!("Failed to convert function name to string"));
         }
     };
 
     // Convert keyword arguments.
-    let keyword_args = unsafe { ckwargs_to_map(kwargs) };
+    let keyword_args = ckwargs_to_map(kwargs)?;
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
     let mut stream = match runtime.stream_function(func_name, &keyword_args, &ctx, None, None) {
         Ok(stream) => stream,
         Err(e) => {
-            safe_trigger_callback(id, true, &e.to_string());
-            return;
+            return Err(anyhow::anyhow!("Failed to stream function: {}", e));
         }
     };
 
@@ -183,22 +197,17 @@ pub extern "C" fn call_function_stream_from_c(
     let rt = unsafe { RUNTIME.as_ref().unwrap() };
 
     rt.spawn(async move {
-        let (result, _) = stream.run(Some(|r| on_event(id, r)), &ctx, None, None).await;
-        match result {
-            Ok(result) => match result.content() {
-                Ok(content) => safe_trigger_callback(id, true, &content),
-                Err(e) => safe_trigger_callback(id, true, &e.to_string()),
-            },
-            Err(e) => safe_trigger_callback(id, true, &e.to_string()),
-        };
+        let (result, _) = stream
+            .run(Some(|r| on_event(id, r)), &ctx, None, None)
+            .await;
+        safe_trigger_callback(id, false, result);
     });
+
+    Ok(())
 }
 
 pub fn on_event(id: u32, result: FunctionResult) {
-    match result.content() {
-        Ok(content) => safe_trigger_callback(id, false, &content),
-        Err(e) => safe_trigger_callback(id, false, &e.to_string()),
-    }
+    safe_trigger_callback(id, true, Ok(result));
 }
 
 // This is present so it's easy to test that the code works natively in Rust via `cargo test`

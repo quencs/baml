@@ -15,7 +15,7 @@ pub use constraint::*;
 pub use field_type::{FieldType, LiteralValue, StreamingBehavior, TypeValue};
 pub use generator::{GeneratorDefaultClientMode, GeneratorOutputType};
 pub use map::Map as BamlMap;
-pub use media::{BamlMedia, BamlMediaContent, BamlMediaType, MediaBase64, MediaUrl};
+pub use media::{BamlMedia, BamlMediaContent, BamlMediaType, MediaBase64, MediaFile, MediaUrl};
 pub use minijinja::JinjaExpression;
 pub use value_expr::{
     ApiKeyWithProvenance, EvaluationContext, GetEnvVar, Resolvable, ResolvedValue, StringOr,
