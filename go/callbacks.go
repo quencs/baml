@@ -5,6 +5,7 @@ package baml
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "./ext/baml.h"
 */
 import "C"
 
@@ -39,7 +40,7 @@ var (
 )
 
 //export trigger_callback
-func trigger_callback(id C.uint32_t, isDone C.bool, content *C.char, length C.int) {
+func trigger_callback(id C.uint32_t, isDone C.bool, content *C.int8_t, length C.int) {
 	callbackMutex.RLock()
 	id_uint := uint32(id)
 	callback, exists := dynamicCallbacks[id_uint]

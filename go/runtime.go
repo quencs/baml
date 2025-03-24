@@ -1,12 +1,11 @@
 package baml
 
 /*
-#cgo LDFLAGS: ./ext/libbaml.dylib -ldl
 #include <stdlib.h>
 #include <stdbool.h>
 #include "./ext/baml.h"
 
-extern void trigger_callback(uint32_t, bool, const char *);
+extern void trigger_callback(uint32_t, bool, const int8_t *, int);
 */
 import "C"
 

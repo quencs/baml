@@ -43,7 +43,7 @@ void call_function_stream_from_c(const void *runtime,
                           const char *kwargs,
                           uint32_t callback_id);
 
-typedef void (*callback_fcn)(uint32_t, bool, const char *, int);
+typedef void (*callback_fcn)(uint32_t, bool, const int8_t *, int);
 
 // Registers a callback function to be called when a function is called.
 void register_callback(callback_fcn callback);
