@@ -46,7 +46,7 @@ pub fn validate_streaming_state(
         ir,
         baml_value_with_streaming_state_and_behavior,
         allow_partials,
-        0
+        0,
     )?;
     Ok(top_level_node)
 }
@@ -91,15 +91,15 @@ fn process_node(
         BamlValueWithMeta::Int(i, _) => Ok(BamlValueWithMeta::Int(i, new_meta)),
         BamlValueWithMeta::Float(f, _) => Ok(BamlValueWithMeta::Float(f, new_meta)),
         BamlValueWithMeta::Bool(b, _) => Ok(BamlValueWithMeta::Bool(b, new_meta)),
-        BamlValueWithMeta::List(items, _) => {
-            Ok(BamlValueWithMeta::List(
+        BamlValueWithMeta::List(items, _) => Ok(BamlValueWithMeta::List(
             items
                 .into_iter()
-                .filter_map(|item| process_node(ir, item, allow_partials_in_sub_nodes, depth+1).ok())
+                .filter_map(|item| {
+                    process_node(ir, item, allow_partials_in_sub_nodes, depth + 1).ok()
+                })
                 .collect(),
             new_meta,
-        ))
-    },
+        )),
         BamlValueWithMeta::Class(ref class_name, value_fields, _) => {
             let value_field_names: IndexSet<String> = value_fields
                 .keys()
@@ -157,7 +157,7 @@ fn process_node(
                         .as_ref()
                         .map_or(false, |b| b.state);
                     let completion_state = field_value.meta().0.clone();
-                    match process_node(ir, field_value, allow_partials_in_sub_nodes, depth+1) {
+                    match process_node(ir, field_value, allow_partials_in_sub_nodes, depth + 1) {
                         Ok(res) => Some((field_name, res)),
                         _ => {
                             let state = Completion {
@@ -218,7 +218,7 @@ fn process_node(
             let new_kvs = kvs
                 .into_iter()
                 .filter_map(|(k, v)| {
-                    process_node(ir, v, allow_partials_in_sub_nodes, depth+1)
+                    process_node(ir, v, allow_partials_in_sub_nodes, depth + 1)
                         .ok()
                         .map(|v| (k, v))
                 })
@@ -343,10 +343,7 @@ fn completion_state(flags: &Vec<Flag>) -> CompletionState {
     if flags.iter().any(|f| matches!(f, Flag::Pending)) {
         CompletionState::Pending
     } else {
-        if flags
-            .iter()
-            .any(|f| matches!(f, Flag::Incomplete))
-        {
+        if flags.iter().any(|f| matches!(f, Flag::Incomplete)) {
             CompletionState::Incomplete
         } else {
             CompletionState::Complete
@@ -368,18 +365,23 @@ mod tests {
     use super::*;
 
     fn mk_null() -> BamlValueWithFlags {
-        BamlValueWithFlags::Null(DeserializerConditions::default())
+        BamlValueWithFlags::Null(
+            FieldType::Primitive(TypeValue::Null),
+            DeserializerConditions::default(),
+        )
     }
 
     fn mk_string(s: &str) -> BamlValueWithFlags {
         BamlValueWithFlags::String(ValueWithFlags {
             value: s.to_string(),
+            target: FieldType::Primitive(TypeValue::String),
             flags: DeserializerConditions::default(),
         })
     }
     fn mk_float(s: f64) -> BamlValueWithFlags {
         BamlValueWithFlags::Float(ValueWithFlags {
             value: s,
+            target: FieldType::Primitive(TypeValue::Float),
             flags: DeserializerConditions::default(),
         })
     }
@@ -394,7 +396,11 @@ mod tests {
         .unwrap();
 
         fn mk_list(items: Vec<BamlValueWithFlags>) -> BamlValueWithFlags {
-            BamlValueWithFlags::List(DeserializerConditions::default(), items)
+            BamlValueWithFlags::List(
+                DeserializerConditions::default(),
+                FieldType::RecursiveTypeAlias("A".to_string()).as_list(),
+                items,
+            )
         }
 
         let value = mk_list(vec![
@@ -439,12 +445,14 @@ mod tests {
         let value = BamlValueWithFlags::Class(
             "Info".to_string(),
             DeserializerConditions::default(),
+            FieldType::Class("Info".into()),
             vec![
                 (
                     "name".to_string(),
                     BamlValueWithFlags::Class(
                         "Name".to_string(),
                         DeserializerConditions::default(),
+                        FieldType::Class("Name".into()),
                         vec![
                             ("first".to_string(), mk_string("Greg")),
                             ("last".to_string(), mk_string("Hale")),

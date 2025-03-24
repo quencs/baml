@@ -66,7 +66,7 @@ pub fn parsed_value_to_response(
     let response_value = baml_value_with_streaming
         .zip_meta(&value_with_response_checks)?
         .zip_meta(&meta_flags)?
-        .map_meta(|((x, y), z)| (z.clone(), y.clone(), x.clone()));
+        .map_meta(|((x, y), z)| (z.clone(), y.clone(), x.clone(), field_type.clone()));
     Ok(ResponseBamlValue(response_value))
 }
 
@@ -412,11 +412,13 @@ mod tests {
             DeserializerConditions {
                 flags: vec![Flag::Incomplete],
             },
+            FieldType::class("Foo"),
             vec![
                 (
                     "i".to_string(),
                     BamlValueWithFlags::Int(ValueWithFlags {
                         value: 1,
+                        target: FieldType::int(),
                         flags: DeserializerConditions { flags: Vec::new() },
                     }),
                 ),
@@ -424,6 +426,7 @@ mod tests {
                     "s".to_string(),
                     BamlValueWithFlags::String(ValueWithFlags {
                         value: "H".to_string(),
+                        target: FieldType::string(),
                         flags: DeserializerConditions {
                             flags: vec![Flag::Incomplete],
                         },
@@ -438,18 +441,20 @@ mod tests {
     }
 
     fn mk_null() -> BamlValueWithFlags {
-        BamlValueWithFlags::Null(DeserializerConditions::default())
+        BamlValueWithFlags::Null(FieldType::null(), DeserializerConditions::default())
     }
 
     fn mk_string(s: &str) -> BamlValueWithFlags {
         BamlValueWithFlags::String(ValueWithFlags {
             value: s.to_string(),
+            target: FieldType::string(),
             flags: DeserializerConditions::default(),
         })
     }
     fn mk_float(s: f64) -> BamlValueWithFlags {
         BamlValueWithFlags::Float(ValueWithFlags {
             value: s,
+            target: FieldType::float(),
             flags: DeserializerConditions::default(),
         })
     }
@@ -479,12 +484,14 @@ mod tests {
         let value = BamlValueWithFlags::Class(
             "Info".to_string(),
             DeserializerConditions::default(),
+            FieldType::class("Info"),
             vec![
                 (
                     "name".to_string(),
                     BamlValueWithFlags::Class(
                         "Name".to_string(),
                         DeserializerConditions::default(),
+                        FieldType::class("Name"),
                         vec![
                             ("first".to_string(), mk_string("Greg")),
                             ("last".to_string(), mk_string("Hale")),
