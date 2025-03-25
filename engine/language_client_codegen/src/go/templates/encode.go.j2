@@ -95,11 +95,7 @@ func Encode(object any) ([]byte, error) {
   } else if underlyingType.Kind() == reflect.Map {
     entries := []any{}
     for key, value := range object.(map[string]any) {
-      encodedValue, err := Encode(value)
-      if err != nil {
-        return nil, err
-      }
-      entries = append(entries, map[string]any{"key": key, "value": encodedValue})
+      entries = append(entries, map[string]any{"key": key, "value": value})
     }
     return json.Marshal(entries)
   } else {

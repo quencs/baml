@@ -69,4 +69,11 @@ func (e *{{ enum.name }}) UnmarshalJSON(data []byte) error {
     }
     return nil
 }
+
+func (e {{ enum.name }}) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "{{ enum.name }}",
+        "enum_value": string(e),
+    })
+}
 {% endfor %}

@@ -1413,7 +1413,11 @@ valueMap["Some_class"] = json.RawMessage(encodedValue)
 		
 		
 		{
-valueMap["Status"] = c.Status
+encodedValue, err := c.Status.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Status"] = json.RawMessage(encodedValue)
 }
 
 	
@@ -3780,7 +3784,11 @@ func (c *OrderInfo) BamlEncode() ([]byte, error) {
 		
 		
 		{
-valueMap["Order_status"] = c.Order_status
+encodedValue, err := c.Order_status.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Order_status"] = json.RawMessage(encodedValue)
 }
 
 	
@@ -4091,7 +4099,11 @@ func (c *RaysData) BamlEncode() ([]byte, error) {
 		
 		
 		{
-valueMap["DataType"] = c.DataType
+encodedValue, err := c.DataType.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["DataType"] = json.RawMessage(encodedValue)
 }
 
 	
@@ -5394,7 +5406,11 @@ valueMap["Prop1"] = c.Prop1
 		
 		
 		{
-valueMap["Prop2"] = c.Prop2
+encodedValue, err := c.Prop2.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Prop2"] = json.RawMessage(encodedValue)
 }
 
 	

@@ -32,7 +32,9 @@ func (u *{{ union.name }}) BamlEncode() ([]byte, error) {
     switch u.variant {
     {% for variant in union.variants %}
     case "{{ variant.0 }}":
-        encodedMap["value"] = u.variant_{{ variant.0 }}
+        {% let destination_index = format!("\"{}\"", "value") %}
+		{% let source_variable_name = format!("{}u.variant_{}", if variant.1.is_slice { "*" } else { "" }, variant.0) %}
+		{{ crate::go::generate_types::render_value_encode("encodedMap", destination_index, source_variable_name, variant.1) }}
     {% endfor %}
     }
 

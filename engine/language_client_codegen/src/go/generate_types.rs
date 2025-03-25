@@ -116,7 +116,7 @@ fn render_value_encode(
 ) -> String {
     let mut rendering = String::new();
     rendering.push_str("{\n");
-    if field_type.is_class {
+    if field_type.is_class || field_type.is_enum {
         rendering.push_str(
             format!(
                 "encodedValue, err := {}.BamlEncode()\n",

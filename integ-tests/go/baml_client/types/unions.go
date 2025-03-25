@@ -60,13 +60,40 @@ func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) BamlEncode() ([]b
     switch u.variant {
     
     case "BookOrder":
-        encodedMap["value"] = u.variant_BookOrder
+        
+		
+		{
+encodedValue, err := u.variant_BookOrder.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "FlightConfirmation":
-        encodedMap["value"] = u.variant_FlightConfirmation
+        
+		
+		{
+encodedValue, err := u.variant_FlightConfirmation.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "GroceryReceipt":
-        encodedMap["value"] = u.variant_GroceryReceipt
+        
+		
+		{
+encodedValue, err := u.variant_GroceryReceipt.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     }
 
@@ -169,10 +196,28 @@ func (u *Union__OriginalA__OriginalB) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "OriginalA":
-        encodedMap["value"] = u.variant_OriginalA
+        
+		
+		{
+encodedValue, err := u.variant_OriginalA.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "OriginalB":
-        encodedMap["value"] = u.variant_OriginalB
+        
+		
+		{
+encodedValue, err := u.variant_OriginalB.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     }
 
@@ -255,10 +300,20 @@ func (u *Union__string_curiosity__string_personal_finance) BamlEncode() ([]byte,
     switch u.variant {
     
     case "string_curiosity":
-        encodedMap["value"] = u.variant_string_curiosity
+        
+		
+		{
+encodedMap["value"] = u.variant_string_curiosity
+}
+
     
     case "string_personal_finance":
-        encodedMap["value"] = u.variant_string_personal_finance
+        
+		
+		{
+encodedMap["value"] = u.variant_string_personal_finance
+}
+
     
     }
 
@@ -343,10 +398,28 @@ func (u *Union__LiteralClassOne__LiteralClassTwo) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "LiteralClassOne":
-        encodedMap["value"] = u.variant_LiteralClassOne
+        
+		
+		{
+encodedValue, err := u.variant_LiteralClassOne.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "LiteralClassTwo":
-        encodedMap["value"] = u.variant_LiteralClassTwo
+        
+		
+		{
+encodedValue, err := u.variant_LiteralClassTwo.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     }
 
@@ -443,16 +516,36 @@ func (u *Union__string_one__string_two__string_three__string_four) BamlEncode() 
     switch u.variant {
     
     case "string_one":
-        encodedMap["value"] = u.variant_string_one
+        
+		
+		{
+encodedMap["value"] = u.variant_string_one
+}
+
     
     case "string_two":
-        encodedMap["value"] = u.variant_string_two
+        
+		
+		{
+encodedMap["value"] = u.variant_string_two
+}
+
     
     case "string_three":
-        encodedMap["value"] = u.variant_string_three
+        
+		
+		{
+encodedMap["value"] = u.variant_string_three
+}
+
     
     case "string_four":
-        encodedMap["value"] = u.variant_string_four
+        
+		
+		{
+encodedMap["value"] = u.variant_string_four
+}
+
     
     }
 
@@ -578,13 +671,28 @@ func (u *Union__int_1__bool_true__string_string_output) BamlEncode() ([]byte, er
     switch u.variant {
     
     case "int_1":
-        encodedMap["value"] = u.variant_int_1
+        
+		
+		{
+encodedMap["value"] = u.variant_int_1
+}
+
     
     case "bool_true":
-        encodedMap["value"] = u.variant_bool_true
+        
+		
+		{
+encodedMap["value"] = u.variant_bool_true
+}
+
     
     case "string_string_output":
-        encodedMap["value"] = u.variant_string_string_output
+        
+		
+		{
+encodedMap["value"] = u.variant_string_string_output
+}
+
     
     }
 
@@ -717,22 +825,58 @@ func (u *Union__int64__string__bool__float64__List__string__Map__string_List__st
     switch u.variant {
     
     case "int64":
-        encodedMap["value"] = u.variant_int64
+        
+		
+		{
+encodedMap["value"] = u.variant_int64
+}
+
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     case "bool":
-        encodedMap["value"] = u.variant_bool
+        
+		
+		{
+encodedMap["value"] = u.variant_bool
+}
+
     
     case "float64":
-        encodedMap["value"] = u.variant_float64
+        
+		
+		{
+encodedMap["value"] = u.variant_float64
+}
+
     
     case "List__string":
-        encodedMap["value"] = u.variant_List__string
+        
+		
+		{
+list := make([]any, len(*u.variant_List__string))
+for i, v := range *u.variant_List__string {
+{
+list[i] = v
+}
+}
+encodedMap["value"] = list
+}
+
     
     case "Map__string_List__string":
-        encodedMap["value"] = u.variant_Map__string_List__string
+        
+		
+		{
+encodedMap["value"] = u.variant_Map__string_List__string
+}
+
     
     }
 
@@ -901,16 +1045,36 @@ func (u *Union__int64__string__bool__float64) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "int64":
-        encodedMap["value"] = u.variant_int64
+        
+		
+		{
+encodedMap["value"] = u.variant_int64
+}
+
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     case "bool":
-        encodedMap["value"] = u.variant_bool
+        
+		
+		{
+encodedMap["value"] = u.variant_bool
+}
+
     
     case "float64":
-        encodedMap["value"] = u.variant_float64
+        
+		
+		{
+encodedMap["value"] = u.variant_float64
+}
+
     
     }
 
@@ -1029,10 +1193,20 @@ func (u *Union__int64__string) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "int64":
-        encodedMap["value"] = u.variant_int64
+        
+		
+		{
+encodedMap["value"] = u.variant_int64
+}
+
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     }
 
@@ -1115,10 +1289,20 @@ func (u *Union__string__bool) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     case "bool":
-        encodedMap["value"] = u.variant_bool
+        
+		
+		{
+encodedMap["value"] = u.variant_bool
+}
+
     
     }
 
@@ -1208,13 +1392,28 @@ func (u *Union__string__int64__float64) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     case "int64":
-        encodedMap["value"] = u.variant_int64
+        
+		
+		{
+encodedMap["value"] = u.variant_int64
+}
+
     
     case "float64":
-        encodedMap["value"] = u.variant_float64
+        
+		
+		{
+encodedMap["value"] = u.variant_float64
+}
+
     
     }
 
@@ -1317,10 +1516,28 @@ func (u *Union__PhoneNumber__EmailAddress) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "PhoneNumber":
-        encodedMap["value"] = u.variant_PhoneNumber
+        
+		
+		{
+encodedValue, err := u.variant_PhoneNumber.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "EmailAddress":
-        encodedMap["value"] = u.variant_EmailAddress
+        
+		
+		{
+encodedValue, err := u.variant_EmailAddress.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     }
 
@@ -1405,10 +1622,28 @@ func (u *Union__Martian__Earthling) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "Martian":
-        encodedMap["value"] = u.variant_Martian
+        
+		
+		{
+encodedValue, err := u.variant_Martian.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "Earthling":
-        encodedMap["value"] = u.variant_Earthling
+        
+		
+		{
+encodedValue, err := u.variant_Earthling.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     }
 
@@ -1491,10 +1726,20 @@ func (u *Union__int64__float64) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "int64":
-        encodedMap["value"] = u.variant_int64
+        
+		
+		{
+encodedMap["value"] = u.variant_int64
+}
+
     
     case "float64":
-        encodedMap["value"] = u.variant_float64
+        
+		
+		{
+encodedMap["value"] = u.variant_float64
+}
+
     
     }
 
@@ -1579,10 +1824,28 @@ func (u *Union__Resume__Event) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "Resume":
-        encodedMap["value"] = u.variant_Resume
+        
+		
+		{
+encodedValue, err := u.variant_Resume.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "Event":
-        encodedMap["value"] = u.variant_Event
+        
+		
+		{
+encodedValue, err := u.variant_Event.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     }
 
@@ -1665,10 +1928,20 @@ func (u *Union__string_barisa__string_ox_burger) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "string_barisa":
-        encodedMap["value"] = u.variant_string_barisa
+        
+		
+		{
+encodedMap["value"] = u.variant_string_barisa
+}
+
     
     case "string_ox_burger":
-        encodedMap["value"] = u.variant_string_ox_burger
+        
+		
+		{
+encodedMap["value"] = u.variant_string_ox_burger
+}
+
     
     }
 
@@ -1751,10 +2024,20 @@ func (u *Union__string_breakfast__string_dinner) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "string_breakfast":
-        encodedMap["value"] = u.variant_string_breakfast
+        
+		
+		{
+encodedMap["value"] = u.variant_string_breakfast
+}
+
     
     case "string_dinner":
-        encodedMap["value"] = u.variant_string_dinner
+        
+		
+		{
+encodedMap["value"] = u.variant_string_dinner
+}
+
     
     }
 
@@ -1838,10 +2121,24 @@ func (u *Union__Nested__string) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "Nested":
-        encodedMap["value"] = u.variant_Nested
+        
+		
+		{
+encodedValue, err := u.variant_Nested.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     }
 
@@ -1929,10 +2226,30 @@ func (u *Union__string__List__Nested) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     case "List__Nested":
-        encodedMap["value"] = u.variant_List__Nested
+        
+		
+		{
+list := make([]any, len(*u.variant_List__Nested))
+for i, v := range *u.variant_List__Nested {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+encodedMap["value"] = list
+}
+
     
     }
 
@@ -2016,10 +2333,24 @@ func (u *Union__string__Nested) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     case "Nested":
-        encodedMap["value"] = u.variant_Nested
+        
+		
+		{
+encodedValue, err := u.variant_Nested.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     }
 
@@ -2102,10 +2433,20 @@ func (u *Union__string__int64) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     case "int64":
-        encodedMap["value"] = u.variant_int64
+        
+		
+		{
+encodedMap["value"] = u.variant_int64
+}
+
     
     }
 
@@ -2188,10 +2529,24 @@ func (u *Union__Tag__string) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "Tag":
-        encodedMap["value"] = u.variant_Tag
+        
+		
+		{
+encodedValue, err := u.variant_Tag.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     }
 
@@ -2284,13 +2639,40 @@ func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) BamlEncode() (
     switch u.variant {
     
     case "MemoryObject":
-        encodedMap["value"] = u.variant_MemoryObject
+        
+		
+		{
+encodedValue, err := u.variant_MemoryObject.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "ComplexMemoryObject":
-        encodedMap["value"] = u.variant_ComplexMemoryObject
+        
+		
+		{
+encodedValue, err := u.variant_ComplexMemoryObject.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "AnotherObject":
-        encodedMap["value"] = u.variant_AnotherObject
+        
+		
+		{
+encodedValue, err := u.variant_AnotherObject.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     }
 
@@ -2391,10 +2773,20 @@ func (u *Union__float64__bool) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "float64":
-        encodedMap["value"] = u.variant_float64
+        
+		
+		{
+encodedMap["value"] = u.variant_float64
+}
+
     
     case "bool":
-        encodedMap["value"] = u.variant_bool
+        
+		
+		{
+encodedMap["value"] = u.variant_bool
+}
+
     
     }
 
@@ -2485,10 +2877,32 @@ func (u *Union__List__bool__List__int64) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "List__bool":
-        encodedMap["value"] = u.variant_List__bool
+        
+		
+		{
+list := make([]any, len(*u.variant_List__bool))
+for i, v := range *u.variant_List__bool {
+{
+list[i] = v
+}
+}
+encodedMap["value"] = list
+}
+
     
     case "List__int64":
-        encodedMap["value"] = u.variant_List__int64
+        
+		
+		{
+list := make([]any, len(*u.variant_List__int64))
+for i, v := range *u.variant_List__int64 {
+{
+list[i] = v
+}
+}
+encodedMap["value"] = list
+}
+
     
     }
 
@@ -2572,10 +2986,24 @@ func (u *Union__SimpleTag__JsonTemplate) BamlEncode() ([]byte, error) {
     switch u.variant {
     
     case "SimpleTag":
-        encodedMap["value"] = u.variant_SimpleTag
+        
+		
+		{
+encodedValue, err := u.variant_SimpleTag.BamlEncode()
+if err != nil {
+return nil, err
+}
+encodedMap["value"] = json.RawMessage(encodedValue)
+}
+
     
     case "JsonTemplate":
-        encodedMap["value"] = u.variant_JsonTemplate
+        
+		
+		{
+encodedMap["value"] = u.variant_JsonTemplate
+}
+
     
     }
 
@@ -2686,22 +3114,52 @@ func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) BamlEncode(
     switch u.variant {
     
     case "int64":
-        encodedMap["value"] = u.variant_int64
+        
+		
+		{
+encodedMap["value"] = u.variant_int64
+}
+
     
     case "string":
-        encodedMap["value"] = u.variant_string
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
     
     case "bool":
-        encodedMap["value"] = u.variant_bool
+        
+		
+		{
+encodedMap["value"] = u.variant_bool
+}
+
     
     case "float64":
-        encodedMap["value"] = u.variant_float64
+        
+		
+		{
+encodedMap["value"] = u.variant_float64
+}
+
     
     case "JsonObject":
-        encodedMap["value"] = u.variant_JsonObject
+        
+		
+		{
+encodedMap["value"] = u.variant_JsonObject
+}
+
     
     case "JsonArray":
-        encodedMap["value"] = u.variant_JsonArray
+        
+		
+		{
+encodedMap["value"] = u.variant_JsonArray
+}
+
     
     }
 

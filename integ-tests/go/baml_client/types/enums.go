@@ -65,6 +65,13 @@ func (e *AliasedEnum) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e AliasedEnum) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "AliasedEnum",
+        "enum_value": string(e),
+    })
+}
+
 type Category string
 
 const (
@@ -118,6 +125,13 @@ func (e *Category) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid Category: %q", s)
     }
     return nil
+}
+
+func (e Category) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "Category",
+        "enum_value": string(e),
+    })
 }
 
 type Category2 string
@@ -175,6 +189,13 @@ func (e *Category2) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e Category2) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "Category2",
+        "enum_value": string(e),
+    })
+}
+
 type Category3 string
 
 const (
@@ -230,6 +251,13 @@ func (e *Category3) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e Category3) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "Category3",
+        "enum_value": string(e),
+    })
+}
+
 type Color string
 
 const (
@@ -283,6 +311,13 @@ func (e *Color) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e Color) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "Color",
+        "enum_value": string(e),
+    })
+}
+
 type DataType string
 
 const (
@@ -332,6 +367,13 @@ func (e *DataType) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e DataType) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "DataType",
+        "enum_value": string(e),
+    })
+}
+
 type DynEnumOne string
 
 const (
@@ -374,6 +416,13 @@ func (e *DynEnumOne) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e DynEnumOne) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "DynEnumOne",
+        "enum_value": string(e),
+    })
+}
+
 type DynEnumTwo string
 
 const (
@@ -414,6 +463,13 @@ func (e *DynEnumTwo) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid DynEnumTwo: %q", s)
     }
     return nil
+}
+
+func (e DynEnumTwo) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "DynEnumTwo",
+        "enum_value": string(e),
+    })
 }
 
 type EnumInClass string
@@ -463,6 +519,13 @@ func (e *EnumInClass) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid EnumInClass: %q", s)
     }
     return nil
+}
+
+func (e EnumInClass) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "EnumInClass",
+        "enum_value": string(e),
+    })
 }
 
 // An enum with three values,
@@ -520,6 +583,13 @@ func (e *EnumOutput) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e EnumOutput) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "EnumOutput",
+        "enum_value": string(e),
+    })
+}
+
 type Hobby string
 
 const (
@@ -565,6 +635,13 @@ func (e *Hobby) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid Hobby: %q", s)
     }
     return nil
+}
+
+func (e Hobby) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "Hobby",
+        "enum_value": string(e),
+    })
 }
 
 type MapKey string
@@ -618,6 +695,13 @@ func (e *MapKey) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e MapKey) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "MapKey",
+        "enum_value": string(e),
+    })
+}
+
 type NamedArgsSingleEnum string
 
 const (
@@ -665,6 +749,13 @@ func (e *NamedArgsSingleEnum) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid NamedArgsSingleEnum: %q", s)
     }
     return nil
+}
+
+func (e NamedArgsSingleEnum) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "NamedArgsSingleEnum",
+        "enum_value": string(e),
+    })
 }
 
 type NamedArgsSingleEnumList string
@@ -716,6 +807,13 @@ func (e *NamedArgsSingleEnumList) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e NamedArgsSingleEnumList) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "NamedArgsSingleEnumList",
+        "enum_value": string(e),
+    })
+}
+
 type OptionalTest_CategoryType string
 
 const (
@@ -765,6 +863,13 @@ func (e *OptionalTest_CategoryType) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid OptionalTest_CategoryType: %q", s)
     }
     return nil
+}
+
+func (e OptionalTest_CategoryType) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "OptionalTest_CategoryType",
+        "enum_value": string(e),
+    })
 }
 
 type OrderStatus string
@@ -820,6 +925,13 @@ func (e *OrderStatus) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e OrderStatus) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "OrderStatus",
+        "enum_value": string(e),
+    })
+}
+
 type Tag string
 
 const (
@@ -869,6 +981,13 @@ func (e *Tag) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid Tag: %q", s)
     }
     return nil
+}
+
+func (e Tag) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "Tag",
+        "enum_value": string(e),
+    })
 }
 
 type TestEnum string
@@ -928,4 +1047,11 @@ func (e *TestEnum) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid TestEnum: %q", s)
     }
     return nil
+}
+
+func (e TestEnum) BamlEncode() ([]byte, error) {
+    return json.Marshal(map[string]any{
+        "enum_class": "TestEnum",
+        "enum_value": string(e),
+    })
 }
