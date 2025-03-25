@@ -107,6 +107,7 @@ fn render_value_coercion(
     }
     rendering
 }
+
 #[derive(askama::Template)]
 #[template(path = "types-enums.go.j2", escape = "none")]
 pub(crate) struct GoEnums<'ir> {

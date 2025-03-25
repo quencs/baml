@@ -10,6 +10,8 @@
 // BAML files and re-generate this code using: baml-cli generate
 package types
 
+import "encoding/json"
+
 
 type Union__BookOrder__FlightConfirmation__GroceryReceipt struct {
     variant string
@@ -47,6 +49,28 @@ coercedValue.BamlDecode(value.(map[string]any))
         u.variant_GroceryReceipt = &coercedValue
     
     }
+}
+
+func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__BookOrder__FlightConfirmation__GroceryReceipt",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "BookOrder":
+        encodedMap["value"] = u.variant_BookOrder
+    
+    case "FlightConfirmation":
+        encodedMap["value"] = u.variant_FlightConfirmation
+    
+    case "GroceryReceipt":
+        encodedMap["value"] = u.variant_GroceryReceipt
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -136,6 +160,25 @@ coercedValue.BamlDecode(value.(map[string]any))
     }
 }
 
+func (u *Union__OriginalA__OriginalB) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__OriginalA__OriginalB",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "OriginalA":
+        encodedMap["value"] = u.variant_OriginalA
+    
+    case "OriginalB":
+        encodedMap["value"] = u.variant_OriginalB
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__OriginalA__OriginalB) IsOriginalA() bool {
     return u.variant == "OriginalA"
@@ -201,6 +244,25 @@ func (u *Union__string_curiosity__string_personal_finance) BamlDecode(decoded ma
         u.variant_string_personal_finance = &coercedValue
     
     }
+}
+
+func (u *Union__string_curiosity__string_personal_finance) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string_curiosity__string_personal_finance",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string_curiosity":
+        encodedMap["value"] = u.variant_string_curiosity
+    
+    case "string_personal_finance":
+        encodedMap["value"] = u.variant_string_personal_finance
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -270,6 +332,25 @@ coercedValue.BamlDecode(value.(map[string]any))
         u.variant_LiteralClassTwo = &coercedValue
     
     }
+}
+
+func (u *Union__LiteralClassOne__LiteralClassTwo) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__LiteralClassOne__LiteralClassTwo",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "LiteralClassOne":
+        encodedMap["value"] = u.variant_LiteralClassOne
+    
+    case "LiteralClassTwo":
+        encodedMap["value"] = u.variant_LiteralClassTwo
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -351,6 +432,31 @@ func (u *Union__string_one__string_two__string_three__string_four) BamlDecode(de
         u.variant_string_four = &coercedValue
     
     }
+}
+
+func (u *Union__string_one__string_two__string_three__string_four) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string_one__string_two__string_three__string_four",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string_one":
+        encodedMap["value"] = u.variant_string_one
+    
+    case "string_two":
+        encodedMap["value"] = u.variant_string_two
+    
+    case "string_three":
+        encodedMap["value"] = u.variant_string_three
+    
+    case "string_four":
+        encodedMap["value"] = u.variant_string_four
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -461,6 +567,28 @@ func (u *Union__int_1__bool_true__string_string_output) BamlDecode(decoded map[s
         u.variant_string_string_output = &coercedValue
     
     }
+}
+
+func (u *Union__int_1__bool_true__string_string_output) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__int_1__bool_true__string_string_output",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "int_1":
+        encodedMap["value"] = u.variant_int_1
+    
+    case "bool_true":
+        encodedMap["value"] = u.variant_bool_true
+    
+    case "string_string_output":
+        encodedMap["value"] = u.variant_string_string_output
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -578,6 +706,37 @@ innercoercedValue := v.(string)
         u.variant_Map__string_List__string = &coercedValue
     
     }
+}
+
+func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__int64__string__bool__float64__List__string__Map__string_List__string",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "int64":
+        encodedMap["value"] = u.variant_int64
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    case "bool":
+        encodedMap["value"] = u.variant_bool
+    
+    case "float64":
+        encodedMap["value"] = u.variant_float64
+    
+    case "List__string":
+        encodedMap["value"] = u.variant_List__string
+    
+    case "Map__string_List__string":
+        encodedMap["value"] = u.variant_Map__string_List__string
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -733,6 +892,31 @@ func (u *Union__int64__string__bool__float64) BamlDecode(decoded map[string]any)
     }
 }
 
+func (u *Union__int64__string__bool__float64) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__int64__string__bool__float64",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "int64":
+        encodedMap["value"] = u.variant_int64
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    case "bool":
+        encodedMap["value"] = u.variant_bool
+    
+    case "float64":
+        encodedMap["value"] = u.variant_float64
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__int64__string__bool__float64) IsInt64() bool {
     return u.variant == "int64"
@@ -836,6 +1020,25 @@ func (u *Union__int64__string) BamlDecode(decoded map[string]any) {
     }
 }
 
+func (u *Union__int64__string) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__int64__string",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "int64":
+        encodedMap["value"] = u.variant_int64
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__int64__string) IsInt64() bool {
     return u.variant == "int64"
@@ -901,6 +1104,25 @@ func (u *Union__string__bool) BamlDecode(decoded map[string]any) {
         u.variant_bool = &coercedValue
     
     }
+}
+
+func (u *Union__string__bool) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string__bool",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    case "bool":
+        encodedMap["value"] = u.variant_bool
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -975,6 +1197,28 @@ func (u *Union__string__int64__float64) BamlDecode(decoded map[string]any) {
         u.variant_float64 = &coercedValue
     
     }
+}
+
+func (u *Union__string__int64__float64) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string__int64__float64",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    case "int64":
+        encodedMap["value"] = u.variant_int64
+    
+    case "float64":
+        encodedMap["value"] = u.variant_float64
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -1064,6 +1308,25 @@ coercedValue.BamlDecode(value.(map[string]any))
     }
 }
 
+func (u *Union__PhoneNumber__EmailAddress) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__PhoneNumber__EmailAddress",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "PhoneNumber":
+        encodedMap["value"] = u.variant_PhoneNumber
+    
+    case "EmailAddress":
+        encodedMap["value"] = u.variant_EmailAddress
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__PhoneNumber__EmailAddress) IsPhoneNumber() bool {
     return u.variant == "PhoneNumber"
@@ -1133,6 +1396,25 @@ coercedValue.BamlDecode(value.(map[string]any))
     }
 }
 
+func (u *Union__Martian__Earthling) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__Martian__Earthling",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "Martian":
+        encodedMap["value"] = u.variant_Martian
+    
+    case "Earthling":
+        encodedMap["value"] = u.variant_Earthling
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__Martian__Earthling) IsMartian() bool {
     return u.variant == "Martian"
@@ -1198,6 +1480,25 @@ func (u *Union__int64__float64) BamlDecode(decoded map[string]any) {
         u.variant_float64 = &coercedValue
     
     }
+}
+
+func (u *Union__int64__float64) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__int64__float64",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "int64":
+        encodedMap["value"] = u.variant_int64
+    
+    case "float64":
+        encodedMap["value"] = u.variant_float64
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -1269,6 +1570,25 @@ coercedValue.BamlDecode(value.(map[string]any))
     }
 }
 
+func (u *Union__Resume__Event) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__Resume__Event",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "Resume":
+        encodedMap["value"] = u.variant_Resume
+    
+    case "Event":
+        encodedMap["value"] = u.variant_Event
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__Resume__Event) IsResume() bool {
     return u.variant == "Resume"
@@ -1334,6 +1654,25 @@ func (u *Union__string_barisa__string_ox_burger) BamlDecode(decoded map[string]a
         u.variant_string_ox_burger = &coercedValue
     
     }
+}
+
+func (u *Union__string_barisa__string_ox_burger) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string_barisa__string_ox_burger",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string_barisa":
+        encodedMap["value"] = u.variant_string_barisa
+    
+    case "string_ox_burger":
+        encodedMap["value"] = u.variant_string_ox_burger
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -1403,6 +1742,25 @@ func (u *Union__string_breakfast__string_dinner) BamlDecode(decoded map[string]a
     }
 }
 
+func (u *Union__string_breakfast__string_dinner) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string_breakfast__string_dinner",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string_breakfast":
+        encodedMap["value"] = u.variant_string_breakfast
+    
+    case "string_dinner":
+        encodedMap["value"] = u.variant_string_dinner
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__string_breakfast__string_dinner) IsString_breakfast() bool {
     return u.variant == "string_breakfast"
@@ -1469,6 +1827,25 @@ coercedValue.BamlDecode(value.(map[string]any))
         u.variant_string = &coercedValue
     
     }
+}
+
+func (u *Union__Nested__string) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__Nested__string",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "Nested":
+        encodedMap["value"] = u.variant_Nested
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -1543,6 +1920,25 @@ innercoercedValue.BamlDecode(v.(map[string]any))
     }
 }
 
+func (u *Union__string__List__Nested) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string__List__Nested",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    case "List__Nested":
+        encodedMap["value"] = u.variant_List__Nested
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__string__List__Nested) IsString() bool {
     return u.variant == "string"
@@ -1609,6 +2005,25 @@ coercedValue.BamlDecode(value.(map[string]any))
         u.variant_Nested = &coercedValue
     
     }
+}
+
+func (u *Union__string__Nested) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string__Nested",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    case "Nested":
+        encodedMap["value"] = u.variant_Nested
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -1678,6 +2093,25 @@ func (u *Union__string__int64) BamlDecode(decoded map[string]any) {
     }
 }
 
+func (u *Union__string__int64) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__string__int64",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    case "int64":
+        encodedMap["value"] = u.variant_int64
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__string__int64) IsString() bool {
     return u.variant == "string"
@@ -1743,6 +2177,25 @@ func (u *Union__Tag__string) BamlDecode(decoded map[string]any) {
         u.variant_string = &coercedValue
     
     }
+}
+
+func (u *Union__Tag__string) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__Tag__string",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "Tag":
+        encodedMap["value"] = u.variant_Tag
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -1820,6 +2273,28 @@ coercedValue.BamlDecode(value.(map[string]any))
         u.variant_AnotherObject = &coercedValue
     
     }
+}
+
+func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__MemoryObject__ComplexMemoryObject__AnotherObject",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "MemoryObject":
+        encodedMap["value"] = u.variant_MemoryObject
+    
+    case "ComplexMemoryObject":
+        encodedMap["value"] = u.variant_ComplexMemoryObject
+    
+    case "AnotherObject":
+        encodedMap["value"] = u.variant_AnotherObject
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -1907,6 +2382,25 @@ func (u *Union__float64__bool) BamlDecode(decoded map[string]any) {
     }
 }
 
+func (u *Union__float64__bool) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__float64__bool",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "float64":
+        encodedMap["value"] = u.variant_float64
+    
+    case "bool":
+        encodedMap["value"] = u.variant_bool
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__float64__bool) IsFloat64() bool {
     return u.variant == "float64"
@@ -1982,6 +2476,25 @@ innercoercedValue := int64(v.(float64))
     }
 }
 
+func (u *Union__List__bool__List__int64) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__List__bool__List__int64",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "List__bool":
+        encodedMap["value"] = u.variant_List__bool
+    
+    case "List__int64":
+        encodedMap["value"] = u.variant_List__int64
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
 
 func (u *Union__List__bool__List__int64) IsList__bool() bool {
     return u.variant == "List__bool"
@@ -2048,6 +2561,25 @@ coercedValue.BamlDecode(value.(map[string]any))
         u.variant_JsonTemplate = &coercedValue
     
     }
+}
+
+func (u *Union__SimpleTag__JsonTemplate) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__SimpleTag__JsonTemplate",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "SimpleTag":
+        encodedMap["value"] = u.variant_SimpleTag
+    
+    case "JsonTemplate":
+        encodedMap["value"] = u.variant_JsonTemplate
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 
@@ -2143,6 +2675,37 @@ func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) BamlDecode(
         u.variant_JsonArray = &coercedValue
     
     }
+}
+
+func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__int64__string__bool__float64__JsonObject__JsonArray",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "int64":
+        encodedMap["value"] = u.variant_int64
+    
+    case "string":
+        encodedMap["value"] = u.variant_string
+    
+    case "bool":
+        encodedMap["value"] = u.variant_bool
+    
+    case "float64":
+        encodedMap["value"] = u.variant_float64
+    
+    case "JsonObject":
+        encodedMap["value"] = u.variant_JsonObject
+    
+    case "JsonArray":
+        encodedMap["value"] = u.variant_JsonArray
+    
+    }
+
+    return json.Marshal(encodedMap)
 }
 
 

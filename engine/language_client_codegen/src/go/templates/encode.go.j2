@@ -1,6 +1,7 @@
 package baml_client
 
 import (
+  "fmt"
 	"encoding/json"
 	"reflect"
 
@@ -9,6 +10,10 @@ import (
 
 type BamlDecoder interface {
   BamlDecode(decodedMap map[string]any)
+}
+
+type BamlEncoder interface {
+  BamlEncode() ([]byte, error)
 }
 
 var typeMap = map[string]reflect.Type{
@@ -73,4 +78,31 @@ func Decode(data []byte) (any, error) {
   }
 
 	return result, nil
+}
+
+func Encode(object any) ([]byte, error) {
+  underlyingType := reflect.TypeOf(object)
+  if underlyingType.Kind() == reflect.Ptr {
+    underlyingType = underlyingType.Elem()
+  }
+
+  if underlyingType.Kind() == reflect.Struct {
+    if encoder, ok := object.(BamlEncoder); ok {
+      return encoder.BamlEncode()
+    } else {
+      return nil, fmt.Errorf("object is not a BamlEncoder")
+    }
+  } else if underlyingType.Kind() == reflect.Map {
+    entries := []any{}
+    for key, value := range object.(map[string]any) {
+      encodedValue, err := Encode(value)
+      if err != nil {
+        return nil, err
+      }
+      entries = append(entries, map[string]any{"key": key, "value": encodedValue})
+    }
+    return json.Marshal(entries)
+  } else {
+    return json.Marshal(object)
+  }
 }

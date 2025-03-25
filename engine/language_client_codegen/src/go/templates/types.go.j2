@@ -2,6 +2,7 @@ package types
 
 import (
 	_ "fmt"
+	"encoding/json"
 )
 
 
@@ -67,6 +68,21 @@ func (c *{{ class.name }}) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	{% endif %}
+}
+
+func (c *{{ class.name }}) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	{% for field in class.fields %}
+	valueMap["{{ field.name|exported_name }}"] = c.{{ field.name|exported_name }}
+	{% endfor %}
+
+	encodedMap := map[string]any{
+		"class_name": "{{ class.name }}",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 {% endfor %}

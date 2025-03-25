@@ -12,6 +12,7 @@ package types
 
 import (
 	_ "fmt"
+	"encoding/json"
 )
 
 
@@ -86,6 +87,25 @@ func (c *AnotherObject) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *AnotherObject) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Id"] = c.Id
+	
+	valueMap["Thingy2"] = c.Thingy2
+	
+	valueMap["Thingy3"] = c.Thingy3
+	
+
+	encodedMap := map[string]any{
+		"class_name": "AnotherObject",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type BigNumbers struct {
     
@@ -114,6 +134,23 @@ func (c *BigNumbers) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *BigNumbers) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["A"] = c.A
+	
+	valueMap["B"] = c.B
+	
+
+	encodedMap := map[string]any{
+		"class_name": "BigNumbers",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -153,6 +190,25 @@ func (c *BinaryNode) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *BinaryNode) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Data"] = c.Data
+	
+	valueMap["Left"] = c.Left
+	
+	valueMap["Right"] = c.Right
+	
+
+	encodedMap := map[string]any{
+		"class_name": "BinaryNode",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type Blah struct {
     
@@ -174,6 +230,21 @@ func (c *Blah) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *Blah) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop4"] = c.Prop4
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Blah",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -206,6 +277,23 @@ func (c *BlockConstraint) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *BlockConstraint) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Foo"] = c.Foo
+	
+	valueMap["Bar"] = c.Bar
+	
+
+	encodedMap := map[string]any{
+		"class_name": "BlockConstraint",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type BlockConstraintForParam struct {
     
@@ -234,6 +322,23 @@ func (c *BlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *BlockConstraintForParam) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Bcfp"] = c.Bcfp
+	
+	valueMap["Bcfp2"] = c.Bcfp2
+	
+
+	encodedMap := map[string]any{
+		"class_name": "BlockConstraintForParam",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -280,6 +385,27 @@ func (c *BookOrder) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *BookOrder) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["OrderId"] = c.OrderId
+	
+	valueMap["Title"] = c.Title
+	
+	valueMap["Quantity"] = c.Quantity
+	
+	valueMap["Price"] = c.Price
+	
+
+	encodedMap := map[string]any{
+		"class_name": "BookOrder",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type ClassForNullLiteral struct {
     
@@ -301,6 +427,21 @@ func (c *ClassForNullLiteral) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *ClassForNullLiteral) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["A"] = c.A
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ClassForNullLiteral",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -331,6 +472,23 @@ func (c *ClassOptionalOutput) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *ClassOptionalOutput) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop1"] = c.Prop1
+	
+	valueMap["Prop2"] = c.Prop2
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ClassOptionalOutput",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -370,6 +528,25 @@ func (c *ClassOptionalOutput2) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *ClassOptionalOutput2) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop1"] = c.Prop1
+	
+	valueMap["Prop2"] = c.Prop2
+	
+	valueMap["Prop3"] = c.Prop3
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ClassOptionalOutput2",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type ClassToRecAlias struct {
     
@@ -392,6 +569,21 @@ coercedValue.BamlDecode(value.(map[string]any))
 		}
 	}
 	
+}
+
+func (c *ClassToRecAlias) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["List"] = c.List
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ClassToRecAlias",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -422,6 +614,23 @@ func (c *ClassWithBlockDone) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *ClassWithBlockDone) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["I_16_digits"] = c.I_16_digits
+	
+	valueMap["S_20_words"] = c.S_20_words
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ClassWithBlockDone",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -462,6 +671,25 @@ coercedValue.BamlDecode(value.(map[string]any))
 	
 }
 
+func (c *ClassWithImage) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["MyImage"] = c.MyImage
+	
+	valueMap["Param2"] = c.Param2
+	
+	valueMap["Fake_image"] = c.Fake_image
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ClassWithImage",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type ClassWithoutDone struct {
     
@@ -490,6 +718,23 @@ func (c *ClassWithoutDone) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *ClassWithoutDone) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["I_16_digits"] = c.I_16_digits
+	
+	valueMap["S_20_words"] = c.S_20_words
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ClassWithoutDone",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -540,6 +785,27 @@ innercoercedValue := v.(Union__string__int64__float64)
 	
 }
 
+func (c *ComplexMemoryObject) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Id"] = c.Id
+	
+	valueMap["Name"] = c.Name
+	
+	valueMap["Description"] = c.Description
+	
+	valueMap["Metadata"] = c.Metadata
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ComplexMemoryObject",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type CompoundBigNumbers struct {
     
@@ -584,6 +850,25 @@ coercedValue.BamlDecode(value.(map[string]any))
 	
 }
 
+func (c *CompoundBigNumbers) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Big"] = c.Big
+	
+	valueMap["Big_nums"] = c.Big_nums
+	
+	valueMap["Another"] = c.Another
+	
+
+	encodedMap := map[string]any{
+		"class_name": "CompoundBigNumbers",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type ContactInfo struct {
     
@@ -612,6 +897,23 @@ func (c *ContactInfo) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *ContactInfo) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Primary"] = c.Primary
+	
+	valueMap["Secondary"] = c.Secondary
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ContactInfo",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -651,6 +953,25 @@ func (c *CustomTaskResult) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *CustomTaskResult) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["BookOrder"] = c.BookOrder
+	
+	valueMap["FlightConfirmation"] = c.FlightConfirmation
+	
+	valueMap["GroceryReceipt"] = c.GroceryReceipt
+	
+
+	encodedMap := map[string]any{
+		"class_name": "CustomTaskResult",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type DummyOutput struct {
     
@@ -683,6 +1004,23 @@ func (c *DummyOutput) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *DummyOutput) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Nonce"] = c.Nonce
+	
+	valueMap["Nonce2"] = c.Nonce2
+	
+
+	encodedMap := map[string]any{
+		"class_name": "DummyOutput",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type DynInputOutput struct {
     
@@ -708,6 +1046,21 @@ func (c *DynInputOutput) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *DynInputOutput) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["TestKey"] = c.TestKey
+	
+
+	encodedMap := map[string]any{
+		"class_name": "DynInputOutput",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type DynamicClassOne struct {
     
@@ -718,6 +1071,19 @@ type DynamicClassOne struct {
 
 func (c *DynamicClassOne) BamlDecode(decodedMap map[string]any) {
 	
+}
+
+func (c *DynamicClassOne) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+
+	encodedMap := map[string]any{
+		"class_name": "DynamicClassOne",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -760,6 +1126,25 @@ coercedValue.BamlDecode(value.(map[string]any))
 	
 }
 
+func (c *DynamicClassTwo) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Hi"] = c.Hi
+	
+	valueMap["Some_class"] = c.Some_class
+	
+	valueMap["Status"] = c.Status
+	
+
+	encodedMap := map[string]any{
+		"class_name": "DynamicClassTwo",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type DynamicOutput struct {
     
@@ -770,6 +1155,19 @@ type DynamicOutput struct {
 
 func (c *DynamicOutput) BamlDecode(decodedMap map[string]any) {
 	
+}
+
+func (c *DynamicOutput) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+
+	encodedMap := map[string]any{
+		"class_name": "DynamicOutput",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -793,6 +1191,21 @@ func (c *Earthling) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *Earthling) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Age"] = c.Age
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Earthling",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -850,6 +1263,29 @@ innercoercedValue := v.(string)
 	
 }
 
+func (c *Education) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Institution"] = c.Institution
+	
+	valueMap["Location"] = c.Location
+	
+	valueMap["Degree"] = c.Degree
+	
+	valueMap["Major"] = c.Major
+	
+	valueMap["Graduation_date"] = c.Graduation_date
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Education",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type Email struct {
     
@@ -887,6 +1323,25 @@ func (c *Email) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *Email) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Subject"] = c.Subject
+	
+	valueMap["Body"] = c.Body
+	
+	valueMap["From_address"] = c.From_address
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Email",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type EmailAddress struct {
     
@@ -908,6 +1363,21 @@ func (c *EmailAddress) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *EmailAddress) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Value"] = c.Value
+	
+
+	encodedMap := map[string]any{
+		"class_name": "EmailAddress",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -954,6 +1424,27 @@ func (c *Event) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *Event) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Title"] = c.Title
+	
+	valueMap["Date"] = c.Date
+	
+	valueMap["Location"] = c.Location
+	
+	valueMap["Description"] = c.Description
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Event",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type FakeImage struct {
     
@@ -975,6 +1466,21 @@ func (c *FakeImage) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *FakeImage) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Url"] = c.Url
+	
+
+	encodedMap := map[string]any{
+		"class_name": "FakeImage",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1028,6 +1534,29 @@ func (c *FlightConfirmation) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *FlightConfirmation) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["ConfirmationNumber"] = c.ConfirmationNumber
+	
+	valueMap["FlightNumber"] = c.FlightNumber
+	
+	valueMap["DepartureTime"] = c.DepartureTime
+	
+	valueMap["ArrivalTime"] = c.ArrivalTime
+	
+	valueMap["SeatNumber"] = c.SeatNumber
+	
+
+	encodedMap := map[string]any{
+		"class_name": "FlightConfirmation",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type FooAny struct {
     
@@ -1065,6 +1594,25 @@ func (c *FooAny) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *FooAny) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Planetary_age"] = c.Planetary_age
+	
+	valueMap["Certainty"] = c.Certainty
+	
+	valueMap["Species"] = c.Species
+	
+
+	encodedMap := map[string]any{
+		"class_name": "FooAny",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type Forest struct {
     
@@ -1091,6 +1639,21 @@ innercoercedValue.BamlDecode(v.(map[string]any))
 		}
 	}
 	
+}
+
+func (c *Forest) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Trees"] = c.Trees
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Forest",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1123,6 +1686,23 @@ func (c *FormatterTest0) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *FormatterTest0) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Lorem"] = c.Lorem
+	
+	valueMap["Ipsum"] = c.Ipsum
+	
+
+	encodedMap := map[string]any{
+		"class_name": "FormatterTest0",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type FormatterTest1 struct {
     
@@ -1151,6 +1731,23 @@ func (c *FormatterTest1) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *FormatterTest1) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Lorem"] = c.Lorem
+	
+	valueMap["Ipsum"] = c.Ipsum
+	
+
+	encodedMap := map[string]any{
+		"class_name": "FormatterTest1",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1183,6 +1780,23 @@ func (c *FormatterTest2) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *FormatterTest2) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Lorem"] = c.Lorem
+	
+	valueMap["Ipsum"] = c.Ipsum
+	
+
+	encodedMap := map[string]any{
+		"class_name": "FormatterTest2",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type FormatterTest3 struct {
     
@@ -1211,6 +1825,23 @@ func (c *FormatterTest3) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *FormatterTest3) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Lorem"] = c.Lorem
+	
+	valueMap["Ipsum"] = c.Ipsum
+	
+
+	encodedMap := map[string]any{
+		"class_name": "FormatterTest3",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1261,6 +1892,27 @@ innercoercedValue := v.(Union__string__int64__float64)
 	
 }
 
+func (c *GroceryReceipt) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["ReceiptId"] = c.ReceiptId
+	
+	valueMap["StoreName"] = c.StoreName
+	
+	valueMap["Items"] = c.Items
+	
+	valueMap["TotalAmount"] = c.TotalAmount
+	
+
+	encodedMap := map[string]any{
+		"class_name": "GroceryReceipt",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type InnerClass struct {
     
@@ -1299,6 +1951,25 @@ coercedValue.BamlDecode(value.(map[string]any))
 	
 }
 
+func (c *InnerClass) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop1"] = c.Prop1
+	
+	valueMap["Prop2"] = c.Prop2
+	
+	valueMap["Inner"] = c.Inner
+	
+
+	encodedMap := map[string]any{
+		"class_name": "InnerClass",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type InnerClass2 struct {
     
@@ -1329,6 +2000,23 @@ func (c *InnerClass2) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *InnerClass2) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop2"] = c.Prop2
+	
+	valueMap["Prop3"] = c.Prop3
+	
+
+	encodedMap := map[string]any{
+		"class_name": "InnerClass2",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type InputClass struct {
     
@@ -1357,6 +2045,23 @@ func (c *InputClass) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *InputClass) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Key"] = c.Key
+	
+	valueMap["Key2"] = c.Key2
+	
+
+	encodedMap := map[string]any{
+		"class_name": "InputClass",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1390,6 +2095,23 @@ coercedValue.BamlDecode(value.(map[string]any))
 	
 }
 
+func (c *InputClassNested) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Key"] = c.Key
+	
+	valueMap["Nested"] = c.Nested
+	
+
+	encodedMap := map[string]any{
+		"class_name": "InputClassNested",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type LinkedList struct {
     
@@ -1418,6 +2140,23 @@ func (c *LinkedList) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *LinkedList) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Head"] = c.Head
+	
+	valueMap["Len"] = c.Len
+	
+
+	encodedMap := map[string]any{
+		"class_name": "LinkedList",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1450,6 +2189,23 @@ func (c *LinkedListAliasNode) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *LinkedListAliasNode) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Value"] = c.Value
+	
+	valueMap["Next"] = c.Next
+	
+
+	encodedMap := map[string]any{
+		"class_name": "LinkedListAliasNode",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type LiteralClassHello struct {
     
@@ -1471,6 +2227,21 @@ func (c *LiteralClassHello) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *LiteralClassHello) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop"] = c.Prop
+	
+
+	encodedMap := map[string]any{
+		"class_name": "LiteralClassHello",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1496,6 +2267,21 @@ func (c *LiteralClassOne) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *LiteralClassOne) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop"] = c.Prop
+	
+
+	encodedMap := map[string]any{
+		"class_name": "LiteralClassOne",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type LiteralClassTwo struct {
     
@@ -1517,6 +2303,21 @@ func (c *LiteralClassTwo) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *LiteralClassTwo) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop"] = c.Prop
+	
+
+	encodedMap := map[string]any{
+		"class_name": "LiteralClassTwo",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1542,6 +2343,21 @@ func (c *MalformedConstraints) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *MalformedConstraints) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Foo"] = c.Foo
+	
+
+	encodedMap := map[string]any{
+		"class_name": "MalformedConstraints",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type MalformedConstraints2 struct {
     
@@ -1563,6 +2379,21 @@ func (c *MalformedConstraints2) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *MalformedConstraints2) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Foo"] = c.Foo
+	
+
+	encodedMap := map[string]any{
+		"class_name": "MalformedConstraints2",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1589,6 +2420,21 @@ func (c *Martian) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *Martian) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Age"] = c.Age
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Martian",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1628,6 +2474,25 @@ func (c *MemoryObject) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *MemoryObject) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Id"] = c.Id
+	
+	valueMap["Name"] = c.Name
+	
+	valueMap["Description"] = c.Description
+	
+
+	encodedMap := map[string]any{
+		"class_name": "MemoryObject",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type MergeAttrs struct {
     
@@ -1649,6 +2514,21 @@ func (c *MergeAttrs) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *MergeAttrs) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Amount"] = c.Amount
+	
+
+	encodedMap := map[string]any{
+		"class_name": "MergeAttrs",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1686,6 +2566,25 @@ func (c *NamedArgsSingleClass) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *NamedArgsSingleClass) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Key"] = c.Key
+	
+	valueMap["Key_two"] = c.Key_two
+	
+	valueMap["Key_three"] = c.Key_three
+	
+
+	encodedMap := map[string]any{
+		"class_name": "NamedArgsSingleClass",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1726,6 +2625,25 @@ coercedValue.BamlDecode(value.(map[string]any))
 	
 }
 
+func (c *Nested) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop3"] = c.Prop3
+	
+	valueMap["Prop4"] = c.Prop4
+	
+	valueMap["Prop20"] = c.Prop20
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Nested",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type Nested2 struct {
     
@@ -1756,6 +2674,23 @@ func (c *Nested2) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *Nested2) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop11"] = c.Prop11
+	
+	valueMap["Prop12"] = c.Prop12
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Nested2",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type NestedBlockConstraint struct {
     
@@ -1779,6 +2714,21 @@ func (c *NestedBlockConstraint) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *NestedBlockConstraint) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Nbc"] = c.Nbc
+	
+
+	encodedMap := map[string]any{
+		"class_name": "NestedBlockConstraint",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type NestedBlockConstraintForParam struct {
     
@@ -1800,6 +2750,21 @@ func (c *NestedBlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *NestedBlockConstraintForParam) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Nbcfp"] = c.Nbcfp
+	
+
+	encodedMap := map[string]any{
+		"class_name": "NestedBlockConstraintForParam",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1832,6 +2797,23 @@ func (c *Node) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *Node) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Data"] = c.Data
+	
+	valueMap["Next"] = c.Next
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Node",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type NodeWithAliasIndirection struct {
     
@@ -1860,6 +2842,23 @@ func (c *NodeWithAliasIndirection) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *NodeWithAliasIndirection) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Value"] = c.Value
+	
+	valueMap["Next"] = c.Next
+	
+
+	encodedMap := map[string]any{
+		"class_name": "NodeWithAliasIndirection",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1892,6 +2891,23 @@ func (c *OptionalListAndMap) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *OptionalListAndMap) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["P"] = c.P
+	
+	valueMap["Q"] = c.Q
+	
+
+	encodedMap := map[string]any{
+		"class_name": "OptionalListAndMap",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type OptionalTest_Prop1 struct {
     
@@ -1920,6 +2936,23 @@ func (c *OptionalTest_Prop1) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *OptionalTest_Prop1) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Omega_a"] = c.Omega_a
+	
+	valueMap["Omega_b"] = c.Omega_b
+	
+
+	encodedMap := map[string]any{
+		"class_name": "OptionalTest_Prop1",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -1963,6 +2996,25 @@ innercoercedValue := v.(OptionalTest_CategoryType)
 	
 }
 
+func (c *OptionalTest_ReturnType) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Omega_1"] = c.Omega_1
+	
+	valueMap["Omega_2"] = c.Omega_2
+	
+	valueMap["Omega_3"] = c.Omega_3
+	
+
+	encodedMap := map[string]any{
+		"class_name": "OptionalTest_ReturnType",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type OrderInfo struct {
     
@@ -2000,6 +3052,25 @@ func (c *OrderInfo) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *OrderInfo) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Order_status"] = c.Order_status
+	
+	valueMap["Tracking_number"] = c.Tracking_number
+	
+	valueMap["Estimated_arrival_date"] = c.Estimated_arrival_date
+	
+
+	encodedMap := map[string]any{
+		"class_name": "OrderInfo",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type OriginalA struct {
     
@@ -2021,6 +3092,21 @@ func (c *OriginalA) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *OriginalA) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Value"] = c.Value
+	
+
+	encodedMap := map[string]any{
+		"class_name": "OriginalA",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2046,6 +3132,21 @@ func (c *OriginalB) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *OriginalB) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Value"] = c.Value
+	
+
+	encodedMap := map[string]any{
+		"class_name": "OriginalB",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2080,6 +3181,23 @@ func (c *Person) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *Person) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Name"] = c.Name
+	
+	valueMap["Hair_color"] = c.Hair_color
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Person",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type PhoneNumber struct {
     
@@ -2101,6 +3219,21 @@ func (c *PhoneNumber) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *PhoneNumber) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Value"] = c.Value
+	
+
+	encodedMap := map[string]any{
+		"class_name": "PhoneNumber",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2133,6 +3266,23 @@ func (c *Quantity) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *Quantity) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Amount"] = c.Amount
+	
+	valueMap["Unit"] = c.Unit
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Quantity",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type RaysData struct {
     
@@ -2161,6 +3311,23 @@ func (c *RaysData) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *RaysData) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["DataType"] = c.DataType
+	
+	valueMap["Value"] = c.Value
+	
+
+	encodedMap := map[string]any{
+		"class_name": "RaysData",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2203,6 +3370,25 @@ innercoercedValue.BamlDecode(v.(map[string]any))
 		}
 	}
 	
+}
+
+func (c *ReceiptInfo) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Items"] = c.Items
+	
+	valueMap["Total_cost"] = c.Total_cost
+	
+	valueMap["Venue"] = c.Venue
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ReceiptInfo",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2249,6 +3435,27 @@ func (c *ReceiptItem) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *ReceiptItem) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Name"] = c.Name
+	
+	valueMap["Description"] = c.Description
+	
+	valueMap["Quantity"] = c.Quantity
+	
+	valueMap["Price"] = c.Price
+	
+
+	encodedMap := map[string]any{
+		"class_name": "ReceiptItem",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type Recipe struct {
     
@@ -2279,6 +3486,23 @@ func (c *Recipe) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *Recipe) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Ingredients"] = c.Ingredients
+	
+	valueMap["Recipe_type"] = c.Recipe_type
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Recipe",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type RecursiveAliasDependency struct {
     
@@ -2300,6 +3524,21 @@ func (c *RecursiveAliasDependency) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *RecursiveAliasDependency) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Value"] = c.Value
+	
+
+	encodedMap := map[string]any{
+		"class_name": "RecursiveAliasDependency",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2371,6 +3610,31 @@ innercoercedValue := v.(string)
 		}
 	}
 	
+}
+
+func (c *Resume) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Name"] = c.Name
+	
+	valueMap["Email"] = c.Email
+	
+	valueMap["Phone"] = c.Phone
+	
+	valueMap["Experience"] = c.Experience
+	
+	valueMap["Education"] = c.Education
+	
+	valueMap["Skills"] = c.Skills
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Resume",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2446,6 +3710,33 @@ innercoercedValue := v.(Union__string__Nested)
 	
 }
 
+func (c *Schema) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop1"] = c.Prop1
+	
+	valueMap["Prop2"] = c.Prop2
+	
+	valueMap["Prop5"] = c.Prop5
+	
+	valueMap["Prop6"] = c.Prop6
+	
+	valueMap["Nested_attrs"] = c.Nested_attrs
+	
+	valueMap["Parens"] = c.Parens
+	
+	valueMap["Other_group"] = c.Other_group
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Schema",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type SearchParams struct {
     
@@ -2515,6 +3806,31 @@ innercoercedValue := v.(Union__Tag__string)
 		}
 	}
 	
+}
+
+func (c *SearchParams) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["DateRange"] = c.DateRange
+	
+	valueMap["Location"] = c.Location
+	
+	valueMap["JobTitle"] = c.JobTitle
+	
+	valueMap["Company"] = c.Company
+	
+	valueMap["Description"] = c.Description
+	
+	valueMap["Tags"] = c.Tags
+	
+
+	encodedMap := map[string]any{
+		"class_name": "SearchParams",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2598,6 +3914,35 @@ innercoercedValue.BamlDecode(v.(map[string]any))
 	
 }
 
+func (c *SemanticContainer) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Sixteen_digit_number"] = c.Sixteen_digit_number
+	
+	valueMap["String_with_twenty_words"] = c.String_with_twenty_words
+	
+	valueMap["Class_1"] = c.Class_1
+	
+	valueMap["Class_2"] = c.Class_2
+	
+	valueMap["Class_done_needed"] = c.Class_done_needed
+	
+	valueMap["Class_needed"] = c.Class_needed
+	
+	valueMap["Three_small_things"] = c.Three_small_things
+	
+	valueMap["Final_string"] = c.Final_string
+	
+
+	encodedMap := map[string]any{
+		"class_name": "SemanticContainer",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type SimpleTag struct {
     
@@ -2619,6 +3964,21 @@ func (c *SimpleTag) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *SimpleTag) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Field"] = c.Field
+	
+
+	encodedMap := map[string]any{
+		"class_name": "SimpleTag",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2651,6 +4011,23 @@ func (c *SmallThing) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *SmallThing) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["I_16_digits"] = c.I_16_digits
+	
+	valueMap["I_8_digits"] = c.I_8_digits
+	
+
+	encodedMap := map[string]any{
+		"class_name": "SmallThing",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type SomeClassNestedDynamic struct {
     
@@ -2676,6 +4053,21 @@ func (c *SomeClassNestedDynamic) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *SomeClassNestedDynamic) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Hi"] = c.Hi
+	
+
+	encodedMap := map[string]any{
+		"class_name": "SomeClassNestedDynamic",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type StringToClassEntry struct {
     
@@ -2697,6 +4089,21 @@ func (c *StringToClassEntry) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *StringToClassEntry) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Word"] = c.Word
+	
+
+	encodedMap := map[string]any{
+		"class_name": "StringToClassEntry",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2750,6 +4157,29 @@ func (c *TestClassAlias) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *TestClassAlias) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Key"] = c.Key
+	
+	valueMap["Key2"] = c.Key2
+	
+	valueMap["Key3"] = c.Key3
+	
+	valueMap["Key4"] = c.Key4
+	
+	valueMap["Key5"] = c.Key5
+	
+
+	encodedMap := map[string]any{
+		"class_name": "TestClassAlias",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type TestClassNested struct {
     
@@ -2781,6 +4211,23 @@ coercedValue.BamlDecode(value.(map[string]any))
 	
 }
 
+func (c *TestClassNested) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop1"] = c.Prop1
+	
+	valueMap["Prop2"] = c.Prop2
+	
+
+	encodedMap := map[string]any{
+		"class_name": "TestClassNested",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type TestClassWithEnum struct {
     
@@ -2809,6 +4256,23 @@ func (c *TestClassWithEnum) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *TestClassWithEnum) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop1"] = c.Prop1
+	
+	valueMap["Prop2"] = c.Prop2
+	
+
+	encodedMap := map[string]any{
+		"class_name": "TestClassWithEnum",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2849,6 +4313,23 @@ innercoercedValue := v.(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
 	
 }
 
+func (c *TestMemoryOutput) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Items"] = c.Items
+	
+	valueMap["More_items"] = c.More_items
+	
+
+	encodedMap := map[string]any{
+		"class_name": "TestMemoryOutput",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type TestOutputClass struct {
     
@@ -2877,6 +4358,23 @@ func (c *TestOutputClass) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *TestOutputClass) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop1"] = c.Prop1
+	
+	valueMap["Prop2"] = c.Prop2
+	
+
+	encodedMap := map[string]any{
+		"class_name": "TestOutputClass",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2908,6 +4406,23 @@ coercedValue.BamlDecode(value.(map[string]any))
 		}
 	}
 	
+}
+
+func (c *Tree) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Data"] = c.Data
+	
+	valueMap["Children"] = c.Children
+	
+
+	encodedMap := map[string]any{
+		"class_name": "Tree",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2945,6 +4460,25 @@ func (c *TwoStoriesOneTitle) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *TwoStoriesOneTitle) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Title"] = c.Title
+	
+	valueMap["Story_a"] = c.Story_a
+	
+	valueMap["Story_b"] = c.Story_b
+	
+
+	encodedMap := map[string]any{
+		"class_name": "TwoStoriesOneTitle",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -2988,6 +4522,25 @@ innercoercedValue := v.(Union__float64__bool)
 	
 }
 
+func (c *UnionTest_ReturnType) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Prop1"] = c.Prop1
+	
+	valueMap["Prop2"] = c.Prop2
+	
+	valueMap["Prop3"] = c.Prop3
+	
+
+	encodedMap := map[string]any{
+		"class_name": "UnionTest_ReturnType",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 // my docs
 type UniverseQuestion struct {
@@ -3019,6 +4572,23 @@ func (c *UniverseQuestion) BamlDecode(decodedMap map[string]any) {
 	
 }
 
+func (c *UniverseQuestion) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Question"] = c.Question
+	
+	valueMap["Answer"] = c.Answer
+	
+
+	encodedMap := map[string]any{
+		"class_name": "UniverseQuestion",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
+}
+
 
 type UniverseQuestionInput struct {
     
@@ -3040,6 +4610,21 @@ func (c *UniverseQuestionInput) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *UniverseQuestionInput) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Question"] = c.Question
+	
+
+	encodedMap := map[string]any{
+		"class_name": "UniverseQuestionInput",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
@@ -3070,6 +4655,23 @@ func (c *WithReasoning) BamlDecode(decodedMap map[string]any) {
 		}
 	}
 	
+}
+
+func (c *WithReasoning) BamlEncode() ([]byte, error) {
+	valueMap := map[string]any{}
+
+	
+	valueMap["Value"] = c.Value
+	
+	valueMap["Reasoning"] = c.Reasoning
+	
+
+	encodedMap := map[string]any{
+		"class_name": "WithReasoning",
+		"values": valueMap,
+	}
+
+	return json.Marshal(encodedMap)
 }
 
 
