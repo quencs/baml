@@ -91,11 +91,26 @@ func (c *AnotherObject) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Id"] = c.Id
+		
+		
+		{
+valueMap["Id"] = c.Id
+}
+
 	
-	valueMap["Thingy2"] = c.Thingy2
+		
+		
+		{
+valueMap["Thingy2"] = c.Thingy2
+}
+
 	
-	valueMap["Thingy3"] = c.Thingy3
+		
+		
+		{
+valueMap["Thingy3"] = c.Thingy3
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -140,9 +155,19 @@ func (c *BigNumbers) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["A"] = c.A
+		
+		
+		{
+valueMap["A"] = c.A
+}
+
 	
-	valueMap["B"] = c.B
+		
+		
+		{
+valueMap["B"] = c.B
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -194,11 +219,26 @@ func (c *BinaryNode) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Data"] = c.Data
+		
+		
+		{
+valueMap["Data"] = c.Data
+}
+
 	
-	valueMap["Left"] = c.Left
+		
+		
+		{
+valueMap["Left"] = c.Left
+}
+
 	
-	valueMap["Right"] = c.Right
+		
+		
+		{
+valueMap["Right"] = c.Right
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -236,7 +276,12 @@ func (c *Blah) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop4"] = c.Prop4
+		
+		
+		{
+valueMap["Prop4"] = c.Prop4
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -281,9 +326,19 @@ func (c *BlockConstraint) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Foo"] = c.Foo
+		
+		
+		{
+valueMap["Foo"] = c.Foo
+}
+
 	
-	valueMap["Bar"] = c.Bar
+		
+		
+		{
+valueMap["Bar"] = c.Bar
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -328,9 +383,19 @@ func (c *BlockConstraintForParam) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Bcfp"] = c.Bcfp
+		
+		
+		{
+valueMap["Bcfp"] = c.Bcfp
+}
+
 	
-	valueMap["Bcfp2"] = c.Bcfp2
+		
+		
+		{
+valueMap["Bcfp2"] = c.Bcfp2
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -389,13 +454,33 @@ func (c *BookOrder) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["OrderId"] = c.OrderId
+		
+		
+		{
+valueMap["OrderId"] = c.OrderId
+}
+
 	
-	valueMap["Title"] = c.Title
+		
+		
+		{
+valueMap["Title"] = c.Title
+}
+
 	
-	valueMap["Quantity"] = c.Quantity
+		
+		
+		{
+valueMap["Quantity"] = c.Quantity
+}
+
 	
-	valueMap["Price"] = c.Price
+		
+		
+		{
+valueMap["Price"] = c.Price
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -433,7 +518,12 @@ func (c *ClassForNullLiteral) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["A"] = c.A
+		
+		
+		{
+valueMap["A"] = c.A
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -478,9 +568,19 @@ func (c *ClassOptionalOutput) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop1"] = c.Prop1
+		
+		
+		{
+valueMap["Prop1"] = c.Prop1
+}
+
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+valueMap["Prop2"] = c.Prop2
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -532,11 +632,26 @@ func (c *ClassOptionalOutput2) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop1"] = c.Prop1
+		
+		
+		{
+valueMap["Prop1"] = c.Prop1
+}
+
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+valueMap["Prop2"] = c.Prop2
+}
+
 	
-	valueMap["Prop3"] = c.Prop3
+		
+		
+		{
+valueMap["Prop3"] = c.Prop3
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -575,7 +690,16 @@ func (c *ClassToRecAlias) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["List"] = c.List
+		
+		
+		{
+encodedValue, err := c.List.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["List"] = json.RawMessage(encodedValue)
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -620,9 +744,19 @@ func (c *ClassWithBlockDone) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["I_16_digits"] = c.I_16_digits
+		
+		
+		{
+valueMap["I_16_digits"] = c.I_16_digits
+}
+
 	
-	valueMap["S_20_words"] = c.S_20_words
+		
+		
+		{
+valueMap["S_20_words"] = c.S_20_words
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -675,11 +809,30 @@ func (c *ClassWithImage) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["MyImage"] = c.MyImage
+		
+		
+		{
+valueMap["MyImage"] = c.MyImage
+}
+
 	
-	valueMap["Param2"] = c.Param2
+		
+		
+		{
+valueMap["Param2"] = c.Param2
+}
+
 	
-	valueMap["Fake_image"] = c.Fake_image
+		
+		
+		{
+encodedValue, err := c.Fake_image.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Fake_image"] = json.RawMessage(encodedValue)
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -724,9 +877,19 @@ func (c *ClassWithoutDone) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["I_16_digits"] = c.I_16_digits
+		
+		
+		{
+valueMap["I_16_digits"] = c.I_16_digits
+}
+
 	
-	valueMap["S_20_words"] = c.S_20_words
+		
+		
+		{
+valueMap["S_20_words"] = c.S_20_words
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -789,13 +952,39 @@ func (c *ComplexMemoryObject) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Id"] = c.Id
+		
+		
+		{
+valueMap["Id"] = c.Id
+}
+
 	
-	valueMap["Name"] = c.Name
+		
+		
+		{
+valueMap["Name"] = c.Name
+}
+
 	
-	valueMap["Description"] = c.Description
+		
+		
+		{
+valueMap["Description"] = c.Description
+}
+
 	
-	valueMap["Metadata"] = c.Metadata
+		
+		
+		{
+list := make([]any, len(c.Metadata))
+for i, v := range c.Metadata {
+{
+list[i] = v
+}
+}
+valueMap["Metadata"] = list
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -854,11 +1043,44 @@ func (c *CompoundBigNumbers) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Big"] = c.Big
+		
+		
+		{
+encodedValue, err := c.Big.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Big"] = json.RawMessage(encodedValue)
+}
+
 	
-	valueMap["Big_nums"] = c.Big_nums
+		
+		
+		{
+list := make([]any, len(c.Big_nums))
+for i, v := range c.Big_nums {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+valueMap["Big_nums"] = list
+}
+
 	
-	valueMap["Another"] = c.Another
+		
+		
+		{
+encodedValue, err := c.Another.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Another"] = json.RawMessage(encodedValue)
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -903,9 +1125,19 @@ func (c *ContactInfo) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Primary"] = c.Primary
+		
+		
+		{
+valueMap["Primary"] = c.Primary
+}
+
 	
-	valueMap["Secondary"] = c.Secondary
+		
+		
+		{
+valueMap["Secondary"] = c.Secondary
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -957,11 +1189,26 @@ func (c *CustomTaskResult) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["BookOrder"] = c.BookOrder
+		
+		
+		{
+valueMap["BookOrder"] = c.BookOrder
+}
+
 	
-	valueMap["FlightConfirmation"] = c.FlightConfirmation
+		
+		
+		{
+valueMap["FlightConfirmation"] = c.FlightConfirmation
+}
+
 	
-	valueMap["GroceryReceipt"] = c.GroceryReceipt
+		
+		
+		{
+valueMap["GroceryReceipt"] = c.GroceryReceipt
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1008,9 +1255,19 @@ func (c *DummyOutput) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Nonce"] = c.Nonce
+		
+		
+		{
+valueMap["Nonce"] = c.Nonce
+}
+
 	
-	valueMap["Nonce2"] = c.Nonce2
+		
+		
+		{
+valueMap["Nonce2"] = c.Nonce2
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1050,7 +1307,12 @@ func (c *DynInputOutput) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["TestKey"] = c.TestKey
+		
+		
+		{
+valueMap["TestKey"] = c.TestKey
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1130,11 +1392,30 @@ func (c *DynamicClassTwo) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Hi"] = c.Hi
+		
+		
+		{
+valueMap["Hi"] = c.Hi
+}
+
 	
-	valueMap["Some_class"] = c.Some_class
+		
+		
+		{
+encodedValue, err := c.Some_class.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Some_class"] = json.RawMessage(encodedValue)
+}
+
 	
-	valueMap["Status"] = c.Status
+		
+		
+		{
+valueMap["Status"] = c.Status
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1197,7 +1478,12 @@ func (c *Earthling) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Age"] = c.Age
+		
+		
+		{
+valueMap["Age"] = c.Age
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1267,15 +1553,46 @@ func (c *Education) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Institution"] = c.Institution
+		
+		
+		{
+valueMap["Institution"] = c.Institution
+}
+
 	
-	valueMap["Location"] = c.Location
+		
+		
+		{
+valueMap["Location"] = c.Location
+}
+
 	
-	valueMap["Degree"] = c.Degree
+		
+		
+		{
+valueMap["Degree"] = c.Degree
+}
+
 	
-	valueMap["Major"] = c.Major
+		
+		
+		{
+list := make([]any, len(c.Major))
+for i, v := range c.Major {
+{
+list[i] = v
+}
+}
+valueMap["Major"] = list
+}
+
 	
-	valueMap["Graduation_date"] = c.Graduation_date
+		
+		
+		{
+valueMap["Graduation_date"] = c.Graduation_date
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1327,11 +1644,26 @@ func (c *Email) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Subject"] = c.Subject
+		
+		
+		{
+valueMap["Subject"] = c.Subject
+}
+
 	
-	valueMap["Body"] = c.Body
+		
+		
+		{
+valueMap["Body"] = c.Body
+}
+
 	
-	valueMap["From_address"] = c.From_address
+		
+		
+		{
+valueMap["From_address"] = c.From_address
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1369,7 +1701,12 @@ func (c *EmailAddress) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1428,13 +1765,33 @@ func (c *Event) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Title"] = c.Title
+		
+		
+		{
+valueMap["Title"] = c.Title
+}
+
 	
-	valueMap["Date"] = c.Date
+		
+		
+		{
+valueMap["Date"] = c.Date
+}
+
 	
-	valueMap["Location"] = c.Location
+		
+		
+		{
+valueMap["Location"] = c.Location
+}
+
 	
-	valueMap["Description"] = c.Description
+		
+		
+		{
+valueMap["Description"] = c.Description
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1472,7 +1829,12 @@ func (c *FakeImage) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Url"] = c.Url
+		
+		
+		{
+valueMap["Url"] = c.Url
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1538,15 +1900,40 @@ func (c *FlightConfirmation) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["ConfirmationNumber"] = c.ConfirmationNumber
+		
+		
+		{
+valueMap["ConfirmationNumber"] = c.ConfirmationNumber
+}
+
 	
-	valueMap["FlightNumber"] = c.FlightNumber
+		
+		
+		{
+valueMap["FlightNumber"] = c.FlightNumber
+}
+
 	
-	valueMap["DepartureTime"] = c.DepartureTime
+		
+		
+		{
+valueMap["DepartureTime"] = c.DepartureTime
+}
+
 	
-	valueMap["ArrivalTime"] = c.ArrivalTime
+		
+		
+		{
+valueMap["ArrivalTime"] = c.ArrivalTime
+}
+
 	
-	valueMap["SeatNumber"] = c.SeatNumber
+		
+		
+		{
+valueMap["SeatNumber"] = c.SeatNumber
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1598,11 +1985,26 @@ func (c *FooAny) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Planetary_age"] = c.Planetary_age
+		
+		
+		{
+valueMap["Planetary_age"] = c.Planetary_age
+}
+
 	
-	valueMap["Certainty"] = c.Certainty
+		
+		
+		{
+valueMap["Certainty"] = c.Certainty
+}
+
 	
-	valueMap["Species"] = c.Species
+		
+		
+		{
+valueMap["Species"] = c.Species
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1645,7 +2047,22 @@ func (c *Forest) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Trees"] = c.Trees
+		
+		
+		{
+list := make([]any, len(c.Trees))
+for i, v := range c.Trees {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+valueMap["Trees"] = list
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1690,9 +2107,19 @@ func (c *FormatterTest0) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Lorem"] = c.Lorem
+		
+		
+		{
+valueMap["Lorem"] = c.Lorem
+}
+
 	
-	valueMap["Ipsum"] = c.Ipsum
+		
+		
+		{
+valueMap["Ipsum"] = c.Ipsum
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1737,9 +2164,19 @@ func (c *FormatterTest1) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Lorem"] = c.Lorem
+		
+		
+		{
+valueMap["Lorem"] = c.Lorem
+}
+
 	
-	valueMap["Ipsum"] = c.Ipsum
+		
+		
+		{
+valueMap["Ipsum"] = c.Ipsum
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1784,9 +2221,19 @@ func (c *FormatterTest2) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Lorem"] = c.Lorem
+		
+		
+		{
+valueMap["Lorem"] = c.Lorem
+}
+
 	
-	valueMap["Ipsum"] = c.Ipsum
+		
+		
+		{
+valueMap["Ipsum"] = c.Ipsum
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1831,9 +2278,19 @@ func (c *FormatterTest3) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Lorem"] = c.Lorem
+		
+		
+		{
+valueMap["Lorem"] = c.Lorem
+}
+
 	
-	valueMap["Ipsum"] = c.Ipsum
+		
+		
+		{
+valueMap["Ipsum"] = c.Ipsum
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1896,13 +2353,39 @@ func (c *GroceryReceipt) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["ReceiptId"] = c.ReceiptId
+		
+		
+		{
+valueMap["ReceiptId"] = c.ReceiptId
+}
+
 	
-	valueMap["StoreName"] = c.StoreName
+		
+		
+		{
+valueMap["StoreName"] = c.StoreName
+}
+
 	
-	valueMap["Items"] = c.Items
+		
+		
+		{
+list := make([]any, len(c.Items))
+for i, v := range c.Items {
+{
+list[i] = v
+}
+}
+valueMap["Items"] = list
+}
+
 	
-	valueMap["TotalAmount"] = c.TotalAmount
+		
+		
+		{
+valueMap["TotalAmount"] = c.TotalAmount
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -1955,11 +2438,30 @@ func (c *InnerClass) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop1"] = c.Prop1
+		
+		
+		{
+valueMap["Prop1"] = c.Prop1
+}
+
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+valueMap["Prop2"] = c.Prop2
+}
+
 	
-	valueMap["Inner"] = c.Inner
+		
+		
+		{
+encodedValue, err := c.Inner.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Inner"] = json.RawMessage(encodedValue)
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2004,9 +2506,19 @@ func (c *InnerClass2) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+valueMap["Prop2"] = c.Prop2
+}
+
 	
-	valueMap["Prop3"] = c.Prop3
+		
+		
+		{
+valueMap["Prop3"] = c.Prop3
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2051,9 +2563,19 @@ func (c *InputClass) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Key"] = c.Key
+		
+		
+		{
+valueMap["Key"] = c.Key
+}
+
 	
-	valueMap["Key2"] = c.Key2
+		
+		
+		{
+valueMap["Key2"] = c.Key2
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2099,9 +2621,23 @@ func (c *InputClassNested) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Key"] = c.Key
+		
+		
+		{
+valueMap["Key"] = c.Key
+}
+
 	
-	valueMap["Nested"] = c.Nested
+		
+		
+		{
+encodedValue, err := c.Nested.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Nested"] = json.RawMessage(encodedValue)
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2146,9 +2682,19 @@ func (c *LinkedList) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Head"] = c.Head
+		
+		
+		{
+valueMap["Head"] = c.Head
+}
+
 	
-	valueMap["Len"] = c.Len
+		
+		
+		{
+valueMap["Len"] = c.Len
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2193,9 +2739,19 @@ func (c *LinkedListAliasNode) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
-	valueMap["Next"] = c.Next
+		
+		
+		{
+valueMap["Next"] = c.Next
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2233,7 +2789,12 @@ func (c *LiteralClassHello) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop"] = c.Prop
+		
+		
+		{
+valueMap["Prop"] = c.Prop
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2271,7 +2832,12 @@ func (c *LiteralClassOne) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop"] = c.Prop
+		
+		
+		{
+valueMap["Prop"] = c.Prop
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2309,7 +2875,12 @@ func (c *LiteralClassTwo) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop"] = c.Prop
+		
+		
+		{
+valueMap["Prop"] = c.Prop
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2347,7 +2918,12 @@ func (c *MalformedConstraints) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Foo"] = c.Foo
+		
+		
+		{
+valueMap["Foo"] = c.Foo
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2385,7 +2961,12 @@ func (c *MalformedConstraints2) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Foo"] = c.Foo
+		
+		
+		{
+valueMap["Foo"] = c.Foo
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2426,7 +3007,12 @@ func (c *Martian) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Age"] = c.Age
+		
+		
+		{
+valueMap["Age"] = c.Age
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2478,11 +3064,26 @@ func (c *MemoryObject) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Id"] = c.Id
+		
+		
+		{
+valueMap["Id"] = c.Id
+}
+
 	
-	valueMap["Name"] = c.Name
+		
+		
+		{
+valueMap["Name"] = c.Name
+}
+
 	
-	valueMap["Description"] = c.Description
+		
+		
+		{
+valueMap["Description"] = c.Description
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2520,7 +3121,12 @@ func (c *MergeAttrs) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Amount"] = c.Amount
+		
+		
+		{
+valueMap["Amount"] = c.Amount
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2572,11 +3178,26 @@ func (c *NamedArgsSingleClass) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Key"] = c.Key
+		
+		
+		{
+valueMap["Key"] = c.Key
+}
+
 	
-	valueMap["Key_two"] = c.Key_two
+		
+		
+		{
+valueMap["Key_two"] = c.Key_two
+}
+
 	
-	valueMap["Key_three"] = c.Key_three
+		
+		
+		{
+valueMap["Key_three"] = c.Key_three
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2629,11 +3250,30 @@ func (c *Nested) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop3"] = c.Prop3
+		
+		
+		{
+valueMap["Prop3"] = c.Prop3
+}
+
 	
-	valueMap["Prop4"] = c.Prop4
+		
+		
+		{
+valueMap["Prop4"] = c.Prop4
+}
+
 	
-	valueMap["Prop20"] = c.Prop20
+		
+		
+		{
+encodedValue, err := c.Prop20.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Prop20"] = json.RawMessage(encodedValue)
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2678,9 +3318,19 @@ func (c *Nested2) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop11"] = c.Prop11
+		
+		
+		{
+valueMap["Prop11"] = c.Prop11
+}
+
 	
-	valueMap["Prop12"] = c.Prop12
+		
+		
+		{
+valueMap["Prop12"] = c.Prop12
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2718,7 +3368,12 @@ func (c *NestedBlockConstraint) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Nbc"] = c.Nbc
+		
+		
+		{
+valueMap["Nbc"] = c.Nbc
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2756,7 +3411,12 @@ func (c *NestedBlockConstraintForParam) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Nbcfp"] = c.Nbcfp
+		
+		
+		{
+valueMap["Nbcfp"] = c.Nbcfp
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2801,9 +3461,19 @@ func (c *Node) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Data"] = c.Data
+		
+		
+		{
+valueMap["Data"] = c.Data
+}
+
 	
-	valueMap["Next"] = c.Next
+		
+		
+		{
+valueMap["Next"] = c.Next
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2848,9 +3518,19 @@ func (c *NodeWithAliasIndirection) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
-	valueMap["Next"] = c.Next
+		
+		
+		{
+valueMap["Next"] = c.Next
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2895,9 +3575,19 @@ func (c *OptionalListAndMap) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["P"] = c.P
+		
+		
+		{
+valueMap["P"] = c.P
+}
+
 	
-	valueMap["Q"] = c.Q
+		
+		
+		{
+valueMap["Q"] = c.Q
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -2942,9 +3632,19 @@ func (c *OptionalTest_Prop1) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Omega_a"] = c.Omega_a
+		
+		
+		{
+valueMap["Omega_a"] = c.Omega_a
+}
+
 	
-	valueMap["Omega_b"] = c.Omega_b
+		
+		
+		{
+valueMap["Omega_b"] = c.Omega_b
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3000,11 +3700,32 @@ func (c *OptionalTest_ReturnType) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Omega_1"] = c.Omega_1
+		
+		
+		{
+valueMap["Omega_1"] = c.Omega_1
+}
+
 	
-	valueMap["Omega_2"] = c.Omega_2
+		
+		
+		{
+valueMap["Omega_2"] = c.Omega_2
+}
+
 	
-	valueMap["Omega_3"] = c.Omega_3
+		
+		
+		{
+list := make([]any, len(c.Omega_3))
+for i, v := range c.Omega_3 {
+{
+list[i] = v
+}
+}
+valueMap["Omega_3"] = list
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3056,11 +3777,26 @@ func (c *OrderInfo) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Order_status"] = c.Order_status
+		
+		
+		{
+valueMap["Order_status"] = c.Order_status
+}
+
 	
-	valueMap["Tracking_number"] = c.Tracking_number
+		
+		
+		{
+valueMap["Tracking_number"] = c.Tracking_number
+}
+
 	
-	valueMap["Estimated_arrival_date"] = c.Estimated_arrival_date
+		
+		
+		{
+valueMap["Estimated_arrival_date"] = c.Estimated_arrival_date
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3098,7 +3834,12 @@ func (c *OriginalA) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3138,7 +3879,12 @@ func (c *OriginalB) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3185,9 +3931,19 @@ func (c *Person) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Name"] = c.Name
+		
+		
+		{
+valueMap["Name"] = c.Name
+}
+
 	
-	valueMap["Hair_color"] = c.Hair_color
+		
+		
+		{
+valueMap["Hair_color"] = c.Hair_color
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3225,7 +3981,12 @@ func (c *PhoneNumber) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3270,9 +4031,19 @@ func (c *Quantity) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Amount"] = c.Amount
+		
+		
+		{
+valueMap["Amount"] = c.Amount
+}
+
 	
-	valueMap["Unit"] = c.Unit
+		
+		
+		{
+valueMap["Unit"] = c.Unit
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3317,9 +4088,19 @@ func (c *RaysData) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["DataType"] = c.DataType
+		
+		
+		{
+valueMap["DataType"] = c.DataType
+}
+
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3376,11 +4157,36 @@ func (c *ReceiptInfo) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Items"] = c.Items
+		
+		
+		{
+list := make([]any, len(c.Items))
+for i, v := range c.Items {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+valueMap["Items"] = list
+}
+
 	
-	valueMap["Total_cost"] = c.Total_cost
+		
+		
+		{
+valueMap["Total_cost"] = c.Total_cost
+}
+
 	
-	valueMap["Venue"] = c.Venue
+		
+		
+		{
+valueMap["Venue"] = c.Venue
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3439,13 +4245,33 @@ func (c *ReceiptItem) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Name"] = c.Name
+		
+		
+		{
+valueMap["Name"] = c.Name
+}
+
 	
-	valueMap["Description"] = c.Description
+		
+		
+		{
+valueMap["Description"] = c.Description
+}
+
 	
-	valueMap["Quantity"] = c.Quantity
+		
+		
+		{
+valueMap["Quantity"] = c.Quantity
+}
+
 	
-	valueMap["Price"] = c.Price
+		
+		
+		{
+valueMap["Price"] = c.Price
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3490,9 +4316,19 @@ func (c *Recipe) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Ingredients"] = c.Ingredients
+		
+		
+		{
+valueMap["Ingredients"] = c.Ingredients
+}
+
 	
-	valueMap["Recipe_type"] = c.Recipe_type
+		
+		
+		{
+valueMap["Recipe_type"] = c.Recipe_type
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3530,7 +4366,12 @@ func (c *RecursiveAliasDependency) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3616,17 +4457,69 @@ func (c *Resume) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Name"] = c.Name
+		
+		
+		{
+valueMap["Name"] = c.Name
+}
+
 	
-	valueMap["Email"] = c.Email
+		
+		
+		{
+valueMap["Email"] = c.Email
+}
+
 	
-	valueMap["Phone"] = c.Phone
+		
+		
+		{
+valueMap["Phone"] = c.Phone
+}
+
 	
-	valueMap["Experience"] = c.Experience
+		
+		
+		{
+list := make([]any, len(c.Experience))
+for i, v := range c.Experience {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+valueMap["Experience"] = list
+}
+
 	
-	valueMap["Education"] = c.Education
+		
+		
+		{
+list := make([]any, len(c.Education))
+for i, v := range c.Education {
+{
+list[i] = v
+}
+}
+valueMap["Education"] = list
+}
+
 	
-	valueMap["Skills"] = c.Skills
+		
+		
+		{
+list := make([]any, len(c.Skills))
+for i, v := range c.Skills {
+{
+list[i] = v
+}
+}
+valueMap["Skills"] = list
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3714,19 +4607,66 @@ func (c *Schema) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop1"] = c.Prop1
+		
+		
+		{
+valueMap["Prop1"] = c.Prop1
+}
+
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+valueMap["Prop2"] = c.Prop2
+}
+
 	
-	valueMap["Prop5"] = c.Prop5
+		
+		
+		{
+list := make([]any, len(c.Prop5))
+for i, v := range c.Prop5 {
+{
+list[i] = v
+}
+}
+valueMap["Prop5"] = list
+}
+
 	
-	valueMap["Prop6"] = c.Prop6
+		
+		
+		{
+valueMap["Prop6"] = c.Prop6
+}
+
 	
-	valueMap["Nested_attrs"] = c.Nested_attrs
+		
+		
+		{
+list := make([]any, len(c.Nested_attrs))
+for i, v := range c.Nested_attrs {
+{
+list[i] = v
+}
+}
+valueMap["Nested_attrs"] = list
+}
+
 	
-	valueMap["Parens"] = c.Parens
+		
+		
+		{
+valueMap["Parens"] = c.Parens
+}
+
 	
-	valueMap["Other_group"] = c.Other_group
+		
+		
+		{
+valueMap["Other_group"] = c.Other_group
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3812,17 +4752,69 @@ func (c *SearchParams) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["DateRange"] = c.DateRange
+		
+		
+		{
+valueMap["DateRange"] = c.DateRange
+}
+
 	
-	valueMap["Location"] = c.Location
+		
+		
+		{
+list := make([]any, len(c.Location))
+for i, v := range c.Location {
+{
+list[i] = v
+}
+}
+valueMap["Location"] = list
+}
+
 	
-	valueMap["JobTitle"] = c.JobTitle
+		
+		
+		{
+valueMap["JobTitle"] = c.JobTitle
+}
+
 	
-	valueMap["Company"] = c.Company
+		
+		
+		{
+valueMap["Company"] = c.Company
+}
+
 	
-	valueMap["Description"] = c.Description
+		
+		
+		{
+list := make([]any, len(c.Description))
+for i, v := range c.Description {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+valueMap["Description"] = list
+}
+
 	
-	valueMap["Tags"] = c.Tags
+		
+		
+		{
+list := make([]any, len(c.Tags))
+for i, v := range c.Tags {
+{
+list[i] = v
+}
+}
+valueMap["Tags"] = list
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3918,21 +4910,87 @@ func (c *SemanticContainer) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Sixteen_digit_number"] = c.Sixteen_digit_number
+		
+		
+		{
+valueMap["Sixteen_digit_number"] = c.Sixteen_digit_number
+}
+
 	
-	valueMap["String_with_twenty_words"] = c.String_with_twenty_words
+		
+		
+		{
+valueMap["String_with_twenty_words"] = c.String_with_twenty_words
+}
+
 	
-	valueMap["Class_1"] = c.Class_1
+		
+		
+		{
+encodedValue, err := c.Class_1.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Class_1"] = json.RawMessage(encodedValue)
+}
+
 	
-	valueMap["Class_2"] = c.Class_2
+		
+		
+		{
+encodedValue, err := c.Class_2.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Class_2"] = json.RawMessage(encodedValue)
+}
+
 	
-	valueMap["Class_done_needed"] = c.Class_done_needed
+		
+		
+		{
+encodedValue, err := c.Class_done_needed.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Class_done_needed"] = json.RawMessage(encodedValue)
+}
+
 	
-	valueMap["Class_needed"] = c.Class_needed
+		
+		
+		{
+encodedValue, err := c.Class_needed.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Class_needed"] = json.RawMessage(encodedValue)
+}
+
 	
-	valueMap["Three_small_things"] = c.Three_small_things
+		
+		
+		{
+list := make([]any, len(c.Three_small_things))
+for i, v := range c.Three_small_things {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+valueMap["Three_small_things"] = list
+}
+
 	
-	valueMap["Final_string"] = c.Final_string
+		
+		
+		{
+valueMap["Final_string"] = c.Final_string
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -3970,7 +5028,12 @@ func (c *SimpleTag) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Field"] = c.Field
+		
+		
+		{
+valueMap["Field"] = c.Field
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4015,9 +5078,19 @@ func (c *SmallThing) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["I_16_digits"] = c.I_16_digits
+		
+		
+		{
+valueMap["I_16_digits"] = c.I_16_digits
+}
+
 	
-	valueMap["I_8_digits"] = c.I_8_digits
+		
+		
+		{
+valueMap["I_8_digits"] = c.I_8_digits
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4057,7 +5130,12 @@ func (c *SomeClassNestedDynamic) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Hi"] = c.Hi
+		
+		
+		{
+valueMap["Hi"] = c.Hi
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4095,7 +5173,12 @@ func (c *StringToClassEntry) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Word"] = c.Word
+		
+		
+		{
+valueMap["Word"] = c.Word
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4161,15 +5244,40 @@ func (c *TestClassAlias) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Key"] = c.Key
+		
+		
+		{
+valueMap["Key"] = c.Key
+}
+
 	
-	valueMap["Key2"] = c.Key2
+		
+		
+		{
+valueMap["Key2"] = c.Key2
+}
+
 	
-	valueMap["Key3"] = c.Key3
+		
+		
+		{
+valueMap["Key3"] = c.Key3
+}
+
 	
-	valueMap["Key4"] = c.Key4
+		
+		
+		{
+valueMap["Key4"] = c.Key4
+}
+
 	
-	valueMap["Key5"] = c.Key5
+		
+		
+		{
+valueMap["Key5"] = c.Key5
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4215,9 +5323,23 @@ func (c *TestClassNested) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop1"] = c.Prop1
+		
+		
+		{
+valueMap["Prop1"] = c.Prop1
+}
+
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+encodedValue, err := c.Prop2.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Prop2"] = json.RawMessage(encodedValue)
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4262,9 +5384,19 @@ func (c *TestClassWithEnum) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop1"] = c.Prop1
+		
+		
+		{
+valueMap["Prop1"] = c.Prop1
+}
+
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+valueMap["Prop2"] = c.Prop2
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4317,9 +5449,31 @@ func (c *TestMemoryOutput) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Items"] = c.Items
+		
+		
+		{
+list := make([]any, len(c.Items))
+for i, v := range c.Items {
+{
+list[i] = v
+}
+}
+valueMap["Items"] = list
+}
+
 	
-	valueMap["More_items"] = c.More_items
+		
+		
+		{
+list := make([]any, len(c.More_items))
+for i, v := range c.More_items {
+{
+list[i] = v
+}
+}
+valueMap["More_items"] = list
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4364,9 +5518,19 @@ func (c *TestOutputClass) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop1"] = c.Prop1
+		
+		
+		{
+valueMap["Prop1"] = c.Prop1
+}
+
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+valueMap["Prop2"] = c.Prop2
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4412,9 +5576,23 @@ func (c *Tree) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Data"] = c.Data
+		
+		
+		{
+valueMap["Data"] = c.Data
+}
+
 	
-	valueMap["Children"] = c.Children
+		
+		
+		{
+encodedValue, err := c.Children.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Children"] = json.RawMessage(encodedValue)
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4466,11 +5644,26 @@ func (c *TwoStoriesOneTitle) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Title"] = c.Title
+		
+		
+		{
+valueMap["Title"] = c.Title
+}
+
 	
-	valueMap["Story_a"] = c.Story_a
+		
+		
+		{
+valueMap["Story_a"] = c.Story_a
+}
+
 	
-	valueMap["Story_b"] = c.Story_b
+		
+		
+		{
+valueMap["Story_b"] = c.Story_b
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4526,11 +5719,32 @@ func (c *UnionTest_ReturnType) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Prop1"] = c.Prop1
+		
+		
+		{
+valueMap["Prop1"] = c.Prop1
+}
+
 	
-	valueMap["Prop2"] = c.Prop2
+		
+		
+		{
+list := make([]any, len(c.Prop2))
+for i, v := range c.Prop2 {
+{
+list[i] = v
+}
+}
+valueMap["Prop2"] = list
+}
+
 	
-	valueMap["Prop3"] = c.Prop3
+		
+		
+		{
+valueMap["Prop3"] = c.Prop3
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4576,9 +5790,19 @@ func (c *UniverseQuestion) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Question"] = c.Question
+		
+		
+		{
+valueMap["Question"] = c.Question
+}
+
 	
-	valueMap["Answer"] = c.Answer
+		
+		
+		{
+valueMap["Answer"] = c.Answer
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4616,7 +5840,12 @@ func (c *UniverseQuestionInput) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Question"] = c.Question
+		
+		
+		{
+valueMap["Question"] = c.Question
+}
+
 	
 
 	encodedMap := map[string]any{
@@ -4661,9 +5890,19 @@ func (c *WithReasoning) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	
-	valueMap["Value"] = c.Value
+		
+		
+		{
+valueMap["Value"] = c.Value
+}
+
 	
-	valueMap["Reasoning"] = c.Reasoning
+		
+		
+		{
+valueMap["Reasoning"] = c.Reasoning
+}
+
 	
 
 	encodedMap := map[string]any{

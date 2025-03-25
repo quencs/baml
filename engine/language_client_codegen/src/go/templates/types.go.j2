@@ -74,7 +74,9 @@ func (c *{{ class.name }}) BamlEncode() ([]byte, error) {
 	valueMap := map[string]any{}
 
 	{% for field in class.fields %}
-	valueMap["{{ field.name|exported_name }}"] = c.{{ field.name|exported_name }}
+		{% let destination_index = format!("\"{}\"", crate::go::generate_types::to_exported_name(field.name.as_ref())) %}
+		{% let source_variable_name = format!("c.{}", crate::go::generate_types::to_exported_name(field.name.as_ref())) %}
+		{{ crate::go::generate_types::render_value_encode("valueMap", destination_index, source_variable_name, field.go_type) }}
 	{% endfor %}
 
 	encodedMap := map[string]any{

@@ -108,6 +108,74 @@ fn render_value_coercion(
     rendering
 }
 
+fn render_value_encode(
+    destination_variable_name: &str,
+    destination_index: &String,
+    source_variable_name: &String,
+    field_type: &GoType,
+) -> String {
+    let mut rendering = String::new();
+    rendering.push_str("{\n");
+    if field_type.is_class {
+        rendering.push_str(
+            format!(
+                "encodedValue, err := {}.BamlEncode()\n",
+                source_variable_name
+            )
+            .as_str(),
+        );
+        rendering.push_str(format!("if err != nil {{\n").as_str());
+        rendering.push_str(format!("return nil, err\n").as_str());
+        rendering.push_str("}\n");
+        rendering.push_str(
+            format!(
+                "{}[{}] = json.RawMessage(encodedValue)\n",
+                destination_variable_name, destination_index
+            )
+            .as_str(),
+        );
+    } else if field_type.is_slice {
+        rendering
+            .push_str(format!("list := make([]any, len({}))\n", source_variable_name,).as_str());
+        rendering.push_str(format!("for i, v := range {} {{\n", source_variable_name).as_str());
+        rendering.push_str(
+            render_value_encode(
+                "list",
+                &String::from("i"),
+                &String::from("v"),
+                field_type.underlying_type.as_ref().unwrap(),
+            )
+            .as_str(),
+        );
+        rendering.push_str("}\n");
+        rendering.push_str(
+            format!(
+                "{}[{}] = list\n",
+                destination_variable_name, destination_index
+            )
+            .as_str(),
+        );
+    } else {
+        rendering.push_str(
+            format!(
+                "{}[{}] = {}\n",
+                destination_variable_name, destination_index, source_variable_name
+            )
+            .as_str(),
+        );
+    }
+    rendering.push_str("}\n");
+    rendering
+}
+
+fn to_exported_name(name: &str) -> String {
+    let s = name.to_string();
+    // make first letter uppercase
+    let first_letter = s.chars().next().unwrap().to_uppercase();
+    let rest = s[1..].to_string();
+    format!("{}{}", first_letter, rest)
+}
+
 #[derive(askama::Template)]
 #[template(path = "types-enums.go.j2", escape = "none")]
 pub(crate) struct GoEnums<'ir> {
