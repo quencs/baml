@@ -1,8 +1,8 @@
+/// cbindgen:ignore
 mod ctypes;
 
-use std::{collections::HashMap, ffi::CStr, path::Path};
+use std::{collections::HashMap, ffi::CStr, path::Path, ptr::null};
 
-extern crate baml_runtime;
 use anyhow::Result;
 use baml_runtime::{BamlRuntime, FunctionResult, FunctionResultStream};
 
@@ -76,18 +76,16 @@ fn ckwargs_to_map(kwargs: *const libc::c_char) -> Result<BamlMap<String, BamlVal
     Ok(kwargs_map)
 }
 
-static mut RESULT_CALLBACK_FN: Option<
-    extern "C" fn(call_id: u32, is_done: bool, content: *const i8, length: usize),
-> = None;
-static mut ERROR_CALLBACK_FN: Option<
-    extern "C" fn(call_id: u32, name: *const c_char, message: *const i8, length: usize),
-> = None;
+pub type CallbackFn = extern "C" fn(call_id: u32, is_done: bool, content: *const i8, length: usize);
+
+/// cbindgen:ignore
+static mut RESULT_CALLBACK_FN: Option<CallbackFn> = None;
+
+/// cbindgen:ignore
+static mut ERROR_CALLBACK_FN: Option<CallbackFn> = None;
 
 #[no_mangle]
-extern "C" fn register_callbacks(
-    callback_fn: *const libc::c_void,
-    error_callback_fn: *const libc::c_void,
-) {
+extern "C" fn register_callbacks(callback_fn: CallbackFn, error_callback_fn: CallbackFn) {
     // Create a global runtime or pass it along as needed.
     let _rt = tokio::runtime::Runtime::new().unwrap();
     // Store _rt somewhere accessible if needed.
@@ -132,12 +130,27 @@ fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>)
     }
 }
 
+/// cbindgen:ignore
 static mut RUNTIME: Option<std::sync::Arc<tokio::runtime::Runtime>> = None;
 
 /// Extern "C" function that returns immediately, scheduling the async call.
 /// Once the asynchronous function completes, the provided callback is invoked.
 #[no_mangle]
 pub extern "C" fn call_function_from_c(
+    runtime: *const libc::c_void,
+    function_name: *const c_char,
+    kwargs: *const libc::c_char,
+    id: u32,
+) -> *const libc::c_void {
+    match call_function_from_c_inner(runtime, function_name, kwargs, id) {
+        Ok(_) => null(),
+        Err(e) => {
+            Box::into_raw(Box::new(CString::new(e.to_string()).unwrap())) as *const libc::c_void
+        }
+    }
+}
+
+fn call_function_from_c_inner(
     runtime: *const libc::c_void,
     function_name: *const c_char,
     kwargs: *const libc::c_char,
@@ -176,6 +189,20 @@ pub extern "C" fn call_function_from_c(
 /// Once the asynchronous function completes, the provided callback is invoked.
 #[no_mangle]
 pub extern "C" fn call_function_stream_from_c(
+    runtime: *const libc::c_void,
+    function_name: *const c_char,
+    kwargs: *const libc::c_char,
+    id: u32,
+) -> *const libc::c_void {
+    match call_function_stream_from_c_inner(runtime, function_name, kwargs, id) {
+        Ok(_) => null(),
+        Err(e) => {
+            Box::into_raw(Box::new(CString::new(e.to_string()).unwrap())) as *const libc::c_void
+        }
+    }
+}
+
+fn call_function_stream_from_c_inner(
     runtime: *const libc::c_void,
     function_name: *const c_char,
     kwargs: *const libc::c_char,

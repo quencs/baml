@@ -1,8 +1,8 @@
 main
-# *.dylib
-# *.so
-# *.dll
-# *.lib
-# *.exp
-# *.def
-# *.res
+*.dylib
+*.so
+*.dll
+*.lib
+*.exp
+*.def
+*.res

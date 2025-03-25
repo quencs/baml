@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"example.com/integ-tests/baml_client/types"
-	baml "github.com/boundaryml/baml/go"
+	baml "github.com/boundaryml/baml/go/pkg"
 )
 
 var bamlRuntime *baml.BamlRuntime

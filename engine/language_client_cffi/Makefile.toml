@@ -1,0 +1,64 @@
+[tasks.cbindgen]
+install_crate = "cbindgen"
+
+[tasks.build-debug]
+command = "cargo"
+args = ["build"]
+dependencies = ["cbindgen"]
+condition = { env_not_set = ["RELEASE_MODE"] }
+
+[tasks.build-release]
+command = "cargo"
+args = ["build", "--release"]
+dependencies = ["cbindgen"]
+condition = { env_set = ["RELEASE_MODE"] }
+
+[tasks.build]
+dependencies = ["build-debug", "build-release"]
+
+[tasks.go-sdk-debug]
+command = "cp"
+args = [
+  "../target/debug/libbaml_cffi.dylib",
+  "../language_client_go/go-sdk/lib/libbaml_cffi.dylib",
+]
+dependencies = [{ name = "build", path = "." }]
+condition = { env_not_set = ["RELEASE_MODE"] }
+
+[tasks.go-sdk-release]
+command = "cp"
+args = [
+  "../target/release/libbaml_cffi.dylib",
+  "../language_client_go/go-sdk/lib/libbaml_cffi.dylib",
+]
+dependencies = ["build-release"]
+condition = { env_set = ["RELEASE_MODE"] }
+
+[tasks.build-cli-debug]
+script = "cd ../cli && cargo build"
+dependencies = ["cbindgen"]
+condition = { env_not_set = ["RELEASE_MODE"] }
+
+[tasks.build-cli-release]
+script = "cd ../cli && cargo build --release"
+dependencies = ["cbindgen"]
+condition = { env_set = ["RELEASE_MODE"] }
+
+[tasks.build-cli]
+dependencies = ["build-cli-debug", "build-cli-release"]
+
+[tasks.integ-tests-generate-debug]
+script = "cd ../../integ-tests && ../engine/target/debug/baml-cli generate"
+dependencies = ["build-cli-debug"]
+condition = { env_not_set = ["RELEASE_MODE"] }
+
+[tasks.integ-tests-generate-release]
+script = "cd ../../integ-tests && ../engine/target/release/baml-cli generate"
+dependencies = ["build-cli-release"]
+condition = { env_set = ["RELEASE_MODE"] }
+
+[tasks.integ-tests-generate]
+dependencies = ["integ-tests-generate-debug", "integ-tests-generate-release"]
+
+[tasks.go-sdk]
+dependencies = ["go-sdk-debug", "go-sdk-release", "integ-tests-generate"]
