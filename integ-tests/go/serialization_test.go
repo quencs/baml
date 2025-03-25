@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	_ "fmt"
 	"testing"
@@ -56,16 +55,54 @@ func TestSerialization(t *testing.T) {
 			actual, err := baml_client.Encode(test.expected)
 			require.NoError(t, err)
 
-			// can't directly compare the JSON strings because the order of keys and whitespace is not guaranteed
-			actualJSON, err := json.NewDecoder(bytes.NewReader(actual)).Token()
-			require.NoError(t, err)
-
-			expectedJSON, err := json.NewDecoder(bytes.NewReader([]byte(test.input))).Token()
-			require.NoError(t, err)
-
-			if actualJSON != expectedJSON {
-				require.Equal(t, test.input, string(actual))
-			}
+			compareJSON(t, []byte(test.input), actual)
 		})
 	}
+}
+
+func TestRoundTripFromInput(t *testing.T) {
+	for _, test := range testCases {
+		if test.expected == types.CategoryRefund {
+			continue
+		}
+
+		t.Run(test.input, func(t *testing.T) {
+			decoded, err := baml_client.Decode([]byte(test.input))
+			require.NoError(t, err)
+
+			roundTrippedData, err := baml_client.Encode(decoded)
+			require.NoError(t, err)
+
+			compareJSON(t, []byte(test.input), roundTrippedData)
+		})
+	}
+}
+
+func TestRoundTripFromOutput(t *testing.T) {
+	for _, test := range testCases {
+		t.Run(test.input, func(t *testing.T) {
+			encoded, err := baml_client.Encode(test.expected)
+			require.NoError(t, err)
+
+			decoded, err := baml_client.Decode(encoded)
+			require.NoError(t, err)
+
+			require.Equal(t, test.expected, decoded)
+		})
+	}
+}
+
+// can't directly compare the JSON strings because the order of keys and whitespace is not guaranteed
+func compareJSON(t *testing.T, expected, actual []byte) {
+	t.Helper()
+
+	var expectedObject any
+	err := json.Unmarshal(expected, &expectedObject)
+	require.NoError(t, err)
+
+	var actualObject any
+	err = json.Unmarshal(actual, &actualObject)
+	require.NoError(t, err)
+
+	require.Equal(t, expectedObject, actualObject)
 }
