@@ -201,7 +201,7 @@ impl GenerateClient for GeneratorOutputType {
         #[cfg(not(target_arch = "wasm32"))]
         {
             for cmd in gen.on_generate.iter() {
-                log::info!("Running {:?} in {}", cmd, gen.output_dir().display());
+                baml_log::info!("Running {:?} in {}", cmd, gen.output_dir().display());
                 let status = std::process::Command::new("sh")
                     .arg("-c")
                     .arg(cmd)

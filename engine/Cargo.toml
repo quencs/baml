@@ -5,7 +5,6 @@ members = [
   "baml-runtime",
   "baml-schema-wasm",
   "bstd",
-  "btrace",
   "cli",
   "language_client_codegen",
   "language_client_python",
@@ -23,7 +22,6 @@ default-members = [
   # also have something to do with resolver=2 and how duplicate dep builds are handled)
   # "baml-schema-wasm",
   "bstd",
-  "btrace",
   "cli",
   "language_client_codegen",
   "language_client_python",
@@ -37,6 +35,7 @@ anyhow = "1.0"
 askama = "0.12.1"
 baml-cli = { path = "cli" }
 baml-types = { path = "baml-lib/baml-types" }
+baml-log = { path = "baml-lib/baml-log" }
 base64 = "0.22.1"
 bstd = { path = "bstd" }
 bytes = "1.6.0"
@@ -54,6 +53,8 @@ indexmap = { version = "2.1.0", features = ["serde"] }
 indoc = "2.0.5"
 internal-baml-codegen = { path = "language_client_codegen" }
 internal-baml-core = { path = "baml-lib/baml-core" }
+internal-baml-jinja = { path = "baml-lib/jinja-runtime" }
+internal-llm-client = { path = "baml-lib/llm-client" }
 log = "0.4.20"
 # TODO: disable imports, etc
 minijinja = { version = "1.0.16", default-features = false, features = [
@@ -99,10 +100,13 @@ url = "2.5.2"
 uuid = { version = "1.8.0", features = ["v4", "v7", "serde"] }
 walkdir = "2.5.0"
 web-time = "1.1.0"
-
+tokio = { version = "1", default-features = false, features = [
+  "macros",
+  "time",
+] }
 
 [workspace.package]
-version = "0.76.2"
+version = "0.81.3"
 authors = ["Boundary <contact@boundaryml.com>"]
 
 description = "BAML Toolchain"

@@ -272,12 +272,6 @@ impl Server {
             return (StatusCode::FORBIDDEN, format!("{}\n", e.trim())).into_response();
         }
 
-        // log::info!(
-        //     "incoming request triggering middleware, basic auth is {:?} and x-baml-api-key is {:?}",
-        //     basic_auth,
-        //     baml_api_key
-        // );
-
         next.run(request).await
     }
 
@@ -327,7 +321,7 @@ impl Server {
         // out of the box.
         //
         // .with_graceful_shutdown(signal::ctrl_c());
-        log::info!(
+        baml_log::info!(
             r#"BAML-over-HTTP listening on port {}, serving from {}
 
 Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
@@ -360,7 +354,7 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
 
         let locked = self.b.read().await;
         let (result, _trace_id) = locked
-            .call_function(b_fn, &args, &ctx_mgr, None, client_registry.as_ref())
+            .call_function(b_fn, &args, &ctx_mgr, None, client_registry.as_ref(), None)
             .await;
 
         match result {
@@ -455,6 +449,7 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
                 &ctx_mgr,
                 None,
                 client_registry.as_ref(),
+                Some(vec![]),
             );
 
             match result_stream {

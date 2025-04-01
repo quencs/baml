@@ -28,13 +28,13 @@
 **Try BAML**: [Prompt Fiddle](https://www.promptfiddle.com) • [Examples](https://baml-examples.vercel.app/) • [Example Source Code](https://github.com/BoundaryML/baml-examples)
 
 **5 minute quickstarts**
-[Python](https://docs.boundaryml.com/guide/installation-language/python) • [Typescript](https://docs.boundaryml.com/guide/installation-language/typescript) • [NextJS](https://docs.boundaryml.com/guide/installation-language/next-js) • [Ruby](https://docs.boundaryml.com/guide/installation-language/ruby) • [Others](https://docs.boundaryml.com/guide/installation-language/rest-api-other-languages) (Go, Java, C++, Rust, PHP, etc)
+[Python](https://docs.boundaryml.com/guide/installation-language/python) • [Typescript](https://docs.boundaryml.com/guide/installation-language/typescript) • [NextJS](https://docs.boundaryml.com/guide/framework-integration/react-next-js/quick-start) • [Ruby](https://docs.boundaryml.com/guide/installation-language/ruby) • [Others](https://docs.boundaryml.com/guide/installation-language/rest-api-other-languages) (Go, Java, C++, Rust, PHP, etc)
 
 </div>
 
 |   |     |
 | - | - |
-| What is BAML? | BAML is a new programming language for builing AI applications. |
+| What is BAML? | BAML is a new programming language for building AI applications. |
 | Do I need to write my whole app in BAML? | Nope, only the AI parts, you can then use BAML with any existing language of your choice! [python](/python), [typescript](/ts), and [more](/more). |
 | Is BAML stable? | Yes, many companies use it in production! We ship updates weekly and rarely have breaking changes |
 | Why a new language? | [Jump to section](#why-a-new-programming-language) |
@@ -45,13 +45,13 @@
 
 The fundamental building block in BAML is a function. Every prompt is a function that takes in parameters and returns a type.
 
-```baml
+```rust
 function ChatAgent(message: Message[], tone: "happy" | "sad") -> string
 ```
 
 Every function additionally defines which models it uses and what its prompt is.
 
-```baml
+```rust
 function ChatAgent(message: Message[], tone: "happy" | "sad") -> StopTool | ReplyTool {
     client "openai/gpt-4o-mini"
 
@@ -100,7 +100,7 @@ while True:
     print("Goodbye!")
     break
   else:
-    messages.append(Message(role="assistant", content=tool.reply))
+    messages.append(Message(role="assistant", content=tool.response))
 ```
 
 ### Making prompts easy to find and read

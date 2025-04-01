@@ -22,7 +22,9 @@ use crate::output_format::OutputFormat;
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Serialize)]
 pub struct RenderContext_Client {
+    // The name of the actual client
     pub name: String,
+    // The provider for this client
     pub provider: String,
     pub default_role: String,
     pub allowed_roles: Vec<String>,
@@ -296,9 +298,8 @@ pub enum RenderedPrompt {
 impl std::fmt::Display for RenderedPrompt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            RenderedPrompt::Completion(s) => write!(f, "[{}] {}", "completion".dimmed(), s),
+            RenderedPrompt::Completion(s) => write!(f, "{}", s),
             RenderedPrompt::Chat(messages) => {
-                write!(f, "[{}] ", "chat".dimmed())?;
                 for message in messages {
                     writeln!(
                         f,
@@ -307,7 +308,7 @@ impl std::fmt::Display for RenderedPrompt {
                         message
                             .parts
                             .iter()
-                            .map(|p| p.to_string())
+                            .map(ChatMessagePart::to_string)
                             .collect::<Vec<String>>()
                             .join("")
                     )?;
@@ -499,7 +500,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -548,7 +549,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -619,7 +620,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -675,7 +676,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -761,7 +762,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -817,7 +818,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -857,7 +858,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -897,7 +898,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -937,7 +938,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -980,7 +981,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -1046,7 +1047,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -1130,7 +1131,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -1214,7 +1215,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -1275,7 +1276,7 @@ mod render_tests {
         let ir = make_test_ir(
             "
             class C {
-                
+
             }
             ",
         )?;
@@ -1845,7 +1846,7 @@ mod render_tests {
         let ir = make_test_ir(
             r#"
             class A {
-                a_prop1 string 
+                a_prop1 string
                 a_prop2 B[] @alias("alias_a_prop2")
             }
 

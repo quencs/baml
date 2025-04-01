@@ -4,7 +4,7 @@ use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::FieldType;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::internal::llm_client::llm_provider::LLMProvider;
+use crate::{internal::llm_client::llm_provider::LLMProvider, tracing::BamlTracer};
 
 #[derive(Debug, Clone)]
 pub struct SpanCtx {
@@ -17,6 +17,8 @@ pub struct PropertyAttributes {
     pub(crate) alias: Option<BamlValue>,
     pub(crate) skip: Option<bool>,
     pub(crate) meta: IndexMap<String, BamlValue>,
+    pub(crate) constraints: Vec<baml_types::Constraint>,
+    pub(crate) streaming_behavior: baml_types::StreamingBehavior,
 }
 
 #[derive(Debug)]
@@ -58,6 +60,8 @@ pub struct RuntimeContext {
     pub enum_overrides: IndexMap<String, RuntimeEnumOverride>,
     pub type_alias_overrides: IndexMap<String, FieldType>,
     pub recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
+    // Only the BAML_TRACER depends on this. If it goes missing due to a bug, we just wont publish logs.
+    pub span_id: Option<uuid::Uuid>,
     pub recursive_class_overrides: Vec<IndexSet<String>>,
 }
 
@@ -84,6 +88,7 @@ impl RuntimeContext {
         type_alias_overrides: IndexMap<String, FieldType>,
         recursive_class_overrides: Vec<IndexSet<String>>,
         recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
+        span_id: Option<uuid::Uuid>,
     ) -> RuntimeContext {
         RuntimeContext {
             baml_src,
@@ -94,6 +99,7 @@ impl RuntimeContext {
             enum_overrides,
             type_alias_overrides,
             recursive_type_alias_overrides,
+            span_id,
             recursive_class_overrides,
         }
     }

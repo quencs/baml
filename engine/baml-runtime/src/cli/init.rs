@@ -67,7 +67,7 @@ impl InitArgs {
         let openapi_generator_path = infer_openapi_command();
 
         if let Err(e) = &openapi_generator_path {
-            log::warn!(
+            baml_log::warn!(
                 "Failed to find openapi-generator-cli in your PATH, defaulting to using npx: {}",
                 e
             );
@@ -80,7 +80,7 @@ impl InitArgs {
         );
         std::fs::write(main_baml, main_baml_content)?;
 
-        log::info!(
+        baml_log::info!(
             "Created new BAML project in {} for {}",
             baml_src.display(),
             match output_type {
@@ -95,7 +95,7 @@ impl InitArgs {
                 GeneratorOutputType::Go => "Go clients".to_string(),
             }
         );
-        log::info!(
+        baml_log::info!(
             "Follow instructions at https://docs.boundaryml.com/docs/get-started/quickstart/{}",
             match output_type {
                 GeneratorOutputType::PythonPydantic => "python",
