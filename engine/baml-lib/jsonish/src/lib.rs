@@ -29,6 +29,16 @@ pub struct ResponseBamlValue(
     pub BamlValueWithMeta<(Vec<Flag>, Vec<ResponseCheck>, Completion, FieldType)>,
 );
 
+pub trait HasFieldType {
+    fn field_type<'a>(&'a self) -> &'a FieldType;
+}
+
+impl HasFieldType for BamlValueWithMeta<(Vec<Flag>, Vec<ResponseCheck>, Completion, FieldType)> {
+    fn field_type<'a>(&'a self) -> &'a FieldType {
+        &self.meta().3
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum SerializeMode {
     Final,

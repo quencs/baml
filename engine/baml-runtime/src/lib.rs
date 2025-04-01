@@ -54,6 +54,7 @@ use internal_baml_core::configuration::GeneratorOutputType;
 use internal_baml_core::ir::FunctionWalker;
 use internal_llm_client::AllowedRoleMetadata;
 use internal_llm_client::ClientSpec;
+pub use jsonish::HasFieldType;
 use jsonish::ResponseBamlValue;
 use on_log_event::LogEventCallbackSync;
 use runtime::InternalBamlRuntime;

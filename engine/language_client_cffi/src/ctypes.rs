@@ -1,4 +1,4 @@
-use baml_runtime::{internal::llm_client::ResponseBamlValue, FieldType};
+use baml_runtime::HasFieldType;
 use baml_types::{BamlMedia, BamlValue, BamlValueWithMeta};
 
 #[allow(non_snake_case)]
@@ -213,7 +213,10 @@ impl From<CFFIValueStreamingState<'_>> for BamlValue {
 pub fn serialize_baml_value_with_meta<'a, 'b, T>(
     value: &'b BamlValueWithMeta<T>,
     mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
-) -> &'a [u8] {
+) -> &'a [u8]
+where
+    BamlValueWithMeta<T>: HasFieldType,
+{
     let value_holder = from_baml_value_with_meta(value, &mut builder);
     builder.finish(value_holder, None);
     builder.finished_data()
@@ -222,7 +225,10 @@ pub fn serialize_baml_value_with_meta<'a, 'b, T>(
 fn from_baml_value_with_meta<'a, 'b, T>(
     value: &'b BamlValueWithMeta<T>,
     mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
-) -> flatbuffers::WIPOffset<CFFIValueHolder<'b>> {
+) -> flatbuffers::WIPOffset<CFFIValueHolder<'b>>
+where
+    BamlValueWithMeta<T>: HasFieldType,
+{
     let (value_type, value_holder) = match value {
         BamlValueWithMeta::String(val, _) => {
             // Create a FlatBuffers string and get its offset.
