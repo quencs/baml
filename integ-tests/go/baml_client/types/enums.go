@@ -13,6 +13,9 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/boundaryml/baml/go/pkg/cffi"
+	baml "github.com/boundaryml/baml/go/pkg"
 )
 
 
@@ -63,6 +66,14 @@ func (e *AliasedEnum) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid AliasedEnum: %q", s)
     }
     return nil
+}
+
+func (e *AliasedEnum) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "AliasedEnum" {
+        panic(fmt.Sprintf("expected AliasedEnum, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = AliasedEnum(value)
 }
 
 func (e AliasedEnum) BamlEncode() ([]byte, error) {
@@ -127,6 +138,14 @@ func (e *Category) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *Category) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "Category" {
+        panic(fmt.Sprintf("expected Category, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = Category(value)
+}
+
 func (e Category) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "Category",
@@ -187,6 +206,14 @@ func (e *Category2) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid Category2: %q", s)
     }
     return nil
+}
+
+func (e *Category2) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "Category2" {
+        panic(fmt.Sprintf("expected Category2, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = Category2(value)
 }
 
 func (e Category2) BamlEncode() ([]byte, error) {
@@ -251,6 +278,14 @@ func (e *Category3) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *Category3) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "Category3" {
+        panic(fmt.Sprintf("expected Category3, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = Category3(value)
+}
+
 func (e Category3) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "Category3",
@@ -311,6 +346,14 @@ func (e *Color) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *Color) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "Color" {
+        panic(fmt.Sprintf("expected Color, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = Color(value)
+}
+
 func (e Color) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "Color",
@@ -367,6 +410,14 @@ func (e *DataType) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *DataType) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "DataType" {
+        panic(fmt.Sprintf("expected DataType, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = DataType(value)
+}
+
 func (e DataType) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "DataType",
@@ -416,6 +467,14 @@ func (e *DynEnumOne) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *DynEnumOne) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "DynEnumOne" {
+        panic(fmt.Sprintf("expected DynEnumOne, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = DynEnumOne(value)
+}
+
 func (e DynEnumOne) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "DynEnumOne",
@@ -463,6 +522,14 @@ func (e *DynEnumTwo) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid DynEnumTwo: %q", s)
     }
     return nil
+}
+
+func (e *DynEnumTwo) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "DynEnumTwo" {
+        panic(fmt.Sprintf("expected DynEnumTwo, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = DynEnumTwo(value)
 }
 
 func (e DynEnumTwo) BamlEncode() ([]byte, error) {
@@ -519,6 +586,14 @@ func (e *EnumInClass) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid EnumInClass: %q", s)
     }
     return nil
+}
+
+func (e *EnumInClass) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "EnumInClass" {
+        panic(fmt.Sprintf("expected EnumInClass, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = EnumInClass(value)
 }
 
 func (e EnumInClass) BamlEncode() ([]byte, error) {
@@ -583,6 +658,14 @@ func (e *EnumOutput) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *EnumOutput) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "EnumOutput" {
+        panic(fmt.Sprintf("expected EnumOutput, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = EnumOutput(value)
+}
+
 func (e EnumOutput) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "EnumOutput",
@@ -635,6 +718,14 @@ func (e *Hobby) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid Hobby: %q", s)
     }
     return nil
+}
+
+func (e *Hobby) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "Hobby" {
+        panic(fmt.Sprintf("expected Hobby, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = Hobby(value)
 }
 
 func (e Hobby) BamlEncode() ([]byte, error) {
@@ -695,6 +786,14 @@ func (e *MapKey) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *MapKey) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "MapKey" {
+        panic(fmt.Sprintf("expected MapKey, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = MapKey(value)
+}
+
 func (e MapKey) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "MapKey",
@@ -749,6 +848,14 @@ func (e *NamedArgsSingleEnum) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid NamedArgsSingleEnum: %q", s)
     }
     return nil
+}
+
+func (e *NamedArgsSingleEnum) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "NamedArgsSingleEnum" {
+        panic(fmt.Sprintf("expected NamedArgsSingleEnum, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = NamedArgsSingleEnum(value)
 }
 
 func (e NamedArgsSingleEnum) BamlEncode() ([]byte, error) {
@@ -807,6 +914,14 @@ func (e *NamedArgsSingleEnumList) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *NamedArgsSingleEnumList) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "NamedArgsSingleEnumList" {
+        panic(fmt.Sprintf("expected NamedArgsSingleEnumList, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = NamedArgsSingleEnumList(value)
+}
+
 func (e NamedArgsSingleEnumList) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "NamedArgsSingleEnumList",
@@ -863,6 +978,14 @@ func (e *OptionalTest_CategoryType) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid OptionalTest_CategoryType: %q", s)
     }
     return nil
+}
+
+func (e *OptionalTest_CategoryType) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "OptionalTest_CategoryType" {
+        panic(fmt.Sprintf("expected OptionalTest_CategoryType, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = OptionalTest_CategoryType(value)
 }
 
 func (e OptionalTest_CategoryType) BamlEncode() ([]byte, error) {
@@ -925,6 +1048,14 @@ func (e *OrderStatus) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+func (e *OrderStatus) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "OrderStatus" {
+        panic(fmt.Sprintf("expected OrderStatus, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = OrderStatus(value)
+}
+
 func (e OrderStatus) BamlEncode() ([]byte, error) {
     return json.Marshal(map[string]any{
         "enum_class": "OrderStatus",
@@ -981,6 +1112,14 @@ func (e *Tag) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid Tag: %q", s)
     }
     return nil
+}
+
+func (e *Tag) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "Tag" {
+        panic(fmt.Sprintf("expected Tag, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = Tag(value)
 }
 
 func (e Tag) BamlEncode() ([]byte, error) {
@@ -1047,6 +1186,14 @@ func (e *TestEnum) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid TestEnum: %q", s)
     }
     return nil
+}
+
+func (e *TestEnum) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "TestEnum" {
+        panic(fmt.Sprintf("expected TestEnum, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = TestEnum(value)
 }
 
 func (e TestEnum) BamlEncode() ([]byte, error) {

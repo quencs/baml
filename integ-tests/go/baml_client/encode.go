@@ -18,10 +18,6 @@ import (
   "example.com/integ-tests/baml_client/types"
 )
 
-type BamlDecoder interface {
-  BamlDecode(decodedMap map[string]any)
-}
-
 type BamlEncoder interface {
   BamlEncode() ([]byte, error)
 }
@@ -56,13 +52,19 @@ var typeMap = map[string]reflect.Type{
   
   "ClassWithoutDone": reflect.TypeOf(types.ClassWithoutDone{}),
   
+  "ClientDetails1559": reflect.TypeOf(types.ClientDetails1559{}),
+  
   "ComplexMemoryObject": reflect.TypeOf(types.ComplexMemoryObject{}),
   
   "CompoundBigNumbers": reflect.TypeOf(types.CompoundBigNumbers{}),
   
   "ContactInfo": reflect.TypeOf(types.ContactInfo{}),
   
+  "CustomStory": reflect.TypeOf(types.CustomStory{}),
+  
   "CustomTaskResult": reflect.TypeOf(types.CustomTaskResult{}),
+  
+  "Document1559": reflect.TypeOf(types.Document1559{}),
   
   "DummyOutput": reflect.TypeOf(types.DummyOutput{}),
   
@@ -73,6 +75,8 @@ var typeMap = map[string]reflect.Type{
   "DynamicClassTwo": reflect.TypeOf(types.DynamicClassTwo{}),
   
   "DynamicOutput": reflect.TypeOf(types.DynamicOutput{}),
+  
+  "DynamicSchema": reflect.TypeOf(types.DynamicSchema{}),
   
   "Earthling": reflect.TypeOf(types.Earthling{}),
   
@@ -101,6 +105,8 @@ var typeMap = map[string]reflect.Type{
   "FormatterTest3": reflect.TypeOf(types.FormatterTest3{}),
   
   "GroceryReceipt": reflect.TypeOf(types.GroceryReceipt{}),
+  
+  "Haiku": reflect.TypeOf(types.Haiku{}),
   
   "InnerClass": reflect.TypeOf(types.InnerClass{}),
   
@@ -143,6 +149,8 @@ var typeMap = map[string]reflect.Type{
   "Node": reflect.TypeOf(types.Node{}),
   
   "NodeWithAliasIndirection": reflect.TypeOf(types.NodeWithAliasIndirection{}),
+  
+  "Note1599": reflect.TypeOf(types.Note1599{}),
   
   "OptionalListAndMap": reflect.TypeOf(types.OptionalListAndMap{}),
   
@@ -274,13 +282,9 @@ var typeMap = map[string]reflect.Type{
   
   "Union__Martian__Earthling": reflect.TypeOf(types.Union__Martian__Earthling{}),
   
-  "Union__int64__float64": reflect.TypeOf(types.Union__int64__float64{}),
-  
   "Union__Resume__Event": reflect.TypeOf(types.Union__Resume__Event{}),
   
   "Union__string_barisa__string_ox_burger": reflect.TypeOf(types.Union__string_barisa__string_ox_burger{}),
-  
-  "Union__string_breakfast__string_dinner": reflect.TypeOf(types.Union__string_breakfast__string_dinner{}),
   
   "Union__Nested__string": reflect.TypeOf(types.Union__Nested__string{}),
   
@@ -302,58 +306,6 @@ var typeMap = map[string]reflect.Type{
   
   "Union__int64__string__bool__float64__JsonObject__JsonArray": reflect.TypeOf(types.Union__int64__string__bool__float64__JsonObject__JsonArray{}),
   
-}
-
-func Decode(data []byte) (any, error) {
-  var decoded any
-  if err := json.Unmarshal(data, &decoded); err != nil {
-    return nil, err
-  }
-
-  var result any
-  if reflect.TypeOf(decoded).Kind() == reflect.Map {
-    decodedMap := decoded.(map[string]any)
-    if decodedMap["class_name"] != nil {
-      className := decodedMap["class_name"].(string)
-      newObject := reflect.New(typeMap[className]).Interface().(BamlDecoder)
-      newObject.BamlDecode(decodedMap)
-      result = newObject
-    } else if decodedMap["enum_class"] != nil {
-      enumClassName := decodedMap["enum_class"].(string)
-      enumValue := decodedMap["enum_value"].(string)
-      enum := reflect.New(typeMap[enumClassName]).Elem()
-      enum.SetString(enumValue)
-      result = enum.Interface()
-    } else if decodedMap["union_name"] != nil {
-      unionClassName := decodedMap["union_name"].(string)
-      union := reflect.New(typeMap[unionClassName]).Interface().(BamlDecoder)
-      union.BamlDecode(decodedMap)
-      result = union
-    }
-  } else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
-    decodedSlice := decoded.([]any)
-    
-    if len(decodedSlice) > 0 {
-			keyType := reflect.TypeOf("")
-			
-			valueType := reflect.TypeOf((*any)(nil)).Elem()
-
-			newMap := reflect.MakeMap(reflect.MapOf(keyType, valueType))
-			for _, item := range decodedSlice {
-				itemMap := item.(map[string]any)
-				key := itemMap["key"].(string)
-				value := itemMap["value"]
-				newMap.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
-			}
-			result = newMap.Interface()
-    } else {
-      result = map[string]any{}
-    }
-  } else {
-    result = decoded
-  }
-
-	return result, nil
 }
 
 func Encode(object any) ([]byte, error) {

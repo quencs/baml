@@ -86,6 +86,8 @@ static mut ERROR_CALLBACK_FN: Option<CallbackFn> = None;
 
 #[no_mangle]
 extern "C" fn register_callbacks(callback_fn: CallbackFn, error_callback_fn: CallbackFn) {
+    baml_log::init();
+
     // Create a global runtime or pass it along as needed.
     let _rt = tokio::runtime::Runtime::new().unwrap();
     // Store _rt somewhere accessible if needed.
@@ -177,7 +179,7 @@ fn call_function_from_c_inner(
     let rt = unsafe { RUNTIME.as_ref().unwrap() };
     rt.spawn(async move {
         let (result, _) = runtime
-            .call_function(func_name, &keyword_args, &ctx, None, None)
+            .call_function(func_name, &keyword_args, &ctx, None, None, None)
             .await;
         safe_trigger_callback(id, true, result);
     });
@@ -223,7 +225,8 @@ fn call_function_stream_from_c_inner(
     let keyword_args = ckwargs_to_map(kwargs)?;
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
-    let mut stream = match runtime.stream_function(func_name, &keyword_args, &ctx, None, None) {
+    let mut stream = match runtime.stream_function(func_name, &keyword_args, &ctx, None, None, None)
+    {
         Ok(stream) => stream,
         Err(e) => {
             return Err(anyhow::anyhow!("Failed to stream function: {}", e));

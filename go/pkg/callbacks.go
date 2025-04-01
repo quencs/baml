@@ -12,21 +12,32 @@ import "C"
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sync"
 	"unsafe"
 
-	"github.com/boundaryml/baml/go/pkg/CFFI"
+	"github.com/boundaryml/baml/go/pkg/cffi"
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-type ResultCallback struct {
-	data CFFI.CFFIValueHolder // JSON string
+type BamlError struct {
+	Message string
 }
 
-func (r *ResultCallback) Raw() string {
-	return fmt.Sprintf("%s: %s", r.data.ValueType().String(), len(r.data.Table().Bytes))
+type BamlClientError struct {
+	BamlError
+}
+
+type BamlClientHttpError struct {
+	BamlClientError
+}
+
+type ResultCallback struct {
+	Error         error
+	HasStreamData bool
+	HasData       bool
+	StreamData    *any
+	Data          *any
 }
 
 type CallbackData struct {
@@ -38,7 +49,12 @@ type CallbackData struct {
 var (
 	dynamicCallbacks = make(map[uint32]CallbackData)
 	callbackMutex    sync.RWMutex
+	typeMap          TypeMap
 )
+
+func SetTypeMap(t TypeMap) {
+	typeMap = t
+}
 
 //export trigger_callback
 func trigger_callback(id C.uint32_t, isDone C.bool, content *C.int8_t, length C.int) {
@@ -50,11 +66,17 @@ func trigger_callback(id C.uint32_t, isDone C.bool, content *C.int8_t, length C.
 	if exists {
 		content_bytes := C.GoBytes(unsafe.Pointer(content), length)
 
-		parsed_data := CFFI.CFFIValueHolder{}
+		parsed_data := cffi.CFFIValueHolder{}
 		flatbuffers.GetRootAs(content_bytes, 0, &parsed_data)
+		decoded_data := Decode(&parsed_data, typeMap)
 
-		my_string := fmt.Sprintf("Length: %d, Type: %s", length, parsed_data.ValueType().String())
-		fmt.Println("My string: ", my_string)
+		var res ResultCallback
+		if isDone {
+			res = ResultCallback{HasData: true, Data: &decoded_data}
+		} else {
+			res = ResultCallback{HasStreamData: true, StreamData: &decoded_data}
+		}
+
 		force_close := false
 
 		select {
@@ -62,13 +84,11 @@ func trigger_callback(id C.uint32_t, isDone C.bool, content *C.int8_t, length C.
 			force_close = true
 			// TODO: Somehow tell rust to die
 			break
-		case callback.channel <- ResultCallback{data: parsed_data}:
-			fmt.Println("Sending data to channel")
+		case callback.channel <- res:
 			break
 		}
 
 		if bool(isDone) || force_close {
-			fmt.Println("Closing channel")
 			close(callback.channel)
 			callbackMutex.Lock()
 			defer callbackMutex.Unlock()

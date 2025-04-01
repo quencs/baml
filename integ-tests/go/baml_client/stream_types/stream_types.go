@@ -208,6 +208,25 @@ type ClassWithoutDone struct {
     
 }
 
+type ClientDetails1559 struct {
+    
+    Client_name *string `json:"client_name"`
+    
+    Client_address *string `json:"client_address"`
+    
+    Client_postal_code *string `json:"client_postal_code"`
+    
+    Client_city *string `json:"client_city"`
+    
+    Client_country *string `json:"client_country"`
+    
+    Client_phone *string `json:"client_phone"`
+    
+    Client_email *string `json:"client_email"`
+    
+    
+}
+
 type ComplexMemoryObject struct {
     
     Id *string `json:"id"`
@@ -241,6 +260,17 @@ type ContactInfo struct {
     
 }
 
+type CustomStory struct {
+    
+    Title *string `json:"title"`
+    
+    Characters []string `json:"characters"`
+    
+    Content *string `json:"content"`
+    
+    
+}
+
 type CustomTaskResult struct {
     
     BookOrder *BookOrder `json:"bookOrder"`
@@ -248,6 +278,15 @@ type CustomTaskResult struct {
     FlightConfirmation *FlightConfirmation `json:"flightConfirmation"`
     
     GroceryReceipt *GroceryReceipt `json:"groceryReceipt"`
+    
+    
+}
+
+type Document1559 struct {
+    
+    Client_details *ClientDetails1559 `json:"client_details"`
+    
+    Notes []Note1599 `json:"notes"`
     
     
 }
@@ -293,6 +332,13 @@ type DynamicClassTwo struct {
 }
 
 type DynamicOutput struct {
+    
+    
+    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+    
+}
+
+type DynamicSchema struct {
     
     
     DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
@@ -437,6 +483,17 @@ type GroceryReceipt struct {
     Items []types.Union__string__int64__float64 `json:"items"`
     
     TotalAmount *float64 `json:"totalAmount"`
+    
+    
+}
+
+type Haiku struct {
+    
+    Line1 *string `json:"line1"`
+    
+    Line2 *string `json:"line2"`
+    
+    Line3 *string `json:"line3"`
     
     
 }
@@ -623,6 +680,17 @@ type NodeWithAliasIndirection struct {
     
 }
 
+type Note1599 struct {
+    
+    Note_title *string `json:"note_title"`
+    
+    Note_description *string `json:"note_description"`
+    
+    Note_amount *string `json:"note_amount"`
+    
+    
+}
+
 type OptionalListAndMap struct {
     
     P *[]string `json:"p"`
@@ -699,7 +767,9 @@ type PhoneNumber struct {
 
 type Quantity struct {
     
-    Amount *types.Union__int64__float64 `json:"amount"`
+    Name *string `json:"name"`
+    
+    Amount *float64 `json:"amount"`
     
     Unit *string `json:"unit"`
     
@@ -741,9 +811,9 @@ type ReceiptItem struct {
 
 type Recipe struct {
     
-    Ingredients map[string]*Quantity `json:"ingredients"`
+    Ingredients []Quantity `json:"ingredients"`
     
-    Recipe_type *types.Union__string_breakfast__string_dinner `json:"recipe_type"`
+    Recipe_type *string `json:"recipe_type"`
     
     
 }
@@ -763,9 +833,9 @@ type Resume struct {
     
     Phone *string `json:"phone"`
     
-    Experience []Education `json:"experience"`
+    Experience []string `json:"experience"`
     
-    Education []string `json:"education"`
+    Education []Education `json:"education"`
     
     Skills []string `json:"skills"`
     

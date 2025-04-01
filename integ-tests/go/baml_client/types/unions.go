@@ -10,7 +10,13 @@
 // BAML files and re-generate this code using: baml-cli generate
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/boundaryml/baml/go/pkg/cffi"
+	baml "github.com/boundaryml/baml/go/pkg"
+)
+
 
 
 type Union__BookOrder__FlightConfirmation__GroceryReceipt struct {
@@ -24,31 +30,26 @@ type Union__BookOrder__FlightConfirmation__GroceryReceipt struct {
     
 }
 
-func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "BookOrder":
-        coercedValue := BookOrder{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_BookOrder = &coercedValue
+	    case 0:
+            u.variant = "BookOrder"
+            casted := decoded.(BookOrder)
+            u.variant_BookOrder = &casted
     
-    case "FlightConfirmation":
-        coercedValue := FlightConfirmation{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_FlightConfirmation = &coercedValue
+	    case 1:
+            u.variant = "FlightConfirmation"
+            casted := decoded.(FlightConfirmation)
+            u.variant_FlightConfirmation = &casted
     
-    case "GroceryReceipt":
-        coercedValue := GroceryReceipt{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_GroceryReceipt = &coercedValue
+	    case 2:
+            u.variant = "GroceryReceipt"
+            casted := decoded.(GroceryReceipt)
+            u.variant_GroceryReceipt = &casted
     
-    }
+	}
 }
 
 func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) BamlEncode() ([]byte, error) {
@@ -166,25 +167,21 @@ type Union__OriginalA__OriginalB struct {
     
 }
 
-func (u *Union__OriginalA__OriginalB) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__OriginalA__OriginalB) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "OriginalA":
-        coercedValue := OriginalA{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_OriginalA = &coercedValue
+	    case 0:
+            u.variant = "OriginalA"
+            casted := decoded.(OriginalA)
+            u.variant_OriginalA = &casted
     
-    case "OriginalB":
-        coercedValue := OriginalB{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_OriginalB = &coercedValue
+	    case 1:
+            u.variant = "OriginalB"
+            casted := decoded.(OriginalB)
+            u.variant_OriginalB = &casted
     
-    }
+	}
 }
 
 func (u *Union__OriginalA__OriginalB) BamlEncode() ([]byte, error) {
@@ -272,23 +269,21 @@ type Union__string_curiosity__string_personal_finance struct {
     
 }
 
-func (u *Union__string_curiosity__string_personal_finance) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__string_curiosity__string_personal_finance) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "string_curiosity":
-        coercedValue := value.(string)
-
-        u.variant_string_curiosity = &coercedValue
+	    case 0:
+            u.variant = "string_curiosity"
+            casted := decoded.(string)
+            u.variant_string_curiosity = &casted
     
-    case "string_personal_finance":
-        coercedValue := value.(string)
-
-        u.variant_string_personal_finance = &coercedValue
+	    case 1:
+            u.variant = "string_personal_finance"
+            casted := decoded.(string)
+            u.variant_string_personal_finance = &casted
     
-    }
+	}
 }
 
 func (u *Union__string_curiosity__string_personal_finance) BamlEncode() ([]byte, error) {
@@ -368,25 +363,21 @@ type Union__LiteralClassOne__LiteralClassTwo struct {
     
 }
 
-func (u *Union__LiteralClassOne__LiteralClassTwo) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__LiteralClassOne__LiteralClassTwo) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "LiteralClassOne":
-        coercedValue := LiteralClassOne{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_LiteralClassOne = &coercedValue
+	    case 0:
+            u.variant = "LiteralClassOne"
+            casted := decoded.(LiteralClassOne)
+            u.variant_LiteralClassOne = &casted
     
-    case "LiteralClassTwo":
-        coercedValue := LiteralClassTwo{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_LiteralClassTwo = &coercedValue
+	    case 1:
+            u.variant = "LiteralClassTwo"
+            casted := decoded.(LiteralClassTwo)
+            u.variant_LiteralClassTwo = &casted
     
-    }
+	}
 }
 
 func (u *Union__LiteralClassOne__LiteralClassTwo) BamlEncode() ([]byte, error) {
@@ -478,33 +469,31 @@ type Union__string_one__string_two__string_three__string_four struct {
     
 }
 
-func (u *Union__string_one__string_two__string_three__string_four) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__string_one__string_two__string_three__string_four) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "string_one":
-        coercedValue := value.(string)
-
-        u.variant_string_one = &coercedValue
+	    case 0:
+            u.variant = "string_one"
+            casted := decoded.(string)
+            u.variant_string_one = &casted
     
-    case "string_two":
-        coercedValue := value.(string)
-
-        u.variant_string_two = &coercedValue
+	    case 1:
+            u.variant = "string_two"
+            casted := decoded.(string)
+            u.variant_string_two = &casted
     
-    case "string_three":
-        coercedValue := value.(string)
-
-        u.variant_string_three = &coercedValue
+	    case 2:
+            u.variant = "string_three"
+            casted := decoded.(string)
+            u.variant_string_three = &casted
     
-    case "string_four":
-        coercedValue := value.(string)
-
-        u.variant_string_four = &coercedValue
+	    case 3:
+            u.variant = "string_four"
+            casted := decoded.(string)
+            u.variant_string_four = &casted
     
-    }
+	}
 }
 
 func (u *Union__string_one__string_two__string_three__string_four) BamlEncode() ([]byte, error) {
@@ -638,28 +627,26 @@ type Union__int_1__bool_true__string_string_output struct {
     
 }
 
-func (u *Union__int_1__bool_true__string_string_output) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__int_1__bool_true__string_string_output) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "int_1":
-        coercedValue := value.(int)
-
-        u.variant_int_1 = &coercedValue
+	    case 0:
+            u.variant = "int_1"
+            casted := decoded.(int)
+            u.variant_int_1 = &casted
     
-    case "bool_true":
-        coercedValue := value.(bool)
-
-        u.variant_bool_true = &coercedValue
+	    case 1:
+            u.variant = "bool_true"
+            casted := decoded.(bool)
+            u.variant_bool_true = &casted
     
-    case "string_string_output":
-        coercedValue := value.(string)
-
-        u.variant_string_string_output = &coercedValue
+	    case 2:
+            u.variant = "string_string_output"
+            casted := decoded.(string)
+            u.variant_string_string_output = &casted
     
-    }
+	}
 }
 
 func (u *Union__int_1__bool_true__string_string_output) BamlEncode() ([]byte, error) {
@@ -773,47 +760,41 @@ type Union__int64__string__bool__float64__List__string__Map__string_List__string
     
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "int64":
-        coercedValue := int64(value.(float64))
-
-        u.variant_int64 = &coercedValue
+	    case 0:
+            u.variant = "int64"
+            casted := decoded.(int64)
+            u.variant_int64 = &casted
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 1:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    case "bool":
-        coercedValue := value.(bool)
-
-        u.variant_bool = &coercedValue
+	    case 2:
+            u.variant = "bool"
+            casted := decoded.(bool)
+            u.variant_bool = &casted
     
-    case "float64":
-        coercedValue := value.(float64)
-
-        u.variant_float64 = &coercedValue
+	    case 3:
+            u.variant = "float64"
+            casted := decoded.(float64)
+            u.variant_float64 = &casted
     
-    case "List__string":
-        coercedValue := make([]string, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(string)
-  coercedValue[i] = innercoercedValue
-}
-
-        u.variant_List__string = &coercedValue
+	    case 4:
+            u.variant = "List__string"
+            casted := decoded.([]string)
+            u.variant_List__string = &casted
     
-    case "Map__string_List__string":
-        coercedValue := value.(map[string][]string)
-
-        u.variant_Map__string_List__string = &coercedValue
+	    case 5:
+            u.variant = "Map__string_List__string"
+            casted := decoded.(map[string][]string)
+            u.variant_Map__string_List__string = &casted
     
-    }
+	}
 }
 
 func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) BamlEncode() ([]byte, error) {
@@ -1007,33 +988,31 @@ type Union__int64__string__bool__float64 struct {
     
 }
 
-func (u *Union__int64__string__bool__float64) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__int64__string__bool__float64) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "int64":
-        coercedValue := int64(value.(float64))
-
-        u.variant_int64 = &coercedValue
+	    case 0:
+            u.variant = "int64"
+            casted := decoded.(int64)
+            u.variant_int64 = &casted
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 1:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    case "bool":
-        coercedValue := value.(bool)
-
-        u.variant_bool = &coercedValue
+	    case 2:
+            u.variant = "bool"
+            casted := decoded.(bool)
+            u.variant_bool = &casted
     
-    case "float64":
-        coercedValue := value.(float64)
-
-        u.variant_float64 = &coercedValue
+	    case 3:
+            u.variant = "float64"
+            casted := decoded.(float64)
+            u.variant_float64 = &casted
     
-    }
+	}
 }
 
 func (u *Union__int64__string__bool__float64) BamlEncode() ([]byte, error) {
@@ -1165,23 +1144,21 @@ type Union__int64__string struct {
     
 }
 
-func (u *Union__int64__string) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__int64__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "int64":
-        coercedValue := int64(value.(float64))
-
-        u.variant_int64 = &coercedValue
+	    case 0:
+            u.variant = "int64"
+            casted := decoded.(int64)
+            u.variant_int64 = &casted
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 1:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    }
+	}
 }
 
 func (u *Union__int64__string) BamlEncode() ([]byte, error) {
@@ -1261,23 +1238,21 @@ type Union__string__bool struct {
     
 }
 
-func (u *Union__string__bool) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__string__bool) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 0:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    case "bool":
-        coercedValue := value.(bool)
-
-        u.variant_bool = &coercedValue
+	    case 1:
+            u.variant = "bool"
+            casted := decoded.(bool)
+            u.variant_bool = &casted
     
-    }
+	}
 }
 
 func (u *Union__string__bool) BamlEncode() ([]byte, error) {
@@ -1359,28 +1334,26 @@ type Union__string__int64__float64 struct {
     
 }
 
-func (u *Union__string__int64__float64) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__string__int64__float64) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 0:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    case "int64":
-        coercedValue := int64(value.(float64))
-
-        u.variant_int64 = &coercedValue
+	    case 1:
+            u.variant = "int64"
+            casted := decoded.(int64)
+            u.variant_int64 = &casted
     
-    case "float64":
-        coercedValue := value.(float64)
-
-        u.variant_float64 = &coercedValue
+	    case 2:
+            u.variant = "float64"
+            casted := decoded.(float64)
+            u.variant_float64 = &casted
     
-    }
+	}
 }
 
 func (u *Union__string__int64__float64) BamlEncode() ([]byte, error) {
@@ -1486,25 +1459,21 @@ type Union__PhoneNumber__EmailAddress struct {
     
 }
 
-func (u *Union__PhoneNumber__EmailAddress) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__PhoneNumber__EmailAddress) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "PhoneNumber":
-        coercedValue := PhoneNumber{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_PhoneNumber = &coercedValue
+	    case 0:
+            u.variant = "PhoneNumber"
+            casted := decoded.(PhoneNumber)
+            u.variant_PhoneNumber = &casted
     
-    case "EmailAddress":
-        coercedValue := EmailAddress{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_EmailAddress = &coercedValue
+	    case 1:
+            u.variant = "EmailAddress"
+            casted := decoded.(EmailAddress)
+            u.variant_EmailAddress = &casted
     
-    }
+	}
 }
 
 func (u *Union__PhoneNumber__EmailAddress) BamlEncode() ([]byte, error) {
@@ -1592,25 +1561,21 @@ type Union__Martian__Earthling struct {
     
 }
 
-func (u *Union__Martian__Earthling) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__Martian__Earthling) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "Martian":
-        coercedValue := Martian{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_Martian = &coercedValue
+	    case 0:
+            u.variant = "Martian"
+            casted := decoded.(Martian)
+            u.variant_Martian = &casted
     
-    case "Earthling":
-        coercedValue := Earthling{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_Earthling = &coercedValue
+	    case 1:
+            u.variant = "Earthling"
+            casted := decoded.(Earthling)
+            u.variant_Earthling = &casted
     
-    }
+	}
 }
 
 func (u *Union__Martian__Earthling) BamlEncode() ([]byte, error) {
@@ -1689,102 +1654,6 @@ func Union__Martian__EarthlingNewWithEarthling(v *Earthling) *Union__Martian__Ea
 
 
 
-type Union__int64__float64 struct {
-    variant string
-    
-    variant_int64 *int64
-    
-    variant_float64 *float64
-    
-}
-
-func (u *Union__int64__float64) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
-    
-    case "int64":
-        coercedValue := int64(value.(float64))
-
-        u.variant_int64 = &coercedValue
-    
-    case "float64":
-        coercedValue := value.(float64)
-
-        u.variant_float64 = &coercedValue
-    
-    }
-}
-
-func (u *Union__int64__float64) BamlEncode() ([]byte, error) {
-    encodedMap := map[string]any{
-        "union_name": "Union__int64__float64",
-        "union_variant": u.variant,
-    }
-
-    switch u.variant {
-    
-    case "int64":
-        
-		
-		{
-encodedMap["value"] = u.variant_int64
-}
-
-    
-    case "float64":
-        
-		
-		{
-encodedMap["value"] = u.variant_float64
-}
-
-    
-    }
-
-    return json.Marshal(encodedMap)
-}
-
-
-func (u *Union__int64__float64) IsInt64() bool {
-    return u.variant == "int64"
-}
-
-func (u *Union__int64__float64) Int64() *int64 {
-    if !u.IsInt64() {
-        return nil
-    }
-    return u.variant_int64
-}
-
-func Union__int64__float64NewWithInt64(v *int64) *Union__int64__float64 {
-    return &Union__int64__float64{
-        variant: "int64",
-        variant_int64: v,
-    }
-}
-
-func (u *Union__int64__float64) IsFloat64() bool {
-    return u.variant == "float64"
-}
-
-func (u *Union__int64__float64) Float64() *float64 {
-    if !u.IsFloat64() {
-        return nil
-    }
-    return u.variant_float64
-}
-
-func Union__int64__float64NewWithFloat64(v *float64) *Union__int64__float64 {
-    return &Union__int64__float64{
-        variant: "float64",
-        variant_float64: v,
-    }
-}
-
-
-
 type Union__Resume__Event struct {
     variant string
     
@@ -1794,25 +1663,21 @@ type Union__Resume__Event struct {
     
 }
 
-func (u *Union__Resume__Event) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__Resume__Event) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "Resume":
-        coercedValue := Resume{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_Resume = &coercedValue
+	    case 0:
+            u.variant = "Resume"
+            casted := decoded.(Resume)
+            u.variant_Resume = &casted
     
-    case "Event":
-        coercedValue := Event{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_Event = &coercedValue
+	    case 1:
+            u.variant = "Event"
+            casted := decoded.(Event)
+            u.variant_Event = &casted
     
-    }
+	}
 }
 
 func (u *Union__Resume__Event) BamlEncode() ([]byte, error) {
@@ -1900,23 +1765,21 @@ type Union__string_barisa__string_ox_burger struct {
     
 }
 
-func (u *Union__string_barisa__string_ox_burger) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__string_barisa__string_ox_burger) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "string_barisa":
-        coercedValue := value.(string)
-
-        u.variant_string_barisa = &coercedValue
+	    case 0:
+            u.variant = "string_barisa"
+            casted := decoded.(string)
+            u.variant_string_barisa = &casted
     
-    case "string_ox_burger":
-        coercedValue := value.(string)
-
-        u.variant_string_ox_burger = &coercedValue
+	    case 1:
+            u.variant = "string_ox_burger"
+            casted := decoded.(string)
+            u.variant_string_ox_burger = &casted
     
-    }
+	}
 }
 
 func (u *Union__string_barisa__string_ox_burger) BamlEncode() ([]byte, error) {
@@ -1987,102 +1850,6 @@ func Union__string_barisa__string_ox_burgerNewWithString_ox_burger(v *string) *U
 
 
 
-type Union__string_breakfast__string_dinner struct {
-    variant string
-    
-    variant_string_breakfast *string
-    
-    variant_string_dinner *string
-    
-}
-
-func (u *Union__string_breakfast__string_dinner) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
-    
-    case "string_breakfast":
-        coercedValue := value.(string)
-
-        u.variant_string_breakfast = &coercedValue
-    
-    case "string_dinner":
-        coercedValue := value.(string)
-
-        u.variant_string_dinner = &coercedValue
-    
-    }
-}
-
-func (u *Union__string_breakfast__string_dinner) BamlEncode() ([]byte, error) {
-    encodedMap := map[string]any{
-        "union_name": "Union__string_breakfast__string_dinner",
-        "union_variant": u.variant,
-    }
-
-    switch u.variant {
-    
-    case "string_breakfast":
-        
-		
-		{
-encodedMap["value"] = u.variant_string_breakfast
-}
-
-    
-    case "string_dinner":
-        
-		
-		{
-encodedMap["value"] = u.variant_string_dinner
-}
-
-    
-    }
-
-    return json.Marshal(encodedMap)
-}
-
-
-func (u *Union__string_breakfast__string_dinner) IsString_breakfast() bool {
-    return u.variant == "string_breakfast"
-}
-
-func (u *Union__string_breakfast__string_dinner) String_breakfast() *string {
-    if !u.IsString_breakfast() {
-        return nil
-    }
-    return u.variant_string_breakfast
-}
-
-func Union__string_breakfast__string_dinnerNewWithString_breakfast(v *string) *Union__string_breakfast__string_dinner {
-    return &Union__string_breakfast__string_dinner{
-        variant: "string_breakfast",
-        variant_string_breakfast: v,
-    }
-}
-
-func (u *Union__string_breakfast__string_dinner) IsString_dinner() bool {
-    return u.variant == "string_dinner"
-}
-
-func (u *Union__string_breakfast__string_dinner) String_dinner() *string {
-    if !u.IsString_dinner() {
-        return nil
-    }
-    return u.variant_string_dinner
-}
-
-func Union__string_breakfast__string_dinnerNewWithString_dinner(v *string) *Union__string_breakfast__string_dinner {
-    return &Union__string_breakfast__string_dinner{
-        variant: "string_dinner",
-        variant_string_dinner: v,
-    }
-}
-
-
-
 type Union__Nested__string struct {
     variant string
     
@@ -2092,24 +1859,21 @@ type Union__Nested__string struct {
     
 }
 
-func (u *Union__Nested__string) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__Nested__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "Nested":
-        coercedValue := Nested{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_Nested = &coercedValue
+	    case 0:
+            u.variant = "Nested"
+            casted := decoded.(Nested)
+            u.variant_Nested = &casted
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 1:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    }
+	}
 }
 
 func (u *Union__Nested__string) BamlEncode() ([]byte, error) {
@@ -2193,28 +1957,21 @@ type Union__string__List__Nested struct {
     
 }
 
-func (u *Union__string__List__Nested) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__string__List__Nested) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 0:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    case "List__Nested":
-        coercedValue := make([]Nested, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := Nested{}
-innercoercedValue.BamlDecode(v.(map[string]any))
-  coercedValue[i] = innercoercedValue
-}
-
-        u.variant_List__Nested = &coercedValue
+	    case 1:
+            u.variant = "List__Nested"
+            casted := decoded.([]Nested)
+            u.variant_List__Nested = &casted
     
-    }
+	}
 }
 
 func (u *Union__string__List__Nested) BamlEncode() ([]byte, error) {
@@ -2304,24 +2061,21 @@ type Union__string__Nested struct {
     
 }
 
-func (u *Union__string__Nested) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__string__Nested) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 0:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    case "Nested":
-        coercedValue := Nested{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_Nested = &coercedValue
+	    case 1:
+            u.variant = "Nested"
+            casted := decoded.(Nested)
+            u.variant_Nested = &casted
     
-    }
+	}
 }
 
 func (u *Union__string__Nested) BamlEncode() ([]byte, error) {
@@ -2405,23 +2159,21 @@ type Union__string__int64 struct {
     
 }
 
-func (u *Union__string__int64) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__string__int64) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 0:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    case "int64":
-        coercedValue := int64(value.(float64))
-
-        u.variant_int64 = &coercedValue
+	    case 1:
+            u.variant = "int64"
+            casted := decoded.(int64)
+            u.variant_int64 = &casted
     
-    }
+	}
 }
 
 func (u *Union__string__int64) BamlEncode() ([]byte, error) {
@@ -2501,23 +2253,21 @@ type Union__Tag__string struct {
     
 }
 
-func (u *Union__Tag__string) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__Tag__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "Tag":
-        coercedValue := Tag(value.(map[string]any)["enum_value"].(string))
-
-        u.variant_Tag = &coercedValue
+	    case 0:
+            u.variant = "Tag"
+            casted := decoded.(Tag)
+            u.variant_Tag = &casted
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 1:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    }
+	}
 }
 
 func (u *Union__Tag__string) BamlEncode() ([]byte, error) {
@@ -2603,31 +2353,26 @@ type Union__MemoryObject__ComplexMemoryObject__AnotherObject struct {
     
 }
 
-func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "MemoryObject":
-        coercedValue := MemoryObject{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_MemoryObject = &coercedValue
+	    case 0:
+            u.variant = "MemoryObject"
+            casted := decoded.(MemoryObject)
+            u.variant_MemoryObject = &casted
     
-    case "ComplexMemoryObject":
-        coercedValue := ComplexMemoryObject{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_ComplexMemoryObject = &coercedValue
+	    case 1:
+            u.variant = "ComplexMemoryObject"
+            casted := decoded.(ComplexMemoryObject)
+            u.variant_ComplexMemoryObject = &casted
     
-    case "AnotherObject":
-        coercedValue := AnotherObject{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_AnotherObject = &coercedValue
+	    case 2:
+            u.variant = "AnotherObject"
+            casted := decoded.(AnotherObject)
+            u.variant_AnotherObject = &casted
     
-    }
+	}
 }
 
 func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) BamlEncode() ([]byte, error) {
@@ -2745,23 +2490,21 @@ type Union__float64__bool struct {
     
 }
 
-func (u *Union__float64__bool) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__float64__bool) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "float64":
-        coercedValue := value.(float64)
-
-        u.variant_float64 = &coercedValue
+	    case 0:
+            u.variant = "float64"
+            casted := decoded.(float64)
+            u.variant_float64 = &casted
     
-    case "bool":
-        coercedValue := value.(bool)
-
-        u.variant_bool = &coercedValue
+	    case 1:
+            u.variant = "bool"
+            casted := decoded.(bool)
+            u.variant_bool = &casted
     
-    }
+	}
 }
 
 func (u *Union__float64__bool) BamlEncode() ([]byte, error) {
@@ -2841,31 +2584,21 @@ type Union__List__bool__List__int64 struct {
     
 }
 
-func (u *Union__List__bool__List__int64) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__List__bool__List__int64) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "List__bool":
-        coercedValue := make([]bool, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(bool)
-  coercedValue[i] = innercoercedValue
-}
-
-        u.variant_List__bool = &coercedValue
+	    case 0:
+            u.variant = "List__bool"
+            casted := decoded.([]bool)
+            u.variant_List__bool = &casted
     
-    case "List__int64":
-        coercedValue := make([]int64, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := int64(v.(float64))
-  coercedValue[i] = innercoercedValue
-}
-
-        u.variant_List__int64 = &coercedValue
+	    case 1:
+            u.variant = "List__int64"
+            casted := decoded.([]int64)
+            u.variant_List__int64 = &casted
     
-    }
+	}
 }
 
 func (u *Union__List__bool__List__int64) BamlEncode() ([]byte, error) {
@@ -2957,24 +2690,21 @@ type Union__SimpleTag__JsonTemplate struct {
     
 }
 
-func (u *Union__SimpleTag__JsonTemplate) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__SimpleTag__JsonTemplate) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "SimpleTag":
-        coercedValue := SimpleTag{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-        u.variant_SimpleTag = &coercedValue
+	    case 0:
+            u.variant = "SimpleTag"
+            casted := decoded.(SimpleTag)
+            u.variant_SimpleTag = &casted
     
-    case "JsonTemplate":
-        coercedValue := value.(JsonTemplate)
-
-        u.variant_JsonTemplate = &coercedValue
+	    case 1:
+            u.variant = "JsonTemplate"
+            casted := decoded.(JsonTemplate)
+            u.variant_JsonTemplate = &casted
     
-    }
+	}
 }
 
 func (u *Union__SimpleTag__JsonTemplate) BamlEncode() ([]byte, error) {
@@ -3066,43 +2796,41 @@ type Union__int64__string__bool__float64__JsonObject__JsonArray struct {
     
 }
 
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     
-    case "int64":
-        coercedValue := int64(value.(float64))
-
-        u.variant_int64 = &coercedValue
+	    case 0:
+            u.variant = "int64"
+            casted := decoded.(int64)
+            u.variant_int64 = &casted
     
-    case "string":
-        coercedValue := value.(string)
-
-        u.variant_string = &coercedValue
+	    case 1:
+            u.variant = "string"
+            casted := decoded.(string)
+            u.variant_string = &casted
     
-    case "bool":
-        coercedValue := value.(bool)
-
-        u.variant_bool = &coercedValue
+	    case 2:
+            u.variant = "bool"
+            casted := decoded.(bool)
+            u.variant_bool = &casted
     
-    case "float64":
-        coercedValue := value.(float64)
-
-        u.variant_float64 = &coercedValue
+	    case 3:
+            u.variant = "float64"
+            casted := decoded.(float64)
+            u.variant_float64 = &casted
     
-    case "JsonObject":
-        coercedValue := value.(JsonObject)
-
-        u.variant_JsonObject = &coercedValue
+	    case 4:
+            u.variant = "JsonObject"
+            casted := decoded.(JsonObject)
+            u.variant_JsonObject = &casted
     
-    case "JsonArray":
-        coercedValue := value.(JsonArray)
-
-        u.variant_JsonArray = &coercedValue
+	    case 5:
+            u.variant = "JsonArray"
+            casted := decoded.(JsonArray)
+            u.variant_JsonArray = &casted
     
-    }
+	}
 }
 
 func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) BamlEncode() ([]byte, error) {

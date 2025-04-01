@@ -3,6 +3,9 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/boundaryml/baml/go/pkg/cffi"
+	baml "github.com/boundaryml/baml/go/pkg"
 )
 
 {# enums -#}
@@ -68,6 +71,14 @@ func (e *{{ enum.name }}) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("invalid {{ enum.name }}: %q", s)
     }
     return nil
+}
+
+func (e *{{ enum.name }}) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
+    if string(holder.Name()) != "{{ enum.name }}" {
+        panic(fmt.Sprintf("expected {{ enum.name }}, got %s", string(holder.Name())))
+    }
+    value := string(holder.Value())
+    *e = {{ enum.name }}(value)
 }
 
 func (e {{ enum.name }}) BamlEncode() ([]byte, error) {

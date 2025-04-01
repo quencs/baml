@@ -1081,9 +1081,9 @@ dependencies = [
  "dissimilar",
  "either",
  "expect-test",
- "getrandom",
- "indexmap 2.8.0",
  "futures-timer",
+ "getrandom 0.2.15",
+ "indexmap 2.8.0",
  "indoc",
  "internal-baml-codegen",
  "internal-baml-core",
@@ -1157,10 +1157,11 @@ dependencies = [
 
 [[package]]
 name = "baml_cffi"
-version = "0.76.2"
+version = "0.81.3"
 dependencies = [
  "anyhow",
  "baml-cli",
+ "baml-log",
  "baml-runtime",
  "baml-types",
  "cbindgen",
@@ -4607,7 +4608,7 @@ version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7178faa4b75a30e269c71e61c353ce2748cf3d76f0c44c393f4e60abf49b825"
 dependencies = [
- "bitflags 2.6.0",
+ "bitflags 2.9.0",
  "errno",
  "libc",
  "linux-raw-sys 0.9.3",
@@ -6338,7 +6339,7 @@ version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
- "bitflags 2.6.0",
+ "bitflags 2.9.0",
 ]
 
 [[package]]

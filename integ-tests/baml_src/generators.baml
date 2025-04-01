@@ -33,6 +33,6 @@ generator openapi {
 generator lang_go {
   output_type go
   output_dir "../go"
-  version "0.76.2"
+  version "0.81.3"
   client_package_name "example.com/integ-tests"
 }

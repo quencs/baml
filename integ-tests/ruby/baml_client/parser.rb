@@ -34,7 +34,7 @@ module Baml
       params(
         llm_response: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
-      ).returns(Baml::Types::Recipe)
+      ).returns(T.nilable(T::Array[Baml::Types::Recipe]))
     }
     def AaaSamOutputFormat(llm_response:, baml_options: {})
       if (baml_options.keys - [:client_registry, :tb]).any?
@@ -3392,7 +3392,7 @@ module Baml
       params(
         llm_response: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
-      ).returns(String)
+      ).returns(T.nilable(String))
     }
     def TestOllama(llm_response:, baml_options: {})
       if (baml_options.keys - [:client_registry, :tb]).any?
@@ -3933,7 +3933,7 @@ module Baml
       params(
         llm_response: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
-      ).returns(T.nilable(Baml::PartialTypes::Recipe))
+      ).returns(T::Array[T.nilable(Baml::PartialTypes::Recipe)])
     }
     def AaaSamOutputFormat(llm_response:, baml_options: {})
       if (baml_options.keys - [:client_registry, :tb]).any?

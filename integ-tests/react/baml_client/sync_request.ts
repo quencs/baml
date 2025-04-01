@@ -2952,14 +2952,14 @@ export class HttpRequest {
   }
   
   TestOllama(
-      input: string,
+      
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
       return this.runtime.buildRequestSync(
         "TestOllama",
         {
-          "input": input
+          
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -6338,14 +6338,14 @@ export class HttpStreamRequest {
   }
   
   TestOllama(
-      input: string,
+      
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
       return this.runtime.buildRequestSync(
         "TestOllama",
         {
-          "input": input
+          
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

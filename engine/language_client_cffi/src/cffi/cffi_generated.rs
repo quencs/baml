@@ -2274,8 +2274,10 @@ impl<'a> flatbuffers::Follow<'a> for CFFIValueUnionVariant<'a> {
 }
 
 impl<'a> CFFIValueUnionVariant<'a> {
-  pub const VT_FIELD_TYPES: flatbuffers::VOffsetT = 4;
-  pub const VT_VALUE: flatbuffers::VOffsetT = 6;
+  pub const VT_NAME: flatbuffers::VOffsetT = 4;
+  pub const VT_FIELD_TYPES: flatbuffers::VOffsetT = 6;
+  pub const VT_VALUE_TYPE_INDEX: flatbuffers::VOffsetT = 8;
+  pub const VT_VALUE: flatbuffers::VOffsetT = 10;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -2288,17 +2290,33 @@ impl<'a> CFFIValueUnionVariant<'a> {
   ) -> flatbuffers::WIPOffset<CFFIValueUnionVariant<'bldr>> {
     let mut builder = CFFIValueUnionVariantBuilder::new(_fbb);
     if let Some(x) = args.value { builder.add_value(x); }
+    builder.add_value_type_index(args.value_type_index);
     if let Some(x) = args.field_types { builder.add_field_types(x); }
+    if let Some(x) = args.name { builder.add_name(x); }
     builder.finish()
   }
 
 
+  #[inline]
+  pub fn name(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(CFFIValueUnionVariant::VT_NAME, None)}
+  }
   #[inline]
   pub fn field_types(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder>>>>(CFFIValueUnionVariant::VT_FIELD_TYPES, None)}
+  }
+  #[inline]
+  pub fn value_type_index(&self) -> i32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<i32>(CFFIValueUnionVariant::VT_VALUE_TYPE_INDEX, Some(0)).unwrap()}
   }
   #[inline]
   pub fn value(&self) -> Option<CFFIValueHolder<'a>> {
@@ -2316,21 +2334,27 @@ impl flatbuffers::Verifiable for CFFIValueUnionVariant<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("name", Self::VT_NAME, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder>>>>("field_types", Self::VT_FIELD_TYPES, false)?
+     .visit_field::<i32>("value_type_index", Self::VT_VALUE_TYPE_INDEX, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<CFFIValueHolder>>("value", Self::VT_VALUE, false)?
      .finish();
     Ok(())
   }
 }
 pub struct CFFIValueUnionVariantArgs<'a> {
+    pub name: Option<flatbuffers::WIPOffset<&'a str>>,
     pub field_types: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder<'a>>>>>,
+    pub value_type_index: i32,
     pub value: Option<flatbuffers::WIPOffset<CFFIValueHolder<'a>>>,
 }
 impl<'a> Default for CFFIValueUnionVariantArgs<'a> {
   #[inline]
   fn default() -> Self {
     CFFIValueUnionVariantArgs {
+      name: None,
       field_types: None,
+      value_type_index: 0,
       value: None,
     }
   }
@@ -2342,8 +2366,16 @@ pub struct CFFIValueUnionVariantBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 
 }
 impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueUnionVariantBuilder<'a, 'b, A> {
   #[inline]
+  pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueUnionVariant::VT_NAME, name);
+  }
+  #[inline]
   pub fn add_field_types(&mut self, field_types: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueUnionVariant::VT_FIELD_TYPES, field_types);
+  }
+  #[inline]
+  pub fn add_value_type_index(&mut self, value_type_index: i32) {
+    self.fbb_.push_slot::<i32>(CFFIValueUnionVariant::VT_VALUE_TYPE_INDEX, value_type_index, 0);
   }
   #[inline]
   pub fn add_value(&mut self, value: flatbuffers::WIPOffset<CFFIValueHolder<'b >>) {
@@ -2367,7 +2399,9 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueUnionVariantBuilder<'a
 impl core::fmt::Debug for CFFIValueUnionVariant<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     let mut ds = f.debug_struct("CFFIValueUnionVariant");
+      ds.field("name", &self.name());
       ds.field("field_types", &self.field_types());
+      ds.field("value_type_index", &self.value_type_index());
       ds.field("value", &self.value());
       ds.finish()
   }
@@ -5601,7 +5635,9 @@ impl<'a> flatbuffers::Follow<'a> for CFFICheckValue<'a> {
 
 impl<'a> CFFICheckValue<'a> {
   pub const VT_NAME: flatbuffers::VOffsetT = 4;
-  pub const VT_VALUE: flatbuffers::VOffsetT = 6;
+  pub const VT_EXPRESSION: flatbuffers::VOffsetT = 6;
+  pub const VT_STATUS: flatbuffers::VOffsetT = 8;
+  pub const VT_VALUE: flatbuffers::VOffsetT = 10;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -5614,6 +5650,8 @@ impl<'a> CFFICheckValue<'a> {
   ) -> flatbuffers::WIPOffset<CFFICheckValue<'bldr>> {
     let mut builder = CFFICheckValueBuilder::new(_fbb);
     if let Some(x) = args.value { builder.add_value(x); }
+    if let Some(x) = args.status { builder.add_status(x); }
+    if let Some(x) = args.expression { builder.add_expression(x); }
     if let Some(x) = args.name { builder.add_name(x); }
     builder.finish()
   }
@@ -5625,6 +5663,20 @@ impl<'a> CFFICheckValue<'a> {
     // Created from valid Table for this object
     // which contains a valid value in this slot
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(CFFICheckValue::VT_NAME, None)}
+  }
+  #[inline]
+  pub fn expression(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(CFFICheckValue::VT_EXPRESSION, None)}
+  }
+  #[inline]
+  pub fn status(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(CFFICheckValue::VT_STATUS, None)}
   }
   #[inline]
   pub fn value(&self) -> Option<CFFIValueHolder<'a>> {
@@ -5643,6 +5695,8 @@ impl flatbuffers::Verifiable for CFFICheckValue<'_> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("name", Self::VT_NAME, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("expression", Self::VT_EXPRESSION, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("status", Self::VT_STATUS, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<CFFIValueHolder>>("value", Self::VT_VALUE, false)?
      .finish();
     Ok(())
@@ -5650,6 +5704,8 @@ impl flatbuffers::Verifiable for CFFICheckValue<'_> {
 }
 pub struct CFFICheckValueArgs<'a> {
     pub name: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub expression: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub status: Option<flatbuffers::WIPOffset<&'a str>>,
     pub value: Option<flatbuffers::WIPOffset<CFFIValueHolder<'a>>>,
 }
 impl<'a> Default for CFFICheckValueArgs<'a> {
@@ -5657,6 +5713,8 @@ impl<'a> Default for CFFICheckValueArgs<'a> {
   fn default() -> Self {
     CFFICheckValueArgs {
       name: None,
+      expression: None,
+      status: None,
       value: None,
     }
   }
@@ -5670,6 +5728,14 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFICheckValueBuilder<'a, 'b, A
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFICheckValue::VT_NAME, name);
+  }
+  #[inline]
+  pub fn add_expression(&mut self, expression: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFICheckValue::VT_EXPRESSION, expression);
+  }
+  #[inline]
+  pub fn add_status(&mut self, status: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFICheckValue::VT_STATUS, status);
   }
   #[inline]
   pub fn add_value(&mut self, value: flatbuffers::WIPOffset<CFFIValueHolder<'b >>) {
@@ -5694,6 +5760,8 @@ impl core::fmt::Debug for CFFICheckValue<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     let mut ds = f.debug_struct("CFFICheckValue");
       ds.field("name", &self.name());
+      ds.field("expression", &self.expression());
+      ds.field("status", &self.status());
       ds.field("value", &self.value());
       ds.finish()
   }
@@ -5714,7 +5782,7 @@ impl<'a> flatbuffers::Follow<'a> for CFFIValueStreamingState<'a> {
 }
 
 impl<'a> CFFIValueStreamingState<'a> {
-  pub const VT_FIELD_TYPE: flatbuffers::VOffsetT = 4;
+  pub const VT_VALUE: flatbuffers::VOffsetT = 4;
   pub const VT_STATE: flatbuffers::VOffsetT = 6;
 
   #[inline]
@@ -5727,18 +5795,18 @@ impl<'a> CFFIValueStreamingState<'a> {
     args: &'args CFFIValueStreamingStateArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueStreamingState<'bldr>> {
     let mut builder = CFFIValueStreamingStateBuilder::new(_fbb);
-    if let Some(x) = args.field_type { builder.add_field_type(x); }
+    if let Some(x) = args.value { builder.add_value(x); }
     builder.add_state(args.state);
     builder.finish()
   }
 
 
   #[inline]
-  pub fn field_type(&self) -> Option<CFFIFieldTypeHolder<'a>> {
+  pub fn value(&self) -> Option<CFFIValueHolder<'a>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder>>(CFFIValueStreamingState::VT_FIELD_TYPE, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<CFFIValueHolder>>(CFFIValueStreamingState::VT_VALUE, None)}
   }
   #[inline]
   pub fn state(&self) -> CFFIStreamState {
@@ -5756,21 +5824,21 @@ impl flatbuffers::Verifiable for CFFIValueStreamingState<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder>>("field_type", Self::VT_FIELD_TYPE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<CFFIValueHolder>>("value", Self::VT_VALUE, false)?
      .visit_field::<CFFIStreamState>("state", Self::VT_STATE, false)?
      .finish();
     Ok(())
   }
 }
 pub struct CFFIValueStreamingStateArgs<'a> {
-    pub field_type: Option<flatbuffers::WIPOffset<CFFIFieldTypeHolder<'a>>>,
+    pub value: Option<flatbuffers::WIPOffset<CFFIValueHolder<'a>>>,
     pub state: CFFIStreamState,
 }
 impl<'a> Default for CFFIValueStreamingStateArgs<'a> {
   #[inline]
   fn default() -> Self {
     CFFIValueStreamingStateArgs {
-      field_type: None,
+      value: None,
       state: CFFIStreamState::Pending,
     }
   }
@@ -5782,8 +5850,8 @@ pub struct CFFIValueStreamingStateBuilder<'a: 'b, 'b, A: flatbuffers::Allocator 
 }
 impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueStreamingStateBuilder<'a, 'b, A> {
   #[inline]
-  pub fn add_field_type(&mut self, field_type: flatbuffers::WIPOffset<CFFIFieldTypeHolder<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIFieldTypeHolder>>(CFFIValueStreamingState::VT_FIELD_TYPE, field_type);
+  pub fn add_value(&mut self, value: flatbuffers::WIPOffset<CFFIValueHolder<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIValueHolder>>(CFFIValueStreamingState::VT_VALUE, value);
   }
   #[inline]
   pub fn add_state(&mut self, state: CFFIStreamState) {
@@ -5807,10 +5875,10 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueStreamingStateBuilder<
 impl core::fmt::Debug for CFFIValueStreamingState<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     let mut ds = f.debug_struct("CFFIValueStreamingState");
-      ds.field("field_type", &self.field_type());
+      ds.field("value", &self.value());
       ds.field("state", &self.state());
       ds.finish()
   }
 }
-}  // pub mod CFFI
+}  // pub mod cffi
 

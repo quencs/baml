@@ -9,7 +9,7 @@ use crate::{field_type_attributes, type_check_attributes, TypeCheckAttributes};
 use super::{go_language_features::ToGo, ToUnionName};
 use internal_baml_core::ir::{
     repr::{Docstring, IntermediateRepr, Walker},
-    ClassWalker, EnumWalker, IRHelper,
+    ClassWalker, EnumWalker, IRHelper, IRHelperExtended,
 };
 
 #[derive(askama::Template)]
@@ -19,93 +19,62 @@ pub(crate) struct GoTypes<'ir> {
     structural_recursive_alias_cycles: Vec<GoTypeAlias<'ir>>,
 }
 
-fn render_value_coercion(
-    destination_variable_name: &str,
-    source_variable_name: &str,
-    field_type: &GoType,
-) -> String {
-    let mut rendering = String::new();
+pub(crate) fn cast_value(container_variable_name: &str, field_type: &GoType) -> String {
     if field_type.is_class {
-        rendering.push_str(
-            format!(
-                "{} := {}{{}}\n",
-                destination_variable_name,
-                filters::type_name_without_pointer(&field_type.name)
-                    .ok()
-                    .unwrap()
-            )
-            .as_str(),
-        );
-        rendering.push_str(
-            format!(
-                "{}.BamlDecode({}.(map[string]any))\n",
-                destination_variable_name, source_variable_name
-            )
-            .as_str(),
+        return format!(
+            "*({}).(*{})",
+            container_variable_name,
+            filters::type_name_without_pointer(&field_type.name)
+                .ok()
+                .unwrap()
         );
     } else if field_type.is_slice {
-        rendering.push_str(
-            format!(
-                "{} := make({}, len({}.([]any)))\n",
-                destination_variable_name, field_type.name, source_variable_name
-            )
-            .as_str(),
+        let inner_type = field_type.underlying_type.as_ref().unwrap();
+        return format!(
+            r#"castSlice({container_variable_name}, func(item any) {} {{
+    return {}
+}})"#,
+            inner_type.name,
+            cast_value("item", inner_type),
         );
-        rendering
-            .push_str(format!("for i, v := range {}.([]any) {{\n", source_variable_name).as_str());
-        let inner_variable_name = format!("inner{}", destination_variable_name);
-        rendering.push_str(
-            render_value_coercion(
-                &inner_variable_name.as_str(),
-                "v",
-                field_type.underlying_type.as_ref().unwrap(),
-            )
-            .as_str(),
-        );
-        rendering.push_str(
-            format!(
-                "  {}[i] = {}{}\n",
-                destination_variable_name,
-                if field_type.underlying_type.as_ref().unwrap().is_pointer {
-                    "&"
-                } else {
-                    ""
-                },
-                inner_variable_name
-            )
-            .as_str(),
-        );
-        rendering.push_str("}\n");
-    } else if field_type.is_enum {
-        rendering.push_str(
-            format!(
-                "{} := {}({}.(map[string]any)[\"enum_value\"].(string))\n",
-                destination_variable_name, field_type.name, source_variable_name
-            )
-            .as_str(),
+    } else if field_type.is_pointer {
+        let inner_type = field_type.underlying_type.as_ref().unwrap();
+        return format!(
+            "castOptional({container_variable_name}, func (item any) {} {{
+    return {}
+}})",
+            inner_type.name,
+            cast_value("item", inner_type),
         );
     } else {
-        if field_type.is_integer {
-            rendering.push_str(
-                format!(
-                    "{} := int64({}.(float64))\n",
-                    destination_variable_name, source_variable_name
-                )
-                .as_str(),
-            );
-        } else {
-            rendering.push_str(
-                format!(
-                    "{} := {}.({})\n",
-                    destination_variable_name,
-                    source_variable_name,
-                    filters::type_name_without_pointer(&field_type.name).unwrap()
-                )
-                .as_str(),
-            );
-        }
+        return format!("({}).({})", container_variable_name, field_type.name);
     }
-    rendering
+}
+
+fn render_value_coercion(container_variable_name: &str, field_type: &GoType) -> String {
+    if field_type.is_class {
+        return format!(
+            "*baml.Decode({}, typeMap).(*{})",
+            container_variable_name,
+            filters::type_name_without_pointer(&field_type.name)
+                .ok()
+                .unwrap()
+        );
+    } else if field_type.is_slice {
+        let inner_type = field_type.underlying_type.as_ref().unwrap();
+        return format!(
+            r#"baml.DecodeList({container_variable_name}, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) {} {{
+    return {}
+}})"#,
+            inner_type.name,
+            render_value_coercion("__holder", inner_type),
+        );
+    } else {
+        return format!(
+            "baml.Decode({container_variable_name}, typeMap).({})",
+            field_type.name
+        );
+    }
 }
 
 fn render_value_encode(
@@ -260,7 +229,7 @@ struct GoField<'ir> {
     docstring: Option<String>,
 }
 
-struct GoType {
+pub struct GoType {
     name: String,
     is_pointer: bool,
     is_slice: bool,
@@ -355,7 +324,7 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoUnion
                 name: FieldType::Union(variants.clone()).to_union_name(),
                 variants: variants
                     .iter()
-                    .map(|v| (v.to_union_name(), v.to_type_ref(ir, false)))
+                    .map(|v| (v.to_union_name(), v.to_type_ref_2(ir, false)))
                     .collect(),
                 docstring: None,
             })
@@ -427,7 +396,7 @@ impl<'ir> From<ClassWalker<'ir>> for GoClass<'ir> {
                 .iter()
                 .map(|f| GoField {
                     name: Cow::Borrowed(f.elem.name.as_str()),
-                    go_type: f.elem.r#type.elem.to_type_ref(c.db, false),
+                    go_type: f.elem.r#type.elem.to_type_ref_2(c.ir, false),
                     docstring: f.elem.docstring.as_ref().map(render_docstring),
                 })
                 .collect(),
@@ -438,15 +407,10 @@ impl<'ir> From<ClassWalker<'ir>> for GoClass<'ir> {
 
 // TODO: Define AliasWalker to simplify type.
 impl<'ir> From<Walker<'ir, (&'ir String, &'ir FieldType)>> for GoTypeAlias<'ir> {
-    fn from(
-        Walker {
-            db,
-            item: (name, target),
-        }: Walker<(&'ir String, &'ir FieldType)>,
-    ) -> Self {
+    fn from(walker: Walker<(&'ir String, &'ir FieldType)>) -> Self {
         GoTypeAlias {
-            name: Cow::Borrowed(name),
-            target: target.to_type_ref(db, false).name,
+            name: Cow::Borrowed(walker.item.0),
+            target: walker.item.1.to_type_ref_2(walker.ir, false).name,
         }
     }
 }
@@ -478,17 +442,21 @@ impl<'ir> From<ClassWalker<'ir>> for PartialGoClass<'ir> {
                 .map(|f| {
                     // Fields with @stream.done should take their type from
                     let needed: bool = f.attributes.get("stream.not_null").is_some();
-                    let (_, metadata) = c.db.distribute_metadata(&f.elem.r#type.elem);
+                    let (_, metadata) = c.ir.distribute_metadata(&f.elem.r#type.elem);
                     let done: bool = metadata.1.done;
                     let field = match (done, needed) {
                         // A normal partial field.
                         (false, false) => {
-                            f.elem.r#type.elem.to_partial_type_ref(c.db, false, false)
+                            f.elem.r#type.elem.to_partial_type_ref_2(c.ir, false, false)
                         }
                         // A field with @stream.done and no @stream.not_null
-                        (true, false) => optional(&f.elem.r#type.elem.to_type_ref(c.db, true).name),
-                        (false, true) => f.elem.r#type.elem.to_partial_type_ref(c.db, false, true),
-                        (true, true) => f.elem.r#type.elem.to_type_ref(c.db, true).name, // TODO: Fix.
+                        (true, false) => {
+                            optional(&f.elem.r#type.elem.to_type_ref_2(c.ir, true).name)
+                        }
+                        (false, true) => {
+                            f.elem.r#type.elem.to_partial_type_ref_2(c.ir, false, true)
+                        }
+                        (true, true) => f.elem.r#type.elem.to_type_ref_2(c.ir, true).name, // TODO: Fix.
                     };
                     (
                         f.elem.name.as_str(),
@@ -538,11 +506,11 @@ pub fn to_go_literal(literal: &LiteralValue) -> String {
     }
 }
 
-trait ToTypeReferenceInTypeDefinition {
-    fn to_type_ref(&self, ir: &IntermediateRepr, module_prefix: bool) -> GoType;
-    fn to_type_ref_impl(&self, ir: &IntermediateRepr, module_prefix: bool) -> String;
-    fn to_partial_type_ref(&self, ir: &IntermediateRepr, wrapped: bool, needed: bool) -> String;
-    fn to_partial_type_ref_impl(
+pub trait ToTypeReferenceInTypeDefinition {
+    fn to_type_ref_2(&self, ir: &IntermediateRepr, module_prefix: bool) -> GoType;
+    fn to_type_ref_impl_2(&self, ir: &IntermediateRepr, module_prefix: bool) -> String;
+    fn to_partial_type_ref_2(&self, ir: &IntermediateRepr, wrapped: bool, needed: bool) -> String;
+    fn to_partial_type_ref_impl_2(
         &self,
         ir: &IntermediateRepr,
         wrapped: bool,
@@ -551,30 +519,33 @@ trait ToTypeReferenceInTypeDefinition {
 }
 
 impl ToTypeReferenceInTypeDefinition for FieldType {
-    fn to_type_ref(&self, ir: &IntermediateRepr, module_prefix: bool) -> GoType {
+    fn to_type_ref_2(&self, ir: &IntermediateRepr, module_prefix: bool) -> GoType {
+        let simplified = self.simplify();
         GoType {
-            name: self.simplify().to_type_ref_impl(ir, module_prefix),
+            name: simplified.to_type_ref_impl_2(ir, module_prefix),
             is_pointer: self.is_optional(),
-            is_slice: matches!(self.simplify(), FieldType::List(_)),
+            is_slice: matches!(simplified, FieldType::List(_)),
             is_primitive: self.is_primitive(),
-            is_class: matches!(self.simplify(), FieldType::Class(_)),
-            is_integer: matches!(self.simplify(), FieldType::Primitive(TypeValue::Int)),
-            is_enum: matches!(self.simplify(), FieldType::Enum(_)),
-            underlying_type: match self.simplify() {
-                FieldType::List(value) => Some(Box::new(value.to_type_ref(ir, module_prefix))),
-                FieldType::Optional(value) => Some(Box::new(value.to_type_ref(ir, module_prefix))),
+            is_class: matches!(simplified, FieldType::Class(_)),
+            is_integer: matches!(simplified, FieldType::Primitive(TypeValue::Int)),
+            is_enum: matches!(simplified, FieldType::Enum(_)),
+            underlying_type: match simplified {
+                FieldType::List(value) => Some(Box::new(value.to_type_ref_2(ir, module_prefix))),
+                FieldType::Optional(value) => {
+                    Some(Box::new(value.to_type_ref_2(ir, module_prefix)))
+                }
                 _ => None,
             },
         }
     }
 
-    fn to_partial_type_ref(&self, ir: &IntermediateRepr, wrapped: bool, needed: bool) -> String {
+    fn to_partial_type_ref_2(&self, ir: &IntermediateRepr, wrapped: bool, needed: bool) -> String {
         self.simplify()
-            .to_partial_type_ref_impl(ir, wrapped, needed)
+            .to_partial_type_ref_impl_2(ir, wrapped, needed)
     }
 
     // TODO: use_module_prefix boolean blindness. Replace with str?
-    fn to_type_ref_impl(&self, ir: &IntermediateRepr, use_module_prefix: bool) -> String {
+    fn to_type_ref_impl_2(&self, ir: &IntermediateRepr, use_module_prefix: bool) -> String {
         let module_prefix = if use_module_prefix { "types." } else { "" };
         match self {
             FieldType::Enum(name) => {
@@ -585,13 +556,13 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             FieldType::Literal(value) => to_go_literal(value),
             FieldType::Class(name) => format!("{module_prefix}{name}"),
             FieldType::List(inner) => {
-                format!("[]{}", inner.to_type_ref(ir, use_module_prefix).name)
+                format!("[]{}", inner.to_type_ref_2(ir, use_module_prefix).name)
             }
             FieldType::Map(key, value) => {
                 format!(
                     "map[{}]{}",
-                    key.to_type_ref(ir, use_module_prefix).name,
-                    value.to_type_ref(ir, use_module_prefix).name
+                    key.to_type_ref_2(ir, use_module_prefix).name,
+                    value.to_type_ref_2(ir, use_module_prefix).name
                 )
             }
             FieldType::Primitive(r#type) => r#type.to_go(),
@@ -600,24 +571,24 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 "Tuple[{}]",
                 inner
                     .iter()
-                    .map(|t| t.to_type_ref(ir, use_module_prefix).name)
+                    .map(|t| t.to_type_ref_2(ir, use_module_prefix).name)
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
             FieldType::Optional(inner) => {
-                format!("*{}", inner.to_type_ref(ir, use_module_prefix).name)
+                format!("*{}", inner.to_type_ref_2(ir, use_module_prefix).name)
             }
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
                 Some(_) => {
-                    let base_type_ref = base.to_type_ref(ir, use_module_prefix).name;
+                    let base_type_ref = base.to_type_ref_2(ir, use_module_prefix).name;
                     format!("{module_prefix}Checked[{base_type_ref}]")
                 }
-                None => base.to_type_ref(ir, use_module_prefix).name,
+                None => base.to_type_ref_2(ir, use_module_prefix).name,
             },
         }
     }
 
-    fn to_partial_type_ref_impl(
+    fn to_partial_type_ref_impl_2(
         &self,
         ir: &IntermediateRepr,
         wrapped: bool,
@@ -654,19 +625,19 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             }
             FieldType::Literal(value) => {
                 if needed || wrapped {
-                    to_go_literal(value)
+                    to_go_literal(&value)
                 } else {
-                    format!("*{}", to_go_literal(value))
+                    format!("*{}", to_go_literal(&value))
                 }
             } // TODO: Handle `needed` here.
 
             FieldType::List(inner) => {
-                format!("[]{}", inner.to_partial_type_ref(ir, true, false))
+                format!("[]{}", inner.to_partial_type_ref_2(ir, true, false))
             }
             FieldType::Map(key, value) => format!(
                 "map[{}]{}",
-                key.to_type_ref(ir, use_module_prefix).name,
-                value.to_partial_type_ref(ir, false, false)
+                key.to_type_ref_2(ir, use_module_prefix).name,
+                value.to_partial_type_ref_2(ir, false, false)
             ),
             FieldType::Primitive(r#type) => {
                 if needed || wrapped {
@@ -686,7 +657,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 todo!("Tuples are not supported in partial types.")
             }
             FieldType::Optional(inner) => {
-                format!("*{}", inner.to_partial_type_ref(ir, true, false))
+                format!("*{}", inner.to_partial_type_ref_2(ir, true, false))
             }
             FieldType::WithMetadata { .. } => {
                 unreachable!("distribute_metadata makes this branch unreachable.")
@@ -696,7 +667,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             base_rep
         } else {
             if needed {
-                base_type.to_type_ref(ir, use_module_prefix).name
+                base_type.to_type_ref_2(ir, use_module_prefix).name
             } else {
                 base_rep
             }
@@ -745,8 +716,8 @@ mod tests {
         let optional_list = FieldType::Optional(Box::new(FieldType::List(Box::new(
             FieldType::Primitive(TypeValue::String),
         ))));
-        let full = optional_list.to_type_ref(&ir, false);
-        let partial = optional_list.to_partial_type_ref(&ir, false, false);
+        let full = optional_list.to_type_ref_2(&ir, false);
+        let partial = optional_list.to_partial_type_ref_2(&ir, false, false);
         assert_eq!(full.name, "Optional[List[str]]");
         assert_eq!(partial, "Optional[List[str]]");
     }
@@ -757,8 +728,8 @@ mod tests {
         let optional_list = FieldType::Optional(Box::new(FieldType::List(Box::new(
             FieldType::Primitive(TypeValue::String),
         ))));
-        let full = optional_list.to_type_ref(&ir, false);
-        let partial = optional_list.to_partial_type_ref(&ir, false, false);
+        let full = optional_list.to_type_ref_2(&ir, false);
+        let partial = optional_list.to_partial_type_ref_2(&ir, false, false);
         assert_eq!(full.name, "Optional[List[str]]");
         assert_eq!(partial, "Optional[List[str]]");
     }

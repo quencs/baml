@@ -11,688 +11,742 @@
 package types
 
 import (
-	_ "fmt"
-	"encoding/json"
+"encoding/json"
+"fmt"
+
+"github.com/boundaryml/baml/go/pkg/cffi"
+baml "github.com/boundaryml/baml/go/pkg"
 )
 
-
-// Check corresponds to the Python Check model.
-type Check struct {
-	Name       string `json:"name"`
-	Expression string `json:"expression"`
-	Status     string `json:"status"`
-}
-
-// Checked is a generic struct that contains a value of any type T and a map of checks,
-// where the key type CN has an underlying type string.
-type Checked[T any] struct {
-	Value  T `json:"value"`
-	Checks map[string]Check `json:"checks"`
-}
-
-// GetChecks converts a map of checks into a slice.
-func (c *Checked[T]) GetChecks() []Check {
-	values := make([]Check, 0, len(c.Checks))
-	for _, check := range c.Checks {
-		values = append(values, check)
-	}
-	return values
-}
-
-// AllSucceeded returns true if every check in the map has a Status of "succeeded".
-func (c *Checked[T]) AllSucceeded() bool {
-	for _, check := range c.Checks {
-		if check.Status != "succeeded" {
-			return false
-		}
-	}
-	return true
-}
+type Checked[T any] baml.Checked[T]
 
 
 
 type AnotherObject struct {
-    
-    Id string `json:"id"`
-    
-    Thingy2 string `json:"thingy2"`
-    
-    Thingy3 string `json:"thingy3"`
-    
-    
+
+	Id string `json:"id"`
+
+	Thingy2 string `json:"thingy2"`
+
+	Thingy3 string `json:"thingy3"`
+
+
 }
 
-func (c *AnotherObject) BamlDecode(decodedMap map[string]any) {
+func (c *AnotherObject) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "AnotherObject" {
+		panic(fmt.Sprintf("expected AnotherObject, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Id":
-		  coercedValue := value.(string)
-
-			c.Id = coercedValue
-		
-		case "Thingy2":
-		  coercedValue := value.(string)
-
-			c.Thingy2 = coercedValue
-		
-		case "Thingy3":
-		  coercedValue := value.(string)
-
-			c.Thingy3 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "id":
+					c.Id = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "thingy2":
+					c.Thingy2 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "thingy3":
+					c.Thingy3 = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *AnotherObject) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Id"] = c.Id
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Thingy2"] = c.Thingy2
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Thingy3"] = c.Thingy3
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "AnotherObject",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "AnotherObject",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type BigNumbers struct {
-    
-    A int64 `json:"a"`
-    
-    B float64 `json:"b"`
-    
-    
+
+	A int64 `json:"a"`
+
+	B float64 `json:"b"`
+
+
 }
 
-func (c *BigNumbers) BamlDecode(decodedMap map[string]any) {
+func (c *BigNumbers) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "BigNumbers" {
+		panic(fmt.Sprintf("expected BigNumbers, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "A":
-		  coercedValue := int64(value.(float64))
-
-			c.A = coercedValue
-		
-		case "B":
-		  coercedValue := value.(float64)
-
-			c.B = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "a":
+					c.A = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "b":
+					c.B = baml.Decode(valueHolder, typeMap).(float64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *BigNumbers) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["A"] = c.A
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["B"] = c.B
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "BigNumbers",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "BigNumbers",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type BinaryNode struct {
-    
-    Data int64 `json:"data"`
-    
-    Left *BinaryNode `json:"left"`
-    
-    Right *BinaryNode `json:"right"`
-    
-    
+
+	Data int64 `json:"data"`
+
+	Left *BinaryNode `json:"left"`
+
+	Right *BinaryNode `json:"right"`
+
+
 }
 
-func (c *BinaryNode) BamlDecode(decodedMap map[string]any) {
+func (c *BinaryNode) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "BinaryNode" {
+		panic(fmt.Sprintf("expected BinaryNode, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Data":
-		  coercedValue := int64(value.(float64))
-
-			c.Data = coercedValue
-		
-		case "Left":
-		  coercedValue := value.(BinaryNode)
-
-			c.Left = &coercedValue
-		
-		case "Right":
-		  coercedValue := value.(BinaryNode)
-
-			c.Right = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "data":
+					c.Data = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "left":
+					c.Left = baml.Decode(valueHolder, typeMap).(*BinaryNode)
+				
+				case "right":
+					c.Right = baml.Decode(valueHolder, typeMap).(*BinaryNode)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *BinaryNode) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Data"] = c.Data
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Left"] = c.Left
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Right"] = c.Right
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "BinaryNode",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "BinaryNode",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Blah struct {
-    
-    Prop4 *string `json:"prop4"`
-    
-    
+
+	Prop4 *string `json:"prop4"`
+
+
 }
 
-func (c *Blah) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop4":
-		  coercedValue := value.(string)
+func (c *Blah) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Blah" {
+		panic(fmt.Sprintf("expected Blah, got %s", string(holder.Name())))
+	}
 
-			c.Prop4 = &coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop4":
+					c.Prop4 = baml.Decode(valueHolder, typeMap).(*string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Blah) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop4"] = c.Prop4
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Blah",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Blah",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type BlockConstraint struct {
-    
-    Foo int64 `json:"foo"`
-    
-    Bar string `json:"bar"`
-    
-    
+
+	Foo int64 `json:"foo"`
+
+	Bar string `json:"bar"`
+
+
 }
 
-func (c *BlockConstraint) BamlDecode(decodedMap map[string]any) {
+func (c *BlockConstraint) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "BlockConstraint" {
+		panic(fmt.Sprintf("expected BlockConstraint, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Foo":
-		  coercedValue := int64(value.(float64))
-
-			c.Foo = coercedValue
-		
-		case "Bar":
-		  coercedValue := value.(string)
-
-			c.Bar = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "foo":
+					c.Foo = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "bar":
+					c.Bar = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *BlockConstraint) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Foo"] = c.Foo
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Bar"] = c.Bar
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "BlockConstraint",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "BlockConstraint",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type BlockConstraintForParam struct {
-    
-    Bcfp int64 `json:"bcfp"`
-    
-    Bcfp2 string `json:"bcfp2"`
-    
-    
+
+	Bcfp int64 `json:"bcfp"`
+
+	Bcfp2 string `json:"bcfp2"`
+
+
 }
 
-func (c *BlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
+func (c *BlockConstraintForParam) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "BlockConstraintForParam" {
+		panic(fmt.Sprintf("expected BlockConstraintForParam, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Bcfp":
-		  coercedValue := int64(value.(float64))
-
-			c.Bcfp = coercedValue
-		
-		case "Bcfp2":
-		  coercedValue := value.(string)
-
-			c.Bcfp2 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "bcfp":
+					c.Bcfp = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "bcfp2":
+					c.Bcfp2 = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *BlockConstraintForParam) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Bcfp"] = c.Bcfp
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Bcfp2"] = c.Bcfp2
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "BlockConstraintForParam",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "BlockConstraintForParam",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type BookOrder struct {
-    
-    OrderId string `json:"orderId"`
-    
-    Title string `json:"title"`
-    
-    Quantity int64 `json:"quantity"`
-    
-    Price float64 `json:"price"`
-    
-    
+
+	OrderId string `json:"orderId"`
+
+	Title string `json:"title"`
+
+	Quantity int64 `json:"quantity"`
+
+	Price float64 `json:"price"`
+
+
 }
 
-func (c *BookOrder) BamlDecode(decodedMap map[string]any) {
+func (c *BookOrder) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "BookOrder" {
+		panic(fmt.Sprintf("expected BookOrder, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "OrderId":
-		  coercedValue := value.(string)
-
-			c.OrderId = coercedValue
-		
-		case "Title":
-		  coercedValue := value.(string)
-
-			c.Title = coercedValue
-		
-		case "Quantity":
-		  coercedValue := int64(value.(float64))
-
-			c.Quantity = coercedValue
-		
-		case "Price":
-		  coercedValue := value.(float64)
-
-			c.Price = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "orderId":
+					c.OrderId = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "title":
+					c.Title = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "quantity":
+					c.Quantity = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "price":
+					c.Price = baml.Decode(valueHolder, typeMap).(float64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *BookOrder) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["OrderId"] = c.OrderId
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Title"] = c.Title
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Quantity"] = c.Quantity
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Price"] = c.Price
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "BookOrder",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "BookOrder",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ClassForNullLiteral struct {
-    
-    A string `json:"a"`
-    
-    
+
+	A string `json:"a"`
+
+
 }
 
-func (c *ClassForNullLiteral) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "A":
-		  coercedValue := value.(string)
+func (c *ClassForNullLiteral) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ClassForNullLiteral" {
+		panic(fmt.Sprintf("expected ClassForNullLiteral, got %s", string(holder.Name())))
+	}
 
-			c.A = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "a":
+					c.A = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ClassForNullLiteral) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["A"] = c.A
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ClassForNullLiteral",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ClassForNullLiteral",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ClassOptionalOutput struct {
-    
-    Prop1 string `json:"prop1"`
-    
-    Prop2 string `json:"prop2"`
-    
-    
+
+	Prop1 string `json:"prop1"`
+
+	Prop2 string `json:"prop2"`
+
+
 }
 
-func (c *ClassOptionalOutput) BamlDecode(decodedMap map[string]any) {
+func (c *ClassOptionalOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ClassOptionalOutput" {
+		panic(fmt.Sprintf("expected ClassOptionalOutput, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop1":
-		  coercedValue := value.(string)
-
-			c.Prop1 = coercedValue
-		
-		case "Prop2":
-		  coercedValue := value.(string)
-
-			c.Prop2 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop1":
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "prop2":
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ClassOptionalOutput) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop1"] = c.Prop1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop2"] = c.Prop2
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ClassOptionalOutput",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ClassOptionalOutput",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ClassOptionalOutput2 struct {
-    
-    Prop1 *string `json:"prop1"`
-    
-    Prop2 *string `json:"prop2"`
-    
-    Prop3 *Blah `json:"prop3"`
-    
-    
+
+	Prop1 *string `json:"prop1"`
+
+	Prop2 *string `json:"prop2"`
+
+	Prop3 *Blah `json:"prop3"`
+
+
 }
 
-func (c *ClassOptionalOutput2) BamlDecode(decodedMap map[string]any) {
+func (c *ClassOptionalOutput2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ClassOptionalOutput2" {
+		panic(fmt.Sprintf("expected ClassOptionalOutput2, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop1":
-		  coercedValue := value.(string)
-
-			c.Prop1 = &coercedValue
-		
-		case "Prop2":
-		  coercedValue := value.(string)
-
-			c.Prop2 = &coercedValue
-		
-		case "Prop3":
-		  coercedValue := value.(Blah)
-
-			c.Prop3 = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop1":
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "prop2":
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "prop3":
+					c.Prop3 = baml.Decode(valueHolder, typeMap).(*Blah)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ClassOptionalOutput2) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop1"] = c.Prop1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop2"] = c.Prop2
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop3"] = c.Prop3
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ClassOptionalOutput2",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ClassOptionalOutput2",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ClassToRecAlias struct {
-    
-    List LinkedListAliasNode `json:"list"`
-    
-    
+
+	List LinkedListAliasNode `json:"list"`
+
+
 }
 
-func (c *ClassToRecAlias) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "List":
-		  coercedValue := LinkedListAliasNode{}
-coercedValue.BamlDecode(value.(map[string]any))
+func (c *ClassToRecAlias) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ClassToRecAlias" {
+		panic(fmt.Sprintf("expected ClassToRecAlias, got %s", string(holder.Name())))
+	}
 
-			c.List = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "list":
+					c.List = *baml.Decode(valueHolder, typeMap).(*LinkedListAliasNode)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ClassToRecAlias) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.List.BamlEncode()
 if err != nil {
 return nil, err
@@ -700,132 +754,145 @@ return nil, err
 valueMap["List"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ClassToRecAlias",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ClassToRecAlias",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ClassWithBlockDone struct {
-    
-    I_16_digits int64 `json:"i_16_digits"`
-    
-    S_20_words string `json:"s_20_words"`
-    
-    
+
+	I_16_digits int64 `json:"i_16_digits"`
+
+	S_20_words string `json:"s_20_words"`
+
+
 }
 
-func (c *ClassWithBlockDone) BamlDecode(decodedMap map[string]any) {
+func (c *ClassWithBlockDone) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ClassWithBlockDone" {
+		panic(fmt.Sprintf("expected ClassWithBlockDone, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "I_16_digits":
-		  coercedValue := int64(value.(float64))
-
-			c.I_16_digits = coercedValue
-		
-		case "S_20_words":
-		  coercedValue := value.(string)
-
-			c.S_20_words = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "i_16_digits":
+					c.I_16_digits = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "s_20_words":
+					c.S_20_words = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ClassWithBlockDone) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["I_16_digits"] = c.I_16_digits
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["S_20_words"] = c.S_20_words
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ClassWithBlockDone",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ClassWithBlockDone",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ClassWithImage struct {
-    
-    MyImage any `json:"myImage"`
-    
-    Param2 string `json:"param2"`
-    
-    Fake_image FakeImage `json:"fake_image"`
-    
-    
+
+	MyImage any `json:"myImage"`
+
+	Param2 string `json:"param2"`
+
+	Fake_image FakeImage `json:"fake_image"`
+
+
 }
 
-func (c *ClassWithImage) BamlDecode(decodedMap map[string]any) {
+func (c *ClassWithImage) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ClassWithImage" {
+		panic(fmt.Sprintf("expected ClassWithImage, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "MyImage":
-		  coercedValue := value.(any)
-
-			c.MyImage = coercedValue
-		
-		case "Param2":
-		  coercedValue := value.(string)
-
-			c.Param2 = coercedValue
-		
-		case "Fake_image":
-		  coercedValue := FakeImage{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Fake_image = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "myImage":
+					c.MyImage = baml.Decode(valueHolder, typeMap).(any)
+				
+				case "param2":
+					c.Param2 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "fake_image":
+					c.Fake_image = *baml.Decode(valueHolder, typeMap).(*FakeImage)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ClassWithImage) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["MyImage"] = c.MyImage
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Param2"] = c.Param2
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Fake_image.BamlEncode()
 if err != nil {
 return nil, err
@@ -833,149 +900,284 @@ return nil, err
 valueMap["Fake_image"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ClassWithImage",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ClassWithImage",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ClassWithoutDone struct {
-    
-    I_16_digits int64 `json:"i_16_digits"`
-    
-    S_20_words string `json:"s_20_words"`
-    
-    
+
+	I_16_digits int64 `json:"i_16_digits"`
+
+	S_20_words string `json:"s_20_words"`
+
+
 }
 
-func (c *ClassWithoutDone) BamlDecode(decodedMap map[string]any) {
+func (c *ClassWithoutDone) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ClassWithoutDone" {
+		panic(fmt.Sprintf("expected ClassWithoutDone, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "I_16_digits":
-		  coercedValue := int64(value.(float64))
-
-			c.I_16_digits = coercedValue
-		
-		case "S_20_words":
-		  coercedValue := value.(string)
-
-			c.S_20_words = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "i_16_digits":
+					c.I_16_digits = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "s_20_words":
+					c.S_20_words = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ClassWithoutDone) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["I_16_digits"] = c.I_16_digits
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["S_20_words"] = c.S_20_words
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ClassWithoutDone",
-		"values": valueMap,
+
+encodedMap := map[string]any{
+"class_name": "ClassWithoutDone",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
+}
+
+
+type ClientDetails1559 struct {
+
+	Client_name *string `json:"client_name"`
+
+	Client_address *string `json:"client_address"`
+
+	Client_postal_code *string `json:"client_postal_code"`
+
+	Client_city *string `json:"client_city"`
+
+	Client_country *string `json:"client_country"`
+
+	Client_phone *string `json:"client_phone"`
+
+	Client_email *string `json:"client_email"`
+
+
+}
+
+func (c *ClientDetails1559) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ClientDetails1559" {
+		panic(fmt.Sprintf("expected ClientDetails1559, got %s", string(holder.Name())))
 	}
 
-	return json.Marshal(encodedMap)
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "client_name":
+					c.Client_name = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "client_address":
+					c.Client_address = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "client_postal_code":
+					c.Client_postal_code = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "client_city":
+					c.Client_city = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "client_country":
+					c.Client_country = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "client_phone":
+					c.Client_phone = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "client_email":
+					c.Client_email = baml.Decode(valueHolder, typeMap).(*string)
+				
+			}
+		}
+	}
+
+
+
+}
+
+func (c *ClientDetails1559) BamlEncode() ([]byte, error) {
+valueMap := map[string]any{}
+
+
+
+
+{
+valueMap["Client_name"] = c.Client_name
+}
+
+
+
+
+{
+valueMap["Client_address"] = c.Client_address
+}
+
+
+
+
+{
+valueMap["Client_postal_code"] = c.Client_postal_code
+}
+
+
+
+
+{
+valueMap["Client_city"] = c.Client_city
+}
+
+
+
+
+{
+valueMap["Client_country"] = c.Client_country
+}
+
+
+
+
+{
+valueMap["Client_phone"] = c.Client_phone
+}
+
+
+
+
+{
+valueMap["Client_email"] = c.Client_email
+}
+
+
+
+encodedMap := map[string]any{
+"class_name": "ClientDetails1559",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ComplexMemoryObject struct {
-    
-    Id string `json:"id"`
-    
-    Name string `json:"name"`
-    
-    Description string `json:"description"`
-    
-    Metadata []Union__string__int64__float64 `json:"metadata"`
-    
-    
+
+	Id string `json:"id"`
+
+	Name string `json:"name"`
+
+	Description string `json:"description"`
+
+	Metadata []Union__string__int64__float64 `json:"metadata"`
+
+
 }
 
-func (c *ComplexMemoryObject) BamlDecode(decodedMap map[string]any) {
+func (c *ComplexMemoryObject) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ComplexMemoryObject" {
+		panic(fmt.Sprintf("expected ComplexMemoryObject, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Id":
-		  coercedValue := value.(string)
-
-			c.Id = coercedValue
-		
-		case "Name":
-		  coercedValue := value.(string)
-
-			c.Name = coercedValue
-		
-		case "Description":
-		  coercedValue := value.(string)
-
-			c.Description = coercedValue
-		
-		case "Metadata":
-		  coercedValue := make([]Union__string__int64__float64, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(Union__string__int64__float64)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Metadata = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "id":
+					c.Id = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "name":
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "description":
+					c.Description = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "metadata":
+					c.Metadata = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__string__int64__float64 {
+    return baml.Decode(__holder, typeMap).(Union__string__int64__float64)
+})
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ComplexMemoryObject) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Id"] = c.Id
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Name"] = c.Name
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Description"] = c.Description
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Metadata))
 for i, v := range c.Metadata {
 {
@@ -985,67 +1187,68 @@ list[i] = v
 valueMap["Metadata"] = list
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ComplexMemoryObject",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ComplexMemoryObject",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type CompoundBigNumbers struct {
-    
-    Big BigNumbers `json:"big"`
-    
-    Big_nums []BigNumbers `json:"big_nums"`
-    
-    Another BigNumbers `json:"another"`
-    
-    
+
+	Big BigNumbers `json:"big"`
+
+	Big_nums []BigNumbers `json:"big_nums"`
+
+	Another BigNumbers `json:"another"`
+
+
 }
 
-func (c *CompoundBigNumbers) BamlDecode(decodedMap map[string]any) {
+func (c *CompoundBigNumbers) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "CompoundBigNumbers" {
+		panic(fmt.Sprintf("expected CompoundBigNumbers, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Big":
-		  coercedValue := BigNumbers{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Big = coercedValue
-		
-		case "Big_nums":
-		  coercedValue := make([]BigNumbers, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := BigNumbers{}
-innercoercedValue.BamlDecode(v.(map[string]any))
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Big_nums = coercedValue
-		
-		case "Another":
-		  coercedValue := BigNumbers{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Another = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "big":
+					c.Big = *baml.Decode(valueHolder, typeMap).(*BigNumbers)
+				
+				case "big_nums":
+					c.Big_nums = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) BigNumbers {
+    return *baml.Decode(__holder, typeMap).(*BigNumbers)
+})
+				
+				case "another":
+					c.Another = *baml.Decode(valueHolder, typeMap).(*BigNumbers)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *CompoundBigNumbers) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Big.BamlEncode()
 if err != nil {
 return nil, err
@@ -1053,10 +1256,10 @@ return nil, err
 valueMap["Big"] = json.RawMessage(encodedValue)
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Big_nums))
 for i, v := range c.Big_nums {
 {
@@ -1070,10 +1273,10 @@ list[i] = json.RawMessage(encodedValue)
 valueMap["Big_nums"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Another.BamlEncode()
 if err != nil {
 return nil, err
@@ -1081,327 +1284,573 @@ return nil, err
 valueMap["Another"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "CompoundBigNumbers",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "CompoundBigNumbers",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ContactInfo struct {
-    
-    Primary Union__PhoneNumber__EmailAddress `json:"primary"`
-    
-    Secondary *Union__PhoneNumber__EmailAddress `json:"secondary"`
-    
-    
+
+	Primary Union__PhoneNumber__EmailAddress `json:"primary"`
+
+	Secondary *Union__PhoneNumber__EmailAddress `json:"secondary"`
+
+
 }
 
-func (c *ContactInfo) BamlDecode(decodedMap map[string]any) {
+func (c *ContactInfo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ContactInfo" {
+		panic(fmt.Sprintf("expected ContactInfo, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Primary":
-		  coercedValue := value.(Union__PhoneNumber__EmailAddress)
-
-			c.Primary = coercedValue
-		
-		case "Secondary":
-		  coercedValue := value.(Union__PhoneNumber__EmailAddress)
-
-			c.Secondary = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "primary":
+					c.Primary = baml.Decode(valueHolder, typeMap).(Union__PhoneNumber__EmailAddress)
+				
+				case "secondary":
+					c.Secondary = baml.Decode(valueHolder, typeMap).(*Union__PhoneNumber__EmailAddress)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ContactInfo) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Primary"] = c.Primary
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Secondary"] = c.Secondary
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ContactInfo",
-		"values": valueMap,
+
+encodedMap := map[string]any{
+"class_name": "ContactInfo",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
+}
+
+
+type CustomStory struct {
+
+	Title string `json:"title"`
+
+	Characters []string `json:"characters"`
+
+	Content string `json:"content"`
+
+
+}
+
+func (c *CustomStory) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "CustomStory" {
+		panic(fmt.Sprintf("expected CustomStory, got %s", string(holder.Name())))
 	}
 
-	return json.Marshal(encodedMap)
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "title":
+					c.Title = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "characters":
+					c.Characters = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
+})
+				
+				case "content":
+					c.Content = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
+		}
+	}
+
+
+
+}
+
+func (c *CustomStory) BamlEncode() ([]byte, error) {
+valueMap := map[string]any{}
+
+
+
+
+{
+valueMap["Title"] = c.Title
+}
+
+
+
+
+{
+list := make([]any, len(c.Characters))
+for i, v := range c.Characters {
+{
+list[i] = v
+}
+}
+valueMap["Characters"] = list
+}
+
+
+
+
+{
+valueMap["Content"] = c.Content
+}
+
+
+
+encodedMap := map[string]any{
+"class_name": "CustomStory",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type CustomTaskResult struct {
-    
-    BookOrder *BookOrder `json:"bookOrder"`
-    
-    FlightConfirmation *FlightConfirmation `json:"flightConfirmation"`
-    
-    GroceryReceipt *GroceryReceipt `json:"groceryReceipt"`
-    
-    
+
+	BookOrder *BookOrder `json:"bookOrder"`
+
+	FlightConfirmation *FlightConfirmation `json:"flightConfirmation"`
+
+	GroceryReceipt *GroceryReceipt `json:"groceryReceipt"`
+
+
 }
 
-func (c *CustomTaskResult) BamlDecode(decodedMap map[string]any) {
+func (c *CustomTaskResult) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "CustomTaskResult" {
+		panic(fmt.Sprintf("expected CustomTaskResult, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "BookOrder":
-		  coercedValue := value.(BookOrder)
-
-			c.BookOrder = &coercedValue
-		
-		case "FlightConfirmation":
-		  coercedValue := value.(FlightConfirmation)
-
-			c.FlightConfirmation = &coercedValue
-		
-		case "GroceryReceipt":
-		  coercedValue := value.(GroceryReceipt)
-
-			c.GroceryReceipt = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "bookOrder":
+					c.BookOrder = baml.Decode(valueHolder, typeMap).(*BookOrder)
+				
+				case "flightConfirmation":
+					c.FlightConfirmation = baml.Decode(valueHolder, typeMap).(*FlightConfirmation)
+				
+				case "groceryReceipt":
+					c.GroceryReceipt = baml.Decode(valueHolder, typeMap).(*GroceryReceipt)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *CustomTaskResult) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["BookOrder"] = c.BookOrder
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["FlightConfirmation"] = c.FlightConfirmation
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["GroceryReceipt"] = c.GroceryReceipt
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "CustomTaskResult",
-		"values": valueMap,
+
+encodedMap := map[string]any{
+"class_name": "CustomTaskResult",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
+}
+
+
+type Document1559 struct {
+
+	Client_details ClientDetails1559 `json:"client_details"`
+
+	Notes []Note1599 `json:"notes"`
+
+
+}
+
+func (c *Document1559) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Document1559" {
+		panic(fmt.Sprintf("expected Document1559, got %s", string(holder.Name())))
 	}
 
-	return json.Marshal(encodedMap)
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "client_details":
+					c.Client_details = *baml.Decode(valueHolder, typeMap).(*ClientDetails1559)
+				
+				case "notes":
+					c.Notes = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Note1599 {
+    return *baml.Decode(__holder, typeMap).(*Note1599)
+})
+				
+			}
+		}
+	}
+
+
+
+}
+
+func (c *Document1559) BamlEncode() ([]byte, error) {
+valueMap := map[string]any{}
+
+
+
+
+{
+encodedValue, err := c.Client_details.BamlEncode()
+if err != nil {
+return nil, err
+}
+valueMap["Client_details"] = json.RawMessage(encodedValue)
+}
+
+
+
+
+{
+list := make([]any, len(c.Notes))
+for i, v := range c.Notes {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+valueMap["Notes"] = list
+}
+
+
+
+encodedMap := map[string]any{
+"class_name": "Document1559",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type DummyOutput struct {
-    
-    Nonce string `json:"nonce"`
-    
-    Nonce2 string `json:"nonce2"`
-    
-    
-    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
-    
+
+	Nonce string `json:"nonce"`
+
+	Nonce2 string `json:"nonce2"`
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
 }
 
-func (c *DummyOutput) BamlDecode(decodedMap map[string]any) {
+func (c *DummyOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "DummyOutput" {
+		panic(fmt.Sprintf("expected DummyOutput, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Nonce":
-		  coercedValue := value.(string)
-
-			c.Nonce = coercedValue
-		
-		case "Nonce2":
-		  coercedValue := value.(string)
-
-			c.Nonce2 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "nonce":
+					c.Nonce = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "nonce2":
+					c.Nonce2 = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
+	}
+
 }
 
 func (c *DummyOutput) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Nonce"] = c.Nonce
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Nonce2"] = c.Nonce2
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "DummyOutput",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "DummyOutput",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type DynInputOutput struct {
-    
-    TestKey string `json:"testKey"`
-    
-    
-    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
-    
+
+	TestKey string `json:"testKey"`
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
 }
 
-func (c *DynInputOutput) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "TestKey":
-		  coercedValue := value.(string)
+func (c *DynInputOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "DynInputOutput" {
+		panic(fmt.Sprintf("expected DynInputOutput, got %s", string(holder.Name())))
+	}
 
-			c.TestKey = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "testKey":
+					c.TestKey = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
+	}
+
 }
 
 func (c *DynInputOutput) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["TestKey"] = c.TestKey
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "DynInputOutput",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "DynInputOutput",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type DynamicClassOne struct {
-    
-    
-    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
-    
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
 }
 
-func (c *DynamicClassOne) BamlDecode(decodedMap map[string]any) {
+func (c *DynamicClassOne) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "DynamicClassOne" {
+		panic(fmt.Sprintf("expected DynamicClassOne, got %s", string(holder.Name())))
+	}
+
+
 	
+
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
+	}
+
 }
 
 func (c *DynamicClassOne) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "DynamicClassOne",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "DynamicClassOne",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type DynamicClassTwo struct {
-    
-    Hi string `json:"hi"`
-    
-    Some_class SomeClassNestedDynamic `json:"some_class"`
-    
-    Status DynEnumOne `json:"status"`
-    
-    
-    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
-    
+
+	Hi string `json:"hi"`
+
+	Some_class SomeClassNestedDynamic `json:"some_class"`
+
+	Status DynEnumOne `json:"status"`
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
 }
 
-func (c *DynamicClassTwo) BamlDecode(decodedMap map[string]any) {
+func (c *DynamicClassTwo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "DynamicClassTwo" {
+		panic(fmt.Sprintf("expected DynamicClassTwo, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Hi":
-		  coercedValue := value.(string)
-
-			c.Hi = coercedValue
-		
-		case "Some_class":
-		  coercedValue := SomeClassNestedDynamic{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Some_class = coercedValue
-		
-		case "Status":
-		  coercedValue := DynEnumOne(value.(map[string]any)["enum_value"].(string))
-
-			c.Status = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "hi":
+					c.Hi = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "some_class":
+					c.Some_class = *baml.Decode(valueHolder, typeMap).(*SomeClassNestedDynamic)
+				
+				case "status":
+					c.Status = baml.Decode(valueHolder, typeMap).(DynEnumOne)
+				
+			}
 		}
 	}
-	
+
+
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
+	}
+
 }
 
 func (c *DynamicClassTwo) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Hi"] = c.Hi
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Some_class.BamlEncode()
 if err != nil {
 return nil, err
@@ -1409,10 +1858,10 @@ return nil, err
 valueMap["Some_class"] = json.RawMessage(encodedValue)
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Status.BamlEncode()
 if err != nil {
 return nil, err
@@ -1420,167 +1869,234 @@ return nil, err
 valueMap["Status"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "DynamicClassTwo",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "DynamicClassTwo",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type DynamicOutput struct {
-    
-    
-    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
-    
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
 }
 
-func (c *DynamicOutput) BamlDecode(decodedMap map[string]any) {
+func (c *DynamicOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "DynamicOutput" {
+		panic(fmt.Sprintf("expected DynamicOutput, got %s", string(holder.Name())))
+	}
+
+
 	
+
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
+	}
+
 }
 
 func (c *DynamicOutput) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
+
+
+
+encodedMap := map[string]any{
+"class_name": "DynamicOutput",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
+}
+
+
+type DynamicSchema struct {
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
+}
+
+func (c *DynamicSchema) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "DynamicSchema" {
+		panic(fmt.Sprintf("expected DynamicSchema, got %s", string(holder.Name())))
+	}
+
 
 	
 
-	encodedMap := map[string]any{
-		"class_name": "DynamicOutput",
-		"values": valueMap,
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
 	}
 
-	return json.Marshal(encodedMap)
+}
+
+func (c *DynamicSchema) BamlEncode() ([]byte, error) {
+valueMap := map[string]any{}
+
+
+
+encodedMap := map[string]any{
+"class_name": "DynamicSchema",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Earthling struct {
-    
-    Age Checked[int64] `json:"age"`
-    
-    
+
+	Age Checked[int64] `json:"age"`
+
+
 }
 
-func (c *Earthling) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Age":
-		  coercedValue := value.(Checked[int64])
+func (c *Earthling) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Earthling" {
+		panic(fmt.Sprintf("expected Earthling, got %s", string(holder.Name())))
+	}
 
-			c.Age = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "age":
+					c.Age = baml.Decode(valueHolder, typeMap).(Checked[int64])
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Earthling) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Age"] = c.Age
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Earthling",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Earthling",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Education struct {
-    
-    Institution string `json:"institution"`
-    
-    Location string `json:"location"`
-    
-    Degree string `json:"degree"`
-    
-    Major []string `json:"major"`
-    
-    Graduation_date *string `json:"graduation_date"`
-    
-    
+
+	Institution string `json:"institution"`
+
+	Location string `json:"location"`
+
+	Degree string `json:"degree"`
+
+	Major []string `json:"major"`
+
+	Graduation_date *string `json:"graduation_date"`
+
+
 }
 
-func (c *Education) BamlDecode(decodedMap map[string]any) {
+func (c *Education) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Education" {
+		panic(fmt.Sprintf("expected Education, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Institution":
-		  coercedValue := value.(string)
-
-			c.Institution = coercedValue
-		
-		case "Location":
-		  coercedValue := value.(string)
-
-			c.Location = coercedValue
-		
-		case "Degree":
-		  coercedValue := value.(string)
-
-			c.Degree = coercedValue
-		
-		case "Major":
-		  coercedValue := make([]string, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(string)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Major = coercedValue
-		
-		case "Graduation_date":
-		  coercedValue := value.(string)
-
-			c.Graduation_date = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "institution":
+					c.Institution = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "location":
+					c.Location = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "degree":
+					c.Degree = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "major":
+					c.Major = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
+})
+				
+				case "graduation_date":
+					c.Graduation_date = baml.Decode(valueHolder, typeMap).(*string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Education) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Institution"] = c.Institution
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Location"] = c.Location
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Degree"] = c.Degree
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Major))
 for i, v := range c.Major {
 {
@@ -1590,470 +2106,515 @@ list[i] = v
 valueMap["Major"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Graduation_date"] = c.Graduation_date
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Education",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Education",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Email struct {
-    
-    Subject string `json:"subject"`
-    
-    Body string `json:"body"`
-    
-    From_address string `json:"from_address"`
-    
-    
+
+	Subject string `json:"subject"`
+
+	Body string `json:"body"`
+
+	From_address string `json:"from_address"`
+
+
 }
 
-func (c *Email) BamlDecode(decodedMap map[string]any) {
+func (c *Email) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Email" {
+		panic(fmt.Sprintf("expected Email, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Subject":
-		  coercedValue := value.(string)
-
-			c.Subject = coercedValue
-		
-		case "Body":
-		  coercedValue := value.(string)
-
-			c.Body = coercedValue
-		
-		case "From_address":
-		  coercedValue := value.(string)
-
-			c.From_address = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "subject":
+					c.Subject = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "body":
+					c.Body = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "from_address":
+					c.From_address = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Email) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Subject"] = c.Subject
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Body"] = c.Body
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["From_address"] = c.From_address
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Email",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Email",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type EmailAddress struct {
-    
-    Value string `json:"value"`
-    
-    
+
+	Value string `json:"value"`
+
+
 }
 
-func (c *EmailAddress) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Value":
-		  coercedValue := value.(string)
+func (c *EmailAddress) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "EmailAddress" {
+		panic(fmt.Sprintf("expected EmailAddress, got %s", string(holder.Name())))
+	}
 
-			c.Value = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *EmailAddress) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Value"] = c.Value
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "EmailAddress",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "EmailAddress",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Event struct {
-    
-    Title string `json:"title"`
-    
-    Date string `json:"date"`
-    
-    Location string `json:"location"`
-    
-    Description string `json:"description"`
-    
-    
+
+	Title string `json:"title"`
+
+	Date string `json:"date"`
+
+	Location string `json:"location"`
+
+	Description string `json:"description"`
+
+
 }
 
-func (c *Event) BamlDecode(decodedMap map[string]any) {
+func (c *Event) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Event" {
+		panic(fmt.Sprintf("expected Event, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Title":
-		  coercedValue := value.(string)
-
-			c.Title = coercedValue
-		
-		case "Date":
-		  coercedValue := value.(string)
-
-			c.Date = coercedValue
-		
-		case "Location":
-		  coercedValue := value.(string)
-
-			c.Location = coercedValue
-		
-		case "Description":
-		  coercedValue := value.(string)
-
-			c.Description = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "title":
+					c.Title = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "date":
+					c.Date = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "location":
+					c.Location = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "description":
+					c.Description = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Event) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Title"] = c.Title
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Date"] = c.Date
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Location"] = c.Location
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Description"] = c.Description
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Event",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Event",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type FakeImage struct {
-    
-    Url string `json:"url"`
-    
-    
+
+	Url string `json:"url"`
+
+
 }
 
-func (c *FakeImage) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Url":
-		  coercedValue := value.(string)
+func (c *FakeImage) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "FakeImage" {
+		panic(fmt.Sprintf("expected FakeImage, got %s", string(holder.Name())))
+	}
 
-			c.Url = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "url":
+					c.Url = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *FakeImage) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Url"] = c.Url
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "FakeImage",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "FakeImage",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type FlightConfirmation struct {
-    
-    ConfirmationNumber string `json:"confirmationNumber"`
-    
-    FlightNumber string `json:"flightNumber"`
-    
-    DepartureTime string `json:"departureTime"`
-    
-    ArrivalTime string `json:"arrivalTime"`
-    
-    SeatNumber string `json:"seatNumber"`
-    
-    
+
+	ConfirmationNumber string `json:"confirmationNumber"`
+
+	FlightNumber string `json:"flightNumber"`
+
+	DepartureTime string `json:"departureTime"`
+
+	ArrivalTime string `json:"arrivalTime"`
+
+	SeatNumber string `json:"seatNumber"`
+
+
 }
 
-func (c *FlightConfirmation) BamlDecode(decodedMap map[string]any) {
+func (c *FlightConfirmation) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "FlightConfirmation" {
+		panic(fmt.Sprintf("expected FlightConfirmation, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "ConfirmationNumber":
-		  coercedValue := value.(string)
-
-			c.ConfirmationNumber = coercedValue
-		
-		case "FlightNumber":
-		  coercedValue := value.(string)
-
-			c.FlightNumber = coercedValue
-		
-		case "DepartureTime":
-		  coercedValue := value.(string)
-
-			c.DepartureTime = coercedValue
-		
-		case "ArrivalTime":
-		  coercedValue := value.(string)
-
-			c.ArrivalTime = coercedValue
-		
-		case "SeatNumber":
-		  coercedValue := value.(string)
-
-			c.SeatNumber = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "confirmationNumber":
+					c.ConfirmationNumber = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "flightNumber":
+					c.FlightNumber = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "departureTime":
+					c.DepartureTime = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "arrivalTime":
+					c.ArrivalTime = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "seatNumber":
+					c.SeatNumber = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *FlightConfirmation) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["ConfirmationNumber"] = c.ConfirmationNumber
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["FlightNumber"] = c.FlightNumber
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["DepartureTime"] = c.DepartureTime
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["ArrivalTime"] = c.ArrivalTime
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["SeatNumber"] = c.SeatNumber
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "FlightConfirmation",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "FlightConfirmation",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type FooAny struct {
-    
-    Planetary_age Union__Martian__Earthling `json:"planetary_age"`
-    
-    Certainty Checked[int64] `json:"certainty"`
-    
-    Species Checked[string] `json:"species"`
-    
-    
+
+	Planetary_age Union__Martian__Earthling `json:"planetary_age"`
+
+	Certainty Checked[int64] `json:"certainty"`
+
+	Species Checked[string] `json:"species"`
+
+
 }
 
-func (c *FooAny) BamlDecode(decodedMap map[string]any) {
+func (c *FooAny) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "FooAny" {
+		panic(fmt.Sprintf("expected FooAny, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Planetary_age":
-		  coercedValue := value.(Union__Martian__Earthling)
-
-			c.Planetary_age = coercedValue
-		
-		case "Certainty":
-		  coercedValue := value.(Checked[int64])
-
-			c.Certainty = coercedValue
-		
-		case "Species":
-		  coercedValue := value.(Checked[string])
-
-			c.Species = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "planetary_age":
+					c.Planetary_age = baml.Decode(valueHolder, typeMap).(Union__Martian__Earthling)
+				
+				case "certainty":
+					c.Certainty = baml.Decode(valueHolder, typeMap).(Checked[int64])
+				
+				case "species":
+					c.Species = baml.Decode(valueHolder, typeMap).(Checked[string])
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *FooAny) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Planetary_age"] = c.Planetary_age
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Certainty"] = c.Certainty
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Species"] = c.Species
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "FooAny",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "FooAny",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Forest struct {
-    
-    Trees []Tree `json:"trees"`
-    
-    
+
+	Trees []Tree `json:"trees"`
+
+
 }
 
-func (c *Forest) BamlDecode(decodedMap map[string]any) {
+func (c *Forest) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Forest" {
+		panic(fmt.Sprintf("expected Forest, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Trees":
-		  coercedValue := make([]Tree, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := Tree{}
-innercoercedValue.BamlDecode(v.(map[string]any))
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Trees = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "trees":
+					c.Trees = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Tree {
+    return *baml.Decode(__holder, typeMap).(*Tree)
+})
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Forest) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Trees))
 for i, v := range c.Trees {
 {
@@ -2067,313 +2628,347 @@ list[i] = json.RawMessage(encodedValue)
 valueMap["Trees"] = list
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Forest",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Forest",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type FormatterTest0 struct {
-    
-    Lorem string `json:"lorem"`
-    
-    Ipsum string `json:"ipsum"`
-    
-    
+
+	Lorem string `json:"lorem"`
+
+	Ipsum string `json:"ipsum"`
+
+
 }
 
-func (c *FormatterTest0) BamlDecode(decodedMap map[string]any) {
+func (c *FormatterTest0) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "FormatterTest0" {
+		panic(fmt.Sprintf("expected FormatterTest0, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Lorem":
-		  coercedValue := value.(string)
-
-			c.Lorem = coercedValue
-		
-		case "Ipsum":
-		  coercedValue := value.(string)
-
-			c.Ipsum = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "lorem":
+					c.Lorem = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "ipsum":
+					c.Ipsum = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *FormatterTest0) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Lorem"] = c.Lorem
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Ipsum"] = c.Ipsum
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "FormatterTest0",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "FormatterTest0",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type FormatterTest1 struct {
-    
-    Lorem string `json:"lorem"`
-    
-    Ipsum string `json:"ipsum"`
-    
-    
+
+	Lorem string `json:"lorem"`
+
+	Ipsum string `json:"ipsum"`
+
+
 }
 
-func (c *FormatterTest1) BamlDecode(decodedMap map[string]any) {
+func (c *FormatterTest1) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "FormatterTest1" {
+		panic(fmt.Sprintf("expected FormatterTest1, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Lorem":
-		  coercedValue := value.(string)
-
-			c.Lorem = coercedValue
-		
-		case "Ipsum":
-		  coercedValue := value.(string)
-
-			c.Ipsum = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "lorem":
+					c.Lorem = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "ipsum":
+					c.Ipsum = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *FormatterTest1) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Lorem"] = c.Lorem
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Ipsum"] = c.Ipsum
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "FormatterTest1",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "FormatterTest1",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type FormatterTest2 struct {
-    
-    Lorem string `json:"lorem"`
-    
-    Ipsum string `json:"ipsum"`
-    
-    
+
+	Lorem string `json:"lorem"`
+
+	Ipsum string `json:"ipsum"`
+
+
 }
 
-func (c *FormatterTest2) BamlDecode(decodedMap map[string]any) {
+func (c *FormatterTest2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "FormatterTest2" {
+		panic(fmt.Sprintf("expected FormatterTest2, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Lorem":
-		  coercedValue := value.(string)
-
-			c.Lorem = coercedValue
-		
-		case "Ipsum":
-		  coercedValue := value.(string)
-
-			c.Ipsum = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "lorem":
+					c.Lorem = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "ipsum":
+					c.Ipsum = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *FormatterTest2) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Lorem"] = c.Lorem
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Ipsum"] = c.Ipsum
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "FormatterTest2",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "FormatterTest2",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type FormatterTest3 struct {
-    
-    Lorem string `json:"lorem"`
-    
-    Ipsum string `json:"ipsum"`
-    
-    
+
+	Lorem string `json:"lorem"`
+
+	Ipsum string `json:"ipsum"`
+
+
 }
 
-func (c *FormatterTest3) BamlDecode(decodedMap map[string]any) {
+func (c *FormatterTest3) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "FormatterTest3" {
+		panic(fmt.Sprintf("expected FormatterTest3, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Lorem":
-		  coercedValue := value.(string)
-
-			c.Lorem = coercedValue
-		
-		case "Ipsum":
-		  coercedValue := value.(string)
-
-			c.Ipsum = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "lorem":
+					c.Lorem = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "ipsum":
+					c.Ipsum = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *FormatterTest3) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Lorem"] = c.Lorem
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Ipsum"] = c.Ipsum
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "FormatterTest3",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "FormatterTest3",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type GroceryReceipt struct {
-    
-    ReceiptId string `json:"receiptId"`
-    
-    StoreName string `json:"storeName"`
-    
-    Items []Union__string__int64__float64 `json:"items"`
-    
-    TotalAmount float64 `json:"totalAmount"`
-    
-    
+
+	ReceiptId string `json:"receiptId"`
+
+	StoreName string `json:"storeName"`
+
+	Items []Union__string__int64__float64 `json:"items"`
+
+	TotalAmount float64 `json:"totalAmount"`
+
+
 }
 
-func (c *GroceryReceipt) BamlDecode(decodedMap map[string]any) {
+func (c *GroceryReceipt) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "GroceryReceipt" {
+		panic(fmt.Sprintf("expected GroceryReceipt, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "ReceiptId":
-		  coercedValue := value.(string)
-
-			c.ReceiptId = coercedValue
-		
-		case "StoreName":
-		  coercedValue := value.(string)
-
-			c.StoreName = coercedValue
-		
-		case "Items":
-		  coercedValue := make([]Union__string__int64__float64, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(Union__string__int64__float64)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Items = coercedValue
-		
-		case "TotalAmount":
-		  coercedValue := value.(float64)
-
-			c.TotalAmount = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "receiptId":
+					c.ReceiptId = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "storeName":
+					c.StoreName = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "items":
+					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__string__int64__float64 {
+    return baml.Decode(__holder, typeMap).(Union__string__int64__float64)
+})
+				
+				case "totalAmount":
+					c.TotalAmount = baml.Decode(valueHolder, typeMap).(float64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *GroceryReceipt) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["ReceiptId"] = c.ReceiptId
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["StoreName"] = c.StoreName
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Items))
 for i, v := range c.Items {
 {
@@ -2383,82 +2978,164 @@ list[i] = v
 valueMap["Items"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["TotalAmount"] = c.TotalAmount
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "GroceryReceipt",
-		"values": valueMap,
+
+encodedMap := map[string]any{
+"class_name": "GroceryReceipt",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
+}
+
+
+type Haiku struct {
+
+	Line1 string `json:"line1"`
+
+	Line2 string `json:"line2"`
+
+	Line3 string `json:"line3"`
+
+
+}
+
+func (c *Haiku) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Haiku" {
+		panic(fmt.Sprintf("expected Haiku, got %s", string(holder.Name())))
 	}
 
-	return json.Marshal(encodedMap)
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "line1":
+					c.Line1 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "line2":
+					c.Line2 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "line3":
+					c.Line3 = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
+		}
+	}
+
+
+
+}
+
+func (c *Haiku) BamlEncode() ([]byte, error) {
+valueMap := map[string]any{}
+
+
+
+
+{
+valueMap["Line1"] = c.Line1
+}
+
+
+
+
+{
+valueMap["Line2"] = c.Line2
+}
+
+
+
+
+{
+valueMap["Line3"] = c.Line3
+}
+
+
+
+encodedMap := map[string]any{
+"class_name": "Haiku",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type InnerClass struct {
-    
-    Prop1 string `json:"prop1"`
-    
-    Prop2 string `json:"prop2"`
-    
-    Inner InnerClass2 `json:"inner"`
-    
-    
+
+	Prop1 string `json:"prop1"`
+
+	Prop2 string `json:"prop2"`
+
+	Inner InnerClass2 `json:"inner"`
+
+
 }
 
-func (c *InnerClass) BamlDecode(decodedMap map[string]any) {
+func (c *InnerClass) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "InnerClass" {
+		panic(fmt.Sprintf("expected InnerClass, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop1":
-		  coercedValue := value.(string)
-
-			c.Prop1 = coercedValue
-		
-		case "Prop2":
-		  coercedValue := value.(string)
-
-			c.Prop2 = coercedValue
-		
-		case "Inner":
-		  coercedValue := InnerClass2{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Inner = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop1":
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "prop2":
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "inner":
+					c.Inner = *baml.Decode(valueHolder, typeMap).(*InnerClass2)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *InnerClass) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop1"] = c.Prop1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop2"] = c.Prop2
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Inner.BamlEncode()
 if err != nil {
 return nil, err
@@ -2466,175 +3143,198 @@ return nil, err
 valueMap["Inner"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "InnerClass",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "InnerClass",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type InnerClass2 struct {
-    
-    Prop2 int64 `json:"prop2"`
-    
-    Prop3 float64 `json:"prop3"`
-    
-    
+
+	Prop2 int64 `json:"prop2"`
+
+	Prop3 float64 `json:"prop3"`
+
+
 }
 
-func (c *InnerClass2) BamlDecode(decodedMap map[string]any) {
+func (c *InnerClass2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "InnerClass2" {
+		panic(fmt.Sprintf("expected InnerClass2, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop2":
-		  coercedValue := int64(value.(float64))
-
-			c.Prop2 = coercedValue
-		
-		case "Prop3":
-		  coercedValue := value.(float64)
-
-			c.Prop3 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop2":
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "prop3":
+					c.Prop3 = baml.Decode(valueHolder, typeMap).(float64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *InnerClass2) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop2"] = c.Prop2
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop3"] = c.Prop3
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "InnerClass2",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "InnerClass2",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type InputClass struct {
-    
-    Key string `json:"key"`
-    
-    Key2 string `json:"key2"`
-    
-    
+
+	Key string `json:"key"`
+
+	Key2 string `json:"key2"`
+
+
 }
 
-func (c *InputClass) BamlDecode(decodedMap map[string]any) {
+func (c *InputClass) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "InputClass" {
+		panic(fmt.Sprintf("expected InputClass, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Key":
-		  coercedValue := value.(string)
-
-			c.Key = coercedValue
-		
-		case "Key2":
-		  coercedValue := value.(string)
-
-			c.Key2 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "key":
+					c.Key = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "key2":
+					c.Key2 = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *InputClass) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key"] = c.Key
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key2"] = c.Key2
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "InputClass",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "InputClass",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type InputClassNested struct {
-    
-    Key string `json:"key"`
-    
-    Nested InputClass `json:"nested"`
-    
-    
+
+	Key string `json:"key"`
+
+	Nested InputClass `json:"nested"`
+
+
 }
 
-func (c *InputClassNested) BamlDecode(decodedMap map[string]any) {
+func (c *InputClassNested) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "InputClassNested" {
+		panic(fmt.Sprintf("expected InputClassNested, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Key":
-		  coercedValue := value.(string)
-
-			c.Key = coercedValue
-		
-		case "Nested":
-		  coercedValue := InputClass{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Nested = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "key":
+					c.Key = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "nested":
+					c.Nested = *baml.Decode(valueHolder, typeMap).(*InputClass)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *InputClassNested) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key"] = c.Key
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Nested.BamlEncode()
 if err != nil {
 return nil, err
@@ -2642,635 +3342,738 @@ return nil, err
 valueMap["Nested"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "InputClassNested",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "InputClassNested",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type LinkedList struct {
-    
-    Head *Node `json:"head"`
-    
-    Len int64 `json:"len"`
-    
-    
+
+	Head *Node `json:"head"`
+
+	Len int64 `json:"len"`
+
+
 }
 
-func (c *LinkedList) BamlDecode(decodedMap map[string]any) {
+func (c *LinkedList) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "LinkedList" {
+		panic(fmt.Sprintf("expected LinkedList, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Head":
-		  coercedValue := value.(Node)
-
-			c.Head = &coercedValue
-		
-		case "Len":
-		  coercedValue := int64(value.(float64))
-
-			c.Len = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "head":
+					c.Head = baml.Decode(valueHolder, typeMap).(*Node)
+				
+				case "len":
+					c.Len = baml.Decode(valueHolder, typeMap).(int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *LinkedList) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Head"] = c.Head
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Len"] = c.Len
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "LinkedList",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "LinkedList",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type LinkedListAliasNode struct {
-    
-    Value int64 `json:"value"`
-    
-    Next *LinkedListAliasNode `json:"next"`
-    
-    
+
+	Value int64 `json:"value"`
+
+	Next *LinkedListAliasNode `json:"next"`
+
+
 }
 
-func (c *LinkedListAliasNode) BamlDecode(decodedMap map[string]any) {
+func (c *LinkedListAliasNode) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "LinkedListAliasNode" {
+		panic(fmt.Sprintf("expected LinkedListAliasNode, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Value":
-		  coercedValue := int64(value.(float64))
-
-			c.Value = coercedValue
-		
-		case "Next":
-		  coercedValue := value.(LinkedListAliasNode)
-
-			c.Next = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "next":
+					c.Next = baml.Decode(valueHolder, typeMap).(*LinkedListAliasNode)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *LinkedListAliasNode) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Value"] = c.Value
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Next"] = c.Next
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "LinkedListAliasNode",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "LinkedListAliasNode",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type LiteralClassHello struct {
-    
-    Prop string `json:"prop"`
-    
-    
+
+	Prop string `json:"prop"`
+
+
 }
 
-func (c *LiteralClassHello) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop":
-		  coercedValue := value.(string)
+func (c *LiteralClassHello) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "LiteralClassHello" {
+		panic(fmt.Sprintf("expected LiteralClassHello, got %s", string(holder.Name())))
+	}
 
-			c.Prop = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop":
+					c.Prop = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *LiteralClassHello) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop"] = c.Prop
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "LiteralClassHello",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "LiteralClassHello",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type LiteralClassOne struct {
-    
-    Prop string `json:"prop"`
-    
-    
+
+	Prop string `json:"prop"`
+
+
 }
 
-func (c *LiteralClassOne) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop":
-		  coercedValue := value.(string)
+func (c *LiteralClassOne) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "LiteralClassOne" {
+		panic(fmt.Sprintf("expected LiteralClassOne, got %s", string(holder.Name())))
+	}
 
-			c.Prop = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop":
+					c.Prop = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *LiteralClassOne) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop"] = c.Prop
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "LiteralClassOne",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "LiteralClassOne",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type LiteralClassTwo struct {
-    
-    Prop string `json:"prop"`
-    
-    
+
+	Prop string `json:"prop"`
+
+
 }
 
-func (c *LiteralClassTwo) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop":
-		  coercedValue := value.(string)
+func (c *LiteralClassTwo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "LiteralClassTwo" {
+		panic(fmt.Sprintf("expected LiteralClassTwo, got %s", string(holder.Name())))
+	}
 
-			c.Prop = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop":
+					c.Prop = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *LiteralClassTwo) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop"] = c.Prop
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "LiteralClassTwo",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "LiteralClassTwo",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type MalformedConstraints struct {
-    
-    Foo Checked[int64] `json:"foo"`
-    
-    
+
+	Foo Checked[int64] `json:"foo"`
+
+
 }
 
-func (c *MalformedConstraints) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Foo":
-		  coercedValue := value.(Checked[int64])
+func (c *MalformedConstraints) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "MalformedConstraints" {
+		panic(fmt.Sprintf("expected MalformedConstraints, got %s", string(holder.Name())))
+	}
 
-			c.Foo = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "foo":
+					c.Foo = baml.Decode(valueHolder, typeMap).(Checked[int64])
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *MalformedConstraints) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Foo"] = c.Foo
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "MalformedConstraints",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "MalformedConstraints",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type MalformedConstraints2 struct {
-    
-    Foo int64 `json:"foo"`
-    
-    
+
+	Foo int64 `json:"foo"`
+
+
 }
 
-func (c *MalformedConstraints2) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Foo":
-		  coercedValue := value.(int64)
+func (c *MalformedConstraints2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "MalformedConstraints2" {
+		panic(fmt.Sprintf("expected MalformedConstraints2, got %s", string(holder.Name())))
+	}
 
-			c.Foo = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "foo":
+					c.Foo = baml.Decode(valueHolder, typeMap).(int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *MalformedConstraints2) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Foo"] = c.Foo
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "MalformedConstraints2",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "MalformedConstraints2",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 // A Martian organism with an age.
 // Such a nice type.
 type Martian struct {
-    // The age of the Martian in Mars years.
+// The age of the Martian in Mars years.
 // So many Mars years.
-    Age Checked[int64] `json:"age"`
-    
-    
+	Age Checked[int64] `json:"age"`
+
+
 }
 
-func (c *Martian) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Age":
-		  coercedValue := value.(Checked[int64])
+func (c *Martian) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Martian" {
+		panic(fmt.Sprintf("expected Martian, got %s", string(holder.Name())))
+	}
 
-			c.Age = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "age":
+					c.Age = baml.Decode(valueHolder, typeMap).(Checked[int64])
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Martian) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Age"] = c.Age
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Martian",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Martian",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type MemoryObject struct {
-    
-    Id string `json:"id"`
-    
-    Name string `json:"name"`
-    
-    Description string `json:"description"`
-    
-    
+
+	Id string `json:"id"`
+
+	Name string `json:"name"`
+
+	Description string `json:"description"`
+
+
 }
 
-func (c *MemoryObject) BamlDecode(decodedMap map[string]any) {
+func (c *MemoryObject) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "MemoryObject" {
+		panic(fmt.Sprintf("expected MemoryObject, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Id":
-		  coercedValue := value.(string)
-
-			c.Id = coercedValue
-		
-		case "Name":
-		  coercedValue := value.(string)
-
-			c.Name = coercedValue
-		
-		case "Description":
-		  coercedValue := value.(string)
-
-			c.Description = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "id":
+					c.Id = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "name":
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "description":
+					c.Description = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *MemoryObject) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Id"] = c.Id
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Name"] = c.Name
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Description"] = c.Description
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "MemoryObject",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "MemoryObject",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type MergeAttrs struct {
-    
-    Amount Checked[int64] `json:"amount"`
-    
-    
+
+	Amount Checked[int64] `json:"amount"`
+
+
 }
 
-func (c *MergeAttrs) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Amount":
-		  coercedValue := value.(Checked[int64])
+func (c *MergeAttrs) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "MergeAttrs" {
+		panic(fmt.Sprintf("expected MergeAttrs, got %s", string(holder.Name())))
+	}
 
-			c.Amount = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "amount":
+					c.Amount = baml.Decode(valueHolder, typeMap).(Checked[int64])
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *MergeAttrs) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Amount"] = c.Amount
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "MergeAttrs",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "MergeAttrs",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type NamedArgsSingleClass struct {
-    
-    Key string `json:"key"`
-    
-    Key_two bool `json:"key_two"`
-    
-    Key_three int64 `json:"key_three"`
-    
-    
+
+	Key string `json:"key"`
+
+	Key_two bool `json:"key_two"`
+
+	Key_three int64 `json:"key_three"`
+
+
 }
 
-func (c *NamedArgsSingleClass) BamlDecode(decodedMap map[string]any) {
+func (c *NamedArgsSingleClass) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "NamedArgsSingleClass" {
+		panic(fmt.Sprintf("expected NamedArgsSingleClass, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Key":
-		  coercedValue := value.(string)
-
-			c.Key = coercedValue
-		
-		case "Key_two":
-		  coercedValue := value.(bool)
-
-			c.Key_two = coercedValue
-		
-		case "Key_three":
-		  coercedValue := int64(value.(float64))
-
-			c.Key_three = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "key":
+					c.Key = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "key_two":
+					c.Key_two = baml.Decode(valueHolder, typeMap).(bool)
+				
+				case "key_three":
+					c.Key_three = baml.Decode(valueHolder, typeMap).(int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *NamedArgsSingleClass) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key"] = c.Key
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key_two"] = c.Key_two
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key_three"] = c.Key_three
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "NamedArgsSingleClass",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "NamedArgsSingleClass",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Nested struct {
-    
-    Prop3 *string `json:"prop3"`
-    
-    Prop4 *string `json:"prop4"`
-    
-    Prop20 Nested2 `json:"prop20"`
-    
-    
+
+	Prop3 *string `json:"prop3"`
+
+	Prop4 *string `json:"prop4"`
+
+	Prop20 Nested2 `json:"prop20"`
+
+
 }
 
-func (c *Nested) BamlDecode(decodedMap map[string]any) {
+func (c *Nested) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Nested" {
+		panic(fmt.Sprintf("expected Nested, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop3":
-		  coercedValue := value.(string)
-
-			c.Prop3 = &coercedValue
-		
-		case "Prop4":
-		  coercedValue := value.(string)
-
-			c.Prop4 = &coercedValue
-		
-		case "Prop20":
-		  coercedValue := Nested2{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Prop20 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop3":
+					c.Prop3 = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "prop4":
+					c.Prop4 = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "prop20":
+					c.Prop20 = *baml.Decode(valueHolder, typeMap).(*Nested2)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Nested) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop3"] = c.Prop3
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop4"] = c.Prop4
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Prop20.BamlEncode()
 if err != nil {
 return nil, err
@@ -3278,449 +4081,590 @@ return nil, err
 valueMap["Prop20"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Nested",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Nested",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Nested2 struct {
-    
-    Prop11 *string `json:"prop11"`
-    
-    Prop12 *string `json:"prop12"`
-    
-    
+
+	Prop11 *string `json:"prop11"`
+
+	Prop12 *string `json:"prop12"`
+
+
 }
 
-func (c *Nested2) BamlDecode(decodedMap map[string]any) {
+func (c *Nested2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Nested2" {
+		panic(fmt.Sprintf("expected Nested2, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop11":
-		  coercedValue := value.(string)
-
-			c.Prop11 = &coercedValue
-		
-		case "Prop12":
-		  coercedValue := value.(string)
-
-			c.Prop12 = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop11":
+					c.Prop11 = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "prop12":
+					c.Prop12 = baml.Decode(valueHolder, typeMap).(*string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Nested2) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop11"] = c.Prop11
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop12"] = c.Prop12
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Nested2",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Nested2",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type NestedBlockConstraint struct {
-    
-    Nbc Checked[BlockConstraint] `json:"nbc"`
-    
-    
+
+	Nbc Checked[BlockConstraint] `json:"nbc"`
+
+
 }
 
-func (c *NestedBlockConstraint) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Nbc":
-		  coercedValue := value.(Checked[BlockConstraint])
+func (c *NestedBlockConstraint) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "NestedBlockConstraint" {
+		panic(fmt.Sprintf("expected NestedBlockConstraint, got %s", string(holder.Name())))
+	}
 
-			c.Nbc = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "nbc":
+					c.Nbc = baml.Decode(valueHolder, typeMap).(Checked[BlockConstraint])
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *NestedBlockConstraint) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Nbc"] = c.Nbc
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "NestedBlockConstraint",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "NestedBlockConstraint",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type NestedBlockConstraintForParam struct {
-    
-    Nbcfp BlockConstraintForParam `json:"nbcfp"`
-    
-    
+
+	Nbcfp BlockConstraintForParam `json:"nbcfp"`
+
+
 }
 
-func (c *NestedBlockConstraintForParam) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Nbcfp":
-		  coercedValue := value.(BlockConstraintForParam)
+func (c *NestedBlockConstraintForParam) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "NestedBlockConstraintForParam" {
+		panic(fmt.Sprintf("expected NestedBlockConstraintForParam, got %s", string(holder.Name())))
+	}
 
-			c.Nbcfp = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "nbcfp":
+					c.Nbcfp = baml.Decode(valueHolder, typeMap).(BlockConstraintForParam)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *NestedBlockConstraintForParam) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Nbcfp"] = c.Nbcfp
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "NestedBlockConstraintForParam",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "NestedBlockConstraintForParam",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Node struct {
-    
-    Data int64 `json:"data"`
-    
-    Next *Node `json:"next"`
-    
-    
+
+	Data int64 `json:"data"`
+
+	Next *Node `json:"next"`
+
+
 }
 
-func (c *Node) BamlDecode(decodedMap map[string]any) {
+func (c *Node) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Node" {
+		panic(fmt.Sprintf("expected Node, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Data":
-		  coercedValue := int64(value.(float64))
-
-			c.Data = coercedValue
-		
-		case "Next":
-		  coercedValue := value.(Node)
-
-			c.Next = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "data":
+					c.Data = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "next":
+					c.Next = baml.Decode(valueHolder, typeMap).(*Node)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Node) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Data"] = c.Data
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Next"] = c.Next
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Node",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Node",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type NodeWithAliasIndirection struct {
-    
-    Value int64 `json:"value"`
-    
-    Next *NodeWithAliasIndirection `json:"next"`
-    
-    
+
+	Value int64 `json:"value"`
+
+	Next *NodeWithAliasIndirection `json:"next"`
+
+
 }
 
-func (c *NodeWithAliasIndirection) BamlDecode(decodedMap map[string]any) {
+func (c *NodeWithAliasIndirection) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "NodeWithAliasIndirection" {
+		panic(fmt.Sprintf("expected NodeWithAliasIndirection, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Value":
-		  coercedValue := int64(value.(float64))
-
-			c.Value = coercedValue
-		
-		case "Next":
-		  coercedValue := value.(NodeWithAliasIndirection)
-
-			c.Next = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "next":
+					c.Next = baml.Decode(valueHolder, typeMap).(*NodeWithAliasIndirection)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *NodeWithAliasIndirection) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Value"] = c.Value
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Next"] = c.Next
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "NodeWithAliasIndirection",
-		"values": valueMap,
+
+encodedMap := map[string]any{
+"class_name": "NodeWithAliasIndirection",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
+}
+
+
+type Note1599 struct {
+
+	Note_title string `json:"note_title"`
+
+	Note_description *string `json:"note_description"`
+
+	Note_amount *string `json:"note_amount"`
+
+
+}
+
+func (c *Note1599) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Note1599" {
+		panic(fmt.Sprintf("expected Note1599, got %s", string(holder.Name())))
 	}
 
-	return json.Marshal(encodedMap)
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "note_title":
+					c.Note_title = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "note_description":
+					c.Note_description = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "note_amount":
+					c.Note_amount = baml.Decode(valueHolder, typeMap).(*string)
+				
+			}
+		}
+	}
+
+
+
+}
+
+func (c *Note1599) BamlEncode() ([]byte, error) {
+valueMap := map[string]any{}
+
+
+
+
+{
+valueMap["Note_title"] = c.Note_title
+}
+
+
+
+
+{
+valueMap["Note_description"] = c.Note_description
+}
+
+
+
+
+{
+valueMap["Note_amount"] = c.Note_amount
+}
+
+
+
+encodedMap := map[string]any{
+"class_name": "Note1599",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type OptionalListAndMap struct {
-    
-    P *[]string `json:"p"`
-    
-    Q *map[string]string `json:"q"`
-    
-    
+
+	P *[]string `json:"p"`
+
+	Q *map[string]string `json:"q"`
+
+
 }
 
-func (c *OptionalListAndMap) BamlDecode(decodedMap map[string]any) {
+func (c *OptionalListAndMap) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "OptionalListAndMap" {
+		panic(fmt.Sprintf("expected OptionalListAndMap, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "P":
-		  coercedValue := value.([]string)
-
-			c.P = &coercedValue
-		
-		case "Q":
-		  coercedValue := value.(map[string]string)
-
-			c.Q = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "p":
+					c.P = baml.Decode(valueHolder, typeMap).(*[]string)
+				
+				case "q":
+					c.Q = baml.Decode(valueHolder, typeMap).(*map[string]string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *OptionalListAndMap) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["P"] = c.P
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Q"] = c.Q
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "OptionalListAndMap",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "OptionalListAndMap",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type OptionalTest_Prop1 struct {
-    
-    Omega_a string `json:"omega_a"`
-    
-    Omega_b int64 `json:"omega_b"`
-    
-    
+
+	Omega_a string `json:"omega_a"`
+
+	Omega_b int64 `json:"omega_b"`
+
+
 }
 
-func (c *OptionalTest_Prop1) BamlDecode(decodedMap map[string]any) {
+func (c *OptionalTest_Prop1) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "OptionalTest_Prop1" {
+		panic(fmt.Sprintf("expected OptionalTest_Prop1, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Omega_a":
-		  coercedValue := value.(string)
-
-			c.Omega_a = coercedValue
-		
-		case "Omega_b":
-		  coercedValue := int64(value.(float64))
-
-			c.Omega_b = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "omega_a":
+					c.Omega_a = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "omega_b":
+					c.Omega_b = baml.Decode(valueHolder, typeMap).(int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *OptionalTest_Prop1) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Omega_a"] = c.Omega_a
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Omega_b"] = c.Omega_b
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "OptionalTest_Prop1",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "OptionalTest_Prop1",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type OptionalTest_ReturnType struct {
-    
-    Omega_1 *OptionalTest_Prop1 `json:"omega_1"`
-    
-    Omega_2 *string `json:"omega_2"`
-    
-    Omega_3 []*OptionalTest_CategoryType `json:"omega_3"`
-    
-    
+
+	Omega_1 *OptionalTest_Prop1 `json:"omega_1"`
+
+	Omega_2 *string `json:"omega_2"`
+
+	Omega_3 []*OptionalTest_CategoryType `json:"omega_3"`
+
+
 }
 
-func (c *OptionalTest_ReturnType) BamlDecode(decodedMap map[string]any) {
+func (c *OptionalTest_ReturnType) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "OptionalTest_ReturnType" {
+		panic(fmt.Sprintf("expected OptionalTest_ReturnType, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Omega_1":
-		  coercedValue := value.(OptionalTest_Prop1)
-
-			c.Omega_1 = &coercedValue
-		
-		case "Omega_2":
-		  coercedValue := value.(string)
-
-			c.Omega_2 = &coercedValue
-		
-		case "Omega_3":
-		  coercedValue := make([]*OptionalTest_CategoryType, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(OptionalTest_CategoryType)
-  coercedValue[i] = &innercoercedValue
-}
-
-			c.Omega_3 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "omega_1":
+					c.Omega_1 = baml.Decode(valueHolder, typeMap).(*OptionalTest_Prop1)
+				
+				case "omega_2":
+					c.Omega_2 = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "omega_3":
+					c.Omega_3 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) *OptionalTest_CategoryType {
+    return baml.Decode(__holder, typeMap).(*OptionalTest_CategoryType)
+})
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *OptionalTest_ReturnType) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Omega_1"] = c.Omega_1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Omega_2"] = c.Omega_2
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Omega_3))
 for i, v := range c.Omega_3 {
 {
@@ -3730,60 +4674,66 @@ list[i] = v
 valueMap["Omega_3"] = list
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "OptionalTest_ReturnType",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "OptionalTest_ReturnType",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type OrderInfo struct {
-    
-    Order_status OrderStatus `json:"order_status"`
-    
-    Tracking_number *string `json:"tracking_number"`
-    
-    Estimated_arrival_date *string `json:"estimated_arrival_date"`
-    
-    
+
+	Order_status OrderStatus `json:"order_status"`
+
+	Tracking_number *string `json:"tracking_number"`
+
+	Estimated_arrival_date *string `json:"estimated_arrival_date"`
+
+
 }
 
-func (c *OrderInfo) BamlDecode(decodedMap map[string]any) {
+func (c *OrderInfo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "OrderInfo" {
+		panic(fmt.Sprintf("expected OrderInfo, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Order_status":
-		  coercedValue := OrderStatus(value.(map[string]any)["enum_value"].(string))
-
-			c.Order_status = coercedValue
-		
-		case "Tracking_number":
-		  coercedValue := value.(string)
-
-			c.Tracking_number = &coercedValue
-		
-		case "Estimated_arrival_date":
-		  coercedValue := value.(string)
-
-			c.Estimated_arrival_date = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "order_status":
+					c.Order_status = baml.Decode(valueHolder, typeMap).(OrderStatus)
+				
+				case "tracking_number":
+					c.Tracking_number = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "estimated_arrival_date":
+					c.Estimated_arrival_date = baml.Decode(valueHolder, typeMap).(*string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *OrderInfo) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Order_status.BamlEncode()
 if err != nil {
 return nil, err
@@ -3791,314 +4741,398 @@ return nil, err
 valueMap["Order_status"] = json.RawMessage(encodedValue)
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Tracking_number"] = c.Tracking_number
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Estimated_arrival_date"] = c.Estimated_arrival_date
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "OrderInfo",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "OrderInfo",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type OriginalA struct {
-    
-    Value int64 `json:"value"`
-    
-    
+
+	Value int64 `json:"value"`
+
+
 }
 
-func (c *OriginalA) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Value":
-		  coercedValue := int64(value.(float64))
+func (c *OriginalA) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "OriginalA" {
+		panic(fmt.Sprintf("expected OriginalA, got %s", string(holder.Name())))
+	}
 
-			c.Value = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *OriginalA) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Value"] = c.Value
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "OriginalA",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "OriginalA",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type OriginalB struct {
-    
-    Value int64 `json:"value"`
-    
-    
-    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
-    
+
+	Value int64 `json:"value"`
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
 }
 
-func (c *OriginalB) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Value":
-		  coercedValue := int64(value.(float64))
+func (c *OriginalB) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "OriginalB" {
+		panic(fmt.Sprintf("expected OriginalB, got %s", string(holder.Name())))
+	}
 
-			c.Value = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(int64)
+				
+			}
 		}
 	}
-	
+
+
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
+	}
+
 }
 
 func (c *OriginalB) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Value"] = c.Value
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "OriginalB",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "OriginalB",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Person struct {
-    
-    Name *string `json:"name"`
-    
-    Hair_color *Color `json:"hair_color"`
-    
-    
-    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
-    
+
+	Name *string `json:"name"`
+
+	Hair_color *Color `json:"hair_color"`
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
 }
 
-func (c *Person) BamlDecode(decodedMap map[string]any) {
+func (c *Person) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Person" {
+		panic(fmt.Sprintf("expected Person, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Name":
-		  coercedValue := value.(string)
-
-			c.Name = &coercedValue
-		
-		case "Hair_color":
-		  coercedValue := value.(Color)
-
-			c.Hair_color = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "name":
+					c.Name = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "hair_color":
+					c.Hair_color = baml.Decode(valueHolder, typeMap).(*Color)
+				
+			}
 		}
 	}
-	
+
+
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
+	}
+
 }
 
 func (c *Person) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Name"] = c.Name
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Hair_color"] = c.Hair_color
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Person",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Person",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type PhoneNumber struct {
-    
-    Value string `json:"value"`
-    
-    
+
+	Value string `json:"value"`
+
+
 }
 
-func (c *PhoneNumber) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Value":
-		  coercedValue := value.(string)
+func (c *PhoneNumber) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "PhoneNumber" {
+		panic(fmt.Sprintf("expected PhoneNumber, got %s", string(holder.Name())))
+	}
 
-			c.Value = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *PhoneNumber) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Value"] = c.Value
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "PhoneNumber",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "PhoneNumber",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Quantity struct {
-    
-    Amount Union__int64__float64 `json:"amount"`
-    
-    Unit *string `json:"unit"`
-    
-    
+
+	Name string `json:"name"`
+
+	Amount float64 `json:"amount"`
+
+	Unit string `json:"unit"`
+
+
 }
 
-func (c *Quantity) BamlDecode(decodedMap map[string]any) {
+func (c *Quantity) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Quantity" {
+		panic(fmt.Sprintf("expected Quantity, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Amount":
-		  coercedValue := value.(Union__int64__float64)
-
-			c.Amount = coercedValue
-		
-		case "Unit":
-		  coercedValue := value.(string)
-
-			c.Unit = &coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "name":
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "amount":
+					c.Amount = baml.Decode(valueHolder, typeMap).(float64)
+				
+				case "unit":
+					c.Unit = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Quantity) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
+valueMap["Name"] = c.Name
+}
+
+
+
+
+{
 valueMap["Amount"] = c.Amount
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Unit"] = c.Unit
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Quantity",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Quantity",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type RaysData struct {
-    
-    DataType DataType `json:"dataType"`
-    
-    Value Union__Resume__Event `json:"value"`
-    
-    
+
+	DataType DataType `json:"dataType"`
+
+	Value Union__Resume__Event `json:"value"`
+
+
 }
 
-func (c *RaysData) BamlDecode(decodedMap map[string]any) {
+func (c *RaysData) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "RaysData" {
+		panic(fmt.Sprintf("expected RaysData, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "DataType":
-		  coercedValue := DataType(value.(map[string]any)["enum_value"].(string))
-
-			c.DataType = coercedValue
-		
-		case "Value":
-		  coercedValue := value.(Union__Resume__Event)
-
-			c.Value = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "dataType":
+					c.DataType = baml.Decode(valueHolder, typeMap).(DataType)
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(Union__Resume__Event)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *RaysData) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.DataType.BamlEncode()
 if err != nil {
 return nil, err
@@ -4106,72 +5140,75 @@ return nil, err
 valueMap["DataType"] = json.RawMessage(encodedValue)
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Value"] = c.Value
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "RaysData",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "RaysData",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ReceiptInfo struct {
-    
-    Items []ReceiptItem `json:"items"`
-    
-    Total_cost *float64 `json:"total_cost"`
-    
-    Venue Union__string_barisa__string_ox_burger `json:"venue"`
-    
-    
+
+	Items []ReceiptItem `json:"items"`
+
+	Total_cost *float64 `json:"total_cost"`
+
+	Venue Union__string_barisa__string_ox_burger `json:"venue"`
+
+
 }
 
-func (c *ReceiptInfo) BamlDecode(decodedMap map[string]any) {
+func (c *ReceiptInfo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ReceiptInfo" {
+		panic(fmt.Sprintf("expected ReceiptInfo, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Items":
-		  coercedValue := make([]ReceiptItem, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := ReceiptItem{}
-innercoercedValue.BamlDecode(v.(map[string]any))
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Items = coercedValue
-		
-		case "Total_cost":
-		  coercedValue := value.(float64)
-
-			c.Total_cost = &coercedValue
-		
-		case "Venue":
-		  coercedValue := value.(Union__string_barisa__string_ox_burger)
-
-			c.Venue = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "items":
+					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) ReceiptItem {
+    return *baml.Decode(__holder, typeMap).(*ReceiptItem)
+})
+				
+				case "total_cost":
+					c.Total_cost = baml.Decode(valueHolder, typeMap).(*float64)
+				
+				case "venue":
+					c.Venue = baml.Decode(valueHolder, typeMap).(Union__string_barisa__string_ox_burger)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ReceiptInfo) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Items))
 for i, v := range c.Items {
 {
@@ -4185,316 +5222,168 @@ list[i] = json.RawMessage(encodedValue)
 valueMap["Items"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Total_cost"] = c.Total_cost
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Venue"] = c.Venue
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ReceiptInfo",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ReceiptInfo",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type ReceiptItem struct {
-    
-    Name string `json:"name"`
-    
-    Description *string `json:"description"`
-    
-    Quantity int64 `json:"quantity"`
-    
-    Price float64 `json:"price"`
-    
-    
+
+	Name string `json:"name"`
+
+	Description *string `json:"description"`
+
+	Quantity int64 `json:"quantity"`
+
+	Price float64 `json:"price"`
+
+
 }
 
-func (c *ReceiptItem) BamlDecode(decodedMap map[string]any) {
+func (c *ReceiptItem) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "ReceiptItem" {
+		panic(fmt.Sprintf("expected ReceiptItem, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Name":
-		  coercedValue := value.(string)
-
-			c.Name = coercedValue
-		
-		case "Description":
-		  coercedValue := value.(string)
-
-			c.Description = &coercedValue
-		
-		case "Quantity":
-		  coercedValue := int64(value.(float64))
-
-			c.Quantity = coercedValue
-		
-		case "Price":
-		  coercedValue := value.(float64)
-
-			c.Price = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "name":
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "description":
+					c.Description = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "quantity":
+					c.Quantity = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "price":
+					c.Price = baml.Decode(valueHolder, typeMap).(float64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *ReceiptItem) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Name"] = c.Name
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Description"] = c.Description
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Quantity"] = c.Quantity
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Price"] = c.Price
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "ReceiptItem",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "ReceiptItem",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Recipe struct {
-    
-    Ingredients map[string]Quantity `json:"ingredients"`
-    
-    Recipe_type Union__string_breakfast__string_dinner `json:"recipe_type"`
-    
-    
+
+	Ingredients []Quantity `json:"ingredients"`
+
+	Recipe_type string `json:"recipe_type"`
+
+
 }
 
-func (c *Recipe) BamlDecode(decodedMap map[string]any) {
+func (c *Recipe) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Recipe" {
+		panic(fmt.Sprintf("expected Recipe, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Ingredients":
-		  coercedValue := value.(map[string]Quantity)
-
-			c.Ingredients = coercedValue
-		
-		case "Recipe_type":
-		  coercedValue := value.(Union__string_breakfast__string_dinner)
-
-			c.Recipe_type = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "ingredients":
+					c.Ingredients = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Quantity {
+    return *baml.Decode(__holder, typeMap).(*Quantity)
+})
+				
+				case "recipe_type":
+					c.Recipe_type = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Recipe) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
-
-	
-		
-		
-		{
-valueMap["Ingredients"] = c.Ingredients
-}
-
-	
-		
-		
-		{
-valueMap["Recipe_type"] = c.Recipe_type
-}
-
-	
-
-	encodedMap := map[string]any{
-		"class_name": "Recipe",
-		"values": valueMap,
-	}
-
-	return json.Marshal(encodedMap)
-}
+valueMap := map[string]any{}
 
 
-type RecursiveAliasDependency struct {
-    
-    Value JsonValue `json:"value"`
-    
-    
-}
-
-func (c *RecursiveAliasDependency) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Value":
-		  coercedValue := value.(JsonValue)
-
-			c.Value = coercedValue
-		
-		}
-	}
-	
-}
-
-func (c *RecursiveAliasDependency) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
-
-	
-		
-		
-		{
-valueMap["Value"] = c.Value
-}
-
-	
-
-	encodedMap := map[string]any{
-		"class_name": "RecursiveAliasDependency",
-		"values": valueMap,
-	}
-
-	return json.Marshal(encodedMap)
-}
 
 
-type Resume struct {
-    
-    Name string `json:"name"`
-    
-    Email string `json:"email"`
-    
-    Phone string `json:"phone"`
-    
-    Experience []Education `json:"experience"`
-    
-    Education []string `json:"education"`
-    
-    Skills []string `json:"skills"`
-    
-    
-}
-
-func (c *Resume) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Name":
-		  coercedValue := value.(string)
-
-			c.Name = coercedValue
-		
-		case "Email":
-		  coercedValue := value.(string)
-
-			c.Email = coercedValue
-		
-		case "Phone":
-		  coercedValue := value.(string)
-
-			c.Phone = coercedValue
-		
-		case "Experience":
-		  coercedValue := make([]Education, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := Education{}
-innercoercedValue.BamlDecode(v.(map[string]any))
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Experience = coercedValue
-		
-		case "Education":
-		  coercedValue := make([]string, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(string)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Education = coercedValue
-		
-		case "Skills":
-		  coercedValue := make([]string, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(string)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Skills = coercedValue
-		
-		}
-	}
-	
-}
-
-func (c *Resume) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
-
-	
-		
-		
-		{
-valueMap["Name"] = c.Name
-}
-
-	
-		
-		
-		{
-valueMap["Email"] = c.Email
-}
-
-	
-		
-		
-		{
-valueMap["Phone"] = c.Phone
-}
-
-	
-		
-		
-		{
-list := make([]any, len(c.Experience))
-for i, v := range c.Experience {
+{
+list := make([]any, len(c.Ingredients))
+for i, v := range c.Ingredients {
 {
 encodedValue, err := v.BamlEncode()
 if err != nil {
@@ -4503,26 +5392,201 @@ return nil, err
 list[i] = json.RawMessage(encodedValue)
 }
 }
+valueMap["Ingredients"] = list
+}
+
+
+
+
+{
+valueMap["Recipe_type"] = c.Recipe_type
+}
+
+
+
+encodedMap := map[string]any{
+"class_name": "Recipe",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
+}
+
+
+type RecursiveAliasDependency struct {
+
+	Value JsonValue `json:"value"`
+
+
+}
+
+func (c *RecursiveAliasDependency) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "RecursiveAliasDependency" {
+		panic(fmt.Sprintf("expected RecursiveAliasDependency, got %s", string(holder.Name())))
+	}
+
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(JsonValue)
+				
+			}
+		}
+	}
+
+
+
+}
+
+func (c *RecursiveAliasDependency) BamlEncode() ([]byte, error) {
+valueMap := map[string]any{}
+
+
+
+
+{
+valueMap["Value"] = c.Value
+}
+
+
+
+encodedMap := map[string]any{
+"class_name": "RecursiveAliasDependency",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
+}
+
+
+type Resume struct {
+
+	Name string `json:"name"`
+
+	Email string `json:"email"`
+
+	Phone string `json:"phone"`
+
+	Experience []string `json:"experience"`
+
+	Education []Education `json:"education"`
+
+	Skills []string `json:"skills"`
+
+
+}
+
+func (c *Resume) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Resume" {
+		panic(fmt.Sprintf("expected Resume, got %s", string(holder.Name())))
+	}
+
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "name":
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "email":
+					c.Email = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "phone":
+					c.Phone = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "experience":
+					c.Experience = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
+})
+				
+				case "education":
+					c.Education = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Education {
+    return *baml.Decode(__holder, typeMap).(*Education)
+})
+				
+				case "skills":
+					c.Skills = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
+})
+				
+			}
+		}
+	}
+
+
+
+}
+
+func (c *Resume) BamlEncode() ([]byte, error) {
+valueMap := map[string]any{}
+
+
+
+
+{
+valueMap["Name"] = c.Name
+}
+
+
+
+
+{
+valueMap["Email"] = c.Email
+}
+
+
+
+
+{
+valueMap["Phone"] = c.Phone
+}
+
+
+
+
+{
+list := make([]any, len(c.Experience))
+for i, v := range c.Experience {
+{
+list[i] = v
+}
+}
 valueMap["Experience"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Education))
 for i, v := range c.Education {
 {
-list[i] = v
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
 }
 }
 valueMap["Education"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Skills))
 for i, v := range c.Skills {
 {
@@ -4532,110 +5596,104 @@ list[i] = v
 valueMap["Skills"] = list
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Resume",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Resume",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Schema struct {
-    
-    Prop1 *string `json:"prop1"`
-    
-    Prop2 Union__Nested__string `json:"prop2"`
-    
-    Prop5 []*string `json:"prop5"`
-    
-    Prop6 Union__string__List__Nested `json:"prop6"`
-    
-    Nested_attrs []*Union__string__Nested `json:"nested_attrs"`
-    
-    Parens *string `json:"parens"`
-    
-    Other_group Union__string__int64 `json:"other_group"`
-    
-    
+
+	Prop1 *string `json:"prop1"`
+
+	Prop2 Union__Nested__string `json:"prop2"`
+
+	Prop5 []*string `json:"prop5"`
+
+	Prop6 Union__string__List__Nested `json:"prop6"`
+
+	Nested_attrs []*Union__string__Nested `json:"nested_attrs"`
+
+	Parens *string `json:"parens"`
+
+	Other_group Union__string__int64 `json:"other_group"`
+
+
 }
 
-func (c *Schema) BamlDecode(decodedMap map[string]any) {
+func (c *Schema) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Schema" {
+		panic(fmt.Sprintf("expected Schema, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop1":
-		  coercedValue := value.(string)
-
-			c.Prop1 = &coercedValue
-		
-		case "Prop2":
-		  coercedValue := value.(Union__Nested__string)
-
-			c.Prop2 = coercedValue
-		
-		case "Prop5":
-		  coercedValue := make([]*string, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(string)
-  coercedValue[i] = &innercoercedValue
-}
-
-			c.Prop5 = coercedValue
-		
-		case "Prop6":
-		  coercedValue := value.(Union__string__List__Nested)
-
-			c.Prop6 = coercedValue
-		
-		case "Nested_attrs":
-		  coercedValue := make([]*Union__string__Nested, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(Union__string__Nested)
-  coercedValue[i] = &innercoercedValue
-}
-
-			c.Nested_attrs = coercedValue
-		
-		case "Parens":
-		  coercedValue := value.(string)
-
-			c.Parens = &coercedValue
-		
-		case "Other_group":
-		  coercedValue := value.(Union__string__int64)
-
-			c.Other_group = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop1":
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "prop2":
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(Union__Nested__string)
+				
+				case "prop5":
+					c.Prop5 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) *string {
+    return baml.Decode(__holder, typeMap).(*string)
+})
+				
+				case "prop6":
+					c.Prop6 = baml.Decode(valueHolder, typeMap).(Union__string__List__Nested)
+				
+				case "nested_attrs":
+					c.Nested_attrs = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) *Union__string__Nested {
+    return baml.Decode(__holder, typeMap).(*Union__string__Nested)
+})
+				
+				case "parens":
+					c.Parens = baml.Decode(valueHolder, typeMap).(*string)
+				
+				case "other_group":
+					c.Other_group = baml.Decode(valueHolder, typeMap).(Union__string__int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Schema) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop1"] = c.Prop1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop2"] = c.Prop2
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Prop5))
 for i, v := range c.Prop5 {
 {
@@ -4645,17 +5703,17 @@ list[i] = v
 valueMap["Prop5"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop6"] = c.Prop6
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Nested_attrs))
 for i, v := range c.Nested_attrs {
 {
@@ -4665,115 +5723,108 @@ list[i] = v
 valueMap["Nested_attrs"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Parens"] = c.Parens
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Other_group"] = c.Other_group
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Schema",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Schema",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type SearchParams struct {
-    
-    DateRange *int64 `json:"dateRange"`
-    
-    Location []string `json:"location"`
-    
-    JobTitle *WithReasoning `json:"jobTitle"`
-    
-    Company *WithReasoning `json:"company"`
-    
-    Description []WithReasoning `json:"description"`
-    
-    Tags []Union__Tag__string `json:"tags"`
-    
-    
+
+	DateRange *int64 `json:"dateRange"`
+
+	Location []string `json:"location"`
+
+	JobTitle *WithReasoning `json:"jobTitle"`
+
+	Company *WithReasoning `json:"company"`
+
+	Description []WithReasoning `json:"description"`
+
+	Tags []Union__Tag__string `json:"tags"`
+
+
 }
 
-func (c *SearchParams) BamlDecode(decodedMap map[string]any) {
+func (c *SearchParams) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "SearchParams" {
+		panic(fmt.Sprintf("expected SearchParams, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "DateRange":
-		  coercedValue := value.(int64)
-
-			c.DateRange = &coercedValue
-		
-		case "Location":
-		  coercedValue := make([]string, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(string)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Location = coercedValue
-		
-		case "JobTitle":
-		  coercedValue := value.(WithReasoning)
-
-			c.JobTitle = &coercedValue
-		
-		case "Company":
-		  coercedValue := value.(WithReasoning)
-
-			c.Company = &coercedValue
-		
-		case "Description":
-		  coercedValue := make([]WithReasoning, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := WithReasoning{}
-innercoercedValue.BamlDecode(v.(map[string]any))
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Description = coercedValue
-		
-		case "Tags":
-		  coercedValue := make([]Union__Tag__string, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(Union__Tag__string)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Tags = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "dateRange":
+					c.DateRange = baml.Decode(valueHolder, typeMap).(*int64)
+				
+				case "location":
+					c.Location = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
+})
+				
+				case "jobTitle":
+					c.JobTitle = baml.Decode(valueHolder, typeMap).(*WithReasoning)
+				
+				case "company":
+					c.Company = baml.Decode(valueHolder, typeMap).(*WithReasoning)
+				
+				case "description":
+					c.Description = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) WithReasoning {
+    return *baml.Decode(__holder, typeMap).(*WithReasoning)
+})
+				
+				case "tags":
+					c.Tags = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__Tag__string {
+    return baml.Decode(__holder, typeMap).(Union__Tag__string)
+})
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *SearchParams) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["DateRange"] = c.DateRange
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Location))
 for i, v := range c.Location {
 {
@@ -4783,24 +5834,24 @@ list[i] = v
 valueMap["Location"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["JobTitle"] = c.JobTitle
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Company"] = c.Company
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Description))
 for i, v := range c.Description {
 {
@@ -4814,10 +5865,10 @@ list[i] = json.RawMessage(encodedValue)
 valueMap["Description"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Tags))
 for i, v := range c.Tags {
 {
@@ -4827,118 +5878,107 @@ list[i] = v
 valueMap["Tags"] = list
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "SearchParams",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "SearchParams",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type SemanticContainer struct {
-    
-    Sixteen_digit_number int64 `json:"sixteen_digit_number"`
-    
-    String_with_twenty_words string `json:"string_with_twenty_words"`
-    
-    Class_1 ClassWithoutDone `json:"class_1"`
-    
-    Class_2 ClassWithBlockDone `json:"class_2"`
-    
-    Class_done_needed ClassWithBlockDone `json:"class_done_needed"`
-    
-    Class_needed ClassWithoutDone `json:"class_needed"`
-    
-    Three_small_things []SmallThing `json:"three_small_things"`
-    
-    Final_string string `json:"final_string"`
-    
-    
+
+	Sixteen_digit_number int64 `json:"sixteen_digit_number"`
+
+	String_with_twenty_words string `json:"string_with_twenty_words"`
+
+	Class_1 ClassWithoutDone `json:"class_1"`
+
+	Class_2 ClassWithBlockDone `json:"class_2"`
+
+	Class_done_needed ClassWithBlockDone `json:"class_done_needed"`
+
+	Class_needed ClassWithoutDone `json:"class_needed"`
+
+	Three_small_things []SmallThing `json:"three_small_things"`
+
+	Final_string string `json:"final_string"`
+
+
 }
 
-func (c *SemanticContainer) BamlDecode(decodedMap map[string]any) {
+func (c *SemanticContainer) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "SemanticContainer" {
+		panic(fmt.Sprintf("expected SemanticContainer, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Sixteen_digit_number":
-		  coercedValue := int64(value.(float64))
-
-			c.Sixteen_digit_number = coercedValue
-		
-		case "String_with_twenty_words":
-		  coercedValue := value.(string)
-
-			c.String_with_twenty_words = coercedValue
-		
-		case "Class_1":
-		  coercedValue := ClassWithoutDone{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Class_1 = coercedValue
-		
-		case "Class_2":
-		  coercedValue := ClassWithBlockDone{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Class_2 = coercedValue
-		
-		case "Class_done_needed":
-		  coercedValue := ClassWithBlockDone{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Class_done_needed = coercedValue
-		
-		case "Class_needed":
-		  coercedValue := ClassWithoutDone{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Class_needed = coercedValue
-		
-		case "Three_small_things":
-		  coercedValue := make([]SmallThing, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := SmallThing{}
-innercoercedValue.BamlDecode(v.(map[string]any))
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Three_small_things = coercedValue
-		
-		case "Final_string":
-		  coercedValue := value.(string)
-
-			c.Final_string = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "sixteen_digit_number":
+					c.Sixteen_digit_number = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "string_with_twenty_words":
+					c.String_with_twenty_words = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "class_1":
+					c.Class_1 = *baml.Decode(valueHolder, typeMap).(*ClassWithoutDone)
+				
+				case "class_2":
+					c.Class_2 = *baml.Decode(valueHolder, typeMap).(*ClassWithBlockDone)
+				
+				case "class_done_needed":
+					c.Class_done_needed = *baml.Decode(valueHolder, typeMap).(*ClassWithBlockDone)
+				
+				case "class_needed":
+					c.Class_needed = *baml.Decode(valueHolder, typeMap).(*ClassWithoutDone)
+				
+				case "three_small_things":
+					c.Three_small_things = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) SmallThing {
+    return *baml.Decode(__holder, typeMap).(*SmallThing)
+})
+				
+				case "final_string":
+					c.Final_string = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *SemanticContainer) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Sixteen_digit_number"] = c.Sixteen_digit_number
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["String_with_twenty_words"] = c.String_with_twenty_words
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Class_1.BamlEncode()
 if err != nil {
 return nil, err
@@ -4946,10 +5986,10 @@ return nil, err
 valueMap["Class_1"] = json.RawMessage(encodedValue)
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Class_2.BamlEncode()
 if err != nil {
 return nil, err
@@ -4957,10 +5997,10 @@ return nil, err
 valueMap["Class_2"] = json.RawMessage(encodedValue)
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Class_done_needed.BamlEncode()
 if err != nil {
 return nil, err
@@ -4968,10 +6008,10 @@ return nil, err
 valueMap["Class_done_needed"] = json.RawMessage(encodedValue)
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Class_needed.BamlEncode()
 if err != nil {
 return nil, err
@@ -4979,10 +6019,10 @@ return nil, err
 valueMap["Class_needed"] = json.RawMessage(encodedValue)
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Three_small_things))
 for i, v := range c.Three_small_things {
 {
@@ -4996,355 +6036,411 @@ list[i] = json.RawMessage(encodedValue)
 valueMap["Three_small_things"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Final_string"] = c.Final_string
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "SemanticContainer",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "SemanticContainer",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type SimpleTag struct {
-    
-    Field string `json:"field"`
-    
-    
+
+	Field string `json:"field"`
+
+
 }
 
-func (c *SimpleTag) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Field":
-		  coercedValue := value.(string)
+func (c *SimpleTag) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "SimpleTag" {
+		panic(fmt.Sprintf("expected SimpleTag, got %s", string(holder.Name())))
+	}
 
-			c.Field = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "field":
+					c.Field = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *SimpleTag) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Field"] = c.Field
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "SimpleTag",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "SimpleTag",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type SmallThing struct {
-    
-    I_16_digits int64 `json:"i_16_digits"`
-    
-    I_8_digits int64 `json:"i_8_digits"`
-    
-    
+
+	I_16_digits int64 `json:"i_16_digits"`
+
+	I_8_digits int64 `json:"i_8_digits"`
+
+
 }
 
-func (c *SmallThing) BamlDecode(decodedMap map[string]any) {
+func (c *SmallThing) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "SmallThing" {
+		panic(fmt.Sprintf("expected SmallThing, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "I_16_digits":
-		  coercedValue := int64(value.(float64))
-
-			c.I_16_digits = coercedValue
-		
-		case "I_8_digits":
-		  coercedValue := int64(value.(float64))
-
-			c.I_8_digits = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "i_16_digits":
+					c.I_16_digits = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "i_8_digits":
+					c.I_8_digits = baml.Decode(valueHolder, typeMap).(int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *SmallThing) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["I_16_digits"] = c.I_16_digits
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["I_8_digits"] = c.I_8_digits
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "SmallThing",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "SmallThing",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type SomeClassNestedDynamic struct {
-    
-    Hi string `json:"hi"`
-    
-    
-    DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
-    
+
+	Hi string `json:"hi"`
+
+
+	DynamicProperties map[string]any `json:"__baml_dynamic_properties__"`
+
 }
 
-func (c *SomeClassNestedDynamic) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Hi":
-		  coercedValue := value.(string)
+func (c *SomeClassNestedDynamic) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "SomeClassNestedDynamic" {
+		panic(fmt.Sprintf("expected SomeClassNestedDynamic, got %s", string(holder.Name())))
+	}
 
-			c.Hi = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "hi":
+					c.Hi = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
+	for i := range holder.DynamicFieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.DynamicFields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
+		}
+	}
+
 }
 
 func (c *SomeClassNestedDynamic) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Hi"] = c.Hi
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "SomeClassNestedDynamic",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "SomeClassNestedDynamic",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type StringToClassEntry struct {
-    
-    Word string `json:"word"`
-    
-    
+
+	Word string `json:"word"`
+
+
 }
 
-func (c *StringToClassEntry) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Word":
-		  coercedValue := value.(string)
+func (c *StringToClassEntry) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "StringToClassEntry" {
+		panic(fmt.Sprintf("expected StringToClassEntry, got %s", string(holder.Name())))
+	}
 
-			c.Word = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "word":
+					c.Word = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *StringToClassEntry) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Word"] = c.Word
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "StringToClassEntry",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "StringToClassEntry",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type TestClassAlias struct {
-    
-    Key string `json:"key"`
-    
-    Key2 string `json:"key2"`
-    
-    Key3 string `json:"key3"`
-    
-    Key4 string `json:"key4"`
-    
-    Key5 string `json:"key5"`
-    
-    
+
+	Key string `json:"key"`
+
+	Key2 string `json:"key2"`
+
+	Key3 string `json:"key3"`
+
+	Key4 string `json:"key4"`
+
+	Key5 string `json:"key5"`
+
+
 }
 
-func (c *TestClassAlias) BamlDecode(decodedMap map[string]any) {
+func (c *TestClassAlias) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "TestClassAlias" {
+		panic(fmt.Sprintf("expected TestClassAlias, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Key":
-		  coercedValue := value.(string)
-
-			c.Key = coercedValue
-		
-		case "Key2":
-		  coercedValue := value.(string)
-
-			c.Key2 = coercedValue
-		
-		case "Key3":
-		  coercedValue := value.(string)
-
-			c.Key3 = coercedValue
-		
-		case "Key4":
-		  coercedValue := value.(string)
-
-			c.Key4 = coercedValue
-		
-		case "Key5":
-		  coercedValue := value.(string)
-
-			c.Key5 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "key":
+					c.Key = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "key2":
+					c.Key2 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "key3":
+					c.Key3 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "key4":
+					c.Key4 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "key5":
+					c.Key5 = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *TestClassAlias) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key"] = c.Key
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key2"] = c.Key2
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key3"] = c.Key3
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key4"] = c.Key4
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Key5"] = c.Key5
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "TestClassAlias",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "TestClassAlias",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type TestClassNested struct {
-    
-    Prop1 string `json:"prop1"`
-    
-    Prop2 InnerClass `json:"prop2"`
-    
-    
+
+	Prop1 string `json:"prop1"`
+
+	Prop2 InnerClass `json:"prop2"`
+
+
 }
 
-func (c *TestClassNested) BamlDecode(decodedMap map[string]any) {
+func (c *TestClassNested) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "TestClassNested" {
+		panic(fmt.Sprintf("expected TestClassNested, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop1":
-		  coercedValue := value.(string)
-
-			c.Prop1 = coercedValue
-		
-		case "Prop2":
-		  coercedValue := InnerClass{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Prop2 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop1":
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "prop2":
+					c.Prop2 = *baml.Decode(valueHolder, typeMap).(*InnerClass)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *TestClassNested) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop1"] = c.Prop1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Prop2.BamlEncode()
 if err != nil {
 return nil, err
@@ -5352,60 +6448,68 @@ return nil, err
 valueMap["Prop2"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "TestClassNested",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "TestClassNested",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type TestClassWithEnum struct {
-    
-    Prop1 string `json:"prop1"`
-    
-    Prop2 EnumInClass `json:"prop2"`
-    
-    
+
+	Prop1 string `json:"prop1"`
+
+	Prop2 EnumInClass `json:"prop2"`
+
+
 }
 
-func (c *TestClassWithEnum) BamlDecode(decodedMap map[string]any) {
+func (c *TestClassWithEnum) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "TestClassWithEnum" {
+		panic(fmt.Sprintf("expected TestClassWithEnum, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop1":
-		  coercedValue := value.(string)
-
-			c.Prop1 = coercedValue
-		
-		case "Prop2":
-		  coercedValue := EnumInClass(value.(map[string]any)["enum_value"].(string))
-
-			c.Prop2 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop1":
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "prop2":
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(EnumInClass)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *TestClassWithEnum) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop1"] = c.Prop1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Prop2.BamlEncode()
 if err != nil {
 return nil, err
@@ -5413,61 +6517,65 @@ return nil, err
 valueMap["Prop2"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "TestClassWithEnum",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "TestClassWithEnum",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type TestMemoryOutput struct {
-    
-    Items []Union__MemoryObject__ComplexMemoryObject__AnotherObject `json:"items"`
-    
-    More_items []Union__MemoryObject__ComplexMemoryObject__AnotherObject `json:"more_items"`
-    
-    
+
+	Items []Union__MemoryObject__ComplexMemoryObject__AnotherObject `json:"items"`
+
+	More_items []Union__MemoryObject__ComplexMemoryObject__AnotherObject `json:"more_items"`
+
+
 }
 
-func (c *TestMemoryOutput) BamlDecode(decodedMap map[string]any) {
+func (c *TestMemoryOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "TestMemoryOutput" {
+		panic(fmt.Sprintf("expected TestMemoryOutput, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Items":
-		  coercedValue := make([]Union__MemoryObject__ComplexMemoryObject__AnotherObject, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Items = coercedValue
-		
-		case "More_items":
-		  coercedValue := make([]Union__MemoryObject__ComplexMemoryObject__AnotherObject, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.More_items = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "items":
+					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__MemoryObject__ComplexMemoryObject__AnotherObject {
+    return baml.Decode(__holder, typeMap).(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+})
+				
+				case "more_items":
+					c.More_items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__MemoryObject__ComplexMemoryObject__AnotherObject {
+    return baml.Decode(__holder, typeMap).(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+})
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *TestMemoryOutput) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Items))
 for i, v := range c.Items {
 {
@@ -5477,10 +6585,10 @@ list[i] = v
 valueMap["Items"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.More_items))
 for i, v := range c.More_items {
 {
@@ -5490,118 +6598,133 @@ list[i] = v
 valueMap["More_items"] = list
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "TestMemoryOutput",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "TestMemoryOutput",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type TestOutputClass struct {
-    
-    Prop1 string `json:"prop1"`
-    
-    Prop2 int64 `json:"prop2"`
-    
-    
+
+	Prop1 string `json:"prop1"`
+
+	Prop2 int64 `json:"prop2"`
+
+
 }
 
-func (c *TestOutputClass) BamlDecode(decodedMap map[string]any) {
+func (c *TestOutputClass) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "TestOutputClass" {
+		panic(fmt.Sprintf("expected TestOutputClass, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop1":
-		  coercedValue := value.(string)
-
-			c.Prop1 = coercedValue
-		
-		case "Prop2":
-		  coercedValue := int64(value.(float64))
-
-			c.Prop2 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop1":
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "prop2":
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *TestOutputClass) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop1"] = c.Prop1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop2"] = c.Prop2
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "TestOutputClass",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "TestOutputClass",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type Tree struct {
-    
-    Data int64 `json:"data"`
-    
-    Children Forest `json:"children"`
-    
-    
+
+	Data int64 `json:"data"`
+
+	Children Forest `json:"children"`
+
+
 }
 
-func (c *Tree) BamlDecode(decodedMap map[string]any) {
+func (c *Tree) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "Tree" {
+		panic(fmt.Sprintf("expected Tree, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Data":
-		  coercedValue := int64(value.(float64))
-
-			c.Data = coercedValue
-		
-		case "Children":
-		  coercedValue := Forest{}
-coercedValue.BamlDecode(value.(map[string]any))
-
-			c.Children = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "data":
+					c.Data = baml.Decode(valueHolder, typeMap).(int64)
+				
+				case "children":
+					c.Children = *baml.Decode(valueHolder, typeMap).(*Forest)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *Tree) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Data"] = c.Data
 }
 
-	
-		
-		
-		{
+
+
+
+{
 encodedValue, err := c.Children.BamlEncode()
 if err != nil {
 return nil, err
@@ -5609,142 +6732,152 @@ return nil, err
 valueMap["Children"] = json.RawMessage(encodedValue)
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "Tree",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "Tree",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type TwoStoriesOneTitle struct {
-    
-    Title string `json:"title"`
-    
-    Story_a string `json:"story_a"`
-    
-    Story_b string `json:"story_b"`
-    
-    
+
+	Title string `json:"title"`
+
+	Story_a string `json:"story_a"`
+
+	Story_b string `json:"story_b"`
+
+
 }
 
-func (c *TwoStoriesOneTitle) BamlDecode(decodedMap map[string]any) {
+func (c *TwoStoriesOneTitle) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "TwoStoriesOneTitle" {
+		panic(fmt.Sprintf("expected TwoStoriesOneTitle, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Title":
-		  coercedValue := value.(string)
-
-			c.Title = coercedValue
-		
-		case "Story_a":
-		  coercedValue := value.(string)
-
-			c.Story_a = coercedValue
-		
-		case "Story_b":
-		  coercedValue := value.(string)
-
-			c.Story_b = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "title":
+					c.Title = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "story_a":
+					c.Story_a = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "story_b":
+					c.Story_b = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *TwoStoriesOneTitle) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Title"] = c.Title
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Story_a"] = c.Story_a
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Story_b"] = c.Story_b
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "TwoStoriesOneTitle",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "TwoStoriesOneTitle",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type UnionTest_ReturnType struct {
-    
-    Prop1 Union__string__bool `json:"prop1"`
-    
-    Prop2 []Union__float64__bool `json:"prop2"`
-    
-    Prop3 Union__List__bool__List__int64 `json:"prop3"`
-    
-    
+
+	Prop1 Union__string__bool `json:"prop1"`
+
+	Prop2 []Union__float64__bool `json:"prop2"`
+
+	Prop3 Union__List__bool__List__int64 `json:"prop3"`
+
+
 }
 
-func (c *UnionTest_ReturnType) BamlDecode(decodedMap map[string]any) {
+func (c *UnionTest_ReturnType) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "UnionTest_ReturnType" {
+		panic(fmt.Sprintf("expected UnionTest_ReturnType, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Prop1":
-		  coercedValue := value.(Union__string__bool)
-
-			c.Prop1 = coercedValue
-		
-		case "Prop2":
-		  coercedValue := make([]Union__float64__bool, len(value.([]any)))
-for i, v := range value.([]any) {
-innercoercedValue := v.(Union__float64__bool)
-  coercedValue[i] = innercoercedValue
-}
-
-			c.Prop2 = coercedValue
-		
-		case "Prop3":
-		  coercedValue := value.(Union__List__bool__List__int64)
-
-			c.Prop3 = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "prop1":
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(Union__string__bool)
+				
+				case "prop2":
+					c.Prop2 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__float64__bool {
+    return baml.Decode(__holder, typeMap).(Union__float64__bool)
+})
+				
+				case "prop3":
+					c.Prop3 = baml.Decode(valueHolder, typeMap).(Union__List__bool__List__int64)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *UnionTest_ReturnType) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop1"] = c.Prop1
 }
 
-	
-		
-		
-		{
+
+
+
+{
 list := make([]any, len(c.Prop2))
 for i, v := range c.Prop2 {
 {
@@ -5754,179 +6887,205 @@ list[i] = v
 valueMap["Prop2"] = list
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Prop3"] = c.Prop3
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "UnionTest_ReturnType",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "UnionTest_ReturnType",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 // my docs
 type UniverseQuestion struct {
-    
-    Question string `json:"question"`
-    
-    Answer string `json:"answer"`
-    
-    
+
+	Question string `json:"question"`
+
+	Answer string `json:"answer"`
+
+
 }
 
-func (c *UniverseQuestion) BamlDecode(decodedMap map[string]any) {
+func (c *UniverseQuestion) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "UniverseQuestion" {
+		panic(fmt.Sprintf("expected UniverseQuestion, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Question":
-		  coercedValue := value.(string)
-
-			c.Question = coercedValue
-		
-		case "Answer":
-		  coercedValue := value.(string)
-
-			c.Answer = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "question":
+					c.Question = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "answer":
+					c.Answer = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *UniverseQuestion) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Question"] = c.Question
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Answer"] = c.Answer
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "UniverseQuestion",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "UniverseQuestion",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type UniverseQuestionInput struct {
-    
-    Question string `json:"question"`
-    
-    
+
+	Question string `json:"question"`
+
+
 }
 
-func (c *UniverseQuestionInput) BamlDecode(decodedMap map[string]any) {
-	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Question":
-		  coercedValue := value.(string)
+func (c *UniverseQuestionInput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "UniverseQuestionInput" {
+		panic(fmt.Sprintf("expected UniverseQuestionInput, got %s", string(holder.Name())))
+	}
 
-			c.Question = coercedValue
-		
+
+	
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "question":
+					c.Question = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *UniverseQuestionInput) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Question"] = c.Question
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "UniverseQuestionInput",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "UniverseQuestionInput",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 
 type WithReasoning struct {
-    
-    Value string `json:"value"`
-    
-    Reasoning string `json:"reasoning"`
-    
-    
+
+	Value string `json:"value"`
+
+	Reasoning string `json:"reasoning"`
+
+
 }
 
-func (c *WithReasoning) BamlDecode(decodedMap map[string]any) {
+func (c *WithReasoning) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
+	if string(holder.Name()) != "WithReasoning" {
+		panic(fmt.Sprintf("expected WithReasoning, got %s", string(holder.Name())))
+	}
+
+
 	
-	for name, value := range decodedMap["values"].(map[string]any) {
-		switch name {
-		
-		case "Value":
-		  coercedValue := value.(string)
-
-			c.Value = coercedValue
-		
-		case "Reasoning":
-		  coercedValue := value.(string)
-
-			c.Reasoning = coercedValue
-		
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+				
+				case "value":
+					c.Value = baml.Decode(valueHolder, typeMap).(string)
+				
+				case "reasoning":
+					c.Reasoning = baml.Decode(valueHolder, typeMap).(string)
+				
+			}
 		}
 	}
-	
+
+
+
 }
 
 func (c *WithReasoning) BamlEncode() ([]byte, error) {
-	valueMap := map[string]any{}
+valueMap := map[string]any{}
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Value"] = c.Value
 }
 
-	
-		
-		
-		{
+
+
+
+{
 valueMap["Reasoning"] = c.Reasoning
 }
 
-	
 
-	encodedMap := map[string]any{
-		"class_name": "WithReasoning",
-		"values": valueMap,
-	}
 
-	return json.Marshal(encodedMap)
+encodedMap := map[string]any{
+"class_name": "WithReasoning",
+"values": valueMap,
+}
+
+return json.Marshal(encodedMap)
 }
 
 

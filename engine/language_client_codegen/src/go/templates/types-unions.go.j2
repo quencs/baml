@@ -1,6 +1,12 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/boundaryml/baml/go/pkg/cffi"
+	baml "github.com/boundaryml/baml/go/pkg"
+)
+
 
 {% for union in unions %}
 type {{ union.name }} struct {
@@ -10,17 +16,16 @@ type {{ union.name }} struct {
     {% endfor %}
 }
 
-func (u *{{ union.name }}) BamlDecode(decoded map[string]any) {
-    u.variant = decoded["union_variant"].(string)
-    value := decoded["value"]
-
-    switch u.variant {
+func (u *{{ union.name }}) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    decoded := baml.Decode(holder.Value(nil), typeMap)
+	switch holder.ValueTypeIndex() {
     {% for variant in union.variants %}
-    case "{{ variant.0 }}":
-        {{ crate::go::generate_types::render_value_coercion("coercedValue", "value", variant.1) }}
-        u.variant_{{ variant.0 }} = &coercedValue
+	    case {{ loop.index0 }}:
+            u.variant = "{{ variant.0 }}"
+            casted := decoded.({{ variant.1.name }})
+            u.variant_{{ variant.0 }} = &casted
     {% endfor %}
-    }
+	}
 }
 
 func (u *{{ union.name }}) BamlEncode() ([]byte, error) {

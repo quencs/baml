@@ -2,7 +2,6 @@ package baml_client
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"strings"
 
@@ -18,6 +17,7 @@ func init() {
 		key, value, _ := strings.Cut(env_var, "=")
 		env_vars[key] = value
 	}
+	baml.SetTypeMap(typeMap)
 	runtime, err := baml.CreateRuntime("./baml_src", getBamlFiles(), env_vars)
 	if err != nil {
 		panic(err)
@@ -29,13 +29,30 @@ type stream struct {}
 
 var Stream = &stream{}
 
+func castSlice[T any](result any, castResult func(any) T) []T {
+	items := result.([]any)
+	casted := make([]T, len(items))
+	for i, item := range items {
+		casted[i] = castResult(item)
+	}
+	return casted
+}
+
+func castOptional[T any](result any, castResult func(any) T) *T {
+	if result == nil {
+		return nil
+	}
+	val := castResult(result)
+	return &val
+}
+
 {% for fn in funcs %}
 
 func {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
         , {{name}} {{type}}
         {%- endfor %}) (*{{ fn.return_type }}, error) {
 	arg_names := []string{ {% for (name, type) in fn.args -%}"{{name}}",{% endfor %} }
-	raw, err := bamlRuntime.CallFunction(ctx, "{{ fn.name }}", arg_names{% for (name, type) in fn.args -%}
+	result, err := bamlRuntime.CallFunction(ctx, "{{ fn.name }}", arg_names{% for (name, type) in fn.args -%}
         , {{name}}
 		{%- endfor %}, nil, nil)
 
@@ -43,12 +60,17 @@ func {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
 		return nil, err
 	}
 
-	var ret {{ fn.return_type }}
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) {{ fn.return_type }} {
+		return {{ crate::go::cast_value("result", fn.return_type_type) }}
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
@@ -74,12 +96,11 @@ func (*stream) {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -
 					close(channel)
 					return
 				}
-				var ret {{ fn.return_type }}
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).({{ fn.return_type }})
 			}
 		}
 	}()

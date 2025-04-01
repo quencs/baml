@@ -41,7 +41,7 @@ class LlmResponseParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> types.Recipe:
+    ) -> Optional[List[types.Recipe]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -61,7 +61,7 @@ class LlmResponseParser:
         __cr__,
       )
 
-      return cast(types.Recipe, parsed)
+      return cast(Optional[List[types.Recipe]], parsed)
     
     def AliasThatPointsToRecursiveType(
         self,
@@ -3837,7 +3837,7 @@ class LlmResponseParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3857,7 +3857,7 @@ class LlmResponseParser:
         __cr__,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOllamaHaiku(
         self,
@@ -4446,7 +4446,7 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> partial_types.Recipe:
+    ) -> List[partial_types.Recipe]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4466,7 +4466,7 @@ class LlmStreamParser:
         __cr__,
       )
 
-      return cast(partial_types.Recipe, parsed)
+      return cast(List[partial_types.Recipe], parsed)
     
     def AliasThatPointsToRecursiveType(
         self,

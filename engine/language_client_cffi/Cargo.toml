@@ -16,6 +16,7 @@ crate-type = ["cdylib", "staticlib"]
 [dependencies]
 libc = "0.2.2"
 baml-cli.workspace = true
+baml-log.workspace = true
 baml-types.workspace = true
 baml-runtime = { path = "../baml-runtime", default-features = false, features = [
   "internal",

@@ -165,7 +165,7 @@ where
         // figure out how to reduce memory usage.
         let response_value_without_flags = match response_value {
             Some(Ok(baml_value)) => Some(Ok(ResponseBamlValue(
-                baml_value.0.map_meta_owned(|m| (vec![], m.1, m.2)),
+                baml_value.0.map_meta_owned(|m| (vec![], m.1, m.2, m.3)),
             ))),
             Some(Err(e)) => Some(Err(e)),
             None => None,

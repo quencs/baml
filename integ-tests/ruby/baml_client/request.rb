@@ -4559,13 +4559,13 @@ module Baml
     sig {
       params(
         varargs: T.untyped,
-        input: String,
+        
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(Baml::Ffi::HTTPRequest)
     }
     def TestOllama(
         *varargs,
-        input:,
+        
         baml_options: {}
     )
       if varargs.any?
@@ -4578,7 +4578,7 @@ module Baml
       @runtime.build_request(
         "TestOllama",
         {
-          input: input,
+          
         },
         @ctx_manager,
         baml_options[:tb]&.instance_variable_get(:@registry),
@@ -9810,13 +9810,13 @@ module Baml
     sig {
       params(
         varargs: T.untyped,
-        input: String,
+        
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(Baml::Ffi::HTTPRequest)
     }
     def TestOllama(
         *varargs,
-        input:,
+        
         baml_options: {}
     )
       if varargs.any?
@@ -9829,7 +9829,7 @@ module Baml
       @runtime.build_request(
         "TestOllama",
         {
-          input: input,
+          
         },
         @ctx_manager,
         baml_options[:tb]&.instance_variable_get(:@registry),

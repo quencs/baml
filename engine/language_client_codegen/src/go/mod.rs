@@ -4,7 +4,7 @@ mod go_language_features;
 use std::{fmt::format, path::PathBuf};
 
 use anyhow::Result;
-use generate_types::to_go_literal;
+use generate_types::{cast_value, to_go_literal, GoType, ToTypeReferenceInTypeDefinition};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::{
     configuration::{GeneratorDefaultClientMode, GeneratorOutputType},
@@ -26,6 +26,7 @@ struct GoFunction {
     go_name: String,
     partial_return_type: String,
     return_type: String,
+    return_type_type: GoType,
     args: Vec<(String, String)>,
 }
 
@@ -89,6 +90,7 @@ impl TryFrom<(&'_ IntermediateRepr, &'_ crate::GeneratorArgs)> for GoClient {
                             },
                             partial_return_type: f.elem().output().to_partial_type_ref(ir, true),
                             return_type: f.elem().output().to_type_ref(ir, true),
+                            return_type_type: f.elem().output().to_type_ref_2(ir, true),
                             args: f
                                 .inputs()
                                 .iter()

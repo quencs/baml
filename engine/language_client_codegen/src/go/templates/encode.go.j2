@@ -8,10 +8,6 @@ import (
   "{{ package_name }}/baml_client/types"
 )
 
-type BamlDecoder interface {
-  BamlDecode(decodedMap map[string]any)
-}
-
 type BamlEncoder interface {
   BamlEncode() ([]byte, error)
 }
@@ -26,58 +22,6 @@ var typeMap = map[string]reflect.Type{
   {% for union in unions %}
   "{{ union.name }}": reflect.TypeOf(types.{{ union.name }}{}),
   {% endfor %}
-}
-
-func Decode(data []byte) (any, error) {
-  var decoded any
-  if err := json.Unmarshal(data, &decoded); err != nil {
-    return nil, err
-  }
-
-  var result any
-  if reflect.TypeOf(decoded).Kind() == reflect.Map {
-    decodedMap := decoded.(map[string]any)
-    if decodedMap["class_name"] != nil {
-      className := decodedMap["class_name"].(string)
-      newObject := reflect.New(typeMap[className]).Interface().(BamlDecoder)
-      newObject.BamlDecode(decodedMap)
-      result = newObject
-    } else if decodedMap["enum_class"] != nil {
-      enumClassName := decodedMap["enum_class"].(string)
-      enumValue := decodedMap["enum_value"].(string)
-      enum := reflect.New(typeMap[enumClassName]).Elem()
-      enum.SetString(enumValue)
-      result = enum.Interface()
-    } else if decodedMap["union_name"] != nil {
-      unionClassName := decodedMap["union_name"].(string)
-      union := reflect.New(typeMap[unionClassName]).Interface().(BamlDecoder)
-      union.BamlDecode(decodedMap)
-      result = union
-    }
-  } else if reflect.TypeOf(decoded).Kind() == reflect.Slice {
-    decodedSlice := decoded.([]any)
-    {# // determine the map key and value types #}
-    if len(decodedSlice) > 0 {
-			keyType := reflect.TypeOf("")
-			{# this is insane but it works #}
-			valueType := reflect.TypeOf((*any)(nil)).Elem()
-
-			newMap := reflect.MakeMap(reflect.MapOf(keyType, valueType))
-			for _, item := range decodedSlice {
-				itemMap := item.(map[string]any)
-				key := itemMap["key"].(string)
-				value := itemMap["value"]
-				newMap.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
-			}
-			result = newMap.Interface()
-    } else {
-      result = map[string]any{}
-    }
-  } else {
-    result = decoded
-  }
-
-	return result, nil
 }
 
 func Encode(object any) ([]byte, error) {

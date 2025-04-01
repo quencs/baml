@@ -12,7 +12,6 @@ package baml_client
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"strings"
 
@@ -28,6 +27,7 @@ func init() {
 		key, value, _ := strings.Cut(env_var, "=")
 		env_vars[key] = value
 	}
+	baml.SetTypeMap(typeMap)
 	runtime, err := baml.CreateRuntime("./baml_src", getBamlFiles(), env_vars)
 	if err != nil {
 		panic(err)
@@ -39,27 +39,53 @@ type stream struct {}
 
 var Stream = &stream{}
 
+func castSlice[T any](result any, castResult func(any) T) []T {
+	items := result.([]any)
+	casted := make([]T, len(items))
+	for i, item := range items {
+		casted[i] = castResult(item)
+	}
+	return casted
+}
+
+func castOptional[T any](result any, castResult func(any) T) *T {
+	if result == nil {
+		return nil
+	}
+	val := castResult(result)
+	return &val
+}
 
 
-func AaaSamOutputFormat(ctx context.Context, recipe string) (*types.Recipe, error) {
+
+func AaaSamOutputFormat(ctx context.Context, recipe string) (**[]types.Recipe, error) {
 	arg_names := []string{ "recipe", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AaaSamOutputFormat", arg_names, recipe, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AaaSamOutputFormat", arg_names, recipe, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Recipe
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) *[]types.Recipe {
+		return castOptional(result, func (item any) []types.Recipe {
+    return castSlice(item, func(item any) types.Recipe {
+    return *(item).(*types.Recipe)
+})
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
-func (*stream) AaaSamOutputFormat(ctx context.Context, recipe string) <-chan types.Recipe {
+func (*stream) AaaSamOutputFormat(ctx context.Context, recipe string) <-chan *[]types.Recipe {
 	arg_names := []string{ "recipe", }
-	channel := make(chan types.Recipe)
+	channel := make(chan *[]types.Recipe)
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "AaaSamOutputFormat", arg_names, recipe, nil, nil)
 	if err != nil {
 		close(channel)
@@ -76,12 +102,11 @@ func (*stream) AaaSamOutputFormat(ctx context.Context, recipe string) <-chan typ
 					close(channel)
 					return
 				}
-				var ret types.Recipe
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(*[]types.Recipe)
 			}
 		}
 	}()
@@ -90,26 +115,31 @@ func (*stream) AaaSamOutputFormat(ctx context.Context, recipe string) <-chan typ
 
 
 
-func AliasThatPointsToRecursiveType(ctx context.Context, list types.LinkedListAliasNode) (*types.LinkedListAliasNode, error) {
-	arg_names := []string{ "list", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AliasThatPointsToRecursiveType", arg_names, list, nil, nil)
+func AliasThatPointsToRecursiveType(ctx context.Context, data types.LinkedListAliasNode) (*types.LinkedListAliasNode, error) {
+	arg_names := []string{ "data", }
+	result, err := bamlRuntime.CallFunction(ctx, "AliasThatPointsToRecursiveType", arg_names, data, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.LinkedListAliasNode
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.LinkedListAliasNode {
+		return *(result).(*types.LinkedListAliasNode)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
-func (*stream) AliasThatPointsToRecursiveType(ctx context.Context, list types.LinkedListAliasNode) <-chan types.LinkedListAliasNode {
-	arg_names := []string{ "list", }
+func (*stream) AliasThatPointsToRecursiveType(ctx context.Context, data types.LinkedListAliasNode) <-chan types.LinkedListAliasNode {
+	arg_names := []string{ "data", }
 	channel := make(chan types.LinkedListAliasNode)
-	raw, err := bamlRuntime.CallFunctionStream(ctx, "AliasThatPointsToRecursiveType", arg_names, list, nil, nil)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "AliasThatPointsToRecursiveType", arg_names, data, nil, nil)
 	if err != nil {
 		close(channel)
 		return channel
@@ -125,12 +155,11 @@ func (*stream) AliasThatPointsToRecursiveType(ctx context.Context, list types.Li
 					close(channel)
 					return
 				}
-				var ret types.LinkedListAliasNode
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.LinkedListAliasNode)
 			}
 		}
 	}()
@@ -141,18 +170,23 @@ func (*stream) AliasThatPointsToRecursiveType(ctx context.Context, list types.Li
 
 func AliasWithMultipleAttrs(ctx context.Context, money types.Checked[int64]) (*types.Checked[int64], error) {
 	arg_names := []string{ "money", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AliasWithMultipleAttrs", arg_names, money, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasWithMultipleAttrs", arg_names, money, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Checked[int64]
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Checked[int64] {
+		return (result).(types.Checked[int64])
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AliasWithMultipleAttrs(ctx context.Context, money types.Checked[int64]) <-chan types.Checked[int64] {
@@ -174,12 +208,11 @@ func (*stream) AliasWithMultipleAttrs(ctx context.Context, money types.Checked[i
 					close(channel)
 					return
 				}
-				var ret types.Checked[int64]
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Checked[int64])
 			}
 		}
 	}()
@@ -190,18 +223,23 @@ func (*stream) AliasWithMultipleAttrs(ctx context.Context, money types.Checked[i
 
 func AliasedInputClass(ctx context.Context, input types.InputClass) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AliasedInputClass", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClass", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AliasedInputClass(ctx context.Context, input types.InputClass) <-chan string {
@@ -223,12 +261,11 @@ func (*stream) AliasedInputClass(ctx context.Context, input types.InputClass) <-
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -239,18 +276,23 @@ func (*stream) AliasedInputClass(ctx context.Context, input types.InputClass) <-
 
 func AliasedInputClass2(ctx context.Context, input types.InputClass) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AliasedInputClass2", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClass2", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AliasedInputClass2(ctx context.Context, input types.InputClass) <-chan string {
@@ -272,12 +314,11 @@ func (*stream) AliasedInputClass2(ctx context.Context, input types.InputClass) <
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -288,18 +329,23 @@ func (*stream) AliasedInputClass2(ctx context.Context, input types.InputClass) <
 
 func AliasedInputClassNested(ctx context.Context, input types.InputClassNested) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AliasedInputClassNested", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClassNested", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AliasedInputClassNested(ctx context.Context, input types.InputClassNested) <-chan string {
@@ -321,12 +367,11 @@ func (*stream) AliasedInputClassNested(ctx context.Context, input types.InputCla
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -337,18 +382,23 @@ func (*stream) AliasedInputClassNested(ctx context.Context, input types.InputCla
 
 func AliasedInputEnum(ctx context.Context, input types.AliasedEnum) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AliasedInputEnum", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputEnum", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AliasedInputEnum(ctx context.Context, input types.AliasedEnum) <-chan string {
@@ -370,12 +420,11 @@ func (*stream) AliasedInputEnum(ctx context.Context, input types.AliasedEnum) <-
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -386,18 +435,23 @@ func (*stream) AliasedInputEnum(ctx context.Context, input types.AliasedEnum) <-
 
 func AliasedInputList(ctx context.Context, input []types.AliasedEnum) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AliasedInputList", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputList", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AliasedInputList(ctx context.Context, input []types.AliasedEnum) <-chan string {
@@ -419,12 +473,11 @@ func (*stream) AliasedInputList(ctx context.Context, input []types.AliasedEnum) 
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -435,18 +488,23 @@ func (*stream) AliasedInputList(ctx context.Context, input []types.AliasedEnum) 
 
 func AllowedOptionals(ctx context.Context, optionals types.OptionalListAndMap) (*types.OptionalListAndMap, error) {
 	arg_names := []string{ "optionals", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AllowedOptionals", arg_names, optionals, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AllowedOptionals", arg_names, optionals, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.OptionalListAndMap
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.OptionalListAndMap {
+		return *(result).(*types.OptionalListAndMap)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AllowedOptionals(ctx context.Context, optionals types.OptionalListAndMap) <-chan types.OptionalListAndMap {
@@ -468,12 +526,11 @@ func (*stream) AllowedOptionals(ctx context.Context, optionals types.OptionalLis
 					close(channel)
 					return
 				}
-				var ret types.OptionalListAndMap
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.OptionalListAndMap)
 			}
 		}
 	}()
@@ -484,18 +541,23 @@ func (*stream) AllowedOptionals(ctx context.Context, optionals types.OptionalLis
 
 func AssertFn(ctx context.Context, a int64) (*int64, error) {
 	arg_names := []string{ "a", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AssertFn", arg_names, a, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AssertFn", arg_names, a, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret int64
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) int64 {
+		return (result).(int64)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AssertFn(ctx context.Context, a int64) <-chan int64 {
@@ -517,12 +579,11 @@ func (*stream) AssertFn(ctx context.Context, a int64) <-chan int64 {
 					close(channel)
 					return
 				}
-				var ret int64
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(int64)
 			}
 		}
 	}()
@@ -533,18 +594,23 @@ func (*stream) AssertFn(ctx context.Context, a int64) <-chan int64 {
 
 func AudioInput(ctx context.Context, aud any) (*string, error) {
 	arg_names := []string{ "aud", }
-	raw, err := bamlRuntime.CallFunction(ctx, "AudioInput", arg_names, aud, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "AudioInput", arg_names, aud, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) AudioInput(ctx context.Context, aud any) <-chan string {
@@ -566,12 +632,11 @@ func (*stream) AudioInput(ctx context.Context, aud any) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -582,18 +647,23 @@ func (*stream) AudioInput(ctx context.Context, aud any) <-chan string {
 
 func BuildLinkedList(ctx context.Context, input []int64) (*types.LinkedList, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "BuildLinkedList", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "BuildLinkedList", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.LinkedList
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.LinkedList {
+		return *(result).(*types.LinkedList)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) BuildLinkedList(ctx context.Context, input []int64) <-chan types.LinkedList {
@@ -615,12 +685,11 @@ func (*stream) BuildLinkedList(ctx context.Context, input []int64) <-chan types.
 					close(channel)
 					return
 				}
-				var ret types.LinkedList
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.LinkedList)
 			}
 		}
 	}()
@@ -631,18 +700,23 @@ func (*stream) BuildLinkedList(ctx context.Context, input []int64) <-chan types.
 
 func BuildTree(ctx context.Context, input types.BinaryNode) (*types.Tree, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "BuildTree", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "BuildTree", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Tree
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Tree {
+		return *(result).(*types.Tree)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) BuildTree(ctx context.Context, input types.BinaryNode) <-chan types.Tree {
@@ -664,12 +738,11 @@ func (*stream) BuildTree(ctx context.Context, input types.BinaryNode) <-chan typ
 					close(channel)
 					return
 				}
-				var ret types.Tree
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Tree)
 			}
 		}
 	}()
@@ -680,18 +753,23 @@ func (*stream) BuildTree(ctx context.Context, input types.BinaryNode) <-chan typ
 
 func ClassThatPointsToRecursiveClassThroughAlias(ctx context.Context, cls types.ClassToRecAlias) (*types.ClassToRecAlias, error) {
 	arg_names := []string{ "cls", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ClassThatPointsToRecursiveClassThroughAlias", arg_names, cls, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassThatPointsToRecursiveClassThroughAlias", arg_names, cls, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.ClassToRecAlias
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.ClassToRecAlias {
+		return *(result).(*types.ClassToRecAlias)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ClassThatPointsToRecursiveClassThroughAlias(ctx context.Context, cls types.ClassToRecAlias) <-chan types.ClassToRecAlias {
@@ -713,12 +791,11 @@ func (*stream) ClassThatPointsToRecursiveClassThroughAlias(ctx context.Context, 
 					close(channel)
 					return
 				}
-				var ret types.ClassToRecAlias
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.ClassToRecAlias)
 			}
 		}
 	}()
@@ -729,18 +806,23 @@ func (*stream) ClassThatPointsToRecursiveClassThroughAlias(ctx context.Context, 
 
 func ClassifyDynEnumTwo(ctx context.Context, input string) (*types.DynEnumTwo, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ClassifyDynEnumTwo", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassifyDynEnumTwo", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.DynEnumTwo
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.DynEnumTwo {
+		return (result).(types.DynEnumTwo)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ClassifyDynEnumTwo(ctx context.Context, input string) <-chan types.DynEnumTwo {
@@ -762,12 +844,11 @@ func (*stream) ClassifyDynEnumTwo(ctx context.Context, input string) <-chan type
 					close(channel)
 					return
 				}
-				var ret types.DynEnumTwo
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.DynEnumTwo)
 			}
 		}
 	}()
@@ -778,18 +859,23 @@ func (*stream) ClassifyDynEnumTwo(ctx context.Context, input string) <-chan type
 
 func ClassifyMessage(ctx context.Context, input string) (*types.Category, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Category
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Category {
+		return (result).(types.Category)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ClassifyMessage(ctx context.Context, input string) <-chan types.Category {
@@ -811,12 +897,11 @@ func (*stream) ClassifyMessage(ctx context.Context, input string) <-chan types.C
 					close(channel)
 					return
 				}
-				var ret types.Category
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Category)
 			}
 		}
 	}()
@@ -827,18 +912,23 @@ func (*stream) ClassifyMessage(ctx context.Context, input string) <-chan types.C
 
 func ClassifyMessage2(ctx context.Context, input string) (*types.Category, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage2", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage2", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Category
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Category {
+		return (result).(types.Category)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ClassifyMessage2(ctx context.Context, input string) <-chan types.Category {
@@ -860,12 +950,11 @@ func (*stream) ClassifyMessage2(ctx context.Context, input string) <-chan types.
 					close(channel)
 					return
 				}
-				var ret types.Category
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Category)
 			}
 		}
 	}()
@@ -876,18 +965,23 @@ func (*stream) ClassifyMessage2(ctx context.Context, input string) <-chan types.
 
 func ClassifyMessage3(ctx context.Context, input string) (*types.Category, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage3", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage3", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Category
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Category {
+		return (result).(types.Category)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ClassifyMessage3(ctx context.Context, input string) <-chan types.Category {
@@ -909,12 +1003,11 @@ func (*stream) ClassifyMessage3(ctx context.Context, input string) <-chan types.
 					close(channel)
 					return
 				}
-				var ret types.Category
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Category)
 			}
 		}
 	}()
@@ -925,18 +1018,23 @@ func (*stream) ClassifyMessage3(ctx context.Context, input string) <-chan types.
 
 func Completion(ctx context.Context, prefix string, suffix string, language string) (*string, error) {
 	arg_names := []string{ "prefix","suffix","language", }
-	raw, err := bamlRuntime.CallFunction(ctx, "Completion", arg_names, prefix, suffix, language, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "Completion", arg_names, prefix, suffix, language, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) Completion(ctx context.Context, prefix string, suffix string, language string) <-chan string {
@@ -958,12 +1056,11 @@ func (*stream) Completion(ctx context.Context, prefix string, suffix string, lan
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -974,18 +1071,23 @@ func (*stream) Completion(ctx context.Context, prefix string, suffix string, lan
 
 func CustomTask(ctx context.Context, input string) (*types.Union__BookOrder__FlightConfirmation__GroceryReceipt, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "CustomTask", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "CustomTask", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Union__BookOrder__FlightConfirmation__GroceryReceipt
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Union__BookOrder__FlightConfirmation__GroceryReceipt {
+		return (result).(types.Union__BookOrder__FlightConfirmation__GroceryReceipt)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) CustomTask(ctx context.Context, input string) <-chan types.Union__BookOrder__FlightConfirmation__GroceryReceipt {
@@ -1007,12 +1109,11 @@ func (*stream) CustomTask(ctx context.Context, input string) <-chan types.Union_
 					close(channel)
 					return
 				}
-				var ret types.Union__BookOrder__FlightConfirmation__GroceryReceipt
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Union__BookOrder__FlightConfirmation__GroceryReceipt)
 			}
 		}
 	}()
@@ -1023,18 +1124,23 @@ func (*stream) CustomTask(ctx context.Context, input string) <-chan types.Union_
 
 func DescribeImage(ctx context.Context, img any) (*string, error) {
 	arg_names := []string{ "img", }
-	raw, err := bamlRuntime.CallFunction(ctx, "DescribeImage", arg_names, img, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage", arg_names, img, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DescribeImage(ctx context.Context, img any) <-chan string {
@@ -1056,12 +1162,11 @@ func (*stream) DescribeImage(ctx context.Context, img any) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -1072,18 +1177,23 @@ func (*stream) DescribeImage(ctx context.Context, img any) <-chan string {
 
 func DescribeImage2(ctx context.Context, classWithImage types.ClassWithImage, img2 any) (*string, error) {
 	arg_names := []string{ "classWithImage","img2", }
-	raw, err := bamlRuntime.CallFunction(ctx, "DescribeImage2", arg_names, classWithImage, img2, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage2", arg_names, classWithImage, img2, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DescribeImage2(ctx context.Context, classWithImage types.ClassWithImage, img2 any) <-chan string {
@@ -1105,12 +1215,11 @@ func (*stream) DescribeImage2(ctx context.Context, classWithImage types.ClassWit
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -1121,18 +1230,23 @@ func (*stream) DescribeImage2(ctx context.Context, classWithImage types.ClassWit
 
 func DescribeImage3(ctx context.Context, classWithImage types.ClassWithImage, img2 any) (*string, error) {
 	arg_names := []string{ "classWithImage","img2", }
-	raw, err := bamlRuntime.CallFunction(ctx, "DescribeImage3", arg_names, classWithImage, img2, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage3", arg_names, classWithImage, img2, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DescribeImage3(ctx context.Context, classWithImage types.ClassWithImage, img2 any) <-chan string {
@@ -1154,12 +1268,11 @@ func (*stream) DescribeImage3(ctx context.Context, classWithImage types.ClassWit
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -1170,18 +1283,23 @@ func (*stream) DescribeImage3(ctx context.Context, classWithImage types.ClassWit
 
 func DescribeImage4(ctx context.Context, classWithImage types.ClassWithImage, img2 any) (*string, error) {
 	arg_names := []string{ "classWithImage","img2", }
-	raw, err := bamlRuntime.CallFunction(ctx, "DescribeImage4", arg_names, classWithImage, img2, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage4", arg_names, classWithImage, img2, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DescribeImage4(ctx context.Context, classWithImage types.ClassWithImage, img2 any) <-chan string {
@@ -1203,12 +1321,64 @@ func (*stream) DescribeImage4(ctx context.Context, classWithImage types.ClassWit
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func DescribeMedia1599(ctx context.Context, img any, client_sector string, client_name string) (*string, error) {
+	arg_names := []string{ "img","client_sector","client_name", }
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeMedia1599", arg_names, img, client_sector, client_name, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) DescribeMedia1599(ctx context.Context, img any, client_sector string, client_name string) <-chan string {
+	arg_names := []string{ "img","client_sector","client_name", }
+	channel := make(chan string)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "DescribeMedia1599", arg_names, img, client_sector, client_name, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -1219,18 +1389,23 @@ func (*stream) DescribeImage4(ctx context.Context, classWithImage types.ClassWit
 
 func DifferentiateUnions(ctx context.Context) (*types.Union__OriginalA__OriginalB, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "DifferentiateUnions", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DifferentiateUnions", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Union__OriginalA__OriginalB
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Union__OriginalA__OriginalB {
+		return (result).(types.Union__OriginalA__OriginalB)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DifferentiateUnions(ctx context.Context) <-chan types.Union__OriginalA__OriginalB {
@@ -1252,12 +1427,11 @@ func (*stream) DifferentiateUnions(ctx context.Context) <-chan types.Union__Orig
 					close(channel)
 					return
 				}
-				var ret types.Union__OriginalA__OriginalB
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Union__OriginalA__OriginalB)
 			}
 		}
 	}()
@@ -1268,18 +1442,23 @@ func (*stream) DifferentiateUnions(ctx context.Context) <-chan types.Union__Orig
 
 func DummyOutputFunction(ctx context.Context, input string) (*types.DummyOutput, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "DummyOutputFunction", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DummyOutputFunction", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.DummyOutput
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.DummyOutput {
+		return *(result).(*types.DummyOutput)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DummyOutputFunction(ctx context.Context, input string) <-chan types.DummyOutput {
@@ -1301,12 +1480,11 @@ func (*stream) DummyOutputFunction(ctx context.Context, input string) <-chan typ
 					close(channel)
 					return
 				}
-				var ret types.DummyOutput
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.DummyOutput)
 			}
 		}
 	}()
@@ -1317,18 +1495,23 @@ func (*stream) DummyOutputFunction(ctx context.Context, input string) <-chan typ
 
 func DynamicFunc(ctx context.Context, input types.DynamicClassOne) (*types.DynamicClassTwo, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "DynamicFunc", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DynamicFunc", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.DynamicClassTwo
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.DynamicClassTwo {
+		return *(result).(*types.DynamicClassTwo)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DynamicFunc(ctx context.Context, input types.DynamicClassOne) <-chan types.DynamicClassTwo {
@@ -1350,12 +1533,11 @@ func (*stream) DynamicFunc(ctx context.Context, input types.DynamicClassOne) <-c
 					close(channel)
 					return
 				}
-				var ret types.DynamicClassTwo
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.DynamicClassTwo)
 			}
 		}
 	}()
@@ -1366,18 +1548,23 @@ func (*stream) DynamicFunc(ctx context.Context, input types.DynamicClassOne) <-c
 
 func DynamicInputOutput(ctx context.Context, input types.DynInputOutput) (*types.DynInputOutput, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "DynamicInputOutput", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DynamicInputOutput", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.DynInputOutput
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.DynInputOutput {
+		return *(result).(*types.DynInputOutput)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DynamicInputOutput(ctx context.Context, input types.DynInputOutput) <-chan types.DynInputOutput {
@@ -1399,12 +1586,11 @@ func (*stream) DynamicInputOutput(ctx context.Context, input types.DynInputOutpu
 					close(channel)
 					return
 				}
-				var ret types.DynInputOutput
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.DynInputOutput)
 			}
 		}
 	}()
@@ -1415,18 +1601,25 @@ func (*stream) DynamicInputOutput(ctx context.Context, input types.DynInputOutpu
 
 func DynamicListInputOutput(ctx context.Context, input []types.DynInputOutput) (*[]types.DynInputOutput, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "DynamicListInputOutput", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "DynamicListInputOutput", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []types.DynInputOutput
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []types.DynInputOutput {
+		return castSlice(result, func(item any) types.DynInputOutput {
+    return *(item).(*types.DynInputOutput)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) DynamicListInputOutput(ctx context.Context, input []types.DynInputOutput) <-chan []types.DynInputOutput {
@@ -1448,12 +1641,11 @@ func (*stream) DynamicListInputOutput(ctx context.Context, input []types.DynInpu
 					close(channel)
 					return
 				}
-				var ret []types.DynInputOutput
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]types.DynInputOutput)
 			}
 		}
 	}()
@@ -1464,18 +1656,23 @@ func (*stream) DynamicListInputOutput(ctx context.Context, input []types.DynInpu
 
 func ExpectFailure(ctx context.Context) (*string, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "ExpectFailure", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ExpectFailure", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ExpectFailure(ctx context.Context) <-chan string {
@@ -1497,12 +1694,11 @@ func (*stream) ExpectFailure(ctx context.Context) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -1513,18 +1709,23 @@ func (*stream) ExpectFailure(ctx context.Context) <-chan string {
 
 func ExtractContactInfo(ctx context.Context, document string) (*types.ContactInfo, error) {
 	arg_names := []string{ "document", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ExtractContactInfo", arg_names, document, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractContactInfo", arg_names, document, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.ContactInfo
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.ContactInfo {
+		return *(result).(*types.ContactInfo)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ExtractContactInfo(ctx context.Context, document string) <-chan types.ContactInfo {
@@ -1546,12 +1747,64 @@ func (*stream) ExtractContactInfo(ctx context.Context, document string) <-chan t
 					close(channel)
 					return
 				}
-				var ret types.ContactInfo
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.ContactInfo)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func ExtractEntities(ctx context.Context, text string) (*types.DynamicSchema, error) {
+	arg_names := []string{ "text", }
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractEntities", arg_names, text, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) types.DynamicSchema {
+		return *(result).(*types.DynamicSchema)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) ExtractEntities(ctx context.Context, text string) <-chan types.DynamicSchema {
+	arg_names := []string{ "text", }
+	channel := make(chan types.DynamicSchema)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "ExtractEntities", arg_names, text, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(types.DynamicSchema)
 			}
 		}
 	}()
@@ -1562,18 +1815,25 @@ func (*stream) ExtractContactInfo(ctx context.Context, document string) <-chan t
 
 func ExtractHobby(ctx context.Context, text string) (*[]types.Hobby, error) {
 	arg_names := []string{ "text", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ExtractHobby", arg_names, text, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractHobby", arg_names, text, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []types.Hobby
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []types.Hobby {
+		return castSlice(result, func(item any) types.Hobby {
+    return (item).(types.Hobby)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ExtractHobby(ctx context.Context, text string) <-chan []types.Hobby {
@@ -1595,12 +1855,11 @@ func (*stream) ExtractHobby(ctx context.Context, text string) <-chan []types.Hob
 					close(channel)
 					return
 				}
-				var ret []types.Hobby
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]types.Hobby)
 			}
 		}
 	}()
@@ -1611,18 +1870,25 @@ func (*stream) ExtractHobby(ctx context.Context, text string) <-chan []types.Hob
 
 func ExtractNames(ctx context.Context, input string) (*[]string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ExtractNames", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractNames", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []string {
+		return castSlice(result, func(item any) string {
+    return (item).(string)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ExtractNames(ctx context.Context, input string) <-chan []string {
@@ -1644,12 +1910,11 @@ func (*stream) ExtractNames(ctx context.Context, input string) <-chan []string {
 					close(channel)
 					return
 				}
-				var ret []string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]string)
 			}
 		}
 	}()
@@ -1660,18 +1925,25 @@ func (*stream) ExtractNames(ctx context.Context, input string) <-chan []string {
 
 func ExtractPeople(ctx context.Context, text string) (*[]types.Person, error) {
 	arg_names := []string{ "text", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ExtractPeople", arg_names, text, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractPeople", arg_names, text, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []types.Person
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []types.Person {
+		return castSlice(result, func(item any) types.Person {
+    return *(item).(*types.Person)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ExtractPeople(ctx context.Context, text string) <-chan []types.Person {
@@ -1693,12 +1965,11 @@ func (*stream) ExtractPeople(ctx context.Context, text string) <-chan []types.Pe
 					close(channel)
 					return
 				}
-				var ret []types.Person
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]types.Person)
 			}
 		}
 	}()
@@ -1709,18 +1980,23 @@ func (*stream) ExtractPeople(ctx context.Context, text string) <-chan []types.Pe
 
 func ExtractReceiptInfo(ctx context.Context, email string, reason types.Union__string_curiosity__string_personal_finance) (*types.ReceiptInfo, error) {
 	arg_names := []string{ "email","reason", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ExtractReceiptInfo", arg_names, email, reason, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractReceiptInfo", arg_names, email, reason, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.ReceiptInfo
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.ReceiptInfo {
+		return *(result).(*types.ReceiptInfo)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ExtractReceiptInfo(ctx context.Context, email string, reason types.Union__string_curiosity__string_personal_finance) <-chan types.ReceiptInfo {
@@ -1742,12 +2018,11 @@ func (*stream) ExtractReceiptInfo(ctx context.Context, email string, reason type
 					close(channel)
 					return
 				}
-				var ret types.ReceiptInfo
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.ReceiptInfo)
 			}
 		}
 	}()
@@ -1758,18 +2033,23 @@ func (*stream) ExtractReceiptInfo(ctx context.Context, email string, reason type
 
 func ExtractResume(ctx context.Context, resume string, img *any) (*types.Resume, error) {
 	arg_names := []string{ "resume","img", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ExtractResume", arg_names, resume, img, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractResume", arg_names, resume, img, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Resume
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Resume {
+		return *(result).(*types.Resume)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ExtractResume(ctx context.Context, resume string, img *any) <-chan types.Resume {
@@ -1791,12 +2071,11 @@ func (*stream) ExtractResume(ctx context.Context, resume string, img *any) <-cha
 					close(channel)
 					return
 				}
-				var ret types.Resume
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Resume)
 			}
 		}
 	}()
@@ -1807,18 +2086,23 @@ func (*stream) ExtractResume(ctx context.Context, resume string, img *any) <-cha
 
 func ExtractResume2(ctx context.Context, resume string) (*types.Resume, error) {
 	arg_names := []string{ "resume", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ExtractResume2", arg_names, resume, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractResume2", arg_names, resume, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Resume
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Resume {
+		return *(result).(*types.Resume)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ExtractResume2(ctx context.Context, resume string) <-chan types.Resume {
@@ -1840,12 +2124,11 @@ func (*stream) ExtractResume2(ctx context.Context, resume string) <-chan types.R
 					close(channel)
 					return
 				}
-				var ret types.Resume
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Resume)
 			}
 		}
 	}()
@@ -1856,18 +2139,25 @@ func (*stream) ExtractResume2(ctx context.Context, resume string) <-chan types.R
 
 func FnClassOptionalOutput(ctx context.Context, input string) (**types.ClassOptionalOutput, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnClassOptionalOutput", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnClassOptionalOutput", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret *types.ClassOptionalOutput
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) *types.ClassOptionalOutput {
+		return castOptional(result, func (item any) types.ClassOptionalOutput {
+    return *(item).(*types.ClassOptionalOutput)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnClassOptionalOutput(ctx context.Context, input string) <-chan *types.ClassOptionalOutput {
@@ -1889,12 +2179,11 @@ func (*stream) FnClassOptionalOutput(ctx context.Context, input string) <-chan *
 					close(channel)
 					return
 				}
-				var ret *types.ClassOptionalOutput
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(*types.ClassOptionalOutput)
 			}
 		}
 	}()
@@ -1905,18 +2194,25 @@ func (*stream) FnClassOptionalOutput(ctx context.Context, input string) <-chan *
 
 func FnClassOptionalOutput2(ctx context.Context, input string) (**types.ClassOptionalOutput2, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnClassOptionalOutput2", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnClassOptionalOutput2", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret *types.ClassOptionalOutput2
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) *types.ClassOptionalOutput2 {
+		return castOptional(result, func (item any) types.ClassOptionalOutput2 {
+    return *(item).(*types.ClassOptionalOutput2)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnClassOptionalOutput2(ctx context.Context, input string) <-chan *types.ClassOptionalOutput2 {
@@ -1938,12 +2234,11 @@ func (*stream) FnClassOptionalOutput2(ctx context.Context, input string) <-chan 
 					close(channel)
 					return
 				}
-				var ret *types.ClassOptionalOutput2
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(*types.ClassOptionalOutput2)
 			}
 		}
 	}()
@@ -1954,18 +2249,25 @@ func (*stream) FnClassOptionalOutput2(ctx context.Context, input string) <-chan 
 
 func FnEnumListOutput(ctx context.Context, input string) (*[]types.EnumOutput, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnEnumListOutput", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnEnumListOutput", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []types.EnumOutput
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []types.EnumOutput {
+		return castSlice(result, func(item any) types.EnumOutput {
+    return (item).(types.EnumOutput)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnEnumListOutput(ctx context.Context, input string) <-chan []types.EnumOutput {
@@ -1987,12 +2289,11 @@ func (*stream) FnEnumListOutput(ctx context.Context, input string) <-chan []type
 					close(channel)
 					return
 				}
-				var ret []types.EnumOutput
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]types.EnumOutput)
 			}
 		}
 	}()
@@ -2003,18 +2304,23 @@ func (*stream) FnEnumListOutput(ctx context.Context, input string) <-chan []type
 
 func FnEnumOutput(ctx context.Context, input string) (*types.EnumOutput, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnEnumOutput", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnEnumOutput", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.EnumOutput
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.EnumOutput {
+		return (result).(types.EnumOutput)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnEnumOutput(ctx context.Context, input string) <-chan types.EnumOutput {
@@ -2036,12 +2342,11 @@ func (*stream) FnEnumOutput(ctx context.Context, input string) <-chan types.Enum
 					close(channel)
 					return
 				}
-				var ret types.EnumOutput
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.EnumOutput)
 			}
 		}
 	}()
@@ -2052,18 +2357,23 @@ func (*stream) FnEnumOutput(ctx context.Context, input string) <-chan types.Enum
 
 func FnLiteralClassInputOutput(ctx context.Context, input types.LiteralClassHello) (*types.LiteralClassHello, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnLiteralClassInputOutput", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnLiteralClassInputOutput", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.LiteralClassHello
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.LiteralClassHello {
+		return *(result).(*types.LiteralClassHello)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnLiteralClassInputOutput(ctx context.Context, input types.LiteralClassHello) <-chan types.LiteralClassHello {
@@ -2085,12 +2395,11 @@ func (*stream) FnLiteralClassInputOutput(ctx context.Context, input types.Litera
 					close(channel)
 					return
 				}
-				var ret types.LiteralClassHello
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.LiteralClassHello)
 			}
 		}
 	}()
@@ -2101,18 +2410,23 @@ func (*stream) FnLiteralClassInputOutput(ctx context.Context, input types.Litera
 
 func FnLiteralUnionClassInputOutput(ctx context.Context, input types.Union__LiteralClassOne__LiteralClassTwo) (*types.Union__LiteralClassOne__LiteralClassTwo, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnLiteralUnionClassInputOutput", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnLiteralUnionClassInputOutput", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Union__LiteralClassOne__LiteralClassTwo
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Union__LiteralClassOne__LiteralClassTwo {
+		return (result).(types.Union__LiteralClassOne__LiteralClassTwo)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnLiteralUnionClassInputOutput(ctx context.Context, input types.Union__LiteralClassOne__LiteralClassTwo) <-chan types.Union__LiteralClassOne__LiteralClassTwo {
@@ -2134,12 +2448,11 @@ func (*stream) FnLiteralUnionClassInputOutput(ctx context.Context, input types.U
 					close(channel)
 					return
 				}
-				var ret types.Union__LiteralClassOne__LiteralClassTwo
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Union__LiteralClassOne__LiteralClassTwo)
 			}
 		}
 	}()
@@ -2150,18 +2463,23 @@ func (*stream) FnLiteralUnionClassInputOutput(ctx context.Context, input types.U
 
 func FnNamedArgsSingleStringOptional(ctx context.Context, myString *string) (*string, error) {
 	arg_names := []string{ "myString", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnNamedArgsSingleStringOptional", arg_names, myString, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnNamedArgsSingleStringOptional", arg_names, myString, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnNamedArgsSingleStringOptional(ctx context.Context, myString *string) <-chan string {
@@ -2183,12 +2501,11 @@ func (*stream) FnNamedArgsSingleStringOptional(ctx context.Context, myString *st
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -2199,18 +2516,23 @@ func (*stream) FnNamedArgsSingleStringOptional(ctx context.Context, myString *st
 
 func FnOutputBool(ctx context.Context, input string) (*bool, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputBool", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputBool", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret bool
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) bool {
+		return (result).(bool)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputBool(ctx context.Context, input string) <-chan bool {
@@ -2232,12 +2554,11 @@ func (*stream) FnOutputBool(ctx context.Context, input string) <-chan bool {
 					close(channel)
 					return
 				}
-				var ret bool
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(bool)
 			}
 		}
 	}()
@@ -2248,18 +2569,23 @@ func (*stream) FnOutputBool(ctx context.Context, input string) <-chan bool {
 
 func FnOutputClass(ctx context.Context, input string) (*types.TestOutputClass, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputClass", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClass", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.TestOutputClass
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.TestOutputClass {
+		return *(result).(*types.TestOutputClass)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputClass(ctx context.Context, input string) <-chan types.TestOutputClass {
@@ -2281,12 +2607,11 @@ func (*stream) FnOutputClass(ctx context.Context, input string) <-chan types.Tes
 					close(channel)
 					return
 				}
-				var ret types.TestOutputClass
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.TestOutputClass)
 			}
 		}
 	}()
@@ -2297,18 +2622,25 @@ func (*stream) FnOutputClass(ctx context.Context, input string) <-chan types.Tes
 
 func FnOutputClassList(ctx context.Context, input string) (*[]types.TestOutputClass, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputClassList", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassList", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []types.TestOutputClass
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []types.TestOutputClass {
+		return castSlice(result, func(item any) types.TestOutputClass {
+    return *(item).(*types.TestOutputClass)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputClassList(ctx context.Context, input string) <-chan []types.TestOutputClass {
@@ -2330,12 +2662,11 @@ func (*stream) FnOutputClassList(ctx context.Context, input string) <-chan []typ
 					close(channel)
 					return
 				}
-				var ret []types.TestOutputClass
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]types.TestOutputClass)
 			}
 		}
 	}()
@@ -2346,18 +2677,23 @@ func (*stream) FnOutputClassList(ctx context.Context, input string) <-chan []typ
 
 func FnOutputClassNested(ctx context.Context, input string) (*types.TestClassNested, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputClassNested", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassNested", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.TestClassNested
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.TestClassNested {
+		return *(result).(*types.TestClassNested)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputClassNested(ctx context.Context, input string) <-chan types.TestClassNested {
@@ -2379,12 +2715,11 @@ func (*stream) FnOutputClassNested(ctx context.Context, input string) <-chan typ
 					close(channel)
 					return
 				}
-				var ret types.TestClassNested
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.TestClassNested)
 			}
 		}
 	}()
@@ -2395,18 +2730,23 @@ func (*stream) FnOutputClassNested(ctx context.Context, input string) <-chan typ
 
 func FnOutputClassWithEnum(ctx context.Context, input string) (*types.TestClassWithEnum, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputClassWithEnum", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassWithEnum", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.TestClassWithEnum
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.TestClassWithEnum {
+		return *(result).(*types.TestClassWithEnum)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputClassWithEnum(ctx context.Context, input string) <-chan types.TestClassWithEnum {
@@ -2428,12 +2768,11 @@ func (*stream) FnOutputClassWithEnum(ctx context.Context, input string) <-chan t
 					close(channel)
 					return
 				}
-				var ret types.TestClassWithEnum
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.TestClassWithEnum)
 			}
 		}
 	}()
@@ -2444,18 +2783,23 @@ func (*stream) FnOutputClassWithEnum(ctx context.Context, input string) <-chan t
 
 func FnOutputInt(ctx context.Context, input string) (*int64, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputInt", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputInt", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret int64
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) int64 {
+		return (result).(int64)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputInt(ctx context.Context, input string) <-chan int64 {
@@ -2477,12 +2821,11 @@ func (*stream) FnOutputInt(ctx context.Context, input string) <-chan int64 {
 					close(channel)
 					return
 				}
-				var ret int64
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(int64)
 			}
 		}
 	}()
@@ -2493,18 +2836,23 @@ func (*stream) FnOutputInt(ctx context.Context, input string) <-chan int64 {
 
 func FnOutputLiteralBool(ctx context.Context, input string) (*bool, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralBool", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralBool", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret bool
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) bool {
+		return (result).(bool)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputLiteralBool(ctx context.Context, input string) <-chan bool {
@@ -2526,12 +2874,11 @@ func (*stream) FnOutputLiteralBool(ctx context.Context, input string) <-chan boo
 					close(channel)
 					return
 				}
-				var ret bool
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(bool)
 			}
 		}
 	}()
@@ -2542,18 +2889,23 @@ func (*stream) FnOutputLiteralBool(ctx context.Context, input string) <-chan boo
 
 func FnOutputLiteralInt(ctx context.Context, input string) (*int, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralInt", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralInt", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret int
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) int {
+		return (result).(int)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputLiteralInt(ctx context.Context, input string) <-chan int {
@@ -2575,12 +2927,11 @@ func (*stream) FnOutputLiteralInt(ctx context.Context, input string) <-chan int 
 					close(channel)
 					return
 				}
-				var ret int
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(int)
 			}
 		}
 	}()
@@ -2591,18 +2942,23 @@ func (*stream) FnOutputLiteralInt(ctx context.Context, input string) <-chan int 
 
 func FnOutputLiteralString(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralString", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralString", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputLiteralString(ctx context.Context, input string) <-chan string {
@@ -2624,12 +2980,11 @@ func (*stream) FnOutputLiteralString(ctx context.Context, input string) <-chan s
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -2640,18 +2995,25 @@ func (*stream) FnOutputLiteralString(ctx context.Context, input string) <-chan s
 
 func FnOutputStringList(ctx context.Context, input string) (*[]string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnOutputStringList", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputStringList", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []string {
+		return castSlice(result, func(item any) string {
+    return (item).(string)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnOutputStringList(ctx context.Context, input string) <-chan []string {
@@ -2673,12 +3035,11 @@ func (*stream) FnOutputStringList(ctx context.Context, input string) <-chan []st
 					close(channel)
 					return
 				}
-				var ret []string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]string)
 			}
 		}
 	}()
@@ -2689,18 +3050,23 @@ func (*stream) FnOutputStringList(ctx context.Context, input string) <-chan []st
 
 func FnTestAliasedEnumOutput(ctx context.Context, input string) (*types.TestEnum, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnTestAliasedEnumOutput", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnTestAliasedEnumOutput", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.TestEnum
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.TestEnum {
+		return (result).(types.TestEnum)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string) <-chan types.TestEnum {
@@ -2722,12 +3088,11 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string) <-chan
 					close(channel)
 					return
 				}
-				var ret types.TestEnum
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.TestEnum)
 			}
 		}
 	}()
@@ -2738,18 +3103,23 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string) <-chan
 
 func FnTestClassAlias(ctx context.Context, input string) (*types.TestClassAlias, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnTestClassAlias", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnTestClassAlias", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.TestClassAlias
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.TestClassAlias {
+		return *(result).(*types.TestClassAlias)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnTestClassAlias(ctx context.Context, input string) <-chan types.TestClassAlias {
@@ -2771,12 +3141,11 @@ func (*stream) FnTestClassAlias(ctx context.Context, input string) <-chan types.
 					close(channel)
 					return
 				}
-				var ret types.TestClassAlias
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.TestClassAlias)
 			}
 		}
 	}()
@@ -2787,18 +3156,23 @@ func (*stream) FnTestClassAlias(ctx context.Context, input string) <-chan types.
 
 func FnTestNamedArgsSingleEnum(ctx context.Context, myArg types.NamedArgsSingleEnum) (*string, error) {
 	arg_names := []string{ "myArg", }
-	raw, err := bamlRuntime.CallFunction(ctx, "FnTestNamedArgsSingleEnum", arg_names, myArg, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "FnTestNamedArgsSingleEnum", arg_names, myArg, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) FnTestNamedArgsSingleEnum(ctx context.Context, myArg types.NamedArgsSingleEnum) <-chan string {
@@ -2820,12 +3194,11 @@ func (*stream) FnTestNamedArgsSingleEnum(ctx context.Context, myArg types.NamedA
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -2836,18 +3209,23 @@ func (*stream) FnTestNamedArgsSingleEnum(ctx context.Context, myArg types.NamedA
 
 func GetDataType(ctx context.Context, text string) (*types.RaysData, error) {
 	arg_names := []string{ "text", }
-	raw, err := bamlRuntime.CallFunction(ctx, "GetDataType", arg_names, text, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "GetDataType", arg_names, text, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.RaysData
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.RaysData {
+		return *(result).(*types.RaysData)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) GetDataType(ctx context.Context, text string) <-chan types.RaysData {
@@ -2869,12 +3247,11 @@ func (*stream) GetDataType(ctx context.Context, text string) <-chan types.RaysDa
 					close(channel)
 					return
 				}
-				var ret types.RaysData
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.RaysData)
 			}
 		}
 	}()
@@ -2885,18 +3262,23 @@ func (*stream) GetDataType(ctx context.Context, text string) <-chan types.RaysDa
 
 func GetOrderInfo(ctx context.Context, email types.Email) (*types.OrderInfo, error) {
 	arg_names := []string{ "email", }
-	raw, err := bamlRuntime.CallFunction(ctx, "GetOrderInfo", arg_names, email, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "GetOrderInfo", arg_names, email, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.OrderInfo
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.OrderInfo {
+		return *(result).(*types.OrderInfo)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) GetOrderInfo(ctx context.Context, email types.Email) <-chan types.OrderInfo {
@@ -2918,12 +3300,11 @@ func (*stream) GetOrderInfo(ctx context.Context, email types.Email) <-chan types
 					close(channel)
 					return
 				}
-				var ret types.OrderInfo
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.OrderInfo)
 			}
 		}
 	}()
@@ -2934,18 +3315,23 @@ func (*stream) GetOrderInfo(ctx context.Context, email types.Email) <-chan types
 
 func GetQuery(ctx context.Context, query string) (*types.SearchParams, error) {
 	arg_names := []string{ "query", }
-	raw, err := bamlRuntime.CallFunction(ctx, "GetQuery", arg_names, query, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "GetQuery", arg_names, query, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.SearchParams
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.SearchParams {
+		return *(result).(*types.SearchParams)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) GetQuery(ctx context.Context, query string) <-chan types.SearchParams {
@@ -2967,12 +3353,11 @@ func (*stream) GetQuery(ctx context.Context, query string) <-chan types.SearchPa
 					close(channel)
 					return
 				}
-				var ret types.SearchParams
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.SearchParams)
 			}
 		}
 	}()
@@ -2983,18 +3368,23 @@ func (*stream) GetQuery(ctx context.Context, query string) <-chan types.SearchPa
 
 func InOutEnumMapKey(ctx context.Context, i1 map[types.MapKey]string, i2 map[types.MapKey]string) (*map[types.MapKey]string, error) {
 	arg_names := []string{ "i1","i2", }
-	raw, err := bamlRuntime.CallFunction(ctx, "InOutEnumMapKey", arg_names, i1, i2, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "InOutEnumMapKey", arg_names, i1, i2, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret map[types.MapKey]string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) map[types.MapKey]string {
+		return (result).(map[types.MapKey]string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) InOutEnumMapKey(ctx context.Context, i1 map[types.MapKey]string, i2 map[types.MapKey]string) <-chan map[types.MapKey]string {
@@ -3016,12 +3406,11 @@ func (*stream) InOutEnumMapKey(ctx context.Context, i1 map[types.MapKey]string, 
 					close(channel)
 					return
 				}
-				var ret map[types.MapKey]string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(map[types.MapKey]string)
 			}
 		}
 	}()
@@ -3032,18 +3421,23 @@ func (*stream) InOutEnumMapKey(ctx context.Context, i1 map[types.MapKey]string, 
 
 func InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.Union__string_one__string_two__string_three__string_four]string, i2 map[types.Union__string_one__string_two__string_three__string_four]string) (*map[types.Union__string_one__string_two__string_three__string_four]string, error) {
 	arg_names := []string{ "i1","i2", }
-	raw, err := bamlRuntime.CallFunction(ctx, "InOutLiteralStringUnionMapKey", arg_names, i1, i2, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "InOutLiteralStringUnionMapKey", arg_names, i1, i2, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret map[types.Union__string_one__string_two__string_three__string_four]string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) map[types.Union__string_one__string_two__string_three__string_four]string {
+		return (result).(map[types.Union__string_one__string_two__string_three__string_four]string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.Union__string_one__string_two__string_three__string_four]string, i2 map[types.Union__string_one__string_two__string_three__string_four]string) <-chan map[types.Union__string_one__string_two__string_three__string_four]string {
@@ -3065,12 +3459,11 @@ func (*stream) InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.U
 					close(channel)
 					return
 				}
-				var ret map[types.Union__string_one__string_two__string_three__string_four]string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(map[types.Union__string_one__string_two__string_three__string_four]string)
 			}
 		}
 	}()
@@ -3081,18 +3474,23 @@ func (*stream) InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.U
 
 func InOutSingleLiteralStringMapKey(ctx context.Context, m map[string]string) (*map[string]string, error) {
 	arg_names := []string{ "m", }
-	raw, err := bamlRuntime.CallFunction(ctx, "InOutSingleLiteralStringMapKey", arg_names, m, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "InOutSingleLiteralStringMapKey", arg_names, m, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret map[string]string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) map[string]string {
+		return (result).(map[string]string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) InOutSingleLiteralStringMapKey(ctx context.Context, m map[string]string) <-chan map[string]string {
@@ -3114,12 +3512,11 @@ func (*stream) InOutSingleLiteralStringMapKey(ctx context.Context, m map[string]
 					close(channel)
 					return
 				}
-				var ret map[string]string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(map[string]string)
 			}
 		}
 	}()
@@ -3130,18 +3527,23 @@ func (*stream) InOutSingleLiteralStringMapKey(ctx context.Context, m map[string]
 
 func JsonTypeAliasCycle(ctx context.Context, input types.JsonValue) (*types.JsonValue, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "JsonTypeAliasCycle", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "JsonTypeAliasCycle", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.JsonValue
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.JsonValue {
+		return (result).(types.JsonValue)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) JsonTypeAliasCycle(ctx context.Context, input types.JsonValue) <-chan types.JsonValue {
@@ -3163,12 +3565,11 @@ func (*stream) JsonTypeAliasCycle(ctx context.Context, input types.JsonValue) <-
 					close(channel)
 					return
 				}
-				var ret types.JsonValue
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.JsonValue)
 			}
 		}
 	}()
@@ -3179,18 +3580,23 @@ func (*stream) JsonTypeAliasCycle(ctx context.Context, input types.JsonValue) <-
 
 func LiteralUnionsTest(ctx context.Context, input string) (*types.Union__int_1__bool_true__string_string_output, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "LiteralUnionsTest", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "LiteralUnionsTest", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Union__int_1__bool_true__string_string_output
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Union__int_1__bool_true__string_string_output {
+		return (result).(types.Union__int_1__bool_true__string_string_output)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) LiteralUnionsTest(ctx context.Context, input string) <-chan types.Union__int_1__bool_true__string_string_output {
@@ -3212,12 +3618,11 @@ func (*stream) LiteralUnionsTest(ctx context.Context, input string) <-chan types
 					close(channel)
 					return
 				}
-				var ret types.Union__int_1__bool_true__string_string_output
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Union__int_1__bool_true__string_string_output)
 			}
 		}
 	}()
@@ -3228,18 +3633,23 @@ func (*stream) LiteralUnionsTest(ctx context.Context, input string) <-chan types
 
 func MakeBlockConstraint(ctx context.Context) (*types.Checked[types.BlockConstraint], error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "MakeBlockConstraint", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "MakeBlockConstraint", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Checked[types.BlockConstraint]
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Checked[types.BlockConstraint] {
+		return (result).(types.Checked[types.BlockConstraint])
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) MakeBlockConstraint(ctx context.Context) <-chan types.Checked[types.BlockConstraint] {
@@ -3261,12 +3671,11 @@ func (*stream) MakeBlockConstraint(ctx context.Context) <-chan types.Checked[typ
 					close(channel)
 					return
 				}
-				var ret types.Checked[types.BlockConstraint]
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Checked[types.BlockConstraint])
 			}
 		}
 	}()
@@ -3277,18 +3686,23 @@ func (*stream) MakeBlockConstraint(ctx context.Context) <-chan types.Checked[typ
 
 func MakeNestedBlockConstraint(ctx context.Context) (*types.NestedBlockConstraint, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "MakeNestedBlockConstraint", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "MakeNestedBlockConstraint", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.NestedBlockConstraint
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.NestedBlockConstraint {
+		return *(result).(*types.NestedBlockConstraint)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) MakeNestedBlockConstraint(ctx context.Context) <-chan types.NestedBlockConstraint {
@@ -3310,12 +3724,11 @@ func (*stream) MakeNestedBlockConstraint(ctx context.Context) <-chan types.Neste
 					close(channel)
 					return
 				}
-				var ret types.NestedBlockConstraint
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.NestedBlockConstraint)
 			}
 		}
 	}()
@@ -3326,18 +3739,23 @@ func (*stream) MakeNestedBlockConstraint(ctx context.Context) <-chan types.Neste
 
 func MakeSemanticContainer(ctx context.Context) (*types.SemanticContainer, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "MakeSemanticContainer", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "MakeSemanticContainer", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.SemanticContainer
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.SemanticContainer {
+		return *(result).(*types.SemanticContainer)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) MakeSemanticContainer(ctx context.Context) <-chan types.SemanticContainer {
@@ -3359,12 +3777,11 @@ func (*stream) MakeSemanticContainer(ctx context.Context) <-chan types.SemanticC
 					close(channel)
 					return
 				}
-				var ret types.SemanticContainer
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.SemanticContainer)
 			}
 		}
 	}()
@@ -3375,18 +3792,23 @@ func (*stream) MakeSemanticContainer(ctx context.Context) <-chan types.SemanticC
 
 func MapAlias(ctx context.Context, m map[string][]string) (*map[string][]string, error) {
 	arg_names := []string{ "m", }
-	raw, err := bamlRuntime.CallFunction(ctx, "MapAlias", arg_names, m, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "MapAlias", arg_names, m, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret map[string][]string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) map[string][]string {
+		return (result).(map[string][]string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) MapAlias(ctx context.Context, m map[string][]string) <-chan map[string][]string {
@@ -3408,12 +3830,11 @@ func (*stream) MapAlias(ctx context.Context, m map[string][]string) <-chan map[s
 					close(channel)
 					return
 				}
-				var ret map[string][]string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(map[string][]string)
 			}
 		}
 	}()
@@ -3424,18 +3845,23 @@ func (*stream) MapAlias(ctx context.Context, m map[string][]string) <-chan map[s
 
 func MergeAliasAttributes(ctx context.Context, money int64) (*types.MergeAttrs, error) {
 	arg_names := []string{ "money", }
-	raw, err := bamlRuntime.CallFunction(ctx, "MergeAliasAttributes", arg_names, money, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "MergeAliasAttributes", arg_names, money, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.MergeAttrs
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.MergeAttrs {
+		return *(result).(*types.MergeAttrs)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) MergeAliasAttributes(ctx context.Context, money int64) <-chan types.MergeAttrs {
@@ -3457,12 +3883,11 @@ func (*stream) MergeAliasAttributes(ctx context.Context, money int64) <-chan typ
 					close(channel)
 					return
 				}
-				var ret types.MergeAttrs
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.MergeAttrs)
 			}
 		}
 	}()
@@ -3473,18 +3898,23 @@ func (*stream) MergeAliasAttributes(ctx context.Context, money int64) <-chan typ
 
 func MyFunc(ctx context.Context, input string) (*types.DynamicOutput, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "MyFunc", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "MyFunc", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.DynamicOutput
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.DynamicOutput {
+		return *(result).(*types.DynamicOutput)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) MyFunc(ctx context.Context, input string) <-chan types.DynamicOutput {
@@ -3506,12 +3936,11 @@ func (*stream) MyFunc(ctx context.Context, input string) <-chan types.DynamicOut
 					close(channel)
 					return
 				}
-				var ret types.DynamicOutput
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.DynamicOutput)
 			}
 		}
 	}()
@@ -3522,18 +3951,23 @@ func (*stream) MyFunc(ctx context.Context, input string) <-chan types.DynamicOut
 
 func NestedAlias(ctx context.Context, c types.Union__int64__string__bool__float64__List__string__Map__string_List__string) (*types.Union__int64__string__bool__float64__List__string__Map__string_List__string, error) {
 	arg_names := []string{ "c", }
-	raw, err := bamlRuntime.CallFunction(ctx, "NestedAlias", arg_names, c, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "NestedAlias", arg_names, c, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Union__int64__string__bool__float64__List__string__Map__string_List__string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Union__int64__string__bool__float64__List__string__Map__string_List__string {
+		return (result).(types.Union__int64__string__bool__float64__List__string__Map__string_List__string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) NestedAlias(ctx context.Context, c types.Union__int64__string__bool__float64__List__string__Map__string_List__string) <-chan types.Union__int64__string__bool__float64__List__string__Map__string_List__string {
@@ -3555,12 +3989,11 @@ func (*stream) NestedAlias(ctx context.Context, c types.Union__int64__string__bo
 					close(channel)
 					return
 				}
-				var ret types.Union__int64__string__bool__float64__List__string__Map__string_List__string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Union__int64__string__bool__float64__List__string__Map__string_List__string)
 			}
 		}
 	}()
@@ -3571,18 +4004,23 @@ func (*stream) NestedAlias(ctx context.Context, c types.Union__int64__string__bo
 
 func NullLiteralClassHello(ctx context.Context, s string) (*types.ClassForNullLiteral, error) {
 	arg_names := []string{ "s", }
-	raw, err := bamlRuntime.CallFunction(ctx, "NullLiteralClassHello", arg_names, s, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "NullLiteralClassHello", arg_names, s, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.ClassForNullLiteral
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.ClassForNullLiteral {
+		return *(result).(*types.ClassForNullLiteral)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) NullLiteralClassHello(ctx context.Context, s string) <-chan types.ClassForNullLiteral {
@@ -3604,12 +4042,64 @@ func (*stream) NullLiteralClassHello(ctx context.Context, s string) <-chan types
 					close(channel)
 					return
 				}
-				var ret types.ClassForNullLiteral
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.ClassForNullLiteral)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func OpenAIWithAnthropicResponseHello(ctx context.Context, s string) (*string, error) {
+	arg_names := []string{ "s", }
+	result, err := bamlRuntime.CallFunction(ctx, "OpenAIWithAnthropicResponseHello", arg_names, s, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) OpenAIWithAnthropicResponseHello(ctx context.Context, s string) <-chan string {
+	arg_names := []string{ "s", }
+	channel := make(chan string)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "OpenAIWithAnthropicResponseHello", arg_names, s, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -3620,18 +4110,27 @@ func (*stream) NullLiteralClassHello(ctx context.Context, s string) <-chan types
 
 func OptionalTest_Function(ctx context.Context, input string) (*[]*types.OptionalTest_ReturnType, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "OptionalTest_Function", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "OptionalTest_Function", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []*types.OptionalTest_ReturnType
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []*types.OptionalTest_ReturnType {
+		return castSlice(result, func(item any) *types.OptionalTest_ReturnType {
+    return castOptional(item, func (item any) types.OptionalTest_ReturnType {
+    return *(item).(*types.OptionalTest_ReturnType)
+})
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) OptionalTest_Function(ctx context.Context, input string) <-chan []*types.OptionalTest_ReturnType {
@@ -3653,12 +4152,11 @@ func (*stream) OptionalTest_Function(ctx context.Context, input string) <-chan [
 					close(channel)
 					return
 				}
-				var ret []*types.OptionalTest_ReturnType
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]*types.OptionalTest_ReturnType)
 			}
 		}
 	}()
@@ -3669,18 +4167,23 @@ func (*stream) OptionalTest_Function(ctx context.Context, input string) <-chan [
 
 func PredictAge(ctx context.Context, name string) (*types.FooAny, error) {
 	arg_names := []string{ "name", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PredictAge", arg_names, name, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PredictAge", arg_names, name, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.FooAny
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.FooAny {
+		return *(result).(*types.FooAny)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PredictAge(ctx context.Context, name string) <-chan types.FooAny {
@@ -3702,12 +4205,11 @@ func (*stream) PredictAge(ctx context.Context, name string) <-chan types.FooAny 
 					close(channel)
 					return
 				}
-				var ret types.FooAny
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.FooAny)
 			}
 		}
 	}()
@@ -3718,18 +4220,23 @@ func (*stream) PredictAge(ctx context.Context, name string) <-chan types.FooAny 
 
 func PredictAgeBare(ctx context.Context, inp string) (*types.Checked[int64], error) {
 	arg_names := []string{ "inp", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PredictAgeBare", arg_names, inp, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PredictAgeBare", arg_names, inp, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Checked[int64]
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Checked[int64] {
+		return (result).(types.Checked[int64])
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PredictAgeBare(ctx context.Context, inp string) <-chan types.Checked[int64] {
@@ -3751,12 +4258,11 @@ func (*stream) PredictAgeBare(ctx context.Context, inp string) <-chan types.Chec
 					close(channel)
 					return
 				}
-				var ret types.Checked[int64]
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Checked[int64])
 			}
 		}
 	}()
@@ -3767,18 +4273,23 @@ func (*stream) PredictAgeBare(ctx context.Context, inp string) <-chan types.Chec
 
 func PrimitiveAlias(ctx context.Context, p types.Union__int64__string__bool__float64) (*types.Union__int64__string__bool__float64, error) {
 	arg_names := []string{ "p", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PrimitiveAlias", arg_names, p, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PrimitiveAlias", arg_names, p, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Union__int64__string__bool__float64
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Union__int64__string__bool__float64 {
+		return (result).(types.Union__int64__string__bool__float64)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PrimitiveAlias(ctx context.Context, p types.Union__int64__string__bool__float64) <-chan types.Union__int64__string__bool__float64 {
@@ -3800,12 +4311,11 @@ func (*stream) PrimitiveAlias(ctx context.Context, p types.Union__int64__string_
 					close(channel)
 					return
 				}
-				var ret types.Union__int64__string__bool__float64
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Union__int64__string__bool__float64)
 			}
 		}
 	}()
@@ -3816,18 +4326,23 @@ func (*stream) PrimitiveAlias(ctx context.Context, p types.Union__int64__string_
 
 func PromptTestClaude(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PromptTestClaude", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaude", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PromptTestClaude(ctx context.Context, input string) <-chan string {
@@ -3849,12 +4364,11 @@ func (*stream) PromptTestClaude(ctx context.Context, input string) <-chan string
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -3865,18 +4379,23 @@ func (*stream) PromptTestClaude(ctx context.Context, input string) <-chan string
 
 func PromptTestClaudeChat(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PromptTestClaudeChat", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaudeChat", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PromptTestClaudeChat(ctx context.Context, input string) <-chan string {
@@ -3898,12 +4417,11 @@ func (*stream) PromptTestClaudeChat(ctx context.Context, input string) <-chan st
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -3914,18 +4432,23 @@ func (*stream) PromptTestClaudeChat(ctx context.Context, input string) <-chan st
 
 func PromptTestClaudeChatNoSystem(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PromptTestClaudeChatNoSystem", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaudeChatNoSystem", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PromptTestClaudeChatNoSystem(ctx context.Context, input string) <-chan string {
@@ -3947,12 +4470,11 @@ func (*stream) PromptTestClaudeChatNoSystem(ctx context.Context, input string) <
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -3963,18 +4485,23 @@ func (*stream) PromptTestClaudeChatNoSystem(ctx context.Context, input string) <
 
 func PromptTestOpenAI(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAI", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAI", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PromptTestOpenAI(ctx context.Context, input string) <-chan string {
@@ -3996,12 +4523,11 @@ func (*stream) PromptTestOpenAI(ctx context.Context, input string) <-chan string
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -4012,18 +4538,23 @@ func (*stream) PromptTestOpenAI(ctx context.Context, input string) <-chan string
 
 func PromptTestOpenAIChat(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAIChat", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAIChat", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PromptTestOpenAIChat(ctx context.Context, input string) <-chan string {
@@ -4045,12 +4576,11 @@ func (*stream) PromptTestOpenAIChat(ctx context.Context, input string) <-chan st
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -4061,18 +4591,23 @@ func (*stream) PromptTestOpenAIChat(ctx context.Context, input string) <-chan st
 
 func PromptTestOpenAIChatNoSystem(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAIChatNoSystem", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAIChatNoSystem", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PromptTestOpenAIChatNoSystem(ctx context.Context, input string) <-chan string {
@@ -4094,12 +4629,11 @@ func (*stream) PromptTestOpenAIChatNoSystem(ctx context.Context, input string) <
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -4110,18 +4644,23 @@ func (*stream) PromptTestOpenAIChatNoSystem(ctx context.Context, input string) <
 
 func PromptTestStreaming(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "PromptTestStreaming", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestStreaming", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) PromptTestStreaming(ctx context.Context, input string) <-chan string {
@@ -4143,12 +4682,11 @@ func (*stream) PromptTestStreaming(ctx context.Context, input string) <-chan str
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -4159,18 +4697,23 @@ func (*stream) PromptTestStreaming(ctx context.Context, input string) <-chan str
 
 func RecursiveAliasCycle(ctx context.Context, input types.RecAliasOne) (*types.RecAliasOne, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "RecursiveAliasCycle", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "RecursiveAliasCycle", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.RecAliasOne
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.RecAliasOne {
+		return (result).(types.RecAliasOne)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) RecursiveAliasCycle(ctx context.Context, input types.RecAliasOne) <-chan types.RecAliasOne {
@@ -4192,12 +4735,11 @@ func (*stream) RecursiveAliasCycle(ctx context.Context, input types.RecAliasOne)
 					close(channel)
 					return
 				}
-				var ret types.RecAliasOne
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.RecAliasOne)
 			}
 		}
 	}()
@@ -4208,18 +4750,23 @@ func (*stream) RecursiveAliasCycle(ctx context.Context, input types.RecAliasOne)
 
 func RecursiveClassWithAliasIndirection(ctx context.Context, cls types.NodeWithAliasIndirection) (*types.NodeWithAliasIndirection, error) {
 	arg_names := []string{ "cls", }
-	raw, err := bamlRuntime.CallFunction(ctx, "RecursiveClassWithAliasIndirection", arg_names, cls, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "RecursiveClassWithAliasIndirection", arg_names, cls, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.NodeWithAliasIndirection
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.NodeWithAliasIndirection {
+		return *(result).(*types.NodeWithAliasIndirection)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) RecursiveClassWithAliasIndirection(ctx context.Context, cls types.NodeWithAliasIndirection) <-chan types.NodeWithAliasIndirection {
@@ -4241,12 +4788,11 @@ func (*stream) RecursiveClassWithAliasIndirection(ctx context.Context, cls types
 					close(channel)
 					return
 				}
-				var ret types.NodeWithAliasIndirection
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.NodeWithAliasIndirection)
 			}
 		}
 	}()
@@ -4257,18 +4803,23 @@ func (*stream) RecursiveClassWithAliasIndirection(ctx context.Context, cls types
 
 func ReturnAliasWithMergedAttributes(ctx context.Context, money types.Checked[int64]) (*types.Checked[int64], error) {
 	arg_names := []string{ "money", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ReturnAliasWithMergedAttributes", arg_names, money, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ReturnAliasWithMergedAttributes", arg_names, money, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Checked[int64]
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Checked[int64] {
+		return (result).(types.Checked[int64])
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ReturnAliasWithMergedAttributes(ctx context.Context, money types.Checked[int64]) <-chan types.Checked[int64] {
@@ -4290,12 +4841,11 @@ func (*stream) ReturnAliasWithMergedAttributes(ctx context.Context, money types.
 					close(channel)
 					return
 				}
-				var ret types.Checked[int64]
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Checked[int64])
 			}
 		}
 	}()
@@ -4306,18 +4856,23 @@ func (*stream) ReturnAliasWithMergedAttributes(ctx context.Context, money types.
 
 func ReturnFailingAssert(ctx context.Context, inp int64) (*int64, error) {
 	arg_names := []string{ "inp", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ReturnFailingAssert", arg_names, inp, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ReturnFailingAssert", arg_names, inp, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret int64
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) int64 {
+		return (result).(int64)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ReturnFailingAssert(ctx context.Context, inp int64) <-chan int64 {
@@ -4339,12 +4894,11 @@ func (*stream) ReturnFailingAssert(ctx context.Context, inp int64) <-chan int64 
 					close(channel)
 					return
 				}
-				var ret int64
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(int64)
 			}
 		}
 	}()
@@ -4355,18 +4909,23 @@ func (*stream) ReturnFailingAssert(ctx context.Context, inp int64) <-chan int64 
 
 func ReturnJsonEntry(ctx context.Context, s string) (*types.JsonTemplate, error) {
 	arg_names := []string{ "s", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ReturnJsonEntry", arg_names, s, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ReturnJsonEntry", arg_names, s, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.JsonTemplate
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.JsonTemplate {
+		return (result).(types.JsonTemplate)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ReturnJsonEntry(ctx context.Context, s string) <-chan types.JsonTemplate {
@@ -4388,12 +4947,11 @@ func (*stream) ReturnJsonEntry(ctx context.Context, s string) <-chan types.JsonT
 					close(channel)
 					return
 				}
-				var ret types.JsonTemplate
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.JsonTemplate)
 			}
 		}
 	}()
@@ -4404,18 +4962,23 @@ func (*stream) ReturnJsonEntry(ctx context.Context, s string) <-chan types.JsonT
 
 func ReturnMalformedConstraints(ctx context.Context, a int64) (*types.MalformedConstraints, error) {
 	arg_names := []string{ "a", }
-	raw, err := bamlRuntime.CallFunction(ctx, "ReturnMalformedConstraints", arg_names, a, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "ReturnMalformedConstraints", arg_names, a, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.MalformedConstraints
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.MalformedConstraints {
+		return *(result).(*types.MalformedConstraints)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) ReturnMalformedConstraints(ctx context.Context, a int64) <-chan types.MalformedConstraints {
@@ -4437,12 +5000,11 @@ func (*stream) ReturnMalformedConstraints(ctx context.Context, a int64) <-chan t
 					close(channel)
 					return
 				}
-				var ret types.MalformedConstraints
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.MalformedConstraints)
 			}
 		}
 	}()
@@ -4453,18 +5015,23 @@ func (*stream) ReturnMalformedConstraints(ctx context.Context, a int64) <-chan t
 
 func SchemaDescriptions(ctx context.Context, input string) (*types.Schema, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "SchemaDescriptions", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "SchemaDescriptions", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.Schema
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.Schema {
+		return *(result).(*types.Schema)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) SchemaDescriptions(ctx context.Context, input string) <-chan types.Schema {
@@ -4486,12 +5053,11 @@ func (*stream) SchemaDescriptions(ctx context.Context, input string) <-chan type
 					close(channel)
 					return
 				}
-				var ret types.Schema
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.Schema)
 			}
 		}
 	}()
@@ -4502,18 +5068,23 @@ func (*stream) SchemaDescriptions(ctx context.Context, input string) <-chan type
 
 func SimpleRecursiveListAlias(ctx context.Context, input types.RecursiveListAlias) (*types.RecursiveListAlias, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "SimpleRecursiveListAlias", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "SimpleRecursiveListAlias", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.RecursiveListAlias
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.RecursiveListAlias {
+		return (result).(types.RecursiveListAlias)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) SimpleRecursiveListAlias(ctx context.Context, input types.RecursiveListAlias) <-chan types.RecursiveListAlias {
@@ -4535,12 +5106,11 @@ func (*stream) SimpleRecursiveListAlias(ctx context.Context, input types.Recursi
 					close(channel)
 					return
 				}
-				var ret types.RecursiveListAlias
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.RecursiveListAlias)
 			}
 		}
 	}()
@@ -4551,18 +5121,23 @@ func (*stream) SimpleRecursiveListAlias(ctx context.Context, input types.Recursi
 
 func SimpleRecursiveMapAlias(ctx context.Context, input types.RecursiveMapAlias) (*types.RecursiveMapAlias, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "SimpleRecursiveMapAlias", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "SimpleRecursiveMapAlias", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.RecursiveMapAlias
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.RecursiveMapAlias {
+		return (result).(types.RecursiveMapAlias)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) SimpleRecursiveMapAlias(ctx context.Context, input types.RecursiveMapAlias) <-chan types.RecursiveMapAlias {
@@ -4584,12 +5159,11 @@ func (*stream) SimpleRecursiveMapAlias(ctx context.Context, input types.Recursiv
 					close(channel)
 					return
 				}
-				var ret types.RecursiveMapAlias
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.RecursiveMapAlias)
 			}
 		}
 	}()
@@ -4600,18 +5174,23 @@ func (*stream) SimpleRecursiveMapAlias(ctx context.Context, input types.Recursiv
 
 func StreamBigNumbers(ctx context.Context, digits int64) (*types.BigNumbers, error) {
 	arg_names := []string{ "digits", }
-	raw, err := bamlRuntime.CallFunction(ctx, "StreamBigNumbers", arg_names, digits, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamBigNumbers", arg_names, digits, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.BigNumbers
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.BigNumbers {
+		return *(result).(*types.BigNumbers)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) StreamBigNumbers(ctx context.Context, digits int64) <-chan types.BigNumbers {
@@ -4633,12 +5212,11 @@ func (*stream) StreamBigNumbers(ctx context.Context, digits int64) <-chan types.
 					close(channel)
 					return
 				}
-				var ret types.BigNumbers
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.BigNumbers)
 			}
 		}
 	}()
@@ -4649,18 +5227,23 @@ func (*stream) StreamBigNumbers(ctx context.Context, digits int64) <-chan types.
 
 func StreamFailingAssertion(ctx context.Context, theme string, length int64) (*types.TwoStoriesOneTitle, error) {
 	arg_names := []string{ "theme","length", }
-	raw, err := bamlRuntime.CallFunction(ctx, "StreamFailingAssertion", arg_names, theme, length, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamFailingAssertion", arg_names, theme, length, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.TwoStoriesOneTitle
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.TwoStoriesOneTitle {
+		return *(result).(*types.TwoStoriesOneTitle)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) StreamFailingAssertion(ctx context.Context, theme string, length int64) <-chan types.TwoStoriesOneTitle {
@@ -4682,12 +5265,11 @@ func (*stream) StreamFailingAssertion(ctx context.Context, theme string, length 
 					close(channel)
 					return
 				}
-				var ret types.TwoStoriesOneTitle
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.TwoStoriesOneTitle)
 			}
 		}
 	}()
@@ -4698,18 +5280,23 @@ func (*stream) StreamFailingAssertion(ctx context.Context, theme string, length 
 
 func StreamOneBigNumber(ctx context.Context, digits int64) (*int64, error) {
 	arg_names := []string{ "digits", }
-	raw, err := bamlRuntime.CallFunction(ctx, "StreamOneBigNumber", arg_names, digits, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamOneBigNumber", arg_names, digits, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret int64
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) int64 {
+		return (result).(int64)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) StreamOneBigNumber(ctx context.Context, digits int64) <-chan int64 {
@@ -4731,12 +5318,11 @@ func (*stream) StreamOneBigNumber(ctx context.Context, digits int64) <-chan int6
 					close(channel)
 					return
 				}
-				var ret int64
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(int64)
 			}
 		}
 	}()
@@ -4747,18 +5333,25 @@ func (*stream) StreamOneBigNumber(ctx context.Context, digits int64) <-chan int6
 
 func StreamUnionIntegers(ctx context.Context, digits int64) (*[]types.Union__int64__string, error) {
 	arg_names := []string{ "digits", }
-	raw, err := bamlRuntime.CallFunction(ctx, "StreamUnionIntegers", arg_names, digits, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamUnionIntegers", arg_names, digits, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []types.Union__int64__string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []types.Union__int64__string {
+		return castSlice(result, func(item any) types.Union__int64__string {
+    return (item).(types.Union__int64__string)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) StreamUnionIntegers(ctx context.Context, digits int64) <-chan []types.Union__int64__string {
@@ -4780,12 +5373,11 @@ func (*stream) StreamUnionIntegers(ctx context.Context, digits int64) <-chan []t
 					close(channel)
 					return
 				}
-				var ret []types.Union__int64__string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]types.Union__int64__string)
 			}
 		}
 	}()
@@ -4796,18 +5388,23 @@ func (*stream) StreamUnionIntegers(ctx context.Context, digits int64) <-chan []t
 
 func StreamingCompoundNumbers(ctx context.Context, digits int64, yapping bool) (*types.CompoundBigNumbers, error) {
 	arg_names := []string{ "digits","yapping", }
-	raw, err := bamlRuntime.CallFunction(ctx, "StreamingCompoundNumbers", arg_names, digits, yapping, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamingCompoundNumbers", arg_names, digits, yapping, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.CompoundBigNumbers
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.CompoundBigNumbers {
+		return *(result).(*types.CompoundBigNumbers)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) StreamingCompoundNumbers(ctx context.Context, digits int64, yapping bool) <-chan types.CompoundBigNumbers {
@@ -4829,12 +5426,64 @@ func (*stream) StreamingCompoundNumbers(ctx context.Context, digits int64, yappi
 					close(channel)
 					return
 				}
-				var ret types.CompoundBigNumbers
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.CompoundBigNumbers)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func StructureDocument1559(ctx context.Context, document_txt string) (*types.Document1559, error) {
+	arg_names := []string{ "document_txt", }
+	result, err := bamlRuntime.CallFunction(ctx, "StructureDocument1559", arg_names, document_txt, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) types.Document1559 {
+		return *(result).(*types.Document1559)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) StructureDocument1559(ctx context.Context, document_txt string) <-chan types.Document1559 {
+	arg_names := []string{ "document_txt", }
+	channel := make(chan types.Document1559)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "StructureDocument1559", arg_names, document_txt, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(types.Document1559)
 			}
 		}
 	}()
@@ -4845,18 +5494,23 @@ func (*stream) StreamingCompoundNumbers(ctx context.Context, digits int64, yappi
 
 func TakeRecAliasDep(ctx context.Context, input types.RecursiveAliasDependency) (*types.RecursiveAliasDependency, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TakeRecAliasDep", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TakeRecAliasDep", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.RecursiveAliasDependency
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.RecursiveAliasDependency {
+		return *(result).(*types.RecursiveAliasDependency)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TakeRecAliasDep(ctx context.Context, input types.RecursiveAliasDependency) <-chan types.RecursiveAliasDependency {
@@ -4878,12 +5532,11 @@ func (*stream) TakeRecAliasDep(ctx context.Context, input types.RecursiveAliasDe
 					close(channel)
 					return
 				}
-				var ret types.RecursiveAliasDependency
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.RecursiveAliasDependency)
 			}
 		}
 	}()
@@ -4894,18 +5547,23 @@ func (*stream) TakeRecAliasDep(ctx context.Context, input types.RecursiveAliasDe
 
 func TellStory(ctx context.Context, story string) (*string, error) {
 	arg_names := []string{ "story", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TellStory", arg_names, story, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TellStory", arg_names, story, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TellStory(ctx context.Context, story string) <-chan string {
@@ -4927,12 +5585,11 @@ func (*stream) TellStory(ctx context.Context, story string) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -4943,18 +5600,23 @@ func (*stream) TellStory(ctx context.Context, story string) <-chan string {
 
 func TestAnthropic(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAnthropic", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAnthropic", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAnthropic(ctx context.Context, input string) <-chan string {
@@ -4976,12 +5638,11 @@ func (*stream) TestAnthropic(ctx context.Context, input string) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -4992,18 +5653,23 @@ func (*stream) TestAnthropic(ctx context.Context, input string) <-chan string {
 
 func TestAnthropicShorthand(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAnthropicShorthand", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAnthropicShorthand", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAnthropicShorthand(ctx context.Context, input string) <-chan string {
@@ -5025,12 +5691,11 @@ func (*stream) TestAnthropicShorthand(ctx context.Context, input string) <-chan 
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5041,18 +5706,23 @@ func (*stream) TestAnthropicShorthand(ctx context.Context, input string) <-chan 
 
 func TestAws(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAws", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAws", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAws(ctx context.Context, input string) <-chan string {
@@ -5074,12 +5744,11 @@ func (*stream) TestAws(ctx context.Context, input string) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5090,18 +5759,23 @@ func (*stream) TestAws(ctx context.Context, input string) <-chan string {
 
 func TestAwsInvalidAccessKey(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidAccessKey", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidAccessKey", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAwsInvalidAccessKey(ctx context.Context, input string) <-chan string {
@@ -5123,12 +5797,11 @@ func (*stream) TestAwsInvalidAccessKey(ctx context.Context, input string) <-chan
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5139,18 +5812,23 @@ func (*stream) TestAwsInvalidAccessKey(ctx context.Context, input string) <-chan
 
 func TestAwsInvalidProfile(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidProfile", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidProfile", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAwsInvalidProfile(ctx context.Context, input string) <-chan string {
@@ -5172,12 +5850,11 @@ func (*stream) TestAwsInvalidProfile(ctx context.Context, input string) <-chan s
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5188,18 +5865,23 @@ func (*stream) TestAwsInvalidProfile(ctx context.Context, input string) <-chan s
 
 func TestAwsInvalidRegion(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidRegion", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidRegion", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAwsInvalidRegion(ctx context.Context, input string) <-chan string {
@@ -5221,12 +5903,11 @@ func (*stream) TestAwsInvalidRegion(ctx context.Context, input string) <-chan st
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5237,18 +5918,23 @@ func (*stream) TestAwsInvalidRegion(ctx context.Context, input string) <-chan st
 
 func TestAwsInvalidSessionToken(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidSessionToken", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidSessionToken", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAwsInvalidSessionToken(ctx context.Context, input string) <-chan string {
@@ -5270,12 +5956,11 @@ func (*stream) TestAwsInvalidSessionToken(ctx context.Context, input string) <-c
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5286,18 +5971,23 @@ func (*stream) TestAwsInvalidSessionToken(ctx context.Context, input string) <-c
 
 func TestAzure(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAzure", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzure", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAzure(ctx context.Context, input string) <-chan string {
@@ -5319,12 +6009,11 @@ func (*stream) TestAzure(ctx context.Context, input string) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5335,18 +6024,23 @@ func (*stream) TestAzure(ctx context.Context, input string) <-chan string {
 
 func TestAzureFailure(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAzureFailure", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureFailure", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAzureFailure(ctx context.Context, input string) <-chan string {
@@ -5368,12 +6062,11 @@ func (*stream) TestAzureFailure(ctx context.Context, input string) <-chan string
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5384,18 +6077,23 @@ func (*stream) TestAzureFailure(ctx context.Context, input string) <-chan string
 
 func TestAzureO1NoMaxTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAzureO1NoMaxTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1NoMaxTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAzureO1NoMaxTokens(ctx context.Context, input string) <-chan string {
@@ -5417,12 +6115,11 @@ func (*stream) TestAzureO1NoMaxTokens(ctx context.Context, input string) <-chan 
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5433,18 +6130,23 @@ func (*stream) TestAzureO1NoMaxTokens(ctx context.Context, input string) <-chan 
 
 func TestAzureO1WithMaxCompletionTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAzureO1WithMaxCompletionTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1WithMaxCompletionTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAzureO1WithMaxCompletionTokens(ctx context.Context, input string) <-chan string {
@@ -5466,12 +6168,11 @@ func (*stream) TestAzureO1WithMaxCompletionTokens(ctx context.Context, input str
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5482,18 +6183,23 @@ func (*stream) TestAzureO1WithMaxCompletionTokens(ctx context.Context, input str
 
 func TestAzureO1WithMaxTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAzureO1WithMaxTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1WithMaxTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAzureO1WithMaxTokens(ctx context.Context, input string) <-chan string {
@@ -5515,12 +6221,11 @@ func (*stream) TestAzureO1WithMaxTokens(ctx context.Context, input string) <-cha
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5531,18 +6236,23 @@ func (*stream) TestAzureO1WithMaxTokens(ctx context.Context, input string) <-cha
 
 func TestAzureO3NoMaxTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAzureO3NoMaxTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO3NoMaxTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAzureO3NoMaxTokens(ctx context.Context, input string) <-chan string {
@@ -5564,12 +6274,11 @@ func (*stream) TestAzureO3NoMaxTokens(ctx context.Context, input string) <-chan 
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5580,18 +6289,23 @@ func (*stream) TestAzureO3NoMaxTokens(ctx context.Context, input string) <-chan 
 
 func TestAzureO3WithMaxCompletionTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAzureO3WithMaxCompletionTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO3WithMaxCompletionTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAzureO3WithMaxCompletionTokens(ctx context.Context, input string) <-chan string {
@@ -5613,12 +6327,11 @@ func (*stream) TestAzureO3WithMaxCompletionTokens(ctx context.Context, input str
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5629,18 +6342,23 @@ func (*stream) TestAzureO3WithMaxCompletionTokens(ctx context.Context, input str
 
 func TestAzureWithMaxTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestAzureWithMaxTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureWithMaxTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestAzureWithMaxTokens(ctx context.Context, input string) <-chan string {
@@ -5662,12 +6380,11 @@ func (*stream) TestAzureWithMaxTokens(ctx context.Context, input string) <-chan 
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5678,18 +6395,23 @@ func (*stream) TestAzureWithMaxTokens(ctx context.Context, input string) <-chan 
 
 func TestCaching(ctx context.Context, input string, not_cached string) (*string, error) {
 	arg_names := []string{ "input","not_cached", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestCaching", arg_names, input, not_cached, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestCaching", arg_names, input, not_cached, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestCaching(ctx context.Context, input string, not_cached string) <-chan string {
@@ -5711,12 +6433,11 @@ func (*stream) TestCaching(ctx context.Context, input string, not_cached string)
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5727,18 +6448,23 @@ func (*stream) TestCaching(ctx context.Context, input string, not_cached string)
 
 func TestFallbackClient(ctx context.Context) (*string, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFallbackClient", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackClient", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFallbackClient(ctx context.Context) <-chan string {
@@ -5760,12 +6486,64 @@ func (*stream) TestFallbackClient(ctx context.Context) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func TestFallbackStrategy(ctx context.Context, input string) (*string, error) {
+	arg_names := []string{ "input", }
+	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackStrategy", arg_names, input, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) TestFallbackStrategy(ctx context.Context, input string) <-chan string {
+	arg_names := []string{ "input", }
+	channel := make(chan string)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestFallbackStrategy", arg_names, input, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5776,18 +6554,23 @@ func (*stream) TestFallbackClient(ctx context.Context) <-chan string {
 
 func TestFallbackToShorthand(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFallbackToShorthand", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackToShorthand", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFallbackToShorthand(ctx context.Context, input string) <-chan string {
@@ -5809,12 +6592,11 @@ func (*stream) TestFallbackToShorthand(ctx context.Context, input string) <-chan
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5825,18 +6607,23 @@ func (*stream) TestFallbackToShorthand(ctx context.Context, input string) <-chan
 
 func TestFnNamedArgsSingleBool(ctx context.Context, myBool bool) (*string, error) {
 	arg_names := []string{ "myBool", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleBool", arg_names, myBool, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleBool", arg_names, myBool, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleBool(ctx context.Context, myBool bool) <-chan string {
@@ -5858,12 +6645,11 @@ func (*stream) TestFnNamedArgsSingleBool(ctx context.Context, myBool bool) <-cha
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5874,18 +6660,23 @@ func (*stream) TestFnNamedArgsSingleBool(ctx context.Context, myBool bool) <-cha
 
 func TestFnNamedArgsSingleClass(ctx context.Context, myArg types.NamedArgsSingleClass) (*string, error) {
 	arg_names := []string{ "myArg", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleClass", arg_names, myArg, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleClass", arg_names, myArg, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleClass(ctx context.Context, myArg types.NamedArgsSingleClass) <-chan string {
@@ -5907,12 +6698,11 @@ func (*stream) TestFnNamedArgsSingleClass(ctx context.Context, myArg types.Named
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5923,18 +6713,23 @@ func (*stream) TestFnNamedArgsSingleClass(ctx context.Context, myArg types.Named
 
 func TestFnNamedArgsSingleEnumList(ctx context.Context, myArg []types.NamedArgsSingleEnumList) (*string, error) {
 	arg_names := []string{ "myArg", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleEnumList", arg_names, myArg, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleEnumList", arg_names, myArg, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleEnumList(ctx context.Context, myArg []types.NamedArgsSingleEnumList) <-chan string {
@@ -5956,12 +6751,11 @@ func (*stream) TestFnNamedArgsSingleEnumList(ctx context.Context, myArg []types.
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -5972,18 +6766,23 @@ func (*stream) TestFnNamedArgsSingleEnumList(ctx context.Context, myArg []types.
 
 func TestFnNamedArgsSingleFloat(ctx context.Context, myFloat float64) (*string, error) {
 	arg_names := []string{ "myFloat", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleFloat", arg_names, myFloat, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleFloat", arg_names, myFloat, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleFloat(ctx context.Context, myFloat float64) <-chan string {
@@ -6005,12 +6804,11 @@ func (*stream) TestFnNamedArgsSingleFloat(ctx context.Context, myFloat float64) 
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6021,18 +6819,23 @@ func (*stream) TestFnNamedArgsSingleFloat(ctx context.Context, myFloat float64) 
 
 func TestFnNamedArgsSingleInt(ctx context.Context, myInt int64) (*string, error) {
 	arg_names := []string{ "myInt", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleInt", arg_names, myInt, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleInt", arg_names, myInt, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleInt(ctx context.Context, myInt int64) <-chan string {
@@ -6054,12 +6857,11 @@ func (*stream) TestFnNamedArgsSingleInt(ctx context.Context, myInt int64) <-chan
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6070,18 +6872,23 @@ func (*stream) TestFnNamedArgsSingleInt(ctx context.Context, myInt int64) <-chan
 
 func TestFnNamedArgsSingleMapStringToClass(ctx context.Context, myMap map[string]types.StringToClassEntry) (*map[string]types.StringToClassEntry, error) {
 	arg_names := []string{ "myMap", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToClass", arg_names, myMap, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToClass", arg_names, myMap, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret map[string]types.StringToClassEntry
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) map[string]types.StringToClassEntry {
+		return (result).(map[string]types.StringToClassEntry)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleMapStringToClass(ctx context.Context, myMap map[string]types.StringToClassEntry) <-chan map[string]types.StringToClassEntry {
@@ -6103,12 +6910,11 @@ func (*stream) TestFnNamedArgsSingleMapStringToClass(ctx context.Context, myMap 
 					close(channel)
 					return
 				}
-				var ret map[string]types.StringToClassEntry
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(map[string]types.StringToClassEntry)
 			}
 		}
 	}()
@@ -6119,18 +6925,23 @@ func (*stream) TestFnNamedArgsSingleMapStringToClass(ctx context.Context, myMap 
 
 func TestFnNamedArgsSingleMapStringToMap(ctx context.Context, myMap map[string]map[string]string) (*map[string]map[string]string, error) {
 	arg_names := []string{ "myMap", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToMap", arg_names, myMap, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToMap", arg_names, myMap, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret map[string]map[string]string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) map[string]map[string]string {
+		return (result).(map[string]map[string]string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleMapStringToMap(ctx context.Context, myMap map[string]map[string]string) <-chan map[string]map[string]string {
@@ -6152,12 +6963,11 @@ func (*stream) TestFnNamedArgsSingleMapStringToMap(ctx context.Context, myMap ma
 					close(channel)
 					return
 				}
-				var ret map[string]map[string]string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(map[string]map[string]string)
 			}
 		}
 	}()
@@ -6168,18 +6978,23 @@ func (*stream) TestFnNamedArgsSingleMapStringToMap(ctx context.Context, myMap ma
 
 func TestFnNamedArgsSingleMapStringToString(ctx context.Context, myMap map[string]string) (*map[string]string, error) {
 	arg_names := []string{ "myMap", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToString", arg_names, myMap, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToString", arg_names, myMap, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret map[string]string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) map[string]string {
+		return (result).(map[string]string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleMapStringToString(ctx context.Context, myMap map[string]string) <-chan map[string]string {
@@ -6201,12 +7016,11 @@ func (*stream) TestFnNamedArgsSingleMapStringToString(ctx context.Context, myMap
 					close(channel)
 					return
 				}
-				var ret map[string]string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(map[string]string)
 			}
 		}
 	}()
@@ -6217,18 +7031,23 @@ func (*stream) TestFnNamedArgsSingleMapStringToString(ctx context.Context, myMap
 
 func TestFnNamedArgsSingleString(ctx context.Context, myString string) (*string, error) {
 	arg_names := []string{ "myString", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleString", arg_names, myString, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleString", arg_names, myString, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleString(ctx context.Context, myString string) <-chan string {
@@ -6250,12 +7069,11 @@ func (*stream) TestFnNamedArgsSingleString(ctx context.Context, myString string)
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6266,18 +7084,23 @@ func (*stream) TestFnNamedArgsSingleString(ctx context.Context, myString string)
 
 func TestFnNamedArgsSingleStringArray(ctx context.Context, myStringArray []string) (*string, error) {
 	arg_names := []string{ "myStringArray", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleStringArray", arg_names, myStringArray, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleStringArray", arg_names, myStringArray, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestFnNamedArgsSingleStringArray(ctx context.Context, myStringArray []string) <-chan string {
@@ -6299,12 +7122,11 @@ func (*stream) TestFnNamedArgsSingleStringArray(ctx context.Context, myStringArr
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6313,25 +7135,32 @@ func (*stream) TestFnNamedArgsSingleStringArray(ctx context.Context, myStringArr
 
 
 
-func TestFnNamedArgsSingleStringList(ctx context.Context, myArg []string) (*string, error) {
+func TestFnNamedArgsSingleStringList(ctx context.Context, myArg []string) (*[]string, error) {
 	arg_names := []string{ "myArg", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleStringList", arg_names, myArg, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleStringList", arg_names, myArg, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) []string {
+		return castSlice(result, func(item any) string {
+    return (item).(string)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
-func (*stream) TestFnNamedArgsSingleStringList(ctx context.Context, myArg []string) <-chan string {
+func (*stream) TestFnNamedArgsSingleStringList(ctx context.Context, myArg []string) <-chan []string {
 	arg_names := []string{ "myArg", }
-	channel := make(chan string)
+	channel := make(chan []string)
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestFnNamedArgsSingleStringList", arg_names, myArg, nil, nil)
 	if err != nil {
 		close(channel)
@@ -6348,12 +7177,11 @@ func (*stream) TestFnNamedArgsSingleStringList(ctx context.Context, myArg []stri
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).([]string)
 			}
 		}
 	}()
@@ -6364,18 +7192,23 @@ func (*stream) TestFnNamedArgsSingleStringList(ctx context.Context, myArg []stri
 
 func TestGemini(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestGemini", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGemini", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestGemini(ctx context.Context, input string) <-chan string {
@@ -6397,12 +7230,11 @@ func (*stream) TestGemini(ctx context.Context, input string) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6413,18 +7245,23 @@ func (*stream) TestGemini(ctx context.Context, input string) <-chan string {
 
 func TestGeminiOpenAiGeneric(ctx context.Context) (*string, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestGeminiOpenAiGeneric", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiOpenAiGeneric", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestGeminiOpenAiGeneric(ctx context.Context) <-chan string {
@@ -6446,12 +7283,11 @@ func (*stream) TestGeminiOpenAiGeneric(ctx context.Context) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6462,18 +7298,23 @@ func (*stream) TestGeminiOpenAiGeneric(ctx context.Context) <-chan string {
 
 func TestGeminiSystem(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestGeminiSystem", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiSystem", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestGeminiSystem(ctx context.Context, input string) <-chan string {
@@ -6495,12 +7336,11 @@ func (*stream) TestGeminiSystem(ctx context.Context, input string) <-chan string
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6511,18 +7351,23 @@ func (*stream) TestGeminiSystem(ctx context.Context, input string) <-chan string
 
 func TestGeminiSystemAsChat(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestGeminiSystemAsChat", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiSystemAsChat", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestGeminiSystemAsChat(ctx context.Context, input string) <-chan string {
@@ -6544,12 +7389,11 @@ func (*stream) TestGeminiSystemAsChat(ctx context.Context, input string) <-chan 
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6560,18 +7404,23 @@ func (*stream) TestGeminiSystemAsChat(ctx context.Context, input string) <-chan 
 
 func TestImageInput(ctx context.Context, img any) (*string, error) {
 	arg_names := []string{ "img", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestImageInput", arg_names, img, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestImageInput", arg_names, img, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestImageInput(ctx context.Context, img any) <-chan string {
@@ -6593,12 +7442,11 @@ func (*stream) TestImageInput(ctx context.Context, img any) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6609,18 +7457,23 @@ func (*stream) TestImageInput(ctx context.Context, img any) <-chan string {
 
 func TestImageInputAnthropic(ctx context.Context, img any) (*string, error) {
 	arg_names := []string{ "img", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestImageInputAnthropic", arg_names, img, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestImageInputAnthropic", arg_names, img, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestImageInputAnthropic(ctx context.Context, img any) <-chan string {
@@ -6642,12 +7495,11 @@ func (*stream) TestImageInputAnthropic(ctx context.Context, img any) <-chan stri
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6658,18 +7510,23 @@ func (*stream) TestImageInputAnthropic(ctx context.Context, img any) <-chan stri
 
 func TestImageListInput(ctx context.Context, imgs []any) (*string, error) {
 	arg_names := []string{ "imgs", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestImageListInput", arg_names, imgs, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestImageListInput", arg_names, imgs, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestImageListInput(ctx context.Context, imgs []any) <-chan string {
@@ -6691,12 +7548,11 @@ func (*stream) TestImageListInput(ctx context.Context, imgs []any) <-chan string
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6707,18 +7563,23 @@ func (*stream) TestImageListInput(ctx context.Context, imgs []any) <-chan string
 
 func TestMemory(ctx context.Context, input string) (*types.TestMemoryOutput, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestMemory", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestMemory", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.TestMemoryOutput
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.TestMemoryOutput {
+		return *(result).(*types.TestMemoryOutput)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestMemory(ctx context.Context, input string) <-chan types.TestMemoryOutput {
@@ -6740,12 +7601,11 @@ func (*stream) TestMemory(ctx context.Context, input string) <-chan types.TestMe
 					close(channel)
 					return
 				}
-				var ret types.TestMemoryOutput
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.TestMemoryOutput)
 			}
 		}
 	}()
@@ -6756,18 +7616,23 @@ func (*stream) TestMemory(ctx context.Context, input string) <-chan types.TestMe
 
 func TestMulticlassNamedArgs(ctx context.Context, myArg types.NamedArgsSingleClass, myArg2 types.NamedArgsSingleClass) (*string, error) {
 	arg_names := []string{ "myArg","myArg2", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestMulticlassNamedArgs", arg_names, myArg, myArg2, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestMulticlassNamedArgs", arg_names, myArg, myArg2, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestMulticlassNamedArgs(ctx context.Context, myArg types.NamedArgsSingleClass, myArg2 types.NamedArgsSingleClass) <-chan string {
@@ -6789,12 +7654,11 @@ func (*stream) TestMulticlassNamedArgs(ctx context.Context, myArg types.NamedArg
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6805,18 +7669,23 @@ func (*stream) TestMulticlassNamedArgs(ctx context.Context, myArg types.NamedArg
 
 func TestNamedArgsLiteralBool(ctx context.Context, myBool bool) (*string, error) {
 	arg_names := []string{ "myBool", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralBool", arg_names, myBool, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralBool", arg_names, myBool, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestNamedArgsLiteralBool(ctx context.Context, myBool bool) <-chan string {
@@ -6838,12 +7707,11 @@ func (*stream) TestNamedArgsLiteralBool(ctx context.Context, myBool bool) <-chan
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6854,18 +7722,23 @@ func (*stream) TestNamedArgsLiteralBool(ctx context.Context, myBool bool) <-chan
 
 func TestNamedArgsLiteralInt(ctx context.Context, myInt int) (*string, error) {
 	arg_names := []string{ "myInt", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralInt", arg_names, myInt, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralInt", arg_names, myInt, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestNamedArgsLiteralInt(ctx context.Context, myInt int) <-chan string {
@@ -6887,12 +7760,11 @@ func (*stream) TestNamedArgsLiteralInt(ctx context.Context, myInt int) <-chan st
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6903,18 +7775,23 @@ func (*stream) TestNamedArgsLiteralInt(ctx context.Context, myInt int) <-chan st
 
 func TestNamedArgsLiteralString(ctx context.Context, myString string) (*string, error) {
 	arg_names := []string{ "myString", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralString", arg_names, myString, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralString", arg_names, myString, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestNamedArgsLiteralString(ctx context.Context, myString string) <-chan string {
@@ -6936,12 +7813,11 @@ func (*stream) TestNamedArgsLiteralString(ctx context.Context, myString string) 
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -6950,25 +7826,32 @@ func (*stream) TestNamedArgsLiteralString(ctx context.Context, myString string) 
 
 
 
-func TestOllama(ctx context.Context) (*string, error) {
+func TestOllama(ctx context.Context) (**string, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOllama", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOllama", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) *string {
+		return castOptional(result, func (item any) string {
+    return (item).(string)
+})
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
-func (*stream) TestOllama(ctx context.Context) <-chan string {
+func (*stream) TestOllama(ctx context.Context) <-chan *string {
 	arg_names := []string{  }
-	channel := make(chan string)
+	channel := make(chan *string)
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestOllama", arg_names, nil, nil)
 	if err != nil {
 		close(channel)
@@ -6985,12 +7868,64 @@ func (*stream) TestOllama(ctx context.Context) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(*string)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func TestOllamaHaiku(ctx context.Context, input string) (*types.Haiku, error) {
+	arg_names := []string{ "input", }
+	result, err := bamlRuntime.CallFunction(ctx, "TestOllamaHaiku", arg_names, input, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) types.Haiku {
+		return *(result).(*types.Haiku)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) TestOllamaHaiku(ctx context.Context, input string) <-chan types.Haiku {
+	arg_names := []string{ "input", }
+	channel := make(chan types.Haiku)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestOllamaHaiku", arg_names, input, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(types.Haiku)
 			}
 		}
 	}()
@@ -7001,18 +7936,23 @@ func (*stream) TestOllama(ctx context.Context) <-chan string {
 
 func TestOpenAI(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOpenAI", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAI", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestOpenAI(ctx context.Context, input string) <-chan string {
@@ -7034,12 +7974,64 @@ func (*stream) TestOpenAI(ctx context.Context, input string) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func TestOpenAIGPT4oMini(ctx context.Context, input string) (*string, error) {
+	arg_names := []string{ "input", }
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIGPT4oMini", arg_names, input, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) TestOpenAIGPT4oMini(ctx context.Context, input string) <-chan string {
+	arg_names := []string{ "input", }
+	channel := make(chan string)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestOpenAIGPT4oMini", arg_names, input, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7050,18 +8042,23 @@ func (*stream) TestOpenAI(ctx context.Context, input string) <-chan string {
 
 func TestOpenAILegacyProvider(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOpenAILegacyProvider", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAILegacyProvider", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestOpenAILegacyProvider(ctx context.Context, input string) <-chan string {
@@ -7083,12 +8080,11 @@ func (*stream) TestOpenAILegacyProvider(ctx context.Context, input string) <-cha
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7099,18 +8095,23 @@ func (*stream) TestOpenAILegacyProvider(ctx context.Context, input string) <-cha
 
 func TestOpenAIO1NoMaxTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1NoMaxTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1NoMaxTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestOpenAIO1NoMaxTokens(ctx context.Context, input string) <-chan string {
@@ -7132,12 +8133,11 @@ func (*stream) TestOpenAIO1NoMaxTokens(ctx context.Context, input string) <-chan
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7148,18 +8148,23 @@ func (*stream) TestOpenAIO1NoMaxTokens(ctx context.Context, input string) <-chan
 
 func TestOpenAIO1WithMaxCompletionTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1WithMaxCompletionTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1WithMaxCompletionTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestOpenAIO1WithMaxCompletionTokens(ctx context.Context, input string) <-chan string {
@@ -7181,12 +8186,11 @@ func (*stream) TestOpenAIO1WithMaxCompletionTokens(ctx context.Context, input st
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7197,18 +8201,23 @@ func (*stream) TestOpenAIO1WithMaxCompletionTokens(ctx context.Context, input st
 
 func TestOpenAIO1WithMaxTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1WithMaxTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1WithMaxTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestOpenAIO1WithMaxTokens(ctx context.Context, input string) <-chan string {
@@ -7230,12 +8239,11 @@ func (*stream) TestOpenAIO1WithMaxTokens(ctx context.Context, input string) <-ch
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7246,18 +8254,23 @@ func (*stream) TestOpenAIO1WithMaxTokens(ctx context.Context, input string) <-ch
 
 func TestOpenAIShorthand(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOpenAIShorthand", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIShorthand", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestOpenAIShorthand(ctx context.Context, input string) <-chan string {
@@ -7279,12 +8292,11 @@ func (*stream) TestOpenAIShorthand(ctx context.Context, input string) <-chan str
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7295,18 +8307,23 @@ func (*stream) TestOpenAIShorthand(ctx context.Context, input string) <-chan str
 
 func TestOpenAIWithMaxTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithMaxTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithMaxTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestOpenAIWithMaxTokens(ctx context.Context, input string) <-chan string {
@@ -7328,12 +8345,11 @@ func (*stream) TestOpenAIWithMaxTokens(ctx context.Context, input string) <-chan
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7344,18 +8360,23 @@ func (*stream) TestOpenAIWithMaxTokens(ctx context.Context, input string) <-chan
 
 func TestOpenAIWithNullMaxTokens(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithNullMaxTokens", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithNullMaxTokens", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestOpenAIWithNullMaxTokens(ctx context.Context, input string) <-chan string {
@@ -7377,12 +8398,11 @@ func (*stream) TestOpenAIWithNullMaxTokens(ctx context.Context, input string) <-
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7393,18 +8413,23 @@ func (*stream) TestOpenAIWithNullMaxTokens(ctx context.Context, input string) <-
 
 func TestRetryConstant(ctx context.Context) (*string, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestRetryConstant", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestRetryConstant", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestRetryConstant(ctx context.Context) <-chan string {
@@ -7426,12 +8451,11 @@ func (*stream) TestRetryConstant(ctx context.Context) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7442,18 +8466,23 @@ func (*stream) TestRetryConstant(ctx context.Context) <-chan string {
 
 func TestRetryExponential(ctx context.Context) (*string, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestRetryExponential", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestRetryExponential", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestRetryExponential(ctx context.Context) <-chan string {
@@ -7475,12 +8504,64 @@ func (*stream) TestRetryExponential(ctx context.Context) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func TestRoundRobinStrategy(ctx context.Context, input string) (*string, error) {
+	arg_names := []string{ "input", }
+	result, err := bamlRuntime.CallFunction(ctx, "TestRoundRobinStrategy", arg_names, input, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) TestRoundRobinStrategy(ctx context.Context, input string) <-chan string {
+	arg_names := []string{ "input", }
+	channel := make(chan string)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestRoundRobinStrategy", arg_names, input, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7491,18 +8572,23 @@ func (*stream) TestRetryExponential(ctx context.Context) <-chan string {
 
 func TestSingleFallbackClient(ctx context.Context) (*string, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestSingleFallbackClient", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestSingleFallbackClient", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestSingleFallbackClient(ctx context.Context) <-chan string {
@@ -7524,12 +8610,64 @@ func (*stream) TestSingleFallbackClient(ctx context.Context) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
+			}
+		}
+	}()
+	return channel
+}
+
+
+
+func TestThinking(ctx context.Context, input string) (*types.CustomStory, error) {
+	arg_names := []string{ "input", }
+	result, err := bamlRuntime.CallFunction(ctx, "TestThinking", arg_names, input, nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func (result any) types.CustomStory {
+		return *(result).(*types.CustomStory)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
+}
+
+func (*stream) TestThinking(ctx context.Context, input string) <-chan types.CustomStory {
+	arg_names := []string{ "input", }
+	channel := make(chan types.CustomStory)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestThinking", arg_names, input, nil, nil)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(types.CustomStory)
 			}
 		}
 	}()
@@ -7540,18 +8678,23 @@ func (*stream) TestSingleFallbackClient(ctx context.Context) <-chan string {
 
 func TestUniverseQuestion(ctx context.Context, question types.UniverseQuestionInput) (*types.UniverseQuestion, error) {
 	arg_names := []string{ "question", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestUniverseQuestion", arg_names, question, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestUniverseQuestion", arg_names, question, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.UniverseQuestion
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.UniverseQuestion {
+		return *(result).(*types.UniverseQuestion)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestUniverseQuestion(ctx context.Context, question types.UniverseQuestionInput) <-chan types.UniverseQuestion {
@@ -7573,12 +8716,11 @@ func (*stream) TestUniverseQuestion(ctx context.Context, question types.Universe
 					close(channel)
 					return
 				}
-				var ret types.UniverseQuestion
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.UniverseQuestion)
 			}
 		}
 	}()
@@ -7589,18 +8731,23 @@ func (*stream) TestUniverseQuestion(ctx context.Context, question types.Universe
 
 func TestVertex(ctx context.Context, input string) (*string, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestVertex", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestVertex", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestVertex(ctx context.Context, input string) <-chan string {
@@ -7622,12 +8769,11 @@ func (*stream) TestVertex(ctx context.Context, input string) <-chan string {
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7638,18 +8784,23 @@ func (*stream) TestVertex(ctx context.Context, input string) <-chan string {
 
 func TestVertexWithSystemInstructions(ctx context.Context) (*string, error) {
 	arg_names := []string{  }
-	raw, err := bamlRuntime.CallFunction(ctx, "TestVertexWithSystemInstructions", arg_names, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "TestVertexWithSystemInstructions", arg_names, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret string
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) string {
+		return (result).(string)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) TestVertexWithSystemInstructions(ctx context.Context) <-chan string {
@@ -7671,12 +8822,11 @@ func (*stream) TestVertexWithSystemInstructions(ctx context.Context) <-chan stri
 					close(channel)
 					return
 				}
-				var ret string
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(string)
 			}
 		}
 	}()
@@ -7687,18 +8837,23 @@ func (*stream) TestVertexWithSystemInstructions(ctx context.Context) <-chan stri
 
 func UnionTest_Function(ctx context.Context, input types.Union__string__bool) (*types.UnionTest_ReturnType, error) {
 	arg_names := []string{ "input", }
-	raw, err := bamlRuntime.CallFunction(ctx, "UnionTest_Function", arg_names, input, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "UnionTest_Function", arg_names, input, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret types.UnionTest_ReturnType
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) types.UnionTest_ReturnType {
+		return *(result).(*types.UnionTest_ReturnType)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) UnionTest_Function(ctx context.Context, input types.Union__string__bool) <-chan types.UnionTest_ReturnType {
@@ -7720,12 +8875,11 @@ func (*stream) UnionTest_Function(ctx context.Context, input types.Union__string
 					close(channel)
 					return
 				}
-				var ret types.UnionTest_ReturnType
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(types.UnionTest_ReturnType)
 			}
 		}
 	}()
@@ -7736,18 +8890,23 @@ func (*stream) UnionTest_Function(ctx context.Context, input types.Union__string
 
 func UseBlockConstraint(ctx context.Context, inp types.BlockConstraintForParam) (*int64, error) {
 	arg_names := []string{ "inp", }
-	raw, err := bamlRuntime.CallFunction(ctx, "UseBlockConstraint", arg_names, inp, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "UseBlockConstraint", arg_names, inp, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret int64
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) int64 {
+		return (result).(int64)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) UseBlockConstraint(ctx context.Context, inp types.BlockConstraintForParam) <-chan int64 {
@@ -7769,12 +8928,11 @@ func (*stream) UseBlockConstraint(ctx context.Context, inp types.BlockConstraint
 					close(channel)
 					return
 				}
-				var ret int64
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(int64)
 			}
 		}
 	}()
@@ -7785,18 +8943,23 @@ func (*stream) UseBlockConstraint(ctx context.Context, inp types.BlockConstraint
 
 func UseMalformedConstraints(ctx context.Context, a types.MalformedConstraints2) (*int64, error) {
 	arg_names := []string{ "a", }
-	raw, err := bamlRuntime.CallFunction(ctx, "UseMalformedConstraints", arg_names, a, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "UseMalformedConstraints", arg_names, a, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret int64
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) int64 {
+		return (result).(int64)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) UseMalformedConstraints(ctx context.Context, a types.MalformedConstraints2) <-chan int64 {
@@ -7818,12 +8981,11 @@ func (*stream) UseMalformedConstraints(ctx context.Context, a types.MalformedCon
 					close(channel)
 					return
 				}
-				var ret int64
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(int64)
 			}
 		}
 	}()
@@ -7834,18 +8996,23 @@ func (*stream) UseMalformedConstraints(ctx context.Context, a types.MalformedCon
 
 func UseNestedBlockConstraint(ctx context.Context, inp types.NestedBlockConstraintForParam) (*int64, error) {
 	arg_names := []string{ "inp", }
-	raw, err := bamlRuntime.CallFunction(ctx, "UseNestedBlockConstraint", arg_names, inp, nil, nil)
+	result, err := bamlRuntime.CallFunction(ctx, "UseNestedBlockConstraint", arg_names, inp, nil, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var ret int64
-	if err := json.Unmarshal([]byte(raw.Raw()), &ret); err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &ret, nil
+	castResult := func (result any) int64 {
+		return (result).(int64)
+	}
+
+	casted := castResult(*result.Data)
+
+	return &casted, nil
 }
 
 func (*stream) UseNestedBlockConstraint(ctx context.Context, inp types.NestedBlockConstraintForParam) <-chan int64 {
@@ -7867,12 +9034,11 @@ func (*stream) UseNestedBlockConstraint(ctx context.Context, inp types.NestedBlo
 					close(channel)
 					return
 				}
-				var ret int64
-				if err := json.Unmarshal([]byte(result.Raw()), &ret); err != nil {
+				if result.Error != nil {
 					close(channel)
 					return
 				}
-				channel <- ret
+				channel <- (*result.Data).(int64)
 			}
 		}
 	}()
