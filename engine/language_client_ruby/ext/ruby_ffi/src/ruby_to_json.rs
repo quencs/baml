@@ -10,7 +10,7 @@ use crate::types::{
     self,
     media::{Audio, Image},
 };
-use jsonish::ResponseBamlValue;
+use jsonish::{ResponseBamlValue, ResponseValueMeta};
 
 struct SerializationError {
     position: Vec<String>,
@@ -66,7 +66,7 @@ impl<'rb> RubyToJson<'rb> {
         // If we encounter a BamlValue node with check results, serialize it as
         // { value: T, checks: K }. To compute `value`, we strip the metadata
         // off the node and pass it back to `serialize_baml`.
-        let (_flags, checks, completion, _) = from.0.meta_mut();
+        let ResponseValueMeta(_flags, checks, completion, ..) = from.0.meta_mut();
 
         if completion.display && allow_partials {
             let hash = ruby.hash_new();

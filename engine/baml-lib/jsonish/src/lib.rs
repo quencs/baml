@@ -37,6 +37,12 @@ pub struct ResponseValueMeta(
     pub FieldType,
 );
 
+impl From<FieldType> for ResponseValueMeta {
+    fn from(field_type: FieldType) -> Self {
+        ResponseValueMeta(vec![], vec![], Completion::default(), field_type)
+    }
+}
+
 impl baml_types::HasFieldType for ResponseValueMeta {
     fn field_type<'a>(&'a self) -> &'a FieldType {
         &self.3

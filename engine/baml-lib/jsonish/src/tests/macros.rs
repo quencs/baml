@@ -138,7 +138,7 @@ macro_rules! test_partial_deserializer_streaming {
 
             assert!(parsed.is_ok(), "Failed to parse: {:?}", parsed);
 
-            let result = crate::helpers::parsed_value_to_response(&ir, parsed.unwrap(), &$target_type, true).unwrap();
+            let result = crate::helpers::parsed_value_to_response(&ir, parsed.unwrap(), true).unwrap();
 
             dbg!(&result);
 
@@ -169,8 +169,7 @@ macro_rules! test_partial_deserializer_streaming_failure {
 
             assert!(parsed.is_ok(), "Failed to parse: {:?}", parsed);
 
-            let result =
-                crate::helpers::parsed_value_to_response(&ir, parsed.unwrap(), &$target_type, true);
+            let result = crate::helpers::parsed_value_to_response(&ir, parsed.unwrap(), true);
 
             assert!(
                 result.is_err(),

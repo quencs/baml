@@ -200,6 +200,21 @@ impl GenerateClient for GeneratorOutputType {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
+            if matches!(self, GeneratorOutputType::Go) {
+                // run go fmt on the generated files (silent failure)
+                if let Err(e) = std::process::Command::new("go")
+                    .arg("fmt")
+                    .current_dir(gen.output_dir())
+                    .status()
+                {
+                    baml_log::warn!(
+                        "Failed to run go fmt in {}: {}",
+                        gen.output_dir().display(),
+                        e
+                    );
+                }
+            }
+
             for cmd in gen.on_generate.iter() {
                 baml_log::info!("Running {:?} in {}", cmd, gen.output_dir().display());
                 let status = std::process::Command::new("sh")

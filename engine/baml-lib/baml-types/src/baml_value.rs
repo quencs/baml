@@ -492,152 +492,60 @@ impl<T> BamlValueWithMeta<T> {
         }
     }
 
-    pub fn with_default_meta(
-        value: &BamlValue,
-    ) -> BamlValueWithMeta<(T, Vec<ResponseCheck>, Completion, FieldType)>
+    pub fn with_default_meta(value: &BamlValue) -> BamlValueWithMeta<T>
     where
-        T: Default,
+        T: From<FieldType> + HasFieldType,
     {
         use BamlValueWithMeta::*;
         match value {
-            BamlValue::String(s) => String(
-                s.clone(),
-                (
-                    T::default(),
-                    Vec::new(),
-                    Completion::default(),
-                    FieldType::string(),
-                ),
-            ),
-            BamlValue::Int(i) => Int(
-                *i,
-                (
-                    T::default(),
-                    Vec::new(),
-                    Completion::default(),
-                    FieldType::int(),
-                ),
-            ),
-            BamlValue::Float(f) => Float(
-                *f,
-                (
-                    T::default(),
-                    Vec::new(),
-                    Completion::default(),
-                    FieldType::float(),
-                ),
-            ),
-            BamlValue::Bool(b) => Bool(
-                *b,
-                (
-                    T::default(),
-                    Vec::new(),
-                    Completion::default(),
-                    FieldType::bool(),
-                ),
-            ),
+            BamlValue::String(s) => String(s.clone(), T::from(FieldType::string())),
+            BamlValue::Int(i) => Int(*i, T::from(FieldType::int())),
+            BamlValue::Float(f) => Float(*f, T::from(FieldType::float())),
+            BamlValue::Bool(b) => Bool(*b, T::from(FieldType::bool())),
             BamlValue::Map(entries) => {
-                let entries: BamlMap<
-                    std::string::String,
-                    BamlValueWithMeta<(T, Vec<ResponseCheck>, Completion, FieldType)>,
-                > = entries
+                let entries: BamlMap<std::string::String, BamlValueWithMeta<T>> = entries
                     .iter()
                     .map(|(k, v)| (k.clone(), Self::with_default_meta(v)))
                     .collect();
-                let value_type = entries
+                let value_types = entries
                     .values()
-                    .map(|v| v.meta().3.clone())
-                    .collect::<HashSet<_>>()
+                    .map(|v| v.field_type())
                     .into_iter()
                     .collect::<Vec<_>>();
-                let value_type = match value_type.len() {
-                    0 => FieldType::string(),
-                    1 => value_type[0].to_owned(),
-                    _ => FieldType::Union(value_type),
-                };
-                Map(
-                    entries,
-                    (
-                        T::default(),
-                        Vec::new(),
-                        Completion::default(),
-                        FieldType::map(FieldType::string(), value_type),
-                    ),
-                )
+                let field_type =
+                    FieldType::union(value_types.into_iter().map(|v| v.to_owned()).collect());
+
+                Map(entries, T::from(field_type.simplify()))
             }
             BamlValue::List(items) => {
-                let items: Vec<BamlValueWithMeta<(T, Vec<ResponseCheck>, Completion, FieldType)>> =
+                let items: Vec<BamlValueWithMeta<T>> =
                     items.iter().map(|i| Self::with_default_meta(i)).collect();
                 let items_types = items
                     .iter()
-                    .map(|i| i.meta().3.clone())
-                    .collect::<HashSet<_>>()
+                    .map(|i| i.field_type())
                     .into_iter()
                     .collect::<Vec<_>>();
-                let list_type = match items_types.len() {
-                    0 => FieldType::list(FieldType::string()),
-                    1 => items_types[0].to_owned().as_list(),
-                    _ => FieldType::Union(items_types),
-                };
-
-                List(
-                    items,
-                    (
-                        T::default(),
-                        Vec::new(),
-                        Completion::default(),
-                        list_type.as_list(),
-                    ),
-                )
+                let field_type =
+                    FieldType::union(items_types.into_iter().map(|v| v.to_owned()).collect());
+                List(items, T::from(field_type.simplify()))
             }
             BamlValue::Media(m) => Media(
                 m.clone(),
-                (
-                    T::default(),
-                    Vec::new(),
-                    Completion::default(),
-                    match m.media_type {
-                        BamlMediaType::Image => FieldType::image(),
-                        BamlMediaType::Audio => FieldType::audio(),
-                    },
-                ),
+                T::from(match m.media_type {
+                    BamlMediaType::Image => FieldType::image(),
+                    BamlMediaType::Audio => FieldType::audio(),
+                }),
             ),
-            BamlValue::Enum(n, v) => Enum(
-                n.clone(),
-                v.clone(),
-                (
-                    T::default(),
-                    Vec::new(),
-                    Completion::default(),
-                    FieldType::r#enum(n),
-                ),
-            ),
+            BamlValue::Enum(n, v) => Enum(n.clone(), v.clone(), T::from(FieldType::r#enum(n))),
             BamlValue::Class(name, items) => {
-                let items: BamlMap<
-                    std::string::String,
-                    BamlValueWithMeta<(T, Vec<ResponseCheck>, Completion, FieldType)>,
-                > = items
+                let items: BamlMap<std::string::String, BamlValueWithMeta<T>> = items
                     .iter()
                     .map(|(k, v)| (k.clone(), Self::with_default_meta(v)))
                     .collect();
 
-                Class(
-                    name.clone(),
-                    items,
-                    (
-                        T::default(),
-                        Vec::new(),
-                        Completion::default(),
-                        FieldType::class(name),
-                    ),
-                )
+                Class(name.clone(), items, T::from(FieldType::class(name)))
             }
-            BamlValue::Null => Null((
-                T::default(),
-                Vec::new(),
-                Completion::default(),
-                FieldType::null(),
-            )),
+            BamlValue::Null => Null(T::from(FieldType::null())),
         }
     }
 

@@ -13,6 +13,8 @@ function AaaSamOutputFormat(recipe: string) -> Recipe[] | string {
   client Ollama
   prompt #"
     Return this value back to me: {{recipe}}
+
+    {{ ctx.output_format }}
   "#
 }
 
