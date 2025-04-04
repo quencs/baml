@@ -82,7 +82,7 @@ module Baml
         varargs: T.untyped,
         recipe: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]))]
-      ).returns(T.nilable(T::Array[Baml::Types::Recipe]))
+      ).returns(T.any(T::Array[Baml::Types::Recipe], String))
     }
     def AaaSamOutputFormat(
         *varargs,
@@ -9395,7 +9395,7 @@ module Baml
         varargs: T.untyped,
         recipe: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]))]
-      ).returns(Baml::BamlStream[T.nilable(T::Array[Baml::Types::Recipe])])
+      ).returns(Baml::BamlStream[T.any(T::Array[Baml::Types::Recipe], String)])
     }
     def AaaSamOutputFormat(
         *varargs,
@@ -9429,7 +9429,7 @@ module Baml
         baml_options[:client_registry],
         collector,
       )
-      Baml::BamlStream[T::Array[T.nilable(Baml::PartialTypes::Recipe)], T.nilable(T::Array[Baml::Types::Recipe])].new(
+      Baml::BamlStream[T.nilable(T.any(T::Array[T.nilable(Baml::PartialTypes::Recipe)], T.nilable(String))), T.any(T::Array[Baml::Types::Recipe], String)].new(
         ffi_stream: raw,
         ctx_manager: @ctx_manager
       )

@@ -58,7 +58,7 @@ func castOptional[T any](result any, castResult func(any) T) *T {
 
 
 
-func AaaSamOutputFormat(ctx context.Context, recipe string) (**[]types.Recipe, error) {
+func AaaSamOutputFormat(ctx context.Context, recipe string) (*types.Union__List__Recipe__string, error) {
 	arg_names := []string{ "recipe", }
 	result, err := bamlRuntime.CallFunction(ctx, "AaaSamOutputFormat", arg_names, recipe, nil, nil)
 
@@ -70,12 +70,8 @@ func AaaSamOutputFormat(ctx context.Context, recipe string) (**[]types.Recipe, e
 		return nil, result.Error
 	}
 
-	castResult := func (result any) *[]types.Recipe {
-		return castOptional(result, func (item any) []types.Recipe {
-    return castSlice(item, func(item any) types.Recipe {
-    return *(item).(*types.Recipe)
-})
-})
+	castResult := func (result any) types.Union__List__Recipe__string {
+		return *(result).(*types.Union__List__Recipe__string)
 	}
 
 	casted := castResult(*result.Data)
@@ -83,9 +79,9 @@ func AaaSamOutputFormat(ctx context.Context, recipe string) (**[]types.Recipe, e
 	return &casted, nil
 }
 
-func (*stream) AaaSamOutputFormat(ctx context.Context, recipe string) <-chan *[]types.Recipe {
+func (*stream) AaaSamOutputFormat(ctx context.Context, recipe string) <-chan types.Union__List__Recipe__string {
 	arg_names := []string{ "recipe", }
-	channel := make(chan *[]types.Recipe)
+	channel := make(chan types.Union__List__Recipe__string)
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "AaaSamOutputFormat", arg_names, recipe, nil, nil)
 	if err != nil {
 		close(channel)
@@ -106,7 +102,7 @@ func (*stream) AaaSamOutputFormat(ctx context.Context, recipe string) <-chan *[]
 					close(channel)
 					return
 				}
-				channel <- (*result.Data).(*[]types.Recipe)
+				channel <- (*result.Data).(types.Union__List__Recipe__string)
 			}
 		}
 	}()
@@ -1082,7 +1078,7 @@ func CustomTask(ctx context.Context, input string) (*types.Union__BookOrder__Fli
 	}
 
 	castResult := func (result any) types.Union__BookOrder__FlightConfirmation__GroceryReceipt {
-		return (result).(types.Union__BookOrder__FlightConfirmation__GroceryReceipt)
+		return *(result).(*types.Union__BookOrder__FlightConfirmation__GroceryReceipt)
 	}
 
 	casted := castResult(*result.Data)
@@ -1400,7 +1396,7 @@ func DifferentiateUnions(ctx context.Context) (*types.Union__OriginalA__Original
 	}
 
 	castResult := func (result any) types.Union__OriginalA__OriginalB {
-		return (result).(types.Union__OriginalA__OriginalB)
+		return *(result).(*types.Union__OriginalA__OriginalB)
 	}
 
 	casted := castResult(*result.Data)
@@ -2421,7 +2417,7 @@ func FnLiteralUnionClassInputOutput(ctx context.Context, input types.Union__Lite
 	}
 
 	castResult := func (result any) types.Union__LiteralClassOne__LiteralClassTwo {
-		return (result).(types.Union__LiteralClassOne__LiteralClassTwo)
+		return *(result).(*types.Union__LiteralClassOne__LiteralClassTwo)
 	}
 
 	casted := castResult(*result.Data)
@@ -3591,7 +3587,7 @@ func LiteralUnionsTest(ctx context.Context, input string) (*types.Union__int_1__
 	}
 
 	castResult := func (result any) types.Union__int_1__bool_true__string_string_output {
-		return (result).(types.Union__int_1__bool_true__string_string_output)
+		return *(result).(*types.Union__int_1__bool_true__string_string_output)
 	}
 
 	casted := castResult(*result.Data)
@@ -3949,7 +3945,7 @@ func (*stream) MyFunc(ctx context.Context, input string) <-chan types.DynamicOut
 
 
 
-func NestedAlias(ctx context.Context, c types.Union__int64__string__bool__float64__List__string__Map__string_List__string) (*types.Union__int64__string__bool__float64__List__string__Map__string_List__string, error) {
+func NestedAlias(ctx context.Context, c types.Union__int__string__bool__float__List__string__Map__string_List__string) (*types.Union__int__string__bool__float__List__string__Map__string_List__string, error) {
 	arg_names := []string{ "c", }
 	result, err := bamlRuntime.CallFunction(ctx, "NestedAlias", arg_names, c, nil, nil)
 
@@ -3961,8 +3957,8 @@ func NestedAlias(ctx context.Context, c types.Union__int64__string__bool__float6
 		return nil, result.Error
 	}
 
-	castResult := func (result any) types.Union__int64__string__bool__float64__List__string__Map__string_List__string {
-		return (result).(types.Union__int64__string__bool__float64__List__string__Map__string_List__string)
+	castResult := func (result any) types.Union__int__string__bool__float__List__string__Map__string_List__string {
+		return *(result).(*types.Union__int__string__bool__float__List__string__Map__string_List__string)
 	}
 
 	casted := castResult(*result.Data)
@@ -3970,9 +3966,9 @@ func NestedAlias(ctx context.Context, c types.Union__int64__string__bool__float6
 	return &casted, nil
 }
 
-func (*stream) NestedAlias(ctx context.Context, c types.Union__int64__string__bool__float64__List__string__Map__string_List__string) <-chan types.Union__int64__string__bool__float64__List__string__Map__string_List__string {
+func (*stream) NestedAlias(ctx context.Context, c types.Union__int__string__bool__float__List__string__Map__string_List__string) <-chan types.Union__int__string__bool__float__List__string__Map__string_List__string {
 	arg_names := []string{ "c", }
-	channel := make(chan types.Union__int64__string__bool__float64__List__string__Map__string_List__string)
+	channel := make(chan types.Union__int__string__bool__float__List__string__Map__string_List__string)
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "NestedAlias", arg_names, c, nil, nil)
 	if err != nil {
 		close(channel)
@@ -3993,7 +3989,7 @@ func (*stream) NestedAlias(ctx context.Context, c types.Union__int64__string__bo
 					close(channel)
 					return
 				}
-				channel <- (*result.Data).(types.Union__int64__string__bool__float64__List__string__Map__string_List__string)
+				channel <- (*result.Data).(types.Union__int__string__bool__float__List__string__Map__string_List__string)
 			}
 		}
 	}()
@@ -4271,7 +4267,7 @@ func (*stream) PredictAgeBare(ctx context.Context, inp string) <-chan types.Chec
 
 
 
-func PrimitiveAlias(ctx context.Context, p types.Union__int64__string__bool__float64) (*types.Union__int64__string__bool__float64, error) {
+func PrimitiveAlias(ctx context.Context, p types.Union__int__string__bool__float) (*types.Union__int__string__bool__float, error) {
 	arg_names := []string{ "p", }
 	result, err := bamlRuntime.CallFunction(ctx, "PrimitiveAlias", arg_names, p, nil, nil)
 
@@ -4283,8 +4279,8 @@ func PrimitiveAlias(ctx context.Context, p types.Union__int64__string__bool__flo
 		return nil, result.Error
 	}
 
-	castResult := func (result any) types.Union__int64__string__bool__float64 {
-		return (result).(types.Union__int64__string__bool__float64)
+	castResult := func (result any) types.Union__int__string__bool__float {
+		return *(result).(*types.Union__int__string__bool__float)
 	}
 
 	casted := castResult(*result.Data)
@@ -4292,9 +4288,9 @@ func PrimitiveAlias(ctx context.Context, p types.Union__int64__string__bool__flo
 	return &casted, nil
 }
 
-func (*stream) PrimitiveAlias(ctx context.Context, p types.Union__int64__string__bool__float64) <-chan types.Union__int64__string__bool__float64 {
+func (*stream) PrimitiveAlias(ctx context.Context, p types.Union__int__string__bool__float) <-chan types.Union__int__string__bool__float {
 	arg_names := []string{ "p", }
-	channel := make(chan types.Union__int64__string__bool__float64)
+	channel := make(chan types.Union__int__string__bool__float)
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "PrimitiveAlias", arg_names, p, nil, nil)
 	if err != nil {
 		close(channel)
@@ -4315,7 +4311,7 @@ func (*stream) PrimitiveAlias(ctx context.Context, p types.Union__int64__string_
 					close(channel)
 					return
 				}
-				channel <- (*result.Data).(types.Union__int64__string__bool__float64)
+				channel <- (*result.Data).(types.Union__int__string__bool__float)
 			}
 		}
 	}()
@@ -5331,7 +5327,7 @@ func (*stream) StreamOneBigNumber(ctx context.Context, digits int64) <-chan int6
 
 
 
-func StreamUnionIntegers(ctx context.Context, digits int64) (*[]types.Union__int64__string, error) {
+func StreamUnionIntegers(ctx context.Context, digits int64) (*[]types.Union__int__string, error) {
 	arg_names := []string{ "digits", }
 	result, err := bamlRuntime.CallFunction(ctx, "StreamUnionIntegers", arg_names, digits, nil, nil)
 
@@ -5343,9 +5339,9 @@ func StreamUnionIntegers(ctx context.Context, digits int64) (*[]types.Union__int
 		return nil, result.Error
 	}
 
-	castResult := func (result any) []types.Union__int64__string {
-		return castSlice(result, func(item any) types.Union__int64__string {
-    return (item).(types.Union__int64__string)
+	castResult := func (result any) []types.Union__int__string {
+		return castSlice(result, func(item any) types.Union__int__string {
+    return *(item).(*types.Union__int__string)
 })
 	}
 
@@ -5354,9 +5350,9 @@ func StreamUnionIntegers(ctx context.Context, digits int64) (*[]types.Union__int
 	return &casted, nil
 }
 
-func (*stream) StreamUnionIntegers(ctx context.Context, digits int64) <-chan []types.Union__int64__string {
+func (*stream) StreamUnionIntegers(ctx context.Context, digits int64) <-chan []types.Union__int__string {
 	arg_names := []string{ "digits", }
-	channel := make(chan []types.Union__int64__string)
+	channel := make(chan []types.Union__int__string)
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "StreamUnionIntegers", arg_names, digits, nil, nil)
 	if err != nil {
 		close(channel)
@@ -5377,7 +5373,7 @@ func (*stream) StreamUnionIntegers(ctx context.Context, digits int64) <-chan []t
 					close(channel)
 					return
 				}
-				channel <- (*result.Data).([]types.Union__int64__string)
+				channel <- (*result.Data).([]types.Union__int__string)
 			}
 		}
 	}()

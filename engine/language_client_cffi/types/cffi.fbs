@@ -167,7 +167,7 @@ table CFFIFieldTypeNull { }
 union CFFILiteralUnion {
   CFFILiteralString,
   CFFILiteralInt,
-  CFFILiteralFloat
+  CFFILiteralBool
 }
 
 table CFFILiteralString {
@@ -178,8 +178,8 @@ table CFFILiteralInt {
   value: long;
 }
 
-table CFFILiteralFloat {
-  value: double;
+table CFFILiteralBool {
+  value: bool;
 }
 
 table CFFIFieldTypeLiteral {

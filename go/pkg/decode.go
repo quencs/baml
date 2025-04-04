@@ -20,7 +20,7 @@ type BamlEnumDeserializer interface {
 }
 
 type BamlUnionDeserializer interface {
-	Decode(holder cffi.CFFIValueUnionVariant, typeMap TypeMap)
+	Decode(holder *cffi.CFFIValueUnionVariant, typeMap TypeMap)
 }
 
 type cffiValue[U any] interface {
@@ -179,7 +179,7 @@ func decodeUnionValue(holder *cffi.CFFIValueHolder, typeMap TypeMap) any {
 	}
 	union := reflect.New(found)
 	as_interface := union.Interface().(BamlUnionDeserializer)
-	as_interface.Decode(valueUnion, typeMap)
+	as_interface.Decode(&valueUnion, typeMap)
 	return as_interface
 
 }

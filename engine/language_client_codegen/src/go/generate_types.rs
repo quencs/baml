@@ -37,6 +37,8 @@ pub(crate) fn cast_value(container_variable_name: &str, field_type: &GoType) -> 
             inner_type.name,
             cast_value("item", inner_type),
         );
+    } else if field_type.is_union {
+        return format!("*({container_variable_name}).(*{})", field_type.name);
     } else if field_type.is_pointer {
         let inner_type = field_type.underlying_type.as_ref().unwrap();
         return format!(
@@ -68,6 +70,11 @@ fn render_value_coercion(container_variable_name: &str, field_type: &GoType) -> 
 }})"#,
             inner_type.name,
             render_value_coercion("__holder", inner_type),
+        );
+    } else if field_type.is_union {
+        return format!(
+            "*baml.Decode({container_variable_name}, typeMap).(*{})",
+            field_type.name
         );
     } else {
         return format!(
@@ -237,6 +244,7 @@ pub struct GoType {
     is_class: bool,
     is_integer: bool,
     is_enum: bool,
+    is_union: bool,
     underlying_type: Option<Box<GoType>>,
 }
 
@@ -524,6 +532,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
         GoType {
             name: simplified.to_type_ref_impl_2(ir, module_prefix),
             is_pointer: self.is_optional(),
+            is_union: matches!(simplified, FieldType::Union(_)),
             is_slice: matches!(simplified, FieldType::List(_)),
             is_primitive: self.is_primitive(),
             is_class: matches!(simplified, FieldType::Class(_)),

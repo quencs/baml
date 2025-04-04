@@ -256,6 +256,8 @@ var typeMap = map[string]reflect.Type{
   "TestEnum": reflect.TypeOf(types.TestEnum("")),
   
   
+  "Union__List__Recipe__string": reflect.TypeOf(types.Union__List__Recipe__string{}),
+  
   "Union__BookOrder__FlightConfirmation__GroceryReceipt": reflect.TypeOf(types.Union__BookOrder__FlightConfirmation__GroceryReceipt{}),
   
   "Union__OriginalA__OriginalB": reflect.TypeOf(types.Union__OriginalA__OriginalB{}),
@@ -268,15 +270,15 @@ var typeMap = map[string]reflect.Type{
   
   "Union__int_1__bool_true__string_string_output": reflect.TypeOf(types.Union__int_1__bool_true__string_string_output{}),
   
-  "Union__int64__string__bool__float64__List__string__Map__string_List__string": reflect.TypeOf(types.Union__int64__string__bool__float64__List__string__Map__string_List__string{}),
+  "Union__int__string__bool__float__List__string__Map__string_List__string": reflect.TypeOf(types.Union__int__string__bool__float__List__string__Map__string_List__string{}),
   
-  "Union__int64__string__bool__float64": reflect.TypeOf(types.Union__int64__string__bool__float64{}),
+  "Union__int__string__bool__float": reflect.TypeOf(types.Union__int__string__bool__float{}),
   
-  "Union__int64__string": reflect.TypeOf(types.Union__int64__string{}),
+  "Union__int__string": reflect.TypeOf(types.Union__int__string{}),
   
   "Union__string__bool": reflect.TypeOf(types.Union__string__bool{}),
   
-  "Union__string__int64__float64": reflect.TypeOf(types.Union__string__int64__float64{}),
+  "Union__string__int__float": reflect.TypeOf(types.Union__string__int__float{}),
   
   "Union__PhoneNumber__EmailAddress": reflect.TypeOf(types.Union__PhoneNumber__EmailAddress{}),
   
@@ -292,19 +294,19 @@ var typeMap = map[string]reflect.Type{
   
   "Union__string__Nested": reflect.TypeOf(types.Union__string__Nested{}),
   
-  "Union__string__int64": reflect.TypeOf(types.Union__string__int64{}),
+  "Union__string__int": reflect.TypeOf(types.Union__string__int{}),
   
   "Union__Tag__string": reflect.TypeOf(types.Union__Tag__string{}),
   
   "Union__MemoryObject__ComplexMemoryObject__AnotherObject": reflect.TypeOf(types.Union__MemoryObject__ComplexMemoryObject__AnotherObject{}),
   
-  "Union__float64__bool": reflect.TypeOf(types.Union__float64__bool{}),
+  "Union__float__bool": reflect.TypeOf(types.Union__float__bool{}),
   
-  "Union__List__bool__List__int64": reflect.TypeOf(types.Union__List__bool__List__int64{}),
+  "Union__List__bool__List__int": reflect.TypeOf(types.Union__List__bool__List__int{}),
+  
+  "Union__int__string__bool__float__JsonObject__JsonArray": reflect.TypeOf(types.Union__int__string__bool__float__JsonObject__JsonArray{}),
   
   "Union__SimpleTag__JsonTemplate": reflect.TypeOf(types.Union__SimpleTag__JsonTemplate{}),
-  
-  "Union__int64__string__bool__float64__JsonObject__JsonArray": reflect.TypeOf(types.Union__int64__string__bool__float64__JsonObject__JsonArray{}),
   
 }
 

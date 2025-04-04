@@ -7,7 +7,9 @@ pub mod deserializer;
 use std::collections::HashMap;
 pub mod jsonish;
 
-use baml_types::{BamlValue, BamlValueWithMeta, FieldType, JinjaExpression, ResponseCheck};
+use baml_types::{
+    BamlValue, BamlValueWithMeta, FieldType, HasFieldType, JinjaExpression, ResponseCheck,
+};
 use deserializer::{
     coercer::{ParsingContext, ParsingError, TypeCoercer},
     deserialize_flags::DeserializerConditions,
@@ -25,17 +27,19 @@ use jsonish::Value;
 use serde::{ser::SerializeMap, ser::SerializeStruct, Serialize, Serializer};
 
 #[derive(Clone, Debug)]
-pub struct ResponseBamlValue(
-    pub BamlValueWithMeta<(Vec<Flag>, Vec<ResponseCheck>, Completion, FieldType)>,
+pub struct ResponseBamlValue(pub BamlValueWithMeta<ResponseValueMeta>);
+
+#[derive(Clone, Debug)]
+pub struct ResponseValueMeta(
+    pub Vec<Flag>,
+    pub Vec<ResponseCheck>,
+    pub Completion,
+    pub FieldType,
 );
 
-pub trait HasFieldType {
-    fn field_type<'a>(&'a self) -> &'a FieldType;
-}
-
-impl HasFieldType for BamlValueWithMeta<(Vec<Flag>, Vec<ResponseCheck>, Completion, FieldType)> {
+impl baml_types::HasFieldType for ResponseValueMeta {
     fn field_type<'a>(&'a self) -> &'a FieldType {
-        &self.meta().3
+        &self.3
     }
 }
 
@@ -49,7 +53,7 @@ pub enum SerializeMode {
 /// `ResponseBamlValue`. You should construct these from `ResponseBamlValue`
 /// with the `serialize_final` or `serialize_partial` method.
 pub struct SerializeResponseBamlValue<'a> {
-    pub value: &'a BamlValueWithMeta<(Vec<Flag>, Vec<ResponseCheck>, Completion, FieldType)>,
+    pub value: &'a BamlValueWithMeta<ResponseValueMeta>,
     pub serialize_mode: SerializeMode,
 }
 
@@ -84,7 +88,7 @@ impl serde::Serialize for SerializeResponseBamlValue<'_> {
             Bool(b, ref meta) => serialize_with_meta(&b, &meta, serialize_mode, serializer),
             Media(v, ref meta) => serialize_with_meta(&v, &meta, serialize_mode, serializer),
             Enum(ref _name, v, ref meta) => {
-                serialize_with_meta(&v, &meta, serialize_mode, serializer)
+                serialize_with_meta(&v, meta, serialize_mode, serializer)
             }
             Map(items, ref meta) => {
                 let new_items = items
@@ -158,7 +162,7 @@ impl<'a, T: Serialize> serde::Serialize for ResponseChecksMetadata<'a, T> {
 
 fn serialize_with_meta<S: Serializer, T: Serialize>(
     value: &T,
-    meta: &(Vec<Flag>, Vec<ResponseCheck>, Completion, FieldType),
+    meta: &ResponseValueMeta,
     serialize_mode: &SerializeMode,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {

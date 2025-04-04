@@ -1,7 +1,9 @@
 use anyhow::Result;
 use std::collections::HashSet;
 
-use baml_types::{BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, Constraint, JinjaExpression};
+use baml_types::{
+    BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, Constraint, FieldType, JinjaExpression,
+};
 use serde_json::json;
 use strsim::jaro;
 
@@ -40,6 +42,14 @@ pub enum BamlValueWithFlags {
 }
 
 impl BamlValueWithFlags {
+    #[cfg(test)]
+    pub fn as_list(&self) -> Option<&[BamlValueWithFlags]> {
+        match self {
+            BamlValueWithFlags::List(_, _, v) => Some(v),
+            _ => None,
+        }
+    }
+
     pub fn field_type(&self) -> &baml_types::FieldType {
         match self {
             BamlValueWithFlags::String(v) => &v.target,
@@ -128,6 +138,47 @@ impl BamlValueWithFlags {
             BamlValueWithFlags::Class(_, v, _, _) => v,
             BamlValueWithFlags::Null(_, v) => v,
             BamlValueWithFlags::Media(_, v) => &v.flags,
+        }
+    }
+}
+
+impl From<BamlValueWithFlags> for BamlValueWithMeta<FieldType> {
+    fn from(baml_value: BamlValueWithFlags) -> BamlValueWithMeta<FieldType> {
+        let field_type = baml_value.field_type().clone();
+        match baml_value {
+            BamlValueWithFlags::String(v) => BamlValueWithMeta::String(v.value, field_type),
+            BamlValueWithFlags::Int(v) => BamlValueWithMeta::Int(v.value, field_type),
+            BamlValueWithFlags::Float(v) => BamlValueWithMeta::Float(v.value, field_type),
+            BamlValueWithFlags::Bool(v) => BamlValueWithMeta::Bool(v.value, field_type),
+            BamlValueWithFlags::List(conditions, target, items) => BamlValueWithMeta::List(
+                items
+                    .into_iter()
+                    .map(|v| BamlValueWithMeta::from(v))
+                    .collect(),
+                field_type,
+            ),
+            BamlValueWithFlags::Map(conditions, target, fields) => BamlValueWithMeta::Map(
+                // NOTE: For some reason, Map is map<key, (conds, v)>, even though `v` contains conds.
+                // Maybe the extra conds are for the field, not the value?
+                fields
+                    .into_iter()
+                    .map(|(k, v)| (k, BamlValueWithMeta::from(v.1)))
+                    .collect(),
+                field_type,
+            ),
+            BamlValueWithFlags::Enum(n, target, v) => {
+                BamlValueWithMeta::Enum(n, v.value, field_type)
+            }
+            BamlValueWithFlags::Class(name, conds, target, fields) => BamlValueWithMeta::Class(
+                name,
+                fields
+                    .into_iter()
+                    .map(|(k, v)| (k, BamlValueWithMeta::from(v)))
+                    .collect(),
+                field_type,
+            ),
+            BamlValueWithFlags::Null(target, v) => BamlValueWithMeta::Null(field_type),
+            BamlValueWithFlags::Media(target, v) => BamlValueWithMeta::Media(v.value, field_type),
         }
     }
 }

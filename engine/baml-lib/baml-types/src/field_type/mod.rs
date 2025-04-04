@@ -1,5 +1,6 @@
 use crate::BamlMediaType;
 use crate::Constraint;
+use indexmap::IndexSet;
 use itertools::Itertools;
 
 mod builder;
@@ -92,6 +93,10 @@ pub enum FieldType {
         constraints: Vec<Constraint>,
         streaming_behavior: StreamingBehavior,
     },
+}
+
+pub trait HasFieldType {
+    fn field_type<'a>(&'a self) -> &'a FieldType;
 }
 
 // Impl display for FieldType
@@ -209,6 +214,87 @@ impl FieldType {
                 streaming_behavior, ..
             } => Some(streaming_behavior),
             _ => None,
+        }
+    }
+}
+
+pub trait ToUnionName {
+    fn to_union_name(&self) -> String;
+    fn find_union_types(&self) -> IndexSet<FieldType>;
+}
+
+impl ToUnionName for FieldType {
+    fn find_union_types(&self) -> IndexSet<FieldType> {
+        // TODO: its pretty hard to get type aliases here
+        let value = self.simplify();
+        match &value {
+            FieldType::Union(_) => IndexSet::from_iter([value]),
+            FieldType::List(inner) => inner.find_union_types(),
+            FieldType::Map(field_type, field_type1) => {
+                let mut set = field_type.find_union_types();
+                set.extend(field_type1.find_union_types());
+                set
+            }
+            FieldType::Primitive(_)
+            | FieldType::Enum(_)
+            | FieldType::Literal(_)
+            | FieldType::Class(_)
+            | FieldType::RecursiveTypeAlias(_) => IndexSet::new(),
+            FieldType::Tuple(inner) => inner.iter().flat_map(|t| t.find_union_types()).collect(),
+            FieldType::Optional(inner) => inner.find_union_types(),
+            FieldType::WithMetadata { base, .. } => base.find_union_types(),
+        }
+    }
+
+    fn to_union_name(&self) -> String {
+        match self {
+            FieldType::Primitive(type_value) => type_value.to_string(),
+            FieldType::Enum(name) => name.to_string(),
+            FieldType::Literal(literal_value) => match literal_value {
+                LiteralValue::String(value) => format!(
+                    "string_{}",
+                    value
+                        .chars()
+                        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+                        .collect::<String>()
+                ),
+                LiteralValue::Int(val) => format!("int_{}", val.to_string()),
+                LiteralValue::Bool(val) => format!("bool_{}", val.to_string()),
+            },
+            FieldType::Class(name) => name.to_string(),
+            FieldType::List(field_type) => {
+                format!("List__{}", field_type.to_union_name())
+            }
+            FieldType::Map(field_type, field_type1) => {
+                format!(
+                    "Map__{}_{}",
+                    field_type.to_union_name(),
+                    field_type1.to_union_name()
+                )
+            }
+            FieldType::Union(field_types) => format!(
+                "Union__{}",
+                field_types
+                    .iter()
+                    .map(|v| v.to_union_name())
+                    .collect::<Vec<_>>()
+                    .join("__")
+                    .to_string()
+            ),
+            FieldType::Tuple(field_types) => format!(
+                "Tuple__{}",
+                field_types
+                    .iter()
+                    .map(|v| v.to_union_name())
+                    .collect::<Vec<_>>()
+                    .join("__")
+                    .to_string()
+            ),
+            FieldType::Optional(field_type) => {
+                format!("Optional__{}", field_type.to_union_name())
+            }
+            FieldType::RecursiveTypeAlias(name) => name.to_string(),
+            FieldType::WithMetadata { base, .. } => base.to_union_name(),
         }
     }
 }

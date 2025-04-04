@@ -235,7 +235,7 @@ type ComplexMemoryObject struct {
     
     Description *string `json:"description"`
     
-    Metadata []types.Union__string__int64__float64 `json:"metadata"`
+    Metadata []types.Union__string__int__float `json:"metadata"`
     
     
 }
@@ -480,7 +480,7 @@ type GroceryReceipt struct {
     
     StoreName *string `json:"storeName"`
     
-    Items []types.Union__string__int64__float64 `json:"items"`
+    Items []types.Union__string__int__float `json:"items"`
     
     TotalAmount *float64 `json:"totalAmount"`
     
@@ -856,7 +856,7 @@ type Schema struct {
     
     Parens *string `json:"parens"`
     
-    Other_group *types.Union__string__int64 `json:"other_group"`
+    Other_group *types.Union__string__int `json:"other_group"`
     
     
 }
@@ -1006,9 +1006,9 @@ type UnionTest_ReturnType struct {
     
     Prop1 *types.Union__string__bool `json:"prop1"`
     
-    Prop2 []types.Union__float64__bool `json:"prop2"`
+    Prop2 []types.Union__float__bool `json:"prop2"`
     
-    Prop3 *types.Union__List__bool__List__int64 `json:"prop3"`
+    Prop3 *types.Union__List__bool__List__int `json:"prop3"`
     
     
 }

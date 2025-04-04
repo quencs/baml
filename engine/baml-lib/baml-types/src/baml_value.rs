@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use indexmap::IndexMap;
 use serde::{de::Visitor, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{media::BamlMediaType, ResponseCheck};
+use crate::{media::BamlMediaType, HasFieldType, LiteralValue, ResponseCheck, TypeValue};
 use crate::{BamlMap, BamlMedia, FieldType};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -346,10 +346,93 @@ pub enum BamlValueWithMeta<T> {
     Null(T),
 }
 
+impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
+    pub fn real_type(&self) -> FieldType {
+        let field_type = self.field_type();
+        if let FieldType::Union(options) = field_type {
+            return options
+                .iter()
+                .filter(|t| self.is_type(t))
+                .next()
+                .expect("At least one type must be supported")
+                .clone();
+        }
+        field_type.clone()
+    }
+}
+
+impl<T: crate::HasFieldType> crate::HasFieldType for BamlValueWithMeta<T> {
+    fn field_type<'a>(&'a self) -> &'a crate::FieldType {
+        self.meta().field_type()
+    }
+}
+
 impl<T> BamlValueWithMeta<T> {
     pub fn r#type(&self) -> String {
         let plain_value: BamlValue = self.into();
         plain_value.r#type()
+    }
+
+    fn is_type(&self, field_type: &FieldType) -> bool {
+        let handle_composite = |field_type: &FieldType| match field_type {
+            FieldType::Optional(inner) => self.is_type(inner),
+            FieldType::Union(options) => options.iter().any(|t| self.is_type(t)),
+            _ => false,
+        };
+
+        match self {
+            BamlValueWithMeta::String(val, _) => match field_type {
+                FieldType::Literal(LiteralValue::String(lit)) => val == lit,
+                FieldType::Primitive(TypeValue::String) => true,
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::Int(val, _) => match field_type {
+                FieldType::Literal(LiteralValue::Int(lit)) => val == lit,
+                FieldType::Primitive(TypeValue::Int) => true,
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::Float(_, _) => match field_type {
+                FieldType::Primitive(TypeValue::Float) => true,
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::Bool(val, _) => match field_type {
+                FieldType::Literal(LiteralValue::Bool(lit)) => val == lit,
+                FieldType::Primitive(TypeValue::Bool) => true,
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::Map(index_map, _) => match field_type {
+                FieldType::Map(_, value_type) => {
+                    // TODO: Check key type
+                    index_map.iter().all(|(_, v)| v.is_type(value_type))
+                }
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::List(baml_value_with_metas, _) => match field_type {
+                FieldType::List(item_type) => {
+                    baml_value_with_metas.iter().all(|v| v.is_type(item_type))
+                }
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::Media(baml_media, _) => match field_type {
+                FieldType::Primitive(TypeValue::Media(media_type)) => {
+                    &baml_media.media_type == media_type
+                }
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::Enum(enum_name, _, _) => match field_type {
+                FieldType::Enum(enm) => enum_name == enm,
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::Class(cls_name, _, _) => match field_type {
+                FieldType::Class(cls) => cls_name == cls,
+                _ => handle_composite(field_type),
+            },
+            BamlValueWithMeta::Null(_) => match field_type {
+                FieldType::Primitive(TypeValue::Null) => true,
+                FieldType::Optional(_) => true,
+                _ => handle_composite(field_type),
+            },
+        }
     }
 
     /// Iterating over a `BamlValueWithMeta` produces a depth-first traversal

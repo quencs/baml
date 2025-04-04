@@ -364,9 +364,9 @@ function useBamlAction<FunctionName extends FunctionNames>(
  *
  *
  * **Return Type:**
- * - **Non‑streaming:** Recipe[] | null
- * - **Streaming Partial:** ((partial_types.Recipe | null)[] | null)
- * - **Streaming Final:** Recipe[] | null
+ * - **Non‑streaming:** Recipe[] | string
+ * - **Streaming Partial:** ((partial_types.Recipe | null)[] | (string | null))
+ * - **Streaming Final:** Recipe[] | string
  *
  * **Usage Patterns:**
  * 1. **Non‑streaming (Default)**

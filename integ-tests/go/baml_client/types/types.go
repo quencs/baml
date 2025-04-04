@@ -1109,7 +1109,7 @@ type ComplexMemoryObject struct {
 
 	Description string `json:"description"`
 
-	Metadata []Union__string__int64__float64 `json:"metadata"`
+	Metadata []Union__string__int__float `json:"metadata"`
 
 
 }
@@ -1138,8 +1138,8 @@ func (c *ComplexMemoryObject) Decode(holder cffi.CFFIValueClass, typeMap baml.Ty
 					c.Description = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "metadata":
-					c.Metadata = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__string__int64__float64 {
-    return baml.Decode(__holder, typeMap).(Union__string__int64__float64)
+					c.Metadata = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__string__int__float {
+    return *baml.Decode(__holder, typeMap).(*Union__string__int__float)
 })
 				
 			}
@@ -1319,7 +1319,7 @@ func (c *ContactInfo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 			switch key {
 				
 				case "primary":
-					c.Primary = baml.Decode(valueHolder, typeMap).(Union__PhoneNumber__EmailAddress)
+					c.Primary = *baml.Decode(valueHolder, typeMap).(*Union__PhoneNumber__EmailAddress)
 				
 				case "secondary":
 					c.Secondary = baml.Decode(valueHolder, typeMap).(*Union__PhoneNumber__EmailAddress)
@@ -2523,7 +2523,7 @@ func (c *FooAny) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 			switch key {
 				
 				case "planetary_age":
-					c.Planetary_age = baml.Decode(valueHolder, typeMap).(Union__Martian__Earthling)
+					c.Planetary_age = *baml.Decode(valueHolder, typeMap).(*Union__Martian__Earthling)
 				
 				case "certainty":
 					c.Certainty = baml.Decode(valueHolder, typeMap).(Checked[int64])
@@ -2905,7 +2905,7 @@ type GroceryReceipt struct {
 
 	StoreName string `json:"storeName"`
 
-	Items []Union__string__int64__float64 `json:"items"`
+	Items []Union__string__int__float `json:"items"`
 
 	TotalAmount float64 `json:"totalAmount"`
 
@@ -2933,8 +2933,8 @@ func (c *GroceryReceipt) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap
 					c.StoreName = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "items":
-					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__string__int64__float64 {
-    return baml.Decode(__holder, typeMap).(Union__string__int64__float64)
+					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__string__int__float {
+    return *baml.Decode(__holder, typeMap).(*Union__string__int__float)
 })
 				
 				case "totalAmount":
@@ -5116,7 +5116,7 @@ func (c *RaysData) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 					c.DataType = baml.Decode(valueHolder, typeMap).(DataType)
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder, typeMap).(Union__Resume__Event)
+					c.Value = *baml.Decode(valueHolder, typeMap).(*Union__Resume__Event)
 				
 			}
 		}
@@ -5192,7 +5192,7 @@ func (c *ReceiptInfo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 					c.Total_cost = baml.Decode(valueHolder, typeMap).(*float64)
 				
 				case "venue":
-					c.Venue = baml.Decode(valueHolder, typeMap).(Union__string_barisa__string_ox_burger)
+					c.Venue = *baml.Decode(valueHolder, typeMap).(*Union__string_barisa__string_ox_burger)
 				
 			}
 		}
@@ -5621,7 +5621,7 @@ type Schema struct {
 
 	Parens *string `json:"parens"`
 
-	Other_group Union__string__int64 `json:"other_group"`
+	Other_group Union__string__int `json:"other_group"`
 
 
 }
@@ -5644,7 +5644,7 @@ func (c *Schema) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 					c.Prop1 = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "prop2":
-					c.Prop2 = baml.Decode(valueHolder, typeMap).(Union__Nested__string)
+					c.Prop2 = *baml.Decode(valueHolder, typeMap).(*Union__Nested__string)
 				
 				case "prop5":
 					c.Prop5 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) *string {
@@ -5652,7 +5652,7 @@ func (c *Schema) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 })
 				
 				case "prop6":
-					c.Prop6 = baml.Decode(valueHolder, typeMap).(Union__string__List__Nested)
+					c.Prop6 = *baml.Decode(valueHolder, typeMap).(*Union__string__List__Nested)
 				
 				case "nested_attrs":
 					c.Nested_attrs = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) *Union__string__Nested {
@@ -5663,7 +5663,7 @@ func (c *Schema) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 					c.Parens = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "other_group":
-					c.Other_group = baml.Decode(valueHolder, typeMap).(Union__string__int64)
+					c.Other_group = *baml.Decode(valueHolder, typeMap).(*Union__string__int)
 				
 			}
 		}
@@ -5800,7 +5800,7 @@ func (c *SearchParams) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) 
 				
 				case "tags":
 					c.Tags = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__Tag__string {
-    return baml.Decode(__holder, typeMap).(Union__Tag__string)
+    return *baml.Decode(__holder, typeMap).(*Union__Tag__string)
 })
 				
 			}
@@ -6553,12 +6553,12 @@ func (c *TestMemoryOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeM
 				
 				case "items":
 					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__MemoryObject__ComplexMemoryObject__AnotherObject {
-    return baml.Decode(__holder, typeMap).(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+    return *baml.Decode(__holder, typeMap).(*Union__MemoryObject__ComplexMemoryObject__AnotherObject)
 })
 				
 				case "more_items":
 					c.More_items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__MemoryObject__ComplexMemoryObject__AnotherObject {
-    return baml.Decode(__holder, typeMap).(Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+    return *baml.Decode(__holder, typeMap).(*Union__MemoryObject__ComplexMemoryObject__AnotherObject)
 })
 				
 			}
@@ -6824,9 +6824,9 @@ type UnionTest_ReturnType struct {
 
 	Prop1 Union__string__bool `json:"prop1"`
 
-	Prop2 []Union__float64__bool `json:"prop2"`
+	Prop2 []Union__float__bool `json:"prop2"`
 
-	Prop3 Union__List__bool__List__int64 `json:"prop3"`
+	Prop3 Union__List__bool__List__int `json:"prop3"`
 
 
 }
@@ -6846,15 +6846,15 @@ func (c *UnionTest_ReturnType) Decode(holder cffi.CFFIValueClass, typeMap baml.T
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = baml.Decode(valueHolder, typeMap).(Union__string__bool)
+					c.Prop1 = *baml.Decode(valueHolder, typeMap).(*Union__string__bool)
 				
 				case "prop2":
-					c.Prop2 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__float64__bool {
-    return baml.Decode(__holder, typeMap).(Union__float64__bool)
+					c.Prop2 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__float__bool {
+    return *baml.Decode(__holder, typeMap).(*Union__float__bool)
 })
 				
 				case "prop3":
-					c.Prop3 = baml.Decode(valueHolder, typeMap).(Union__List__bool__List__int64)
+					c.Prop3 = *baml.Decode(valueHolder, typeMap).(*Union__List__bool__List__int)
 				
 			}
 		}
@@ -7097,7 +7097,7 @@ type JsonObject map[string]JsonValue
 
 type JsonTemplate map[string]JsonEntry
 
-type JsonValue Union__int64__string__bool__float64__JsonObject__JsonArray
+type JsonValue Union__int__string__bool__float__JsonObject__JsonArray
 
 type RecAliasOne RecAliasTwo
 

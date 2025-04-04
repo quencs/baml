@@ -10,21 +10,21 @@ const (
 	CFFILiteralUnionNONE              CFFILiteralUnion = 0
 	CFFILiteralUnionCFFILiteralString CFFILiteralUnion = 1
 	CFFILiteralUnionCFFILiteralInt    CFFILiteralUnion = 2
-	CFFILiteralUnionCFFILiteralFloat  CFFILiteralUnion = 3
+	CFFILiteralUnionCFFILiteralBool   CFFILiteralUnion = 3
 )
 
 var EnumNamesCFFILiteralUnion = map[CFFILiteralUnion]string{
 	CFFILiteralUnionNONE:              "NONE",
 	CFFILiteralUnionCFFILiteralString: "CFFILiteralString",
 	CFFILiteralUnionCFFILiteralInt:    "CFFILiteralInt",
-	CFFILiteralUnionCFFILiteralFloat:  "CFFILiteralFloat",
+	CFFILiteralUnionCFFILiteralBool:   "CFFILiteralBool",
 }
 
 var EnumValuesCFFILiteralUnion = map[string]CFFILiteralUnion{
 	"NONE":              CFFILiteralUnionNONE,
 	"CFFILiteralString": CFFILiteralUnionCFFILiteralString,
 	"CFFILiteralInt":    CFFILiteralUnionCFFILiteralInt,
-	"CFFILiteralFloat":  CFFILiteralUnionCFFILiteralFloat,
+	"CFFILiteralBool":   CFFILiteralUnionCFFILiteralBool,
 }
 
 func (v CFFILiteralUnion) String() string {

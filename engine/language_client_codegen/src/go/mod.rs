@@ -4,6 +4,7 @@ mod go_language_features;
 use std::{fmt::format, path::PathBuf};
 
 use anyhow::Result;
+use baml_types::ToUnionName;
 use generate_types::{cast_value, to_go_literal, GoType, ToTypeReferenceInTypeDefinition};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::{
@@ -111,91 +112,6 @@ impl TryFrom<(&'_ IntermediateRepr, &'_ crate::GeneratorArgs)> for GoClient {
             package_name: args.client_package_name.clone().unwrap_or_default(),
             funcs: functions,
         })
-    }
-}
-
-trait ToUnionName {
-    fn to_union_name(&self) -> String;
-    fn find_union_types(&self) -> IndexSet<FieldType>;
-}
-
-impl ToUnionName for FieldType {
-    fn find_union_types(&self) -> IndexSet<FieldType> {
-        // TODO: its pretty hard to get type aliases here
-        let value = self.simplify();
-        match &value {
-            FieldType::Union(_) => IndexSet::from_iter([value]),
-            FieldType::List(inner) => inner.find_union_types(),
-            FieldType::Map(field_type, field_type1) => {
-                let mut set = field_type.find_union_types();
-                set.extend(field_type1.find_union_types());
-                set
-            }
-            FieldType::Primitive(_)
-            | FieldType::Enum(_)
-            | FieldType::Literal(_)
-            | FieldType::Class(_)
-            | FieldType::RecursiveTypeAlias(_) => IndexSet::new(),
-            FieldType::Tuple(inner) => inner.iter().flat_map(|t| t.find_union_types()).collect(),
-            FieldType::Optional(inner) => inner.find_union_types(),
-            FieldType::WithMetadata { base, .. } => base.find_union_types(),
-        }
-    }
-
-    fn to_union_name(&self) -> String {
-        match self {
-            baml_types::FieldType::Primitive(type_value) => type_value.to_go(),
-            baml_types::FieldType::Enum(name) => name.to_string(),
-            baml_types::FieldType::Literal(literal_value) => match literal_value {
-                baml_types::LiteralValue::String(value) => format!(
-                    "string_{}",
-                    value
-                        .chars()
-                        .map(|c| if c.is_alphanumeric() { c } else { '_' })
-                        .collect::<String>()
-                ),
-                baml_types::LiteralValue::Int(val) => format!("int_{}", val.to_string()),
-                baml_types::LiteralValue::Bool(val) => format!("bool_{}", val.to_string()),
-            },
-            baml_types::FieldType::Class(name) => name.to_string(),
-            baml_types::FieldType::List(field_type) => {
-                format!("List__{}", field_type.to_union_name())
-            }
-            baml_types::FieldType::Map(field_type, field_type1) => {
-                format!(
-                    "Map__{}_{}",
-                    field_type.to_union_name(),
-                    field_type1.to_union_name()
-                )
-            }
-            baml_types::FieldType::Union(field_types) => format!(
-                "Union__{}",
-                field_types
-                    .iter()
-                    .map(|v| v.to_union_name())
-                    .collect::<Vec<_>>()
-                    .join("__")
-                    .to_string()
-            ),
-            baml_types::FieldType::Tuple(field_types) => format!(
-                "Tuple__{}",
-                field_types
-                    .iter()
-                    .map(|v| v.to_union_name())
-                    .collect::<Vec<_>>()
-                    .join("__")
-                    .to_string()
-            ),
-            baml_types::FieldType::Optional(field_type) => {
-                format!("Optional__{}", field_type.to_union_name())
-            }
-            baml_types::FieldType::RecursiveTypeAlias(name) => name.to_string(),
-            baml_types::FieldType::WithMetadata {
-                base,
-                constraints,
-                streaming_behavior,
-            } => base.to_union_name(),
-        }
     }
 }
 

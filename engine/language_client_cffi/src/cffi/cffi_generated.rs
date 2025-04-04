@@ -494,7 +494,7 @@ pub const ENUM_VALUES_CFFILITERAL_UNION: [CFFILiteralUnion; 4] = [
   CFFILiteralUnion::NONE,
   CFFILiteralUnion::CFFILiteralString,
   CFFILiteralUnion::CFFILiteralInt,
-  CFFILiteralUnion::CFFILiteralFloat,
+  CFFILiteralUnion::CFFILiteralBool,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -505,7 +505,7 @@ impl CFFILiteralUnion {
   pub const NONE: Self = Self(0);
   pub const CFFILiteralString: Self = Self(1);
   pub const CFFILiteralInt: Self = Self(2);
-  pub const CFFILiteralFloat: Self = Self(3);
+  pub const CFFILiteralBool: Self = Self(3);
 
   pub const ENUM_MIN: u8 = 0;
   pub const ENUM_MAX: u8 = 3;
@@ -513,7 +513,7 @@ impl CFFILiteralUnion {
     Self::NONE,
     Self::CFFILiteralString,
     Self::CFFILiteralInt,
-    Self::CFFILiteralFloat,
+    Self::CFFILiteralBool,
   ];
   /// Returns the variant's name or "" if unknown.
   pub fn variant_name(self) -> Option<&'static str> {
@@ -521,7 +521,7 @@ impl CFFILiteralUnion {
       Self::NONE => Some("NONE"),
       Self::CFFILiteralString => Some("CFFILiteralString"),
       Self::CFFILiteralInt => Some("CFFILiteralInt"),
-      Self::CFFILiteralFloat => Some("CFFILiteralFloat"),
+      Self::CFFILiteralBool => Some("CFFILiteralBool"),
       _ => None,
     }
   }
@@ -4212,99 +4212,99 @@ impl core::fmt::Debug for CFFILiteralInt<'_> {
       ds.finish()
   }
 }
-pub enum CFFILiteralFloatOffset {}
+pub enum CFFILiteralBoolOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct CFFILiteralFloat<'a> {
+pub struct CFFILiteralBool<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for CFFILiteralFloat<'a> {
-  type Inner = CFFILiteralFloat<'a>;
+impl<'a> flatbuffers::Follow<'a> for CFFILiteralBool<'a> {
+  type Inner = CFFILiteralBool<'a>;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
     Self { _tab: flatbuffers::Table::new(buf, loc) }
   }
 }
 
-impl<'a> CFFILiteralFloat<'a> {
+impl<'a> CFFILiteralBool<'a> {
   pub const VT_VALUE: flatbuffers::VOffsetT = 4;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    CFFILiteralFloat { _tab: table }
+    CFFILiteralBool { _tab: table }
   }
   #[allow(unused_mut)]
   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
-    args: &'args CFFILiteralFloatArgs
-  ) -> flatbuffers::WIPOffset<CFFILiteralFloat<'bldr>> {
-    let mut builder = CFFILiteralFloatBuilder::new(_fbb);
+    args: &'args CFFILiteralBoolArgs
+  ) -> flatbuffers::WIPOffset<CFFILiteralBool<'bldr>> {
+    let mut builder = CFFILiteralBoolBuilder::new(_fbb);
     builder.add_value(args.value);
     builder.finish()
   }
 
 
   #[inline]
-  pub fn value(&self) -> f64 {
+  pub fn value(&self) -> bool {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<f64>(CFFILiteralFloat::VT_VALUE, Some(0.0)).unwrap()}
+    unsafe { self._tab.get::<bool>(CFFILiteralBool::VT_VALUE, Some(false)).unwrap()}
   }
 }
 
-impl flatbuffers::Verifiable for CFFILiteralFloat<'_> {
+impl flatbuffers::Verifiable for CFFILiteralBool<'_> {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<f64>("value", Self::VT_VALUE, false)?
+     .visit_field::<bool>("value", Self::VT_VALUE, false)?
      .finish();
     Ok(())
   }
 }
-pub struct CFFILiteralFloatArgs {
-    pub value: f64,
+pub struct CFFILiteralBoolArgs {
+    pub value: bool,
 }
-impl<'a> Default for CFFILiteralFloatArgs {
+impl<'a> Default for CFFILiteralBoolArgs {
   #[inline]
   fn default() -> Self {
-    CFFILiteralFloatArgs {
-      value: 0.0,
+    CFFILiteralBoolArgs {
+      value: false,
     }
   }
 }
 
-pub struct CFFILiteralFloatBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+pub struct CFFILiteralBoolBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFILiteralFloatBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFILiteralBoolBuilder<'a, 'b, A> {
   #[inline]
-  pub fn add_value(&mut self, value: f64) {
-    self.fbb_.push_slot::<f64>(CFFILiteralFloat::VT_VALUE, value, 0.0);
+  pub fn add_value(&mut self, value: bool) {
+    self.fbb_.push_slot::<bool>(CFFILiteralBool::VT_VALUE, value, false);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFILiteralFloatBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFILiteralBoolBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
-    CFFILiteralFloatBuilder {
+    CFFILiteralBoolBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<CFFILiteralFloat<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<CFFILiteralBool<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-impl core::fmt::Debug for CFFILiteralFloat<'_> {
+impl core::fmt::Debug for CFFILiteralBool<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("CFFILiteralFloat");
+    let mut ds = f.debug_struct("CFFILiteralBool");
       ds.field("value", &self.value());
       ds.finish()
   }
@@ -4390,13 +4390,13 @@ impl<'a> CFFIFieldTypeLiteral<'a> {
 
   #[inline]
   #[allow(non_snake_case)]
-  pub fn literal_as_cffiliteral_float(&self) -> Option<CFFILiteralFloat<'a>> {
-    if self.literal_type() == CFFILiteralUnion::CFFILiteralFloat {
+  pub fn literal_as_cffiliteral_bool(&self) -> Option<CFFILiteralBool<'a>> {
+    if self.literal_type() == CFFILiteralUnion::CFFILiteralBool {
       self.literal().map(|t| {
        // Safety:
        // Created from a valid Table for this object
        // Which contains a valid union in this slot
-       unsafe { CFFILiteralFloat::init_from_table(t) }
+       unsafe { CFFILiteralBool::init_from_table(t) }
      })
     } else {
       None
@@ -4416,7 +4416,7 @@ impl flatbuffers::Verifiable for CFFIFieldTypeLiteral<'_> {
         match key {
           CFFILiteralUnion::CFFILiteralString => v.verify_union_variant::<flatbuffers::ForwardsUOffset<CFFILiteralString>>("CFFILiteralUnion::CFFILiteralString", pos),
           CFFILiteralUnion::CFFILiteralInt => v.verify_union_variant::<flatbuffers::ForwardsUOffset<CFFILiteralInt>>("CFFILiteralUnion::CFFILiteralInt", pos),
-          CFFILiteralUnion::CFFILiteralFloat => v.verify_union_variant::<flatbuffers::ForwardsUOffset<CFFILiteralFloat>>("CFFILiteralUnion::CFFILiteralFloat", pos),
+          CFFILiteralUnion::CFFILiteralBool => v.verify_union_variant::<flatbuffers::ForwardsUOffset<CFFILiteralBool>>("CFFILiteralUnion::CFFILiteralBool", pos),
           _ => Ok(()),
         }
      })?
@@ -4485,8 +4485,8 @@ impl core::fmt::Debug for CFFIFieldTypeLiteral<'_> {
             ds.field("literal", &"InvalidFlatbuffer: Union discriminant does not match value.")
           }
         },
-        CFFILiteralUnion::CFFILiteralFloat => {
-          if let Some(x) = self.literal_as_cffiliteral_float() {
+        CFFILiteralUnion::CFFILiteralBool => {
+          if let Some(x) = self.literal_as_cffiliteral_bool() {
             ds.field("literal", &x)
           } else {
             ds.field("literal", &"InvalidFlatbuffer: Union discriminant does not match value.")

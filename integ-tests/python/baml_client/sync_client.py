@@ -102,7 +102,7 @@ class BamlSyncClient:
         self,
         recipe: str,
         baml_options: BamlCallOptions = {},
-    ) -> Optional[List[types.Recipe]]:
+    ) -> Union[List[types.Recipe], str]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
@@ -123,7 +123,7 @@ class BamlSyncClient:
         __cr__,
         collectors,
       )
-      return cast(Optional[List[types.Recipe]], raw.cast_to(types, types, partial_types, False))
+      return cast(Union[List[types.Recipe], str], raw.cast_to(types, types, partial_types, False))
     
     def AliasThatPointsToRecursiveType(
         self,
@@ -4678,7 +4678,7 @@ class BamlStreamClient:
         self,
         recipe: str,
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[List[partial_types.Recipe], Optional[List[types.Recipe]]]:
+    ) -> baml_py.BamlSyncStream[Optional[Union[List[partial_types.Recipe], Optional[str]]], Union[List[types.Recipe], str]]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
@@ -4701,10 +4701,10 @@ class BamlStreamClient:
         collectors,
       )
 
-      return baml_py.BamlSyncStream[List[partial_types.Recipe], Optional[List[types.Recipe]]](
+      return baml_py.BamlSyncStream[Optional[Union[List[partial_types.Recipe], Optional[str]]], Union[List[types.Recipe], str]](
         raw,
-        lambda x: cast(List[partial_types.Recipe], x.cast_to(types, types, partial_types, True)),
-        lambda x: cast(Optional[List[types.Recipe]], x.cast_to(types, types, partial_types, False)),
+        lambda x: cast(Optional[Union[List[partial_types.Recipe], Optional[str]]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Union[List[types.Recipe], str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     

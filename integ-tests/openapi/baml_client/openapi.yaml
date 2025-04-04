@@ -30,9 +30,11 @@ paths:
             application/json:
               schema:
                 title: AaaSamOutputFormatResponse
-                type: array
-                items:
-                  $ref: '#/components/schemas/Recipe'
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/Recipe'
+                - type: string
       operationId: AaaSamOutputFormat
   /call/AliasThatPointsToRecursiveType:
     post:

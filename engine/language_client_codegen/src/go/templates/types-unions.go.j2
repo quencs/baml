@@ -17,13 +17,13 @@ type {{ union.name }} struct {
 }
 
 func (u *{{ union.name }}) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     {% for variant in union.variants %}
 	    case {{ loop.index0 }}:
             u.variant = "{{ variant.0 }}"
-            casted := decoded.({{ variant.1.name }})
-            u.variant_{{ variant.0 }} = &casted
+            value := {{ crate::go::generate_types::render_value_coercion("valueHolder", variant.1) }}
+            u.variant_{{ variant.0 }} = &value
     {% endfor %}
 	}
 }

@@ -19,6 +19,112 @@ import (
 
 
 
+type Union__List__Recipe__string struct {
+    variant string
+    
+    variant_List__Recipe *[]Recipe
+    
+    variant_string *string
+    
+}
+
+func (u *Union__List__Recipe__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
+	switch holder.ValueTypeIndex() {
+    
+	    case 0:
+            u.variant = "List__Recipe"
+            value := baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Recipe {
+    return *baml.Decode(__holder, typeMap).(*Recipe)
+})
+            u.variant_List__Recipe = &value
+    
+	    case 1:
+            u.variant = "string"
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
+    
+	}
+}
+
+func (u *Union__List__Recipe__string) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__List__Recipe__string",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "List__Recipe":
+        
+		
+		{
+list := make([]any, len(*u.variant_List__Recipe))
+for i, v := range *u.variant_List__Recipe {
+{
+encodedValue, err := v.BamlEncode()
+if err != nil {
+return nil, err
+}
+list[i] = json.RawMessage(encodedValue)
+}
+}
+encodedMap["value"] = list
+}
+
+    
+    case "string":
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
+
+func (u *Union__List__Recipe__string) IsList__Recipe() bool {
+    return u.variant == "List__Recipe"
+}
+
+func (u *Union__List__Recipe__string) List__Recipe() *[]Recipe {
+    if !u.IsList__Recipe() {
+        return nil
+    }
+    return u.variant_List__Recipe
+}
+
+func Union__List__Recipe__stringNewWithList__Recipe(v *[]Recipe) *Union__List__Recipe__string {
+    return &Union__List__Recipe__string{
+        variant: "List__Recipe",
+        variant_List__Recipe: v,
+    }
+}
+
+func (u *Union__List__Recipe__string) IsString() bool {
+    return u.variant == "string"
+}
+
+func (u *Union__List__Recipe__string) String() *string {
+    if !u.IsString() {
+        return nil
+    }
+    return u.variant_string
+}
+
+func Union__List__Recipe__stringNewWithString(v *string) *Union__List__Recipe__string {
+    return &Union__List__Recipe__string{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
+
+
 type Union__BookOrder__FlightConfirmation__GroceryReceipt struct {
     variant string
     
@@ -31,23 +137,23 @@ type Union__BookOrder__FlightConfirmation__GroceryReceipt struct {
 }
 
 func (u *Union__BookOrder__FlightConfirmation__GroceryReceipt) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "BookOrder"
-            casted := decoded.(BookOrder)
-            u.variant_BookOrder = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*BookOrder)
+            u.variant_BookOrder = &value
     
 	    case 1:
             u.variant = "FlightConfirmation"
-            casted := decoded.(FlightConfirmation)
-            u.variant_FlightConfirmation = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*FlightConfirmation)
+            u.variant_FlightConfirmation = &value
     
 	    case 2:
             u.variant = "GroceryReceipt"
-            casted := decoded.(GroceryReceipt)
-            u.variant_GroceryReceipt = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*GroceryReceipt)
+            u.variant_GroceryReceipt = &value
     
 	}
 }
@@ -168,18 +274,18 @@ type Union__OriginalA__OriginalB struct {
 }
 
 func (u *Union__OriginalA__OriginalB) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "OriginalA"
-            casted := decoded.(OriginalA)
-            u.variant_OriginalA = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*OriginalA)
+            u.variant_OriginalA = &value
     
 	    case 1:
             u.variant = "OriginalB"
-            casted := decoded.(OriginalB)
-            u.variant_OriginalB = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*OriginalB)
+            u.variant_OriginalB = &value
     
 	}
 }
@@ -270,18 +376,18 @@ type Union__string_curiosity__string_personal_finance struct {
 }
 
 func (u *Union__string_curiosity__string_personal_finance) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "string_curiosity"
-            casted := decoded.(string)
-            u.variant_string_curiosity = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_curiosity = &value
     
 	    case 1:
             u.variant = "string_personal_finance"
-            casted := decoded.(string)
-            u.variant_string_personal_finance = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_personal_finance = &value
     
 	}
 }
@@ -364,18 +470,18 @@ type Union__LiteralClassOne__LiteralClassTwo struct {
 }
 
 func (u *Union__LiteralClassOne__LiteralClassTwo) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "LiteralClassOne"
-            casted := decoded.(LiteralClassOne)
-            u.variant_LiteralClassOne = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*LiteralClassOne)
+            u.variant_LiteralClassOne = &value
     
 	    case 1:
             u.variant = "LiteralClassTwo"
-            casted := decoded.(LiteralClassTwo)
-            u.variant_LiteralClassTwo = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*LiteralClassTwo)
+            u.variant_LiteralClassTwo = &value
     
 	}
 }
@@ -470,28 +576,28 @@ type Union__string_one__string_two__string_three__string_four struct {
 }
 
 func (u *Union__string_one__string_two__string_three__string_four) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "string_one"
-            casted := decoded.(string)
-            u.variant_string_one = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_one = &value
     
 	    case 1:
             u.variant = "string_two"
-            casted := decoded.(string)
-            u.variant_string_two = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_two = &value
     
 	    case 2:
             u.variant = "string_three"
-            casted := decoded.(string)
-            u.variant_string_three = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_three = &value
     
 	    case 3:
             u.variant = "string_four"
-            casted := decoded.(string)
-            u.variant_string_four = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_four = &value
     
 	}
 }
@@ -628,23 +734,23 @@ type Union__int_1__bool_true__string_string_output struct {
 }
 
 func (u *Union__int_1__bool_true__string_string_output) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "int_1"
-            casted := decoded.(int)
-            u.variant_int_1 = &casted
+            value := baml.Decode(valueHolder, typeMap).(int)
+            u.variant_int_1 = &value
     
 	    case 1:
             u.variant = "bool_true"
-            casted := decoded.(bool)
-            u.variant_bool_true = &casted
+            value := baml.Decode(valueHolder, typeMap).(bool)
+            u.variant_bool_true = &value
     
 	    case 2:
             u.variant = "string_string_output"
-            casted := decoded.(string)
-            u.variant_string_string_output = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_string_output = &value
     
 	}
 }
@@ -743,16 +849,16 @@ func Union__int_1__bool_true__string_string_outputNewWithString_string_output(v 
 
 
 
-type Union__int64__string__bool__float64__List__string__Map__string_List__string struct {
+type Union__int__string__bool__float__List__string__Map__string_List__string struct {
     variant string
     
-    variant_int64 *int64
+    variant_int *int64
     
     variant_string *string
     
     variant_bool *bool
     
-    variant_float64 *float64
+    variant_float *float64
     
     variant_List__string *[]string
     
@@ -760,56 +866,58 @@ type Union__int64__string__bool__float64__List__string__Map__string_List__string
     
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
-            u.variant = "int64"
-            casted := decoded.(int64)
-            u.variant_int64 = &casted
+            u.variant = "int"
+            value := baml.Decode(valueHolder, typeMap).(int64)
+            u.variant_int = &value
     
 	    case 1:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	    case 2:
             u.variant = "bool"
-            casted := decoded.(bool)
-            u.variant_bool = &casted
+            value := baml.Decode(valueHolder, typeMap).(bool)
+            u.variant_bool = &value
     
 	    case 3:
-            u.variant = "float64"
-            casted := decoded.(float64)
-            u.variant_float64 = &casted
+            u.variant = "float"
+            value := baml.Decode(valueHolder, typeMap).(float64)
+            u.variant_float = &value
     
 	    case 4:
             u.variant = "List__string"
-            casted := decoded.([]string)
-            u.variant_List__string = &casted
+            value := baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
+})
+            u.variant_List__string = &value
     
 	    case 5:
             u.variant = "Map__string_List__string"
-            casted := decoded.(map[string][]string)
-            u.variant_Map__string_List__string = &casted
+            value := baml.Decode(valueHolder, typeMap).(map[string][]string)
+            u.variant_Map__string_List__string = &value
     
 	}
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) BamlEncode() ([]byte, error) {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) BamlEncode() ([]byte, error) {
     encodedMap := map[string]any{
-        "union_name": "Union__int64__string__bool__float64__List__string__Map__string_List__string",
+        "union_name": "Union__int__string__bool__float__List__string__Map__string_List__string",
         "union_variant": u.variant,
     }
 
     switch u.variant {
     
-    case "int64":
+    case "int":
         
 		
 		{
-encodedMap["value"] = u.variant_int64
+encodedMap["value"] = u.variant_int
 }
 
     
@@ -829,11 +937,11 @@ encodedMap["value"] = u.variant_bool
 }
 
     
-    case "float64":
+    case "float":
         
 		
 		{
-encodedMap["value"] = u.variant_float64
+encodedMap["value"] = u.variant_float
 }
 
     
@@ -865,109 +973,109 @@ encodedMap["value"] = u.variant_Map__string_List__string
 }
 
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsInt64() bool {
-    return u.variant == "int64"
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) IsInt() bool {
+    return u.variant == "int"
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) Int64() *int64 {
-    if !u.IsInt64() {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) Int() *int64 {
+    if !u.IsInt() {
         return nil
     }
-    return u.variant_int64
+    return u.variant_int
 }
 
-func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithInt64(v *int64) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
-    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
-        variant: "int64",
-        variant_int64: v,
+func Union__int__string__bool__float__List__string__Map__string_List__stringNewWithInt(v *int64) *Union__int__string__bool__float__List__string__Map__string_List__string {
+    return &Union__int__string__bool__float__List__string__Map__string_List__string{
+        variant: "int",
+        variant_int: v,
     }
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsString() bool {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) IsString() bool {
     return u.variant == "string"
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) String() *string {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) String() *string {
     if !u.IsString() {
         return nil
     }
     return u.variant_string
 }
 
-func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithString(v *string) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
-    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+func Union__int__string__bool__float__List__string__Map__string_List__stringNewWithString(v *string) *Union__int__string__bool__float__List__string__Map__string_List__string {
+    return &Union__int__string__bool__float__List__string__Map__string_List__string{
         variant: "string",
         variant_string: v,
     }
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsBool() bool {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) IsBool() bool {
     return u.variant == "bool"
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) Bool() *bool {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) Bool() *bool {
     if !u.IsBool() {
         return nil
     }
     return u.variant_bool
 }
 
-func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithBool(v *bool) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
-    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+func Union__int__string__bool__float__List__string__Map__string_List__stringNewWithBool(v *bool) *Union__int__string__bool__float__List__string__Map__string_List__string {
+    return &Union__int__string__bool__float__List__string__Map__string_List__string{
         variant: "bool",
         variant_bool: v,
     }
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsFloat64() bool {
-    return u.variant == "float64"
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) IsFloat() bool {
+    return u.variant == "float"
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) Float64() *float64 {
-    if !u.IsFloat64() {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) Float() *float64 {
+    if !u.IsFloat() {
         return nil
     }
-    return u.variant_float64
+    return u.variant_float
 }
 
-func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithFloat64(v *float64) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
-    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
-        variant: "float64",
-        variant_float64: v,
+func Union__int__string__bool__float__List__string__Map__string_List__stringNewWithFloat(v *float64) *Union__int__string__bool__float__List__string__Map__string_List__string {
+    return &Union__int__string__bool__float__List__string__Map__string_List__string{
+        variant: "float",
+        variant_float: v,
     }
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsList__string() bool {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) IsList__string() bool {
     return u.variant == "List__string"
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) List__string() *[]string {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) List__string() *[]string {
     if !u.IsList__string() {
         return nil
     }
     return u.variant_List__string
 }
 
-func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithList__string(v *[]string) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
-    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+func Union__int__string__bool__float__List__string__Map__string_List__stringNewWithList__string(v *[]string) *Union__int__string__bool__float__List__string__Map__string_List__string {
+    return &Union__int__string__bool__float__List__string__Map__string_List__string{
         variant: "List__string",
         variant_List__string: v,
     }
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) IsMap__string_List__string() bool {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) IsMap__string_List__string() bool {
     return u.variant == "Map__string_List__string"
 }
 
-func (u *Union__int64__string__bool__float64__List__string__Map__string_List__string) Map__string_List__string() *map[string][]string {
+func (u *Union__int__string__bool__float__List__string__Map__string_List__string) Map__string_List__string() *map[string][]string {
     if !u.IsMap__string_List__string() {
         return nil
     }
     return u.variant_Map__string_List__string
 }
 
-func Union__int64__string__bool__float64__List__string__Map__string_List__stringNewWithMap__string_List__string(v *map[string][]string) *Union__int64__string__bool__float64__List__string__Map__string_List__string {
-    return &Union__int64__string__bool__float64__List__string__Map__string_List__string{
+func Union__int__string__bool__float__List__string__Map__string_List__stringNewWithMap__string_List__string(v *map[string][]string) *Union__int__string__bool__float__List__string__Map__string_List__string {
+    return &Union__int__string__bool__float__List__string__Map__string_List__string{
         variant: "Map__string_List__string",
         variant_Map__string_List__string: v,
     }
@@ -975,59 +1083,59 @@ func Union__int64__string__bool__float64__List__string__Map__string_List__string
 
 
 
-type Union__int64__string__bool__float64 struct {
+type Union__int__string__bool__float struct {
     variant string
     
-    variant_int64 *int64
+    variant_int *int64
     
     variant_string *string
     
     variant_bool *bool
     
-    variant_float64 *float64
+    variant_float *float64
     
 }
 
-func (u *Union__int64__string__bool__float64) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+func (u *Union__int__string__bool__float) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
-            u.variant = "int64"
-            casted := decoded.(int64)
-            u.variant_int64 = &casted
+            u.variant = "int"
+            value := baml.Decode(valueHolder, typeMap).(int64)
+            u.variant_int = &value
     
 	    case 1:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	    case 2:
             u.variant = "bool"
-            casted := decoded.(bool)
-            u.variant_bool = &casted
+            value := baml.Decode(valueHolder, typeMap).(bool)
+            u.variant_bool = &value
     
 	    case 3:
-            u.variant = "float64"
-            casted := decoded.(float64)
-            u.variant_float64 = &casted
+            u.variant = "float"
+            value := baml.Decode(valueHolder, typeMap).(float64)
+            u.variant_float = &value
     
 	}
 }
 
-func (u *Union__int64__string__bool__float64) BamlEncode() ([]byte, error) {
+func (u *Union__int__string__bool__float) BamlEncode() ([]byte, error) {
     encodedMap := map[string]any{
-        "union_name": "Union__int64__string__bool__float64",
+        "union_name": "Union__int__string__bool__float",
         "union_variant": u.variant,
     }
 
     switch u.variant {
     
-    case "int64":
+    case "int":
         
 		
 		{
-encodedMap["value"] = u.variant_int64
+encodedMap["value"] = u.variant_int
 }
 
     
@@ -1047,11 +1155,11 @@ encodedMap["value"] = u.variant_bool
 }
 
     
-    case "float64":
+    case "float":
         
 		
 		{
-encodedMap["value"] = u.variant_float64
+encodedMap["value"] = u.variant_float
 }
 
     
@@ -1061,119 +1169,119 @@ encodedMap["value"] = u.variant_float64
 }
 
 
-func (u *Union__int64__string__bool__float64) IsInt64() bool {
-    return u.variant == "int64"
+func (u *Union__int__string__bool__float) IsInt() bool {
+    return u.variant == "int"
 }
 
-func (u *Union__int64__string__bool__float64) Int64() *int64 {
-    if !u.IsInt64() {
+func (u *Union__int__string__bool__float) Int() *int64 {
+    if !u.IsInt() {
         return nil
     }
-    return u.variant_int64
+    return u.variant_int
 }
 
-func Union__int64__string__bool__float64NewWithInt64(v *int64) *Union__int64__string__bool__float64 {
-    return &Union__int64__string__bool__float64{
-        variant: "int64",
-        variant_int64: v,
+func Union__int__string__bool__floatNewWithInt(v *int64) *Union__int__string__bool__float {
+    return &Union__int__string__bool__float{
+        variant: "int",
+        variant_int: v,
     }
 }
 
-func (u *Union__int64__string__bool__float64) IsString() bool {
+func (u *Union__int__string__bool__float) IsString() bool {
     return u.variant == "string"
 }
 
-func (u *Union__int64__string__bool__float64) String() *string {
+func (u *Union__int__string__bool__float) String() *string {
     if !u.IsString() {
         return nil
     }
     return u.variant_string
 }
 
-func Union__int64__string__bool__float64NewWithString(v *string) *Union__int64__string__bool__float64 {
-    return &Union__int64__string__bool__float64{
+func Union__int__string__bool__floatNewWithString(v *string) *Union__int__string__bool__float {
+    return &Union__int__string__bool__float{
         variant: "string",
         variant_string: v,
     }
 }
 
-func (u *Union__int64__string__bool__float64) IsBool() bool {
+func (u *Union__int__string__bool__float) IsBool() bool {
     return u.variant == "bool"
 }
 
-func (u *Union__int64__string__bool__float64) Bool() *bool {
+func (u *Union__int__string__bool__float) Bool() *bool {
     if !u.IsBool() {
         return nil
     }
     return u.variant_bool
 }
 
-func Union__int64__string__bool__float64NewWithBool(v *bool) *Union__int64__string__bool__float64 {
-    return &Union__int64__string__bool__float64{
+func Union__int__string__bool__floatNewWithBool(v *bool) *Union__int__string__bool__float {
+    return &Union__int__string__bool__float{
         variant: "bool",
         variant_bool: v,
     }
 }
 
-func (u *Union__int64__string__bool__float64) IsFloat64() bool {
-    return u.variant == "float64"
+func (u *Union__int__string__bool__float) IsFloat() bool {
+    return u.variant == "float"
 }
 
-func (u *Union__int64__string__bool__float64) Float64() *float64 {
-    if !u.IsFloat64() {
+func (u *Union__int__string__bool__float) Float() *float64 {
+    if !u.IsFloat() {
         return nil
     }
-    return u.variant_float64
+    return u.variant_float
 }
 
-func Union__int64__string__bool__float64NewWithFloat64(v *float64) *Union__int64__string__bool__float64 {
-    return &Union__int64__string__bool__float64{
-        variant: "float64",
-        variant_float64: v,
+func Union__int__string__bool__floatNewWithFloat(v *float64) *Union__int__string__bool__float {
+    return &Union__int__string__bool__float{
+        variant: "float",
+        variant_float: v,
     }
 }
 
 
 
-type Union__int64__string struct {
+type Union__int__string struct {
     variant string
     
-    variant_int64 *int64
+    variant_int *int64
     
     variant_string *string
     
 }
 
-func (u *Union__int64__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+func (u *Union__int__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
-            u.variant = "int64"
-            casted := decoded.(int64)
-            u.variant_int64 = &casted
+            u.variant = "int"
+            value := baml.Decode(valueHolder, typeMap).(int64)
+            u.variant_int = &value
     
 	    case 1:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	}
 }
 
-func (u *Union__int64__string) BamlEncode() ([]byte, error) {
+func (u *Union__int__string) BamlEncode() ([]byte, error) {
     encodedMap := map[string]any{
-        "union_name": "Union__int64__string",
+        "union_name": "Union__int__string",
         "union_variant": u.variant,
     }
 
     switch u.variant {
     
-    case "int64":
+    case "int":
         
 		
 		{
-encodedMap["value"] = u.variant_int64
+encodedMap["value"] = u.variant_int
 }
 
     
@@ -1191,37 +1299,37 @@ encodedMap["value"] = u.variant_string
 }
 
 
-func (u *Union__int64__string) IsInt64() bool {
-    return u.variant == "int64"
+func (u *Union__int__string) IsInt() bool {
+    return u.variant == "int"
 }
 
-func (u *Union__int64__string) Int64() *int64 {
-    if !u.IsInt64() {
+func (u *Union__int__string) Int() *int64 {
+    if !u.IsInt() {
         return nil
     }
-    return u.variant_int64
+    return u.variant_int
 }
 
-func Union__int64__stringNewWithInt64(v *int64) *Union__int64__string {
-    return &Union__int64__string{
-        variant: "int64",
-        variant_int64: v,
+func Union__int__stringNewWithInt(v *int64) *Union__int__string {
+    return &Union__int__string{
+        variant: "int",
+        variant_int: v,
     }
 }
 
-func (u *Union__int64__string) IsString() bool {
+func (u *Union__int__string) IsString() bool {
     return u.variant == "string"
 }
 
-func (u *Union__int64__string) String() *string {
+func (u *Union__int__string) String() *string {
     if !u.IsString() {
         return nil
     }
     return u.variant_string
 }
 
-func Union__int64__stringNewWithString(v *string) *Union__int64__string {
-    return &Union__int64__string{
+func Union__int__stringNewWithString(v *string) *Union__int__string {
+    return &Union__int__string{
         variant: "string",
         variant_string: v,
     }
@@ -1239,18 +1347,18 @@ type Union__string__bool struct {
 }
 
 func (u *Union__string__bool) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	    case 1:
             u.variant = "bool"
-            casted := decoded.(bool)
-            u.variant_bool = &casted
+            value := baml.Decode(valueHolder, typeMap).(bool)
+            u.variant_bool = &value
     
 	}
 }
@@ -1323,42 +1431,42 @@ func Union__string__boolNewWithBool(v *bool) *Union__string__bool {
 
 
 
-type Union__string__int64__float64 struct {
+type Union__string__int__float struct {
     variant string
     
     variant_string *string
     
-    variant_int64 *int64
+    variant_int *int64
     
-    variant_float64 *float64
+    variant_float *float64
     
 }
 
-func (u *Union__string__int64__float64) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+func (u *Union__string__int__float) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	    case 1:
-            u.variant = "int64"
-            casted := decoded.(int64)
-            u.variant_int64 = &casted
+            u.variant = "int"
+            value := baml.Decode(valueHolder, typeMap).(int64)
+            u.variant_int = &value
     
 	    case 2:
-            u.variant = "float64"
-            casted := decoded.(float64)
-            u.variant_float64 = &casted
+            u.variant = "float"
+            value := baml.Decode(valueHolder, typeMap).(float64)
+            u.variant_float = &value
     
 	}
 }
 
-func (u *Union__string__int64__float64) BamlEncode() ([]byte, error) {
+func (u *Union__string__int__float) BamlEncode() ([]byte, error) {
     encodedMap := map[string]any{
-        "union_name": "Union__string__int64__float64",
+        "union_name": "Union__string__int__float",
         "union_variant": u.variant,
     }
 
@@ -1372,19 +1480,19 @@ encodedMap["value"] = u.variant_string
 }
 
     
-    case "int64":
+    case "int":
         
 		
 		{
-encodedMap["value"] = u.variant_int64
+encodedMap["value"] = u.variant_int
 }
 
     
-    case "float64":
+    case "float":
         
 		
 		{
-encodedMap["value"] = u.variant_float64
+encodedMap["value"] = u.variant_float
 }
 
     
@@ -1394,57 +1502,57 @@ encodedMap["value"] = u.variant_float64
 }
 
 
-func (u *Union__string__int64__float64) IsString() bool {
+func (u *Union__string__int__float) IsString() bool {
     return u.variant == "string"
 }
 
-func (u *Union__string__int64__float64) String() *string {
+func (u *Union__string__int__float) String() *string {
     if !u.IsString() {
         return nil
     }
     return u.variant_string
 }
 
-func Union__string__int64__float64NewWithString(v *string) *Union__string__int64__float64 {
-    return &Union__string__int64__float64{
+func Union__string__int__floatNewWithString(v *string) *Union__string__int__float {
+    return &Union__string__int__float{
         variant: "string",
         variant_string: v,
     }
 }
 
-func (u *Union__string__int64__float64) IsInt64() bool {
-    return u.variant == "int64"
+func (u *Union__string__int__float) IsInt() bool {
+    return u.variant == "int"
 }
 
-func (u *Union__string__int64__float64) Int64() *int64 {
-    if !u.IsInt64() {
+func (u *Union__string__int__float) Int() *int64 {
+    if !u.IsInt() {
         return nil
     }
-    return u.variant_int64
+    return u.variant_int
 }
 
-func Union__string__int64__float64NewWithInt64(v *int64) *Union__string__int64__float64 {
-    return &Union__string__int64__float64{
-        variant: "int64",
-        variant_int64: v,
+func Union__string__int__floatNewWithInt(v *int64) *Union__string__int__float {
+    return &Union__string__int__float{
+        variant: "int",
+        variant_int: v,
     }
 }
 
-func (u *Union__string__int64__float64) IsFloat64() bool {
-    return u.variant == "float64"
+func (u *Union__string__int__float) IsFloat() bool {
+    return u.variant == "float"
 }
 
-func (u *Union__string__int64__float64) Float64() *float64 {
-    if !u.IsFloat64() {
+func (u *Union__string__int__float) Float() *float64 {
+    if !u.IsFloat() {
         return nil
     }
-    return u.variant_float64
+    return u.variant_float
 }
 
-func Union__string__int64__float64NewWithFloat64(v *float64) *Union__string__int64__float64 {
-    return &Union__string__int64__float64{
-        variant: "float64",
-        variant_float64: v,
+func Union__string__int__floatNewWithFloat(v *float64) *Union__string__int__float {
+    return &Union__string__int__float{
+        variant: "float",
+        variant_float: v,
     }
 }
 
@@ -1460,18 +1568,18 @@ type Union__PhoneNumber__EmailAddress struct {
 }
 
 func (u *Union__PhoneNumber__EmailAddress) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "PhoneNumber"
-            casted := decoded.(PhoneNumber)
-            u.variant_PhoneNumber = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*PhoneNumber)
+            u.variant_PhoneNumber = &value
     
 	    case 1:
             u.variant = "EmailAddress"
-            casted := decoded.(EmailAddress)
-            u.variant_EmailAddress = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*EmailAddress)
+            u.variant_EmailAddress = &value
     
 	}
 }
@@ -1562,18 +1670,18 @@ type Union__Martian__Earthling struct {
 }
 
 func (u *Union__Martian__Earthling) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "Martian"
-            casted := decoded.(Martian)
-            u.variant_Martian = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*Martian)
+            u.variant_Martian = &value
     
 	    case 1:
             u.variant = "Earthling"
-            casted := decoded.(Earthling)
-            u.variant_Earthling = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*Earthling)
+            u.variant_Earthling = &value
     
 	}
 }
@@ -1664,18 +1772,18 @@ type Union__Resume__Event struct {
 }
 
 func (u *Union__Resume__Event) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "Resume"
-            casted := decoded.(Resume)
-            u.variant_Resume = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*Resume)
+            u.variant_Resume = &value
     
 	    case 1:
             u.variant = "Event"
-            casted := decoded.(Event)
-            u.variant_Event = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*Event)
+            u.variant_Event = &value
     
 	}
 }
@@ -1766,18 +1874,18 @@ type Union__string_barisa__string_ox_burger struct {
 }
 
 func (u *Union__string_barisa__string_ox_burger) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "string_barisa"
-            casted := decoded.(string)
-            u.variant_string_barisa = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_barisa = &value
     
 	    case 1:
             u.variant = "string_ox_burger"
-            casted := decoded.(string)
-            u.variant_string_ox_burger = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string_ox_burger = &value
     
 	}
 }
@@ -1860,18 +1968,18 @@ type Union__Nested__string struct {
 }
 
 func (u *Union__Nested__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "Nested"
-            casted := decoded.(Nested)
-            u.variant_Nested = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*Nested)
+            u.variant_Nested = &value
     
 	    case 1:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	}
 }
@@ -1958,18 +2066,20 @@ type Union__string__List__Nested struct {
 }
 
 func (u *Union__string__List__Nested) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	    case 1:
             u.variant = "List__Nested"
-            casted := decoded.([]Nested)
-            u.variant_List__Nested = &casted
+            value := baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Nested {
+    return *baml.Decode(__holder, typeMap).(*Nested)
+})
+            u.variant_List__Nested = &value
     
 	}
 }
@@ -2062,18 +2172,18 @@ type Union__string__Nested struct {
 }
 
 func (u *Union__string__Nested) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	    case 1:
             u.variant = "Nested"
-            casted := decoded.(Nested)
-            u.variant_Nested = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*Nested)
+            u.variant_Nested = &value
     
 	}
 }
@@ -2150,35 +2260,35 @@ func Union__string__NestedNewWithNested(v *Nested) *Union__string__Nested {
 
 
 
-type Union__string__int64 struct {
+type Union__string__int struct {
     variant string
     
     variant_string *string
     
-    variant_int64 *int64
+    variant_int *int64
     
 }
 
-func (u *Union__string__int64) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+func (u *Union__string__int) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	    case 1:
-            u.variant = "int64"
-            casted := decoded.(int64)
-            u.variant_int64 = &casted
+            u.variant = "int"
+            value := baml.Decode(valueHolder, typeMap).(int64)
+            u.variant_int = &value
     
 	}
 }
 
-func (u *Union__string__int64) BamlEncode() ([]byte, error) {
+func (u *Union__string__int) BamlEncode() ([]byte, error) {
     encodedMap := map[string]any{
-        "union_name": "Union__string__int64",
+        "union_name": "Union__string__int",
         "union_variant": u.variant,
     }
 
@@ -2192,11 +2302,11 @@ encodedMap["value"] = u.variant_string
 }
 
     
-    case "int64":
+    case "int":
         
 		
 		{
-encodedMap["value"] = u.variant_int64
+encodedMap["value"] = u.variant_int
 }
 
     
@@ -2206,39 +2316,39 @@ encodedMap["value"] = u.variant_int64
 }
 
 
-func (u *Union__string__int64) IsString() bool {
+func (u *Union__string__int) IsString() bool {
     return u.variant == "string"
 }
 
-func (u *Union__string__int64) String() *string {
+func (u *Union__string__int) String() *string {
     if !u.IsString() {
         return nil
     }
     return u.variant_string
 }
 
-func Union__string__int64NewWithString(v *string) *Union__string__int64 {
-    return &Union__string__int64{
+func Union__string__intNewWithString(v *string) *Union__string__int {
+    return &Union__string__int{
         variant: "string",
         variant_string: v,
     }
 }
 
-func (u *Union__string__int64) IsInt64() bool {
-    return u.variant == "int64"
+func (u *Union__string__int) IsInt() bool {
+    return u.variant == "int"
 }
 
-func (u *Union__string__int64) Int64() *int64 {
-    if !u.IsInt64() {
+func (u *Union__string__int) Int() *int64 {
+    if !u.IsInt() {
         return nil
     }
-    return u.variant_int64
+    return u.variant_int
 }
 
-func Union__string__int64NewWithInt64(v *int64) *Union__string__int64 {
-    return &Union__string__int64{
-        variant: "int64",
-        variant_int64: v,
+func Union__string__intNewWithInt(v *int64) *Union__string__int {
+    return &Union__string__int{
+        variant: "int",
+        variant_int: v,
     }
 }
 
@@ -2254,18 +2364,18 @@ type Union__Tag__string struct {
 }
 
 func (u *Union__Tag__string) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "Tag"
-            casted := decoded.(Tag)
-            u.variant_Tag = &casted
+            value := baml.Decode(valueHolder, typeMap).(Tag)
+            u.variant_Tag = &value
     
 	    case 1:
             u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
     
 	}
 }
@@ -2354,23 +2464,23 @@ type Union__MemoryObject__ComplexMemoryObject__AnotherObject struct {
 }
 
 func (u *Union__MemoryObject__ComplexMemoryObject__AnotherObject) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "MemoryObject"
-            casted := decoded.(MemoryObject)
-            u.variant_MemoryObject = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*MemoryObject)
+            u.variant_MemoryObject = &value
     
 	    case 1:
             u.variant = "ComplexMemoryObject"
-            casted := decoded.(ComplexMemoryObject)
-            u.variant_ComplexMemoryObject = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*ComplexMemoryObject)
+            u.variant_ComplexMemoryObject = &value
     
 	    case 2:
             u.variant = "AnotherObject"
-            casted := decoded.(AnotherObject)
-            u.variant_AnotherObject = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*AnotherObject)
+            u.variant_AnotherObject = &value
     
 	}
 }
@@ -2481,45 +2591,45 @@ func Union__MemoryObject__ComplexMemoryObject__AnotherObjectNewWithAnotherObject
 
 
 
-type Union__float64__bool struct {
+type Union__float__bool struct {
     variant string
     
-    variant_float64 *float64
+    variant_float *float64
     
     variant_bool *bool
     
 }
 
-func (u *Union__float64__bool) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+func (u *Union__float__bool) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
-            u.variant = "float64"
-            casted := decoded.(float64)
-            u.variant_float64 = &casted
+            u.variant = "float"
+            value := baml.Decode(valueHolder, typeMap).(float64)
+            u.variant_float = &value
     
 	    case 1:
             u.variant = "bool"
-            casted := decoded.(bool)
-            u.variant_bool = &casted
+            value := baml.Decode(valueHolder, typeMap).(bool)
+            u.variant_bool = &value
     
 	}
 }
 
-func (u *Union__float64__bool) BamlEncode() ([]byte, error) {
+func (u *Union__float__bool) BamlEncode() ([]byte, error) {
     encodedMap := map[string]any{
-        "union_name": "Union__float64__bool",
+        "union_name": "Union__float__bool",
         "union_variant": u.variant,
     }
 
     switch u.variant {
     
-    case "float64":
+    case "float":
         
 		
 		{
-encodedMap["value"] = u.variant_float64
+encodedMap["value"] = u.variant_float
 }
 
     
@@ -2537,37 +2647,37 @@ encodedMap["value"] = u.variant_bool
 }
 
 
-func (u *Union__float64__bool) IsFloat64() bool {
-    return u.variant == "float64"
+func (u *Union__float__bool) IsFloat() bool {
+    return u.variant == "float"
 }
 
-func (u *Union__float64__bool) Float64() *float64 {
-    if !u.IsFloat64() {
+func (u *Union__float__bool) Float() *float64 {
+    if !u.IsFloat() {
         return nil
     }
-    return u.variant_float64
+    return u.variant_float
 }
 
-func Union__float64__boolNewWithFloat64(v *float64) *Union__float64__bool {
-    return &Union__float64__bool{
-        variant: "float64",
-        variant_float64: v,
+func Union__float__boolNewWithFloat(v *float64) *Union__float__bool {
+    return &Union__float__bool{
+        variant: "float",
+        variant_float: v,
     }
 }
 
-func (u *Union__float64__bool) IsBool() bool {
+func (u *Union__float__bool) IsBool() bool {
     return u.variant == "bool"
 }
 
-func (u *Union__float64__bool) Bool() *bool {
+func (u *Union__float__bool) Bool() *bool {
     if !u.IsBool() {
         return nil
     }
     return u.variant_bool
 }
 
-func Union__float64__boolNewWithBool(v *bool) *Union__float64__bool {
-    return &Union__float64__bool{
+func Union__float__boolNewWithBool(v *bool) *Union__float__bool {
+    return &Union__float__bool{
         variant: "bool",
         variant_bool: v,
     }
@@ -2575,35 +2685,39 @@ func Union__float64__boolNewWithBool(v *bool) *Union__float64__bool {
 
 
 
-type Union__List__bool__List__int64 struct {
+type Union__List__bool__List__int struct {
     variant string
     
     variant_List__bool *[]bool
     
-    variant_List__int64 *[]int64
+    variant_List__int *[]int64
     
 }
 
-func (u *Union__List__bool__List__int64) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+func (u *Union__List__bool__List__int) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "List__bool"
-            casted := decoded.([]bool)
-            u.variant_List__bool = &casted
+            value := baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) bool {
+    return baml.Decode(__holder, typeMap).(bool)
+})
+            u.variant_List__bool = &value
     
 	    case 1:
-            u.variant = "List__int64"
-            casted := decoded.([]int64)
-            u.variant_List__int64 = &casted
+            u.variant = "List__int"
+            value := baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) int64 {
+    return baml.Decode(__holder, typeMap).(int64)
+})
+            u.variant_List__int = &value
     
 	}
 }
 
-func (u *Union__List__bool__List__int64) BamlEncode() ([]byte, error) {
+func (u *Union__List__bool__List__int) BamlEncode() ([]byte, error) {
     encodedMap := map[string]any{
-        "union_name": "Union__List__bool__List__int64",
+        "union_name": "Union__List__bool__List__int",
         "union_variant": u.variant,
     }
 
@@ -2623,12 +2737,12 @@ encodedMap["value"] = list
 }
 
     
-    case "List__int64":
+    case "List__int":
         
 		
 		{
-list := make([]any, len(*u.variant_List__int64))
-for i, v := range *u.variant_List__int64 {
+list := make([]any, len(*u.variant_List__int))
+for i, v := range *u.variant_List__int {
 {
 list[i] = v
 }
@@ -2643,39 +2757,265 @@ encodedMap["value"] = list
 }
 
 
-func (u *Union__List__bool__List__int64) IsList__bool() bool {
+func (u *Union__List__bool__List__int) IsList__bool() bool {
     return u.variant == "List__bool"
 }
 
-func (u *Union__List__bool__List__int64) List__bool() *[]bool {
+func (u *Union__List__bool__List__int) List__bool() *[]bool {
     if !u.IsList__bool() {
         return nil
     }
     return u.variant_List__bool
 }
 
-func Union__List__bool__List__int64NewWithList__bool(v *[]bool) *Union__List__bool__List__int64 {
-    return &Union__List__bool__List__int64{
+func Union__List__bool__List__intNewWithList__bool(v *[]bool) *Union__List__bool__List__int {
+    return &Union__List__bool__List__int{
         variant: "List__bool",
         variant_List__bool: v,
     }
 }
 
-func (u *Union__List__bool__List__int64) IsList__int64() bool {
-    return u.variant == "List__int64"
+func (u *Union__List__bool__List__int) IsList__int() bool {
+    return u.variant == "List__int"
 }
 
-func (u *Union__List__bool__List__int64) List__int64() *[]int64 {
-    if !u.IsList__int64() {
+func (u *Union__List__bool__List__int) List__int() *[]int64 {
+    if !u.IsList__int() {
         return nil
     }
-    return u.variant_List__int64
+    return u.variant_List__int
 }
 
-func Union__List__bool__List__int64NewWithList__int64(v *[]int64) *Union__List__bool__List__int64 {
-    return &Union__List__bool__List__int64{
-        variant: "List__int64",
-        variant_List__int64: v,
+func Union__List__bool__List__intNewWithList__int(v *[]int64) *Union__List__bool__List__int {
+    return &Union__List__bool__List__int{
+        variant: "List__int",
+        variant_List__int: v,
+    }
+}
+
+
+
+type Union__int__string__bool__float__JsonObject__JsonArray struct {
+    variant string
+    
+    variant_int *int64
+    
+    variant_string *string
+    
+    variant_bool *bool
+    
+    variant_float *float64
+    
+    variant_JsonObject *JsonObject
+    
+    variant_JsonArray *JsonArray
+    
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+    valueHolder := holder.Value(nil)
+	switch holder.ValueTypeIndex() {
+    
+	    case 0:
+            u.variant = "int"
+            value := baml.Decode(valueHolder, typeMap).(int64)
+            u.variant_int = &value
+    
+	    case 1:
+            u.variant = "string"
+            value := baml.Decode(valueHolder, typeMap).(string)
+            u.variant_string = &value
+    
+	    case 2:
+            u.variant = "bool"
+            value := baml.Decode(valueHolder, typeMap).(bool)
+            u.variant_bool = &value
+    
+	    case 3:
+            u.variant = "float"
+            value := baml.Decode(valueHolder, typeMap).(float64)
+            u.variant_float = &value
+    
+	    case 4:
+            u.variant = "JsonObject"
+            value := baml.Decode(valueHolder, typeMap).(JsonObject)
+            u.variant_JsonObject = &value
+    
+	    case 5:
+            u.variant = "JsonArray"
+            value := baml.Decode(valueHolder, typeMap).(JsonArray)
+            u.variant_JsonArray = &value
+    
+	}
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) BamlEncode() ([]byte, error) {
+    encodedMap := map[string]any{
+        "union_name": "Union__int__string__bool__float__JsonObject__JsonArray",
+        "union_variant": u.variant,
+    }
+
+    switch u.variant {
+    
+    case "int":
+        
+		
+		{
+encodedMap["value"] = u.variant_int
+}
+
+    
+    case "string":
+        
+		
+		{
+encodedMap["value"] = u.variant_string
+}
+
+    
+    case "bool":
+        
+		
+		{
+encodedMap["value"] = u.variant_bool
+}
+
+    
+    case "float":
+        
+		
+		{
+encodedMap["value"] = u.variant_float
+}
+
+    
+    case "JsonObject":
+        
+		
+		{
+encodedMap["value"] = u.variant_JsonObject
+}
+
+    
+    case "JsonArray":
+        
+		
+		{
+encodedMap["value"] = u.variant_JsonArray
+}
+
+    
+    }
+
+    return json.Marshal(encodedMap)
+}
+
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) IsInt() bool {
+    return u.variant == "int"
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) Int() *int64 {
+    if !u.IsInt() {
+        return nil
+    }
+    return u.variant_int
+}
+
+func Union__int__string__bool__float__JsonObject__JsonArrayNewWithInt(v *int64) *Union__int__string__bool__float__JsonObject__JsonArray {
+    return &Union__int__string__bool__float__JsonObject__JsonArray{
+        variant: "int",
+        variant_int: v,
+    }
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) IsString() bool {
+    return u.variant == "string"
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) String() *string {
+    if !u.IsString() {
+        return nil
+    }
+    return u.variant_string
+}
+
+func Union__int__string__bool__float__JsonObject__JsonArrayNewWithString(v *string) *Union__int__string__bool__float__JsonObject__JsonArray {
+    return &Union__int__string__bool__float__JsonObject__JsonArray{
+        variant: "string",
+        variant_string: v,
+    }
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) IsBool() bool {
+    return u.variant == "bool"
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) Bool() *bool {
+    if !u.IsBool() {
+        return nil
+    }
+    return u.variant_bool
+}
+
+func Union__int__string__bool__float__JsonObject__JsonArrayNewWithBool(v *bool) *Union__int__string__bool__float__JsonObject__JsonArray {
+    return &Union__int__string__bool__float__JsonObject__JsonArray{
+        variant: "bool",
+        variant_bool: v,
+    }
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) IsFloat() bool {
+    return u.variant == "float"
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) Float() *float64 {
+    if !u.IsFloat() {
+        return nil
+    }
+    return u.variant_float
+}
+
+func Union__int__string__bool__float__JsonObject__JsonArrayNewWithFloat(v *float64) *Union__int__string__bool__float__JsonObject__JsonArray {
+    return &Union__int__string__bool__float__JsonObject__JsonArray{
+        variant: "float",
+        variant_float: v,
+    }
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) IsJsonObject() bool {
+    return u.variant == "JsonObject"
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) JsonObject() *JsonObject {
+    if !u.IsJsonObject() {
+        return nil
+    }
+    return u.variant_JsonObject
+}
+
+func Union__int__string__bool__float__JsonObject__JsonArrayNewWithJsonObject(v *JsonObject) *Union__int__string__bool__float__JsonObject__JsonArray {
+    return &Union__int__string__bool__float__JsonObject__JsonArray{
+        variant: "JsonObject",
+        variant_JsonObject: v,
+    }
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) IsJsonArray() bool {
+    return u.variant == "JsonArray"
+}
+
+func (u *Union__int__string__bool__float__JsonObject__JsonArray) JsonArray() *JsonArray {
+    if !u.IsJsonArray() {
+        return nil
+    }
+    return u.variant_JsonArray
+}
+
+func Union__int__string__bool__float__JsonObject__JsonArrayNewWithJsonArray(v *JsonArray) *Union__int__string__bool__float__JsonObject__JsonArray {
+    return &Union__int__string__bool__float__JsonObject__JsonArray{
+        variant: "JsonArray",
+        variant_JsonArray: v,
     }
 }
 
@@ -2691,18 +3031,18 @@ type Union__SimpleTag__JsonTemplate struct {
 }
 
 func (u *Union__SimpleTag__JsonTemplate) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
+    valueHolder := holder.Value(nil)
 	switch holder.ValueTypeIndex() {
     
 	    case 0:
             u.variant = "SimpleTag"
-            casted := decoded.(SimpleTag)
-            u.variant_SimpleTag = &casted
+            value := *baml.Decode(valueHolder, typeMap).(*SimpleTag)
+            u.variant_SimpleTag = &value
     
 	    case 1:
             u.variant = "JsonTemplate"
-            casted := decoded.(JsonTemplate)
-            u.variant_JsonTemplate = &casted
+            value := baml.Decode(valueHolder, typeMap).(JsonTemplate)
+            u.variant_JsonTemplate = &value
     
 	}
 }
@@ -2774,232 +3114,6 @@ func Union__SimpleTag__JsonTemplateNewWithJsonTemplate(v *JsonTemplate) *Union__
     return &Union__SimpleTag__JsonTemplate{
         variant: "JsonTemplate",
         variant_JsonTemplate: v,
-    }
-}
-
-
-
-type Union__int64__string__bool__float64__JsonObject__JsonArray struct {
-    variant string
-    
-    variant_int64 *int64
-    
-    variant_string *string
-    
-    variant_bool *bool
-    
-    variant_float64 *float64
-    
-    variant_JsonObject *JsonObject
-    
-    variant_JsonArray *JsonArray
-    
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-    decoded := baml.Decode(holder.Value(nil), typeMap)
-	switch holder.ValueTypeIndex() {
-    
-	    case 0:
-            u.variant = "int64"
-            casted := decoded.(int64)
-            u.variant_int64 = &casted
-    
-	    case 1:
-            u.variant = "string"
-            casted := decoded.(string)
-            u.variant_string = &casted
-    
-	    case 2:
-            u.variant = "bool"
-            casted := decoded.(bool)
-            u.variant_bool = &casted
-    
-	    case 3:
-            u.variant = "float64"
-            casted := decoded.(float64)
-            u.variant_float64 = &casted
-    
-	    case 4:
-            u.variant = "JsonObject"
-            casted := decoded.(JsonObject)
-            u.variant_JsonObject = &casted
-    
-	    case 5:
-            u.variant = "JsonArray"
-            casted := decoded.(JsonArray)
-            u.variant_JsonArray = &casted
-    
-	}
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) BamlEncode() ([]byte, error) {
-    encodedMap := map[string]any{
-        "union_name": "Union__int64__string__bool__float64__JsonObject__JsonArray",
-        "union_variant": u.variant,
-    }
-
-    switch u.variant {
-    
-    case "int64":
-        
-		
-		{
-encodedMap["value"] = u.variant_int64
-}
-
-    
-    case "string":
-        
-		
-		{
-encodedMap["value"] = u.variant_string
-}
-
-    
-    case "bool":
-        
-		
-		{
-encodedMap["value"] = u.variant_bool
-}
-
-    
-    case "float64":
-        
-		
-		{
-encodedMap["value"] = u.variant_float64
-}
-
-    
-    case "JsonObject":
-        
-		
-		{
-encodedMap["value"] = u.variant_JsonObject
-}
-
-    
-    case "JsonArray":
-        
-		
-		{
-encodedMap["value"] = u.variant_JsonArray
-}
-
-    
-    }
-
-    return json.Marshal(encodedMap)
-}
-
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsInt64() bool {
-    return u.variant == "int64"
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) Int64() *int64 {
-    if !u.IsInt64() {
-        return nil
-    }
-    return u.variant_int64
-}
-
-func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithInt64(v *int64) *Union__int64__string__bool__float64__JsonObject__JsonArray {
-    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
-        variant: "int64",
-        variant_int64: v,
-    }
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsString() bool {
-    return u.variant == "string"
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) String() *string {
-    if !u.IsString() {
-        return nil
-    }
-    return u.variant_string
-}
-
-func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithString(v *string) *Union__int64__string__bool__float64__JsonObject__JsonArray {
-    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
-        variant: "string",
-        variant_string: v,
-    }
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsBool() bool {
-    return u.variant == "bool"
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) Bool() *bool {
-    if !u.IsBool() {
-        return nil
-    }
-    return u.variant_bool
-}
-
-func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithBool(v *bool) *Union__int64__string__bool__float64__JsonObject__JsonArray {
-    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
-        variant: "bool",
-        variant_bool: v,
-    }
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsFloat64() bool {
-    return u.variant == "float64"
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) Float64() *float64 {
-    if !u.IsFloat64() {
-        return nil
-    }
-    return u.variant_float64
-}
-
-func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithFloat64(v *float64) *Union__int64__string__bool__float64__JsonObject__JsonArray {
-    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
-        variant: "float64",
-        variant_float64: v,
-    }
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsJsonObject() bool {
-    return u.variant == "JsonObject"
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) JsonObject() *JsonObject {
-    if !u.IsJsonObject() {
-        return nil
-    }
-    return u.variant_JsonObject
-}
-
-func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithJsonObject(v *JsonObject) *Union__int64__string__bool__float64__JsonObject__JsonArray {
-    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
-        variant: "JsonObject",
-        variant_JsonObject: v,
-    }
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) IsJsonArray() bool {
-    return u.variant == "JsonArray"
-}
-
-func (u *Union__int64__string__bool__float64__JsonObject__JsonArray) JsonArray() *JsonArray {
-    if !u.IsJsonArray() {
-        return nil
-    }
-    return u.variant_JsonArray
-}
-
-func Union__int64__string__bool__float64__JsonObject__JsonArrayNewWithJsonArray(v *JsonArray) *Union__int64__string__bool__float64__JsonObject__JsonArray {
-    return &Union__int64__string__bool__float64__JsonObject__JsonArray{
-        variant: "JsonArray",
-        variant_JsonArray: v,
     }
 }
 

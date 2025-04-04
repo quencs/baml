@@ -1,5 +1,4 @@
-use baml_runtime::HasFieldType;
-use baml_types::{BamlMedia, BamlValue, BamlValueWithMeta};
+use baml_types::{BamlMedia, BamlValue, BamlValueWithMeta, HasFieldType, ToUnionName};
 
 #[allow(non_snake_case)]
 #[path = "cffi/cffi_generated.rs"]
@@ -215,9 +214,10 @@ pub fn serialize_baml_value_with_meta<'a, 'b, T>(
     mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
 ) -> &'a [u8]
 where
-    BamlValueWithMeta<T>: HasFieldType,
+    T: HasFieldType,
 {
     let value_holder = from_baml_value_with_meta(value, &mut builder);
+    // println!("value_holder: {:#?}", value_holder);
     builder.finish(value_holder, None);
     builder.finished_data()
 }
@@ -227,7 +227,7 @@ fn from_baml_value_with_meta<'a, 'b, T>(
     mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
 ) -> flatbuffers::WIPOffset<CFFIValueHolder<'b>>
 where
-    BamlValueWithMeta<T>: HasFieldType,
+    T: HasFieldType,
 {
     let (value_type, value_holder) = match value {
         BamlValueWithMeta::String(val, _) => {
@@ -439,5 +439,276 @@ where
         },
     );
 
-    value_holder
+    let target_type = value.field_type().simplify();
+    if let baml_types::FieldType::Union(options) = &target_type {
+        let mut options_vec = vec![];
+        for t in options.iter() {
+            options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
+        }
+
+        // figure out which index of the options is the target_type
+        let real_type = value.real_type();
+        let value_type_index = options
+            .iter()
+            .position(|t| real_type == *t)
+            .expect("Failed to find target_type in options");
+        let options = builder.create_vector_from_iter(options_vec.into_iter());
+        // TODO: get the name from the target_type
+        let name = builder.create_string(&target_type.to_union_name());
+
+        let value_union_variant = CFFIValueUnionVariant::create(
+            &mut builder,
+            &CFFIValueUnionVariantArgs {
+                name: Some(name),
+                field_types: Some(options),
+                value_type_index: value_type_index as i32,
+                value: Some(value_holder),
+            },
+        );
+
+        let value_holder = CFFIValueHolder::create(
+            &mut builder,
+            &CFFIValueHolderArgs {
+                value_type: CFFIValueUnion::CFFIValueUnionVariant,
+                value: Some(value_union_variant.as_union_value()),
+            },
+        );
+
+        value_holder
+    } else {
+        value_holder
+    }
+}
+
+fn field_type_to_cffi_value_holder<'a, 'b>(
+    field_type: &'a baml_types::FieldType,
+    mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
+) -> flatbuffers::WIPOffset<CFFIFieldTypeHolder<'b>>
+where
+{
+    let (field_type_union, field_type_union_value) = match field_type {
+        baml_types::FieldType::Primitive(type_value) => {
+            return type_value_to_cffi(type_value, builder)
+        }
+        baml_types::FieldType::Enum(e) => {
+            let enum_name = builder.create_string(e);
+            let enum_type = CFFIFieldTypeEnum::create(
+                &mut builder,
+                &CFFIFieldTypeEnumArgs {
+                    name: Some(enum_name),
+                },
+            );
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeEnum,
+                enum_type.as_union_value(),
+            )
+        }
+        baml_types::FieldType::Literal(literal_value) => {
+            let literal_value = literal_value_to_cffi(literal_value, &mut builder);
+            let literal_type = CFFIFieldTypeLiteral::create(&mut builder, &literal_value);
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeLiteral,
+                literal_type.as_union_value(),
+            )
+        }
+        baml_types::FieldType::Class(cls) => {
+            let class_name = builder.create_string(cls);
+            let class_type = CFFIFieldTypeClass::create(
+                &mut builder,
+                &CFFIFieldTypeClassArgs {
+                    name: Some(class_name),
+                },
+            );
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeClass,
+                class_type.as_union_value(),
+            )
+        }
+        baml_types::FieldType::List(field_type) => {
+            let list_type = field_type_to_cffi_value_holder(field_type, &mut builder);
+            let element_type = CFFIFieldTypeList::create(
+                &mut builder,
+                &CFFIFieldTypeListArgs {
+                    element: Some(list_type),
+                },
+            );
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeList,
+                element_type.as_union_value(),
+            )
+        }
+        baml_types::FieldType::Map(key_type, value_type) => {
+            let key_type = field_type_to_cffi_value_holder(key_type, &mut builder);
+            let value_type = field_type_to_cffi_value_holder(value_type, &mut builder);
+            let map_type = CFFIFieldTypeMap::create(
+                &mut builder,
+                &CFFIFieldTypeMapArgs {
+                    key: Some(key_type),
+                    value: Some(value_type),
+                },
+            );
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeMap,
+                map_type.as_union_value(),
+            )
+        }
+        baml_types::FieldType::Union(field_types) => {
+            let mut options_vec = vec![];
+            for t in field_types.iter() {
+                options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
+            }
+            let options = builder.create_vector_from_iter(options_vec.into_iter());
+            let value_union_variant = CFFIFieldTypeUnionVariant::create(
+                &mut builder,
+                &CFFIFieldTypeUnionVariantArgs {
+                    options: Some(options),
+                },
+            );
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeUnionVariant,
+                value_union_variant.as_union_value(),
+            )
+        }
+        baml_types::FieldType::Optional(field_type) => {
+            let field_type = field_type_to_cffi_value_holder(field_type, &mut builder);
+            let null_type = field_type_to_cffi_value_holder(
+                &baml_types::FieldType::Primitive(baml_types::TypeValue::Null),
+                &mut builder,
+            );
+            let options = builder.create_vector_from_iter(vec![field_type, null_type].into_iter());
+            let value_union_variant = CFFIFieldTypeUnionVariant::create(
+                &mut builder,
+                &CFFIFieldTypeUnionVariantArgs {
+                    options: Some(options),
+                },
+            );
+
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeUnionVariant,
+                value_union_variant.as_union_value(),
+            )
+        }
+        baml_types::FieldType::RecursiveTypeAlias(name) => {
+            let name = builder.create_string(name);
+            let type_alias = CFFIFieldTypeTypeAlias::create(
+                &mut builder,
+                &CFFIFieldTypeTypeAliasArgs { name: Some(name) },
+            );
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeTypeAlias,
+                type_alias.as_union_value(),
+            )
+        }
+        baml_types::FieldType::Tuple(field_types) => unimplemented!("Tuple is not supported"),
+        baml_types::FieldType::WithMetadata {
+            base,
+            constraints,
+            streaming_behavior,
+        } => unimplemented!("WithMetadata is not supported"),
+    };
+
+    CFFIFieldTypeHolder::create(
+        &mut builder,
+        &CFFIFieldTypeHolderArgs {
+            type_type: field_type_union,
+            type_: Some(field_type_union_value),
+        },
+    )
+}
+
+fn type_value_to_cffi<'a, 'b>(
+    type_value: &'a baml_types::TypeValue,
+    mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
+) -> flatbuffers::WIPOffset<CFFIFieldTypeHolder<'b>> {
+    let (field_type_union, field_type_union_value) = match type_value {
+        baml_types::TypeValue::String => (
+            CFFIFieldTypeUnion::CFFIFieldTypeString,
+            CFFIFieldTypeString::create(&mut builder, &CFFIFieldTypeStringArgs {}).as_union_value(),
+        ),
+        baml_types::TypeValue::Int => (
+            CFFIFieldTypeUnion::CFFIFieldTypeInt,
+            CFFIFieldTypeInt::create(&mut builder, &CFFIFieldTypeIntArgs {}).as_union_value(),
+        ),
+        baml_types::TypeValue::Float => (
+            CFFIFieldTypeUnion::CFFIFieldTypeFloat,
+            CFFIFieldTypeFloat::create(&mut builder, &CFFIFieldTypeFloatArgs {}).as_union_value(),
+        ),
+        baml_types::TypeValue::Bool => (
+            CFFIFieldTypeUnion::CFFIFieldTypeBool,
+            CFFIFieldTypeBool::create(&mut builder, &CFFIFieldTypeBoolArgs {}).as_union_value(),
+        ),
+        baml_types::TypeValue::Null => (
+            CFFIFieldTypeUnion::CFFIFieldTypeNull,
+            CFFIFieldTypeNull::create(&mut builder, &CFFIFieldTypeNullArgs {}).as_union_value(),
+        ),
+        baml_types::TypeValue::Media(baml_media_type) => {
+            let media_type = media_type_to_cffi(baml_media_type, &mut builder);
+            (
+                CFFIFieldTypeUnion::CFFIFieldTypeMedia,
+                CFFIFieldTypeMedia::create(&mut builder, &media_type).as_union_value(),
+            )
+        }
+    };
+
+    CFFIFieldTypeHolder::create(
+        &mut builder,
+        &CFFIFieldTypeHolderArgs {
+            type_type: field_type_union,
+            type_: Some(field_type_union_value),
+        },
+    )
+}
+
+fn media_type_to_cffi<'a, 'b>(
+    media_type: &'a baml_types::BamlMediaType,
+    mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
+) -> CFFIFieldTypeMediaArgs<'b> {
+    match media_type {
+        baml_types::BamlMediaType::Image => CFFIFieldTypeMediaArgs {
+            media: Some(CFFIMediaType::create(
+                &mut builder,
+                &CFFIMediaTypeArgs {
+                    type_: MediaTypeEnum::Image,
+                    other: None,
+                },
+            )),
+        },
+        baml_types::BamlMediaType::Audio => CFFIFieldTypeMediaArgs {
+            media: Some(CFFIMediaType::create(
+                &mut builder,
+                &CFFIMediaTypeArgs {
+                    type_: MediaTypeEnum::Audio,
+                    other: None,
+                },
+            )),
+        },
+    }
+}
+fn literal_value_to_cffi<'a, 'b>(
+    literal_value: &'a baml_types::LiteralValue,
+    mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
+) -> CFFIFieldTypeLiteralArgs {
+    match literal_value {
+        baml_types::LiteralValue::String(s) => {
+            let string = builder.create_string(s);
+            CFFIFieldTypeLiteralArgs {
+                literal_type: CFFILiteralUnion::CFFILiteralString,
+                literal: Some(string.as_union_value()),
+            }
+        }
+        baml_types::LiteralValue::Int(v) => {
+            let int = CFFILiteralInt::create(&mut builder, &CFFILiteralIntArgs { value: *v });
+            CFFIFieldTypeLiteralArgs {
+                literal_type: CFFILiteralUnion::CFFILiteralInt,
+                literal: Some(int.as_union_value()),
+            }
+        }
+        baml_types::LiteralValue::Bool(v) => {
+            let bool = CFFILiteralBool::create(&mut builder, &CFFILiteralBoolArgs { value: *v });
+            CFFIFieldTypeLiteralArgs {
+                literal_type: CFFILiteralUnion::CFFILiteralBool,
+                literal: Some(bool.as_union_value()),
+            }
+        }
+    }
 }

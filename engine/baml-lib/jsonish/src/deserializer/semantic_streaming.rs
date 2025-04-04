@@ -33,12 +33,11 @@ pub enum StreamingError {
 pub fn validate_streaming_state(
     ir: &impl IRHelperExtended,
     baml_value: &BamlValueWithFlags,
-    field_type: &FieldType,
     allow_partials: bool,
 ) -> Result<BamlValueWithMeta<Completion>, StreamingError> {
     let baml_value_with_meta_flags: BamlValueWithMeta<Vec<Flag>> = baml_value.clone().into();
     let typed_baml_value: BamlValueWithMeta<(Vec<Flag>, FieldType)> =
-        ir.distribute_type_with_meta(baml_value_with_meta_flags, field_type.clone())?;
+        ir.distribute_type_with_meta(baml_value_with_meta_flags, baml_value.field_type().clone())?;
     let baml_value_with_streaming_state_and_behavior =
         typed_baml_value.map_meta(|(flags, r#type)| (completion_state(&flags), r#type));
 
@@ -377,13 +376,7 @@ mod tests {
             mk_list(vec![mk_list(vec![]), mk_list(vec![])]),
         ]);
 
-        let res = validate_streaming_state(
-            &ir,
-            &value,
-            &FieldType::RecursiveTypeAlias("A".to_string()),
-            true,
-        )
-        .unwrap();
+        let res = validate_streaming_state(&ir, &value, true).unwrap();
 
         assert_eq!(res.into_iter().count(), 6);
     }
@@ -438,7 +431,7 @@ mod tests {
         );
         let field_type = FieldType::class("Info");
 
-        let res = validate_streaming_state(&ir, &value, &field_type, true).unwrap();
+        let res = validate_streaming_state(&ir, &value, true).unwrap();
 
         // The first key should be "Name", matching the order specified in the
         // original value.

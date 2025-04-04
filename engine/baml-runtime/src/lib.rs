@@ -54,7 +54,6 @@ use internal_baml_core::configuration::GeneratorOutputType;
 use internal_baml_core::ir::FunctionWalker;
 use internal_llm_client::AllowedRoleMetadata;
 use internal_llm_client::ClientSpec;
-pub use jsonish::HasFieldType;
 use jsonish::ResponseBamlValue;
 use on_log_event::LogEventCallbackSync;
 use runtime::InternalBamlRuntime;
@@ -328,9 +327,7 @@ impl BamlRuntime {
             } else {
                 match val {
                     Some(Ok(value)) => {
-                        let value_with_constraints = value
-                            .0
-                            .map_meta(|(_, constraints, _, _)| constraints.clone());
+                        let value_with_constraints = value.0.map_meta(|m| m.1.clone());
                         evaluate_test_constraints(
                             &params,
                             &value_with_constraints,

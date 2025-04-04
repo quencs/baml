@@ -88,7 +88,7 @@ export class BamlSyncClient {
   AaaSamOutputFormat(
       recipe: string,
       __baml_options__?: BamlCallOptions
-  ): Recipe[] | null {
+  ): Recipe[] | string {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -102,7 +102,7 @@ export class BamlSyncClient {
         options.clientRegistry,
         collector,
       )
-      return raw.parsed(false) as Recipe[] | null
+      return raw.parsed(false) as Recipe[] | string
     } catch (error: any) {
       throw toBamlError(error);
     }
