@@ -1,3 +1,4 @@
+use anyhow::Result;
 use baml_types::{BamlMedia, BamlValue, BamlValueWithMeta, HasFieldType, ToUnionName};
 
 #[allow(non_snake_case)]
@@ -5,6 +6,11 @@ use baml_types::{BamlMedia, BamlValue, BamlValueWithMeta, HasFieldType, ToUnionN
 mod cffi_generated;
 
 use cffi_generated::cffi::*;
+
+pub fn buffer_to_cffi_value_holder(buffer: &[u8]) -> Result<BamlValue> {
+    let root = flatbuffers::root::<CFFIValueHolder>(buffer)?;
+    Ok(root.into())
+}
 
 impl From<cffi_generated::cffi::CFFIValueHolder<'_>> for BamlValue {
     fn from(value: cffi_generated::cffi::CFFIValueHolder) -> Self {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/boundaryml/baml/go/pkg/cffi"
 	baml "github.com/boundaryml/baml/go/pkg"
 )
@@ -81,10 +82,7 @@ func (e *{{ enum.name }}) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap
     *e = {{ enum.name }}(value)
 }
 
-func (e {{ enum.name }}) BamlEncode() ([]byte, error) {
-    return json.Marshal(map[string]any{
-        "enum_class": "{{ enum.name }}",
-        "enum_value": string(e),
-    })
+func (e {{ enum.name }}) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+    return baml.EncodeEnum(builder, "{{ enum.name }}", string(e), false)
 }
 {% endfor %}

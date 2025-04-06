@@ -51,11 +51,12 @@ func castOptional[T any](result any, castResult func(any) T) *T {
 func {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
         , {{name}} {{type}}
         {%- endfor %}) (*{{ fn.return_type }}, error) {
-	arg_names := []string{ {% for (name, type) in fn.args -%}"{{name}}",{% endfor %} }
-	result, err := bamlRuntime.CallFunction(ctx, "{{ fn.name }}", arg_names{% for (name, type) in fn.args -%}
-        , {{name}}
-		{%- endfor %}, nil, nil)
-
+	args := map[string]any{ {% for (name, type) in fn.args -%}"{{name}}": {{name}},{% endfor %} }
+	encoded, err := baml.EncodeRoot(args, typeMap)
+	if err != nil {
+		panic(err)
+	}
+	result, err := bamlRuntime.CallFunction(ctx, "{{ fn.name }}", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +77,13 @@ func {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
 func (*stream) {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
 		, {{name}} {{type}}
 		{%- endfor %}) <-chan {{ fn.return_type }} {
-	arg_names := []string{ {% for (name, type) in fn.args -%}"{{name}}",{% endfor %} }
+	args := map[string]any{ {% for (name, type) in fn.args -%}"{{name}}": {{name}},{% endfor %} }
+	encoded, err := baml.EncodeRoot(args, typeMap)
+	if err != nil {
+		panic(err)
+	}
 	channel := make(chan {{ fn.return_type }})
-	raw, err := bamlRuntime.CallFunctionStream(ctx, "{{ fn.name }}", arg_names{% for (name, type) in fn.args -%}
-        , {{name}}
-		{%- endfor %}, nil, nil)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "{{ fn.name }}", encoded)
 	if err != nil {
 		close(channel)
 		return channel

@@ -5,6 +5,7 @@ import (
 	_ "fmt"
 	"testing"
 
+	baml "github.com/boundaryml/baml/go/pkg"
 	"github.com/stretchr/testify/require"
 
 	"example.com/integ-tests/baml_client"
@@ -36,7 +37,7 @@ var testCases = []struct {
 func TestDeserialization(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.input, func(t *testing.T) {
-			actual, err := baml_client.Decode([]byte(test.input))
+			actual, err := baml.Decode([]byte(test.input))
 			require.NoError(t, err)
 			require.Equal(t, test.expected, actual)
 		})

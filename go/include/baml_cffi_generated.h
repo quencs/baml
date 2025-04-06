@@ -29,7 +29,8 @@ void register_callbacks(CallbackFn callback_fn, CallbackFn error_callback_fn);
  */
 const void *call_function_from_c(const void *runtime,
                                  const char *function_name,
-                                 const char *kwargs,
+                                 const char *encoded_args,
+                                 uintptr_t length,
                                  uint32_t id);
 
 /**
@@ -38,5 +39,6 @@ const void *call_function_from_c(const void *runtime,
  */
 const void *call_function_stream_from_c(const void *runtime,
                                         const char *function_name,
-                                        const char *kwargs,
+                                        const char *encoded_args,
+                                        uintptr_t length,
                                         uint32_t id);

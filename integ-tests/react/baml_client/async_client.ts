@@ -84,7 +84,7 @@ export class BamlAsyncClient {
 
   
   async AaaSamOutputFormat(
-      recipe: string,
+      recipe?: string[] | string | null,
       __baml_options__?: BamlCallOptions
   ): Promise<Recipe[] | string> {
     try {
@@ -93,7 +93,7 @@ export class BamlAsyncClient {
       const raw = await this.runtime.callFunction(
         "AaaSamOutputFormat",
         {
-          "recipe": recipe
+          "recipe": recipe?? null
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),
@@ -3985,7 +3985,7 @@ class BamlStreamClient {
 
   
   AaaSamOutputFormat(
-      recipe: string,
+      recipe?: string[] | string | null,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[] }
   ): BamlStream<((partial_types.Recipe | null)[] | (string | null)), Recipe[] | string> {
     try {
@@ -3994,7 +3994,7 @@ class BamlStreamClient {
       const raw = this.runtime.streamFunction(
         "AaaSamOutputFormat",
         {
-          "recipe": recipe
+          "recipe": recipe ?? null
         },
         undefined,
         this.ctxManager.cloneContext(),

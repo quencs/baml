@@ -254,6 +254,8 @@ var typeMap = map[string]reflect.Type{
 
 	"TestEnum": reflect.TypeOf(types.TestEnum("")),
 
+	"Union__List__string__string": reflect.TypeOf(types.Union__List__string__string{}),
+
 	"Union__List__Recipe__string": reflect.TypeOf(types.Union__List__Recipe__string{}),
 
 	"Union__BookOrder__FlightConfirmation__GroceryReceipt": reflect.TypeOf(types.Union__BookOrder__FlightConfirmation__GroceryReceipt{}),

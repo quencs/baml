@@ -57,23 +57,11 @@ func CreateRuntime(
 	return BamlRuntime{runtime: runtime}, nil
 }
 
-func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, arg_names []string, args ...any) (*ResultCallback, error) {
+func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, encoded_args []byte) (*ResultCallback, error) {
 	functionNameC := C.CString(functionName)
 	// defer C.free(unsafe.Pointer(functionNameC))
 
 	callback_id, callback := create_unique_id(ctx)
-
-	kwargsMap := make(map[string]any)
-	for i, argName := range arg_names {
-		kwargsMap[argName] = args[i]
-	}
-	kwargs, err := json.Marshal(kwargsMap)
-	if err != nil {
-		return nil, err
-	}
-	kwargsC := C.CString(string(kwargs))
-	// defer C.free(unsafe.Pointer(kwargsC))
-
 	return_channel := make(chan ResultCallback)
 	go func() {
 		for {
@@ -88,7 +76,9 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, arg
 			}
 		}
 	}()
-	C.call_function_from_c(r.runtime, functionNameC, kwargsC, callback_id)
+
+	encoded_args_c := (*C.char)(unsafe.Pointer(&encoded_args[0]))
+	C.call_function_from_c(r.runtime, functionNameC, encoded_args_c, C.uintptr_t(len(encoded_args)), callback_id)
 
 	select {
 	case <-ctx.Done():
@@ -98,21 +88,11 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, arg
 	}
 }
 
-func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName string, arg_names []string, args ...any) (<-chan ResultCallback, error) {
+func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName string, encoded_args []byte) (<-chan ResultCallback, error) {
 	functionNameC := C.CString(functionName)
 	// defer C.free(unsafe.Pointer(functionNameC))
 
 	callback_id, callback := create_unique_id(ctx)
-	kwargsMap := make(map[string]any)
-	for i, argName := range arg_names {
-		kwargsMap[argName] = args[i]
-	}
-	kwargs, err := json.Marshal(kwargsMap)
-	if err != nil {
-		return nil, err
-	}
-	kwargsC := C.CString(string(kwargs))
-	// defer C.free(unsafe.Pointer(kwargsC))
 
 	return_channel := make(chan ResultCallback)
 	go func() {
@@ -133,7 +113,8 @@ func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName strin
 		}
 	}()
 
-	C.call_function_stream_from_c(r.runtime, functionNameC, kwargsC, callback_id)
+	encoded_args_c := (*C.char)(unsafe.Pointer(&encoded_args[0]))
+	C.call_function_stream_from_c(r.runtime, functionNameC, encoded_args_c, C.uintptr_t(len(encoded_args)), callback_id)
 
 	return return_channel, nil
 }

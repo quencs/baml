@@ -33,7 +33,7 @@ module Baml
     sig {
       params(
         varargs: T.untyped,
-        recipe: String,
+        recipe: T.any(T::Array[String], String, NilClass),
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(Baml::Ffi::HTTPRequest)
     }
@@ -5284,7 +5284,7 @@ module Baml
     sig {
       params(
         varargs: T.untyped,
-        recipe: String,
+        recipe: T.any(T::Array[String], String, NilClass),
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(Baml::Ffi::HTTPRequest)
     }

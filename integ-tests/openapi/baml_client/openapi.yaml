@@ -2358,12 +2358,15 @@ components:
             type: object
             properties:
               recipe:
-                type: string
+                oneOf:
+                - type: array
+                  items:
+                    type: string
+                - type: string
               __baml_options__:
                 nullable: true
                 $ref: '#/components/schemas/BamlOptions'
-            required:
-            - recipe
+            required: []
             additionalProperties: false
     AliasThatPointsToRecursiveType:
       required: true

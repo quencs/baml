@@ -86,7 +86,7 @@ export class BamlSyncClient {
 
   
   AaaSamOutputFormat(
-      recipe: string,
+      recipe?: string[] | string | null,
       __baml_options__?: BamlCallOptions
   ): Recipe[] | string {
     try {
@@ -95,7 +95,7 @@ export class BamlSyncClient {
       const raw = this.runtime.callFunctionSync(
         "AaaSamOutputFormat",
         {
-          "recipe": recipe
+          "recipe": recipe?? null
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),

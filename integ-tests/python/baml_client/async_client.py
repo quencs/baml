@@ -102,7 +102,7 @@ class BamlAsyncClient:
     
     async def AaaSamOutputFormat(
         self,
-        recipe: str,
+        recipe: Union[List[str], str, None],
         baml_options: BamlCallOptions = {},
     ) -> Union[List[types.Recipe], str]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
@@ -4677,7 +4677,7 @@ class BamlStreamClient:
     
     def AaaSamOutputFormat(
         self,
-        recipe: str,
+        recipe: Union[List[str], str, None],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlStream[Optional[Union[List[partial_types.Recipe], Optional[str]]], Union[List[types.Recipe], str]]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}

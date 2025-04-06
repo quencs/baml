@@ -1,11 +1,11 @@
 package types
 
 import (
-"encoding/json"
-"fmt"
+	"fmt"
 
-"github.com/boundaryml/baml/go/pkg/cffi"
-baml "github.com/boundaryml/baml/go/pkg"
+	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/boundaryml/baml/go/pkg/cffi"
+	baml "github.com/boundaryml/baml/go/pkg"
 )
 
 type Checked[T any] baml.Checked[T]
@@ -61,21 +61,12 @@ func (c *{{ class.name }}) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeM
 {% endif %}
 }
 
-func (c *{{ class.name }}) BamlEncode() ([]byte, error) {
-valueMap := map[string]any{}
-
-{% for field in class.fields %}
-{% let destination_index = format!("\"{}\"", crate::go::generate_types::to_exported_name(field.name.as_ref())) %}
-{% let source_variable_name = format!("c.{}", crate::go::generate_types::to_exported_name(field.name.as_ref())) %}
-{{ crate::go::generate_types::render_value_encode("valueMap", destination_index, source_variable_name, field.go_type) }}
-{% endfor %}
-
-encodedMap := map[string]any{
-"class_name": "{{ class.name }}",
-"values": valueMap,
-}
-
-return json.Marshal(encodedMap)
+func (c {{ class.name }}) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+	fields := map[string]any{}
+	{% for field in class.fields %}
+	fields["{{ field.name }}"] = c.{{ field.name|exported_name }}
+	{% endfor %}
+	return baml.EncodeClass(builder, typeMap, "{{ class.name }}", fields, {% if class.dynamic %}&c.DynamicProperties{% else %}nil{% endif %})
 }
 
 {% endfor %}

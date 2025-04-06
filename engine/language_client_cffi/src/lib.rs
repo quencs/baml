@@ -1,10 +1,10 @@
 /// cbindgen:ignore
 mod ctypes;
 
-use std::{collections::HashMap, ffi::CStr, path::Path, ptr::null};
+use std::{collections::HashMap, ffi::CStr, ptr::null};
 
 use anyhow::Result;
-use baml_runtime::{BamlRuntime, FunctionResult, FunctionResultStream};
+use baml_runtime::{BamlRuntime, FunctionResult};
 
 #[no_mangle]
 pub extern "C" fn create_baml_runtime(
@@ -69,11 +69,18 @@ use std::os::raw::c_char;
 
 use baml_types::{BamlMap, BamlValue};
 
-/// Convert CKwargs to a BamlMap<String, BamlValue>
-fn ckwargs_to_map(kwargs: *const libc::c_char) -> Result<BamlMap<String, BamlValue>> {
-    let kwargs_str = unsafe { CStr::from_ptr(kwargs) };
-    let kwargs_map = serde_json::from_str::<BamlMap<String, BamlValue>>(kwargs_str.to_str()?)?;
-    Ok(kwargs_map)
+/// Convert Flatbuffers encoded arguments to a BamlMap<String, BamlValue>
+fn ckwargs_to_map(
+    encoded_args: *const libc::c_char,
+    length: usize,
+) -> Result<BamlMap<String, BamlValue>> {
+    let buffer = unsafe { std::slice::from_raw_parts(encoded_args as *const u8, length) };
+    let value = ctypes::buffer_to_cffi_value_holder(buffer)?;
+    if let Some(map) = value.as_map_owned() {
+        Ok(map)
+    } else {
+        Err(anyhow::anyhow!("Invalid encoded arguments"))
+    }
 }
 
 pub type CallbackFn = extern "C" fn(call_id: u32, is_done: bool, content: *const i8, length: usize);
@@ -141,10 +148,11 @@ static mut RUNTIME: Option<std::sync::Arc<tokio::runtime::Runtime>> = None;
 pub extern "C" fn call_function_from_c(
     runtime: *const libc::c_void,
     function_name: *const c_char,
-    kwargs: *const libc::c_char,
+    encoded_args: *const libc::c_char,
+    length: usize,
     id: u32,
 ) -> *const libc::c_void {
-    match call_function_from_c_inner(runtime, function_name, kwargs, id) {
+    match call_function_from_c_inner(runtime, function_name, encoded_args, length, id) {
         Ok(_) => null(),
         Err(e) => {
             Box::into_raw(Box::new(CString::new(e.to_string()).unwrap())) as *const libc::c_void
@@ -155,7 +163,8 @@ pub extern "C" fn call_function_from_c(
 fn call_function_from_c_inner(
     runtime: *const libc::c_void,
     function_name: *const c_char,
-    kwargs: *const libc::c_char,
+    encoded_args: *const libc::c_char,
+    length: usize,
     id: u32,
 ) -> Result<()> {
     // Safety: assume that the pointers provided are valid.
@@ -170,7 +179,7 @@ fn call_function_from_c_inner(
     };
 
     // Convert keyword arguments.
-    let keyword_args = ckwargs_to_map(kwargs)?;
+    let keyword_args = ckwargs_to_map(encoded_args, length)?;
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
 
@@ -193,10 +202,11 @@ fn call_function_from_c_inner(
 pub extern "C" fn call_function_stream_from_c(
     runtime: *const libc::c_void,
     function_name: *const c_char,
-    kwargs: *const libc::c_char,
+    encoded_args: *const libc::c_char,
+    length: usize,
     id: u32,
 ) -> *const libc::c_void {
-    match call_function_stream_from_c_inner(runtime, function_name, kwargs, id) {
+    match call_function_stream_from_c_inner(runtime, function_name, encoded_args, length, id) {
         Ok(_) => null(),
         Err(e) => {
             Box::into_raw(Box::new(CString::new(e.to_string()).unwrap())) as *const libc::c_void
@@ -207,7 +217,8 @@ pub extern "C" fn call_function_stream_from_c(
 fn call_function_stream_from_c_inner(
     runtime: *const libc::c_void,
     function_name: *const c_char,
-    kwargs: *const libc::c_char,
+    encoded_args: *const libc::c_char,
+    length: usize,
     id: u32,
 ) -> Result<()> {
     // Safety: assume that the pointers provided are valid.
@@ -222,7 +233,7 @@ fn call_function_stream_from_c_inner(
     };
 
     // Convert keyword arguments.
-    let keyword_args = ckwargs_to_map(kwargs)?;
+    let keyword_args = ckwargs_to_map(encoded_args, length)?;
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
     let mut stream = match runtime.stream_function(func_name, &keyword_args, &ctx, None, None, None)

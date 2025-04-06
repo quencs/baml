@@ -1,8 +1,9 @@
 package types
 
 import (
-	"encoding/json"
+	"fmt"
 
+    flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/boundaryml/baml/go/pkg/cffi"
 	baml "github.com/boundaryml/baml/go/pkg"
 )
@@ -28,25 +29,31 @@ func (u *{{ union.name }}) Decode(holder *cffi.CFFIValueUnionVariant, typeMap ba
 	}
 }
 
-func (u *{{ union.name }}) BamlEncode() ([]byte, error) {
-    encodedMap := map[string]any{
-        "union_name": "{{ union.name }}",
-        "union_variant": u.variant,
-    }
 
+func (u {{ union.name }}) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     switch u.variant {
     {% for variant in union.variants %}
     case "{{ variant.0 }}":
-        {% let destination_index = format!("\"{}\"", "value") %}
-		{% let source_variable_name = format!("{}u.variant_{}", if variant.1.is_slice { "*" } else { "" }, variant.0) %}
-		{{ crate::go::generate_types::render_value_encode("encodedMap", destination_index, source_variable_name, variant.1) }}
+        return baml.EncodeUnion(builder, typeMap, u.variant, u.variant_{{ variant.0 }})
     {% endfor %}
+    case "":
+        return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
     }
 
-    return json.Marshal(encodedMap)
+    return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: %s", u.variant)
 }
 
 {% for variant in union.variants %}
+func (u *{{ union.name }}) Set{{ variant.0|exported_name }}(v {{ variant.1.name }}) {
+    u.variant = "{{ variant.0 }}"
+    u.variant_{{ variant.0 }} = &v
+    {% for v in union.variants %}
+    {% if v.0 != variant.0 %}
+        u.variant_{{ v.0 }} = nil
+    {% endif %}
+    {% endfor %}
+}
+
 func (u *{{ union.name }}) Is{{ variant.0|exported_name }}() bool {
     return u.variant == "{{ variant.0 }}"
 }

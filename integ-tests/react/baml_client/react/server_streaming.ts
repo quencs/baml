@@ -35,12 +35,12 @@ import type * as types from "../types"
  * This action initiates a streaming response by calling the corresponding
  * BAML stream function. The returned stream yields incremental updates.
  *
- * @param { string } recipe - Input parameter.
+ * @param { string[] | string | null } recipe (optional) - Input parameter.
  *
  * @returns {ReadableStream<Uint8Array>} A stream that yields incremental updates from the action.
  */
 export const AaaSamOutputFormat = async (
-  recipe: string,
+  recipe?: string[] | string | null,
 ): Promise<ReadableStream<Uint8Array>> => {
   const stream = b.stream.AaaSamOutputFormat(
     recipe,

@@ -35,12 +35,12 @@ import type * as types from "../types"
  * This server action calls the underlying BAML function "AaaSamOutputFormat"
  * with the specified parameters.
  *
- * @param { string } recipe - Input parameter.
+ * @param { string[] | string | null } recipe (optional) - Input parameter.
  *
  * @returns {Promise<Recipe[] | string>} A promise that resolves with the result of the action.
  */
 export const AaaSamOutputFormat = async (
-  recipe: string,
+  recipe?: string[] | string | null,
 ): Promise<Recipe[] | string> => {
   return b.AaaSamOutputFormat(
     recipe,

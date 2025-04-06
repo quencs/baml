@@ -39,7 +39,7 @@ class AsyncHttpRequest:
     
     async def AaaSamOutputFormat(
         self,
-        recipe: str,
+        recipe: Union[List[str], str, None],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
@@ -3940,7 +3940,7 @@ class AsyncHttpStreamRequest:
     
     async def AaaSamOutputFormat(
         self,
-        recipe: str,
+        recipe: Union[List[str], str, None],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)

@@ -360,7 +360,7 @@ function useBamlAction<FunctionName extends FunctionNames>(
  *
  * **Input Types:**
  *
- * - recipe: string
+ * - recipe (optional): string[] | string | null
  *
  *
  * **Return Type:**

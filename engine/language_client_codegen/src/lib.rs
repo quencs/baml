@@ -204,6 +204,7 @@ impl GenerateClient for GeneratorOutputType {
                 // run go fmt on the generated files (silent failure)
                 if let Err(e) = std::process::Command::new("go")
                     .arg("fmt")
+                    .arg("./...")
                     .current_dir(gen.output_dir())
                     .status()
                 {
@@ -212,6 +213,8 @@ impl GenerateClient for GeneratorOutputType {
                         gen.output_dir().display(),
                         e
                     );
+                } else {
+                    baml_log::info!("Successfully ran go fmt in {}", gen.output_dir().display());
                 }
             }
 

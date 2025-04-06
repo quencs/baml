@@ -32,14 +32,14 @@ export class AsyncHttpRequest {
 
   
   async AaaSamOutputFormat(
-      recipe: string,
+      recipe?: string[] | string | null,
       __baml_options__?: BamlCallOptions
   ): Promise<HTTPRequest> {
     try {
       return await this.runtime.buildRequest(
         "AaaSamOutputFormat",
         {
-          "recipe": recipe
+          "recipe": recipe?? null
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -3418,14 +3418,14 @@ export class AsyncHttpStreamRequest {
 
   
   async AaaSamOutputFormat(
-      recipe: string,
+      recipe?: string[] | string | null,
       __baml_options__?: BamlCallOptions
   ): Promise<HTTPRequest> {
     try {
       return await this.runtime.buildRequest(
         "AaaSamOutputFormat",
         {
-          "recipe": recipe
+          "recipe": recipe?? null
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

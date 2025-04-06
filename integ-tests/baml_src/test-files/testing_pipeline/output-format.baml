@@ -9,10 +9,10 @@ class Quantity {
   unit string
 }
 
-function AaaSamOutputFormat(recipe: string) -> Recipe[] | string {
+function AaaSamOutputFormat(recipe: string[] | string?) -> Recipe[] | string {
   client Ollama
   prompt #"
-    Return this value back to me: {{recipe}}
+    Return this value back to me: {{recipe or "apple pie"}}
 
     {{ ctx.output_format }}
   "#

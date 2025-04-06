@@ -80,7 +80,7 @@ module Baml
     sig {
       params(
         varargs: T.untyped,
-        recipe: String,
+        recipe: T.any(T::Array[String], String, NilClass),
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]))]
       ).returns(T.any(T::Array[Baml::Types::Recipe], String))
     }
@@ -9393,7 +9393,7 @@ module Baml
     sig {
       params(
         varargs: T.untyped,
-        recipe: String,
+        recipe: T.any(T::Array[String], String, NilClass),
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]))]
       ).returns(Baml::BamlStream[T.any(T::Array[Baml::Types::Recipe], String)])
     }
