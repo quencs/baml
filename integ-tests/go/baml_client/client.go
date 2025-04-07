@@ -12,11 +12,12 @@ package baml_client
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
 	"example.com/integ-tests/baml_client/types"
-	baml "github.com/boundaryml/baml/go/pkg"
+	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 
 var bamlRuntime *baml.BamlRuntime
@@ -107,7 +108,12 @@ func (*stream) AaaSamOutputFormat(ctx context.Context, recipe *types.Union__List
 					close(channel)
 					return
 				}
-				channel <- (*result.Data).(types.Union__List__Recipe__string)
+				if result.HasData {
+					channel <- (*result.Data).(types.Union__List__Recipe__string)
+				}
+				if result.HasStreamData {
+					fmt.Printf("stream data: %s\n", *result.StreamData)
+				}
 			}
 		}
 	}()

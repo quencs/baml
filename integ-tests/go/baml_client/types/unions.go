@@ -13,8 +13,8 @@ package types
 import (
 	"fmt"
 
-	baml "github.com/boundaryml/baml/go/pkg"
-	"github.com/boundaryml/baml/go/pkg/cffi"
+	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
@@ -2891,6 +2891,99 @@ func Union__List__bool__List__intNewWithList__int(v *[]int64) *Union__List__bool
 	}
 }
 
+type Union__SimpleTag__JsonTemplate struct {
+	variant string
+
+	variant_SimpleTag *SimpleTag
+
+	variant_JsonTemplate *JsonTemplate
+}
+
+func (u *Union__SimpleTag__JsonTemplate) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
+	valueHolder := holder.Value(nil)
+	switch holder.ValueTypeIndex() {
+
+	case 0:
+		u.variant = "SimpleTag"
+		value := *baml.Decode(valueHolder, typeMap).(*SimpleTag)
+		u.variant_SimpleTag = &value
+
+	case 1:
+		u.variant = "JsonTemplate"
+		value := baml.Decode(valueHolder, typeMap).(JsonTemplate)
+		u.variant_JsonTemplate = &value
+
+	}
+}
+
+func (u Union__SimpleTag__JsonTemplate) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+	switch u.variant {
+
+	case "SimpleTag":
+		return baml.EncodeUnion(builder, typeMap, u.variant, u.variant_SimpleTag)
+
+	case "JsonTemplate":
+		return baml.EncodeUnion(builder, typeMap, u.variant, u.variant_JsonTemplate)
+
+	case "":
+		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
+	}
+
+	return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: %s", u.variant)
+}
+
+func (u *Union__SimpleTag__JsonTemplate) SetSimpleTag(v SimpleTag) {
+	u.variant = "SimpleTag"
+	u.variant_SimpleTag = &v
+
+	u.variant_JsonTemplate = nil
+
+}
+
+func (u *Union__SimpleTag__JsonTemplate) IsSimpleTag() bool {
+	return u.variant == "SimpleTag"
+}
+
+func (u *Union__SimpleTag__JsonTemplate) SimpleTag() *SimpleTag {
+	if !u.IsSimpleTag() {
+		return nil
+	}
+	return u.variant_SimpleTag
+}
+
+func Union__SimpleTag__JsonTemplateNewWithSimpleTag(v *SimpleTag) *Union__SimpleTag__JsonTemplate {
+	return &Union__SimpleTag__JsonTemplate{
+		variant:           "SimpleTag",
+		variant_SimpleTag: v,
+	}
+}
+
+func (u *Union__SimpleTag__JsonTemplate) SetJsonTemplate(v JsonTemplate) {
+	u.variant = "JsonTemplate"
+	u.variant_JsonTemplate = &v
+
+	u.variant_SimpleTag = nil
+
+}
+
+func (u *Union__SimpleTag__JsonTemplate) IsJsonTemplate() bool {
+	return u.variant == "JsonTemplate"
+}
+
+func (u *Union__SimpleTag__JsonTemplate) JsonTemplate() *JsonTemplate {
+	if !u.IsJsonTemplate() {
+		return nil
+	}
+	return u.variant_JsonTemplate
+}
+
+func Union__SimpleTag__JsonTemplateNewWithJsonTemplate(v *JsonTemplate) *Union__SimpleTag__JsonTemplate {
+	return &Union__SimpleTag__JsonTemplate{
+		variant:              "JsonTemplate",
+		variant_JsonTemplate: v,
+	}
+}
+
 type Union__int__string__bool__float__JsonObject__JsonArray struct {
 	variant string
 
@@ -3173,98 +3266,5 @@ func Union__int__string__bool__float__JsonObject__JsonArrayNewWithJsonArray(v *J
 	return &Union__int__string__bool__float__JsonObject__JsonArray{
 		variant:           "JsonArray",
 		variant_JsonArray: v,
-	}
-}
-
-type Union__SimpleTag__JsonTemplate struct {
-	variant string
-
-	variant_SimpleTag *SimpleTag
-
-	variant_JsonTemplate *JsonTemplate
-}
-
-func (u *Union__SimpleTag__JsonTemplate) Decode(holder *cffi.CFFIValueUnionVariant, typeMap baml.TypeMap) {
-	valueHolder := holder.Value(nil)
-	switch holder.ValueTypeIndex() {
-
-	case 0:
-		u.variant = "SimpleTag"
-		value := *baml.Decode(valueHolder, typeMap).(*SimpleTag)
-		u.variant_SimpleTag = &value
-
-	case 1:
-		u.variant = "JsonTemplate"
-		value := baml.Decode(valueHolder, typeMap).(JsonTemplate)
-		u.variant_JsonTemplate = &value
-
-	}
-}
-
-func (u Union__SimpleTag__JsonTemplate) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	switch u.variant {
-
-	case "SimpleTag":
-		return baml.EncodeUnion(builder, typeMap, u.variant, u.variant_SimpleTag)
-
-	case "JsonTemplate":
-		return baml.EncodeUnion(builder, typeMap, u.variant, u.variant_JsonTemplate)
-
-	case "":
-		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
-	}
-
-	return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: %s", u.variant)
-}
-
-func (u *Union__SimpleTag__JsonTemplate) SetSimpleTag(v SimpleTag) {
-	u.variant = "SimpleTag"
-	u.variant_SimpleTag = &v
-
-	u.variant_JsonTemplate = nil
-
-}
-
-func (u *Union__SimpleTag__JsonTemplate) IsSimpleTag() bool {
-	return u.variant == "SimpleTag"
-}
-
-func (u *Union__SimpleTag__JsonTemplate) SimpleTag() *SimpleTag {
-	if !u.IsSimpleTag() {
-		return nil
-	}
-	return u.variant_SimpleTag
-}
-
-func Union__SimpleTag__JsonTemplateNewWithSimpleTag(v *SimpleTag) *Union__SimpleTag__JsonTemplate {
-	return &Union__SimpleTag__JsonTemplate{
-		variant:           "SimpleTag",
-		variant_SimpleTag: v,
-	}
-}
-
-func (u *Union__SimpleTag__JsonTemplate) SetJsonTemplate(v JsonTemplate) {
-	u.variant = "JsonTemplate"
-	u.variant_JsonTemplate = &v
-
-	u.variant_SimpleTag = nil
-
-}
-
-func (u *Union__SimpleTag__JsonTemplate) IsJsonTemplate() bool {
-	return u.variant == "JsonTemplate"
-}
-
-func (u *Union__SimpleTag__JsonTemplate) JsonTemplate() *JsonTemplate {
-	if !u.IsJsonTemplate() {
-		return nil
-	}
-	return u.variant_JsonTemplate
-}
-
-func Union__SimpleTag__JsonTemplateNewWithJsonTemplate(v *JsonTemplate) *Union__SimpleTag__JsonTemplate {
-	return &Union__SimpleTag__JsonTemplate{
-		variant:              "JsonTemplate",
-		variant_JsonTemplate: v,
 	}
 }

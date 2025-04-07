@@ -36,7 +36,7 @@ pub extern "C" fn destroy_baml_runtime(runtime: *const libc::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn invoke_runtime_cli(args: *const *const libc::c_char) {
+pub extern "C" fn invoke_runtime_cli(args: *const *const libc::c_char) -> libc::c_int {
     // Safety: We assume `args` is a valid pointer to a null-terminated array of C strings.
     let args_vec = unsafe {
         // Ensure the pointer itself is not null.
@@ -55,13 +55,18 @@ pub extern "C" fn invoke_runtime_cli(args: *const *const libc::c_char) {
             vec
         }
     };
-    baml_cli::run_cli(
+    match baml_cli::run_cli(
         args_vec,
         baml_runtime::RuntimeCliDefaults {
             output_type: baml_types::GeneratorOutputType::PythonPydantic,
         },
-    )
-    .unwrap();
+    ) {
+        Ok(exit_code) => exit_code.into(),
+        Err(e) => {
+            baml_log::error!("{}", e);
+            1
+        }
+    }
 }
 
 use std::ffi::CString;

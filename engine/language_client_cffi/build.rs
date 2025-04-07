@@ -19,7 +19,7 @@ fn main() {
     let args: flatc_rust::Args<'_> = flatc_rust::Args {
         lang: "go",
         inputs: &[Path::new("types/cffi.fbs")],
-        out_dir: Path::new("../language_client_go/go-sdk/pkg"),
+        out_dir: Path::new("../language_client_go/pkg"),
         ..Default::default()
     };
     flatc_rust::run(args).expect("Failed to generate Rust bindings");
@@ -27,9 +27,9 @@ fn main() {
     // Use cbindgen to generate the C header for your Rust library.
     let crate_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
 
-    for out_path in [
-        Path::new(&crate_dir).join("../language_client_go/go-sdk/include/baml_cffi_generated.h")
-    ] {
+    for out_path in
+        [Path::new(&crate_dir).join("../language_client_go/include/baml_cffi_generated.h")]
+    {
         let status = Command::new("cbindgen")
             .args(&[
                 "--config",

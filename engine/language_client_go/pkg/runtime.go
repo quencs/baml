@@ -24,6 +24,21 @@ type BamlRuntime struct {
 var instance *BamlRuntime
 var once sync.Once
 
+func InvokeRuntimeCli(args []string) int {
+
+	arg_c_strings := make([]*C.char, len(args))
+	for i, arg := range args {
+		arg_c_strings[i] = C.CString(arg)
+	}
+	defer func() {
+		for _, arg_c_string := range arg_c_strings {
+			C.free(unsafe.Pointer(arg_c_string))
+		}
+	}()
+	ret := C.invoke_runtime_cli((**C.char)(unsafe.Pointer(&arg_c_strings[0])))
+	return int(ret)
+}
+
 func init() {
 	C.register_callbacks((C.CallbackFn)(C.trigger_callback), (C.CallbackFn)(C.trigger_callback))
 }
@@ -90,7 +105,6 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, enc
 
 func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName string, encoded_args []byte) (<-chan ResultCallback, error) {
 	functionNameC := C.CString(functionName)
-	// defer C.free(unsafe.Pointer(functionNameC))
 
 	callback_id, callback := create_unique_id(ctx)
 

@@ -304,9 +304,9 @@ var typeMap = map[string]reflect.Type{
 
 	"Union__List__bool__List__int": reflect.TypeOf(types.Union__List__bool__List__int{}),
 
-	"Union__int__string__bool__float__JsonObject__JsonArray": reflect.TypeOf(types.Union__int__string__bool__float__JsonObject__JsonArray{}),
-
 	"Union__SimpleTag__JsonTemplate": reflect.TypeOf(types.Union__SimpleTag__JsonTemplate{}),
+
+	"Union__int__string__bool__float__JsonObject__JsonArray": reflect.TypeOf(types.Union__int__string__bool__float__JsonObject__JsonArray{}),
 }
 
 func Encode(object any) ([]byte, error) {

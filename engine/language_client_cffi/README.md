@@ -35,7 +35,7 @@ Internal FFI for the language client.
     ./integ-tests
     ```
 
-> **Note:** The actual go-sdk lives in [../language_client_go/go-sdk](../language_client_go/go-sdk/pkg/lib.go). The CFFI layer is a thin wrapper around the go-sdk.
+> **Note:** The actual go-sdk lives in [../language_client_go](../language_client_go/pkg/lib.go). The CFFI layer is a thin wrapper around the go-sdk.
 
 ## Additional Information
 

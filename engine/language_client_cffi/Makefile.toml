@@ -1,5 +1,11 @@
+[tasks.mkdir-lib]
+script = "mkdir -p ../language_client_go/lib"
+
+
 [tasks.cbindgen]
 install_crate = "cbindgen"
+dependencies = [{ name = "mkdir-lib", path = "." }]
+
 
 [tasks.build-debug]
 command = "cargo"
@@ -20,7 +26,7 @@ dependencies = ["build-debug", "build-release"]
 command = "cp"
 args = [
   "../target/debug/libbaml_cffi.dylib",
-  "../language_client_go/go-sdk/lib/libbaml_cffi.dylib",
+  "../language_client_go/lib/libbaml_cffi.dylib",
 ]
 dependencies = [{ name = "build", path = "." }]
 condition = { env_not_set = ["RELEASE_MODE"] }
@@ -29,7 +35,7 @@ condition = { env_not_set = ["RELEASE_MODE"] }
 command = "cp"
 args = [
   "../target/release/libbaml_cffi.dylib",
-  "../language_client_go/go-sdk/lib/libbaml_cffi.dylib",
+  "../language_client_go/lib/libbaml_cffi.dylib",
 ]
 dependencies = ["build-release"]
 condition = { env_set = ["RELEASE_MODE"] }
