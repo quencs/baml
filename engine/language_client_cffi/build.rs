@@ -24,7 +24,7 @@ fn main() {
     let args: flatc_rust::Args<'_> = flatc_rust::Args {
         lang: "go",
         inputs: &[Path::new("types/cffi.fbs")],
-        out_dir: Path::new("../language_client_go/pkg/cffi"),
+        out_dir: Path::new("../language_client_go/pkg"),
         ..Default::default()
     };
     flat_bin
