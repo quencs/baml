@@ -1,5 +1,6 @@
 use std::{path::Path, process::Command};
 
+use cbindgen;
 use flatc::flatc;
 use flatc_rust;
 
@@ -37,20 +38,16 @@ fn main() {
     for out_path in
         [Path::new(&crate_dir).join("../language_client_go/include/baml_cffi_generated.h")]
     {
-        let status = Command::new("cbindgen")
-            .args(&[
-                "--config",
-                "cbindgen.toml",
-                "--crate",
-                "baml_cffi",
-                "--output",
-            ])
-            .arg(out_path.to_str().unwrap())
-            .status()
-            .expect("Failed to run cbindgen");
-
-        if !status.success() {
-            panic!("cbindgen failed to generate header file");
+        let res = cbindgen::Builder::new()
+            .with_config(cbindgen::Config::from_file("cbindgen.toml").unwrap())
+            .with_crate(".")
+            .generate()
+            .expect("Failed to generate C header")
+            .write_to_file(out_path);
+        if std::env::var("CI").is_ok() {
+            if res {
+                panic!("cbindgen generated a diff");
+            }
         }
     }
 }
