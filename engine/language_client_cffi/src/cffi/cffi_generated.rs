@@ -692,8 +692,8 @@ impl<'a> CFFIValueHolder<'a> {
     CFFIValueHolder { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueHolderArgs
   ) -> flatbuffers::WIPOffset<CFFIValueHolder<'bldr>> {
     let mut builder = CFFIValueHolderBuilder::new(_fbb);
@@ -957,11 +957,11 @@ impl<'a> Default for CFFIValueHolderArgs {
   }
 }
 
-pub struct CFFIValueHolderBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueHolderBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueHolderBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueHolderBuilder<'a, 'b> {
   #[inline]
   pub fn add_value_type(&mut self, value_type: CFFIValueUnion) {
     self.fbb_.push_slot::<CFFIValueUnion>(CFFIValueHolder::VT_VALUE_TYPE, value_type, CFFIValueUnion::NONE);
@@ -971,7 +971,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueHolderBuilder<'a, 'b, 
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueHolder::VT_VALUE, value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueHolderBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueHolderBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueHolderBuilder {
       fbb_: _fbb,
@@ -1112,8 +1112,8 @@ impl<'a> CFFIValueString<'a> {
     CFFIValueString { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueStringArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueString<'bldr>> {
     let mut builder = CFFIValueStringBuilder::new(_fbb);
@@ -1155,17 +1155,17 @@ impl<'a> Default for CFFIValueStringArgs<'a> {
   }
 }
 
-pub struct CFFIValueStringBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueStringBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueStringBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueStringBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueString::VT_VALUE, value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueStringBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueStringBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueStringBuilder {
       fbb_: _fbb,
@@ -1209,8 +1209,8 @@ impl<'a> CFFIValueInt<'a> {
     CFFIValueInt { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueIntArgs
   ) -> flatbuffers::WIPOffset<CFFIValueInt<'bldr>> {
     let mut builder = CFFIValueIntBuilder::new(_fbb);
@@ -1252,17 +1252,17 @@ impl<'a> Default for CFFIValueIntArgs {
   }
 }
 
-pub struct CFFIValueIntBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueIntBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueIntBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueIntBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: i64) {
     self.fbb_.push_slot::<i64>(CFFIValueInt::VT_VALUE, value, 0);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueIntBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueIntBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueIntBuilder {
       fbb_: _fbb,
@@ -1306,8 +1306,8 @@ impl<'a> CFFIValueFloat<'a> {
     CFFIValueFloat { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueFloatArgs
   ) -> flatbuffers::WIPOffset<CFFIValueFloat<'bldr>> {
     let mut builder = CFFIValueFloatBuilder::new(_fbb);
@@ -1349,17 +1349,17 @@ impl<'a> Default for CFFIValueFloatArgs {
   }
 }
 
-pub struct CFFIValueFloatBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueFloatBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueFloatBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueFloatBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: f64) {
     self.fbb_.push_slot::<f64>(CFFIValueFloat::VT_VALUE, value, 0.0);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueFloatBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueFloatBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueFloatBuilder {
       fbb_: _fbb,
@@ -1403,8 +1403,8 @@ impl<'a> CFFIValueBool<'a> {
     CFFIValueBool { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueBoolArgs
   ) -> flatbuffers::WIPOffset<CFFIValueBool<'bldr>> {
     let mut builder = CFFIValueBoolBuilder::new(_fbb);
@@ -1446,17 +1446,17 @@ impl<'a> Default for CFFIValueBoolArgs {
   }
 }
 
-pub struct CFFIValueBoolBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueBoolBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueBoolBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueBoolBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: bool) {
     self.fbb_.push_slot::<bool>(CFFIValueBool::VT_VALUE, value, false);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueBoolBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueBoolBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueBoolBuilder {
       fbb_: _fbb,
@@ -1500,8 +1500,8 @@ impl<'a> CFFIValueList<'a> {
     CFFIValueList { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueListArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueList<'bldr>> {
     let mut builder = CFFIValueListBuilder::new(_fbb);
@@ -1543,17 +1543,17 @@ impl<'a> Default for CFFIValueListArgs<'a> {
   }
 }
 
-pub struct CFFIValueListBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueListBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueListBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueListBuilder<'a, 'b> {
   #[inline]
   pub fn add_values(&mut self, values: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<CFFIValueHolder<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueList::VT_VALUES, values);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueListBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueListBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueListBuilder {
       fbb_: _fbb,
@@ -1598,8 +1598,8 @@ impl<'a> CFFIMapEntry<'a> {
     CFFIMapEntry { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIMapEntryArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIMapEntry<'bldr>> {
     let mut builder = CFFIMapEntryBuilder::new(_fbb);
@@ -1652,11 +1652,11 @@ impl<'a> Default for CFFIMapEntryArgs<'a> {
   }
 }
 
-pub struct CFFIMapEntryBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIMapEntryBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMapEntryBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIMapEntryBuilder<'a, 'b> {
   #[inline]
   pub fn add_key(&mut self, key: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIMapEntry::VT_KEY, key);
@@ -1666,7 +1666,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMapEntryBuilder<'a, 'b, A> 
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIValueHolder>>(CFFIMapEntry::VT_VALUE, value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIMapEntryBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIMapEntryBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIMapEntryBuilder {
       fbb_: _fbb,
@@ -1711,8 +1711,8 @@ impl<'a> CFFIValueMap<'a> {
     CFFIValueMap { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueMapArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueMap<'bldr>> {
     let mut builder = CFFIValueMapBuilder::new(_fbb);
@@ -1754,17 +1754,17 @@ impl<'a> Default for CFFIValueMapArgs<'a> {
   }
 }
 
-pub struct CFFIValueMapBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueMapBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueMapBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueMapBuilder<'a, 'b> {
   #[inline]
   pub fn add_entries(&mut self, entries: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<CFFIMapEntry<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueMap::VT_ENTRIES, entries);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueMapBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueMapBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueMapBuilder {
       fbb_: _fbb,
@@ -1810,8 +1810,8 @@ impl<'a> CFFIValueClass<'a> {
     CFFIValueClass { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueClassArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueClass<'bldr>> {
     let mut builder = CFFIValueClassBuilder::new(_fbb);
@@ -1875,11 +1875,11 @@ impl<'a> Default for CFFIValueClassArgs<'a> {
   }
 }
 
-pub struct CFFIValueClassBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueClassBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueClassBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueClassBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueClass::VT_NAME, name);
@@ -1893,7 +1893,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueClassBuilder<'a, 'b, A
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueClass::VT_DYNAMIC_FIELDS, dynamic_fields);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueClassBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueClassBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueClassBuilder {
       fbb_: _fbb,
@@ -1941,8 +1941,8 @@ impl<'a> CFFIValueEnum<'a> {
     CFFIValueEnum { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueEnumArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueEnum<'bldr>> {
     let mut builder = CFFIValueEnumBuilder::new(_fbb);
@@ -2006,11 +2006,11 @@ impl<'a> Default for CFFIValueEnumArgs<'a> {
   }
 }
 
-pub struct CFFIValueEnumBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueEnumBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueEnumBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueEnumBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueEnum::VT_NAME, name);
@@ -2024,7 +2024,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueEnumBuilder<'a, 'b, A>
     self.fbb_.push_slot::<bool>(CFFIValueEnum::VT_IS_DYNAMIC, is_dynamic, false);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueEnumBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueEnumBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueEnumBuilder {
       fbb_: _fbb,
@@ -2071,8 +2071,8 @@ impl<'a> CFFIValueMedia<'a> {
     CFFIValueMedia { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueMediaArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueMedia<'bldr>> {
     let mut builder = CFFIValueMediaBuilder::new(_fbb);
@@ -2125,11 +2125,11 @@ impl<'a> Default for CFFIValueMediaArgs<'a> {
   }
 }
 
-pub struct CFFIValueMediaBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueMediaBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueMediaBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueMediaBuilder<'a, 'b> {
   #[inline]
   pub fn add_media_type(&mut self, media_type: flatbuffers::WIPOffset<CFFIMediaType<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIMediaType>>(CFFIValueMedia::VT_MEDIA_TYPE, media_type);
@@ -2139,7 +2139,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueMediaBuilder<'a, 'b, A
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIMediaValue>>(CFFIValueMedia::VT_MEDIA_VALUE, media_value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueMediaBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueMediaBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueMediaBuilder {
       fbb_: _fbb,
@@ -2184,8 +2184,8 @@ impl<'a> CFFIValueTuple<'a> {
     CFFIValueTuple { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueTupleArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueTuple<'bldr>> {
     let mut builder = CFFIValueTupleBuilder::new(_fbb);
@@ -2227,17 +2227,17 @@ impl<'a> Default for CFFIValueTupleArgs<'a> {
   }
 }
 
-pub struct CFFIValueTupleBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueTupleBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueTupleBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueTupleBuilder<'a, 'b> {
   #[inline]
   pub fn add_values(&mut self, values: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<CFFIValueHolder<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueTuple::VT_VALUES, values);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueTupleBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueTupleBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueTupleBuilder {
       fbb_: _fbb,
@@ -2284,8 +2284,8 @@ impl<'a> CFFIValueUnionVariant<'a> {
     CFFIValueUnionVariant { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueUnionVariantArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueUnionVariant<'bldr>> {
     let mut builder = CFFIValueUnionVariantBuilder::new(_fbb);
@@ -2360,11 +2360,11 @@ impl<'a> Default for CFFIValueUnionVariantArgs<'a> {
   }
 }
 
-pub struct CFFIValueUnionVariantBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueUnionVariantBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueUnionVariantBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueUnionVariantBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueUnionVariant::VT_NAME, name);
@@ -2382,7 +2382,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueUnionVariantBuilder<'a
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIValueHolder>>(CFFIValueUnionVariant::VT_VALUE, value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueUnionVariantBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueUnionVariantBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueUnionVariantBuilder {
       fbb_: _fbb,
@@ -2430,8 +2430,8 @@ impl<'a> CFFIValueChecked<'a> {
     CFFIValueChecked { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueCheckedArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueChecked<'bldr>> {
     let mut builder = CFFIValueCheckedBuilder::new(_fbb);
@@ -2484,11 +2484,11 @@ impl<'a> Default for CFFIValueCheckedArgs<'a> {
   }
 }
 
-pub struct CFFIValueCheckedBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueCheckedBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueCheckedBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueCheckedBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: flatbuffers::WIPOffset<CFFIValueHolder<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIValueHolder>>(CFFIValueChecked::VT_VALUE, value);
@@ -2498,7 +2498,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueCheckedBuilder<'a, 'b,
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIValueChecked::VT_CHECKS, checks);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueCheckedBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueCheckedBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueCheckedBuilder {
       fbb_: _fbb,
@@ -2544,8 +2544,8 @@ impl<'a> CFFIMediaType<'a> {
     CFFIMediaType { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIMediaTypeArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIMediaType<'bldr>> {
     let mut builder = CFFIMediaTypeBuilder::new(_fbb);
@@ -2598,11 +2598,11 @@ impl<'a> Default for CFFIMediaTypeArgs<'a> {
   }
 }
 
-pub struct CFFIMediaTypeBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIMediaTypeBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMediaTypeBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIMediaTypeBuilder<'a, 'b> {
   #[inline]
   pub fn add_type_(&mut self, type_: MediaTypeEnum) {
     self.fbb_.push_slot::<MediaTypeEnum>(CFFIMediaType::VT_TYPE_, type_, MediaTypeEnum::Image);
@@ -2612,7 +2612,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMediaTypeBuilder<'a, 'b, A>
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIMediaType::VT_OTHER, other);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIMediaTypeBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIMediaTypeBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIMediaTypeBuilder {
       fbb_: _fbb,
@@ -2657,8 +2657,8 @@ impl<'a> CFFIMediaContentUrl<'a> {
     CFFIMediaContentUrl { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIMediaContentUrlArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIMediaContentUrl<'bldr>> {
     let mut builder = CFFIMediaContentUrlBuilder::new(_fbb);
@@ -2700,17 +2700,17 @@ impl<'a> Default for CFFIMediaContentUrlArgs<'a> {
   }
 }
 
-pub struct CFFIMediaContentUrlBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIMediaContentUrlBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMediaContentUrlBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIMediaContentUrlBuilder<'a, 'b> {
   #[inline]
   pub fn add_url(&mut self, url: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIMediaContentUrl::VT_URL, url);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIMediaContentUrlBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIMediaContentUrlBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIMediaContentUrlBuilder {
       fbb_: _fbb,
@@ -2754,8 +2754,8 @@ impl<'a> CFFIMediaContentBase64<'a> {
     CFFIMediaContentBase64 { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIMediaContentBase64Args<'args>
   ) -> flatbuffers::WIPOffset<CFFIMediaContentBase64<'bldr>> {
     let mut builder = CFFIMediaContentBase64Builder::new(_fbb);
@@ -2797,17 +2797,17 @@ impl<'a> Default for CFFIMediaContentBase64Args<'a> {
   }
 }
 
-pub struct CFFIMediaContentBase64Builder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIMediaContentBase64Builder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMediaContentBase64Builder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIMediaContentBase64Builder<'a, 'b> {
   #[inline]
   pub fn add_data(&mut self, data: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIMediaContentBase64::VT_DATA, data);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIMediaContentBase64Builder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIMediaContentBase64Builder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIMediaContentBase64Builder {
       fbb_: _fbb,
@@ -2851,8 +2851,8 @@ impl<'a> CFFIMediaContentFile<'a> {
     CFFIMediaContentFile { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIMediaContentFileArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIMediaContentFile<'bldr>> {
     let mut builder = CFFIMediaContentFileBuilder::new(_fbb);
@@ -2894,17 +2894,17 @@ impl<'a> Default for CFFIMediaContentFileArgs<'a> {
   }
 }
 
-pub struct CFFIMediaContentFileBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIMediaContentFileBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMediaContentFileBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIMediaContentFileBuilder<'a, 'b> {
   #[inline]
   pub fn add_path(&mut self, path: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIMediaContentFile::VT_PATH, path);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIMediaContentFileBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIMediaContentFileBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIMediaContentFileBuilder {
       fbb_: _fbb,
@@ -2950,8 +2950,8 @@ impl<'a> CFFIMediaValue<'a> {
     CFFIMediaValue { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIMediaValueArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIMediaValue<'bldr>> {
     let mut builder = CFFIMediaValueBuilder::new(_fbb);
@@ -3066,11 +3066,11 @@ impl<'a> Default for CFFIMediaValueArgs<'a> {
   }
 }
 
-pub struct CFFIMediaValueBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIMediaValueBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMediaValueBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIMediaValueBuilder<'a, 'b> {
   #[inline]
   pub fn add_content_type(&mut self, content_type: CFFIMediaContentUnion) {
     self.fbb_.push_slot::<CFFIMediaContentUnion>(CFFIMediaValue::VT_CONTENT_TYPE, content_type, CFFIMediaContentUnion::NONE);
@@ -3084,7 +3084,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIMediaValueBuilder<'a, 'b, A
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIMediaValue::VT_MIME_TYPE, mime_type);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIMediaValueBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIMediaValueBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIMediaValueBuilder {
       fbb_: _fbb,
@@ -3157,8 +3157,8 @@ impl<'a> CFFIFieldTypeHolder<'a> {
     CFFIFieldTypeHolder { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeHolderArgs
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeHolder<'bldr>> {
     let mut builder = CFFIFieldTypeHolderBuilder::new(_fbb);
@@ -3470,11 +3470,11 @@ impl<'a> Default for CFFIFieldTypeHolderArgs {
   }
 }
 
-pub struct CFFIFieldTypeHolderBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeHolderBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeHolderBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeHolderBuilder<'a, 'b> {
   #[inline]
   pub fn add_type_type(&mut self, type_type: CFFIFieldTypeUnion) {
     self.fbb_.push_slot::<CFFIFieldTypeUnion>(CFFIFieldTypeHolder::VT_TYPE_TYPE, type_type, CFFIFieldTypeUnion::NONE);
@@ -3484,7 +3484,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeHolderBuilder<'a, 
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeHolder::VT_TYPE_, type_);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeHolderBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeHolderBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeHolderBuilder {
       fbb_: _fbb,
@@ -3645,8 +3645,8 @@ impl<'a> CFFIFieldTypeString<'a> {
     CFFIFieldTypeString { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     _args: &'args CFFIFieldTypeStringArgs
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeString<'bldr>> {
     let mut builder = CFFIFieldTypeStringBuilder::new(_fbb);
@@ -3676,13 +3676,13 @@ impl<'a> Default for CFFIFieldTypeStringArgs {
   }
 }
 
-pub struct CFFIFieldTypeStringBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeStringBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeStringBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeStringBuilder<'a, 'b> {
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeStringBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeStringBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeStringBuilder {
       fbb_: _fbb,
@@ -3724,8 +3724,8 @@ impl<'a> CFFIFieldTypeInt<'a> {
     CFFIFieldTypeInt { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     _args: &'args CFFIFieldTypeIntArgs
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeInt<'bldr>> {
     let mut builder = CFFIFieldTypeIntBuilder::new(_fbb);
@@ -3755,13 +3755,13 @@ impl<'a> Default for CFFIFieldTypeIntArgs {
   }
 }
 
-pub struct CFFIFieldTypeIntBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeIntBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeIntBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeIntBuilder<'a, 'b> {
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeIntBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeIntBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeIntBuilder {
       fbb_: _fbb,
@@ -3803,8 +3803,8 @@ impl<'a> CFFIFieldTypeFloat<'a> {
     CFFIFieldTypeFloat { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     _args: &'args CFFIFieldTypeFloatArgs
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeFloat<'bldr>> {
     let mut builder = CFFIFieldTypeFloatBuilder::new(_fbb);
@@ -3834,13 +3834,13 @@ impl<'a> Default for CFFIFieldTypeFloatArgs {
   }
 }
 
-pub struct CFFIFieldTypeFloatBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeFloatBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeFloatBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeFloatBuilder<'a, 'b> {
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeFloatBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeFloatBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeFloatBuilder {
       fbb_: _fbb,
@@ -3882,8 +3882,8 @@ impl<'a> CFFIFieldTypeBool<'a> {
     CFFIFieldTypeBool { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     _args: &'args CFFIFieldTypeBoolArgs
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeBool<'bldr>> {
     let mut builder = CFFIFieldTypeBoolBuilder::new(_fbb);
@@ -3913,13 +3913,13 @@ impl<'a> Default for CFFIFieldTypeBoolArgs {
   }
 }
 
-pub struct CFFIFieldTypeBoolBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeBoolBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeBoolBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeBoolBuilder<'a, 'b> {
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeBoolBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeBoolBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeBoolBuilder {
       fbb_: _fbb,
@@ -3961,8 +3961,8 @@ impl<'a> CFFIFieldTypeNull<'a> {
     CFFIFieldTypeNull { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     _args: &'args CFFIFieldTypeNullArgs
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeNull<'bldr>> {
     let mut builder = CFFIFieldTypeNullBuilder::new(_fbb);
@@ -3992,13 +3992,13 @@ impl<'a> Default for CFFIFieldTypeNullArgs {
   }
 }
 
-pub struct CFFIFieldTypeNullBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeNullBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeNullBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeNullBuilder<'a, 'b> {
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeNullBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeNullBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeNullBuilder {
       fbb_: _fbb,
@@ -4041,8 +4041,8 @@ impl<'a> CFFILiteralString<'a> {
     CFFILiteralString { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFILiteralStringArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFILiteralString<'bldr>> {
     let mut builder = CFFILiteralStringBuilder::new(_fbb);
@@ -4084,17 +4084,17 @@ impl<'a> Default for CFFILiteralStringArgs<'a> {
   }
 }
 
-pub struct CFFILiteralStringBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFILiteralStringBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFILiteralStringBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFILiteralStringBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFILiteralString::VT_VALUE, value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFILiteralStringBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFILiteralStringBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFILiteralStringBuilder {
       fbb_: _fbb,
@@ -4138,8 +4138,8 @@ impl<'a> CFFILiteralInt<'a> {
     CFFILiteralInt { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFILiteralIntArgs
   ) -> flatbuffers::WIPOffset<CFFILiteralInt<'bldr>> {
     let mut builder = CFFILiteralIntBuilder::new(_fbb);
@@ -4181,17 +4181,17 @@ impl<'a> Default for CFFILiteralIntArgs {
   }
 }
 
-pub struct CFFILiteralIntBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFILiteralIntBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFILiteralIntBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFILiteralIntBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: i64) {
     self.fbb_.push_slot::<i64>(CFFILiteralInt::VT_VALUE, value, 0);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFILiteralIntBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFILiteralIntBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFILiteralIntBuilder {
       fbb_: _fbb,
@@ -4235,8 +4235,8 @@ impl<'a> CFFILiteralBool<'a> {
     CFFILiteralBool { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFILiteralBoolArgs
   ) -> flatbuffers::WIPOffset<CFFILiteralBool<'bldr>> {
     let mut builder = CFFILiteralBoolBuilder::new(_fbb);
@@ -4278,17 +4278,17 @@ impl<'a> Default for CFFILiteralBoolArgs {
   }
 }
 
-pub struct CFFILiteralBoolBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFILiteralBoolBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFILiteralBoolBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFILiteralBoolBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: bool) {
     self.fbb_.push_slot::<bool>(CFFILiteralBool::VT_VALUE, value, false);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFILiteralBoolBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFILiteralBoolBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFILiteralBoolBuilder {
       fbb_: _fbb,
@@ -4333,8 +4333,8 @@ impl<'a> CFFIFieldTypeLiteral<'a> {
     CFFIFieldTypeLiteral { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeLiteralArgs
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeLiteral<'bldr>> {
     let mut builder = CFFIFieldTypeLiteralBuilder::new(_fbb);
@@ -4438,11 +4438,11 @@ impl<'a> Default for CFFIFieldTypeLiteralArgs {
   }
 }
 
-pub struct CFFIFieldTypeLiteralBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeLiteralBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeLiteralBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeLiteralBuilder<'a, 'b> {
   #[inline]
   pub fn add_literal_type(&mut self, literal_type: CFFILiteralUnion) {
     self.fbb_.push_slot::<CFFILiteralUnion>(CFFIFieldTypeLiteral::VT_LITERAL_TYPE, literal_type, CFFILiteralUnion::NONE);
@@ -4452,7 +4452,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeLiteralBuilder<'a,
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeLiteral::VT_LITERAL, literal);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeLiteralBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeLiteralBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeLiteralBuilder {
       fbb_: _fbb,
@@ -4523,8 +4523,8 @@ impl<'a> CFFIFieldTypeMedia<'a> {
     CFFIFieldTypeMedia { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeMediaArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeMedia<'bldr>> {
     let mut builder = CFFIFieldTypeMediaBuilder::new(_fbb);
@@ -4566,17 +4566,17 @@ impl<'a> Default for CFFIFieldTypeMediaArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeMediaBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeMediaBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeMediaBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeMediaBuilder<'a, 'b> {
   #[inline]
   pub fn add_media(&mut self, media: flatbuffers::WIPOffset<CFFIMediaType<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIMediaType>>(CFFIFieldTypeMedia::VT_MEDIA, media);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeMediaBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeMediaBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeMediaBuilder {
       fbb_: _fbb,
@@ -4620,8 +4620,8 @@ impl<'a> CFFIFieldTypeEnum<'a> {
     CFFIFieldTypeEnum { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeEnumArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeEnum<'bldr>> {
     let mut builder = CFFIFieldTypeEnumBuilder::new(_fbb);
@@ -4663,17 +4663,17 @@ impl<'a> Default for CFFIFieldTypeEnumArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeEnumBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeEnumBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeEnumBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeEnumBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeEnum::VT_NAME, name);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeEnumBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeEnumBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeEnumBuilder {
       fbb_: _fbb,
@@ -4717,8 +4717,8 @@ impl<'a> CFFIFieldTypeClass<'a> {
     CFFIFieldTypeClass { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeClassArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeClass<'bldr>> {
     let mut builder = CFFIFieldTypeClassBuilder::new(_fbb);
@@ -4760,17 +4760,17 @@ impl<'a> Default for CFFIFieldTypeClassArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeClassBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeClassBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeClassBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeClassBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeClass::VT_NAME, name);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeClassBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeClassBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeClassBuilder {
       fbb_: _fbb,
@@ -4814,8 +4814,8 @@ impl<'a> CFFIFieldTypeTypeAlias<'a> {
     CFFIFieldTypeTypeAlias { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeTypeAliasArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeTypeAlias<'bldr>> {
     let mut builder = CFFIFieldTypeTypeAliasBuilder::new(_fbb);
@@ -4857,17 +4857,17 @@ impl<'a> Default for CFFIFieldTypeTypeAliasArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeTypeAliasBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeTypeAliasBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeTypeAliasBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeTypeAliasBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeTypeAlias::VT_NAME, name);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeTypeAliasBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeTypeAliasBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeTypeAliasBuilder {
       fbb_: _fbb,
@@ -4911,8 +4911,8 @@ impl<'a> CFFIFieldTypeList<'a> {
     CFFIFieldTypeList { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeListArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeList<'bldr>> {
     let mut builder = CFFIFieldTypeListBuilder::new(_fbb);
@@ -4954,17 +4954,17 @@ impl<'a> Default for CFFIFieldTypeListArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeListBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeListBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeListBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeListBuilder<'a, 'b> {
   #[inline]
   pub fn add_element(&mut self, element: flatbuffers::WIPOffset<CFFIFieldTypeHolder<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIFieldTypeHolder>>(CFFIFieldTypeList::VT_ELEMENT, element);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeListBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeListBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeListBuilder {
       fbb_: _fbb,
@@ -5009,8 +5009,8 @@ impl<'a> CFFIFieldTypeMap<'a> {
     CFFIFieldTypeMap { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeMapArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeMap<'bldr>> {
     let mut builder = CFFIFieldTypeMapBuilder::new(_fbb);
@@ -5063,11 +5063,11 @@ impl<'a> Default for CFFIFieldTypeMapArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeMapBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeMapBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeMapBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeMapBuilder<'a, 'b> {
   #[inline]
   pub fn add_key(&mut self, key: flatbuffers::WIPOffset<CFFIFieldTypeHolder<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIFieldTypeHolder>>(CFFIFieldTypeMap::VT_KEY, key);
@@ -5077,7 +5077,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeMapBuilder<'a, 'b,
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIFieldTypeHolder>>(CFFIFieldTypeMap::VT_VALUE, value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeMapBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeMapBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeMapBuilder {
       fbb_: _fbb,
@@ -5122,8 +5122,8 @@ impl<'a> CFFIFieldTypeTuple<'a> {
     CFFIFieldTypeTuple { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeTupleArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeTuple<'bldr>> {
     let mut builder = CFFIFieldTypeTupleBuilder::new(_fbb);
@@ -5165,17 +5165,17 @@ impl<'a> Default for CFFIFieldTypeTupleArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeTupleBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeTupleBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeTupleBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeTupleBuilder<'a, 'b> {
   #[inline]
   pub fn add_elements(&mut self, elements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeTuple::VT_ELEMENTS, elements);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeTupleBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeTupleBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeTupleBuilder {
       fbb_: _fbb,
@@ -5219,8 +5219,8 @@ impl<'a> CFFIFieldTypeUnionVariant<'a> {
     CFFIFieldTypeUnionVariant { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeUnionVariantArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeUnionVariant<'bldr>> {
     let mut builder = CFFIFieldTypeUnionVariantBuilder::new(_fbb);
@@ -5262,17 +5262,17 @@ impl<'a> Default for CFFIFieldTypeUnionVariantArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeUnionVariantBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeUnionVariantBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeUnionVariantBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeUnionVariantBuilder<'a, 'b> {
   #[inline]
   pub fn add_options(&mut self, options: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<CFFIFieldTypeHolder<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeUnionVariant::VT_OPTIONS, options);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeUnionVariantBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeUnionVariantBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeUnionVariantBuilder {
       fbb_: _fbb,
@@ -5317,8 +5317,8 @@ impl<'a> CFFIFieldTypeChecked<'a> {
     CFFIFieldTypeChecked { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeCheckedArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeChecked<'bldr>> {
     let mut builder = CFFIFieldTypeCheckedBuilder::new(_fbb);
@@ -5371,11 +5371,11 @@ impl<'a> Default for CFFIFieldTypeCheckedArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeCheckedBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeCheckedBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeCheckedBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeCheckedBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: flatbuffers::WIPOffset<CFFIFieldTypeHolder<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIFieldTypeHolder>>(CFFIFieldTypeChecked::VT_VALUE, value);
@@ -5385,7 +5385,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeCheckedBuilder<'a,
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeChecked::VT_CHECKS, checks);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeCheckedBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeCheckedBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeCheckedBuilder {
       fbb_: _fbb,
@@ -5430,8 +5430,8 @@ impl<'a> CFFIFieldTypeStreamState<'a> {
     CFFIFieldTypeStreamState { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIFieldTypeStreamStateArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIFieldTypeStreamState<'bldr>> {
     let mut builder = CFFIFieldTypeStreamStateBuilder::new(_fbb);
@@ -5473,17 +5473,17 @@ impl<'a> Default for CFFIFieldTypeStreamStateArgs<'a> {
   }
 }
 
-pub struct CFFIFieldTypeStreamStateBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIFieldTypeStreamStateBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIFieldTypeStreamStateBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIFieldTypeStreamStateBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: flatbuffers::WIPOffset<CFFIFieldTypeHolder<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIFieldTypeHolder>>(CFFIFieldTypeStreamState::VT_VALUE, value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIFieldTypeStreamStateBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeStreamStateBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIFieldTypeStreamStateBuilder {
       fbb_: _fbb,
@@ -5528,8 +5528,8 @@ impl<'a> CFFICheckType<'a> {
     CFFICheckType { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFICheckTypeArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFICheckType<'bldr>> {
     let mut builder = CFFICheckTypeBuilder::new(_fbb);
@@ -5582,11 +5582,11 @@ impl<'a> Default for CFFICheckTypeArgs<'a> {
   }
 }
 
-pub struct CFFICheckTypeBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFICheckTypeBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFICheckTypeBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFICheckTypeBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFICheckType::VT_NAME, name);
@@ -5596,7 +5596,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFICheckTypeBuilder<'a, 'b, A>
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIFieldTypeHolder>>(CFFICheckType::VT_RETURNS, returns);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFICheckTypeBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFICheckTypeBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFICheckTypeBuilder {
       fbb_: _fbb,
@@ -5644,8 +5644,8 @@ impl<'a> CFFICheckValue<'a> {
     CFFICheckValue { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFICheckValueArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFICheckValue<'bldr>> {
     let mut builder = CFFICheckValueBuilder::new(_fbb);
@@ -5720,11 +5720,11 @@ impl<'a> Default for CFFICheckValueArgs<'a> {
   }
 }
 
-pub struct CFFICheckValueBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFICheckValueBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFICheckValueBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFICheckValueBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFICheckValue::VT_NAME, name);
@@ -5742,7 +5742,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFICheckValueBuilder<'a, 'b, A
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIValueHolder>>(CFFICheckValue::VT_VALUE, value);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFICheckValueBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFICheckValueBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFICheckValueBuilder {
       fbb_: _fbb,
@@ -5790,8 +5790,8 @@ impl<'a> CFFIValueStreamingState<'a> {
     CFFIValueStreamingState { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args CFFIValueStreamingStateArgs<'args>
   ) -> flatbuffers::WIPOffset<CFFIValueStreamingState<'bldr>> {
     let mut builder = CFFIValueStreamingStateBuilder::new(_fbb);
@@ -5844,11 +5844,11 @@ impl<'a> Default for CFFIValueStreamingStateArgs<'a> {
   }
 }
 
-pub struct CFFIValueStreamingStateBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+pub struct CFFIValueStreamingStateBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueStreamingStateBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b> CFFIValueStreamingStateBuilder<'a, 'b> {
   #[inline]
   pub fn add_value(&mut self, value: flatbuffers::WIPOffset<CFFIValueHolder<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFIValueHolder>>(CFFIValueStreamingState::VT_VALUE, value);
@@ -5858,7 +5858,7 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> CFFIValueStreamingStateBuilder<
     self.fbb_.push_slot::<CFFIStreamState>(CFFIValueStreamingState::VT_STATE, state, CFFIStreamState::Pending);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> CFFIValueStreamingStateBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIValueStreamingStateBuilder<'a, 'b> {
     let start = _fbb.start_table();
     CFFIValueStreamingStateBuilder {
       fbb_: _fbb,

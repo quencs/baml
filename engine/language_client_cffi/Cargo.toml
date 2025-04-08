@@ -33,3 +33,4 @@ flatbuffers = "25.2.10"
 [build-dependencies]
 cbindgen = "0.28.0"
 flatc-rust = "0.2.0"
+flatc = "0.2.2"

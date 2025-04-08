@@ -1221,6 +1221,7 @@ dependencies = [
  "baml-types",
  "cbindgen",
  "flatbuffers",
+ "flatc",
  "flatc-rust",
  "internal-baml-codegen",
  "libc",
@@ -1566,6 +1567,15 @@ name = "clap_lex"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b82cf0babdbd58558212896d1a4272303a57bdb245c2bf1147185fb45640e70"
+
+[[package]]
+name = "cmake"
+version = "0.1.54"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7caa3f9de89ddbe2c607f4101924c5abec803763ae9534e4f4d7d8f84aa81f0"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "colorchoice"
@@ -2157,6 +2167,15 @@ checksum = "1045398c1bfd89168b5fd3f1fc11f6e70b34f6f66300c87d44d3de849463abf1"
 dependencies = [
  "bitflags 2.9.0",
  "rustc_version",
+]
+
+[[package]]
+name = "flatc"
+version = "0.2.2+23.5.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4bba3050358223ece3d79720f9800139503b600e93b1d68493500a2d8c3721e"
+dependencies = [
+ "cmake",
 ]
 
 [[package]]

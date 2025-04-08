@@ -1,5 +1,6 @@
 use std::{path::Path, process::Command};
 
+use flatc::flatc;
 use flatc_rust;
 
 fn main() {
@@ -8,21 +9,27 @@ fn main() {
     println!("cargo:rerun-if-changed=cbindgen.toml");
     println!("cargo:rerun-if-changed=src/lib.rs");
 
+    let flat_bin = flatc_rust::Flatc::from_path(flatc());
+
     let args = flatc_rust::Args {
         lang: "rust",
         inputs: &[Path::new("types/cffi.fbs")],
         out_dir: Path::new("src/cffi"),
         ..Default::default()
     };
-    flatc_rust::run(args).expect("Failed to generate Rust bindings");
+    flat_bin
+        .run(args)
+        .expect("Failed to generate Rust bindings");
 
     let args: flatc_rust::Args<'_> = flatc_rust::Args {
         lang: "go",
         inputs: &[Path::new("types/cffi.fbs")],
-        out_dir: Path::new("../language_client_go/pkg"),
+        out_dir: Path::new("../language_client_go/pkg/cffi"),
         ..Default::default()
     };
-    flatc_rust::run(args).expect("Failed to generate Rust bindings");
+    flat_bin
+        .run(args)
+        .expect("Failed to generate Rust bindings");
 
     // Use cbindgen to generate the C header for your Rust library.
     let crate_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");

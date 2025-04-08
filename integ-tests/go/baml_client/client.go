@@ -172,7 +172,7 @@ func (*stream) AliasThatPointsToRecursiveType(ctx context.Context, data types.Li
 	return channel
 }
 
-func AliasWithMultipleAttrs(ctx context.Context, money types.Checked[int64]) (*types.Checked[int64], error) {
+func AliasWithMultipleAttrs(ctx context.Context, money int64) (*types.Checked[int64], error) {
 	args := map[string]any{"money": money}
 	encoded, err := baml.EncodeRoot(args, typeMap)
 	if err != nil {
@@ -196,7 +196,7 @@ func AliasWithMultipleAttrs(ctx context.Context, money types.Checked[int64]) (*t
 	return &casted, nil
 }
 
-func (*stream) AliasWithMultipleAttrs(ctx context.Context, money types.Checked[int64]) <-chan types.Checked[int64] {
+func (*stream) AliasWithMultipleAttrs(ctx context.Context, money int64) <-chan types.Checked[int64] {
 	args := map[string]any{"money": money}
 	encoded, err := baml.EncodeRoot(args, typeMap)
 	if err != nil {
@@ -5240,7 +5240,7 @@ func (*stream) RecursiveClassWithAliasIndirection(ctx context.Context, cls types
 	return channel
 }
 
-func ReturnAliasWithMergedAttributes(ctx context.Context, money types.Checked[int64]) (*types.Checked[int64], error) {
+func ReturnAliasWithMergedAttributes(ctx context.Context, money int64) (*types.Checked[int64], error) {
 	args := map[string]any{"money": money}
 	encoded, err := baml.EncodeRoot(args, typeMap)
 	if err != nil {
@@ -5264,7 +5264,7 @@ func ReturnAliasWithMergedAttributes(ctx context.Context, money types.Checked[in
 	return &casted, nil
 }
 
-func (*stream) ReturnAliasWithMergedAttributes(ctx context.Context, money types.Checked[int64]) <-chan types.Checked[int64] {
+func (*stream) ReturnAliasWithMergedAttributes(ctx context.Context, money int64) <-chan types.Checked[int64] {
 	args := map[string]any{"money": money}
 	encoded, err := baml.EncodeRoot(args, typeMap)
 	if err != nil {

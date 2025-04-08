@@ -1,10 +1,11 @@
 /// cbindgen:ignore
 mod ctypes;
 
-use std::{collections::HashMap, ffi::CStr, ptr::null};
+use std::{collections::HashMap, ffi::CStr, ptr::null, sync::Arc};
 
 use anyhow::Result;
 use baml_runtime::{BamlRuntime, FunctionResult};
+use once_cell::sync::{Lazy, OnceCell};
 
 #[no_mangle]
 pub extern "C" fn create_baml_runtime(
@@ -91,28 +92,26 @@ fn ckwargs_to_map(
 pub type CallbackFn = extern "C" fn(call_id: u32, is_done: bool, content: *const i8, length: usize);
 
 /// cbindgen:ignore
-static mut RESULT_CALLBACK_FN: Option<CallbackFn> = None;
+static RESULT_CALLBACK_FN: OnceCell<CallbackFn> = OnceCell::new();
 
 /// cbindgen:ignore
-static mut ERROR_CALLBACK_FN: Option<CallbackFn> = None;
+static ERROR_CALLBACK_FN: OnceCell<CallbackFn> = OnceCell::new();
 
 #[no_mangle]
 extern "C" fn register_callbacks(callback_fn: CallbackFn, error_callback_fn: CallbackFn) {
     baml_log::init();
 
     // Create a global runtime or pass it along as needed.
-    let _rt = tokio::runtime::Runtime::new().unwrap();
-    // Store _rt somewhere accessible if needed.
     unsafe {
-        RUNTIME = Some(std::sync::Arc::new(_rt));
-        RESULT_CALLBACK_FN = Some(std::mem::transmute(callback_fn));
-        ERROR_CALLBACK_FN = Some(std::mem::transmute(error_callback_fn));
+        RESULT_CALLBACK_FN.set(std::mem::transmute(callback_fn));
+        ERROR_CALLBACK_FN.set(std::mem::transmute(error_callback_fn));
     }
 }
 
 fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>) {
-    let callback_fn = unsafe { RESULT_CALLBACK_FN.unwrap() };
-    // let error_callback_fn = unsafe { ERROR_CALLBACK_FN.unwrap() };
+    let callback_fn = RESULT_CALLBACK_FN
+        .get()
+        .expect("expected callback function to be set. Did you call register_callbacks?");
 
     match result {
         Ok(result) => match result.parsed() {
@@ -145,7 +144,8 @@ fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>)
 }
 
 /// cbindgen:ignore
-static mut RUNTIME: Option<std::sync::Arc<tokio::runtime::Runtime>> = None;
+static RUNTIME: Lazy<Arc<tokio::runtime::Runtime>> =
+    Lazy::new(|| Arc::new(tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime")));
 
 /// Extern "C" function that returns immediately, scheduling the async call.
 /// Once the asynchronous function completes, the provided callback is invoked.
@@ -190,7 +190,7 @@ fn call_function_from_c_inner(
 
     // Spawn an async task to await the future and call the callback when done.
     // Ensure that a Tokio runtime is running in your application.
-    let rt = unsafe { RUNTIME.as_ref().unwrap() };
+    let rt = RUNTIME.clone();
     rt.spawn(async move {
         let (result, _) = runtime
             .call_function(func_name, &keyword_args, &ctx, None, None, None)
@@ -251,9 +251,7 @@ fn call_function_stream_from_c_inner(
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
 
-    let rt = unsafe { RUNTIME.as_ref().unwrap() };
-
-    rt.spawn(async move {
+    RUNTIME.spawn(async move {
         let (result, _) = stream
             .run(Some(|r| on_event(id, r)), &ctx, None, None)
             .await;

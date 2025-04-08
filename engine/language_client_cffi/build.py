@@ -3,7 +3,7 @@
 Cross-Platform Build Script
 ===========================
 A beautiful, feature-rich build script for compiling your project
-across multiple target platforms.
+across multiple target platforms using tqdm for progress.
 """
 
 import argparse
@@ -19,6 +19,14 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Dict
+
+# Try importing tqdm, provide guidance if missing
+try:
+    from tqdm import tqdm
+except ImportError:
+    print("Error: 'tqdm' package not found. Please install it:")
+    print("  pip install tqdm")
+    sys.exit(1)
 
 
 # ANSI Color Codes for beautiful terminal output
@@ -50,14 +58,15 @@ class Color:
     BG_MAGENTA = "\033[45m"
     BG_CYAN = "\033[46m"
     BG_WHITE = "\033[47m"
+    DIM = "\033[2m"
 
     @staticmethod
     def disable_if_not_supported():
-        """Disable colors if terminal doesn't support them"""
+        """Disable colors if terminal doesn't support them or if NO_COLOR is set"""
         if (
             not sys.stdout.isatty()
-            or platform.system() == "Windows"
-            and not os.environ.get("TERM")
+            or os.environ.get("NO_COLOR")
+            or (platform.system() == "Windows" and not os.environ.get("TERM"))
         ):
             for attr in dir(Color):
                 if not attr.startswith("__") and isinstance(getattr(Color, attr), str):
@@ -162,15 +171,23 @@ class BuildEnvironment:
             return False
         # Check if the system is using musl
         try:
+            # Check linked libc using ldd on a common binary like /bin/sh or python itself
+            executable = sys.executable or "/bin/sh"
             ldd_output = subprocess.run(
-                ["ldd", "--version"],
+                ["ldd", executable],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Capture both to check for musl messages
                 text=True,
-            ).stderr
+                check=True,
+            ).stdout
             return "musl" in ldd_output.lower()
-        except:
-            return False
+        except (FileNotFoundError, subprocess.CalledProcessError, Exception):
+            # Fallback: Check for known musl paths or indicators if ldd fails/not present
+            if os.path.exists("/lib/ld-musl-x86_64.so.1") or os.path.exists(
+                "/lib/ld-musl-aarch64.so.1"
+            ):
+                return True
+            return False  # Assume glibc otherwise
 
     @property
     def is_x86_64(self) -> bool:
@@ -181,115 +198,7 @@ class BuildEnvironment:
         return self.machine == "aarch64"
 
 
-class ProgressSpinner:
-    """A spinner with streaming output to show progress during long operations"""
-
-    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-    MAX_OUTPUT_LINES = 10  # Show last 10 lines of output
-
-    def __init__(self, message: str):
-        self.message = message
-        self.frame_index = 0
-        self.start_time = time.time()
-        self.active = False
-        self.output_lines: list[str] = []
-        self.header_printed = False
-
-    def start(self):
-        """Start the spinner"""
-        self.active = True
-        self.start_time = time.time()
-        self._update_frame()
-
-    def update_output(self, line: str):
-        """Update the streaming output with a new line"""
-        if not line.strip():
-            return
-
-        # Truncate very long lines to prevent display issues
-        max_line_length = 70
-        if len(line) > max_line_length:
-            line = line[:max_line_length] + "..."
-
-        self.output_lines.append(line.rstrip())
-        if len(self.output_lines) > self.MAX_OUTPUT_LINES:
-            self.output_lines.pop(0)
-
-        if self.active:
-            self._redraw_full()
-
-    def stop(self, success: bool = True, message: Optional[str] = None):
-        """Stop the spinner with a success or error message"""
-        self.active = False
-        elapsed = time.time() - self.start_time
-
-        # Clear all the output lines and the spinner
-        if self.header_printed:
-            # Calculate how many lines to move up
-            displayed_lines = min(len(self.output_lines), self.MAX_OUTPUT_LINES)
-            lines_to_clear = displayed_lines + 2 if displayed_lines > 0 else 1
-            sys.stdout.write(f"\033[{lines_to_clear}A\033[J")
-        else:
-            sys.stdout.write("\r\033[K")
-
-        if message:
-            status_icon = (
-                f"{Color.GREEN}✓{Color.RESET}"
-                if success
-                else f"{Color.RED}✗{Color.RESET}"
-            )
-            print(
-                f"{status_icon} {message} {Color.BRIGHT_BLACK}({elapsed:.2f}s){Color.RESET}"
-            )
-
-    def _redraw_full(self):
-        """Redraw the entire output area including spinner and output lines"""
-        if not self.active:
-            return
-
-        # Move cursor back to the beginning if we've printed the header before
-        if self.header_printed:
-            num_lines = min(len(self.output_lines) + 1, self.MAX_OUTPUT_LINES + 1)
-            sys.stdout.write(f"\033[{num_lines}A\r")
-
-        # Draw the spinner line with full terminal width clearing
-        frame = self.FRAMES[self.frame_index]
-        sys.stdout.write(
-            f"\r\033[K{Color.BRIGHT_CYAN}{frame}{Color.RESET} {self.message}\n"
-        )
-
-        # Draw the output box header if we have output
-        if self.output_lines:
-            sys.stdout.write(
-                f"\033[K{Color.BRIGHT_BLACK}┌── Live Build Output ───────────────────────────{Color.RESET}\n"
-            )
-
-            # Print each output line with full line clearing
-            for line in self.output_lines[-self.MAX_OUTPUT_LINES :]:
-                sys.stdout.write(f"\033[K{Color.BRIGHT_BLACK}│{Color.RESET} {line}\n")
-
-            # Print the bottom of the box if we have fewer than MAX_OUTPUT_LINES
-            if len(self.output_lines) < self.MAX_OUTPUT_LINES:
-                sys.stdout.write(
-                    f"\033[K{Color.BRIGHT_BLACK}└───────────────────────────────────────────{Color.RESET}"
-                )
-
-        sys.stdout.flush()
-        self.header_printed = True
-
-    def _update_frame(self):
-        """Update the spinner frame"""
-        if not self.active:
-            return
-
-        self.frame_index = (self.frame_index + 1) % len(self.FRAMES)
-        self._redraw_full()
-
-        if self.active:
-            # Schedule the next frame update
-            from threading import Timer
-
-            Timer(0.1, self._update_frame).start()
+# --- Removed ProgressSpinner Class ---
 
 
 class Builder:
@@ -299,6 +208,7 @@ class Builder:
         self.options = options
         self.env = BuildEnvironment()
         self.results: Dict[str, bool] = {}
+        self._output_lock = threading.Lock()  # Lock for thread-safe tqdm.write
 
     def print_header(self):
         """Print a beautiful header for the build process"""
@@ -316,24 +226,40 @@ class Builder:
 
         selected_targets = self.options.targets
         print(f"\n{Color.BOLD}Selected Targets:{Color.RESET}")
-        for target in [t for t in TARGETS if t.triple in selected_targets]:
-            print(f"  {target.color}● {target.display_name}{Color.RESET}")
+        targets_to_print = [t for t in TARGETS if t.triple in selected_targets]
+        if not targets_to_print:
+            print(f"  {Color.YELLOW}No targets selected.{Color.RESET}")
+        else:
+            for target in targets_to_print:
+                print(f"  {target.color}● {target.display_name}{Color.RESET}")
 
         print(f"\n{Color.BRIGHT_MAGENTA}{'─' * 62}{Color.RESET}\n")
 
+    def _write_output(self, message: str, indent: int = 0):
+        """Safely write output using tqdm.write"""
+        prefix = "  " * indent
+        # Use lock to prevent interleaved output from multiple threads
+        with self._output_lock:
+            tqdm.write(f"{prefix}{message}", file=sys.stdout)
+
     def build_target(self, target: Target) -> bool:
-        """Build for a specific target"""
-        spinner = ProgressSpinner(
-            f"Building for {target.color}{target.display_name}{Color.RESET}"
+        """Build for a specific target, writing output via tqdm.write"""
+        start_time = time.time()
+        self._write_output(
+            f"🚀 Starting build for {target.color}{target.display_name}{Color.RESET}"
         )
-        spinner.start()
 
         # Prepare environment variables
         env_vars = os.environ.copy()
-
+        # if interactive, use always color
+        if os.isatty(sys.stdout.fileno()):
+            env_vars["CARGO_TERM_COLOR"] = "always"
         # Special handling for cross-compiling from Mac to Linux
-        if self.env.is_mac and target.type == TargetType.LINUX:
-            env_vars["CROSS_CONTAINER_OPTS"] = "--platform linux/amd64"
+        # Ensure the target architecture matches the platform request if possible
+        if self.env.is_mac and target.type in (TargetType.LINUX, TargetType.MUSL):
+            arch = "arm64" if "aarch64" in target.triple else "amd64"
+            env_vars["CROSS_CONTAINER_OPTS"] = f"--platform linux/{arch}"
+            # Add Docker Engine check maybe?
 
         # Add any user-specified environment variables
         for key, value in self.options.env_vars.items():
@@ -344,179 +270,300 @@ class Builder:
         if self.options.release:
             cmd.append("--release")
         if self.options.verbose:
-            cmd.append("--verbose")
+            cmd.append("--verbose")  # Let cross handle verbose output directly
         cmd.extend(["--target", target.triple])
 
         # Add any extra build flags
         cmd.extend(self.options.extra_flags)
 
+        # Log the command being run if verbose enough (or for debugging)
+        # self._write_output(f"   {Color.BRIGHT_BLACK}Running: {' '.join(cmd)}{Color.RESET}", indent=1)
+
+        success = False
+        captured_output: list[str] = []
+        process: Optional[subprocess.Popen[str]] = None
         try:
-            # Create a queue for output lines
-            output_queue: queue.Queue[str] = queue.Queue()
-
-            # Helper function to read output and put in queue
-            def read_output(stream: TextIOWrapper, prefix: str = ""):
-                for line in iter(stream.readline, ""):
-                    if prefix:
-                        output_queue.put(f"{prefix} {line}")
-                    else:
-                        output_queue.put(line)
-
-            # Use Popen to stream output in real-time
-            with subprocess.Popen(
+            # Use Popen to stream output if not verbose, otherwise let it print directly
+            should_capture = not self.options.verbose
+            process = subprocess.Popen(
                 cmd,
                 env=env_vars,
-                stdout=subprocess.PIPE if not self.options.verbose else None,
-                stderr=subprocess.PIPE if not self.options.verbose else None,
+                stdout=subprocess.PIPE if should_capture else None,
+                stderr=subprocess.PIPE if should_capture else None,
                 text=True,
                 bufsize=1,  # Line buffered
                 universal_newlines=True,
-            ) as proc:
-                # Set up threads to read stdout and stderr
-                if not self.options.verbose and proc.stdout and proc.stderr:
-                    stdout_thread = threading.Thread(
-                        target=read_output, args=(proc.stdout, "")
-                    )
-                    stderr_thread = threading.Thread(
-                        target=read_output,
-                        args=(proc.stderr, f"{Color.RED}[ERROR]{Color.RESET}"),
-                    )
-
-                    stdout_thread.daemon = True
-                    stderr_thread.daemon = True
-
-                    stdout_thread.start()
-                    stderr_thread.start()
-
-                    # Process output queue and update spinner
-                    while proc.poll() is None:
-                        try:
-                            # Get output line with a timeout to prevent blocking
-                            line = output_queue.get(timeout=0.1)
-                            spinner.update_output(line)
-                            output_queue.task_done()
-                        except queue.Empty:
-                            # No output available, continue checking
-                            continue
-
-                    # Process any remaining output
-                    while not output_queue.empty():
-                        line = output_queue.get()
-                        spinner.update_output(line)
-                        output_queue.task_done()
-
-                    # Wait for threads to finish
-                    stdout_thread.join(1.0)
-                    stderr_thread.join(1.0)
-                else:
-                    # Wait for process to complete if not capturing output
-                    proc.wait()
-
-                success = proc.returncode == 0
-
-            # Store the result
-            self.results[target.triple] = success
-
-            # Show appropriate message
-            if success:
-                spinner.stop(
-                    True,
-                    f"Successfully built for {target.color}{target.display_name}{Color.RESET}",
-                )
-            else:
-                spinner.stop(
-                    False,
-                    f"Failed to build for {target.color}{target.display_name}{Color.RESET}",
-                )
-                # No need to display output again since we streamed it live
-
-            return success
-
-        except Exception as e:
-            spinner.stop(
-                False,
-                f"Error building for {target.color}{target.display_name}{Color.RESET}",
             )
-            print(f"{Color.RED}Error: {str(e)}{Color.RESET}")
-            self.results[target.triple] = False
-            return False
+
+            # --- Output Reading Threads (only if capturing) ---
+            output_queue: queue.Queue[Optional[str]] = queue.Queue()
+            stdout_thread = None
+            stderr_thread = None
+
+            def read_stream(stream: Optional[TextIOWrapper], stream_name: str):
+                if stream:
+                    try:
+                        for line in iter(stream.readline, ""):
+                            output_queue.put(line)
+                    except Exception as e:
+                        output_queue.put(f"Error reading {stream_name}: {e}\n")
+                    finally:
+                        stream.close()  # Ensure stream is closed
+                output_queue.put(None)  # Sentinel value to indicate stream end
+
+            if should_capture and process.stdout and process.stderr:
+                stdout_thread = threading.Thread(
+                    target=read_stream, args=(process.stdout, "stdout"), daemon=True
+                )
+                stderr_thread = threading.Thread(
+                    target=read_stream, args=(process.stderr, "stderr"), daemon=True
+                )
+                stdout_thread.start()
+                stderr_thread.start()
+
+                streams_ended = 0
+                while streams_ended < 2:
+                    try:
+                        # Timeout helps prevent hanging if threads die unexpectedly
+                        line = output_queue.get(timeout=60)
+                        if line is None:
+                            streams_ended += 1
+                        else:
+                            line_stripped = line.rstrip()
+                            if line_stripped:  # Avoid printing empty lines
+                                captured_output.append(
+                                    line_stripped
+                                )  # Store for potential error reporting
+                                self._write_output(
+                                    f"{Color.DIM}{line_stripped}{Color.RESET}",
+                                    indent=1,
+                                )  # Indent build output
+                            output_queue.task_done()
+                    except queue.Empty:
+                        # Check if process died unexpectedly
+                        if process.poll() is not None:
+                            self._write_output(
+                                f"{Color.YELLOW}Warning: Output stream ended prematurely.{Color.RESET}",
+                                indent=1,
+                            )
+                            break  # Exit loop if process is dead
+                        # Otherwise, continue waiting for output
+                        continue
+
+                # Wait briefly for threads to finish cleanly
+                if stdout_thread:
+                    stdout_thread.join(0.5)
+                if stderr_thread:
+                    stderr_thread.join(0.5)
+
+            # Wait for the process to complete and get return code
+            return_code = process.wait()
+            success = return_code == 0
+
+        except FileNotFoundError:
+            self._write_output(
+                f"{Color.RED}Error: 'cross' command not found. Is cross-rs installed and in PATH?{Color.RESET}",
+                indent=1,
+            )
+            self._write_output(
+                f"{Color.YELLOW}See: https://github.com/cross-rs/cross{Color.RESET}",
+                indent=1,
+            )
+            success = False
+        except Exception as e:
+            self._write_output(
+                f"{Color.RED}Build execution error: {e}{Color.RESET}", indent=1
+            )
+            success = False
+        finally:
+            # Ensure process is terminated if something went wrong
+            if process and process.poll() is None:
+                process.terminate()
+                process.wait(timeout=5)  # Wait a bit for termination
+                if process.poll() is None:  # Force kill if still running
+                    process.kill()
+
+        # --- Log Result ---
+        elapsed = time.time() - start_time
+        self.results[target.triple] = success
+
+        if success:
+            self._write_output(
+                f"{Color.GREEN}✓ Success{Color.RESET} building {target.color}{target.display_name}{Color.RESET} ({elapsed:.2f}s)"
+            )
+        else:
+            self._write_output(
+                f"{Color.RED}✗ Failed{Color.RESET} building {target.color}{target.display_name}{Color.RESET} ({elapsed:.2f}s)"
+            )
+            # Optionally print captured output again on failure if it wasn't verbose
+            # if not self.options.verbose and captured_output:
+            #     self._write_output(f"{Color.BRIGHT_BLACK}--- Captured Output ---{Color.RESET}", indent=1)
+            #     # Print last N lines
+            #     for line in captured_output[-20:]:
+            #         self._write_output(line, indent=2)
+            #     self._write_output(f"{Color.BRIGHT_BLACK}---------------------{Color.RESET}", indent=1)
+
+        return success
 
     def build_all(self):
-        """Build all selected targets"""
+        """Build all selected targets using tqdm for overall progress."""
         self.print_header()
 
+        targets_to_build = [t for t in TARGETS if t.triple in self.options.targets]
+        if not targets_to_build:
+            print(
+                f"{Color.YELLOW}No targets specified for building. Exiting.{Color.RESET}"
+            )
+            return True  # No work to do is considered success
+
         start_time = time.time()
-        if self.options.release:
-            path = "release"
-        else:
-            path = "debug"
-        for target in [t for t in TARGETS if t.triple in self.options.targets]:
-            if self.build_target(target):
-                match target.type:
-                    case TargetType.MACOS:
-                        extension = "dylib"
-                    case TargetType.LINUX | TargetType.MUSL:
-                        extension = "so"
-                    case TargetType.WINDOWS:
-                        extension = "dll"
+        build_path = "release" if self.options.release else "debug"
+        build_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..")
+        )  # Assuming script is in a subdir
+        target_dir = os.path.join(build_dir, "target")
+        output_lib_dir = os.path.join(os.path.dirname(__file__), "lib")
 
-                dir_path = os.path.dirname(__file__)
-                # cp the target to the language_client_go/lib directory
-                print(
-                    f"{dir_path}/../target/{target.triple}/{path}/libbaml_cffi.{extension} -> {dir_path}/lib/libbaml_cffi-{target.triple}.{extension}"
-                )
-                shutil.copy(
-                    f"{dir_path}/../target/{target.triple}/{path}/libbaml_cffi.{extension}",
-                    f"{dir_path}/lib/libbaml_cffi-{target.triple}.{extension}",
-                )
-            else:
-                if self.options.fail_fast:
-                    print(
-                        f"\n{Color.RED}Build failed. Stopping due to --fail-fast option.{Color.RESET}"
-                    )
-                    break
+        # Ensure output directory exists
+        os.makedirs(output_lib_dir, exist_ok=True)
 
+        overall_success = True
+
+        # --- TQDM Progress Bar ---
+        # Disable bar if verbose, as direct output might interfere
+        # Use leave=True to keep the final bar state visible
+        with tqdm(
+            total=len(targets_to_build),
+            desc="Overall Build Progress",
+            unit="target",
+            ncols=100,  # Adjust width as needed
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]",
+            disable=self.options.verbose,  # Disable bar in verbose mode
+            leave=True,
+        ) as pbar:
+
+            for target in targets_to_build:
+                pbar.set_postfix_str(f"Building {target.triple}...", refresh=True)
+                target_success = self.build_target(target)
+                self.results[target.triple] = target_success
+                pbar.update(1)  # Increment progress bar
+
+                if target_success:
+                    # Copy the built artifact
+                    try:
+                        match target.type:
+                            case TargetType.MACOS:
+                                extension = "dylib"
+                            case TargetType.LINUX | TargetType.MUSL:
+                                extension = "so"
+                            case TargetType.WINDOWS:
+                                extension = "dll"
+
+                        source_file = os.path.join(
+                            target_dir,
+                            target.triple,
+                            build_path,
+                            f"libbaml_cffi.{extension}",
+                        )
+                        dest_file = os.path.join(
+                            output_lib_dir, f"libbaml_cffi-{target.triple}.{extension}"
+                        )
+
+                        if os.path.exists(source_file):
+                            shutil.copy2(
+                                source_file, dest_file
+                            )  # copy2 preserves metadata
+                            self._write_output(
+                                f"{Color.GREEN}✓  Copied{Color.RESET} {os.path.basename(source_file)}{Color.BRIGHT_BLACK} to {Color.RESET}{os.path.relpath(dest_file, build_dir)}{Color.RESET}"
+                            )
+                        else:
+                            self._write_output(
+                                f"  {Color.YELLOW}Warning: Built artifact not found at {os.path.relpath(source_file, build_dir)}{Color.RESET}"
+                            )
+                            # Mark target as failed if artifact missing, even if build command succeeded
+                            self.results[target.triple] = False
+                            target_success = False
+
+                    except Exception as e:
+                        self._write_output(
+                            f"  {Color.RED}Error copying artifact for {target.triple}: {e}{Color.RESET}"
+                        )
+                        self.results[target.triple] = False
+                        target_success = False
+
+                if not target_success:
+                    overall_success = False
+                    pbar.set_postfix_str(f"{target.triple} FAILED", refresh=True)
+                    if self.options.fail_fast:
+                        self._write_output(
+                            f"\n{Color.RED}Build failed for {target.triple}. Stopping due to --fail-fast.{Color.RESET}"
+                        )
+                        # Fill remaining progress
+                        pbar.update(len(targets_to_build) - pbar.n)
+                        break  # Exit the loop
+                else:
+                    pbar.set_postfix_str(f"{target.triple} OK", refresh=True)
+
+        # --- Final Summary ---
         elapsed = time.time() - start_time
 
-        # Print summary
+        # Ensure final postfix is cleared or shows overall status
+        if not self.options.verbose:
+            pbar.set_postfix_str("Completed", refresh=True)
+
         success_count = sum(1 for success in self.results.values() if success)
-        total_count = len(self.results)
+        total_count = len(self.results)  # Use results dict size
 
         print(f"\n{Color.BRIGHT_MAGENTA}{'─' * 62}{Color.RESET}")
 
-        if success_count == total_count:
+        if success_count == total_count and overall_success:
             result_color = Color.GREEN
             result_text = "SUCCESS"
-        elif success_count == 0:
+        elif success_count == 0 or not overall_success:
             result_color = Color.RED
             result_text = "FAILED"
         else:
             result_color = Color.YELLOW
-            result_text = "PARTIAL SUCCESS"
+            result_text = "PARTIAL SUCCESS"  # Some targets succeeded, some failed
 
         print(
             f"\n{Color.BOLD}Build Summary:{Color.RESET} {result_color}{result_text}{Color.RESET}"
         )
         print(f"  {Color.BOLD}Total Time:{Color.RESET} {elapsed:.2f} seconds")
         print(
-            f"  {Color.BOLD}Targets:{Color.RESET} {success_count}/{total_count} successful"
+            f"  {Color.BOLD}Targets Built:{Color.RESET} {len(self.results)}/{len(targets_to_build)}"
+        )
+        print(
+            f"  {Color.BOLD}Successful:{Color.RESET} {success_count}/{len(self.results)}"
         )
 
         # Print individual results
-        print(f"\n{Color.BOLD}Target Results:{Color.RESET}")
-        for target in [t for t in TARGETS if t.triple in self.results]:
-            success = self.results[target.triple]
-            status_icon = (
-                f"{Color.GREEN}✓{Color.RESET}"
-                if success
-                else f"{Color.RED}✗{Color.RESET}"
+        if self.results:
+            print(f"\n{Color.BOLD}Target Results:{Color.RESET}")
+            # Sort results for consistent ordering
+            sorted_triples = sorted(self.results.keys())
+            target_map = {t.triple: t for t in TARGETS}
+            for triple in sorted_triples:
+                target = target_map.get(triple)
+                if not target:
+                    continue  # Should not happen
+                success = self.results[triple]
+                status_icon = (
+                    f"{Color.GREEN}✓{Color.RESET}"
+                    if success
+                    else f"{Color.RED}✗{Color.RESET}"
+                )
+                print(
+                    f"  {status_icon} {target.color}{target.display_name}{Color.RESET}"
+                )
+        else:
+            print(
+                f"\n{Color.BOLD}Target Results:{Color.RESET} No targets were processed."
             )
-            print(f"  {status_icon} {target.color}{target.display_name}{Color.RESET}")
 
         print(f"\n{Color.BRIGHT_MAGENTA}{'═' * 62}{Color.RESET}\n")
 
-        # Return appropriate exit code
-        return success_count == total_count
+        return overall_success
 
 
 class BuildOptions:
@@ -530,67 +577,108 @@ class BuildOptions:
         fail_fast: bool = False,
         extra_flags: Optional[List[str]] = None,
         env_vars: Optional[Dict[str, str]] = None,
+        list_targets: bool = False,  # Added list_targets option here
     ):
-        self.targets = targets or DEFAULT_ENABLED_TARGETS
+        self.targets = (
+            targets if targets is not None else list(DEFAULT_ENABLED_TARGETS)
+        )  # Ensure it's a list
         self.release = release
         self.verbose = verbose
         self.fail_fast = fail_fast
         self.extra_flags = extra_flags or []
         self.env_vars = env_vars or {}
+        self.list_targets = list_targets
 
 
 def parse_args() -> BuildOptions:
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="Cross-platform build script",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="Cross-platform build script using 'cross-rs' and 'tqdm'.",
+        formatter_class=argparse.RawTextHelpFormatter,  # Allows better formatting in help
+        epilog=f"""
+Examples:
+  Build default targets in release mode:
+    {sys.argv[0]}
+  Build only Linux x86_64 in debug mode:
+    {sys.argv[0]} --targets x86_64-unknown-linux-gnu --debug
+  List available targets:
+    {sys.argv[0]} --list-targets
+  Build with extra cargo features and verbose output:
+    {sys.argv[0]} --verbose --extra-flags "--features=feature1 no-default-features"
+  Pass environment variable for linking:
+    {sys.argv[0]} --env 'MY_LIB_PATH=/opt/custom/lib'
+""",
     )
 
     # Target options
-    target_group = parser.add_argument_group("Target Options")
+    target_group = parser.add_argument_group("Target Selection")
     target_group.add_argument(
         "--targets",
         nargs="*",
-        default=DEFAULT_ENABLED_TARGETS,
-        help="Specific targets to build",
+        metavar="TARGET_TRIPLE",
+        default=argparse.SUPPRESS,  # Don't show default here, handle manually later
+        help="Specific target triples to build (space-separated).\n"
+        f"Default: {' '.join(DEFAULT_ENABLED_TARGETS)}",
     )
     target_group.add_argument(
         "--list-targets",
         action="store_true",
-        help="List all available targets and exit",
+        help="List all available target triples and exit.",
     )
 
     # Build options
-    build_group = parser.add_argument_group("Build Options")
+    build_group = parser.add_argument_group("Build Configuration")
+    build_group.add_argument(
+        "--release",
+        action="store_true",
+        default=True,
+        help="Build in release mode (default).",
+    )
     build_group.add_argument(
         "--debug",
+        action="store_false",
+        dest="release",  # Set release to False if --debug is used
+        help="Build in debug mode (disables release mode).",
+    )
+    build_group.add_argument(
+        "--verbose",
         action="store_true",
-        help="Build in debug mode (default is release mode)",
+        help="Enable verbose output from this script and 'cross'.\n"
+        "Disables the main progress bar for cleaner logs.",
     )
     build_group.add_argument(
-        "--verbose", action="store_true", help="Enable verbose output"
+        "--fail-fast",
+        action="store_true",
+        help="Stop the entire build process after the first target fails.",
     )
     build_group.add_argument(
-        "--fail-fast", action="store_true", help="Stop building after first failure"
-    )
-    build_group.add_argument(
-        "--extra-flags", nargs="*", default=[], help="Extra flags to pass to cargo"
+        "--extra-flags",
+        nargs=argparse.REMAINDER,  # Consume remaining args
+        metavar="FLAGS",
+        default=[],
+        help="Remaining arguments are passed directly to 'cross build'.\n"
+        "Example: --extra-flags --no-default-features --features=foo",
     )
 
     # Environment options
-    env_group = parser.add_argument_group("Environment Options")
+    env_group = parser.add_argument_group("Environment")
     env_group.add_argument(
         "--env",
         nargs="*",
+        metavar="KEY=VALUE",
         default=[],
-        help="Additional environment variables in KEY=VALUE format",
+        help="Set additional environment variables for the build process.\n"
+        "Example: --env CFLAGS=-O3 LDFLAGS=-L/path/to/libs",
     )
 
     args = parser.parse_args()
 
-    # Handle --list-targets
+    # Handle --list-targets immediately
     if args.list_targets:
-        print(f"{Color.BOLD}Available Targets:{Color.RESET}")
+        print(f"{Color.BOLD}Available Build Targets:{Color.RESET}")
+        print(
+            f"{Color.BRIGHT_BLACK}(Targets marked with ✓ are enabled by default){Color.RESET}"
+        )
         for target in TARGETS:
             enabled = "✓" if target.triple in DEFAULT_ENABLED_TARGETS else " "
             print(f"  [{enabled}] {target.color}{target.display_name}{Color.RESET}")
@@ -601,26 +689,53 @@ def parse_args() -> BuildOptions:
     for env_var in args.env:
         if "=" in env_var:
             key, value = env_var.split("=", 1)
-            env_vars[key] = value
+            env_vars[key.strip()] = value.strip()
         else:
             print(
-                f"{Color.YELLOW}Warning: Ignoring malformed environment variable: {env_var}{Color.RESET}"
+                f"{Color.YELLOW}Warning:{Color.RESET} Ignoring malformed environment variable (expected KEY=VALUE): '{env_var}'"
             )
 
+    # Determine targets: use specified list or default
+    build_targets = (
+        args.targets if hasattr(args, "targets") else DEFAULT_ENABLED_TARGETS
+    )
+
+    # Validate selected targets
+    valid_targets = [t.triple for t in TARGETS]
+    invalid_targets = [t for t in build_targets if t not in valid_targets]
+    if invalid_targets:
+        print(
+            f"{Color.RED}Error:{Color.RESET} Invalid target(s) specified: {', '.join(invalid_targets)}"
+        )
+        print(f"Use `{sys.argv[0]} --list-targets` to see available options.")
+        sys.exit(1)
+
     return BuildOptions(
-        targets=args.targets,
-        release=not args.debug,
+        targets=build_targets,
+        release=args.release,
         verbose=args.verbose,
         fail_fast=args.fail_fast,
         extra_flags=args.extra_flags,
         env_vars=env_vars,
+        list_targets=args.list_targets,  # Pass through just in case
     )
 
 
 def main():
     """Main entry point"""
-    # Initialize color support
+    # Initialize color support early
     Color.disable_if_not_supported()
+
+    # Check for 'cross' command existence
+    if shutil.which("cross") is None:
+        print(
+            f"{Color.RED}Error: Required command 'cross' not found in your PATH.{Color.RESET}"
+        )
+        print("Please install cross-rs: https://github.com/cross-rs/cross")
+        print(
+            "Example installation: cargo install cross --git https://github.com/cross-rs/cross"
+        )
+        sys.exit(1)
 
     # Parse command line arguments
     options = parse_args()
@@ -638,11 +753,23 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print(f"\n\n{Color.YELLOW}Build interrupted by user.{Color.RESET}")
-        sys.exit(130)
+        # Attempt to clean up tqdm bar if it's active
+        try:
+            # This might not always work perfectly depending on interrupt point
+            # but it's better than leaving a broken bar state sometimes.
+            tqdm.write("")  # Try to ensure cursor is on a new line
+        except Exception:
+            pass  # Ignore errors during cleanup
+        sys.exit(130)  # Standard exit code for Ctrl+C
     except Exception as e:
-        print(f"\n\n{Color.RED}Unhandled error: {str(e)}{Color.RESET}")
-        if "--verbose" in sys.argv:
+        # General error handler
+        print(f"\n\n{Color.RED}An unexpected error occurred:{Color.RESET}")
+        print(f"{Color.BRIGHT_RED}{type(e).__name__}: {str(e)}{Color.RESET}")
+        # Optionally print traceback if requested or in debug mode
+        if "--verbose" in sys.argv or os.environ.get("BUILD_DEBUG"):
             import traceback
 
+            print("\n--- Traceback ---")
             traceback.print_exc()
+            print("-----------------\n")
         sys.exit(1)
