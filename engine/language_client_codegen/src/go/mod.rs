@@ -289,7 +289,9 @@ class Foo {
         let ir = mk_ir();
         let generator_args = mk_gen();
         let res = generate(&ir, &generator_args).unwrap();
-        let partial_types = res.get(&PathBuf::from("partial_types.go")).unwrap();
+        let partial_types = res
+            .get(&PathBuf::from("stream_types/stream_types.go"))
+            .unwrap();
         eprintln!("{}", partial_types);
     }
 }
