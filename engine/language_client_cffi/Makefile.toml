@@ -12,7 +12,7 @@ install_crate = "cbindgen"
 #-----------------------------------------------------------------------------
 [tasks.build-debug]
 script = '''
-python build.py
+python build.py --debug
 '''
 dependencies = ["cbindgen"]
 
@@ -24,7 +24,7 @@ dependencies = ["cbindgen"]
 
 [tasks.build-local]
 script = '''
-python build.py --targets aarch64-apple-darwin
+python build.py --targets aarch64-apple-darwin --debug
 '''
 dependencies = ["cbindgen"]
 

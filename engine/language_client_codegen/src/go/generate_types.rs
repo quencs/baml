@@ -302,7 +302,7 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoUnion
 
     fn try_from((ir, _): (&'ir IntermediateRepr, &'_ crate::GeneratorArgs)) -> Result<GoUnions> {
         // Collect all the unions in the IR.
-        let unions = ir
+        let mut unions = ir
             .walk_functions()
             .flat_map(|f| {
                 f.inputs()
@@ -338,6 +338,7 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoUnion
             })
             .collect::<Vec<_>>();
 
+        unions.sort_by_key(|u| u.name.clone());
         Ok(GoUnions { unions })
     }
 }

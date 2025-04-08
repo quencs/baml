@@ -254,59 +254,59 @@ var typeMap = map[string]reflect.Type{
 
 	"TestEnum": reflect.TypeOf(types.TestEnum("")),
 
-	"Union__List__string__string": reflect.TypeOf(types.Union__List__string__string{}),
+	"Union__BookOrder__FlightConfirmation__GroceryReceipt": reflect.TypeOf(types.Union__BookOrder__FlightConfirmation__GroceryReceipt{}),
 
 	"Union__List__Recipe__string": reflect.TypeOf(types.Union__List__Recipe__string{}),
 
-	"Union__BookOrder__FlightConfirmation__GroceryReceipt": reflect.TypeOf(types.Union__BookOrder__FlightConfirmation__GroceryReceipt{}),
+	"Union__List__bool__List__int": reflect.TypeOf(types.Union__List__bool__List__int{}),
 
-	"Union__OriginalA__OriginalB": reflect.TypeOf(types.Union__OriginalA__OriginalB{}),
-
-	"Union__string_curiosity__string_personal_finance": reflect.TypeOf(types.Union__string_curiosity__string_personal_finance{}),
+	"Union__List__string__string": reflect.TypeOf(types.Union__List__string__string{}),
 
 	"Union__LiteralClassOne__LiteralClassTwo": reflect.TypeOf(types.Union__LiteralClassOne__LiteralClassTwo{}),
 
-	"Union__string_one__string_two__string_three__string_four": reflect.TypeOf(types.Union__string_one__string_two__string_three__string_four{}),
+	"Union__Martian__Earthling": reflect.TypeOf(types.Union__Martian__Earthling{}),
 
-	"Union__int_1__bool_true__string_string_output": reflect.TypeOf(types.Union__int_1__bool_true__string_string_output{}),
+	"Union__MemoryObject__ComplexMemoryObject__AnotherObject": reflect.TypeOf(types.Union__MemoryObject__ComplexMemoryObject__AnotherObject{}),
 
-	"Union__int__string__bool__float__List__string__Map__string_List__string": reflect.TypeOf(types.Union__int__string__bool__float__List__string__Map__string_List__string{}),
+	"Union__Nested__string": reflect.TypeOf(types.Union__Nested__string{}),
 
-	"Union__int__string__bool__float": reflect.TypeOf(types.Union__int__string__bool__float{}),
-
-	"Union__int__string": reflect.TypeOf(types.Union__int__string{}),
-
-	"Union__string__bool": reflect.TypeOf(types.Union__string__bool{}),
-
-	"Union__string__int__float": reflect.TypeOf(types.Union__string__int__float{}),
+	"Union__OriginalA__OriginalB": reflect.TypeOf(types.Union__OriginalA__OriginalB{}),
 
 	"Union__PhoneNumber__EmailAddress": reflect.TypeOf(types.Union__PhoneNumber__EmailAddress{}),
 
-	"Union__Martian__Earthling": reflect.TypeOf(types.Union__Martian__Earthling{}),
-
 	"Union__Resume__Event": reflect.TypeOf(types.Union__Resume__Event{}),
 
-	"Union__string_barisa__string_ox_burger": reflect.TypeOf(types.Union__string_barisa__string_ox_burger{}),
+	"Union__SimpleTag__JsonTemplate": reflect.TypeOf(types.Union__SimpleTag__JsonTemplate{}),
 
-	"Union__Nested__string": reflect.TypeOf(types.Union__Nested__string{}),
+	"Union__Tag__string": reflect.TypeOf(types.Union__Tag__string{}),
+
+	"Union__float__bool": reflect.TypeOf(types.Union__float__bool{}),
+
+	"Union__int_1__bool_true__string_string_output": reflect.TypeOf(types.Union__int_1__bool_true__string_string_output{}),
+
+	"Union__int__string": reflect.TypeOf(types.Union__int__string{}),
+
+	"Union__int__string__bool__float": reflect.TypeOf(types.Union__int__string__bool__float{}),
+
+	"Union__int__string__bool__float__JsonObject__JsonArray": reflect.TypeOf(types.Union__int__string__bool__float__JsonObject__JsonArray{}),
+
+	"Union__int__string__bool__float__List__string__Map__string_List__string": reflect.TypeOf(types.Union__int__string__bool__float__List__string__Map__string_List__string{}),
 
 	"Union__string__List__Nested": reflect.TypeOf(types.Union__string__List__Nested{}),
 
 	"Union__string__Nested": reflect.TypeOf(types.Union__string__Nested{}),
 
+	"Union__string__bool": reflect.TypeOf(types.Union__string__bool{}),
+
 	"Union__string__int": reflect.TypeOf(types.Union__string__int{}),
 
-	"Union__Tag__string": reflect.TypeOf(types.Union__Tag__string{}),
+	"Union__string__int__float": reflect.TypeOf(types.Union__string__int__float{}),
 
-	"Union__MemoryObject__ComplexMemoryObject__AnotherObject": reflect.TypeOf(types.Union__MemoryObject__ComplexMemoryObject__AnotherObject{}),
+	"Union__string_barisa__string_ox_burger": reflect.TypeOf(types.Union__string_barisa__string_ox_burger{}),
 
-	"Union__float__bool": reflect.TypeOf(types.Union__float__bool{}),
+	"Union__string_curiosity__string_personal_finance": reflect.TypeOf(types.Union__string_curiosity__string_personal_finance{}),
 
-	"Union__List__bool__List__int": reflect.TypeOf(types.Union__List__bool__List__int{}),
-
-	"Union__int__string__bool__float__JsonObject__JsonArray": reflect.TypeOf(types.Union__int__string__bool__float__JsonObject__JsonArray{}),
-
-	"Union__SimpleTag__JsonTemplate": reflect.TypeOf(types.Union__SimpleTag__JsonTemplate{}),
+	"Union__string_one__string_two__string_three__string_four": reflect.TypeOf(types.Union__string_one__string_two__string_three__string_four{}),
 }
 
 func Encode(object any) ([]byte, error) {
