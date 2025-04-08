@@ -2,7 +2,12 @@ package baml
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/../include
-#cgo LDFLAGS: -L${SRCDIR}/../lib -lbaml_cffi
+
+#cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/../../language_client_cffi/lib -lbaml_cffi-aarch64-apple-darwin
+#cgo darwin,amd64 LDFLAGS: -L${SRCDIR}/../../language_client_cffi/lib -lbaml_cffi-x86_64-apple-darwin
+#cgo linux,amd64 LDFLAGS: -L${SRCDIR}/../../language_client_cffi/lib -lbaml_cffi-x86_64-unknown-linux-gnu
+#cgo linux,amd64,musl LDFLAGS: -L${SRCDIR}/../../language_client_cffi/lib -lbaml_cffi-x86_64-unknown-linux-musl
+
 #include "baml_cffi_generated.h"
 #include <stdlib.h>
 #include <stdbool.h>

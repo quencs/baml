@@ -1,70 +1,58 @@
-[tasks.mkdir-lib]
-script = "mkdir -p ../language_client_go/lib"
+# Cross-platform build configuration
+# Compatible with older cargo-make versions
 
-
+#-----------------------------------------------------------------------------
+# Code generation tasks
+#-----------------------------------------------------------------------------
 [tasks.cbindgen]
 install_crate = "cbindgen"
-dependencies = [{ name = "mkdir-lib", path = "." }]
 
-
+#-----------------------------------------------------------------------------
+# Directory setup tasks
+#-----------------------------------------------------------------------------
 [tasks.build-debug]
-command = "cargo"
-args = ["build"]
+script = '''
+python build.py
+'''
 dependencies = ["cbindgen"]
-condition = { env_not_set = ["RELEASE_MODE"] }
 
 [tasks.build-release]
-command = "cargo"
-args = ["build", "--release"]
+script = '''
+python build.py --release
+'''
 dependencies = ["cbindgen"]
-condition = { env_set = ["RELEASE_MODE"] }
 
-[tasks.build]
-dependencies = ["build-debug", "build-release"]
-
-[tasks.go-sdk-debug]
-command = "cp"
-args = [
-  "../target/debug/libbaml_cffi.dylib",
-  "../language_client_go/lib/libbaml_cffi.dylib",
-]
-dependencies = [{ name = "build", path = "." }]
-condition = { env_not_set = ["RELEASE_MODE"] }
-
-[tasks.go-sdk-release]
-command = "cp"
-args = [
-  "../target/release/libbaml_cffi.dylib",
-  "../language_client_go/lib/libbaml_cffi.dylib",
-]
-dependencies = ["build-release"]
-condition = { env_set = ["RELEASE_MODE"] }
-
-[tasks.build-cli-debug]
-script = "cd ../cli && cargo build"
+[tasks.build-local]
+script = '''
+python build.py --targets aarch64-apple-darwin
+'''
 dependencies = ["cbindgen"]
-condition = { env_not_set = ["RELEASE_MODE"] }
 
-[tasks.build-cli-release]
-script = "cd ../cli && cargo build --release"
-dependencies = ["cbindgen"]
-condition = { env_set = ["RELEASE_MODE"] }
+#-----------------------------------------------------------------------------
+# Go CLI build tasks
+#-----------------------------------------------------------------------------
+[tasks.build-go-cli]
+script = "cd ../../baml-cli && go build"
+dependencies = ["build-local"]
 
-[tasks.build-cli]
-dependencies = ["build-cli-debug", "build-cli-release"]
-
-[tasks.integ-tests-generate-debug]
-script = "cd ../../integ-tests && ../engine/target/debug/baml-cli generate"
-dependencies = ["build-cli-debug"]
-condition = { env_not_set = ["RELEASE_MODE"] }
-
-[tasks.integ-tests-generate-release]
-script = "cd ../../integ-tests && ../engine/target/release/baml-cli generate"
-dependencies = ["build-cli-release"]
-condition = { env_set = ["RELEASE_MODE"] }
-
+#-----------------------------------------------------------------------------
+# Integration test tasks
+#-----------------------------------------------------------------------------
 [tasks.integ-tests-generate]
-dependencies = ["integ-tests-generate-debug", "integ-tests-generate-release"]
+script = "cd ../../integ-tests && ../baml-cli/baml-cli generate"
+dependencies = ["build-go-cli"]
 
-[tasks.go-sdk]
-dependencies = ["go-sdk-debug", "go-sdk-release", "integ-tests-generate"]
+[tasks.integ-tests-build]
+script = "cd ../../integ-tests/go && go build"
+dependencies = ["integ-tests-generate"]
+
+#-----------------------------------------------------------------------------
+# Main tasks
+#-----------------------------------------------------------------------------
+# Default task - falls back to original behavior if no platform is specified
+[tasks.default]
+dependencies = ["integ-tests-build"]
+
+# CI-specific task - build everything
+[tasks.ci-build]
+dependencies = ["build-release", "integ-tests-generate"]

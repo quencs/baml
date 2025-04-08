@@ -12,7 +12,6 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -108,12 +107,7 @@ func (*stream) AaaSamOutputFormat(ctx context.Context, recipe *types.Union__List
 					close(channel)
 					return
 				}
-				if result.HasData {
-					channel <- (*result.Data).(types.Union__List__Recipe__string)
-				}
-				if result.HasStreamData {
-					fmt.Printf("stream data: %s\n", *result.StreamData)
-				}
+				channel <- (*result.Data).(types.Union__List__Recipe__string)
 			}
 		}
 	}()
