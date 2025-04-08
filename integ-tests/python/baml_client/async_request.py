@@ -85,7 +85,7 @@ class AsyncHttpRequest:
     
     async def AliasWithMultipleAttrs(
         self,
-        money: Checked[int,types.Literal["gt_ten"]],
+        money: int,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
@@ -2092,7 +2092,7 @@ class AsyncHttpRequest:
     
     async def ReturnAliasWithMergedAttributes(
         self,
-        money: Checked[int,types.Literal["gt_ten"]],
+        money: int,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
@@ -4009,7 +4009,7 @@ class AsyncHttpStreamRequest:
     
     async def AliasWithMultipleAttrs(
         self,
-        money: Checked[int,types.Literal["gt_ten"]],
+        money: int,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
@@ -6016,7 +6016,7 @@ class AsyncHttpStreamRequest:
     
     async def ReturnAliasWithMergedAttributes(
         self,
-        money: Checked[int,types.Literal["gt_ten"]],
+        money: int,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
