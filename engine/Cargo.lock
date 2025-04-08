@@ -982,7 +982,7 @@ dependencies = [
  "futures",
  "http 1.1.0",
  "http-body 1.0.1",
- "indexmap 2.2.6",
+ "indexmap 2.8.0",
  "indoc",
  "log",
  "num",
@@ -1208,7 +1208,7 @@ dependencies = [
 
 [[package]]
 name = "baml_cffi"
-version = "0.81.3"
+version = "0.82.0"
 dependencies = [
  "anyhow",
  "baml-cli",

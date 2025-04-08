@@ -49,9 +49,6 @@ dependencies = ["integ-tests-generate"]
 #-----------------------------------------------------------------------------
 # Main tasks
 #-----------------------------------------------------------------------------
-# Default task - falls back to original behavior if no platform is specified
-[tasks.default]
-dependencies = ["integ-tests-build"]
 
 # CI-specific task - build everything
 [tasks.ci-build]
