@@ -346,8 +346,7 @@ impl BamlRuntime {
             } else {
                 match val {
                     Some(Ok(value)) => {
-                        let value_with_constraints =
-                            value.0.map_meta(|(_, constraints, _)| constraints.clone());
+                        let value_with_constraints = value.0.map_meta(|m| m.1.clone());
                         evaluate_test_constraints(
                             &params,
                             &value_with_constraints,
@@ -641,6 +640,7 @@ impl BamlRuntime {
                         generator.default_client_mode(),
                         generator.on_generate.clone(),
                         Some(generator.output_type),
+                        generator.client_package_name.clone(),
                     )?,
                 ))
             })

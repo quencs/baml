@@ -456,6 +456,7 @@ class Foo {
             GeneratorDefaultClientMode::Async,
             Vec::new(),
             Some(GeneratorOutputType::PythonPydantic),
+            None,
         )
         .unwrap()
     }
