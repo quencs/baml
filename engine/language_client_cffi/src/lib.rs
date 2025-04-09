@@ -8,6 +8,12 @@ use baml_runtime::{BamlRuntime, FunctionResult};
 use once_cell::sync::{Lazy, OnceCell};
 
 #[no_mangle]
+pub extern "C" fn version() -> *const libc::c_char {
+    let version = env!("CARGO_PKG_VERSION");
+    CString::new(version).unwrap().as_ptr()
+}
+
+#[no_mangle]
 pub extern "C" fn create_baml_runtime(
     root_path: *const libc::c_char,
     src_files_json: *const libc::c_char,

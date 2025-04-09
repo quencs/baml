@@ -1,14 +1,6 @@
 package baml
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../include
-
-#cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/../../language_client_cffi/lib -lbaml_cffi-aarch64-apple-darwin
-#cgo darwin,amd64 LDFLAGS: -L${SRCDIR}/../../language_client_cffi/lib -lbaml_cffi-x86_64-apple-darwin
-#cgo linux,amd64 LDFLAGS: -L${SRCDIR}/../../language_client_cffi/lib -lbaml_cffi-x86_64-unknown-linux-gnu
-#cgo linux,amd64,musl LDFLAGS: -L${SRCDIR}/../../language_client_cffi/lib -lbaml_cffi-x86_64-unknown-linux-musl
-
-#include "baml_cffi_generated.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -102,7 +94,7 @@ func trigger_callback(id C.uint32_t, isDone C.bool, content *C.int8_t, length C.
 	}
 }
 
-func create_unique_id(ctx context.Context) (C.uint32_t, chan ResultCallback) {
+func create_unique_id(ctx context.Context) (uint32, chan ResultCallback) {
 	callbackMutex.Lock()
 	defer callbackMutex.Unlock()
 	id := uint32(rand.Intn(1000000))
@@ -110,5 +102,5 @@ func create_unique_id(ctx context.Context) (C.uint32_t, chan ResultCallback) {
 		id = uint32(rand.Intn(1000000))
 	}
 	dynamicCallbacks[id] = CallbackData{channel: make(chan ResultCallback), ctx: ctx}
-	return C.uint32_t(id), dynamicCallbacks[id].channel
+	return id, dynamicCallbacks[id].channel
 }

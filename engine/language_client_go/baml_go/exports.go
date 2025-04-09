@@ -1,0 +1,111 @@
+package baml_go
+
+import (
+	"fmt"
+	"unsafe"
+)
+
+/*
+#cgo CFLAGS: -I${SRCDIR}/../include
+#cgo CFLAGS: -O3 -g
+#cgo LDFLAGS: -ldl
+#include <dlfcn.h>
+#include <baml_cffi_wrapper.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+*/
+import "C"
+
+func CreateBamlRuntime(rootPath string, srcFilesJson string, envVarsJson string) (unsafe.Pointer, error) {
+	if err := initialization(); err != nil {
+		return nil, err
+	}
+
+	cRootPath := C.CString(rootPath)
+	defer C.free(unsafe.Pointer(cRootPath))
+
+	cSrcFilesJson := C.CString(srcFilesJson)
+	defer C.free(unsafe.Pointer(cSrcFilesJson))
+
+	cEnvVarsJson := C.CString(envVarsJson)
+	defer C.free(unsafe.Pointer(cEnvVarsJson))
+
+	runtime := C.WrapCreateBamlRuntime(cRootPath, cSrcFilesJson, cEnvVarsJson)
+	if runtime == nil {
+		return nil, fmt.Errorf("failed to create BAML runtime")
+	}
+	return runtime, nil
+}
+
+func DestroyBamlRuntime(runtime unsafe.Pointer) error {
+	if err := initialization(); err != nil {
+		return err
+	}
+
+	C.WrapDestroyBamlRuntime(runtime)
+	return nil
+}
+
+func BamlVersion() string {
+	if err := initialization(); err != nil {
+		return ""
+	}
+	return C.GoString(C.WrapVersion())
+}
+
+func InvokeRuntimeCli(args []string) (int, error) {
+	if err := initialization(); err != nil {
+		return 0, err
+	}
+
+	cArgs := make([]*C.char, len(args))
+	for i, arg := range args {
+		cArgs[i] = C.CString(arg)
+		defer C.free(unsafe.Pointer(cArgs[i]))
+	}
+
+	result := C.WrapInvokeRuntimeCli((**C.char)(unsafe.Pointer(&cArgs[0])))
+
+	return int(result), nil
+}
+
+func RegisterCallbacks(callbackFn unsafe.Pointer, errorFn unsafe.Pointer) error {
+	if err := initialization(); err != nil {
+		return err
+	}
+
+	C.WrapRegisterCallbacks((C.CallbackFn)(callbackFn), (C.CallbackFn)(errorFn))
+	return nil
+}
+
+func CallFunctionFromC(runtime unsafe.Pointer, functionName string, encodedArgs []byte, id uint32) (unsafe.Pointer, error) {
+	if err := initialization(); err != nil {
+		return nil, err
+	}
+
+	cFunctionName := C.CString(functionName)
+	defer C.free(unsafe.Pointer(cFunctionName))
+
+	cEncodedArgs := (*C.char)(unsafe.Pointer(&encodedArgs[0]))
+
+	result := C.WrapCallFunctionFromC(runtime, cFunctionName, cEncodedArgs, C.uintptr_t(len(encodedArgs)), C.uint32_t(id))
+
+	return result, nil
+}
+
+func CallFunctionStreamFromC(runtime unsafe.Pointer, functionName string, encodedArgs []byte, id uint32) (unsafe.Pointer, error) {
+	if err := initialization(); err != nil {
+		return nil, err
+	}
+
+	cFunctionName := C.CString(functionName)
+	defer C.free(unsafe.Pointer(cFunctionName))
+
+	cEncodedArgs := (*C.char)(unsafe.Pointer(&encodedArgs[0]))
+
+	result := C.WrapCallFunctionStreamFromC(runtime, cFunctionName, cEncodedArgs, C.uintptr_t(len(encodedArgs)), C.uint32_t(id))
+
+	return result, nil
+}

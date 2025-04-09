@@ -13,6 +13,8 @@
 
 typedef void (*CallbackFn)(uint32_t call_id, bool is_done, const int8_t *content, uintptr_t length);
 
+const char *version(void);
+
 const void *create_baml_runtime(const char *root_path,
                                 const char *src_files_json,
                                 const char *env_vars_json);

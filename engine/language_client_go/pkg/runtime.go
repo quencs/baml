@@ -1,8 +1,6 @@
 package baml
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../include
-#include "baml_cffi_generated.h"
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -13,8 +11,11 @@ import "C"
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"unsafe"
+
+	"github.com/boundaryml/baml/engine/language_client_go/baml_go"
 )
 
 type BamlRuntime struct {
@@ -26,21 +27,18 @@ var once sync.Once
 
 func InvokeRuntimeCli(args []string) int {
 
-	arg_c_strings := make([]*C.char, len(args))
-	for i, arg := range args {
-		arg_c_strings[i] = C.CString(arg)
+	result, err := baml_go.InvokeRuntimeCli(args)
+	if err != nil {
+		fmt.Printf("Error invoking runtime cli: %v\n", err)
+		return -1
 	}
-	defer func() {
-		for _, arg_c_string := range arg_c_strings {
-			C.free(unsafe.Pointer(arg_c_string))
-		}
-	}()
-	ret := C.invoke_runtime_cli((**C.char)(unsafe.Pointer(&arg_c_strings[0])))
-	return int(ret)
+	return result
 }
 
 func init() {
-	C.register_callbacks((C.CallbackFn)(C.trigger_callback), (C.CallbackFn)(C.trigger_callback))
+	if err := baml_go.RegisterCallbacks(C.trigger_callback, C.trigger_callback); err != nil {
+		panic(err)
+	}
 }
 
 func CreateRuntime(
@@ -59,23 +57,19 @@ func CreateRuntime(
 		return BamlRuntime{}, err
 	}
 
-	src_files_c := C.CString(string(src_files_json))
-	defer C.free(unsafe.Pointer(src_files_c))
+	runtime, err := baml_go.CreateBamlRuntime(
+		root_path,
+		string(src_files_json),
+		string(env_vars_json),
+	)
+	if err != nil {
+		return BamlRuntime{}, err
+	}
 
-	env_vars_c := C.CString(string(env_vars_json))
-	defer C.free(unsafe.Pointer(env_vars_c))
-
-	root_path_c := C.CString(root_path)
-	defer C.free(unsafe.Pointer(root_path_c))
-
-	runtime := C.create_baml_runtime(root_path_c, src_files_c, env_vars_c)
 	return BamlRuntime{runtime: runtime}, nil
 }
 
 func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, encoded_args []byte) (*ResultCallback, error) {
-	functionNameC := C.CString(functionName)
-	// defer C.free(unsafe.Pointer(functionNameC))
-
 	callback_id, callback := create_unique_id(ctx)
 	return_channel := make(chan ResultCallback)
 	go func() {
@@ -92,8 +86,11 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, enc
 		}
 	}()
 
-	encoded_args_c := (*C.char)(unsafe.Pointer(&encoded_args[0]))
-	C.call_function_from_c(r.runtime, functionNameC, encoded_args_c, C.uintptr_t(len(encoded_args)), callback_id)
+	_, err := baml_go.CallFunctionFromC(r.runtime, functionName, encoded_args, callback_id)
+	if err != nil {
+		close(return_channel)
+		return nil, err
+	}
 
 	select {
 	case <-ctx.Done():
@@ -104,8 +101,6 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, enc
 }
 
 func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName string, encoded_args []byte) (<-chan ResultCallback, error) {
-	functionNameC := C.CString(functionName)
-
 	callback_id, callback := create_unique_id(ctx)
 
 	return_channel := make(chan ResultCallback)
@@ -127,8 +122,11 @@ func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName strin
 		}
 	}()
 
-	encoded_args_c := (*C.char)(unsafe.Pointer(&encoded_args[0]))
-	C.call_function_stream_from_c(r.runtime, functionNameC, encoded_args_c, C.uintptr_t(len(encoded_args)), callback_id)
+	_, err := baml_go.CallFunctionStreamFromC(r.runtime, functionName, encoded_args, callback_id)
+	if err != nil {
+		close(return_channel)
+		return nil, err
+	}
 
 	return return_channel, nil
 }
