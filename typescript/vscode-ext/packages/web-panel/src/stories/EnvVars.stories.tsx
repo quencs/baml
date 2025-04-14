@@ -1,12 +1,13 @@
 import { expect } from '@storybook/test'
 import { DevTools } from 'jotai-devtools'
 import 'jotai-devtools/styles.css'
-import { atom, createStore } from 'jotai'
+import { atom, createStore, useAtomValue, useSetAtom } from 'jotai'
 import { default as EnvVars } from '../shared/baml-project-panel/playground-panel/side-bar/env-vars'
 import { Provider as JotaiProvider } from 'jotai'
 import { ThemeProvider } from 'next-themes'
 import '../App.css'
 import { envVarsAtom } from '../shared/baml-project-panel/atoms'
+import { useState } from 'react'
 
 interface JotaiProviderProps {
   envVars: Record<string, string>
@@ -19,18 +20,27 @@ const JotaiStorybookProvider: React.FC<JotaiProviderProps> = ({ envVars, childre
   return <JotaiProvider store={storybookStore}>{children}</JotaiProvider>
 }
 
+const WrappedEnvVars: React.FC = () => {
+  const envVars = useAtomValue(envVarsAtom)
+  return (
+    <div>
+      <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange={true}>
+        <div className='flex gap-8 items-start'>
+          <EnvVars />
+          <div className='p-4 bg-[#1e1e1e] rounded-lg min-w-[300px]'>
+            <h3 className='mb-2 text-sm font-mono'>JSON.stringify(useAtomValue(envVarsAtom))</h3>
+            <pre className='text-xs'>{JSON.stringify(envVars, null, 2)}</pre>
+          </div>
+        </div>
+      </ThemeProvider>
+    </div>
+  )
+}
+
 export default {
   title: 'EnvVars',
-  component: EnvVars,
-  decorators: [
-    (Story: React.FC) => (
-      <div>
-        <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange={true}>
-          <Story />
-        </ThemeProvider>
-      </div>
-    ),
-  ],
+  component: WrappedEnvVars,
+  decorators: [],
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/configure/story-layout
     layout: 'centered',
@@ -38,18 +48,24 @@ export default {
 }
 
 // More on component testing: https://storybook.js.org/docs/writing-tests/component-testing
-export const WithNoRequired = {
+export const NoRequiredEnvVarsAreSet = {
   decorators: [
     (Story: React.FC) => (
       <JotaiStorybookProvider envVars={{}}>
-        <Story />
+        <div>
+          <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange={true}>
+            <div className='flex gap-8 items-start'>
+              <Story />
+            </div>
+          </ThemeProvider>
+        </div>
       </JotaiStorybookProvider>
     ),
   ],
 }
 
 // ANTHROPIC_API_KEY and OPENAI_API_KEY are required by default
-export const WithSomeRequiredAndMore = {
+export const SomeRequiredEnvVarsAreSet = {
   decorators: [
     (Story: React.FC) => (
       <JotaiStorybookProvider
@@ -59,14 +75,20 @@ export const WithSomeRequiredAndMore = {
           OPENAI_API_KEY: '',
         }}
       >
-        <Story />
+        <div>
+          <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange={true}>
+            <div className='flex gap-8 items-start'>
+              <Story />
+            </div>
+          </ThemeProvider>
+        </div>
       </JotaiStorybookProvider>
     ),
   ],
 }
 
 // ANTHROPIC_API_KEY and OPENAI_API_KEY are required by default
-export const WithAllRequiredAndMore = {
+export const AllRequiredEnvVarsAreSet = {
   decorators: [
     (Story: React.FC) => (
       <JotaiStorybookProvider
@@ -82,8 +104,24 @@ export const WithAllRequiredAndMore = {
   ],
 }
 
+export const EnvVarContainsNewlines = {
+  decorators: [
+    (Story: React.FC) => (
+      <JotaiStorybookProvider
+        envVars={{
+          ANTHROPIC_API_KEY: 'line1\nline2\nline3',
+          COHERE_API_KEY: 'sk-coh789',
+          OPENAI_API_KEY: 'sk-test123',
+        }}
+      >
+        <Story />
+      </JotaiStorybookProvider>
+    ),
+  ],
+}
+
 // ANTHROPIC_API_KEY and OPENAI_API_KEY are required by default
-export const With100EnvVars = {
+export const TableWith100EnvVars = {
   decorators: [
     (Story: React.FC) => (
       <JotaiStorybookProvider
