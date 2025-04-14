@@ -113,7 +113,7 @@
             src = ./engine;
             LIBCLANG_PATH = pkgs.libclang.lib + "/lib/";
             BINDGEN_EXTRA_CLANG_ARGS = if pkgs.stdenv.isDarwin then
-              "" # Rely on default includes provided by stdenv.cc + libclang
+              "-I${pkgs.llvmPackages_17.libclang.lib}/lib/clang/17/headers "
             else
               "-isystem ${pkgs.llvmPackages_17.libclang.lib}/lib/clang/17/include -isystem ${pkgs.llvmPackages_17.libclang.lib}/include -isystem ${pkgs.glibc.dev}/include";
 
