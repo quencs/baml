@@ -12,10 +12,7 @@ mod internal_tests {
 
     // use baml_runtime::internal::llm_client::orchestrator::OrchestrationScope;
     use baml_runtime::InternalRuntimeInterface;
-    use baml_runtime::{
-        internal::llm_client::LLMResponse, DiagnosticsError, IRHelper,
-    };
-    use baml_types::tracing::events::FunctionId;
+    use baml_runtime::{internal::llm_client::LLMResponse, DiagnosticsError, IRHelper};
     use baml_types::BamlValue;
 
     use wasm_bindgen_test::*;
@@ -107,9 +104,7 @@ mod internal_tests {
         let (res, function_span_id) = runtime.async_runtime.block_on(call_function_future);
 
         let trace_storage = BAML_TRACER.lock().unwrap();
-        let trace = trace_storage
-            .get_events(&FunctionId(function_span_id.unwrap_or_default().to_string()))
-            .unwrap();
+        let trace = trace_storage.get_events(&function_span_id).unwrap();
 
         log::info!("Trace: {:#?}", trace);
 

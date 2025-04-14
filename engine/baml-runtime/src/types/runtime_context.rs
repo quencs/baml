@@ -1,4 +1,5 @@
 use anyhow::Result;
+use baml_ids::SpanId;
 use baml_types::{BamlValue, EvaluationContext, UnresolvedValue};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::FieldType;
@@ -11,6 +12,7 @@ use crate::{internal::llm_client::llm_provider::LLMProvider, tracing::BamlTracer
 pub struct SpanCtx {
     pub span_id: uuid::Uuid,
     pub name: String,
+    pub new_span_id: SpanId,
 }
 
 #[derive(Debug)]
@@ -104,8 +106,8 @@ pub struct RuntimeContext {
     pub enum_overrides: IndexMap<String, RuntimeEnumOverride>,
     pub type_alias_overrides: IndexMap<String, FieldType>,
     pub recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
-    // Only the BAML_TRACER depends on this. If it goes missing due to a bug, we just wont publish logs.
-    pub span_id: Option<uuid::Uuid>,
+    // Only the BAML_TRACER depends on this.
+    pub span_id_chain: Vec<SpanId>,
     pub recursive_class_overrides: Vec<IndexSet<String>>,
 }
 
@@ -133,7 +135,7 @@ impl RuntimeContext {
         type_alias_overrides: IndexMap<String, FieldType>,
         recursive_class_overrides: Vec<IndexSet<String>>,
         recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
-        span_id: Option<uuid::Uuid>,
+        span_id_chain: Vec<SpanId>,
     ) -> RuntimeContext {
         RuntimeContext {
             baml_src,
@@ -145,7 +147,7 @@ impl RuntimeContext {
             enum_overrides,
             type_alias_overrides,
             recursive_type_alias_overrides,
-            span_id,
+            span_id_chain,
             recursive_class_overrides,
         }
     }

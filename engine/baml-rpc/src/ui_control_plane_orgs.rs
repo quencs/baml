@@ -29,8 +29,8 @@ pub struct CreateOrganizationResponse {
 pub struct CreateOrganization;
 
 impl ApiEndpoint for CreateOrganization {
-    type Request = CreateOrganizationRequest;
-    type Response = CreateOrganizationResponse;
+    type Request<'a> = CreateOrganizationRequest;
+    type Response<'a> = CreateOrganizationResponse;
 
     const PATH: &'static str = "/v1/create-organization";
 }
@@ -54,8 +54,8 @@ pub struct UpdateOrganizationResponse {
 pub struct UpdateOrganization;
 
 impl ApiEndpoint for UpdateOrganization {
-    type Request = UpdateOrganizationRequest;
-    type Response = UpdateOrganizationResponse;
+    type Request<'a> = UpdateOrganizationRequest;
+    type Response<'a> = UpdateOrganizationResponse;
 
     const PATH: &'static str = "/v1/update-organization";
 }
@@ -75,8 +75,8 @@ pub struct GetOrganizationResponse {
 pub struct GetOrganization;
 
 impl ApiEndpoint for GetOrganization {
-    type Request = GetOrganizationRequest;
-    type Response = GetOrganizationResponse;
+    type Request<'a> = GetOrganizationRequest;
+    type Response<'a> = GetOrganizationResponse;
 
     const PATH: &'static str = "/v1/get-organization";
 }

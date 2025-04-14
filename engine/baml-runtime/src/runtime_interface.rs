@@ -62,41 +62,41 @@ pub trait ExperimentalTracingInterface {
         function_name: &str,
         params: &BamlMap<String, BamlValue>,
         ctx: &RuntimeContextManager,
-    ) -> Option<TracingSpan>;
+    ) -> TracingSpan;
 
     #[cfg(target_arch = "wasm32")]
     #[allow(async_fn_in_trait)]
     async fn finish_function_span(
         &self,
-        span: Option<TracingSpan>,
+        span: TracingSpan,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
-    ) -> Result<Option<uuid::Uuid>>;
+    ) -> Result<uuid::Uuid>;
 
     #[cfg(not(target_arch = "wasm32"))]
     fn finish_function_span(
         &self,
-        span: Option<TracingSpan>,
+        span: TracingSpan,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
-    ) -> Result<Option<uuid::Uuid>>;
+    ) -> Result<uuid::Uuid>;
 
     #[cfg(target_arch = "wasm32")]
     #[allow(async_fn_in_trait)]
     async fn finish_span(
         &self,
-        span: Option<TracingSpan>,
+        span: TracingSpan,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
-    ) -> Result<Option<uuid::Uuid>>;
+    ) -> Result<uuid::Uuid>;
 
     #[cfg(not(target_arch = "wasm32"))]
     fn finish_span(
         &self,
-        span: Option<TracingSpan>,
+        span: TracingSpan,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
-    ) -> Result<Option<uuid::Uuid>>;
+    ) -> Result<uuid::Uuid>;
 
     fn flush(&self) -> Result<()>;
     fn drain_stats(&self) -> crate::InnerTraceStats;

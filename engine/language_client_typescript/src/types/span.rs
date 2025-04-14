@@ -6,7 +6,7 @@ use super::runtime_ctx_manager::RuntimeContextManager;
 use crate::{errors::invalid_argument_error, BamlRuntime};
 
 crate::lang_wrapper!(BamlSpan,
-  Option<Option<baml_runtime::tracing::TracingSpan>>,
+  Option<baml_runtime::tracing::TracingSpan>,
   no_from,
   rt: std::sync::Arc<baml_runtime::BamlRuntime>
 );
@@ -54,7 +54,7 @@ impl BamlSpan {
 
         self.rt
             .finish_span(span, Some(result), &ctx.inner)
-            .map(|u| u.map(|id| id.to_string()))
+            .map(|u| u.to_string())
             .map(|u| serde_json::json!(u))
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:?}", e)))
     }

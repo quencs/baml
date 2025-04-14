@@ -10,7 +10,7 @@ use super::runtime_ctx_manager::RuntimeContextManager;
 use crate::runtime::BamlRuntime;
 
 crate::lang_wrapper!(BamlSpan,
-  Option<Option<baml_runtime::tracing::TracingSpan>>,
+  Option<baml_runtime::tracing::TracingSpan>,
   no_from,
   rt: std::sync::Arc<baml_runtime::BamlRuntime>
 );
@@ -48,7 +48,7 @@ impl BamlSpan {
         py: Python<'_>,
         result: PyObject,
         ctx: &RuntimeContextManager,
-    ) -> PyResult<Option<String>> {
+    ) -> PyResult<String> {
         log::trace!("Finishing span: {:?}", self.inner);
         let result = parse_py_type(result.into_bound(py).into_py_any(py)?, true)?;
 
@@ -60,6 +60,6 @@ impl BamlSpan {
         self.rt
             .finish_span(span, result, &ctx.inner)
             .map_err(BamlError::from_anyhow)
-            .map(|u| u.map(|id| id.to_string()))
+            .map(|u| u.to_string())
     }
 }

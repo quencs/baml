@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
+use baml_ids::SpanId;
 use baml_types::BamlValue;
 use std::fmt;
 
@@ -13,7 +14,7 @@ use crate::{
 };
 
 use super::runtime_context::{AwsCredProvider, BamlSrcReader};
-pub type BamlContext = (uuid::Uuid, String, HashMap<String, BamlValue>);
+pub type BamlContext = (uuid::Uuid, String, HashMap<String, BamlValue>, SpanId);
 
 #[derive(Clone)]
 pub struct RuntimeContextManager {
@@ -53,6 +54,21 @@ impl RuntimeContextManager {
             .ok_or_else(|| anyhow::anyhow!("No span id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
     }
 
+    pub fn span_id_chain(&self) -> Result<Vec<SpanId>> {
+        let res: Vec<SpanId> = self
+            .context
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(.., span_id)| span_id.clone())
+            .collect();
+        if res.is_empty() {
+            Err(anyhow::anyhow!("No span id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
+        } else {
+            Ok(res)
+        }
+    }
+
     pub fn new_from_env_vars(
         env_vars: HashMap<String, String>,
         baml_src_reader: BamlSrcReader,
@@ -69,7 +85,7 @@ impl RuntimeContextManager {
 
     pub fn upsert_tags(&self, tags: HashMap<String, BamlValue>) {
         let mut ctx = self.context.lock().unwrap();
-        if let Some((.., last_tags)) = ctx.last_mut() {
+        if let Some((.., last_tags, _)) = ctx.last_mut() {
             last_tags.extend(tags);
         } else {
             self.global_tags.lock().unwrap().extend(tags);
@@ -81,20 +97,21 @@ impl RuntimeContextManager {
             .lock()
             .unwrap()
             .last()
-            .map(|(_, _, tags)| tags.clone())
+            .map(|(_, _, tags, _)| tags.clone())
             .unwrap_or_default()
     }
 
     // Note, after entering, calling ctx.span_id() will return the span id of the old context still.
-    pub fn enter(&self, name: &str) -> uuid::Uuid {
+    pub fn enter(&self, name: &str) -> (uuid::Uuid, Vec<SpanId>) {
         let last_tags = self.clone_last_tags();
         let span = uuid::Uuid::new_v4();
-        self.context
-            .lock()
-            .unwrap()
-            .push((span, name.to_string(), last_tags));
-        log::trace!("Entering with: {:#?}", self.context.lock().unwrap());
-        span
+        let span_id = SpanId::new();
+        let mut ctx = self.context.lock().unwrap();
+        ctx.push((span, name.to_string(), last_tags, span_id));
+
+        let span_chain = ctx.iter().map(|(.., span_id)| span_id.clone()).collect();
+        log::trace!("Entering with: {:#?}", ctx);
+        (span, span_chain)
     }
 
     pub fn exit(&self) -> Option<(uuid::Uuid, Vec<SpanCtx>, HashMap<String, BamlValue>)> {
@@ -103,13 +120,14 @@ impl RuntimeContextManager {
 
         let prev = ctx
             .iter()
-            .map(|(span, name, _)| SpanCtx {
+            .map(|(span, name, _, span_id)| SpanCtx {
                 span_id: *span,
                 name: name.clone(),
+                new_span_id: span_id.clone(),
             })
             .collect();
 
-        let (id, _, mut tags) = ctx.pop()?;
+        let (id, _, mut tags, new_id) = ctx.pop()?;
 
         for (k, v) in self.global_tags.lock().unwrap().iter() {
             tags.entry(k.clone()).or_insert_with(|| v.clone());
@@ -129,23 +147,27 @@ impl RuntimeContextManager {
         // 1. Tracer creates a new span id using the current context that's passe dinto call_function()
         // 2. Tracer passes the span_id back in here for a new context
         // 3. profit
-        span_id: Option<uuid::Uuid>,
+        span_id_chain: Vec<SpanId>,
     ) -> Result<RuntimeContext> {
-        let mut tags = self.global_tags.lock().unwrap().clone();
-        let ctx_tags = {
-            self.context
-                .lock()
-                .unwrap()
-                .last()
-                .map(|(.., x)| x)
-                .cloned()
-                .unwrap_or_default()
-        };
-        tags.extend(ctx_tags);
+        // let mut tags = self.global_tags.lock().unwrap().clone();
+        // let ctx_tags = {
+        //     self.context
+        //         .lock()
+        //         .unwrap()
+        //         .last()
+        //         .map(|(.., x, _)| x)
+        //         .cloned()
+        //         .unwrap_or_default()
+        // };
+        // tags.extend(ctx_tags);
         let tags = {
+            let mut tags = self.global_tags.lock().unwrap().clone();
             let ctx = self.context.lock().unwrap();
             let ctx = ctx.last();
-            ctx.map(|(.., tags)| tags).cloned().unwrap_or_default()
+            if let Some((.., ctx_tags, _)) = ctx {
+                tags.extend(ctx_tags.into_iter().map(|(k, v)| (k.clone(), v.clone())));
+            }
+            tags
         };
 
         let (cls, enm, als, rec_cls, rec_als) = type_builder
@@ -163,7 +185,7 @@ impl RuntimeContextManager {
             als,
             rec_cls,
             rec_als,
-            span_id,
+            span_id_chain,
         );
 
         ctx.client_overrides = match client_registry {
@@ -185,14 +207,14 @@ impl RuntimeContextManager {
             self.baml_src_reader.clone(),
             self.aws_cred_provider.clone(),
             self.env_vars.clone(),
-            ctx.last().map(|(.., x)| x).cloned().unwrap_or_default(),
+            ctx.last().map(|(.., x, _)| x).cloned().unwrap_or_default(),
             Default::default(),
             Default::default(),
             Default::default(),
             Default::default(),
             Default::default(),
             Default::default(),
-            Some(uuid::Uuid::new_v4()),
+            vec![SpanId::new()],
         )
     }
 

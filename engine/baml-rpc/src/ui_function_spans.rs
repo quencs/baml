@@ -1,7 +1,4 @@
-use crate::{
-    ast::{BamlFunctionDefinition, BamlTypeDefinition},
-    rpc::ApiEndpoint,
-};
+use crate::rpc::ApiEndpoint;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -16,17 +13,18 @@ pub struct ListFunctionSpansRequest {
 #[ts(export)]
 pub struct ListFunctionSpansResponse {
     function_spans: Vec<api::FunctionSpan>,
-    #[ts(type = "any")]
-    function_definitions: Vec<BamlFunctionDefinition>,
-    #[ts(type = "any")]
-    type_definitions: Vec<BamlTypeDefinition>,
+    // TODO: add function definitions and type definitions
+    // #[ts(type = "any")]
+    // function_definitions: Vec<BamlFunctionDefinition>,
+    // #[ts(type = "any")]
+    // type_definitions: Vec<BamlTypeDefinition>,
 }
 
 pub struct ListFunctionSpans;
 
 impl ApiEndpoint for ListFunctionSpans {
-    type Request = ListFunctionSpansRequest;
-    type Response = ListFunctionSpansResponse;
+    type Request<'a> = ListFunctionSpansRequest;
+    type Response<'a> = ListFunctionSpansResponse;
 
     const PATH: &'static str = "/v1/function-spans";
 }

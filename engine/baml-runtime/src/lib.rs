@@ -28,6 +28,8 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use anyhow::Result;
+use baml_ids::HttpRequestId;
+use baml_ids::SpanId;
 use futures::channel::mpsc;
 use internal_baml_core::ast::Span;
 use internal_baml_core::ir::repr::initial_context;
@@ -36,10 +38,8 @@ use tokio::sync::Mutex;
 
 use crate::internal::llm_client::LLMCompleteResponse;
 use baml_types::expr::{Expr, ExprMetadata};
-use baml_types::tracing::events::FunctionId;
 use baml_types::tracing::events::HTTPBody;
 use baml_types::tracing::events::HTTPRequest;
-use baml_types::tracing::events::HttpRequestId;
 use baml_types::BamlMap;
 use baml_types::BamlValue;
 use baml_types::BamlValueWithMeta;
@@ -102,7 +102,6 @@ pub(crate) use runtime_interface::InternalRuntimeInterface;
 
 pub use internal_baml_core::internal_baml_diagnostics;
 pub use internal_baml_core::internal_baml_diagnostics::Diagnostics as DiagnosticsError;
-pub use internal_baml_core::internal_baml_diagnostics::SerializedSpan;
 pub use internal_baml_core::ir::{
     ir_helpers::infer_type, scope_diagnostics, FieldType, IRHelper, TypeValue,
 };
@@ -309,7 +308,7 @@ impl BamlRuntime {
         test_name: &str,
         ctx: &RuntimeContextManager,
         on_event: Option<F>,
-        expr_tx: Option<mpsc::UnboundedSender<Vec<SerializedSpan>>>,
+        expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
         collector: Option<Arc<Collector>>,
     ) -> (Result<TestResponse>, Option<uuid::Uuid>)
     where
@@ -326,7 +325,7 @@ impl BamlRuntime {
             //     .get_test_type_builder(function_name, test_name, ctx)
             //     .ok_or(None);
             let rctx = ctx
-                .create_ctx(None, None, span.clone().map(|s| s.span_id))
+                .create_ctx(None, None, span.new_span_id_chain.clone())
                 .unwrap();
             let (params, _constraints) = self
                 .get_test_params_and_constraints(function_name, test_name, &rctx, true)
@@ -354,10 +353,13 @@ impl BamlRuntime {
             return (Ok(test_response), None);
         }
 
-        if let Some(span) = span.clone() {
-            if let Some(collector) = collector {
-                collector.track_function(FunctionId(span.clone().span_id.to_string()));
-            }
+        if let Some(collector) = collector {
+            collector.track_function(
+                span.new_span_id_chain
+                    .last()
+                    .expect("Span ID chain is empty")
+                    .clone(),
+            );
         }
 
         let run_to_response = || async {
@@ -367,7 +369,7 @@ impl BamlRuntime {
                 .unwrap();
 
             let rctx =
-                ctx.create_ctx(type_builder.as_ref(), None, span.clone().map(|s| s.span_id))?;
+                ctx.create_ctx(type_builder.as_ref(), None, span.new_span_id_chain.clone())?;
             let (params, constraints) =
                 self.get_test_params_and_constraints(function_name, test_name, &rctx, true)?;
             let mut stream = self.inner.stream_function_impl(
@@ -426,17 +428,15 @@ impl BamlRuntime {
         let response = run_to_response().await;
 
         let mut target_id = None;
-        if let Some(span) = span {
-            #[cfg(not(target_arch = "wasm32"))]
-            match self.tracer.finish_span(span, ctx, None) {
-                Ok(id) => target_id = id,
-                Err(e) => log::debug!("Error during logging: {}", e),
-            }
-            #[cfg(target_arch = "wasm32")]
-            match self.tracer.finish_span(span, ctx, None).await {
-                Ok(id) => target_id = id,
-                Err(e) => log::debug!("Error during logging: {}", e),
-            }
+        #[cfg(not(target_arch = "wasm32"))]
+        match self.tracer.finish_span(span, ctx, None) {
+            Ok(id) => target_id = Some(id),
+            Err(e) => log::debug!("Error during logging: {}", e),
+        }
+        #[cfg(target_arch = "wasm32")]
+        match self.tracer.finish_span(span, ctx, None).await {
+            Ok(id) => target_id = Some(id),
+            Err(e) => log::debug!("Error during logging: {}", e),
         }
 
         (response, target_id)
@@ -475,7 +475,7 @@ impl BamlRuntime {
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
         collectors: Option<Vec<Arc<Collector>>>,
-    ) -> (Result<FunctionResult>, Option<uuid::Uuid>) {
+    ) -> (Result<FunctionResult>, SpanId) {
         let fut = self.call_function(function_name, params, ctx, tb, cb, collectors);
         self.async_runtime.block_on(fut)
     }
@@ -488,7 +488,7 @@ impl BamlRuntime {
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
         collectors: Option<Vec<Arc<Collector>>>,
-    ) -> (Result<FunctionResult>, Option<uuid::Uuid>) {
+    ) -> (Result<FunctionResult>, SpanId) {
         let res = self
             .call_function_with_expr_events(function_name, params, ctx, tb, cb, collectors, None)
             .await;
@@ -503,21 +503,24 @@ impl BamlRuntime {
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
         collectors: Option<Vec<Arc<Collector>>>,
-        expr_tx: Option<mpsc::UnboundedSender<Vec<SerializedSpan>>>,
-    ) -> (Result<FunctionResult>, Option<uuid::Uuid>) {
+        expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
+    ) -> (Result<FunctionResult>, SpanId) {
         log::trace!("Calling function: {}", function_name);
         let span = self.tracer.start_span(&function_name, ctx, params);
-
-        if let Some(span) = span.clone() {
-            if let Some(collectors) = collectors {
-                for collector in collectors.iter() {
-                    collector.track_function(FunctionId(span.clone().span_id.to_string()));
-                }
+        let curr_span_id = span.curr_span_id();
+        if let Some(collectors) = collectors {
+            for collector in collectors.iter() {
+                collector.track_function(
+                    span.new_span_id_chain
+                        .last()
+                        .expect("Span ID chain is empty")
+                        .clone(),
+                );
             }
         }
 
         let fake_syntax_span = Span::fake();
-        let response = match ctx.create_ctx(tb, cb, span.clone().map(|s| s.span_id)) {
+        let response = match ctx.create_ctx(tb, cb, span.new_span_id_chain.clone()) {
             Ok(rctx) => {
                 let is_expr_fn = self
                     .inner
@@ -629,19 +632,18 @@ impl BamlRuntime {
         };
 
         let mut target_id = None;
-        if let Some(span) = span {
-            #[cfg(not(target_arch = "wasm32"))]
-            match self.tracer.finish_baml_span(span, ctx, &response) {
-                Ok(id) => target_id = id,
-                Err(e) => log::debug!("Error during logging: {}", e),
-            }
-            #[cfg(target_arch = "wasm32")]
-            match self.tracer.finish_baml_span(span, ctx, &response).await {
-                Ok(id) => target_id = id,
-                Err(e) => log::debug!("Error during logging: {}", e),
-            }
+        #[cfg(not(target_arch = "wasm32"))]
+        match self.tracer.finish_baml_span(span, ctx, &response) {
+            Ok(id) => target_id = Some(id),
+            Err(e) => log::debug!("Error during logging: {}", e),
         }
-        (response, target_id)
+        #[cfg(target_arch = "wasm32")]
+        match self.tracer.finish_baml_span(span, ctx, &response).await {
+            Ok(id) => target_id = Some(id),
+            Err(e) => log::debug!("Error during logging: {}", e),
+        }
+
+        (response, curr_span_id)
     }
 
     pub fn stream_function(
@@ -657,7 +659,7 @@ impl BamlRuntime {
             function_name,
             params,
             self.tracer.clone(),
-            ctx.create_ctx(tb, cb, None)?,
+            ctx.create_ctx(tb, cb, ctx.span_id_chain()?)?,
             #[cfg(not(target_arch = "wasm32"))]
             self.async_runtime.clone(),
             collectors.unwrap_or_else(|| vec![]),
@@ -673,7 +675,7 @@ impl BamlRuntime {
         cb: Option<&ClientRegistry>,
         stream: bool,
     ) -> Result<HTTPRequest> {
-        let ctx = context_manager.create_ctx(tb, cb, None)?;
+        let ctx = context_manager.create_ctx(tb, cb, vec![])?;
 
         let provider = self.llm_provider_from_function(&function_name, &ctx)?;
 
@@ -702,7 +704,7 @@ impl BamlRuntime {
         // Would also be nice if RequestBuilder had getters so we didn't have to
         // call .build()? above.
         Ok(HTTPRequest {
-            id: HttpRequestId(uuid::Uuid::new_v4().to_string()),
+            id: HttpRequestId::new(),
             url: request.url().to_string(),
             method: request.method().to_string(),
             headers: json_headers(request.headers()),
@@ -743,7 +745,7 @@ impl BamlRuntime {
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
     ) -> Result<ResponseBamlValue> {
-        let ctx = ctx.create_ctx(tb, cb, None)?;
+        let ctx = ctx.create_ctx(tb, cb, vec![])?;
 
         let renderer = PromptRenderer::from_function(
             &self.inner.get_function(&function_name, &ctx)?,
@@ -906,65 +908,49 @@ impl ExperimentalTracingInterface for BamlRuntime {
         function_name: &str,
         params: &BamlMap<String, BamlValue>,
         ctx: &RuntimeContextManager,
-    ) -> Option<TracingSpan> {
+    ) -> TracingSpan {
         self.tracer.start_span(function_name, ctx, params)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     fn finish_function_span(
         &self,
-        span: Option<TracingSpan>,
+        span: TracingSpan,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
-    ) -> Result<Option<uuid::Uuid>> {
-        if let Some(span) = span {
-            self.tracer.finish_baml_span(span, ctx, result)
-        } else {
-            Ok(None)
-        }
+    ) -> Result<uuid::Uuid> {
+        self.tracer.finish_baml_span(span, ctx, result).map(|r| r.0)
     }
 
     #[cfg(target_arch = "wasm32")]
     async fn finish_function_span(
         &self,
-        span: Option<TracingSpan>,
+        span: TracingSpan,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
-    ) -> Result<Option<uuid::Uuid>> {
-        if let Some(span) = span {
-            self.tracer.finish_baml_span(span, ctx, result).await
-        } else {
-            Ok(None)
-        }
+    ) -> Result<uuid::Uuid> {
+        self.tracer.finish_baml_span(span, ctx, result).await
     }
 
     // For non-LLM calls -- used by FFI boundary like with @trace in python
     #[cfg(not(target_arch = "wasm32"))]
     fn finish_span(
         &self,
-        span: Option<TracingSpan>,
+        span: TracingSpan,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
-    ) -> Result<Option<uuid::Uuid>> {
-        if let Some(span) = span {
-            self.tracer.finish_span(span, ctx, result)
-        } else {
-            Ok(None)
-        }
+    ) -> Result<uuid::Uuid> {
+        self.tracer.finish_span(span, ctx, result)
     }
 
     #[cfg(target_arch = "wasm32")]
     async fn finish_span(
         &self,
-        span: Option<TracingSpan>,
+        span: TracingSpan,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
-    ) -> Result<Option<uuid::Uuid>> {
-        if let Some(span) = span {
-            self.tracer.finish_span(span, ctx, result).await
-        } else {
-            Ok(None)
-        }
+    ) -> Result<uuid::Uuid> {
+        self.tracer.finish_span(span, ctx, result).await
     }
 
     fn flush(&self) -> Result<()> {

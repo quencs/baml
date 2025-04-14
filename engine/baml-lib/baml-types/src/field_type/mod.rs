@@ -100,6 +100,12 @@ pub trait HasFieldType {
     fn field_type<'a>(&'a self) -> &'a FieldType;
 }
 
+impl HasFieldType for FieldType {
+    fn field_type<'a>(&'a self) -> &'a FieldType {
+        self
+    }
+}
+
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Arrow {
     pub param_types: Vec<FieldType>,

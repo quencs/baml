@@ -139,8 +139,8 @@ pub struct GetDashboardDataResponse {
 struct GetDashboardData;
 
 impl ApiEndpoint for GetDashboardData {
-    type Request = GetDashboardDataRequest;
-    type Response = GetDashboardDataResponse;
+    type Request<'a> = GetDashboardDataRequest;
+    type Response<'a> = GetDashboardDataResponse;
 
     const PATH: &'static str = "/v1/dashboard";
 }

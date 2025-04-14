@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+use super::TraceEvent;
 use crate::rpc::ApiEndpoint;
 use crate::s3::S3UploadMetadata;
-use crate::trace::TraceEvent;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateTraceEventUploadUrlRequest {
@@ -18,15 +18,15 @@ pub struct CreateTraceEventUploadUrl;
 
 // POST /v1/baml-trace/create-upload-url
 impl ApiEndpoint for CreateTraceEventUploadUrl {
-    type Request = CreateTraceEventUploadUrlRequest;
-    type Response = CreateTraceEventUploadUrlResponse;
+    type Request<'a> = CreateTraceEventUploadUrlRequest;
+    type Response<'a> = CreateTraceEventUploadUrlResponse;
 
     const PATH: &'static str = "/v1/baml-trace/create-upload-url";
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CreateTraceEventUploadRequest {
-    pub trace_event_batch: Vec<TraceEvent>,
+pub struct CreateTraceEventUploadRequest<'a> {
+    pub trace_event_batch: Vec<TraceEvent<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,8 +38,8 @@ pub struct CreateTraceEventUpload;
 
 // POST /v1/baml-trace
 impl ApiEndpoint for CreateTraceEventUpload {
-    type Request = CreateTraceEventUploadRequest;
-    type Response = CreateTraceEventUploadResponse;
+    type Request<'a> = CreateTraceEventUploadRequest<'a>;
+    type Response<'a> = CreateTraceEventUploadResponse;
 
     const PATH: &'static str = "/v1/baml-trace";
 }

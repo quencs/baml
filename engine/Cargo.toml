@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "baml-lib/*",
   "baml-rpc",
+  "baml-ids",
   "baml-runtime",
   "baml-schema-wasm",
   "bstd",
@@ -17,6 +18,7 @@ members = [
 default-members = [
   "baml-lib/*",
   "baml-rpc",
+  "baml-ids",
   "baml-runtime",
   # Disabled by default: --features no_wasm and --features wasm are mutually exclusive
   # Building baml-schema-wasm in combination with everything else triggers feature unification,
@@ -36,6 +38,8 @@ default-members = [
 anyhow = "1.0"
 askama = "0.12.1"
 baml-cli = { path = "cli" }
+baml-ids = { path = "baml-ids" }
+baml-rpc = { path = "baml-rpc" }
 baml-types = { path = "baml-lib/baml-types" }
 baml-log = { path = "baml-lib/baml-log" }
 base64 = "0.22.1"

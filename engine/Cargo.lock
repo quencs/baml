@@ -955,6 +955,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml-ids"
+version = "0.83.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+ "type-safe-id",
+ "uuid",
+]
+
+[[package]]
 name = "baml-lib"
 version = "0.83.0"
 dependencies = [
@@ -989,6 +1000,7 @@ version = "0.83.0"
 dependencies = [
  "anyhow",
  "baml-cli",
+ "baml-ids",
  "baml-log",
  "baml-runtime",
  "baml-types",
@@ -1020,6 +1032,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
+ "baml-ids",
  "base64 0.22.1",
  "bytes",
  "console_log",
@@ -1077,7 +1090,9 @@ dependencies = [
  "aws-smithy-types",
  "axum",
  "axum-extra",
+ "baml-ids",
  "baml-log",
+ "baml-rpc",
  "baml-types",
  "base64 0.22.1",
  "bytes",
@@ -1218,6 +1233,7 @@ name = "baml-types"
 version = "0.83.0"
 dependencies = [
  "anyhow",
+ "baml-ids",
  "clap",
  "derive_builder",
  "indexmap 2.8.0",

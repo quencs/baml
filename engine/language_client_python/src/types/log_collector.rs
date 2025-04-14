@@ -33,7 +33,7 @@ impl Collector {
         let logs = self.logs();
         let log_ids: Vec<String> = logs
             .iter()
-            .map(|log| log.inner.lock().unwrap().id().0.clone())
+            .map(|log| log.inner.lock().unwrap().id().to_string().clone())
             .collect();
         format!(
             "LogCollector(name={}, function_log_ids=[{}])",
@@ -63,8 +63,9 @@ impl Collector {
     }
 
     pub fn id(&self, function_log_id: String) -> Option<FunctionLog> {
+        let span_id = function_log_id.parse().expect("Invalid span id");
         self.inner
-            .function_log_by_id(&baml_types::tracing::events::FunctionId(function_log_id))
+            .function_log_by_id(&span_id)
             .map(|inner_function_log| FunctionLog {
                 inner: Arc::new(Mutex::new(inner_function_log.clone())),
             })
@@ -115,7 +116,7 @@ impl FunctionLog {
 
     #[getter]
     pub fn id(&self) -> String {
-        self.inner.lock().unwrap().id().0
+        self.inner.lock().unwrap().id().to_string()
     }
 
     #[getter]

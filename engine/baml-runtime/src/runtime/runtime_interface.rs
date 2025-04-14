@@ -27,10 +27,7 @@ use crate::{
     RuntimeContext, RuntimeInterface,
 };
 use anyhow::{Context, Result};
-use baml_types::tracing::events::{
-    BamlOptions, ContentId, FunctionEnd, FunctionId, FunctionStart, TraceData, TraceEvent,
-    TraceLevel,
-};
+use baml_types::tracing::events::{FunctionEnd, FunctionStart, TraceData, TraceEvent};
 
 use baml_types::{BamlMap, BamlValue, Constraint, EvaluationContext};
 use internal_baml_core::ir::repr::{Node, TypeBuilderEntry};
@@ -325,7 +322,10 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
         test_name: &str,
         ctx: &RuntimeContextManager,
     ) -> Result<Option<TypeBuilder>> {
-        let func = self.get_function(function_name, &ctx.create_ctx(None, None, None)?)?;
+        let func = self.get_function(
+            function_name,
+            &ctx.create_ctx(None, None, ctx.span_id_chain()?)?,
+        )?;
         let test = self.ir().find_test(&func, test_name)?;
 
         if test.type_builder_contents().is_empty() {
@@ -396,37 +396,15 @@ impl RuntimeInterface for InternalBamlRuntime {
         params: &BamlMap<String, BamlValue>,
         ctx: RuntimeContext,
     ) -> Result<crate::FunctionResult> {
-        let local_span_id = ctx.span_id.clone();
         let local_function_name = function_name.clone();
 
-        if let Some(span_id) = ctx.span_id {
-            let trace_event = TraceEvent {
-                span_id: FunctionId(span_id.to_string()),
-                event_id: ContentId(uuid::Uuid::new_v4().to_string()),
-                span_chain: vec![],
-                timestamp: web_time::SystemTime::now(),
-                callsite: function_name.clone(),
-                verbosity: TraceLevel::Info,
-                content: TraceData::FunctionStart(FunctionStart {
-                    name: function_name.clone(),
-                    // TODO:
-                    args: vec![],
-                    //  TODO!
-                    options: BamlOptions {
-                        type_builder: None,
-                        client_registry: None,
-                    },
-                }),
-                // TODO: send separately?
-                tags: Default::default(),
-            };
-            BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
-        } else {
-            log::warn!(
-                "No span id found for function while emitting logs: {}. Log event may be dropped.",
-                function_name
-            );
-        }
+        let trace_event = TraceEvent::new_function_start(
+            ctx.span_id_chain.clone(),
+            local_function_name,
+            vec![],
+            baml_types::tracing::events::EvaluationContext::default(),
+        );
+        BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
 
         let func = match self.get_function(&function_name, &ctx) {
             Ok(func) => func,
@@ -496,26 +474,21 @@ impl RuntimeInterface for InternalBamlRuntime {
         let result = future.await;
 
         let end_time = web_time::SystemTime::now();
-        if let Some(span_id) = ctx.span_id {
-            BAML_TRACER.lock().unwrap().put(Arc::new(TraceEvent {
-                span_id: FunctionId(span_id.to_string()),
-                event_id: ContentId(uuid::Uuid::new_v4().to_string()),
-                span_chain: vec![],
-                timestamp: end_time,
-                callsite: function_name.clone(),
-                verbosity: TraceLevel::Info,
-                content: TraceData::FunctionEnd(FunctionEnd {
-                    // TODO: add the result here
-                    result: Ok(baml_types::BamlValue::Null),
-                }),
-                tags: Default::default(),
-            }));
-        } else {
-            log::warn!(
-                "No span id found for function while emitting logs: {}. Log event may be dropped.",
-                function_name
-            );
-        }
+        let trace_event = TraceEvent::new_function_end(
+            ctx.span_id_chain.clone(),
+            match &result {
+                Ok(result) => match result.parsed() {
+                    Some(Ok(value)) => todo!("not yet ready"),
+                    Some(Err(e)) => Err(baml_types::tracing::errors::BamlError::from(e)),
+                    None => Err(baml_types::tracing::errors::BamlError::Base {
+                        message: format!("No parsed result found for function: {}", function_name)
+                            .into(),
+                    }),
+                },
+                Err(e) => Err(baml_types::tracing::errors::BamlError::from(e)),
+            },
+        );
+        BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
 
         result
     }

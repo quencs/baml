@@ -49,8 +49,9 @@ impl Collector {
 
     #[napi]
     pub fn id(&self, function_log_id: String) -> Option<FunctionLog> {
+        let span_id = function_log_id.parse().expect("Invalid span id");
         self.inner
-            .function_log_by_id(&baml_types::tracing::events::FunctionId(function_log_id))
+            .function_log_by_id(&span_id)
             .map(|inner_function_log| FunctionLog {
                 inner: Arc::new(Mutex::new(inner_function_log.clone())),
             })
@@ -66,9 +67,9 @@ impl Collector {
     #[napi]
     pub fn to_string(&self) -> String {
         let logs = self.logs();
-        let log_ids: Vec<String> = logs
+        let log_ids: Vec<_> = logs
             .iter()
-            .map(|log| log.inner.lock().unwrap().id().0.clone())
+            .map(|log| log.inner.lock().unwrap().id().to_string())
             .collect();
         format!(
             "LogCollector(name={}, function_log_ids=[{}])",
@@ -123,7 +124,7 @@ impl FunctionLog {
 
         format!(
             "FunctionLog(id={}, function_name={}, type={}, timing={}, usage={}, calls=[{}], raw_llm_response={})",
-            inner.id().0,
+            inner.id(),
             inner.function_name(),
             inner.log_type().to_string(),
             Timing { inner: inner.timing() }.to_string(),
@@ -135,7 +136,7 @@ impl FunctionLog {
 
     #[napi(getter)]
     pub fn id(&self) -> String {
-        self.inner.lock().unwrap().id().0.clone()
+        self.inner.lock().unwrap().id().to_string()
     }
 
     #[napi(getter)]

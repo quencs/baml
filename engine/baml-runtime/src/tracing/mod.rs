@@ -4,9 +4,7 @@ use crate::on_log_event::LogEventCallbackSync;
 use crate::tracingv2::storage::storage::BAML_TRACER;
 use crate::InnerTraceStats;
 use anyhow::{Context, Result};
-use baml_types::tracing::events::{
-    BamlOptions, ContentId, FunctionId, FunctionStart, TraceData, TraceEvent, TraceLevel,
-};
+use baml_types::tracing::events::{FunctionStart, TraceData, TraceEvent};
 use baml_types::{BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta};
 use cfg_if::cfg_if;
 use colored::{ColoredString, Colorize};
@@ -50,8 +48,18 @@ cfg_if! {
 #[derive(Debug, Clone)]
 pub struct TracingSpan {
     pub span_id: Uuid,
+    pub new_span_id_chain: Vec<baml_ids::SpanId>,
     params: BamlMap<String, BamlValue>,
     start_time: web_time::SystemTime,
+}
+
+impl TracingSpan {
+    pub fn curr_span_id(&self) -> baml_ids::SpanId {
+        self.new_span_id_chain
+            .last()
+            .expect("Span ID chain is empty")
+            .clone()
+    }
 }
 
 pub struct BamlTracer {
@@ -390,18 +398,19 @@ impl BamlTracer {
         function_name: &str,
         ctx: &RuntimeContextManager,
         params: &BamlMap<String, BamlValue>,
-    ) -> Option<TracingSpan> {
+    ) -> TracingSpan {
         self.trace_stats.guard().start();
-        let span_id = ctx.enter(function_name);
+        let (span_id, span_chain) = ctx.enter(function_name);
 
         log::trace!(" Entering span {:#?} in {:?}", span_id, function_name);
         let span = TracingSpan {
             span_id,
+            new_span_id_chain: span_chain,
             params: params.clone(),
             start_time: web_time::SystemTime::now(),
         };
 
-        Some(span)
+        span
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -444,7 +453,7 @@ impl BamlTracer {
         span: TracingSpan,
         ctx: &RuntimeContextManager,
         response: Option<BamlValue>,
-    ) -> Result<Option<uuid::Uuid>> {
+    ) -> Result<uuid::Uuid> {
         let guard = self.trace_stats.guard();
         let Some((span_id, event_chain, tags)) = ctx.exit() else {
             anyhow::bail!(
@@ -467,27 +476,10 @@ impl BamlTracer {
         if let Some(tracer) = &self.tracer {
             tracer.submit(response.to_log_schema(&self.options, event_chain, tags, span))?;
             guard.finalize();
-            Ok(Some(span_id))
         } else {
             guard.done();
-            Ok(None)
         }
-    }
-
-    pub(crate) fn log(&self, event: TraceData, ctx: &RuntimeContextManager) {
-        let span_id = ctx.span_id().unwrap();
-        log::trace!("{:#?} Logging event: {:#?}", span_id, event);
-
-        let trace_event = TraceEvent {
-            span_id: FunctionId(span_id.to_string()),
-            event_id: ContentId(span_id.to_string()),
-            span_chain: vec![],
-            timestamp: web_time::SystemTime::now(),
-            callsite: "".to_string(),
-            verbosity: TraceLevel::Trace,
-            content: event,
-            tags: Default::default(),
-        };
+        Ok(span_id)
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -496,7 +488,7 @@ impl BamlTracer {
         span: TracingSpan,
         ctx: &RuntimeContextManager,
         response: &Result<FunctionResult>,
-    ) -> Result<Option<uuid::Uuid>> {
+    ) -> Result<(uuid::Uuid, Vec<baml_ids::SpanId>)> {
         let guard = self.trace_stats.guard();
         let Some((span_id, event_chain, tags)) = ctx.exit() else {
             anyhow::bail!("Attempting to finish a span without first starting one");
@@ -536,11 +528,10 @@ impl BamlTracer {
                 .submit(response.to_log_schema(&self.options, event_chain, tags, span))
                 .await?;
             guard.done();
-            Ok(Some(span_id))
         } else {
             guard.done();
-            Ok(None)
         }
+        Ok((span_id, event_chain))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -549,7 +540,7 @@ impl BamlTracer {
         span: TracingSpan,
         ctx: &RuntimeContextManager,
         response: &Result<FunctionResult>,
-    ) -> Result<Option<uuid::Uuid>> {
+    ) -> Result<(uuid::Uuid, Vec<baml_ids::SpanId>)> {
         let guard = self.trace_stats.guard();
         let Some((span_id, event_chain, tags)) = ctx.exit() else {
             anyhow::bail!("Attempting to finish a span without first starting one");
@@ -592,14 +583,14 @@ impl BamlTracer {
 
         baml_log::elog!(log_level, &event);
 
+        let new_span_ids = event_chain.iter().map(|s| s.new_span_id.clone()).collect();
         if let Some(tracer) = &self.tracer {
             tracer.submit(response.to_log_schema(&self.options, event_chain, tags, span))?;
             guard.finalize();
-            Ok(Some(span_id))
         } else {
             guard.done();
-            Ok(None)
         }
+        Ok((span_id, new_span_ids))
     }
 }
 

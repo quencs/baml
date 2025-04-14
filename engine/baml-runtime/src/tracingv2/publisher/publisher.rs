@@ -1,5 +1,8 @@
-use baml_types::rpc::{TraceEventBatch, TraceEventUploadRequest};
+use baml_rpc::runtime_api::trace_event_upload::{
+    CreateTraceEventUploadRequest, CreateTraceEventUploadUrl, CreateTraceEventUploadUrlRequest,
+};
 use baml_types::tracing::events::TraceEvent;
+use baml_types::{BamlValueWithMeta, HasFieldType};
 use core::time::Duration;
 use futures::StreamExt;
 use std::sync::Arc;
@@ -8,8 +11,11 @@ use tokio::sync::mpsc;
 use tokio::time::*;
 #[cfg(target_family = "wasm")]
 use wasmtimer::tokio::*;
+
+use crate::tracingv2::storage::interface::TraceEventWithMeta;
+
 pub enum PublisherMessage {
-    Trace(Arc<TraceEvent>),
+    Trace(Arc<TraceEventWithMeta>),
     Flush(tokio::sync::oneshot::Sender<()>),
 }
 
@@ -50,7 +56,7 @@ impl TracePublisher {
     /// The loop collects incoming events until a batch condition is reached, a timer expires,
     /// or a flush command is received.
     pub async fn run(&mut self) {
-        let mut buffer: Vec<Arc<TraceEvent>> = Vec::new();
+        let mut buffer: Vec<Arc<TraceEventWithMeta>> = Vec::new();
         let mut tick_interval = interval(Duration::from_secs(2));
 
         loop {
@@ -90,13 +96,10 @@ impl TracePublisher {
     ///   1. Serialize the events into JSON.
     ///   2. Append the JSON to a file (using async file I/O on macOS).
     ///   3. Post the JSON to an HTTP API with up to 3 retries.
-    async fn process_batch(&self, batch: Vec<Arc<TraceEvent>>) {
+    async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
         // Assemble the upload request structure.
-        let upload_request = TraceEventUploadRequest::V1 {
-            project_id: "project123".to_string(),
-            trace_event_batch: TraceEventBatch {
-                events: batch.iter().map(|e| e.clone()).collect(),
-            },
+        let upload_request = CreateTraceEventUploadRequest {
+            trace_event_batch: batch.iter().map(|e| todo!()).collect(),
         };
 
         // Serialize to JSON.

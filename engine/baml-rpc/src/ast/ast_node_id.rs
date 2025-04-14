@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Deserialize, Serialize, Clone)]
 #[serde(into = "String", from = "String")]
 pub struct AstNodeId {
     pub type_name: String,
     pub name: String,
-    pub interface_hash: Option<u64>,
+    pub interface_hash: u64,
     pub impl_hash: Option<u64>,
 }
 
@@ -16,7 +16,7 @@ impl std::fmt::Display for AstNodeId {
             "{}##{}##{}##{}",
             self.type_name,
             self.name,
-            self.interface_hash.unwrap_or(0),
+            self.interface_hash,
             self.impl_hash.unwrap_or(0)
         )
     }
@@ -33,8 +33,15 @@ impl std::str::FromStr for AstNodeId {
         Ok(AstNodeId {
             type_name: parts[0].to_string(),
             name: parts[1].to_string(),
-            interface_hash: parts[2].parse().ok(),
-            impl_hash: parts[3].parse().ok(),
+            interface_hash: match parts[2].parse() {
+                Ok(interface_hash) => interface_hash,
+                Err(_) => return Err(anyhow::anyhow!("Invalid unique id: {}", s)),
+            },
+            impl_hash: match parts[3].parse() {
+                Ok(0) => None,
+                Ok(impl_hash) => Some(impl_hash),
+                Err(_) => return Err(anyhow::anyhow!("Invalid unique id: {}", s)),
+            },
         })
     }
 }
