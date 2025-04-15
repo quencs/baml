@@ -8,6 +8,8 @@ mod ui_control_plane_orgs;
 mod ui_control_plane_projects;
 mod ui_dashboard;
 mod ui_function_spans;
+mod ui_webhook_propelauth;
+mod ui_webhook_stripe;
 
 pub use api::runtime as runtime_api;
 
@@ -26,3 +28,8 @@ pub use ui_control_plane_projects::{
 pub use ui_function_spans::{
     ListFunctionSpans, ListFunctionSpansRequest, ListFunctionSpansResponse,
 };
+
+pub use ui_webhook_propelauth::{
+    PropelAuthWebhook, PropelAuthWebhookRequest, PropelAuthWebhookResponse,
+};
+pub use ui_webhook_stripe::{StripeWebhook, StripeWebhookRequest, StripeWebhookResponse};

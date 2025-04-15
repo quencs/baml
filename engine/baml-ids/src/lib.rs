@@ -67,3 +67,4 @@ define_id!(ContentSpanId, ContentSpan_, "bcontent");
 define_id!(HttpRequestId, HttpRequest_, "breq");
 
 define_id!(ProjectId, Project_, "proj");
+define_id!(TraceBatchId, TraceBatch_, "tracebatch");
