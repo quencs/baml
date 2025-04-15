@@ -93,7 +93,7 @@ fn baml_py(m: Bound<'_, PyModule>) -> PyResult<()> {
 fn init_debug_logger() {
     // Regular formatting
     if let Err(e) =
-        env_logger::try_init_from_env(env_logger::Env::new().filter("BAML_INTERNAL_LOG"))
+        env_logger::try_init_from_env(env_logger::Env::new().filter("BAML_LOG_INTERNAL"))
     {
         println!("Failed to initialize BAML DEBUG logger: {:#}", e);
     }
