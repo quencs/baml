@@ -273,7 +273,7 @@ class Foo {
 
     fn mk_gen() -> GeneratorArgs {
         GeneratorArgs::new(
-            "baml_client",
+            "../baml_client",
             "baml_src",
             vec![],
             "no_version".to_string(),
@@ -290,10 +290,10 @@ class Foo {
     fn generate_streaming_go() {
         let ir = mk_ir();
         let generator_args = mk_gen();
-        let res = generate(&ir, &generator_args).unwrap();
+        let res = generate(&ir, &generator_args).expect("Failed to generate");
         let partial_types = res
             .get(&PathBuf::from("stream_types/stream_types.go"))
-            .unwrap();
+            .expect("stream_types.go should be generated");
         eprintln!("{}", partial_types);
     }
 }

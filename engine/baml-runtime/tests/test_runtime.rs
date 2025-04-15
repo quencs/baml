@@ -19,110 +19,101 @@ mod internal_tests {
 
     use wasm_bindgen_test::*;
 
-    static INIT: Once = Once::new();
+    #[tokio::test]
+    // #[wasm_bindgen_test]
+    async fn test_call_function() -> Result<(), Box<dyn std::error::Error>> {
+        // wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
 
-    // #[tokio::test]
-    // // #[wasm_bindgen_test]
-    // async fn test_call_function() -> Result<(), Box<dyn std::error::Error>> {
-    //     // wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
+        log::info!("Running test_call_function");
+        // let directory = PathBuf::from("/Users/aaronvillalpando/Projects/baml/integ-tests/baml_src");
+        // let files = vec![
+        //     PathBuf::from(
+        //         "/Users/aaronvillalpando/Projects/baml/integ-tests/baml_src/ExtractNames.baml",
+        //     ),
+        //     PathBuf::from(
+        //         "/Users/aaronvillalpando/Projects/baml/integ-tests/baml_src/ExtractNames.baml",
+        //     ),
+        // ];
+        let mut files = HashMap::new();
+        files.insert(
+            "main.baml",
+            r##"
+            class Email {
+                subject string
+                body string
+                from_address string
+            }
 
-    //     log::info!("Running test_call_function");
-    //     // let directory = PathBuf::from("/Users/aaronvillalpando/Projects/baml/integ-tests/baml_src");
-    //     // let files = vec![
-    //     //     PathBuf::from(
-    //     //         "/Users/aaronvillalpando/Projects/baml/integ-tests/baml_src/ExtractNames.baml",
-    //     //     ),
-    //     //     PathBuf::from(
-    //     //         "/Users/aaronvillalpando/Projects/baml/integ-tests/baml_src/ExtractNames.baml",
-    //     //     ),
-    //     // ];
-    //     let mut files = HashMap::new();
-    //     files.insert(
-    //         "main.baml",
-    //         r##"
-    //         generator lang_python {
+            enum OrderStatus {
+                ORDERED
+                SHIPPED
+                DELIVERED
+                CANCELLED
+            }
 
-    //         }
+            class OrderInfo {
+                order_status OrderStatus
+                tracking_number string?
+                estimated_arrival_date string?
+            }
 
-    //         class Email {
-    //             subject string
-    //             body string
-    //             from_address string
-    //         }
+            client<llm> GPT4Turbo {
+              provider baml-openai-chat
+              options {
+                model gpt-4-1106-preview
+                api_key env.OPENAI_API_KEY
+              }
+            }
 
-    //         enum OrderStatus {
-    //             ORDERED
-    //             SHIPPED
-    //             DELIVERED
-    //             CANCELLED
-    //         }
+            function GetOrderInfo(input: string) -> OrderInfo {
+              client GPT4Turbo
+              prompt #"
 
-    //         class OrderInfo {
-    //             order_status OrderStatus
-    //             tracking_number string?
-    //             estimated_arrival_date string?
-    //         }
+                Extract this info from the email in JSON format:
 
-    //         client<llm> GPT4Turbo {
-    //           provider baml-openai-chat
-    //           options {
-    //             model gpt-4-1106-preview
-    //             api_key env.OPENAI_API_KEY
-    //           }
-    //         }
+                Before you output the JSON, please explain your
+                reasoning step-by-step. Here is an example on how to do this:
+                'If we think step by step we can see that ...
+                 therefore the output JSON is:
+                {
+                  ... the json schema ...
+                }'
+              "#
+            }
+            "##,
+        );
+        log::info!("Files: {:?}", files);
 
-    //         function GetOrderInfo(input: string) -> OrderInfo {
-    //           client GPT4Turbo
-    //           prompt #"
+        let runtime = BamlRuntime::from_file_content(
+            "baml_src",
+            &files,
+            [("OPENAI_API_KEY", "OPENAI_API_KEY")].into(),
+        )?;
+        log::info!("Runtime:");
 
-    //             Extract this info from the email in JSON format:
+        let params = [(
+            "input".into(),
+            baml_types::BamlValue::String("Attention Is All You Need. Mark. Hello.".into()),
+        )]
+        .into_iter()
+        .collect();
 
-    //             Before you output the JSON, please explain your
-    //             reasoning step-by-step. Here is an example on how to do this:
-    //             'If we think step by step we can see that ...
-    //              therefore the output JSON is:
-    //             {
-    //               ... the json schema ...
-    //             }'
-    //           "#
-    //         }
-    //         "##,
-    //     );
-    //     log::info!("Files: {:?}", files);
+        let ctx = runtime.create_ctx_manager(BamlValue::String("test".to_string()), None);
+        let (res, _) = runtime
+            .call_function("GetOrderInfo".to_string(), &params, &ctx, None, None, None)
+            .await;
 
-    //     let runtime = BamlRuntime::from_file_content(
-    //         "baml_src",
-    //         &files,
-    //         [("OPENAI_API_KEY", "OPENAI_API_KEY")].into(),
-    //     )?;
-    //     log::info!("Runtime:");
+        // runtime.get_test_params(function_name, test_name, ctx);
 
-    //     let params = [(
-    //         "input".into(),
-    //         baml_types::BamlValue::String("Attention Is All You Need. Mark. Hello.".into()),
-    //     )]
-    //     .into_iter()
-    //     .collect();
+        // runtime.internal().render_prompt(function_name, ctx, params, node_index)
 
-    //     let ctx = runtime.create_ctx_manager(BamlValue::String("test".to_string()), None);
-    //     let (res, _) = runtime
-    //         .call_function("GetOrderInfo".to_string(), &params, &ctx, None, None)
-    //         .await;
+        assert!(res.is_ok(), "Result: {:#?}", res.err());
 
-    //     // runtime.get_test_params(function_name, test_name, ctx);
+        Ok(())
+    }
 
-    //     // runtime.internal().render_prompt(function_name, ctx, params, node_index)
-
-    //     assert!(res.is_ok(), "Result: {:#?}", res.err());
-
-    //     Ok(())
-    // }
-
-    #[test]
+    #[test_log::test]
     fn test_call_function2() -> Result<(), Box<dyn std::error::Error>> {
-        INIT.call_once(|| {
-            env_logger::init();
-        });
         log::info!("Running test_call_function");
 
         let mut files = HashMap::new();
@@ -195,11 +186,8 @@ mod internal_tests {
         Ok(())
     }
 
-    #[test]
+    #[test_log::test]
     fn test_call_function_unions1() -> Result<(), Box<dyn std::error::Error>> {
-        INIT.call_once(|| {
-            env_logger::init();
-        });
         log::info!("Running test_call_function");
 
         let mut files = HashMap::new();
@@ -295,7 +283,7 @@ mod internal_tests {
         )
     }
 
-    #[test]
+    #[test_log::test]
     fn test_with_image_union() -> anyhow::Result<()> {
         let runtime = make_test_runtime(
             r##"
@@ -356,7 +344,7 @@ test ImageReceiptTest {
         Ok(())
     }
 
-    #[test]
+    #[test_log::test]
     fn test_literals() -> anyhow::Result<()> {
         let runtime = make_test_runtime(
             r##"
@@ -437,7 +425,7 @@ test TestName {
         Ok(())
     }
 
-    #[test]
+    #[test_log::test]
     fn test_recursive_types() -> anyhow::Result<()> {
         let runtime = make_test_runtime(
             r##"
@@ -505,7 +493,7 @@ test TestTree {
         Ok(())
     }
 
-    #[test]
+    #[test_log::test]
     fn test_constrained_type_alias() -> anyhow::Result<()> {
         let runtime = make_test_runtime(
             r##"
@@ -559,7 +547,7 @@ test RunFoo2Test {
         Ok(())
     }
 
-    #[test]
+    #[test_log::test]
     fn test_recursive_alias_cycle() -> anyhow::Result<()> {
         let runtime = make_test_runtime(
             r##"
@@ -622,7 +610,6 @@ test RecursiveAliasCycle {
     ) -> anyhow::Result<()> {
         // Use this and RUST_LOG=debug to see the rendered prompt in the
         // terminal.
-        env_logger::init();
 
         let runtime = make_test_runtime(baml)?;
 
@@ -634,7 +621,7 @@ test RecursiveAliasCycle {
         Ok(())
     }
 
-    #[test]
+    #[test_log::test]
     fn test_type_builder_block_with_dynamic_class() -> anyhow::Result<()> {
         run_type_builder_block_test(TypeBuilderBlockTest {
             function_name: "ExtractResume",
@@ -698,7 +685,7 @@ test RecursiveAliasCycle {
         })
     }
 
-    #[test]
+    #[test_log::test]
     fn test_type_builder_block_with_dynamic_enum() -> anyhow::Result<()> {
         run_type_builder_block_test(TypeBuilderBlockTest {
             function_name: "ClassifyMessage",
@@ -740,7 +727,7 @@ test RecursiveAliasCycle {
         })
     }
 
-    #[test]
+    #[test_log::test]
     fn test_type_builder_block_mixed_enums_and_classes() -> anyhow::Result<()> {
         run_type_builder_block_test(TypeBuilderBlockTest {
             function_name: "ExtractResume",
@@ -823,7 +810,7 @@ test RecursiveAliasCycle {
         })
     }
 
-    #[test]
+    #[test_log::test]
     fn test_type_builder_block_type_aliases() -> anyhow::Result<()> {
         run_type_builder_block_test(TypeBuilderBlockTest {
             function_name: "ExtractResume",
@@ -889,7 +876,7 @@ test RecursiveAliasCycle {
         })
     }
 
-    #[test]
+    #[test_log::test]
     fn test_type_builder_block_recursive_type_aliases() -> anyhow::Result<()> {
         run_type_builder_block_test(TypeBuilderBlockTest {
             function_name: "ExtractResume",
@@ -954,7 +941,7 @@ test RecursiveAliasCycle {
         })
     }
 
-    #[test]
+    #[test_log::test]
     fn test_type_builder_recursive_dynamic_classes() -> anyhow::Result<()> {
         run_type_builder_block_test(TypeBuilderBlockTest {
             function_name: "MyFunc",
@@ -1008,7 +995,7 @@ test RecursiveAliasCycle {
         })
     }
 
-    #[test]
+    #[test_log::test]
     fn test_class_property_alias() -> anyhow::Result<()> {
         run_type_builder_block_test(TypeBuilderBlockTest {
             function_name: "Fn",

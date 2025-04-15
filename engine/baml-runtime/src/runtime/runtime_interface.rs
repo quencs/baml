@@ -149,7 +149,7 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
         params: &BamlMap<String, BamlValue>,
         node_index: Option<usize>,
     ) -> Result<(RenderedPrompt, OrchestrationScope, AllowedRoleMetadata)> {
-        let func = self.get_function(function_name, ctx)?;
+        let func = self.get_function(function_name)?;
         let function_params = func.inputs();
         let baml_args = self.ir().check_function_params(
             &function_params,
@@ -193,7 +193,7 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
         render_settings: RenderCurlSettings,
         node_index: Option<usize>,
     ) -> Result<String> {
-        let func = self.get_function(function_name, ctx)?;
+        let func = self.get_function(function_name)?;
 
         let renderer = PromptRenderer::from_function(&func, self.ir(), ctx)?;
 
@@ -219,11 +219,7 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
             .await
     }
 
-    fn get_function<'ir>(
-        &'ir self,
-        function_name: &str,
-        _ctx: &RuntimeContext,
-    ) -> Result<FunctionWalker<'ir>> {
+    fn get_function<'ir>(&'ir self, function_name: &str) -> Result<FunctionWalker<'ir>> {
         let walker = self.ir().find_function(function_name)?;
         Ok(walker)
     }
@@ -249,7 +245,7 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
         ctx: &RuntimeContext,
         strict: bool,
     ) -> Result<BamlMap<String, BamlValue>> {
-        let maybe_test_and_params = self.get_function(function_name, ctx).and_then(|func| {
+        let maybe_test_and_params = self.get_function(function_name).and_then(|func| {
             let test = self.ir().find_test(&func, test_name)?;
             let test_case_params = test.test_case_params(&ctx.eval_ctx(strict))?;
             let inputs = func.inputs().clone();
@@ -311,7 +307,7 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
         test_name: &str,
         ctx: &RuntimeContext,
     ) -> Result<Vec<Constraint>> {
-        let func = self.get_function(function_name, ctx)?;
+        let func = self.get_function(function_name)?;
         let walker = self.ir().find_test(&func, test_name)?;
         Ok(walker.item.1.elem.constraints.clone())
     }
@@ -320,12 +316,8 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
         &self,
         function_name: &str,
         test_name: &str,
-        ctx: &RuntimeContextManager,
     ) -> Result<Option<TypeBuilder>> {
-        let func = self.get_function(
-            function_name,
-            &ctx.create_ctx(None, None, ctx.span_id_chain()?)?,
-        )?;
+        let func = self.get_function(function_name)?;
         let test = self.ir().find_test(&func, test_name)?;
 
         if test.type_builder_contents().is_empty() {
@@ -406,7 +398,7 @@ impl RuntimeInterface for InternalBamlRuntime {
         );
         BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
 
-        let func = match self.get_function(&function_name, &ctx) {
+        let func = match self.get_function(&function_name) {
             Ok(func) => func,
             Err(e) => {
             return Ok(FunctionResult::new(
@@ -478,7 +470,7 @@ impl RuntimeInterface for InternalBamlRuntime {
             ctx.span_id_chain.clone(),
             match &result {
                 Ok(result) => match result.parsed() {
-                    Some(Ok(value)) => todo!("not yet ready"),
+                    Some(Ok(value)) => Ok(value.0.map_meta(|f| f.3.clone())),
                     Some(Err(e)) => Err(baml_types::tracing::errors::BamlError::from(e)),
                     None => Err(baml_types::tracing::errors::BamlError::Base {
                         message: format!("No parsed result found for function: {}", function_name)
@@ -534,7 +526,7 @@ impl RuntimeInterface for InternalBamlRuntime {
                 collectors,
             })
         } else {
-            let func = self.get_function(&function_name, &ctx)?;
+            let func = self.get_function(&function_name)?;
             let renderer = PromptRenderer::from_function(&func, self.ir(), &ctx)?;
             let orchestrator = self.orchestration_graph(renderer.client_spec(), &ctx)?;
             let Some(baml_args) = self

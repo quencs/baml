@@ -323,7 +323,9 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 }
                 None => base.to_type_ref(ir, _with_checked),
             },
-            FieldType::Arrow(_) => todo!("Arrow types should not be used in generated type definitions"),
+            FieldType::Arrow(_) => {
+                todo!("Arrow types should not be used in generated type definitions")
+            }
         }
     }
 
@@ -379,7 +381,9 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 }
                 None => base.to_partial_type_ref(ir, with_checked),
             },
-            FieldType::Arrow(_) => todo!("Arrow types should not be used in generated type definitions"),
+            FieldType::Arrow(_) => {
+                todo!("Arrow types should not be used in generated type definitions")
+            }
         }
     }
 }
@@ -469,7 +473,9 @@ class Foo {
         let ir = mk_ir();
         let generator_args = mk_gen();
         let res = generate(&ir, &generator_args).unwrap();
-        let partial_types = res.get(&PathBuf::from("partial_types.py")).unwrap();
+        let partial_types = res
+            .get(&PathBuf::from("partial_types.py"))
+            .expect("partial_types.py should be generated");
         eprintln!("{}", partial_types);
     }
 }

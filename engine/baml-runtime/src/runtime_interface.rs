@@ -129,11 +129,7 @@ pub trait InternalRuntimeInterface {
         ctx: &RuntimeContext,
     ) -> Result<Vec<OrchestratorNode>>;
 
-    fn get_function<'ir>(
-        &'ir self,
-        function_name: &str,
-        ctx: &RuntimeContext,
-    ) -> Result<FunctionWalker<'ir>>;
+    fn get_function<'ir>(&'ir self, function_name: &str) -> Result<FunctionWalker<'ir>>;
     fn get_expr_function<'ir>(
         &'ir self,
         function_name: &str,
@@ -180,6 +176,5 @@ pub trait InternalRuntimeInterface {
         &self,
         function_name: &str,
         test_name: &str,
-        ctx: &RuntimeContextManager,
     ) -> Result<Option<TypeBuilder>>;
 }

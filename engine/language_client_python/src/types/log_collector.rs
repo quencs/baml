@@ -90,6 +90,12 @@ impl Collector {
     }
 }
 
+impl Drop for Collector {
+    fn drop(&mut self) {
+        log::info!("Dropping collector: {}", self.inner.name());
+    }
+}
+
 crate::lang_wrapper!(
     FunctionLog,
     baml_runtime::tracingv2::storage::storage::FunctionLog,
@@ -454,10 +460,3 @@ impl StreamTiming {
         )
     }
 }
-// impl Drop for FunctionLog {
-//     fn drop(&mut self) {
-//         BAML_TRACER
-//             .blocking_lock()
-//             .dec_function_id(&FunctionId(self.id.clone()));
-//     }
-// }

@@ -265,7 +265,7 @@ impl BamlRuntime {
         ctx: &RuntimeContext,
     ) -> Result<Arc<LLMProvider>> {
         let renderer = PromptRenderer::from_function(
-            &self.inner.get_function(&function_name, &ctx)?,
+            &self.inner.get_function(&function_name)?,
             self.inner.ir(),
             &ctx,
         )?;
@@ -363,13 +363,10 @@ impl BamlRuntime {
         }
 
         let run_to_response = || async {
-            let type_builder = self
-                .inner
-                .get_test_type_builder(function_name, test_name, ctx)
-                .unwrap();
-
+            let type_builder = self.inner.get_test_type_builder(function_name, test_name)?;
             let rctx =
                 ctx.create_ctx(type_builder.as_ref(), None, span.new_span_id_chain.clone())?;
+
             let (params, constraints) =
                 self.get_test_params_and_constraints(function_name, test_name, &rctx, true)?;
             let mut stream = self.inner.stream_function_impl(
@@ -510,12 +507,7 @@ impl BamlRuntime {
         let curr_span_id = span.curr_span_id();
         if let Some(collectors) = collectors {
             for collector in collectors.iter() {
-                collector.track_function(
-                    span.new_span_id_chain
-                        .last()
-                        .expect("Span ID chain is empty")
-                        .clone(),
-                );
+                collector.track_function(span.curr_span_id());
             }
         }
 
@@ -659,7 +651,7 @@ impl BamlRuntime {
             function_name,
             params,
             self.tracer.clone(),
-            ctx.create_ctx(tb, cb, ctx.span_id_chain()?)?,
+            ctx.create_ctx(tb, cb, ctx.span_id_chain(true)?)?,
             #[cfg(not(target_arch = "wasm32"))]
             self.async_runtime.clone(),
             collectors.unwrap_or_else(|| vec![]),
@@ -748,7 +740,7 @@ impl BamlRuntime {
         let ctx = ctx.create_ctx(tb, cb, vec![])?;
 
         let renderer = PromptRenderer::from_function(
-            &self.inner.get_function(&function_name, &ctx)?,
+            &self.inner.get_function(&function_name)?,
             self.inner.ir(),
             &ctx,
         )?;

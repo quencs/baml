@@ -77,6 +77,17 @@ pub fn parse_google_response<C: WithClient + RequestBuilder>(
         });
     };
 
+    return LLMResponse::LLMFailure(LLMErrorResponse {
+        client: client.context().name.to_string(),
+        model: None,
+        prompt: to_prompt(prompt),
+        start_time: system_now,
+        request_options: client.request_options().clone(),
+        latency: instant_now.elapsed(),
+        message: "No content returned".to_string(),
+        code: ErrorCode::Other(200),
+    });
+
     let model_name = model_name.unwrap_or("<unknown>".to_string());
     let part_index = content_part(&model_name);
     LLMResponse::Success(LLMCompleteResponse {

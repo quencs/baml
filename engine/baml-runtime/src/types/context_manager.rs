@@ -45,16 +45,16 @@ impl RuntimeContextManager {
         }
     }
 
-    pub fn span_id(&self) -> Result<uuid::Uuid> {
-        self.context
-            .lock()
-            .unwrap()
-            .last()
-            .map(|(id, ..)| *id)
-            .ok_or_else(|| anyhow::anyhow!("No span id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
-    }
+    // pub fn span_id(&self) -> Result<uuid::Uuid> {
+    //     self.context
+    //         .lock()
+    //         .unwrap()
+    //         .last()
+    //         .map(|(id, ..)| *id)
+    //         .ok_or_else(|| anyhow::anyhow!("No span id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
+    // }
 
-    pub fn span_id_chain(&self) -> Result<Vec<SpanId>> {
+    pub fn span_id_chain(&self, allow_empty: bool) -> Result<Vec<SpanId>> {
         let res: Vec<SpanId> = self
             .context
             .lock()
@@ -62,8 +62,8 @@ impl RuntimeContextManager {
             .iter()
             .map(|(.., span_id)| span_id.clone())
             .collect();
-        if res.is_empty() {
-            Err(anyhow::anyhow!("No span id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
+        if res.is_empty() && !allow_empty {
+            Err(anyhow::anyhow!("No span_id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
         } else {
             Ok(res)
         }

@@ -65,7 +65,6 @@ where
         };
 
         let (system_start, instant_start) = (web_time::SystemTime::now(), web_time::Instant::now());
-        let http_request_id = HttpRequestId::new();
         let ctx = CtxWithHttpRequestId::from(ctx);
         let stream_res = node.stream(&ctx, &prompt).await;
         let final_response = match stream_res {
@@ -156,7 +155,7 @@ where
             let trace_event = make_trace_event_for_response(
                 &final_response,
                 ctx.runtime_context().span_id_chain.clone(),
-                &http_request_id,
+                ctx.http_request_id(),
             );
             BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
         }

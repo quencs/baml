@@ -14,6 +14,9 @@ def function_span_count():
     return Collector.__function_span_count()  # type: ignore
 
 
+gc.set_debug(gc.DEBUG_SAVEALL)
+
+
 @pytest.fixture(autouse=True)
 def ensure_collector_is_empty():
     assert function_span_count() == 0
@@ -30,13 +33,13 @@ async def test_collector_async_no_stream_success():
     collector = Collector(name="my-collector")
     function_logs = collector.logs
     # print("### function_logs", function_logs, file=sys.stderr)
-    assert len(function_logs) == 0
+    assert len(function_logs) == 0, "function_logs should be empty"
 
     await b.TestOpenAIGPT4oMini("hi there", baml_options={"collector": collector})
 
     function_logs = collector.logs
     # print("### function_logs2", function_logs, file=sys.stderr)
-    assert len(function_logs) == 1
+    assert len(function_logs) == 1, "function_logs should have 1 log"
 
     log = collector.last
     assert log is not None
@@ -156,7 +159,7 @@ async def test_collector_async_stream_success():
     function_logs = collector.logs
 
     function_logs = collector.logs
-    assert len(function_logs) == 1
+    assert len(function_logs) == 1, "function_logs should have 1 log"
 
     log = collector.last
     assert log is not None
@@ -164,7 +167,7 @@ async def test_collector_async_stream_success():
     assert log.log_type == "call"
 
     function_logs = collector.logs
-    assert len(function_logs) == 1
+    assert len(function_logs) == 1, "function_logs should have 1 log"
 
     log = collector.last
     assert log is not None
@@ -181,7 +184,9 @@ async def test_collector_async_stream_success():
 
     # Verify calls
     calls = log.calls
-    assert len(calls) == 1
+    for c in calls:
+        print(f"### c: {c}")
+    assert len(calls) == 1, f"calls should have 1 call: {calls}"
 
     call = calls[0]
 
@@ -484,7 +489,7 @@ async def test_collector_vertex():
     collector = Collector(name="my-collector")
     await b.TestVertex("donkey kong", baml_options={"collector": collector})
     logs = collector.logs
-    assert len(logs) == 1
+    assert len(logs) == 1, "logs should have 1 log"
     assert logs[0].function_name == "TestVertex"
     assert logs[0].log_type == "call"
 
@@ -509,7 +514,7 @@ async def test_collector_vertex():
 
 @pytest.mark.asyncio
 async def test_collector_gemini():
-    collector = Collector(name="my-collector")
+    collector = Collector(name="my-collector-2")
     geminiRes = await b.TestGemini(
         input="Dr. Pepper", baml_options={"collector": collector}
     )
