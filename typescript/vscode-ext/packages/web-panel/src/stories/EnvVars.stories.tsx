@@ -2,12 +2,16 @@ import { expect } from '@storybook/test'
 import { DevTools } from 'jotai-devtools'
 import 'jotai-devtools/styles.css'
 import { atom, createStore, useAtomValue, useSetAtom } from 'jotai'
-import { default as EnvVars } from '../shared/baml-project-panel/playground-panel/side-bar/env-vars'
+import {
+  EnvironmentVariablesDialog,
+  EnvironmentVariablesPanel,
+} from '../shared/baml-project-panel/playground-panel/side-bar/env-vars'
 import { Provider as JotaiProvider } from 'jotai'
 import { ThemeProvider } from 'next-themes'
 import '../App.css'
 import { envVarsAtom } from '../shared/baml-project-panel/atoms'
 import { useState } from 'react'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 interface JotaiProviderProps {
   envVars: Record<string, string>
@@ -26,7 +30,7 @@ const WrappedEnvVars: React.FC = () => {
     <div>
       <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange={true}>
         <div className='flex gap-8 items-start'>
-          <EnvVars />
+          <EnvironmentVariablesPanel />
           <div className='p-4 bg-[#1e1e1e] rounded-lg min-w-[300px]'>
             <h3 className='mb-2 text-sm font-mono'>JSON.stringify(useAtomValue(envVarsAtom))</h3>
             <pre className='text-xs'>{JSON.stringify(envVars, null, 2)}</pre>
@@ -133,6 +137,39 @@ export const TableWith100EnvVars = {
         }}
       >
         <Story />
+      </JotaiStorybookProvider>
+    ),
+  ],
+}
+
+export const TableWith100EnvVarsInDialog = {
+  decorators: [
+    (Story: React.FC) => (
+      <JotaiStorybookProvider
+        envVars={{
+          ANTHROPIC_API_KEY: 'sk-ant456',
+          COHERE_API_KEY: 'sk-coh789',
+          OPENAI_API_KEY: 'sk-test123',
+          ...Object.fromEntries(Array.from({ length: 100 }, (_, i) => `VAR_${i}`).map((key) => [key, `value_${key}`])),
+        }}
+      >
+        <EnvironmentVariablesDialog showEnvDialog={true} setShowEnvDialog={() => {}} />
+      </JotaiStorybookProvider>
+    ),
+  ],
+}
+
+export const VeryLongEnvVarNameInDialog = {
+  decorators: [
+    (Story: React.FC) => (
+      <JotaiStorybookProvider
+        envVars={{
+          ANTHROPIC_API_KEY: 'line1\nline2\nline3',
+          LONG_ENV_VAR_NAME_THAT_EXCEEDS_MAX_WIDTH_OF_THE_TABLE_CELL: 'sk-test123',
+          OPENAI_API_KEY: 'sk-test123',
+        }}
+      >
+        <EnvironmentVariablesDialog showEnvDialog={true} setShowEnvDialog={() => {}} />
       </JotaiStorybookProvider>
     ),
   ],
