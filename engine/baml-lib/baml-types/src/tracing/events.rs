@@ -1,11 +1,11 @@
 use anyhow::Result;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::{BamlValueWithMeta, HasFieldType};
+use crate::{BamlMap, BamlMedia, BamlValueWithMeta, HasFieldType};
 use baml_ids::{ContentSpanId, HttpRequestId, SpanId};
 use serde::{Deserialize, Serialize};
 
-use super::errors::BamlError;
+pub use super::errors::BamlError;
 
 pub type TraceTags = serde_json::Map<String, serde_json::Value>;
 
@@ -148,7 +148,6 @@ pub enum FunctionEnd<'a, T: HasFieldType> {
 // LLM specific events
 
 // TODO: fix this.
-pub type Prompt = serde_json::Value;
 
 // #[derive(Debug, Serialize, Deserialize)]
 // pub enum LLMClientName {
@@ -157,12 +156,25 @@ pub type Prompt = serde_json::Value;
 // }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct LLMChatMessage {
+    pub role: String,
+    pub content: Vec<LLMChatMessagePart>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum LLMChatMessagePart {
+    Text(String),
+    Media(BamlMedia),
+    WithMeta(Box<LLMChatMessagePart>, HashMap<String, serde_json::Value>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LoggedLLMRequest {
     pub request_id: HttpRequestId,
     pub client_name: String,
     pub client_provider: String,
-    pub params: serde_json::Value,
-    pub prompt: Prompt,
+    pub params: BamlMap<String, serde_json::Value>,
+    pub prompt: Vec<LLMChatMessage>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -215,7 +227,7 @@ pub struct HTTPRequest {
     pub id: HttpRequestId,
     pub url: String,
     pub method: String,
-    pub headers: serde_json::Value,
+    pub headers: HashMap<String, String>,
     pub body: HTTPBody,
 }
 
@@ -224,7 +236,7 @@ pub struct HTTPResponse {
     // since LLM requests could be made in parallel, we need to match the response to the request
     pub request_id: HttpRequestId,
     pub status: u16,
-    pub headers: serde_json::Value,
+    pub headers: Option<HashMap<String, String>>,
     pub body: HTTPBody,
 }
 

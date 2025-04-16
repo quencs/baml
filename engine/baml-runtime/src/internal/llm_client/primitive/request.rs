@@ -110,19 +110,19 @@ pub(crate) fn json_body(input: JsonBodyInput) -> Result<serde_json::Value> {
     Ok(serde_json::Value::String(string_to_parse))
 }
 
-pub(crate) fn json_headers(headers: &HeaderMap) -> serde_json::Value {
-    let mut map = serde_json::Map::new();
+pub(crate) fn json_headers(headers: &HeaderMap) -> HashMap<String, String> {
+    let mut map = HashMap::new();
     for (key, value) in headers.iter() {
         let value_str = value.to_str().unwrap_or_default().to_string();
-        map.insert(key.to_string(), serde_json::Value::String(value_str));
+        map.insert(key.to_string(), value_str);
     }
-    serde_json::Value::Object(map)
+    map
 }
 
 async fn log_http_response(
     runtime_context: &impl HttpContext,
     status: u16,
-    headers: serde_json::Value,
+    headers: Option<HashMap<String, String>>,
     body: HTTPBody,
 ) {
     let event = TraceEvent::new_raw_llm_response(
@@ -221,7 +221,7 @@ pub async fn execute_request(
                 e.status()
                     .unwrap_or(reqwest::StatusCode::INTERNAL_SERVER_ERROR)
                     .as_u16(),
-                serde_json::Value::Null,
+                None,
                 HTTPBody::new(format!("No response. Error: {:?}", e).into_bytes()),
             )
             .await;
@@ -261,7 +261,7 @@ pub async fn execute_request(
                 log_http_response(
                     runtime_context,
                     0,
-                    serde_json::Value::Null,
+                    None,
                     HTTPBody::new(format!("Could not read response body: {:?}", e).into_bytes()),
                 )
                 .await;
@@ -288,7 +288,7 @@ pub async fn execute_request(
         log_http_response(
             runtime_context,
             logged_res.status.as_u16(),
-            json_headers(&logged_res.headers),
+            Some(json_headers(&logged_res.headers)),
             HTTPBody::new(resp_body.clone().into_bytes()),
         )
         .await;
@@ -315,7 +315,7 @@ pub async fn execute_request(
                 log_http_response(
                     runtime_context,
                     0,
-                    serde_json::Value::Null,
+                    None,
                     HTTPBody::new(format!("Could not read response body: {:?}", e).into_bytes()),
                 )
                 .await;
@@ -341,7 +341,7 @@ pub async fn execute_request(
         log_http_response(
             runtime_context,
             logged_response.status.as_u16(),
-            json_headers(&logged_response.headers),
+            Some(json_headers(&logged_response.headers)),
             HTTPBody::new(resp_body.into_bytes()),
         )
         .await;

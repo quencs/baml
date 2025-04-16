@@ -2,7 +2,7 @@ mod call;
 mod stream;
 
 use baml_ids::HttpRequestId;
-use baml_types::tracing::events::LLMUsage;
+use baml_types::tracing::events::{LLMChatMessage, LLMChatMessagePart, LLMUsage};
 use serde_json::json;
 use web_time::Duration; // Add this line
 
@@ -33,8 +33,8 @@ use baml_types::tracing::events::{
 };
 use baml_types::BamlValue;
 use internal_baml_core::ir::repr::IntermediateRepr;
-use internal_baml_jinja::RenderedChatMessage;
 use internal_baml_jinja::RenderedPrompt;
+use internal_baml_jinja::{ChatMessagePart, RenderedChatMessage};
 use serde::Serialize;
 use std::{collections::HashMap, sync::Arc};
 use web_time::SystemTime;
@@ -208,8 +208,19 @@ impl WithSingleCallable for OrchestratorNode {
                 request_id: ctx.http_request_id().clone(),
                 client_name: self.provider.name().to_string(),
                 client_provider: self.provider.provider_name().to_string(),
-                params: json!(self.provider.request_options()),
-                prompt: serde_json::to_value(prompt).unwrap(),
+                params: self.provider.request_options().clone(),
+                prompt: match prompt {
+                    RenderedPrompt::Chat(chat) => chat
+                        .iter()
+                        .map(|m| LLMChatMessage {
+                            role: m.role.clone(),
+                            content: m.parts.iter().map(|p| p.into()).collect(),
+                        })
+                        .collect(),
+                    RenderedPrompt::Completion(completion) => {
+                        todo!("not implemented")
+                    }
+                },
             };
 
             let event = TraceEvent::new_llm_request(
@@ -254,8 +265,19 @@ impl WithStreamable for OrchestratorNode {
                 request_id: ctx.http_request_id().clone(),
                 client_name: self.provider.name().to_string(),
                 client_provider: self.provider.provider_name().to_string(),
-                params: json!(self.provider.request_options()),
-                prompt: serde_json::to_value(prompt).unwrap(),
+                params: self.provider.request_options().clone(),
+                prompt: match prompt {
+                    RenderedPrompt::Chat(chat) => chat
+                        .iter()
+                        .map(|m| LLMChatMessage {
+                            role: m.role.clone(),
+                            content: m.parts.iter().map(|p| p.into()).collect(),
+                        })
+                        .collect(),
+                    RenderedPrompt::Completion(completion) => {
+                        todo!("not implemented")
+                    }
+                },
             };
 
             let event = TraceEvent::new_llm_request(

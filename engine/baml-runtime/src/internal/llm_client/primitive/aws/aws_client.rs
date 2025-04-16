@@ -96,12 +96,12 @@ struct CollectorInterceptor {
     http_request_id: baml_ids::HttpRequestId,
 }
 
-pub fn smithy_json_headers(headers: &Headers) -> serde_json::Value {
-    let mut json_headers = serde_json::Map::new();
+pub fn smithy_json_headers(headers: &Headers) -> HashMap<String, String> {
+    let mut json_headers = HashMap::new();
     for (key, value) in headers.iter() {
-        json_headers.insert(key.to_string(), json!(value));
+        json_headers.insert(key.to_string(), value.to_string());
     }
-    serde_json::Value::Object(json_headers)
+    json_headers
 }
 
 impl aws_smithy_runtime_api::client::interceptors::Intercept for CollectorInterceptor {
@@ -147,7 +147,7 @@ impl aws_smithy_runtime_api::client::interceptors::Intercept for CollectorInterc
             let response = HTTPResponse {
                 request_id: self.http_request_id.clone(),
                 status: response.status().as_u16(),
-                headers: smithy_json_headers(response.headers()),
+                headers: Some(smithy_json_headers(response.headers())),
                 body: HTTPBody::new(response.body().bytes().unwrap_or_default().to_vec().into()),
             };
 

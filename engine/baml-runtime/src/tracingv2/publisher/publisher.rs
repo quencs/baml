@@ -1,10 +1,11 @@
 use baml_rpc::runtime_api::trace_event_upload::{
     CreateTraceEventUploadRequest, CreateTraceEventUploadUrl, CreateTraceEventUploadUrlRequest,
 };
-use baml_types::tracing::events::TraceEvent;
+use baml_types::tracing::events::{TraceData, TraceEvent};
 use baml_types::{BamlValueWithMeta, HasFieldType};
 use core::time::Duration;
 use futures::StreamExt;
+use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 #[cfg(not(target_family = "wasm"))]
@@ -14,6 +15,8 @@ use wasmtimer::tokio::*;
 
 use crate::tracingv2::storage::interface::TraceEventWithMeta;
 
+use super::rpc_converters::to_rpc_event;
+
 pub enum PublisherMessage {
     Trace(Arc<TraceEventWithMeta>),
     Flush(tokio::sync::oneshot::Sender<()>),
@@ -21,7 +24,7 @@ pub enum PublisherMessage {
 
 /// Global publisher channel.
 /// When the module is first used, we create an unbounded channel and then spawn the publisher task.
-pub static PUBLISHING_CHANNEL: once_cell::sync::Lazy<mpsc::UnboundedSender<PublisherMessage>> =
+static PUBLISHING_CHANNEL: once_cell::sync::Lazy<mpsc::UnboundedSender<PublisherMessage>> =
     once_cell::sync::Lazy::new(|| {
         let (tx, rx) = mpsc::unbounded_channel::<PublisherMessage>();
         // Spawn the publisher task.
@@ -42,13 +45,14 @@ pub static PUBLISHING_CHANNEL: once_cell::sync::Lazy<mpsc::UnboundedSender<Publi
         tx
     });
 
-pub struct TracePublisher {
+struct TracePublisher {
+    batch_size: usize,
     rx: mpsc::UnboundedReceiver<PublisherMessage>,
 }
 
 impl TracePublisher {
     pub fn new(rx: mpsc::UnboundedReceiver<PublisherMessage>) -> Self {
-        Self { rx }
+        Self { rx, batch_size: 10 }
     }
 
     /// Runs the publisher loop.
@@ -66,7 +70,7 @@ impl TracePublisher {
                     match message {
                         PublisherMessage::Trace(event) => {
                             buffer.push(event);
-                            if buffer.len() >= 3 {
+                            if buffer.len() >= self.batch_size {
                                 self.process_batch(std::mem::take(&mut buffer)).await;
                             }
                         },
@@ -99,7 +103,7 @@ impl TracePublisher {
     async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
         // Assemble the upload request structure.
         let upload_request = CreateTraceEventUploadRequest {
-            trace_event_batch: batch.iter().map(|e| todo!()).collect(),
+            trace_event_batch: batch.iter().map(|e| to_rpc_event(e)).collect(),
         };
 
         // Serialize to JSON.
@@ -108,7 +112,6 @@ impl TracePublisher {
             // Write the batch to a file asynchronously.
             use tokio::fs::OpenOptions;
             if let Ok(mut file) = OpenOptions::new()
-                .create(true)
                 .append(true)
                 .open("/tmp/trace_events.json")
                 .await
@@ -147,22 +150,30 @@ impl TracePublisher {
     }
 }
 
+pub fn publish_trace_event(event: Arc<TraceEventWithMeta>) -> anyhow::Result<()> {
+    PUBLISHING_CHANNEL
+        .send(PublisherMessage::Trace(event))
+        .map_err(|e| e.into())
+}
+
 // Note, the library we are using doesnt seem to work well for flushing in Node
 // but that's ok since noone uses our wasm build in node for logging.
 // https://github.com/whizsid/wasmtimer-rs/issues/26
-pub async fn flush() {
+pub async fn flush() -> anyhow::Result<()> {
     let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();
     if let Err(e) = PUBLISHING_CHANNEL.send(PublisherMessage::Flush(ack_tx)) {
-        log::error!("Failed to send flush request: {:?}", e);
-        return;
+        return Err(e.into());
     }
 
     // Set a timeout to avoid waiting indefinitely.
     let timeout_duration = Duration::from_secs(3);
 
     match timeout(timeout_duration, ack_rx).await {
-        Ok(Ok(())) => baml_log::info!("Flush acknowledged successfully."),
-        Ok(Err(e)) => log::error!("Flush acknowledgement error: {:?}", e),
-        Err(_) => log::error!("Flush timed out after {:?}", timeout_duration),
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(e.into()),
+        Err(_) => Err(anyhow::anyhow!(
+            "Flush timed out after {:?}",
+            timeout_duration
+        )),
     }
 }

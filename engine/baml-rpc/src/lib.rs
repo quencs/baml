@@ -16,6 +16,8 @@ pub use api::runtime as runtime_api;
 pub use rpc::{ApiEndpoint, GetEndpoint};
 pub use s3::S3UploadMetadata;
 
+pub use base::EpochMsTimestamp;
+
 pub use ui_control_plane_orgs::{
     CreateOrganization, CreateOrganizationRequest, CreateOrganizationResponse, GetOrganization,
     GetOrganizationRequest, GetOrganizationResponse, Organization, UpdateOrganization,

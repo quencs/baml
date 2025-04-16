@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use baml_ids::{ContentSpanId, SpanId};
 
+use super::Media;
+
 /// This is intentionally VERY similar to TraceEvent in
 /// baml-lib/baml-types/src/tracing/events.rs
 /// If the convertion from baml-types to baml-rpc is not possible,
@@ -38,18 +40,15 @@ pub struct TraceEvent<'a> {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
 pub enum TraceData<'a> {
-    LogMessage {
-        msg: String,
-    },
     FunctionStart {
         function_display_name: String,
-        args: Vec<(String, super::Value)>,
+        args: Vec<(String, super::Value<'a>)>,
         tags: TraceTags,
         /// Only sent for BAML defined functions
         baml_function_content: Option<BamlFunctionStart>,
     },
     /// Terminal Event
-    FunctionEnd(FunctionEnd),
+    FunctionEnd(FunctionEnd<'a>),
 
     /// Intermediate events between start and end
     Intermediate(IntermediateData<'a>),
@@ -57,14 +56,14 @@ pub enum TraceData<'a> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BamlFunctionStart {
-    function_id: BamlFunctionId,
-    eval_context: EvaluationContext,
+    pub function_id: BamlFunctionId,
+    pub eval_context: EvaluationContext,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum FunctionEnd {
-    Success { result: super::Value },
-    Error { error: super::BamlError },
+pub enum FunctionEnd<'a> {
+    Success { result: super::Value<'a> },
+    Error { error: super::BamlError<'a> },
 }
 
 pub type TraceTags = std::collections::HashMap<String, serde_json::Value>;
@@ -84,7 +83,7 @@ pub enum IntermediateData<'a> {
     LLMRequest {
         client_name: String,
         client_provider: String,
-        params: HashMap<String, serde_json::Value>,
+        params: HashMap<String, Cow<'a, serde_json::Value>>,
         prompt: Vec<LLMChatMessage<'a>>,
     },
     RawLLMRequest {
@@ -95,7 +94,7 @@ pub enum IntermediateData<'a> {
     },
     RawLLMResponse {
         status: u16,
-        headers: HashMap<String, String>,
+        headers: Option<HashMap<String, String>>,
         body: HTTPBody<'a>,
     },
     LLMResponse {
@@ -113,20 +112,31 @@ pub enum IntermediateData<'a> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HTTPBody<'a> {
-    raw: Cow<'a, Vec<u8>>,
+    pub raw: Cow<'a, [u8]>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct LLMChatMessage<'a> {
-    role: String,
-    content: Cow<'a, str>,
+    pub role: String,
+    pub content: Vec<LLMChatMessagePart<'a>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LLMChatMessagePart<'a> {
+    Text(Cow<'a, str>),
+    Media(Media<'a>),
+    WithMeta(
+        Box<LLMChatMessagePart<'a>>,
+        HashMap<String, serde_json::Value>,
+    ),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct LLMUsage {
-    pub input_tokens: u64,
-    pub output_tokens: u64,
-    pub total_tokens: u64,
+    pub input_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub total_tokens: Option<u64>,
 }

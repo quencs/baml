@@ -22,7 +22,6 @@ use uuid::Uuid;
 
 use crate::tracingv2::publisher::publisher::PublisherMessage;
 
-use super::super::publisher::PUBLISHING_CHANNEL;
 use super::interface::TraceEventWithMeta;
 
 /// Global (singleton) trace storage.
@@ -112,6 +111,10 @@ impl TraceStorage {
             event.span_id,
             event.content
         );
+        if let Err(e) = crate::tracingv2::publisher::publish_trace_event(event.clone()) {
+            log::warn!("Failed to publish trace event: {:?}", e);
+        }
+
         let Some(&count) = self.ref_counts.get(&event.span_id) else {
             // If no references exist, skip or handle otherwise
             // log::trace!("No references for FunctionID {:?} -- dropping events", event.span_id);
