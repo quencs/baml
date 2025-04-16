@@ -1,18 +1,43 @@
+use crate::base::EpochMsTimestamp;
 use crate::rpc::ApiEndpoint;
+use crate::ProjectId;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
+
+#[derive(Debug, Deserialize, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Filter {
+    pub env_id: Option<String>,
+    pub person_id: Option<String>,
+    pub api_key: Option<String>,
+    pub client: Option<String>,
+    pub function_id: Option<String>,
+    pub function_name: Option<String>,
+    pub session_id: Option<String>,
+    pub call_type: Option<String>,
+    #[ts(type = "number | null")]
+    pub start_at: Option<EpochMsTimestamp>,
+    #[ts(type = "number | null")]
+    pub end_at: Option<EpochMsTimestamp>,
+    pub relative_time: Option<String>,
+    pub span_id: Option<String>,
+    pub streamed: Option<bool>,
+    pub status: Option<String>,
+}
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ListFunctionSpansRequest {
-    project_id: String,
-    function_call_id: Option<String>,
+    #[ts(type = "string")]
+    pub project_id: ProjectId,
+    pub function_call_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ListFunctionSpansResponse {
-    function_spans: Vec<api::FunctionSpan>,
+    pub function_spans: Vec<api::FunctionSpan>,
     // TODO: add function definitions and type definitions
     // #[ts(type = "any")]
     // function_definitions: Vec<BamlFunctionDefinition>,

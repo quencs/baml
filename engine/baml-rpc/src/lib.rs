@@ -18,6 +18,7 @@ pub use s3::S3UploadMetadata;
 
 pub use base::EpochMsTimestamp;
 
+pub use baml_ids::*;
 pub use ui_control_plane_orgs::{
     CreateOrganization, CreateOrganizationRequest, CreateOrganizationResponse, GetOrganization,
     GetOrganizationRequest, GetOrganizationResponse, Organization, UpdateOrganization,
@@ -35,3 +36,6 @@ pub use ui_webhook_propelauth::{
     PropelAuthWebhook, PropelAuthWebhookRequest, PropelAuthWebhookResponse,
 };
 pub use ui_webhook_stripe::{StripeWebhook, StripeWebhookRequest, StripeWebhookResponse};
+
+pub use runtime_api::baml_src_upload::*;
+pub use runtime_api::trace_event_upload::*;
