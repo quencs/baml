@@ -1,11 +1,14 @@
 use std::borrow::Cow;
 
-use super::IntoRpcEvent;
+use super::{IntoRpcEvent, TypeLookup};
 
 impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::BamlError<'a>>
     for baml_types::tracing::events::BamlError<'a>
 {
-    fn into_rpc_event(&'a self) -> baml_rpc::runtime_api::BamlError<'a> {
+    fn into_rpc_event(
+        &'a self,
+        lookup: &(impl TypeLookup + ?Sized),
+    ) -> baml_rpc::runtime_api::BamlError<'a> {
         match self {
             baml_types::tracing::events::BamlError::External { message } => {
                 baml_rpc::runtime_api::BamlError::ExternalException {

@@ -5,6 +5,7 @@ use baml_types::tracing::events::{TraceData, TraceEvent};
 use baml_types::{BamlValueWithMeta, HasFieldType};
 use core::time::Duration;
 use futures::StreamExt;
+use once_cell::sync::OnceCell;
 use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -15,7 +16,7 @@ use wasmtimer::tokio::*;
 
 use crate::tracingv2::storage::interface::TraceEventWithMeta;
 
-use super::rpc_converters::to_rpc_event;
+use super::rpc_converters::{to_rpc_event, TypeLookup};
 
 pub enum PublisherMessage {
     Trace(Arc<TraceEventWithMeta>),
@@ -24,35 +25,62 @@ pub enum PublisherMessage {
 
 /// Global publisher channel.
 /// When the module is first used, we create an unbounded channel and then spawn the publisher task.
-static PUBLISHING_CHANNEL: once_cell::sync::Lazy<mpsc::UnboundedSender<PublisherMessage>> =
-    once_cell::sync::Lazy::new(|| {
-        let (tx, rx) = mpsc::unbounded_channel::<PublisherMessage>();
-        // Spawn the publisher task.
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            tokio::spawn(async move {
-                let mut publisher = TracePublisher::new(rx);
-                publisher.run().await;
-            });
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
-            wasm_bindgen_futures::spawn_local(async move {
-                let mut publisher = TracePublisher::new(rx);
-                publisher.run().await;
-            });
-        }
-        tx
+static PUBLISHING_CHANNEL: OnceCell<mpsc::UnboundedSender<PublisherMessage>> = OnceCell::new();
+
+pub struct RuntimeAST {}
+
+impl TypeLookup for RuntimeAST {
+    fn type_lookup(&self, name: &str) -> baml_rpc::ast::types::type_definition::TypeId {
+        todo!()
+    }
+
+    fn function_lookup(&self, name: &str) -> Option<baml_rpc::ast::tops::BamlFunctionId> {
+        todo!()
+    }
+}
+
+pub fn start_publisher(lookup: Arc<RuntimeAST>) {
+    // If we've already started, do nothing.
+    if PUBLISHING_CHANNEL.get().is_some() {
+        return;
+    }
+
+    // Create our channel
+    let (tx, rx) = mpsc::unbounded_channel::<PublisherMessage>();
+
+    // Install it into the OnceCell
+    // Safe because we just checked `get().is_none()`
+    PUBLISHING_CHANNEL
+        .set(tx.clone())
+        .expect("Failed to set PUBLISHING_CHANNEL");
+
+    let mut publisher = TracePublisher::new(rx, lookup);
+
+    // Spawn the background task
+    #[cfg(not(target_arch = "wasm32"))]
+    tokio::spawn(async move {
+        publisher.run().await;
     });
+
+    #[cfg(target_arch = "wasm32")]
+    wasm_bindgen_futures::spawn_local(async move {
+        publisher.run().await;
+    });
+}
 
 struct TracePublisher {
     batch_size: usize,
     rx: mpsc::UnboundedReceiver<PublisherMessage>,
+    lookup: Arc<RuntimeAST>,
 }
 
 impl TracePublisher {
-    pub fn new(rx: mpsc::UnboundedReceiver<PublisherMessage>) -> Self {
-        Self { rx, batch_size: 10 }
+    pub fn new(rx: mpsc::UnboundedReceiver<PublisherMessage>, lookup: Arc<RuntimeAST>) -> Self {
+        Self {
+            rx,
+            batch_size: 10,
+            lookup,
+        }
     }
 
     /// Runs the publisher loop.
@@ -103,7 +131,10 @@ impl TracePublisher {
     async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
         // Assemble the upload request structure.
         let upload_request = CreateTraceEventUploadRequest {
-            trace_event_batch: batch.iter().map(|e| to_rpc_event(e)).collect(),
+            trace_event_batch: batch
+                .iter()
+                .map(|e| to_rpc_event(e, self.lookup.as_ref()))
+                .collect(),
         };
 
         // Serialize to JSON.
@@ -151,7 +182,8 @@ impl TracePublisher {
 }
 
 pub fn publish_trace_event(event: Arc<TraceEventWithMeta>) -> anyhow::Result<()> {
-    PUBLISHING_CHANNEL
+    let channel = PUBLISHING_CHANNEL.get().expect("Publisher not started");
+    channel
         .send(PublisherMessage::Trace(event))
         .map_err(|e| e.into())
 }
@@ -160,8 +192,9 @@ pub fn publish_trace_event(event: Arc<TraceEventWithMeta>) -> anyhow::Result<()>
 // but that's ok since noone uses our wasm build in node for logging.
 // https://github.com/whizsid/wasmtimer-rs/issues/26
 pub async fn flush() -> anyhow::Result<()> {
+    let channel = PUBLISHING_CHANNEL.get().expect("Publisher not started");
     let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();
-    if let Err(e) = PUBLISHING_CHANNEL.send(PublisherMessage::Flush(ack_tx)) {
+    if let Err(e) = channel.send(PublisherMessage::Flush(ack_tx)) {
         return Err(e.into());
     }
 
