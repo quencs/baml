@@ -62,6 +62,7 @@ impl ApiEndpoint for CreateProject {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct UpdateProjectRequest {
+    pub org_id: String,
     #[ts(type = "string")]
     pub project_id: ProjectId,
     pub project_slug: Option<String>,
