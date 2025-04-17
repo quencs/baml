@@ -18,6 +18,7 @@ pub use s3::S3UploadMetadata;
 
 pub use base::EpochMsTimestamp;
 
+pub use baml_ids::TraceBatchId;
 pub use baml_ids::*;
 pub use ui_control_plane_orgs::{
     CreateOrganization, CreateOrganizationRequest, CreateOrganizationResponse, GetOrganization,
@@ -39,3 +40,10 @@ pub use ui_webhook_stripe::{StripeWebhook, StripeWebhookRequest, StripeWebhookRe
 
 pub use runtime_api::baml_src_upload::*;
 pub use runtime_api::trace_event_upload::*;
+
+pub use ast::ast_node_id::*;
+pub use ast::evaluation_context::*;
+pub use ast::tops::*;
+pub use ast::types::*;
+
+pub use api::runtime::values::*;

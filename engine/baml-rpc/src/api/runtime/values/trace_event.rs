@@ -10,6 +10,11 @@ use baml_ids::{ContentSpanId, SpanId};
 
 use super::Media;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TraceEventBatch<'a> {
+    pub events: Vec<TraceEvent<'a>>,
+}
+
 /// This is intentionally VERY similar to TraceEvent in
 /// baml-lib/baml-types/src/tracing/events.rs
 /// If the convertion from baml-types to baml-rpc is not possible,
