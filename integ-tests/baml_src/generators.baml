@@ -29,9 +29,9 @@ generator openapi {
   on_generate "rm .gitignore"
 }
 
-// generator lang_go {
-//   output_type go
-//   output_dir "../go"
-//   version "0.83.0"
-//   client_package_name "example.com/integ-tests"
-// }
+generator lang_go {
+  output_type go
+  output_dir "../go"
+  version "0.83.0"
+  client_package_name "example.com/integ-tests"
+}

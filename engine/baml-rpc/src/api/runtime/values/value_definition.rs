@@ -14,6 +14,7 @@ pub struct Value<'a> {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum ValueContent<'a> {
+    Null,
     String(Cow<'a, str>),
     Float(f64),
     Int(i64),

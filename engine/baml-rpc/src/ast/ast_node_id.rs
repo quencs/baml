@@ -3,10 +3,61 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Eq, Hash, Deserialize, Serialize, Clone)]
 #[serde(into = "String", from = "String")]
 pub struct AstNodeId {
-    pub type_name: String,
-    pub name: String,
-    pub interface_hash: u64,
-    pub impl_hash: Option<u64>,
+    type_name: String,
+    name: String,
+    interface_hash: u64,
+    impl_hash: Option<u64>,
+}
+
+impl AstNodeId {
+    pub fn interface_hash(&self) -> u64 {
+        self.interface_hash
+    }
+
+    pub fn impl_hash(&self) -> Option<u64> {
+        self.impl_hash
+    }
+
+    pub fn new_ast(interface_hash: u64, impl_hash: Option<u64>) -> Self {
+        Self {
+            type_name: "ast".to_string(),
+            name: "root".to_string(),
+            interface_hash,
+            impl_hash,
+        }
+    }
+    pub fn new_type_alias(name: String, interface_hash: u64, impl_hash: Option<u64>) -> Self {
+        Self {
+            type_name: "type_alias".to_string(),
+            name,
+            interface_hash,
+            impl_hash,
+        }
+    }
+    pub fn new_function(name: String, interface_hash: u64, impl_hash: Option<u64>) -> Self {
+        Self {
+            type_name: "function".to_string(),
+            name,
+            interface_hash,
+            impl_hash,
+        }
+    }
+    pub fn new_enum(name: String, interface_hash: u64, impl_hash: Option<u64>) -> Self {
+        Self {
+            type_name: "enum".to_string(),
+            name,
+            interface_hash,
+            impl_hash,
+        }
+    }
+    pub fn new_class(name: String, interface_hash: u64, impl_hash: Option<u64>) -> Self {
+        Self {
+            type_name: "class".to_string(),
+            name,
+            interface_hash,
+            impl_hash,
+        }
+    }
 }
 
 impl std::fmt::Display for AstNodeId {
@@ -14,7 +65,7 @@ impl std::fmt::Display for AstNodeId {
         write!(
             f,
             "{}##{}##{}##{}",
-            self.type_name,
+            self.type_name.to_lowercase(),
             self.name,
             self.interface_hash,
             self.impl_hash.unwrap_or(0)

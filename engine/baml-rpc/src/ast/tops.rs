@@ -46,17 +46,15 @@ impl AST {
             )
             .collect::<Vec<_>>();
 
-        let top_ast_hash = AstNodeId {
-            type_name: "baml_ast".to_string(),
-            name: "baml_ast".to_string(),
-            interface_hash: top_ids.iter().fold(0, |acc, id| {
+        let top_ast_hash = AstNodeId::new_ast(
+            top_ids.iter().fold(0, |acc, id| {
                 let mut hasher = DefaultHasher::new();
                 acc.hash(&mut hasher);
-                id.interface_hash.hash(&mut hasher);
+                id.interface_hash().hash(&mut hasher);
                 hasher.finish()
             }),
-            impl_hash: top_ids.iter().fold(None, |acc, id| {
-                if let Some(impl_hash) = id.impl_hash {
+            top_ids.iter().fold(None, |acc, id| {
+                if let Some(impl_hash) = id.impl_hash() {
                     let mut hasher = DefaultHasher::new();
                     acc.hash(&mut hasher);
                     impl_hash.hash(&mut hasher);
@@ -65,7 +63,7 @@ impl AST {
                     acc
                 }
             }),
-        };
+        );
 
         ASTId {
             top_id: Cow::Owned(top_ast_hash),

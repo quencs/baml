@@ -20,8 +20,6 @@ use std::hash::Hash;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::tracingv2::publisher::publisher::PublisherMessage;
-
 use super::interface::TraceEventWithMeta;
 
 /// Global (singleton) trace storage.

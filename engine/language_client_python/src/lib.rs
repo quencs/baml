@@ -50,6 +50,17 @@ fn set_log_max_chunk_length(length: usize) -> PyResult<()> {
     baml_log::set_max_message_length(length).map_err(errors::BamlError::from_anyhow)
 }
 
+// This must have the C calling convention and take no args
+extern "C" fn baml_exit_hook() {
+    // your Rust code here
+    match baml_runtime::cleanup_sync() {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Error cleaning up BAML: {:#}", e);
+        }
+    }
+}
+
 #[pymodule]
 fn baml_py(m: Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<runtime::BamlRuntime>()?;
@@ -87,6 +98,12 @@ fn baml_py(m: Bound<'_, PyModule>) -> PyResult<()> {
     // Initialize the logger
     baml_log::init().map_err(errors::BamlError::from_anyhow)?;
     init_debug_logger();
+
+    // register the hook. unsafe because it calls into the raw Python C‑API
+    unsafe {
+        pyo3::ffi::Py_AtExit(Some(baml_exit_hook));
+    }
+
     Ok(())
 }
 

@@ -11,37 +11,49 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 #[cfg(not(target_family = "wasm"))]
 use tokio::time::*;
+
 #[cfg(target_family = "wasm")]
 use wasmtimer::tokio::*;
 
+use tokio::task::JoinHandle;
+
+use crate::runtime::InternalBamlRuntime;
 use crate::tracingv2::storage::interface::TraceEventWithMeta;
 
 use super::rpc_converters::{to_rpc_event, TypeLookup};
 
-pub enum PublisherMessage {
+enum PublisherMessage {
     Trace(Arc<TraceEventWithMeta>),
     Flush(tokio::sync::oneshot::Sender<()>),
+    UpdateRuntime(Arc<RuntimeAST>),
+    Shutdown(tokio::sync::oneshot::Sender<()>),
 }
 
 /// Global publisher channel.
 /// When the module is first used, we create an unbounded channel and then spawn the publisher task.
 static PUBLISHING_CHANNEL: OnceCell<mpsc::UnboundedSender<PublisherMessage>> = OnceCell::new();
+static PUBLISHING_TASK: OnceCell<Arc<JoinHandle<()>>> = OnceCell::new();
 
-pub struct RuntimeAST {}
+struct RuntimeAST {
+    ast: Arc<InternalBamlRuntime>,
+}
 
 impl TypeLookup for RuntimeAST {
     fn type_lookup(&self, name: &str) -> baml_rpc::ast::types::type_definition::TypeId {
-        todo!()
+        self.ast.type_lookup(name)
     }
 
     fn function_lookup(&self, name: &str) -> Option<baml_rpc::ast::tops::BamlFunctionId> {
-        todo!()
+        self.ast.function_lookup(name)
     }
 }
 
-pub fn start_publisher(lookup: Arc<RuntimeAST>) {
+pub fn start_publisher(lookup: Arc<InternalBamlRuntime>, rt: Arc<tokio::runtime::Runtime>) {
+    let lookup = Arc::new(RuntimeAST { ast: lookup });
     // If we've already started, do nothing.
-    if PUBLISHING_CHANNEL.get().is_some() {
+    if let Some(channel) = PUBLISHING_CHANNEL.get() {
+        let _ = rt.block_on(flush());
+        let _ = channel.send(PublisherMessage::UpdateRuntime(lookup));
         return;
     }
 
@@ -58,7 +70,7 @@ pub fn start_publisher(lookup: Arc<RuntimeAST>) {
 
     // Spawn the background task
     #[cfg(not(target_arch = "wasm32"))]
-    tokio::spawn(async move {
+    let handle = rt.spawn(async move {
         publisher.run().await;
     });
 
@@ -66,6 +78,25 @@ pub fn start_publisher(lookup: Arc<RuntimeAST>) {
     wasm_bindgen_futures::spawn_local(async move {
         publisher.run().await;
     });
+}
+
+/// Gracefully shutdown the TracePublisher.
+/// 1. Sends a Shutdown message and waits for its ack.
+/// 2. Awaits the background task’s JoinHandle so Drop runs.
+pub async fn shutdown_publisher() -> anyhow::Result<()> {
+    // 1. send Shutdown
+    let channel = PUBLISHING_CHANNEL.get().expect("Publisher not started");
+    let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();
+    channel
+        .send(PublisherMessage::Shutdown(ack_tx))
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
+    // 2. wait for the ack (so we flush remaining events)
+    ack_rx
+        .await
+        .map_err(|e| anyhow::anyhow!("shutdown ack failed: {}", e))?;
+
+    Ok(())
 }
 
 struct TracePublisher {
@@ -96,7 +127,15 @@ impl TracePublisher {
                 // Process any incoming command or event.
                 Some(message) = self.rx.recv() => {
                     match message {
+                        PublisherMessage::UpdateRuntime(lookup) => {
+                            // Empty the buffer
+                            self.process_batch(std::mem::take(&mut buffer)).await;
+                            // Update the lookup
+                            self.lookup = lookup;
+                        },
                         PublisherMessage::Trace(event) => {
+                            let event_type = std::any::type_name_of_val(&event.content);
+                            println!("Received trace event: {}", event_type);
                             buffer.push(event);
                             if buffer.len() >= self.batch_size {
                                 self.process_batch(std::mem::take(&mut buffer)).await;
@@ -110,6 +149,13 @@ impl TracePublisher {
                             // Signal flush completion.
                             let _ = flush_ack.send(());
                         },
+                        PublisherMessage::Shutdown(shutdown_ack) => {
+                            if !buffer.is_empty() {
+                                self.process_batch(std::mem::take(&mut buffer)).await;
+                            }
+                            let _ = shutdown_ack.send(());
+                            break;
+                        }
                     }
                 }
                 // Periodic flush of pending events.
@@ -129,6 +175,7 @@ impl TracePublisher {
     ///   2. Append the JSON to a file (using async file I/O on macOS).
     ///   3. Post the JSON to an HTTP API with up to 3 retries.
     async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
+        println!("Processing batch of {} events", batch.len());
         // Assemble the upload request structure.
         let upload_request = CreateTraceEventUploadRequest {
             trace_event_batch: batch

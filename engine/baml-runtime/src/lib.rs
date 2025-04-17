@@ -112,9 +112,19 @@ use crate::test_constraints::{evaluate_test_constraints, TestConstraintsResult};
 #[cfg(not(target_arch = "wasm32"))]
 static TOKIO_SINGLETON: OnceLock<std::io::Result<Arc<tokio::runtime::Runtime>>> = OnceLock::new();
 
+pub async fn cleanup() -> anyhow::Result<()> {
+    tracingv2::publisher::shutdown_publisher().await
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn cleanup_sync() -> anyhow::Result<()> {
+    let rt = TOKIO_SINGLETON.get().unwrap().as_ref().unwrap();
+    rt.block_on(cleanup())
+}
+
 #[derive(Clone)]
 pub struct BamlRuntime {
-    pub inner: InternalBamlRuntime,
+    pub inner: Arc<InternalBamlRuntime>,
     tracer: Arc<BamlTracer>,
     env_vars: HashMap<String, String>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -132,6 +142,23 @@ impl BamlRuntime {
             Ok(t) => Ok(t.clone()),
             Err(e) => Err(e.into()),
         }
+    }
+
+    fn new_runtime(inner: InternalBamlRuntime, env_vars: HashMap<String, String>) -> Result<Self> {
+        let rt = Self::get_tokio_singleton()?;
+        let inner = Arc::new(inner);
+
+        let runtime = BamlRuntime {
+            inner,
+            env_vars: env_vars.clone(),
+            tracer: BamlTracer::new(None, env_vars.into_iter())?.into(),
+            #[cfg(not(target_arch = "wasm32"))]
+            async_runtime: rt.clone(),
+        };
+
+        tracingv2::publisher::start_publisher(runtime.inner.clone(), rt.clone());
+
+        Ok(runtime)
     }
 
     pub fn parse_baml_src_path(path: impl Into<PathBuf>) -> Result<PathBuf> {
@@ -181,13 +208,7 @@ impl BamlRuntime {
             .collect();
         baml_log::set_from_env(&copy)?;
 
-        Ok(BamlRuntime {
-            inner: InternalBamlRuntime::from_directory(&path)?,
-            tracer: BamlTracer::new(None, env_vars.into_iter())?.into(),
-            env_vars: copy,
-            #[cfg(not(target_arch = "wasm32"))]
-            async_runtime: Self::get_tokio_singleton()?,
-        })
+        Self::new_runtime(InternalBamlRuntime::from_directory(&path)?, copy)
     }
 
     pub fn from_file_content<T: AsRef<str> + std::fmt::Debug, U: AsRef<str>>(
@@ -201,19 +222,14 @@ impl BamlRuntime {
             .collect();
         baml_log::set_from_env(&copy)?;
 
-        let inner = InternalBamlRuntime::from_file_content(root_path, files)?;
-
-        Ok(BamlRuntime {
-            inner,
-            tracer: BamlTracer::new(None, env_vars.into_iter())?.into(),
-            env_vars: copy,
-            #[cfg(not(target_arch = "wasm32"))]
-            async_runtime: Self::get_tokio_singleton()?,
-        })
+        Self::new_runtime(
+            InternalBamlRuntime::from_file_content(root_path, files)?,
+            copy,
+        )
     }
 
     #[cfg(feature = "internal")]
-    pub fn internal(&self) -> &impl InternalRuntimeInterface {
+    pub fn internal(&self) -> &Arc<InternalBamlRuntime> {
         &self.inner
     }
 

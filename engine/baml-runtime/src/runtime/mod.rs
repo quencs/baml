@@ -1,4 +1,5 @@
 mod ir_features;
+mod publisher;
 pub(crate) mod runtime_interface;
 
 use anyhow::Result;

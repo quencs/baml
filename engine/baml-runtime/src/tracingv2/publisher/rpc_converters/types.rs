@@ -26,11 +26,29 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, baml_rpc::runtime_api::Value<'a>>
                     .map(|(k, v)| (k.clone(), v.into_rpc_event(lookup)))
                     .collect(),
             ),
-            BamlValueWithMeta::List(baml_value_with_metas, _) => todo!(),
-            BamlValueWithMeta::Media(baml_media, _) => todo!(),
-            BamlValueWithMeta::Enum(_, _, _) => todo!(),
-            BamlValueWithMeta::Class(_, index_map, _) => todo!(),
-            BamlValueWithMeta::Null(_) => todo!(),
+            BamlValueWithMeta::List(baml_value_with_metas, _) => {
+                baml_rpc::runtime_api::ValueContent::List(
+                    baml_value_with_metas
+                        .iter()
+                        .map(|v| v.into_rpc_event(lookup))
+                        .collect(),
+                )
+            }
+            BamlValueWithMeta::Media(baml_media, _) => {
+                baml_rpc::runtime_api::ValueContent::Media(baml_media.into_rpc_event(lookup))
+            }
+            BamlValueWithMeta::Enum(name, value, _) => baml_rpc::runtime_api::ValueContent::Enum {
+                value: value.clone(),
+            },
+            BamlValueWithMeta::Class(_, index_map, _) => {
+                baml_rpc::runtime_api::ValueContent::Class {
+                    fields: index_map
+                        .iter()
+                        .map(|(k, v)| (k.clone(), v.into_rpc_event(lookup)))
+                        .collect(),
+                }
+            }
+            BamlValueWithMeta::Null(_) => baml_rpc::runtime_api::ValueContent::Null,
         };
 
         baml_rpc::runtime_api::Value {
