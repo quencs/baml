@@ -56,7 +56,7 @@ pub enum TraceData<'a> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BamlFunctionStart {
-    pub function_id: BamlFunctionId,
+    pub function_id: std::sync::Arc<BamlFunctionId>,
     pub eval_context: EvaluationContext,
 }
 

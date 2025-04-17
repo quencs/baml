@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use super::{IntoRpcEvent, TypeLookup};
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::BamlError<'a>>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::BamlError<'a>>
     for baml_types::tracing::events::BamlError<'a>
 {
     fn into_rpc_event(

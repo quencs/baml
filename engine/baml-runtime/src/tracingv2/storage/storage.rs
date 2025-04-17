@@ -649,7 +649,6 @@ impl Clone for Collector {
 
 impl Drop for Collector {
     fn drop(&mut self) {
-        log::info!("Dropping collector: {}", self.name);
         // On drop, we untrack (and thus dec_ref) everything we were tracking
         let mut tracer = BAML_TRACER.lock().unwrap();
         let guard = self.tracked_ids.lock().unwrap();

@@ -44,7 +44,7 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, Option<baml_rpc::runtime_api::BamlFun
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::EvaluationContext>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::EvaluationContext>
     for baml_types::tracing::events::EvaluationContext
 {
     fn into_rpc_event(
@@ -85,7 +85,7 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, baml_rpc::runtime_api::TraceData<'a>>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
     for baml_types::tracing::events::LoggedLLMRequest
 {
     fn into_rpc_event(
@@ -109,7 +109,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMChatMessage<'a>>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMChatMessage<'a>>
     for baml_types::tracing::events::LLMChatMessage
 {
     fn into_rpc_event(
@@ -127,7 +127,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMChatMessage<'a>>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMChatMessagePart<'a>>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMChatMessagePart<'a>>
     for baml_types::tracing::events::LLMChatMessagePart
 {
     fn into_rpc_event(
@@ -152,7 +152,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMChatMessagePart<'a>>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMUsage>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMUsage>
     for baml_types::tracing::events::LLMUsage
 {
     fn into_rpc_event(
@@ -167,7 +167,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::LLMUsage>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::HTTPBody<'a>>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::HTTPBody<'a>>
     for baml_types::tracing::events::HTTPBody
 {
     fn into_rpc_event(
@@ -180,7 +180,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::HTTPBody<'a>>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
     for baml_types::tracing::events::HTTPRequest
 {
     fn into_rpc_event(
@@ -196,7 +196,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
     for baml_types::tracing::events::HTTPResponse
 {
     fn into_rpc_event(
@@ -211,7 +211,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
     for baml_types::tracing::events::LoggedLLMResponse
 {
     fn into_rpc_event(

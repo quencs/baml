@@ -13,7 +13,7 @@ use super::{
     },
 };
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub struct BamlFunctionId(pub AstNodeId);
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]

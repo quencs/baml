@@ -90,12 +90,6 @@ impl Collector {
     }
 }
 
-impl Drop for Collector {
-    fn drop(&mut self) {
-        log::info!("Dropping collector: {}", self.inner.name());
-    }
-}
-
 crate::lang_wrapper!(
     FunctionLog,
     baml_runtime::tracingv2::storage::storage::FunctionLog,

@@ -8,6 +8,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub(super) use publisher::AstSignatureWrapper;
+
 cfg_if::cfg_if!(
     if #[cfg(target_arch = "wasm32")] {
         type DashMap<K, V> = std::sync::Arc<std::sync::Mutex<std::collections::HashMap<K, V>>>;

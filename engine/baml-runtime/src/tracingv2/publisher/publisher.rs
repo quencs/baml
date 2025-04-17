@@ -17,7 +17,7 @@ use wasmtimer::tokio::*;
 
 use tokio::task::JoinHandle;
 
-use crate::runtime::InternalBamlRuntime;
+use crate::runtime::{AstSignatureWrapper, InternalBamlRuntime};
 use crate::tracingv2::storage::interface::TraceEventWithMeta;
 
 use super::rpc_converters::{to_rpc_event, TypeLookup};
@@ -35,7 +35,7 @@ static PUBLISHING_CHANNEL: OnceCell<mpsc::UnboundedSender<PublisherMessage>> = O
 static PUBLISHING_TASK: OnceCell<Arc<JoinHandle<()>>> = OnceCell::new();
 
 struct RuntimeAST {
-    ast: Arc<InternalBamlRuntime>,
+    ast: Arc<AstSignatureWrapper>,
 }
 
 impl TypeLookup for RuntimeAST {
@@ -43,12 +43,12 @@ impl TypeLookup for RuntimeAST {
         self.ast.type_lookup(name)
     }
 
-    fn function_lookup(&self, name: &str) -> Option<baml_rpc::ast::tops::BamlFunctionId> {
+    fn function_lookup(&self, name: &str) -> Option<Arc<baml_rpc::ast::tops::BamlFunctionId>> {
         self.ast.function_lookup(name)
     }
 }
 
-pub fn start_publisher(lookup: Arc<InternalBamlRuntime>, rt: Arc<tokio::runtime::Runtime>) {
+pub fn start_publisher(lookup: Arc<AstSignatureWrapper>, rt: Arc<tokio::runtime::Runtime>) {
     let lookup = Arc::new(RuntimeAST { ast: lookup });
     // If we've already started, do nothing.
     if let Some(channel) = PUBLISHING_CHANNEL.get() {
@@ -135,7 +135,6 @@ impl TracePublisher {
                         },
                         PublisherMessage::Trace(event) => {
                             let event_type = std::any::type_name_of_val(&event.content);
-                            println!("Received trace event: {}", event_type);
                             buffer.push(event);
                             if buffer.len() >= self.batch_size {
                                 self.process_batch(std::mem::take(&mut buffer)).await;
@@ -175,7 +174,6 @@ impl TracePublisher {
     ///   2. Append the JSON to a file (using async file I/O on macOS).
     ///   3. Post the JSON to an HTTP API with up to 3 retries.
     async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
-        println!("Processing batch of {} events", batch.len());
         // Assemble the upload request structure.
         let upload_request = CreateTraceEventUploadRequest {
             trace_event_batch: batch

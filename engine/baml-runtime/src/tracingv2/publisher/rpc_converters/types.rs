@@ -58,7 +58,7 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, baml_rpc::runtime_api::Value<'a>>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::TypeReference>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::TypeReference>
     for baml_types::FieldType
 {
     fn into_rpc_event(
@@ -115,9 +115,10 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::TypeReference>
                     .map(|t| t.into_rpc_event(lookup))
                     .collect(),
             ),
-            baml_types::FieldType::Optional(field_type) => {
-                panic!("optionals should be handled before this point");
-            }
+            baml_types::FieldType::Optional(field_type) => TypeReference::union(vec![
+                field_type.into_rpc_event(lookup),
+                TypeReference::null(),
+            ]),
             baml_types::FieldType::RecursiveTypeAlias(alias) => {
                 TypeReference::recursive_type_alias(lookup.type_lookup(alias.as_str()))
             }
@@ -155,7 +156,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::TypeReference>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::Expression>
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::Expression>
     for baml_types::JinjaExpression
 {
     fn into_rpc_event(
@@ -166,7 +167,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::Expression>
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::Media<'a>> for baml_types::BamlMedia {
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::Media<'a>> for baml_types::BamlMedia {
     fn into_rpc_event(
         &'a self,
         lookup: &(impl TypeLookup + ?Sized),
@@ -178,7 +179,9 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::Media<'a>> for baml_types::Baml
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::MediaValue<'a>> for baml_types::BamlMediaContent {
+impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::MediaValue<'a>>
+    for baml_types::BamlMediaContent
+{
     fn into_rpc_event(
         &'a self,
         lookup: &(impl TypeLookup + ?Sized),

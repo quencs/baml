@@ -149,14 +149,14 @@ impl BamlRuntime {
         let inner = Arc::new(inner);
 
         let runtime = BamlRuntime {
-            inner,
+            inner: inner.clone(),
             env_vars: env_vars.clone(),
             tracer: BamlTracer::new(None, env_vars.into_iter())?.into(),
             #[cfg(not(target_arch = "wasm32"))]
             async_runtime: rt.clone(),
         };
 
-        tracingv2::publisher::start_publisher(runtime.inner.clone(), rt.clone());
+        tracingv2::publisher::start_publisher(Arc::new(inner.into()), rt.clone());
 
         Ok(runtime)
     }
@@ -643,15 +643,14 @@ impl BamlRuntime {
             Err(e) => Err(e),
         };
 
-        let mut target_id = None;
         #[cfg(not(target_arch = "wasm32"))]
         match self.tracer.finish_baml_span(span, ctx, &response) {
-            Ok(id) => target_id = Some(id),
+            Ok(id) => {}
             Err(e) => log::debug!("Error during logging: {}", e),
         }
         #[cfg(target_arch = "wasm32")]
         match self.tracer.finish_baml_span(span, ctx, &response).await {
-            Ok(id) => target_id = Some(id),
+            Ok(id) => {}
             Err(e) => log::debug!("Error during logging: {}", e),
         }
 

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use baml_ids::SpanId;
 use baml_rpc::ast::{tops::BamlFunctionId, types::type_definition::TypeId};
 use baml_types::HasFieldType;
@@ -10,7 +12,7 @@ mod types;
 
 pub trait TypeLookup {
     fn type_lookup(&self, name: &str) -> TypeId;
-    fn function_lookup(&self, name: &str) -> Option<BamlFunctionId>;
+    fn function_lookup(&self, name: &str) -> Option<Arc<BamlFunctionId>>;
 }
 
 trait IntoRpcEvent<'a, RpcOutputType> {
