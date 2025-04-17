@@ -43,14 +43,12 @@ const renderedEnvVarsAtom = atom<EnvVarEntry[]>((get) => {
   const requiredEnvVars = get(requiredEnvVarsAtom)
   const visibility = get(envVarVisibilityAtom)
 
-  const vars: EnvVarEntry[] = Object.entries(envVars)
-    .filter(([key]) => key !== 'BOUNDARY_PROXY_URL')
-    .map(([key, value]) => ({
-      key,
-      value,
-      required: requiredEnvVars.includes(key),
-      hidden: visibility[key] !== false, // hidden by default unless explicitly set to false
-    }))
+  const vars: EnvVarEntry[] = Object.entries(envVars).map(([key, value]) => ({
+    key,
+    value,
+    required: requiredEnvVars.includes(key),
+    hidden: visibility[key] !== false, // hidden by default unless explicitly set to false
+  }))
 
   const missingVars = requiredEnvVars.filter((envVar) => !(envVar in envVars))
 
@@ -259,84 +257,86 @@ export const EnvironmentVariablesPanel: React.FC = () => {
       <div className='space-y-1'>
         <table className='w-full'>
           <tbody>
-            {envVars.map((env, index) => (
-              <motion.tr
-                initial={{ opacity: 0, y: 2 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.001, duration: 0.05 }}
-                key={env.key}
-                className='relative hover:bg-accent/50 rounded-md'
-              >
-                <td className='pl-2 pr-0.5 py-0.5'>
-                  <div className='flex items-center gap-2 justify-between'>
-                    <code className='font-mono text-xs text-muted-foreground'>{env.key}</code>
-                    <EnvVarStatus value={env.value} required={env.required} />
-                  </div>
-                </td>
-                <td className='px-0.5 py-0.5'>
-                  <TooltipProvider key={env.key} delayDuration={300}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Input
-                          type={env.hidden ? 'password' : 'text'}
-                          value={typeof env.value === 'string' ? escapeValue(env.value) : ''}
-                          onChange={(e) => updateEnvVar(index, unescapeValue(e.target.value))}
-                          className='h-6 text-xs font-mono placeholder:font-sans min-w-32'
-                          placeholder={env.required && !env.value ? '<unset>' : undefined}
-                          autoComplete='off'
-                          data-1p-ignore
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent side='top' className='text-xs'>
-                        {env.value ? 'Click to edit' : REQUIRED_ENV_VAR_UNSET_WARNING}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </td>
-                <td className='pl-0.5 pr-2 py-0.5 text-right'>
-                  <div className='flex gap-1 justify-end'>
-                    <TooltipProvider delayDuration={300}>
+            {envVars
+              .filter(({ key }) => key !== 'BOUNDARY_PROXY_URL')
+              .map((env, index) => (
+                <motion.tr
+                  initial={{ opacity: 0, y: 2 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.001, duration: 0.05 }}
+                  key={env.key}
+                  className='relative hover:bg-accent/50 rounded-md'
+                >
+                  <td className='pl-2 pr-0.5 py-0.5'>
+                    <div className='flex items-center gap-2 justify-between'>
+                      <code className='font-mono text-xs text-muted-foreground'>{env.key}</code>
+                      <EnvVarStatus value={env.value} required={env.required} />
+                    </div>
+                  </td>
+                  <td className='px-0.5 py-0.5'>
+                    <TooltipProvider key={env.key} delayDuration={300}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            className='p-0.5 w-5 h-5'
-                            onClick={() => toggleVisibility(index)}
-                          >
-                            {env.hidden ? (
-                              <EyeOff className='w-4 h-4 text-muted-foreground hover:text-primary' />
-                            ) : (
-                              <Eye className='w-4 h-4 text-muted-foreground hover:text-primary' />
-                            )}
-                          </Button>
+                          <Input
+                            type={env.hidden ? 'password' : 'text'}
+                            value={typeof env.value === 'string' ? escapeValue(env.value) : ''}
+                            onChange={(e) => updateEnvVar(index, unescapeValue(e.target.value))}
+                            className='h-6 text-xs font-mono placeholder:font-sans min-w-32'
+                            placeholder={env.required && !env.value ? '<unset>' : undefined}
+                            autoComplete='off'
+                            data-1p-ignore
+                          />
                         </TooltipTrigger>
                         <TooltipContent side='top' className='text-xs'>
-                          {env.hidden ? 'Click to show value' : 'Click to hide value'}
+                          {env.value ? 'Click to edit' : REQUIRED_ENV_VAR_UNSET_WARNING}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                    <TooltipProvider delayDuration={300}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            className='p-0.5 w-5 h-5'
-                            onClick={() => deleteEnvVar(index)}
-                          >
-                            <Trash2 className='w-4 h-4 text-muted-foreground hover:text-destructive' />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side='top' className='text-xs'>
-                          Delete environment variable
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </td>
-              </motion.tr>
-            ))}
+                  </td>
+                  <td className='pl-0.5 pr-2 py-0.5 text-right'>
+                    <div className='flex gap-1 justify-end'>
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='p-0.5 w-5 h-5'
+                              onClick={() => toggleVisibility(index)}
+                            >
+                              {env.hidden ? (
+                                <EyeOff className='w-4 h-4 text-muted-foreground hover:text-primary' />
+                              ) : (
+                                <Eye className='w-4 h-4 text-muted-foreground hover:text-primary' />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side='top' className='text-xs'>
+                            {env.hidden ? 'Click to show value' : 'Click to hide value'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='p-0.5 w-5 h-5'
+                              onClick={() => deleteEnvVar(index)}
+                            >
+                              <Trash2 className='w-4 h-4 text-muted-foreground hover:text-destructive' />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side='top' className='text-xs'>
+                            Delete environment variable
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
             <motion.tr
               initial={{ opacity: 0, y: 2 }}
               animate={{ opacity: 1, y: 0 }}
