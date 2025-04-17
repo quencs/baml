@@ -27,6 +27,7 @@ import { dirname, join } from 'path'
 import * as dotenv from 'dotenv'
 import * as fs from 'fs'
 import { AwsCredentialIdentity } from '@smithy/types'
+import { refreshBamlConfigSingleton } from '../plugins/language-server/bamlConfig'
 // import { CredentialsProviderError } from '@aws-sdk/credential-providers'
 const customConfig: Config = {
   dictionaries: [adjectives, colors, animals],
@@ -198,6 +199,8 @@ export class WebviewPanelHost {
    * @param context A reference to the extension context
    */
   private _setWebviewMessageListener(webview: Webview) {
+    console.log('_setWebviewMessageListener')
+
     const addProject = async () => {
       await requestDiagnostics()
       console.log('last opened func', openPlaygroundConfig.lastOpenedFunction)
@@ -208,6 +211,12 @@ export class WebviewPanelHost {
       this.postMessage('baml_cli_version', bamlConfig.cliVersion)
       this.postMessage('baml_settings_updated', bamlConfig)
     }
+
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('baml')) {
+        this.postMessage('baml_settings_updated', refreshBamlConfigSingleton())
+      }
+    })
 
     webview.onDidReceiveMessage(
       async (
