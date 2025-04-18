@@ -236,6 +236,7 @@ impl BamlRuntime {
     pub fn create_ctx_manager(
         &self,
         language: BamlValue,
+        // A callback that can be implemented in JS to read files that are referred in tests.
         baml_src_reader: BamlSrcReader,
     ) -> RuntimeContextManager {
         let ctx =
@@ -248,15 +249,22 @@ impl BamlRuntime {
         ctx
     }
 
-    pub fn create_ctx_manager_with_env(
+    // Another way of creating a context that uses some
+    // helper functions to load AWS SSO profile and creds.
+    // These functions are implemented in Node for example, and used by the vscode playground to make aws sso work.
+    pub fn create_ctx_manager_with_env_var_loaders(
         &self,
         language: BamlValue,
-        env_vars: HashMap<String, String>,
+        // This callback reads files that are added in tests
         baml_src_reader: BamlSrcReader,
+        // This callback can be implemented in JS to load AWS SSO profile and creds.
         aws_cred_provider: AwsCredProvider,
     ) -> RuntimeContextManager {
-        let ctx =
-            RuntimeContextManager::new_from_env_vars(env_vars, baml_src_reader, aws_cred_provider);
+        let ctx = RuntimeContextManager::new_from_env_vars(
+            self.env_vars.clone(),
+            baml_src_reader,
+            aws_cred_provider,
+        );
         let tags: HashMap<String, BamlValue> = [("baml.language", language)]
             .into_iter()
             .map(|(k, v)| (k.to_string(), v))
@@ -563,6 +571,7 @@ impl BamlRuntime {
                         context,
                         runtime: self,
                         expr_tx: expr_tx.clone(),
+                        evaluated_cache: Arc::new(std::sync::Mutex::new(HashMap::new())),
                     };
                     let param_baml_values = params
                         .iter()

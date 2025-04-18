@@ -19,17 +19,16 @@ impl super::SyncNotificationHandler for DidSaveTextDocument {
         _requester: &mut Requester,
         params: types::DidSaveTextDocumentParams,
     ) -> Result<()> {
+        tracing::info!("Did save text document---------");
         let url = params.text_document.uri;
         let path = url
             .to_file_path()
             .internal_error_msg("Could not convert URL to path")?;
+        session.clear_unsaved_files();
         session.reload(Some(notifier.clone())).internal_error()?;
         tracing::info!("About to run generator. URL path: {:?}", path);
         session
-            .ensure_project_db_for_baml_file(&url)
-            .internal_error()?;
-        session
-            .project_db_for_path_mut(path)
+            .get_or_create_project(&path)
             .expect("Ensured that a project db exists")
             .lock()
             .unwrap()
@@ -51,6 +50,8 @@ impl super::SyncNotificationHandler for DidSaveTextDocument {
     }
 }
 
+// Do not use this yet, it seems it has an outdated view of the project files and it generates
+// stale baml clients
 impl super::BackgroundDocumentNotificationHandler for DidSaveTextDocument {
     fn document_url(params: &types::DidSaveTextDocumentParams) -> Cow<types::Url> {
         Cow::Borrowed(&params.text_document.uri)
