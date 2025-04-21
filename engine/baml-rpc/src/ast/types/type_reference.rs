@@ -4,6 +4,8 @@
  * For example, client_registry and type_builder
  */
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use super::type_definition::TypeId;
@@ -62,15 +64,15 @@ pub enum TypeReferenceWithMetadata<Metadata> {
 
     // User-defined types
     Class {
-        name: TypeId,
+        name: Arc<TypeId>,
         metadata: Metadata,
     },
     Enum {
-        name: TypeId,
+        name: Arc<TypeId>,
         metadata: Metadata,
     },
     RecursiveTypeAlias {
-        name: TypeId,
+        name: Arc<TypeId>,
         metadata: Metadata,
     },
 }
@@ -137,21 +139,21 @@ impl<Metadata: Default> TypeReferenceWithMetadata<Metadata> {
         }
     }
 
-    pub fn class(name: TypeId) -> Self {
+    pub fn class(name: Arc<TypeId>) -> Self {
         Self::Class {
             name,
             metadata: Metadata::default(),
         }
     }
 
-    pub fn enum_type(name: TypeId) -> Self {
+    pub fn enum_type(name: Arc<TypeId>) -> Self {
         Self::Enum {
             name,
             metadata: Metadata::default(),
         }
     }
 
-    pub fn recursive_type_alias(name: TypeId) -> Self {
+    pub fn recursive_type_alias(name: Arc<TypeId>) -> Self {
         Self::RecursiveTypeAlias {
             name,
             metadata: Metadata::default(),

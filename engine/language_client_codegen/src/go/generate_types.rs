@@ -380,7 +380,7 @@ impl<'ir> From<EnumWalker<'ir>> for GoEnum<'ir> {
     fn from(e: EnumWalker<'ir>) -> GoEnum<'ir> {
         GoEnum {
             name: e.name(),
-            dynamic: e.item.attributes.get("dynamic_type").is_some(),
+            dynamic: e.item.attributes.dynamic(),
             values: e
                 .item
                 .elem
@@ -397,7 +397,7 @@ impl<'ir> From<ClassWalker<'ir>> for GoClass<'ir> {
     fn from(c: ClassWalker<'ir>) -> Self {
         GoClass {
             name: Cow::Borrowed(c.name()),
-            dynamic: c.item.attributes.get("dynamic_type").is_some(),
+            dynamic: c.item.attributes.dynamic(),
             fields: c
                 .item
                 .elem
@@ -442,7 +442,7 @@ impl<'ir> From<ClassWalker<'ir>> for PartialGoClass<'ir> {
     fn from(c: ClassWalker<'ir>) -> PartialGoClass<'ir> {
         PartialGoClass {
             name: c.name(),
-            dynamic: c.item.attributes.get("dynamic_type").is_some(),
+            dynamic: c.item.attributes.dynamic(),
             fields: c
                 .item
                 .elem
@@ -450,7 +450,7 @@ impl<'ir> From<ClassWalker<'ir>> for PartialGoClass<'ir> {
                 .iter()
                 .map(|f| {
                     // Fields with @stream.done should take their type from
-                    let needed: bool = f.attributes.get("stream.not_null").is_some();
+                    let needed: bool = f.attributes.streaming_behavior().needed;
                     let (_, metadata) = c.ir.distribute_metadata(&f.elem.r#type.elem);
                     let done: bool = metadata.1.done;
                     let field = match (done, needed) {

@@ -7,11 +7,12 @@ use crate::{
 use anyhow::Result;
 use secrecy::SecretString;
 
+use baml_derive::BamlHash;
 use baml_types::{ApiKeyWithProvenance, EvaluationContext, GetEnvVar, StringOr};
 
 use super::helpers::{Error, PropertyHandler};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, BamlHash)]
 pub struct UnresolvedAwsBedrock {
     model: Option<StringOr>,
     region: Option<StringOr>,
@@ -26,10 +27,12 @@ pub struct UnresolvedAwsBedrock {
     finish_reason_filter: UnresolvedFinishReasonFilter,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, BamlHash)]
 struct UnresolvedInferenceConfiguration {
     max_tokens: Option<i32>,
+    #[baml_safe_hash]
     temperature: Option<f32>,
+    #[baml_safe_hash]
     top_p: Option<f32>,
     stop_sequences: Option<Vec<StringOr>>,
 }

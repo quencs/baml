@@ -35,6 +35,7 @@ pub struct InternalBamlRuntime {
     pub diagnostics: Diagnostics,
     clients: DashMap<String, Arc<LLMProvider>>,
     retry_policies: DashMap<String, CallablePolicy>,
+    source_files: Vec<SourceFile>,
 }
 
 impl InternalBamlRuntime {
@@ -51,7 +52,7 @@ impl InternalBamlRuntime {
                 )))
             })
             .collect::<Result<Vec<_>>>()?;
-        let mut schema = validate(&PathBuf::from(directory), contents);
+        let mut schema = validate(&PathBuf::from(directory), contents.clone());
         schema.diagnostics.to_result()?;
 
         let ir = IntermediateRepr::from_parser_database(&schema.db, schema.configuration)?;
@@ -61,11 +62,12 @@ impl InternalBamlRuntime {
             diagnostics: schema.diagnostics,
             clients: Default::default(),
             retry_policies: Default::default(),
+            source_files: contents,
         })
     }
 
     pub(super) fn from_files(directory: &Path, files: Vec<PathBuf>) -> Result<Self> {
-        let contents = files
+        let contents: Vec<SourceFile> = files
             .iter()
             .map(|path| match std::fs::read_to_string(path) {
                 Ok(contents) => Ok(SourceFile::from((path.clone(), contents))),
@@ -73,7 +75,7 @@ impl InternalBamlRuntime {
             })
             .filter_map(|res| res.ok())
             .collect();
-        let mut schema = validate(directory, contents);
+        let mut schema = validate(directory, contents.clone());
         schema.diagnostics.to_result()?;
 
         let ir = IntermediateRepr::from_parser_database(&schema.db, schema.configuration)?;
@@ -84,6 +86,7 @@ impl InternalBamlRuntime {
             diagnostics: schema.diagnostics,
             clients: Default::default(),
             retry_policies: Default::default(),
+            source_files: contents,
         })
     }
 }

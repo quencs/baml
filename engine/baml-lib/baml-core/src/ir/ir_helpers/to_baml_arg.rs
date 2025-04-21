@@ -178,7 +178,7 @@ impl ArgCoercer {
                 BamlValue::String(s) => {
                     if let Ok(e) = ir.find_enum(name) {
                         if e.walk_values().any(|v| v.item.elem.0 == *s)
-                            || e.item.attributes.get("dynamic_type").is_some()
+                            || e.item.attributes.dynamic()
                         {
                             Ok(BamlValue::Enum(name.to_string(), s.to_string()))
                         } else {
@@ -234,7 +234,7 @@ impl ArgCoercer {
                                 ));
                             }
                         }
-                        let is_dynamic = c.item.attributes.get("dynamic_type").is_some();
+                        let is_dynamic = c.item.attributes.dynamic();
                         if is_dynamic {
                             for (key, value) in obj {
                                 if !fields.contains_key(key) {
@@ -357,7 +357,9 @@ impl ArgCoercer {
                 }
             }
             (FieldType::Arrow(_), _) => {
-                scope.push_error(format!("A json value may not be coerced into a function type"));
+                scope.push_error(format!(
+                    "A json value may not be coerced into a function type"
+                ));
                 Err(())
             }
             (FieldType::WithMetadata { .. }, _) => {

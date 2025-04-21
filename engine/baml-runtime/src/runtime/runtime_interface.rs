@@ -361,7 +361,7 @@ impl RuntimeConstructor for InternalBamlRuntime {
             })
             .collect::<Result<Vec<_>>>()?;
         let directory = PathBuf::from(root_path);
-        let mut schema = validate(&directory, contents);
+        let mut schema = validate(&directory, contents.clone());
         schema.diagnostics.to_result()?;
 
         let ir = IntermediateRepr::from_parser_database(&schema.db, schema.configuration)?;
@@ -374,6 +374,7 @@ impl RuntimeConstructor for InternalBamlRuntime {
             diagnostics: schema.diagnostics,
             clients: Default::default(),
             retry_policies: Default::default(),
+            source_files: contents,
         })
     }
 
@@ -391,14 +392,6 @@ impl RuntimeInterface for InternalBamlRuntime {
         ctx: RuntimeContext,
     ) -> Result<crate::FunctionResult> {
         let local_function_name = function_name.clone();
-
-        let trace_event = TraceEvent::new_function_start(
-            ctx.span_id_chain.clone(),
-            local_function_name,
-            vec![],
-            baml_types::tracing::events::EvaluationContext::default(),
-        );
-        BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
 
         let func = match self.get_function(&function_name) {
             Ok(func) => func,
@@ -465,26 +458,7 @@ impl RuntimeInterface for InternalBamlRuntime {
             }
         };
 
-        let result = future.await;
-
-        let end_time = web_time::SystemTime::now();
-        let trace_event = TraceEvent::new_function_end(
-            ctx.span_id_chain.clone(),
-            match &result {
-                Ok(result) => match result.parsed() {
-                    Some(Ok(value)) => Ok(value.0.map_meta(|f| f.3.clone())),
-                    Some(Err(e)) => Err(baml_types::tracing::errors::BamlError::from(e)),
-                    None => Err(baml_types::tracing::errors::BamlError::Base {
-                        message: format!("No parsed result found for function: {}", function_name)
-                            .into(),
-                    }),
-                },
-                Err(e) => Err(baml_types::tracing::errors::BamlError::from(e)),
-            },
-        );
-        BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
-
-        result
+        future.await
     }
 
     // Note that this only returns a FunctionResultStream object,

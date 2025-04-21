@@ -39,7 +39,7 @@ struct RuntimeAST {
 }
 
 impl TypeLookup for RuntimeAST {
-    fn type_lookup(&self, name: &str) -> baml_rpc::ast::types::type_definition::TypeId {
+    fn type_lookup(&self, name: &str) -> Arc<baml_rpc::ast::types::type_definition::TypeId> {
         self.ast.type_lookup(name)
     }
 
@@ -85,7 +85,9 @@ pub fn start_publisher(lookup: Arc<AstSignatureWrapper>, rt: Arc<tokio::runtime:
 /// 2. Awaits the background task’s JoinHandle so Drop runs.
 pub async fn shutdown_publisher() -> anyhow::Result<()> {
     // 1. send Shutdown
-    let channel = PUBLISHING_CHANNEL.get().expect("Publisher not started");
+    let Some(channel) = PUBLISHING_CHANNEL.get() else {
+        return Err(anyhow::anyhow!("Publisher not started"));
+    };
     let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();
     channel
         .send(PublisherMessage::Shutdown(ack_tx))
@@ -184,17 +186,20 @@ impl TracePublisher {
 
         // Serialize to JSON.
         #[cfg(not(target_arch = "wasm32"))]
-        if let Ok(json) = serde_json::to_string(&upload_request) {
-            // Write the batch to a file asynchronously.
+        {
             use tokio::fs::OpenOptions;
             if let Ok(mut file) = OpenOptions::new()
                 .append(true)
                 .open("/tmp/trace_events.json")
                 .await
             {
-                use tokio::io::AsyncWriteExt;
-                if let Err(e) = file.write_all(format!("{}\n", json).as_bytes()).await {
-                    log::error!("Failed to write to trace file: {}", e);
+                for e in upload_request.trace_event_batch.iter() {
+                    if let Ok(json) = serde_json::to_string(e) {
+                        use tokio::io::AsyncWriteExt;
+                        if let Err(e) = file.write_all(format!("{}\n", json).as_bytes()).await {
+                            log::error!("Failed to write to trace file: {}", e);
+                        }
+                    }
                 }
             }
         }

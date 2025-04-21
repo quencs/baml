@@ -30,6 +30,7 @@ use anyhow::Context;
 use anyhow::Result;
 use baml_ids::HttpRequestId;
 use baml_ids::SpanId;
+use baml_types::tracing::events::TraceEvent;
 use futures::channel::mpsc;
 use internal_baml_core::ast::Span;
 use internal_baml_core::ir::repr::initial_context;
@@ -156,7 +157,14 @@ impl BamlRuntime {
             async_runtime: rt.clone(),
         };
 
-        tracingv2::publisher::start_publisher(Arc::new(inner.into()), rt.clone());
+        tracingv2::publisher::start_publisher(
+            Arc::new(
+                inner.try_into().context(
+                    "Internal error: Failed to create a event publisher for BAML runtime",
+                )?,
+            ),
+            rt.clone(),
+        );
 
         Ok(runtime)
     }
@@ -550,9 +558,42 @@ impl BamlRuntime {
                     .find(|f| f.elem.name == function_name)
                     .is_some();
                 if !is_expr_fn {
-                    self.inner
-                        .call_function_impl(function_name, params, rctx)
-                        .await
+                    let span_id_chain = rctx.span_id_chain.clone();
+                    let trace_event = TraceEvent::new_function_start(
+                        span_id_chain.clone(),
+                        function_name.clone(),
+                        vec![],
+                        baml_types::tracing::events::EvaluationContext::default(),
+                    );
+                    BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
+                    // Call (CANNOT RETURN HERE until trace event is finished)
+                    let result = self
+                        .inner
+                        .call_function_impl(function_name.clone(), params, rctx)
+                        .await;
+                    // Trace event
+                    let trace_event = TraceEvent::new_function_end(
+                        span_id_chain.clone(),
+                        match &result {
+                            Ok(result) => match result.parsed() {
+                                Some(Ok(value)) => Ok(value.0.map_meta(|f| f.3.clone())),
+                                Some(Err(e)) => {
+                                    Err(baml_types::tracing::errors::BamlError::from(e))
+                                }
+                                None => Err(baml_types::tracing::errors::BamlError::Base {
+                                    message: format!(
+                                        "No parsed result found for function: {}",
+                                        function_name
+                                    )
+                                    .into(),
+                                }),
+                            },
+                            Err(e) => Err(baml_types::tracing::errors::BamlError::from(e)),
+                        },
+                    );
+                    BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
+
+                    result
                 } else {
                     // TODO: This code path is ugly. Calling a function heavily assumes that the
                     // function is an LLM function. Find a way to make function-calling API more

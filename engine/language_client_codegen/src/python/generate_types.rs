@@ -102,7 +102,7 @@ impl<'ir> From<EnumWalker<'ir>> for PythonEnum<'ir> {
     fn from(e: EnumWalker<'ir>) -> PythonEnum<'ir> {
         PythonEnum {
             name: e.name(),
-            dynamic: e.item.attributes.get("dynamic_type").is_some(),
+            dynamic: e.item.attributes.dynamic(),
             values: e
                 .item
                 .elem
@@ -119,7 +119,7 @@ impl<'ir> From<ClassWalker<'ir>> for PythonClass<'ir> {
     fn from(c: ClassWalker<'ir>) -> Self {
         PythonClass {
             name: Cow::Borrowed(c.name()),
-            dynamic: c.item.attributes.get("dynamic_type").is_some(),
+            dynamic: c.item.attributes.dynamic(),
             fields: c
                 .item
                 .elem
@@ -182,7 +182,7 @@ impl<'ir> From<ClassWalker<'ir>> for PartialPythonClass<'ir> {
     fn from(c: ClassWalker<'ir>) -> PartialPythonClass<'ir> {
         PartialPythonClass {
             name: c.name(),
-            dynamic: c.item.attributes.get("dynamic_type").is_some(),
+            dynamic: c.item.attributes.dynamic(),
             fields: c
                 .item
                 .elem
@@ -190,7 +190,7 @@ impl<'ir> From<ClassWalker<'ir>> for PartialPythonClass<'ir> {
                 .iter()
                 .map(|f| {
                     // Fields with @stream.done should take their type from
-                    let needed: bool = f.attributes.get("stream.not_null").is_some();
+                    let needed: bool = f.attributes.streaming_behavior().needed;
                     let (_, metadata) = c.ir.distribute_metadata(&f.elem.r#type.elem);
                     let done: bool = metadata.1.done;
                     let field = match (done, needed) {
@@ -315,7 +315,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             FieldType::Enum(name) => {
                 if ir
                     .find_enum(name)
-                    .map(|e| e.item.attributes.get("dynamic_type").is_some())
+                    .map(|e| e.item.attributes.dynamic())
                     .unwrap_or(false)
                 {
                     format!("Union[\"{module_prefix}{name}\", str]")
@@ -362,7 +362,9 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 }
                 None => base.to_type_ref(ir, use_module_prefix),
             },
-            FieldType::Arrow(_) => todo!("Arrow types should not be used in generated type definitions"),
+            FieldType::Arrow(_) => {
+                todo!("Arrow types should not be used in generated type definitions")
+            }
         }
     }
 
@@ -384,7 +386,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             FieldType::Enum(name) => {
                 if ir
                     .find_enum(name)
-                    .map(|e| e.item.attributes.get("dynamic_type").is_some())
+                    .map(|e| e.item.attributes.dynamic())
                     .unwrap_or(false)
                 {
                     if needed || wrapped {
@@ -460,7 +462,9 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             FieldType::WithMetadata { .. } => {
                 unreachable!("distribute_metadata makes this branch unreachable.")
             }
-            FieldType::Arrow(_) => todo!("Arrow types should not be used in generated type definitions"),
+            FieldType::Arrow(_) => {
+                todo!("Arrow types should not be used in generated type definitions")
+            }
         };
         let base_type_ref = if is_partial_type {
             base_rep

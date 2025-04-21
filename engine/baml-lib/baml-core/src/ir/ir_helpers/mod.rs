@@ -1031,7 +1031,7 @@ impl IRSemanticStreamingHelper for IntermediateRepr {
         Ok(class
             .walk_fields()
             .filter_map(|field: Walker<'_, &Field>| {
-                if field.streaming_needed() {
+                if field.streaming_behavior().needed {
                     Some(field.name().to_string())
                 } else {
                     None
@@ -1676,6 +1676,7 @@ mod subtype_tests {
             streaming_behavior: StreamingBehavior {
                 done: true,
                 state: false,
+                needed: false,
             },
         };
         let l_o = mk_list(mk_int());

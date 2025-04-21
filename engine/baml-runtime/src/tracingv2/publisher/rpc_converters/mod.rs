@@ -11,7 +11,7 @@ mod trace_data;
 mod types;
 
 pub trait TypeLookup {
-    fn type_lookup(&self, name: &str) -> TypeId;
+    fn type_lookup(&self, name: &str) -> Arc<TypeId>;
     fn function_lookup(&self, name: &str) -> Option<Arc<BamlFunctionId>>;
 }
 

@@ -175,7 +175,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             FieldType::Enum(name) => {
                 if ir
                     .find_enum(name)
-                    .map(|e| e.item.attributes.get("dynamic_type").is_some())
+                    .map(|e| e.item.attributes.dynamic())
                     .unwrap_or(false)
                 {
                     format!("*Union[types.{name}, str]")

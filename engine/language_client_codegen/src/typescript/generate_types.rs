@@ -143,7 +143,7 @@ impl<'ir> From<&EnumWalker<'ir>> for TypescriptEnum<'ir> {
     fn from(e: &EnumWalker<'ir>) -> TypescriptEnum<'ir> {
         TypescriptEnum {
             name: e.name(),
-            dynamic: e.item.attributes.get("dynamic_type").is_some(),
+            dynamic: e.item.attributes.dynamic(),
             values: e
                 .item
                 .elem
@@ -170,7 +170,7 @@ impl<'ir> From<&ClassWalker<'ir>> for TypescriptClass<'ir> {
     fn from(c: &ClassWalker<'ir>) -> TypescriptClass<'ir> {
         TypescriptClass {
             name: Cow::Borrowed(c.name()),
-            dynamic: c.item.attributes.get("dynamic_type").is_some(),
+            dynamic: c.item.attributes.dynamic(),
             fields: c
                 .item
                 .elem
@@ -214,7 +214,7 @@ impl<'ir> From<ClassWalker<'ir>> for PartialTypescriptClass<'ir> {
     fn from(c: ClassWalker<'ir>) -> PartialTypescriptClass<'ir> {
         PartialTypescriptClass {
             name: Cow::Borrowed(c.name()),
-            dynamic: c.item.attributes.get("dynamic_type").is_some(),
+            dynamic: c.item.attributes.dynamic(),
             fields: c
                 .item
                 .elem
@@ -222,7 +222,7 @@ impl<'ir> From<ClassWalker<'ir>> for PartialTypescriptClass<'ir> {
                 .iter()
                 .map(|f| {
                     let ir = c.ir;
-                    let needed: bool = f.attributes.get("stream.not_null").is_some();
+                    let needed: bool = f.attributes.streaming_behavior().needed;
                     let (_, metadata) = ir.distribute_metadata(&f.elem.r#type.elem);
                     let done: bool = metadata.1.done;
                     let (field, optional) = match (done, needed) {
