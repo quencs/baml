@@ -83,9 +83,10 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::TypeReferenc
                     })
                 }
             },
-            baml_types::FieldType::Enum(e) => {
-                TypeReference::enum_type(lookup.type_lookup(e.as_str()))
-            }
+            baml_types::FieldType::Enum(e) => lookup
+                .type_lookup(e.as_str())
+                .map(|id| TypeReference::enum_type(id))
+                .unwrap_or(TypeReference::Unknown),
             baml_types::FieldType::Literal(literal_value) => {
                 TypeReference::literal(match literal_value {
                     baml_types::LiteralValue::String(s) => LiteralTypeDefinition::String(s),
@@ -93,9 +94,10 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::TypeReferenc
                     baml_types::LiteralValue::Bool(b) => LiteralTypeDefinition::Bool(b),
                 })
             }
-            baml_types::FieldType::Class(name) => {
-                TypeReference::class(lookup.type_lookup(name.as_str()))
-            }
+            baml_types::FieldType::Class(name) => lookup
+                .type_lookup(name.as_str())
+                .map(|id| TypeReference::class(id))
+                .unwrap_or(TypeReference::Unknown),
             baml_types::FieldType::List(field_type) => {
                 TypeReference::list(field_type.into_rpc_event(lookup))
             }
@@ -119,9 +121,10 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::ast::types::type_reference::TypeReferenc
                 field_type.into_rpc_event(lookup),
                 TypeReference::null(),
             ]),
-            baml_types::FieldType::RecursiveTypeAlias(alias) => {
-                TypeReference::recursive_type_alias(lookup.type_lookup(alias.as_str()))
-            }
+            baml_types::FieldType::RecursiveTypeAlias(alias) => lookup
+                .type_lookup(alias.as_str())
+                .map(|id| TypeReference::recursive_type_alias(id))
+                .unwrap_or(TypeReference::Unknown),
             baml_types::FieldType::Arrow(arrow) => TypeReference::Unknown,
             baml_types::FieldType::WithMetadata {
                 base, constraints, ..

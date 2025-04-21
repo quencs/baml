@@ -60,7 +60,6 @@ impl TraceStorage {
     /// Increase the reference count for the given SpanId.
     /// If there's no entry yet, create one (with an empty Vec of events).
     pub fn inc_ref(&mut self, function_id: &SpanId) {
-        log::info!("Incrementing ref count for FunctionID {}", function_id);
         let count = self.ref_counts.entry(function_id.clone()).or_insert(0);
         *count += 1;
 
@@ -73,7 +72,6 @@ impl TraceStorage {
     /// Decrease the reference count for the given SpanId,
     /// and if it hits zero, remove from memory (both events and cached FunctionLogInner).
     pub fn dec_ref(&mut self, function_id: &SpanId) {
-        log::info!("Decrementing ref count for FunctionID {}", function_id);
         match self.ref_counts.get_mut(function_id) {
             Some(rc) => {
                 if *rc == 0 {
@@ -104,10 +102,10 @@ impl TraceStorage {
 
     /// Append a new event for the given function ID, but only if ref_count > 0.
     pub fn put(&mut self, event: Arc<TraceEventWithMeta>) {
-        log::trace!(
-            "#####################   Putting event: {} ############\n{:?}\n\n",
+        log::info!(
+            "#####################   Putting event: {} ############\n{}\n\n",
             event.span_id,
-            event.content
+            event.content.type_name()
         );
         if let Err(e) = crate::tracingv2::publisher::publish_trace_event(event.clone()) {
             log::warn!("Failed to publish trace event: {:?}", e);
@@ -394,7 +392,6 @@ impl Clone for FunctionLog {
 
 impl FunctionLog {
     pub fn new(id: SpanId) -> Self {
-        log::info!("Creating new function log: {}", id);
         // Manually increment the global reference count
         BAML_TRACER.lock().unwrap().inc_ref(&id);
         let instance_id = Uuid::new_v4().to_string();
@@ -457,7 +454,6 @@ impl FunctionLog {
 impl Drop for FunctionLog {
     fn drop(&mut self) {
         // Manually decrement the global ref count
-        log::info!("Dropping function log: {}", self.id);
         BAML_TRACER.lock().unwrap().dec_ref(&self.id);
     }
 }
@@ -580,7 +576,6 @@ impl Collector {
     pub fn untrack_function(&self, fid: &SpanId) {
         let mut guard = self.tracked_ids.lock().unwrap();
         if guard.swap_remove(fid) {
-            log::info!("Untracking function: {}", fid);
             BAML_TRACER.lock().unwrap().dec_ref(fid);
         }
     }
@@ -631,7 +626,6 @@ impl Collector {
 
 impl Clone for Collector {
     fn clone(&self) -> Self {
-        log::info!("Cloning collector: {}", self.name);
         // Create a new collector with empty set
         let new_collector = Self::new(Some(format!("{}_clone", self.name)));
 

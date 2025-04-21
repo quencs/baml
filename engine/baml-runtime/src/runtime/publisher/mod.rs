@@ -14,11 +14,12 @@ pub struct AstSignatureWrapper {
 }
 
 impl TypeLookup for AstSignatureWrapper {
-    fn type_lookup(&self, name: &str) -> Arc<TypeId> {
+    fn type_lookup(&self, name: &str) -> Option<Arc<TypeId>> {
         if let Some(id) = self.types.get(name) {
-            id.clone()
+            Some(id.clone())
         } else {
-            todo!("Unknown type: {}", name)
+            // This happens for dynamic types, like LLM responses.
+            None
         }
     }
 

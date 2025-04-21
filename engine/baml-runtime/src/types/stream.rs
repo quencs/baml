@@ -109,6 +109,7 @@ impl FunctionResultStream {
                     self.function_name.clone(),
                     vec![],
                     baml_types::tracing::events::EvaluationContext::default(),
+                    true,
                 );
                 BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
 

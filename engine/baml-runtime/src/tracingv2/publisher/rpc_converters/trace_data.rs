@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::borrow::Cow;
 
 use super::{IntoRpcEvent, TypeLookup};
@@ -35,12 +36,22 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, Option<baml_rpc::runtime_api::BamlFun
         &'a self,
         lookup: &(impl TypeLookup + ?Sized),
     ) -> Option<baml_rpc::runtime_api::BamlFunctionStart> {
-        lookup
-            .function_lookup(&self.name)
-            .map(|id| baml_rpc::runtime_api::BamlFunctionStart {
-                function_id: id,
-                eval_context: self.options.into_rpc_event(lookup),
-            })
+        if self.is_baml_function {
+            match lookup.function_lookup(&self.name).map(|id| {
+                baml_rpc::runtime_api::BamlFunctionStart {
+                    function_id: id,
+                    eval_context: self.options.into_rpc_event(lookup),
+                }
+            }) {
+                Some(baml_function_start) => Some(baml_function_start),
+                None => {
+                    baml_log::error!("observability: Failed to find baml function: {}", self.name);
+                    None
+                }
+            }
+        } else {
+            None
+        }
     }
 }
 

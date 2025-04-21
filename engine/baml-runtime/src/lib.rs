@@ -119,8 +119,13 @@ pub async fn cleanup() -> anyhow::Result<()> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn cleanup_sync() -> anyhow::Result<()> {
-    let rt = TOKIO_SINGLETON.get().unwrap().as_ref().unwrap();
-    rt.block_on(cleanup())
+    if let Some(rt) = TOKIO_SINGLETON.get() {
+        rt.as_ref()
+            .map(|rt| rt.block_on(cleanup()))
+            .unwrap_or(Err(anyhow::anyhow!("Tokio runtime not initialized")))
+    } else {
+        Err(anyhow::anyhow!("Tokio runtime not initialized"))
+    }
 }
 
 #[derive(Clone)]
@@ -564,6 +569,7 @@ impl BamlRuntime {
                         function_name.clone(),
                         vec![],
                         baml_types::tracing::events::EvaluationContext::default(),
+                        true,
                     );
                     BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
                     // Call (CANNOT RETURN HERE until trace event is finished)

@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::sync::Arc;
 
 use baml_ids::SpanId;
@@ -11,7 +12,7 @@ mod trace_data;
 mod types;
 
 pub trait TypeLookup {
-    fn type_lookup(&self, name: &str) -> Arc<TypeId>;
+    fn type_lookup(&self, name: &str) -> Option<Arc<TypeId>>;
     fn function_lookup(&self, name: &str) -> Option<Arc<BamlFunctionId>>;
 }
 

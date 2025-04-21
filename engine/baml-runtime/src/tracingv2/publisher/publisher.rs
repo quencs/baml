@@ -15,8 +15,6 @@ use tokio::time::*;
 #[cfg(target_family = "wasm")]
 use wasmtimer::tokio::*;
 
-use tokio::task::JoinHandle;
-
 use crate::runtime::{AstSignatureWrapper, InternalBamlRuntime};
 use crate::tracingv2::storage::interface::TraceEventWithMeta;
 
@@ -32,14 +30,32 @@ enum PublisherMessage {
 /// Global publisher channel.
 /// When the module is first used, we create an unbounded channel and then spawn the publisher task.
 static PUBLISHING_CHANNEL: OnceCell<mpsc::UnboundedSender<PublisherMessage>> = OnceCell::new();
-static PUBLISHING_TASK: OnceCell<Arc<JoinHandle<()>>> = OnceCell::new();
+static PUBLISHING_TASK: OnceCell<Arc<tokio::task::JoinHandle<()>>> = OnceCell::new();
+
+fn get_publish_channel() -> Option<&'static mpsc::UnboundedSender<PublisherMessage>> {
+    let Some(join_handle) = PUBLISHING_TASK.get() else {
+        baml_log::fatal_once!("Tracing publisher not started. Report this bug to the BAML team.");
+        return None;
+    };
+    if join_handle.is_finished() {
+        baml_log::fatal_once!(
+            "Tracing publisher ended unexpectedly. Report this bug to the BAML team."
+        );
+        return None;
+    }
+    let channel = PUBLISHING_CHANNEL.get();
+    channel
+}
 
 struct RuntimeAST {
     ast: Arc<AstSignatureWrapper>,
 }
 
 impl TypeLookup for RuntimeAST {
-    fn type_lookup(&self, name: &str) -> Arc<baml_rpc::ast::types::type_definition::TypeId> {
+    fn type_lookup(
+        &self,
+        name: &str,
+    ) -> Option<Arc<baml_rpc::ast::types::type_definition::TypeId>> {
         self.ast.type_lookup(name)
     }
 
@@ -51,7 +67,7 @@ impl TypeLookup for RuntimeAST {
 pub fn start_publisher(lookup: Arc<AstSignatureWrapper>, rt: Arc<tokio::runtime::Runtime>) {
     let lookup = Arc::new(RuntimeAST { ast: lookup });
     // If we've already started, do nothing.
-    if let Some(channel) = PUBLISHING_CHANNEL.get() {
+    if let Some(channel) = get_publish_channel() {
         let _ = rt.block_on(flush());
         let _ = channel.send(PublisherMessage::UpdateRuntime(lookup));
         return;
@@ -70,9 +86,12 @@ pub fn start_publisher(lookup: Arc<AstSignatureWrapper>, rt: Arc<tokio::runtime:
 
     // Spawn the background task
     #[cfg(not(target_arch = "wasm32"))]
-    let handle = rt.spawn(async move {
-        publisher.run().await;
-    });
+    {
+        let handle = rt.spawn(async move { publisher.run().await });
+        PUBLISHING_TASK
+            .set(Arc::new(handle))
+            .expect("Failed to set PUBLISHING_TASK");
+    }
 
     #[cfg(target_arch = "wasm32")]
     wasm_bindgen_futures::spawn_local(async move {
@@ -85,8 +104,8 @@ pub fn start_publisher(lookup: Arc<AstSignatureWrapper>, rt: Arc<tokio::runtime:
 /// 2. Awaits the background task’s JoinHandle so Drop runs.
 pub async fn shutdown_publisher() -> anyhow::Result<()> {
     // 1. send Shutdown
-    let Some(channel) = PUBLISHING_CHANNEL.get() else {
-        return Err(anyhow::anyhow!("Publisher not started"));
+    let Some(channel) = get_publish_channel() else {
+        return Ok(());
     };
     let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();
     channel
@@ -232,7 +251,9 @@ impl TracePublisher {
 }
 
 pub fn publish_trace_event(event: Arc<TraceEventWithMeta>) -> anyhow::Result<()> {
-    let channel = PUBLISHING_CHANNEL.get().expect("Publisher not started");
+    let Some(channel) = get_publish_channel() else {
+        return Ok(());
+    };
     channel
         .send(PublisherMessage::Trace(event))
         .map_err(|e| e.into())
@@ -242,7 +263,9 @@ pub fn publish_trace_event(event: Arc<TraceEventWithMeta>) -> anyhow::Result<()>
 // but that's ok since noone uses our wasm build in node for logging.
 // https://github.com/whizsid/wasmtimer-rs/issues/26
 pub async fn flush() -> anyhow::Result<()> {
-    let channel = PUBLISHING_CHANNEL.get().expect("Publisher not started");
+    let Some(channel) = get_publish_channel() else {
+        return Ok(());
+    };
     let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();
     if let Err(e) = channel.send(PublisherMessage::Flush(ack_tx)) {
         return Err(e.into());

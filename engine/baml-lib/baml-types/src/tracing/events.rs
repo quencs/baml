@@ -51,6 +51,7 @@ impl<'a, T: HasFieldType> TraceEvent<'a, T> {
         function_name: String,
         args: Vec<(String, BamlValueWithMeta<T>)>,
         options: EvaluationContext,
+        is_baml_function: bool,
     ) -> Self {
         Self::from_existing_span(
             span_chain,
@@ -58,6 +59,7 @@ impl<'a, T: HasFieldType> TraceEvent<'a, T> {
                 name: function_name,
                 args,
                 options,
+                is_baml_function,
             }),
         )
         .expect("Failed to create function start event")
@@ -124,6 +126,19 @@ pub enum TraceData<'a, T: HasFieldType> {
     // In the future, we can send more metadata, like parsing information.
 }
 
+impl<'a, T: HasFieldType> TraceData<'a, T> {
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Self::FunctionStart(_) => "FunctionStart",
+            Self::FunctionEnd(_) => "FunctionEnd",
+            Self::LLMRequest(_) => "LLMRequest",
+            Self::RawLLMRequest(_) => "RawLLMRequest",
+            Self::RawLLMResponse(_) => "RawLLMResponse",
+            Self::LLMResponse(_) => "LLMResponse",
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct EvaluationContext {
     pub tags: TraceTags,
@@ -135,6 +150,7 @@ pub struct EvaluationContext {
 #[derive(Debug)]
 pub struct FunctionStart<T: HasFieldType> {
     pub name: String,
+    pub is_baml_function: bool,
     pub args: Vec<(String, BamlValueWithMeta<T>)>,
     pub options: EvaluationContext,
 }
