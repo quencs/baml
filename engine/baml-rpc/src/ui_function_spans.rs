@@ -1,6 +1,7 @@
 use crate::{
     ast::{BamlFunctionDefinition, BamlTypeDefinition},
     rpc::ApiEndpoint,
+    ProjectId,
 };
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -8,18 +9,19 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ListFunctionSpansRequest {
-    project_id: String,
-    function_call_id: Option<String>,
+    #[ts(type = "string")]
+    pub project_id: ProjectId,
+    pub function_call_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ListFunctionSpansResponse {
-    function_spans: Vec<api::FunctionSpan>,
+    pub function_spans: Vec<api::FunctionSpan>,
     #[ts(type = "any")]
-    function_definitions: Vec<BamlFunctionDefinition>,
+    pub function_definitions: Vec<BamlFunctionDefinition>,
     #[ts(type = "any")]
-    type_definitions: Vec<BamlTypeDefinition>,
+    pub type_definitions: Vec<BamlTypeDefinition>,
 }
 
 pub struct ListFunctionSpans;
