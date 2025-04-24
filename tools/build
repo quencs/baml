@@ -195,7 +195,8 @@ case "$_path" in
     if [ "$_test_mode" -eq 1 ]; then
       #command="${command} && BAML_LOG=trace infisical run --env=test -- uv run python baml_example_tracing.py"
       # command="${command} && BAML_LOG=debug,baml_runtime=trace infisical run --env=test -- uv run pytest -s tests/test_functions.py::test_should_work_with_image_url"
-      command="${command} && BAML_LOG=info BAML_LOG_INTERNAL=baml_runtime::tracingv2=debug infisical run --env=test -- uv run pytest -s tests/test_functions.py::TestAllInputs"
+      command="${command} && BAML_LOG=info BAML_LOG_INTERNAL=baml_runtime::tracingv2=debug infisical run --env=test -- uv run pytest -s tests/test_functions.py::TestAllInputs::test_single_string_list"
+      # command="${command} && BAML_LOG=info BAML_LOG_INTERNAL=baml_runtime::tracingv2=debug infisical run --env=test -- uv run pytest -s tests/test_functions.py::TestAllInputs::test_single_string_list"
       # command="${command} && BAML_LOG=info infisical run --env=test -- uv run pytest"
     fi
     if [ "$_watch_mode" -eq 1 ]; then
