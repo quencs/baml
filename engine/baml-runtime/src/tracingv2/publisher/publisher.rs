@@ -1,10 +1,13 @@
-use baml_rpc::runtime_api::trace_event_upload::{
-    CreateTraceEventUploadRequest, CreateTraceEventUploadUrl, CreateTraceEventUploadUrlRequest,
+use anyhow::Result;
+use baml_rpc::{
+    ApiEndpoint, CreateTraceEventUploadUrl, CreateTraceEventUploadUrlRequest,
+    CreateTraceEventUploadUrlResponse, S3UploadMetadata, TraceEventBatch,
 };
 use baml_types::tracing::events::{TraceData, TraceEvent};
 use baml_types::{BamlValueWithMeta, HasFieldType};
 use core::time::Duration;
 use futures::StreamExt;
+use http::{HeaderMap, HeaderName, HeaderValue};
 use once_cell::sync::OnceCell;
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -32,9 +35,15 @@ enum PublisherMessage {
 static PUBLISHING_CHANNEL: OnceCell<mpsc::UnboundedSender<PublisherMessage>> = OnceCell::new();
 static PUBLISHING_TASK: OnceCell<Arc<tokio::task::JoinHandle<()>>> = OnceCell::new();
 
-fn get_publish_channel() -> Option<&'static mpsc::UnboundedSender<PublisherMessage>> {
+fn get_publish_channel(
+    allow_missing: bool,
+) -> Option<&'static mpsc::UnboundedSender<PublisherMessage>> {
     let Some(join_handle) = PUBLISHING_TASK.get() else {
-        baml_log::fatal_once!("Tracing publisher not started. Report this bug to the BAML team.");
+        if !allow_missing {
+            baml_log::fatal_once!(
+                "Tracing publisher not started. Report this bug to the BAML team."
+            );
+        }
         return None;
     };
     if join_handle.is_finished() {
@@ -67,7 +76,7 @@ impl TypeLookup for RuntimeAST {
 pub fn start_publisher(lookup: Arc<AstSignatureWrapper>, rt: Arc<tokio::runtime::Runtime>) {
     let lookup = Arc::new(RuntimeAST { ast: lookup });
     // If we've already started, do nothing.
-    if let Some(channel) = get_publish_channel() {
+    if let Some(channel) = get_publish_channel(true) {
         let _ = rt.block_on(flush());
         let _ = channel.send(PublisherMessage::UpdateRuntime(lookup));
         return;
@@ -104,7 +113,7 @@ pub fn start_publisher(lookup: Arc<AstSignatureWrapper>, rt: Arc<tokio::runtime:
 /// 2. Awaits the background task’s JoinHandle so Drop runs.
 pub async fn shutdown_publisher() -> anyhow::Result<()> {
     // 1. send Shutdown
-    let Some(channel) = get_publish_channel() else {
+    let Some(channel) = get_publish_channel(true) else {
         return Ok(());
     };
     let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();
@@ -155,7 +164,6 @@ impl TracePublisher {
                             self.lookup = lookup;
                         },
                         PublisherMessage::Trace(event) => {
-                            let event_type = std::any::type_name_of_val(&event.content);
                             buffer.push(event);
                             if buffer.len() >= self.batch_size {
                                 self.process_batch(std::mem::take(&mut buffer)).await;
@@ -196,12 +204,14 @@ impl TracePublisher {
     ///   3. Post the JSON to an HTTP API with up to 3 retries.
     async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
         // Assemble the upload request structure.
-        let upload_request = CreateTraceEventUploadRequest {
-            trace_event_batch: batch
+        let trace_event_batch = TraceEventBatch {
+            events: batch
                 .iter()
                 .map(|e| to_rpc_event(e, self.lookup.as_ref()))
                 .collect(),
         };
+
+        tracing::info!("Processing batch of {} events", batch.len());
 
         // Serialize to JSON.
         #[cfg(not(target_arch = "wasm32"))]
@@ -212,7 +222,7 @@ impl TracePublisher {
                 .open("/tmp/trace_events.json")
                 .await
             {
-                for e in upload_request.trace_event_batch.iter() {
+                for e in trace_event_batch.events.iter() {
                     if let Ok(json) = serde_json::to_string(e) {
                         use tokio::io::AsyncWriteExt;
                         if let Err(e) = file.write_all(format!("{}\n", json).as_bytes()).await {
@@ -225,33 +235,56 @@ impl TracePublisher {
 
         // Upload via HTTP with retry logic.
         // TODO watch out with time crate
-        // let client = reqwest::Client::new();
-        // let mut retries = 3;
-        // while retries > 0 {
-        //     match client
-        //         .post("https://3vwc8vlts7.execute-api.us-east-1.amazonaws.com/v1/baml-traces")
-        //         .json(&upload_request)
-        //         .send()
-        //         .await
-        //     {
-        //         Ok(response) => {
-        //             log::info!("Upload completed with status {}", response.status());
-        //             break;
-        //         }
-        //         Err(e) => {
-        //             log::error!("Upload failed: {}", e);
-        //             retries -= 1;
-        //             if retries > 0 {
-        //                 time::sleep(Duration::from_secs(1)).await;
-        //             }
-        //         }
-        //     }
-        // }
+        let client = reqwest::Client::new();
+        let response = client
+            .post(format!(
+                "https://abe8c5ez29.execute-api.us-east-1.amazonaws.com/{}",
+                CreateTraceEventUploadUrl::path()
+            ))
+            .json(&CreateTraceEventUploadUrlRequest {})
+            .send()
+            .await
+            .expect("Failed to send request");
+        let upload_url_details: CreateTraceEventUploadUrlResponse =
+            response.json().await.expect("Failed to parse response");
+
+        client
+            .put(upload_url_details.upload_url)
+            .json(&trace_event_batch)
+            .headers(
+                upload_url_details
+                    .upload_metadata
+                    .as_reqwest_headers()
+                    .expect("Failed to convert S3UploadMetadata to HeaderMap"),
+            )
+            .send()
+            .await
+            .expect("Failed to send request");
     }
 }
 
+trait AsReqwestHeaders {
+    fn as_reqwest_headers(&self) -> Result<HeaderMap>;
+}
+
+impl AsReqwestHeaders for S3UploadMetadata {
+    fn as_reqwest_headers(&self) -> Result<HeaderMap> {
+        let as_map = serde_json::to_value(self).expect("Failed to serialize S3UploadMetadata");
+        as_map
+            .as_object()
+            .expect("Failed to convert S3UploadMetadata to object")
+            .iter()
+            .map(|(k, v)| {
+                Ok((
+                    HeaderName::from_bytes(format!("x-amz-meta-{}", k).as_bytes())?,
+                    HeaderValue::from_str(v.as_str().unwrap())?,
+                ))
+            })
+            .collect::<Result<HeaderMap>>()
+    }
+}
 pub fn publish_trace_event(event: Arc<TraceEventWithMeta>) -> anyhow::Result<()> {
-    let Some(channel) = get_publish_channel() else {
+    let Some(channel) = get_publish_channel(false) else {
         return Ok(());
     };
     channel
@@ -263,7 +296,7 @@ pub fn publish_trace_event(event: Arc<TraceEventWithMeta>) -> anyhow::Result<()>
 // but that's ok since noone uses our wasm build in node for logging.
 // https://github.com/whizsid/wasmtimer-rs/issues/26
 pub async fn flush() -> anyhow::Result<()> {
-    let Some(channel) = get_publish_channel() else {
+    let Some(channel) = get_publish_channel(false) else {
         return Ok(());
     };
     let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();

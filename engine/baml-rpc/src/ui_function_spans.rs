@@ -32,6 +32,7 @@ pub struct ListFunctionSpansRequest {
     #[ts(type = "string")]
     pub project_id: ProjectId,
     pub function_call_id: Option<String>,
+    pub filter: Option<Filter>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
