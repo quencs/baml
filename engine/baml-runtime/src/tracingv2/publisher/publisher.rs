@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use baml_rpc::{
     ApiEndpoint, CreateTraceEventUploadUrl, CreateTraceEventUploadUrlRequest,
     CreateTraceEventUploadUrlResponse, S3UploadMetadata, TraceEventBatch,
@@ -10,6 +10,7 @@ use futures::StreamExt;
 use http::{HeaderMap, HeaderName, HeaderValue};
 use once_cell::sync::OnceCell;
 use serde::Serialize;
+use std::any::type_name;
 use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -224,13 +225,20 @@ impl TracePublisher {
         }
     }
 
+    async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
+        let batch_result = self.process_batch_impl(batch).await;
+        if let Err(e) = batch_result {
+            tracing::error!("Failed to upload trace events: {}", e);
+        }
+    }
+
     /// Process a batch of events.
     ///
     /// In this example we:
     ///   1. Serialize the events into JSON.
     ///   2. Append the JSON to a file (using async file I/O on macOS).
     ///   3. Post the JSON to an HTTP API with up to 3 retries.
-    async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
+    async fn process_batch_impl(&self, batch: Vec<Arc<TraceEventWithMeta>>) -> Result<()> {
         // Assemble the upload request structure.
         let trace_event_batch = TraceEventBatch {
             events: batch
@@ -239,7 +247,10 @@ impl TracePublisher {
                 .collect(),
         };
 
-        tracing::info!("Processing batch of {} events", batch.len());
+        tracing::info!(
+            message = "Trying to upload trace events",
+            batch_size = batch.len()
+        );
 
         // Serialize to JSON.
         #[cfg(not(target_arch = "wasm32"))]
@@ -273,9 +284,15 @@ impl TracePublisher {
             .json(&CreateTraceEventUploadUrlRequest {})
             .send()
             .await
-            .expect("Failed to send request");
+            .context(format!(
+                "Failed to send {}",
+                type_name::<CreateTraceEventUploadUrlRequest>(),
+            ))?;
         let upload_url_details: CreateTraceEventUploadUrlResponse =
-            response.json().await.expect("Failed to parse response");
+            response.json().await.context(format!(
+                "Failed to parse {}",
+                type_name::<CreateTraceEventUploadUrlResponse>(),
+            ))?;
 
         client
             .put(upload_url_details.upload_url)
@@ -284,11 +301,16 @@ impl TracePublisher {
                 upload_url_details
                     .upload_metadata
                     .as_reqwest_headers()
-                    .expect("Failed to convert S3UploadMetadata to HeaderMap"),
+                    .context(format!(
+                        "Failed to convert {} to HeaderMap",
+                        type_name::<S3UploadMetadata>(),
+                    ))?,
             )
             .send()
             .await
-            .expect("Failed to send request");
+            .context("Failed to upload trace events to S3")?;
+
+        Ok(())
     }
 }
 
