@@ -1,0 +1,121 @@
+use baml_ids::SpanId;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+use crate::{base::EpochMsTimestamp, type_definition::TypeId as BaseTypeId, BamlFunctionId};
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct TypeId(#[ts(type = "`${string}##${string}##${string}##${string}`")] BaseTypeId);
+
+impl From<BaseTypeId> for TypeId {
+    fn from(value: BaseTypeId) -> Self {
+        TypeId(value)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct FunctionId(#[ts(type = "`${string}##${string}##${string}##${string}`")] BamlFunctionId);
+
+impl From<BamlFunctionId> for FunctionId {
+    fn from(value: BamlFunctionId) -> Self {
+        FunctionId(value)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct FunctionSpan {
+    #[ts(type = "string")]
+    pub function_span_id: SpanId,
+    pub source: String,
+    pub function_id: FunctionId,
+    #[serde(rename = "start_epoch_ms")]
+    #[ts(type = "number | null")]
+    pub start_time: Option<EpochMsTimestamp>,
+    #[serde(rename = "end_epoch_ms")]
+    #[ts(type = "number | null")]
+    pub end_time: Option<EpochMsTimestamp>,
+    #[ts(type = "any")]
+    pub baml_options: serde_json::Value,
+    pub inputs: Vec<FunctionInput>,
+    #[ts(type = "any")]
+    pub output: serde_json::Value,
+    pub status: String,
+    #[ts(type = "any")]
+    pub error: serde_json::Value,
+}
+
+#[derive(Debug, Deserialize, Serialize, TS)]
+#[ts(export)]
+pub struct FunctionInput {
+    pub field: String,
+    #[ts(type = "any")]
+    pub value: serde_json::Value,
+}
+
+#[derive(Debug, Deserialize, Serialize, TS)]
+#[ts(export)]
+pub struct FunctionDefinition {
+    pub function_id: FunctionId,
+    pub inputs: Vec<NameTypeField>,
+    pub output: TypeReference,
+}
+
+#[derive(Debug, Deserialize, Serialize, TS)]
+#[ts(export)]
+pub struct TypeDefinition {
+    pub r#type: String,
+    pub type_id: TypeId,
+    pub fields: Option<Vec<NameTypeField>>,
+    pub values: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, TS)]
+#[ts(export)]
+pub struct NameTypeField {
+    pub name: String,
+    pub r#type: TypeReference,
+}
+
+#[derive(Debug, Deserialize, Serialize, TS)]
+#[ts(export)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TypeReference {
+    Null,
+    String,
+    Int,
+    Float,
+    Bool,
+    Media,
+    Class {
+        type_id: TypeId,
+    },
+    Enum {
+        type_id: TypeId,
+    },
+    TypeAlias {
+        type_id: TypeId,
+    },
+    Array {
+        items: Box<TypeReference>,
+    },
+    Map {
+        key: Box<TypeReference>,
+        value: Box<TypeReference>,
+    },
+    Union {
+        any_of: Vec<TypeReference>,
+    },
+    Literal(LiteralType),
+}
+
+#[derive(Debug, Deserialize, Serialize, TS)]
+#[ts(export)]
+#[serde(tag = "literal_type", content = "literal", rename_all = "snake_case")]
+pub enum LiteralType {
+    String(String),
+    Int(i64),
+    Bool(bool),
+}
