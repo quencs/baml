@@ -1934,6 +1934,60 @@ class BamlSyncClient:
       )
       return cast(Checked[types.BlockConstraint, Literal["cross_field"]], raw.cast_to(types, types, partial_types, False))
     
+    def MakeClassWithBlockDone(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassWithBlockDone:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+
+      raw = self.__runtime.call_function_sync(
+        "MakeClassWithBlockDone",
+        {
+          
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+      )
+      return cast(types.ClassWithBlockDone, raw.cast_to(types, types, partial_types, False))
+    
+    def MakeClassWithExternalDone(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassWithoutDone:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+
+      raw = self.__runtime.call_function_sync(
+        "MakeClassWithExternalDone",
+        {
+          
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+      )
+      return cast(types.ClassWithoutDone, raw.cast_to(types, types, partial_types, False))
+    
     def MakeNestedBlockConstraint(
         self,
         
@@ -2743,6 +2797,33 @@ class BamlSyncClient:
         collectors,
       )
       return cast(types.TwoStoriesOneTitle, raw.cast_to(types, types, partial_types, False))
+    
+    def StreamFailingCheck(
+        self,
+        theme: str,length: int,
+        baml_options: BamlCallOptions = {},
+    ) -> types.TwoStoriesOneTitleCheck:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+
+      raw = self.__runtime.call_function_sync(
+        "StreamFailingCheck",
+        {
+          "theme": theme,"length": length,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+      )
+      return cast(types.TwoStoriesOneTitleCheck, raw.cast_to(types, types, partial_types, False))
     
     def StreamOneBigNumber(
         self,
@@ -6146,7 +6227,7 @@ class BamlStreamClient:
         self,
         input: str,
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[partial_types.ClassOptionalOutput, Optional[types.ClassOptionalOutput]]:
+    ) -> baml_py.BamlSyncStream[Optional[partial_types.ClassOptionalOutput], Optional[types.ClassOptionalOutput]]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
@@ -6169,9 +6250,9 @@ class BamlStreamClient:
         collectors,
       )
 
-      return baml_py.BamlSyncStream[partial_types.ClassOptionalOutput, Optional[types.ClassOptionalOutput]](
+      return baml_py.BamlSyncStream[Optional[partial_types.ClassOptionalOutput], Optional[types.ClassOptionalOutput]](
         raw,
-        lambda x: cast(partial_types.ClassOptionalOutput, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Optional[partial_types.ClassOptionalOutput], x.cast_to(types, types, partial_types, True)),
         lambda x: cast(Optional[types.ClassOptionalOutput], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
@@ -6180,7 +6261,7 @@ class BamlStreamClient:
         self,
         input: str,
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[partial_types.ClassOptionalOutput2, Optional[types.ClassOptionalOutput2]]:
+    ) -> baml_py.BamlSyncStream[Optional[partial_types.ClassOptionalOutput2], Optional[types.ClassOptionalOutput2]]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
@@ -6203,9 +6284,9 @@ class BamlStreamClient:
         collectors,
       )
 
-      return baml_py.BamlSyncStream[partial_types.ClassOptionalOutput2, Optional[types.ClassOptionalOutput2]](
+      return baml_py.BamlSyncStream[Optional[partial_types.ClassOptionalOutput2], Optional[types.ClassOptionalOutput2]](
         raw,
-        lambda x: cast(partial_types.ClassOptionalOutput2, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Optional[partial_types.ClassOptionalOutput2], x.cast_to(types, types, partial_types, True)),
         lambda x: cast(Optional[types.ClassOptionalOutput2], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
@@ -7129,6 +7210,72 @@ class BamlStreamClient:
         self.__ctx_manager.get(),
       )
     
+    def MakeClassWithBlockDone(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.ClassWithBlockDone, types.ClassWithBlockDone]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+
+      raw = self.__runtime.stream_function_sync(
+        "MakeClassWithBlockDone",
+        {
+        },
+        None,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+      )
+
+      return baml_py.BamlSyncStream[types.ClassWithBlockDone, types.ClassWithBlockDone](
+        raw,
+        lambda x: cast(types.ClassWithBlockDone, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ClassWithBlockDone, x.cast_to(types, types, partial_types, False)),
+        self.__ctx_manager.get(),
+      )
+    
+    def MakeClassWithExternalDone(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.ClassWithoutDone, types.ClassWithoutDone]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+
+      raw = self.__runtime.stream_function_sync(
+        "MakeClassWithExternalDone",
+        {
+        },
+        None,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+      )
+
+      return baml_py.BamlSyncStream[types.ClassWithoutDone, types.ClassWithoutDone](
+        raw,
+        lambda x: cast(types.ClassWithoutDone, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ClassWithoutDone, x.cast_to(types, types, partial_types, False)),
+        self.__ctx_manager.get(),
+      )
+    
     def MakeNestedBlockConstraint(
         self,
         
@@ -7403,7 +7550,7 @@ class BamlStreamClient:
         self,
         input: str,
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[List[partial_types.OptionalTest_ReturnType], List[Optional[types.OptionalTest_ReturnType]]]:
+    ) -> baml_py.BamlSyncStream[List[Optional[partial_types.OptionalTest_ReturnType]], List[Optional[types.OptionalTest_ReturnType]]]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
@@ -7426,9 +7573,9 @@ class BamlStreamClient:
         collectors,
       )
 
-      return baml_py.BamlSyncStream[List[partial_types.OptionalTest_ReturnType], List[Optional[types.OptionalTest_ReturnType]]](
+      return baml_py.BamlSyncStream[List[Optional[partial_types.OptionalTest_ReturnType]], List[Optional[types.OptionalTest_ReturnType]]](
         raw,
-        lambda x: cast(List[partial_types.OptionalTest_ReturnType], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[Optional[partial_types.OptionalTest_ReturnType]], x.cast_to(types, types, partial_types, True)),
         lambda x: cast(List[Optional[types.OptionalTest_ReturnType]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
@@ -8145,6 +8292,41 @@ class BamlStreamClient:
         raw,
         lambda x: cast(partial_types.TwoStoriesOneTitle, x.cast_to(types, types, partial_types, True)),
         lambda x: cast(types.TwoStoriesOneTitle, x.cast_to(types, types, partial_types, False)),
+        self.__ctx_manager.get(),
+      )
+    
+    def StreamFailingCheck(
+        self,
+        theme: str,length: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.TwoStoriesOneTitleCheck, types.TwoStoriesOneTitleCheck]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+
+      raw = self.__runtime.stream_function_sync(
+        "StreamFailingCheck",
+        {
+          "theme": theme,
+          "length": length,
+        },
+        None,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+      )
+
+      return baml_py.BamlSyncStream[partial_types.TwoStoriesOneTitleCheck, types.TwoStoriesOneTitleCheck](
+        raw,
+        lambda x: cast(partial_types.TwoStoriesOneTitleCheck, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TwoStoriesOneTitleCheck, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
