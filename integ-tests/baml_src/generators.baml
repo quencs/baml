@@ -9,7 +9,7 @@ generator lang_typescript {
   output_dir "../typescript"
   version "0.85.0"
 }
-
+ 
 
 generator lang_typescript_esm {
   output_type typescript
@@ -44,3 +44,7 @@ generator lang_go {
   version "0.85.0"
   client_package_name "example.com/integ-tests"
 }
+
+
+
+
