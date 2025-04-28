@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::type_reference::TypeReference;
 use crate::ast::ast_node_id::AstNodeId;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub struct TypeId(pub AstNodeId);
 
 /// FieldType represents the type of either a class field or a function arg.

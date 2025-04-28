@@ -14,6 +14,12 @@ impl From<BaseTypeId> for TypeId {
     }
 }
 
+impl From<&BaseTypeId> for TypeId {
+    fn from(value: &BaseTypeId) -> Self {
+        TypeId(value.clone())
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct FunctionId(#[ts(type = "`${string}##${string}##${string}##${string}`")] BamlFunctionId);
@@ -21,6 +27,18 @@ pub struct FunctionId(#[ts(type = "`${string}##${string}##${string}##${string}`"
 impl From<BamlFunctionId> for FunctionId {
     fn from(value: BamlFunctionId) -> Self {
         FunctionId(value)
+    }
+}
+
+impl From<&BamlFunctionId> for FunctionId {
+    fn from(value: &BamlFunctionId) -> Self {
+        FunctionId(value.clone())
+    }
+}
+
+impl FunctionId {
+    pub fn inner(&self) -> &BamlFunctionId {
+        &self.0
     }
 }
 
