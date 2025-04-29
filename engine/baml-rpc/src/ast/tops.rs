@@ -22,6 +22,7 @@ pub struct FunctionSignature {
     pub id: BamlFunctionId,
     pub inputs: Vec<NamedType>,
     pub output: TypeReference,
+    pub dependencies: Vec<AstNodeId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]

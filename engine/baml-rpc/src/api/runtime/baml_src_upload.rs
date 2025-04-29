@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -5,11 +7,11 @@ use crate::{
     rpc::ApiEndpoint,
 };
 
-#[derive(Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct CreateBamlSrcUploadRequest<'a> {
     pub baml_ast_id: ASTId<'a>,
-    pub ast: &'a AST,
+    pub ast: Arc<AST>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

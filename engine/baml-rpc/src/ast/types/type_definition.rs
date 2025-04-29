@@ -22,12 +22,14 @@ pub enum TypeDefinition {
         // Order matters!
         values: Vec<String>,
         source: TypeDefinitionSource,
+        dependencies: Vec<AstNodeId>,
     },
     Class {
         name: TypeId,
         // Order matters!
         fields: Vec<NamedType>,
         source: TypeDefinitionSource,
+        dependencies: Vec<AstNodeId>,
     },
     Alias {
         name: TypeId,
@@ -44,7 +46,6 @@ impl TypeDefinition {
         }
     }
 }
-
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub struct NamedType {

@@ -9,6 +9,7 @@ use core::time::Duration;
 use futures::StreamExt;
 use http::{HeaderMap, HeaderName, HeaderValue};
 use once_cell::sync::OnceCell;
+use serde::Serialize;
 use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -56,8 +57,25 @@ fn get_publish_channel(
     channel
 }
 
+#[derive(Serialize)]
 struct RuntimeAST {
     ast: Arc<AstSignatureWrapper>,
+}
+
+impl RuntimeAST {
+    pub fn base_url(&self) -> String {
+        self.ast
+            .env_var("BOUNDARY_API_URL")
+            .cloned()
+            .unwrap_or_else(|| "https://api.boundaryml.com".to_string())
+    }
+
+    pub fn api_key(&self) -> String {
+        self.ast
+            .env_var("BOUNDARY_API_KEY")
+            .cloned()
+            .unwrap_or_else(|| "".to_string())
+    }
 }
 
 impl TypeLookup for RuntimeAST {
@@ -75,42 +93,34 @@ impl TypeLookup for RuntimeAST {
 
 pub fn start_publisher(lookup: Arc<AstSignatureWrapper>, rt: Arc<tokio::runtime::Runtime>) {
     let lookup = Arc::new(RuntimeAST { ast: lookup });
-    // If we've already started, do nothing.
-    if let Some(channel) = get_publish_channel(true) {
-        let _ = rt.block_on(flush());
-        let _ = channel.send(PublisherMessage::UpdateRuntime(lookup));
-        return;
-    }
 
-    // Create our channel
-    let (tx, rx) = mpsc::unbounded_channel::<PublisherMessage>();
+    // Use get_or_init to ensure thread-safe initialization
+    let channel = PUBLISHING_CHANNEL.get_or_init(|| {
+        let (tx, rx) = mpsc::unbounded_channel::<PublisherMessage>();
+        let mut publisher = TracePublisher::new(rx, lookup.clone());
 
-    // Install it into the OnceCell
-    // Safe because we just checked `get().is_none()`
-    PUBLISHING_CHANNEL
-        .set(tx.clone())
-        .expect("Failed to set PUBLISHING_CHANNEL");
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let handle = rt.spawn(async move { publisher.run().await });
+            PUBLISHING_TASK.get_or_init(|| Arc::new(handle));
+        }
 
-    let mut publisher = TracePublisher::new(rx, lookup);
+        #[cfg(target_arch = "wasm32")]
+        wasm_bindgen_futures::spawn_local(async move {
+            publisher.run().await;
+        });
 
-    // Spawn the background task
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let handle = rt.spawn(async move { publisher.run().await });
-        PUBLISHING_TASK
-            .set(Arc::new(handle))
-            .expect("Failed to set PUBLISHING_TASK");
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    wasm_bindgen_futures::spawn_local(async move {
-        publisher.run().await;
+        tx
     });
+
+    // Update runtime if channel already existed
+    let _ = rt.block_on(flush());
+    let _ = channel.send(PublisherMessage::UpdateRuntime(lookup));
 }
 
 /// Gracefully shutdown the TracePublisher.
 /// 1. Sends a Shutdown message and waits for its ack.
-/// 2. Awaits the background task’s JoinHandle so Drop runs.
+/// 2. Awaits the background task's JoinHandle so Drop runs.
 pub async fn shutdown_publisher() -> anyhow::Result<()> {
     // 1. send Shutdown
     let Some(channel) = get_publish_channel(true) else {
@@ -160,6 +170,24 @@ impl TracePublisher {
                         PublisherMessage::UpdateRuntime(lookup) => {
                             // Empty the buffer
                             self.process_batch(std::mem::take(&mut buffer)).await;
+                            // lookup.
+                            let base_url = lookup.base_url();
+                            let api_key = lookup.api_key();
+                            let url = format!("{}/v1/baml-traces", base_url);
+                            let body = serde_json::to_string(&lookup).unwrap();
+                            log::info!("Updating runtime with lookup: {}", body);
+                            let client = reqwest::Client::new();
+
+                            if let Ok(response) = client.post(url.clone()).bearer_auth(api_key).body(body).send().await {
+                                if response.status().is_success() {
+                                    log::info!("Uploaded trace events to {}", url);
+                                } else {
+                                    log::error!("Failed to upload trace events to {}", url);
+                                }
+                            } else {
+                                log::error!("Failed to send request to {}", url);
+                            }
+
                             // Update the lookup
                             self.lookup = lookup;
                         },
@@ -238,7 +266,8 @@ impl TracePublisher {
         let client = reqwest::Client::new();
         let response = client
             .post(format!(
-                "https://abe8c5ez29.execute-api.us-east-1.amazonaws.com/{}",
+                // "https://abe8c5ez29.execute-api.us-east-1.amazonaws.com/{}",
+                "https://o2em3sulde.execute-api.us-east-1.amazonaws.com/{}",
                 CreateTraceEventUploadUrl::path()
             ))
             .json(&CreateTraceEventUploadUrlRequest {})

@@ -52,6 +52,7 @@ pub struct Signature {
     display_name: String,
     interface_hash: u64,
     implementation_hash: Option<u64>,
+    dependencies: Vec<String>,
 }
 
 fn recursively_collect_dependencies<'a>(
@@ -84,6 +85,10 @@ fn recursively_collect_dependencies<'a>(
 impl Signature {
     pub fn display_name(&self) -> &str {
         &self.display_name
+    }
+
+    pub fn dependency_names(&self) -> &Vec<String> {
+        &self.dependencies
     }
 
     pub fn interface_hash(&self) -> u64 {
@@ -127,11 +132,15 @@ impl Signature {
             .get(name)
             .ok_or(anyhow::anyhow!("Item: {} not found", name))?;
 
+        let mut all_dependencies = HashSet::new();
+
         let interface_hash = {
             let dependencies =
                 recursively_collect_dependencies(name, shallow_hash, |name, shallow_hash| {
                     shallow_hash.get(name).map(|h| &h.interface_dependencies)
                 })?;
+
+            all_dependencies.extend(dependencies.iter().cloned());
 
             let mut hasher = std::collections::hash_map::DefaultHasher::new();
             item.interface_hash.hash(&mut hasher);
@@ -152,7 +161,7 @@ impl Signature {
                         .get(name)
                         .map(|h| &h.implementation_dependencies)
                 })?;
-
+            all_dependencies.extend(dependencies.iter().cloned());
             let mut hasher = std::collections::hash_map::DefaultHasher::new();
             let mut has_implementation_hash = item.implementation_hash.is_some();
             item.implementation_hash.map(|h| h.hash(&mut hasher));
@@ -174,6 +183,7 @@ impl Signature {
             display_name: name.to_string(),
             interface_hash,
             implementation_hash,
+            dependencies: all_dependencies.into_iter().cloned().collect(),
         })
     }
 }
@@ -438,6 +448,7 @@ impl IRSignature {
                 interface_hash: interface_hash.finish(),
                 implementation_hash: has_implementation_hash
                     .then_some(implementation_hash.finish()),
+                dependencies: vec![],
             }
         };
 

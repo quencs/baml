@@ -22,6 +22,9 @@ export * from './FunctionSpan';
 export * from './ListFunctionSpansRequest';
 export * from './ListFunctionSpansResponse';
 
+// BAML source related exports
+export * from './BamlSrc';
+
 // Webhook related exports
 export * from './PropelAuthWebhookRequest';
 export * from './PropelAuthWebhookResponse';

@@ -157,14 +157,14 @@ impl BamlRuntime {
         let runtime = BamlRuntime {
             inner: inner.clone(),
             env_vars: env_vars.clone(),
-            tracer: BamlTracer::new(None, env_vars.into_iter())?.into(),
+            tracer: BamlTracer::new(None, env_vars.clone().into_iter())?.into(),
             #[cfg(not(target_arch = "wasm32"))]
             async_runtime: rt.clone(),
         };
 
         tracingv2::publisher::start_publisher(
             Arc::new(
-                inner.try_into().context(
+                (inner, env_vars).try_into().context(
                     "Internal error: Failed to create a event publisher for BAML runtime",
                 )?,
             ),
