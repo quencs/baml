@@ -257,6 +257,7 @@ impl TracePublisher {
         {
             use tokio::fs::OpenOptions;
             if let Ok(mut file) = OpenOptions::new()
+                .create(true)
                 .append(true)
                 .open("/tmp/trace_events.json")
                 .await
