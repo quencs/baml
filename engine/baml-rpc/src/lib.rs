@@ -1,12 +1,10 @@
-mod api;
 pub mod ast;
 
 mod base;
 mod rpc;
+mod runtime_api;
 mod s3;
 pub mod ui;
-
-pub use api::runtime as runtime_api;
 
 pub use rpc::{ApiEndpoint, GetEndpoint};
 pub use s3::S3UploadMetadata;
@@ -29,10 +27,9 @@ pub use ui::ui_function_spans::{
 
 pub use runtime_api::baml_src_upload::*;
 pub use runtime_api::trace_event_upload::*;
+pub use runtime_api::values::*;
 
 pub use ast::ast_node_id::*;
 pub use ast::evaluation_context::*;
 pub use ast::tops::*;
 pub use ast::types::*;
-
-pub use api::runtime::values::*;

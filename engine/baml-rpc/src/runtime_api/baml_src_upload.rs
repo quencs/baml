@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use baml_ids::ProjectId;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -16,9 +17,9 @@ pub struct CreateBamlSrcUploadRequest<'a> {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub struct CreateBamlSrcUploadResponse<'a> {
-    pub project_id: String,
-    pub baml_ast_id: ASTId<'a>,
+pub struct CreateBamlSrcUploadResponse {
+    pub project_id: ProjectId,
+    pub status: String,
 }
 
 pub struct CreateBamlSrcUpload;
@@ -26,7 +27,7 @@ pub struct CreateBamlSrcUpload;
 /// POST /v1/baml-src/upload
 impl ApiEndpoint for CreateBamlSrcUpload {
     type Request<'a> = CreateBamlSrcUploadRequest<'a>;
-    type Response<'a> = CreateBamlSrcUploadResponse<'a>;
+    type Response<'a> = CreateBamlSrcUploadResponse;
 
     const PATH: &'static str = "/v1/baml-src/upload";
 }
