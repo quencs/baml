@@ -47,8 +47,8 @@ impl<'de> Deserialize<'de> for EpochMsTimestamp {
     }
 }
 
-impl Into<time::OffsetDateTime> for EpochMsTimestamp {
-    fn into(self) -> time::OffsetDateTime {
-        self.0
+impl From<EpochMsTimestamp> for time::OffsetDateTime {
+    fn from(value: EpochMsTimestamp) -> Self {
+        value.0
     }
 }
