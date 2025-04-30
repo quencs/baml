@@ -2,7 +2,7 @@ pub mod ast;
 
 mod base;
 mod rpc;
-mod runtime_api;
+pub mod runtime_api;
 mod s3;
 pub mod ui;
 
