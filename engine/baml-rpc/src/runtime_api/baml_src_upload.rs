@@ -10,8 +10,8 @@ use crate::{
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "snake_case")]
-pub struct CreateBamlSrcUploadRequest<'a> {
-    pub baml_ast_id: ASTId<'a>,
+pub struct CreateBamlSrcUploadRequest {
+    // pub baml_ast_id: ASTId<'a>, // TODO(seawatts): figure out if this is actually needed
     pub ast: Arc<AST>,
 }
 
@@ -26,7 +26,7 @@ pub struct CreateBamlSrcUpload;
 
 /// POST /v1/baml-src/upload
 impl ApiEndpoint for CreateBamlSrcUpload {
-    type Request<'a> = CreateBamlSrcUploadRequest<'a>;
+    type Request<'a> = CreateBamlSrcUploadRequest;
     type Response<'a> = CreateBamlSrcUploadResponse;
 
     const PATH: &'static str = "/v1/baml-src/upload";
