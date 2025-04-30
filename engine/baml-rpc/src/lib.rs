@@ -27,11 +27,6 @@ pub use ui::ui_function_spans::{
     ListFunctionSpans, ListFunctionSpansRequest, ListFunctionSpansResponse,
 };
 
-pub use ui::ui_webhook_propelauth::{
-    PropelAuthWebhook, PropelAuthWebhookRequest, PropelAuthWebhookResponse,
-};
-pub use ui::ui_webhook_stripe::{StripeWebhook, StripeWebhookRequest, StripeWebhookResponse};
-
 pub use runtime_api::baml_src_upload::*;
 pub use runtime_api::trace_event_upload::*;
 
