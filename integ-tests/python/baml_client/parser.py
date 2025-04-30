@@ -5486,7 +5486,7 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Optional[partial_types.ClassOptionalOutput]:
+    ) -> partial_types.ClassOptionalOutput:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5506,13 +5506,13 @@ class LlmStreamParser:
         __cr__,
       )
 
-      return cast(Optional[partial_types.ClassOptionalOutput], parsed)
+      return cast(partial_types.ClassOptionalOutput, parsed)
     
     def FnClassOptionalOutput2(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Optional[partial_types.ClassOptionalOutput2]:
+    ) -> partial_types.ClassOptionalOutput2:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5532,7 +5532,7 @@ class LlmStreamParser:
         __cr__,
       )
 
-      return cast(Optional[partial_types.ClassOptionalOutput2], parsed)
+      return cast(partial_types.ClassOptionalOutput2, parsed)
     
     def FnEnumListOutput(
         self,
@@ -6448,7 +6448,7 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> List[Optional[partial_types.OptionalTest_ReturnType]]:
+    ) -> List[partial_types.OptionalTest_ReturnType]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6468,7 +6468,7 @@ class LlmStreamParser:
         __cr__,
       )
 
-      return cast(List[Optional[partial_types.OptionalTest_ReturnType]], parsed)
+      return cast(List[partial_types.OptionalTest_ReturnType], parsed)
     
     def PredictAge(
         self,

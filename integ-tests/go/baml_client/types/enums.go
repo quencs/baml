@@ -69,7 +69,7 @@ func (e *AliasedEnum) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *AliasedEnum) Decode(holder cffi.CFFIValueEnum) {
+func (e *AliasedEnum) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "AliasedEnum" {
         panic(fmt.Sprintf("expected AliasedEnum, got %s", string(holder.Name())))
     }
@@ -77,12 +77,8 @@ func (e *AliasedEnum) Decode(holder cffi.CFFIValueEnum) {
     *e = AliasedEnum(value)
 }
 
-func (e AliasedEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e AliasedEnum) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "AliasedEnum", string(e), false)
-}
-
-func (e AliasedEnum) BamlTypeName() string {
-    return "AliasedEnum"
 }
 
 type Category string
@@ -140,7 +136,7 @@ func (e *Category) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *Category) Decode(holder cffi.CFFIValueEnum) {
+func (e *Category) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "Category" {
         panic(fmt.Sprintf("expected Category, got %s", string(holder.Name())))
     }
@@ -148,12 +144,8 @@ func (e *Category) Decode(holder cffi.CFFIValueEnum) {
     *e = Category(value)
 }
 
-func (e Category) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e Category) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "Category", string(e), false)
-}
-
-func (e Category) BamlTypeName() string {
-    return "Category"
 }
 
 type Category2 string
@@ -211,7 +203,7 @@ func (e *Category2) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *Category2) Decode(holder cffi.CFFIValueEnum) {
+func (e *Category2) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "Category2" {
         panic(fmt.Sprintf("expected Category2, got %s", string(holder.Name())))
     }
@@ -219,12 +211,8 @@ func (e *Category2) Decode(holder cffi.CFFIValueEnum) {
     *e = Category2(value)
 }
 
-func (e Category2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e Category2) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "Category2", string(e), false)
-}
-
-func (e Category2) BamlTypeName() string {
-    return "Category2"
 }
 
 type Category3 string
@@ -282,7 +270,7 @@ func (e *Category3) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *Category3) Decode(holder cffi.CFFIValueEnum) {
+func (e *Category3) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "Category3" {
         panic(fmt.Sprintf("expected Category3, got %s", string(holder.Name())))
     }
@@ -290,12 +278,8 @@ func (e *Category3) Decode(holder cffi.CFFIValueEnum) {
     *e = Category3(value)
 }
 
-func (e Category3) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e Category3) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "Category3", string(e), false)
-}
-
-func (e Category3) BamlTypeName() string {
-    return "Category3"
 }
 
 type Color string
@@ -351,7 +335,7 @@ func (e *Color) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *Color) Decode(holder cffi.CFFIValueEnum) {
+func (e *Color) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "Color" {
         panic(fmt.Sprintf("expected Color, got %s", string(holder.Name())))
     }
@@ -359,12 +343,8 @@ func (e *Color) Decode(holder cffi.CFFIValueEnum) {
     *e = Color(value)
 }
 
-func (e Color) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e Color) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "Color", string(e), false)
-}
-
-func (e Color) BamlTypeName() string {
-    return "Color"
 }
 
 type DataType string
@@ -416,7 +396,7 @@ func (e *DataType) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *DataType) Decode(holder cffi.CFFIValueEnum) {
+func (e *DataType) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "DataType" {
         panic(fmt.Sprintf("expected DataType, got %s", string(holder.Name())))
     }
@@ -424,12 +404,8 @@ func (e *DataType) Decode(holder cffi.CFFIValueEnum) {
     *e = DataType(value)
 }
 
-func (e DataType) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e DataType) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "DataType", string(e), false)
-}
-
-func (e DataType) BamlTypeName() string {
-    return "DataType"
 }
 
 type DynEnumOne string
@@ -474,7 +450,7 @@ func (e *DynEnumOne) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *DynEnumOne) Decode(holder cffi.CFFIValueEnum) {
+func (e *DynEnumOne) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "DynEnumOne" {
         panic(fmt.Sprintf("expected DynEnumOne, got %s", string(holder.Name())))
     }
@@ -482,12 +458,8 @@ func (e *DynEnumOne) Decode(holder cffi.CFFIValueEnum) {
     *e = DynEnumOne(value)
 }
 
-func (e DynEnumOne) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e DynEnumOne) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "DynEnumOne", string(e), false)
-}
-
-func (e DynEnumOne) BamlTypeName() string {
-    return "DynEnumOne"
 }
 
 type DynEnumTwo string
@@ -532,7 +504,7 @@ func (e *DynEnumTwo) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *DynEnumTwo) Decode(holder cffi.CFFIValueEnum) {
+func (e *DynEnumTwo) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "DynEnumTwo" {
         panic(fmt.Sprintf("expected DynEnumTwo, got %s", string(holder.Name())))
     }
@@ -540,12 +512,8 @@ func (e *DynEnumTwo) Decode(holder cffi.CFFIValueEnum) {
     *e = DynEnumTwo(value)
 }
 
-func (e DynEnumTwo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e DynEnumTwo) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "DynEnumTwo", string(e), false)
-}
-
-func (e DynEnumTwo) BamlTypeName() string {
-    return "DynEnumTwo"
 }
 
 type EnumInClass string
@@ -597,7 +565,7 @@ func (e *EnumInClass) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *EnumInClass) Decode(holder cffi.CFFIValueEnum) {
+func (e *EnumInClass) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "EnumInClass" {
         panic(fmt.Sprintf("expected EnumInClass, got %s", string(holder.Name())))
     }
@@ -605,12 +573,8 @@ func (e *EnumInClass) Decode(holder cffi.CFFIValueEnum) {
     *e = EnumInClass(value)
 }
 
-func (e EnumInClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e EnumInClass) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "EnumInClass", string(e), false)
-}
-
-func (e EnumInClass) BamlTypeName() string {
-    return "EnumInClass"
 }
 
 // An enum with three values,
@@ -668,7 +632,7 @@ func (e *EnumOutput) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *EnumOutput) Decode(holder cffi.CFFIValueEnum) {
+func (e *EnumOutput) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "EnumOutput" {
         panic(fmt.Sprintf("expected EnumOutput, got %s", string(holder.Name())))
     }
@@ -676,12 +640,8 @@ func (e *EnumOutput) Decode(holder cffi.CFFIValueEnum) {
     *e = EnumOutput(value)
 }
 
-func (e EnumOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e EnumOutput) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "EnumOutput", string(e), false)
-}
-
-func (e EnumOutput) BamlTypeName() string {
-    return "EnumOutput"
 }
 
 type Hobby string
@@ -731,7 +691,7 @@ func (e *Hobby) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *Hobby) Decode(holder cffi.CFFIValueEnum) {
+func (e *Hobby) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "Hobby" {
         panic(fmt.Sprintf("expected Hobby, got %s", string(holder.Name())))
     }
@@ -739,12 +699,8 @@ func (e *Hobby) Decode(holder cffi.CFFIValueEnum) {
     *e = Hobby(value)
 }
 
-func (e Hobby) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e Hobby) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "Hobby", string(e), false)
-}
-
-func (e Hobby) BamlTypeName() string {
-    return "Hobby"
 }
 
 type MapKey string
@@ -798,7 +754,7 @@ func (e *MapKey) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *MapKey) Decode(holder cffi.CFFIValueEnum) {
+func (e *MapKey) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "MapKey" {
         panic(fmt.Sprintf("expected MapKey, got %s", string(holder.Name())))
     }
@@ -806,12 +762,8 @@ func (e *MapKey) Decode(holder cffi.CFFIValueEnum) {
     *e = MapKey(value)
 }
 
-func (e MapKey) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e MapKey) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "MapKey", string(e), false)
-}
-
-func (e MapKey) BamlTypeName() string {
-    return "MapKey"
 }
 
 type NamedArgsSingleEnum string
@@ -863,7 +815,7 @@ func (e *NamedArgsSingleEnum) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *NamedArgsSingleEnum) Decode(holder cffi.CFFIValueEnum) {
+func (e *NamedArgsSingleEnum) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "NamedArgsSingleEnum" {
         panic(fmt.Sprintf("expected NamedArgsSingleEnum, got %s", string(holder.Name())))
     }
@@ -871,12 +823,8 @@ func (e *NamedArgsSingleEnum) Decode(holder cffi.CFFIValueEnum) {
     *e = NamedArgsSingleEnum(value)
 }
 
-func (e NamedArgsSingleEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e NamedArgsSingleEnum) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "NamedArgsSingleEnum", string(e), false)
-}
-
-func (e NamedArgsSingleEnum) BamlTypeName() string {
-    return "NamedArgsSingleEnum"
 }
 
 type NamedArgsSingleEnumList string
@@ -928,7 +876,7 @@ func (e *NamedArgsSingleEnumList) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *NamedArgsSingleEnumList) Decode(holder cffi.CFFIValueEnum) {
+func (e *NamedArgsSingleEnumList) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "NamedArgsSingleEnumList" {
         panic(fmt.Sprintf("expected NamedArgsSingleEnumList, got %s", string(holder.Name())))
     }
@@ -936,12 +884,8 @@ func (e *NamedArgsSingleEnumList) Decode(holder cffi.CFFIValueEnum) {
     *e = NamedArgsSingleEnumList(value)
 }
 
-func (e NamedArgsSingleEnumList) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e NamedArgsSingleEnumList) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "NamedArgsSingleEnumList", string(e), false)
-}
-
-func (e NamedArgsSingleEnumList) BamlTypeName() string {
-    return "NamedArgsSingleEnumList"
 }
 
 type OptionalTest_CategoryType string
@@ -995,7 +939,7 @@ func (e *OptionalTest_CategoryType) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *OptionalTest_CategoryType) Decode(holder cffi.CFFIValueEnum) {
+func (e *OptionalTest_CategoryType) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "OptionalTest_CategoryType" {
         panic(fmt.Sprintf("expected OptionalTest_CategoryType, got %s", string(holder.Name())))
     }
@@ -1003,12 +947,8 @@ func (e *OptionalTest_CategoryType) Decode(holder cffi.CFFIValueEnum) {
     *e = OptionalTest_CategoryType(value)
 }
 
-func (e OptionalTest_CategoryType) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e OptionalTest_CategoryType) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "OptionalTest_CategoryType", string(e), false)
-}
-
-func (e OptionalTest_CategoryType) BamlTypeName() string {
-    return "OptionalTest_CategoryType"
 }
 
 type OrderStatus string
@@ -1064,7 +1004,7 @@ func (e *OrderStatus) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *OrderStatus) Decode(holder cffi.CFFIValueEnum) {
+func (e *OrderStatus) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "OrderStatus" {
         panic(fmt.Sprintf("expected OrderStatus, got %s", string(holder.Name())))
     }
@@ -1072,12 +1012,8 @@ func (e *OrderStatus) Decode(holder cffi.CFFIValueEnum) {
     *e = OrderStatus(value)
 }
 
-func (e OrderStatus) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e OrderStatus) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "OrderStatus", string(e), false)
-}
-
-func (e OrderStatus) BamlTypeName() string {
-    return "OrderStatus"
 }
 
 type Tag string
@@ -1131,7 +1067,7 @@ func (e *Tag) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *Tag) Decode(holder cffi.CFFIValueEnum) {
+func (e *Tag) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "Tag" {
         panic(fmt.Sprintf("expected Tag, got %s", string(holder.Name())))
     }
@@ -1139,12 +1075,8 @@ func (e *Tag) Decode(holder cffi.CFFIValueEnum) {
     *e = Tag(value)
 }
 
-func (e Tag) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e Tag) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "Tag", string(e), false)
-}
-
-func (e Tag) BamlTypeName() string {
-    return "Tag"
 }
 
 type TestEnum string
@@ -1206,7 +1138,7 @@ func (e *TestEnum) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *TestEnum) Decode(holder cffi.CFFIValueEnum) {
+func (e *TestEnum) Decode(holder cffi.CFFIValueEnum, typeMap baml.TypeMap) {
     if string(holder.Name()) != "TestEnum" {
         panic(fmt.Sprintf("expected TestEnum, got %s", string(holder.Name())))
     }
@@ -1214,10 +1146,6 @@ func (e *TestEnum) Decode(holder cffi.CFFIValueEnum) {
     *e = TestEnum(value)
 }
 
-func (e TestEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (e TestEnum) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     return baml.EncodeEnum(builder, "TestEnum", string(e), false)
-}
-
-func (e TestEnum) BamlTypeName() string {
-    return "TestEnum"
 }

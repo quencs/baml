@@ -33,7 +33,7 @@ type AnotherObject struct {
 
 }
 
-func (c *AnotherObject) Decode(holder cffi.CFFIValueClass) {
+func (c *AnotherObject) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "AnotherObject" {
 		panic(fmt.Sprintf("expected AnotherObject, got %s", string(holder.Name())))
 	}
@@ -48,13 +48,13 @@ func (c *AnotherObject) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "id":
-					c.Id = baml.Decode(valueHolder).(string)
+					c.Id = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "thingy2":
-					c.Thingy2 = baml.Decode(valueHolder).(string)
+					c.Thingy2 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "thingy3":
-					c.Thingy3 = baml.Decode(valueHolder).(string)
+					c.Thingy3 = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -64,7 +64,7 @@ func (c *AnotherObject) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c AnotherObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c AnotherObject) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["id"] = c.Id
@@ -73,11 +73,7 @@ func (c AnotherObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion
 	
 	fields["thingy3"] = c.Thingy3
 	
-	return baml.EncodeClass(builder, "AnotherObject", fields, nil)
-}
-
-func (c AnotherObject) BamlTypeName() string {
-	return "AnotherObject"
+	return baml.EncodeClass(builder, typeMap, "AnotherObject", fields, nil)
 }
 
 
@@ -90,7 +86,7 @@ type BigNumbers struct {
 
 }
 
-func (c *BigNumbers) Decode(holder cffi.CFFIValueClass) {
+func (c *BigNumbers) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "BigNumbers" {
 		panic(fmt.Sprintf("expected BigNumbers, got %s", string(holder.Name())))
 	}
@@ -105,10 +101,10 @@ func (c *BigNumbers) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "a":
-					c.A = baml.Decode(valueHolder).(int64)
+					c.A = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "b":
-					c.B = baml.Decode(valueHolder).(float64)
+					c.B = baml.Decode(valueHolder, typeMap).(float64)
 				
 			}
 		}
@@ -118,18 +114,14 @@ func (c *BigNumbers) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c BigNumbers) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c BigNumbers) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["a"] = c.A
 	
 	fields["b"] = c.B
 	
-	return baml.EncodeClass(builder, "BigNumbers", fields, nil)
-}
-
-func (c BigNumbers) BamlTypeName() string {
-	return "BigNumbers"
+	return baml.EncodeClass(builder, typeMap, "BigNumbers", fields, nil)
 }
 
 
@@ -144,7 +136,7 @@ type BinaryNode struct {
 
 }
 
-func (c *BinaryNode) Decode(holder cffi.CFFIValueClass) {
+func (c *BinaryNode) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "BinaryNode" {
 		panic(fmt.Sprintf("expected BinaryNode, got %s", string(holder.Name())))
 	}
@@ -159,13 +151,13 @@ func (c *BinaryNode) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "data":
-					c.Data = baml.Decode(valueHolder).(int64)
+					c.Data = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "left":
-					c.Left = baml.Decode(valueHolder).(*BinaryNode)
+					c.Left = baml.Decode(valueHolder, typeMap).(*BinaryNode)
 				
 				case "right":
-					c.Right = baml.Decode(valueHolder).(*BinaryNode)
+					c.Right = baml.Decode(valueHolder, typeMap).(*BinaryNode)
 				
 			}
 		}
@@ -175,7 +167,7 @@ func (c *BinaryNode) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c BinaryNode) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c BinaryNode) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["data"] = c.Data
@@ -184,11 +176,7 @@ func (c BinaryNode) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 	
 	fields["right"] = c.Right
 	
-	return baml.EncodeClass(builder, "BinaryNode", fields, nil)
-}
-
-func (c BinaryNode) BamlTypeName() string {
-	return "BinaryNode"
+	return baml.EncodeClass(builder, typeMap, "BinaryNode", fields, nil)
 }
 
 
@@ -199,7 +187,7 @@ type Blah struct {
 
 }
 
-func (c *Blah) Decode(holder cffi.CFFIValueClass) {
+func (c *Blah) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Blah" {
 		panic(fmt.Sprintf("expected Blah, got %s", string(holder.Name())))
 	}
@@ -214,7 +202,7 @@ func (c *Blah) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop4":
-					c.Prop4 = baml.Decode(valueHolder).(*string)
+					c.Prop4 = baml.Decode(valueHolder, typeMap).(*string)
 				
 			}
 		}
@@ -224,16 +212,12 @@ func (c *Blah) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Blah) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Blah) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop4"] = c.Prop4
 	
-	return baml.EncodeClass(builder, "Blah", fields, nil)
-}
-
-func (c Blah) BamlTypeName() string {
-	return "Blah"
+	return baml.EncodeClass(builder, typeMap, "Blah", fields, nil)
 }
 
 
@@ -246,7 +230,7 @@ type BlockConstraint struct {
 
 }
 
-func (c *BlockConstraint) Decode(holder cffi.CFFIValueClass) {
+func (c *BlockConstraint) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "BlockConstraint" {
 		panic(fmt.Sprintf("expected BlockConstraint, got %s", string(holder.Name())))
 	}
@@ -261,10 +245,10 @@ func (c *BlockConstraint) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "foo":
-					c.Foo = baml.Decode(valueHolder).(int64)
+					c.Foo = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "bar":
-					c.Bar = baml.Decode(valueHolder).(string)
+					c.Bar = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -274,18 +258,14 @@ func (c *BlockConstraint) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c BlockConstraint) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c BlockConstraint) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["foo"] = c.Foo
 	
 	fields["bar"] = c.Bar
 	
-	return baml.EncodeClass(builder, "BlockConstraint", fields, nil)
-}
-
-func (c BlockConstraint) BamlTypeName() string {
-	return "BlockConstraint"
+	return baml.EncodeClass(builder, typeMap, "BlockConstraint", fields, nil)
 }
 
 
@@ -298,7 +278,7 @@ type BlockConstraintForParam struct {
 
 }
 
-func (c *BlockConstraintForParam) Decode(holder cffi.CFFIValueClass) {
+func (c *BlockConstraintForParam) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "BlockConstraintForParam" {
 		panic(fmt.Sprintf("expected BlockConstraintForParam, got %s", string(holder.Name())))
 	}
@@ -313,10 +293,10 @@ func (c *BlockConstraintForParam) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "bcfp":
-					c.Bcfp = baml.Decode(valueHolder).(int64)
+					c.Bcfp = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "bcfp2":
-					c.Bcfp2 = baml.Decode(valueHolder).(string)
+					c.Bcfp2 = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -326,18 +306,14 @@ func (c *BlockConstraintForParam) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c BlockConstraintForParam) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c BlockConstraintForParam) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["bcfp"] = c.Bcfp
 	
 	fields["bcfp2"] = c.Bcfp2
 	
-	return baml.EncodeClass(builder, "BlockConstraintForParam", fields, nil)
-}
-
-func (c BlockConstraintForParam) BamlTypeName() string {
-	return "BlockConstraintForParam"
+	return baml.EncodeClass(builder, typeMap, "BlockConstraintForParam", fields, nil)
 }
 
 
@@ -354,7 +330,7 @@ type BookOrder struct {
 
 }
 
-func (c *BookOrder) Decode(holder cffi.CFFIValueClass) {
+func (c *BookOrder) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "BookOrder" {
 		panic(fmt.Sprintf("expected BookOrder, got %s", string(holder.Name())))
 	}
@@ -369,16 +345,16 @@ func (c *BookOrder) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "orderId":
-					c.OrderId = baml.Decode(valueHolder).(string)
+					c.OrderId = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "title":
-					c.Title = baml.Decode(valueHolder).(string)
+					c.Title = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "quantity":
-					c.Quantity = baml.Decode(valueHolder).(int64)
+					c.Quantity = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "price":
-					c.Price = baml.Decode(valueHolder).(float64)
+					c.Price = baml.Decode(valueHolder, typeMap).(float64)
 				
 			}
 		}
@@ -388,7 +364,7 @@ func (c *BookOrder) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c BookOrder) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c BookOrder) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["orderId"] = c.OrderId
@@ -399,11 +375,7 @@ func (c BookOrder) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 	
 	fields["price"] = c.Price
 	
-	return baml.EncodeClass(builder, "BookOrder", fields, nil)
-}
-
-func (c BookOrder) BamlTypeName() string {
-	return "BookOrder"
+	return baml.EncodeClass(builder, typeMap, "BookOrder", fields, nil)
 }
 
 
@@ -414,7 +386,7 @@ type ClassForNullLiteral struct {
 
 }
 
-func (c *ClassForNullLiteral) Decode(holder cffi.CFFIValueClass) {
+func (c *ClassForNullLiteral) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ClassForNullLiteral" {
 		panic(fmt.Sprintf("expected ClassForNullLiteral, got %s", string(holder.Name())))
 	}
@@ -429,7 +401,7 @@ func (c *ClassForNullLiteral) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "a":
-					c.A = baml.Decode(valueHolder).(string)
+					c.A = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -439,16 +411,12 @@ func (c *ClassForNullLiteral) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ClassForNullLiteral) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClassForNullLiteral) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["a"] = c.A
 	
-	return baml.EncodeClass(builder, "ClassForNullLiteral", fields, nil)
-}
-
-func (c ClassForNullLiteral) BamlTypeName() string {
-	return "ClassForNullLiteral"
+	return baml.EncodeClass(builder, typeMap, "ClassForNullLiteral", fields, nil)
 }
 
 
@@ -461,7 +429,7 @@ type ClassOptionalOutput struct {
 
 }
 
-func (c *ClassOptionalOutput) Decode(holder cffi.CFFIValueClass) {
+func (c *ClassOptionalOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ClassOptionalOutput" {
 		panic(fmt.Sprintf("expected ClassOptionalOutput, got %s", string(holder.Name())))
 	}
@@ -476,10 +444,10 @@ func (c *ClassOptionalOutput) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = baml.Decode(valueHolder).(string)
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "prop2":
-					c.Prop2 = baml.Decode(valueHolder).(string)
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -489,18 +457,14 @@ func (c *ClassOptionalOutput) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ClassOptionalOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClassOptionalOutput) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop1"] = c.Prop1
 	
 	fields["prop2"] = c.Prop2
 	
-	return baml.EncodeClass(builder, "ClassOptionalOutput", fields, nil)
-}
-
-func (c ClassOptionalOutput) BamlTypeName() string {
-	return "ClassOptionalOutput"
+	return baml.EncodeClass(builder, typeMap, "ClassOptionalOutput", fields, nil)
 }
 
 
@@ -515,7 +479,7 @@ type ClassOptionalOutput2 struct {
 
 }
 
-func (c *ClassOptionalOutput2) Decode(holder cffi.CFFIValueClass) {
+func (c *ClassOptionalOutput2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ClassOptionalOutput2" {
 		panic(fmt.Sprintf("expected ClassOptionalOutput2, got %s", string(holder.Name())))
 	}
@@ -530,13 +494,13 @@ func (c *ClassOptionalOutput2) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = baml.Decode(valueHolder).(*string)
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "prop2":
-					c.Prop2 = baml.Decode(valueHolder).(*string)
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "prop3":
-					c.Prop3 = baml.Decode(valueHolder).(*Blah)
+					c.Prop3 = baml.Decode(valueHolder, typeMap).(*Blah)
 				
 			}
 		}
@@ -546,7 +510,7 @@ func (c *ClassOptionalOutput2) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ClassOptionalOutput2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClassOptionalOutput2) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop1"] = c.Prop1
@@ -555,11 +519,7 @@ func (c ClassOptionalOutput2) Encode(builder *flatbuffers.Builder) (cffi.CFFIVal
 	
 	fields["prop3"] = c.Prop3
 	
-	return baml.EncodeClass(builder, "ClassOptionalOutput2", fields, nil)
-}
-
-func (c ClassOptionalOutput2) BamlTypeName() string {
-	return "ClassOptionalOutput2"
+	return baml.EncodeClass(builder, typeMap, "ClassOptionalOutput2", fields, nil)
 }
 
 
@@ -570,7 +530,7 @@ type ClassToRecAlias struct {
 
 }
 
-func (c *ClassToRecAlias) Decode(holder cffi.CFFIValueClass) {
+func (c *ClassToRecAlias) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ClassToRecAlias" {
 		panic(fmt.Sprintf("expected ClassToRecAlias, got %s", string(holder.Name())))
 	}
@@ -585,7 +545,7 @@ func (c *ClassToRecAlias) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "list":
-					c.List = *baml.Decode(valueHolder).(*LinkedListAliasNode)
+					c.List = *baml.Decode(valueHolder, typeMap).(*LinkedListAliasNode)
 				
 			}
 		}
@@ -595,16 +555,12 @@ func (c *ClassToRecAlias) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ClassToRecAlias) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClassToRecAlias) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["list"] = c.List
 	
-	return baml.EncodeClass(builder, "ClassToRecAlias", fields, nil)
-}
-
-func (c ClassToRecAlias) BamlTypeName() string {
-	return "ClassToRecAlias"
+	return baml.EncodeClass(builder, typeMap, "ClassToRecAlias", fields, nil)
 }
 
 
@@ -617,7 +573,7 @@ type ClassWithBlockDone struct {
 
 }
 
-func (c *ClassWithBlockDone) Decode(holder cffi.CFFIValueClass) {
+func (c *ClassWithBlockDone) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ClassWithBlockDone" {
 		panic(fmt.Sprintf("expected ClassWithBlockDone, got %s", string(holder.Name())))
 	}
@@ -632,10 +588,10 @@ func (c *ClassWithBlockDone) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "i_16_digits":
-					c.I_16_digits = baml.Decode(valueHolder).(int64)
+					c.I_16_digits = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "s_20_words":
-					c.S_20_words = baml.Decode(valueHolder).(string)
+					c.S_20_words = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -645,18 +601,14 @@ func (c *ClassWithBlockDone) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ClassWithBlockDone) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClassWithBlockDone) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["i_16_digits"] = c.I_16_digits
 	
 	fields["s_20_words"] = c.S_20_words
 	
-	return baml.EncodeClass(builder, "ClassWithBlockDone", fields, nil)
-}
-
-func (c ClassWithBlockDone) BamlTypeName() string {
-	return "ClassWithBlockDone"
+	return baml.EncodeClass(builder, typeMap, "ClassWithBlockDone", fields, nil)
 }
 
 
@@ -671,7 +623,7 @@ type ClassWithImage struct {
 
 }
 
-func (c *ClassWithImage) Decode(holder cffi.CFFIValueClass) {
+func (c *ClassWithImage) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ClassWithImage" {
 		panic(fmt.Sprintf("expected ClassWithImage, got %s", string(holder.Name())))
 	}
@@ -686,13 +638,13 @@ func (c *ClassWithImage) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "myImage":
-					c.MyImage = baml.Decode(valueHolder).(any)
+					c.MyImage = baml.Decode(valueHolder, typeMap).(any)
 				
 				case "param2":
-					c.Param2 = baml.Decode(valueHolder).(string)
+					c.Param2 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "fake_image":
-					c.Fake_image = *baml.Decode(valueHolder).(*FakeImage)
+					c.Fake_image = *baml.Decode(valueHolder, typeMap).(*FakeImage)
 				
 			}
 		}
@@ -702,7 +654,7 @@ func (c *ClassWithImage) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ClassWithImage) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClassWithImage) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["myImage"] = c.MyImage
@@ -711,11 +663,7 @@ func (c ClassWithImage) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 	
 	fields["fake_image"] = c.Fake_image
 	
-	return baml.EncodeClass(builder, "ClassWithImage", fields, nil)
-}
-
-func (c ClassWithImage) BamlTypeName() string {
-	return "ClassWithImage"
+	return baml.EncodeClass(builder, typeMap, "ClassWithImage", fields, nil)
 }
 
 
@@ -728,7 +676,7 @@ type ClassWithoutDone struct {
 
 }
 
-func (c *ClassWithoutDone) Decode(holder cffi.CFFIValueClass) {
+func (c *ClassWithoutDone) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ClassWithoutDone" {
 		panic(fmt.Sprintf("expected ClassWithoutDone, got %s", string(holder.Name())))
 	}
@@ -743,10 +691,10 @@ func (c *ClassWithoutDone) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "i_16_digits":
-					c.I_16_digits = baml.Decode(valueHolder).(int64)
+					c.I_16_digits = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "s_20_words":
-					c.S_20_words = baml.Decode(valueHolder).(string)
+					c.S_20_words = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -756,18 +704,14 @@ func (c *ClassWithoutDone) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ClassWithoutDone) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClassWithoutDone) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["i_16_digits"] = c.I_16_digits
 	
 	fields["s_20_words"] = c.S_20_words
 	
-	return baml.EncodeClass(builder, "ClassWithoutDone", fields, nil)
-}
-
-func (c ClassWithoutDone) BamlTypeName() string {
-	return "ClassWithoutDone"
+	return baml.EncodeClass(builder, typeMap, "ClassWithoutDone", fields, nil)
 }
 
 
@@ -790,7 +734,7 @@ type ClientDetails1559 struct {
 
 }
 
-func (c *ClientDetails1559) Decode(holder cffi.CFFIValueClass) {
+func (c *ClientDetails1559) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ClientDetails1559" {
 		panic(fmt.Sprintf("expected ClientDetails1559, got %s", string(holder.Name())))
 	}
@@ -805,25 +749,25 @@ func (c *ClientDetails1559) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "client_name":
-					c.Client_name = baml.Decode(valueHolder).(*string)
+					c.Client_name = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "client_address":
-					c.Client_address = baml.Decode(valueHolder).(*string)
+					c.Client_address = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "client_postal_code":
-					c.Client_postal_code = baml.Decode(valueHolder).(*string)
+					c.Client_postal_code = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "client_city":
-					c.Client_city = baml.Decode(valueHolder).(*string)
+					c.Client_city = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "client_country":
-					c.Client_country = baml.Decode(valueHolder).(*string)
+					c.Client_country = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "client_phone":
-					c.Client_phone = baml.Decode(valueHolder).(*string)
+					c.Client_phone = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "client_email":
-					c.Client_email = baml.Decode(valueHolder).(*string)
+					c.Client_email = baml.Decode(valueHolder, typeMap).(*string)
 				
 			}
 		}
@@ -833,7 +777,7 @@ func (c *ClientDetails1559) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ClientDetails1559) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClientDetails1559) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["client_name"] = c.Client_name
@@ -850,11 +794,7 @@ func (c ClientDetails1559) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueU
 	
 	fields["client_email"] = c.Client_email
 	
-	return baml.EncodeClass(builder, "ClientDetails1559", fields, nil)
-}
-
-func (c ClientDetails1559) BamlTypeName() string {
-	return "ClientDetails1559"
+	return baml.EncodeClass(builder, typeMap, "ClientDetails1559", fields, nil)
 }
 
 
@@ -871,7 +811,7 @@ type ComplexMemoryObject struct {
 
 }
 
-func (c *ComplexMemoryObject) Decode(holder cffi.CFFIValueClass) {
+func (c *ComplexMemoryObject) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ComplexMemoryObject" {
 		panic(fmt.Sprintf("expected ComplexMemoryObject, got %s", string(holder.Name())))
 	}
@@ -886,17 +826,17 @@ func (c *ComplexMemoryObject) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "id":
-					c.Id = baml.Decode(valueHolder).(string)
+					c.Id = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "name":
-					c.Name = baml.Decode(valueHolder).(string)
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "description":
-					c.Description = baml.Decode(valueHolder).(string)
+					c.Description = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "metadata":
-					c.Metadata = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Union__string__int__float {
-    return *baml.Decode(__holder).(*Union__string__int__float)
+					c.Metadata = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__string__int__float {
+    return *baml.Decode(__holder, typeMap).(*Union__string__int__float)
 })
 				
 			}
@@ -907,7 +847,7 @@ func (c *ComplexMemoryObject) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ComplexMemoryObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ComplexMemoryObject) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["id"] = c.Id
@@ -918,11 +858,7 @@ func (c ComplexMemoryObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValu
 	
 	fields["metadata"] = c.Metadata
 	
-	return baml.EncodeClass(builder, "ComplexMemoryObject", fields, nil)
-}
-
-func (c ComplexMemoryObject) BamlTypeName() string {
-	return "ComplexMemoryObject"
+	return baml.EncodeClass(builder, typeMap, "ComplexMemoryObject", fields, nil)
 }
 
 
@@ -937,7 +873,7 @@ type CompoundBigNumbers struct {
 
 }
 
-func (c *CompoundBigNumbers) Decode(holder cffi.CFFIValueClass) {
+func (c *CompoundBigNumbers) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "CompoundBigNumbers" {
 		panic(fmt.Sprintf("expected CompoundBigNumbers, got %s", string(holder.Name())))
 	}
@@ -952,15 +888,15 @@ func (c *CompoundBigNumbers) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "big":
-					c.Big = *baml.Decode(valueHolder).(*BigNumbers)
+					c.Big = *baml.Decode(valueHolder, typeMap).(*BigNumbers)
 				
 				case "big_nums":
-					c.Big_nums = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) BigNumbers {
-    return *baml.Decode(__holder).(*BigNumbers)
+					c.Big_nums = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) BigNumbers {
+    return *baml.Decode(__holder, typeMap).(*BigNumbers)
 })
 				
 				case "another":
-					c.Another = *baml.Decode(valueHolder).(*BigNumbers)
+					c.Another = *baml.Decode(valueHolder, typeMap).(*BigNumbers)
 				
 			}
 		}
@@ -970,7 +906,7 @@ func (c *CompoundBigNumbers) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c CompoundBigNumbers) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c CompoundBigNumbers) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["big"] = c.Big
@@ -979,11 +915,7 @@ func (c CompoundBigNumbers) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 	
 	fields["another"] = c.Another
 	
-	return baml.EncodeClass(builder, "CompoundBigNumbers", fields, nil)
-}
-
-func (c CompoundBigNumbers) BamlTypeName() string {
-	return "CompoundBigNumbers"
+	return baml.EncodeClass(builder, typeMap, "CompoundBigNumbers", fields, nil)
 }
 
 
@@ -996,7 +928,7 @@ type ContactInfo struct {
 
 }
 
-func (c *ContactInfo) Decode(holder cffi.CFFIValueClass) {
+func (c *ContactInfo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ContactInfo" {
 		panic(fmt.Sprintf("expected ContactInfo, got %s", string(holder.Name())))
 	}
@@ -1011,10 +943,10 @@ func (c *ContactInfo) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "primary":
-					c.Primary = *baml.Decode(valueHolder).(*Union__PhoneNumber__EmailAddress)
+					c.Primary = *baml.Decode(valueHolder, typeMap).(*Union__PhoneNumber__EmailAddress)
 				
 				case "secondary":
-					c.Secondary = baml.Decode(valueHolder).(*Union__PhoneNumber__EmailAddress)
+					c.Secondary = baml.Decode(valueHolder, typeMap).(*Union__PhoneNumber__EmailAddress)
 				
 			}
 		}
@@ -1024,18 +956,14 @@ func (c *ContactInfo) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ContactInfo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ContactInfo) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["primary"] = c.Primary
 	
 	fields["secondary"] = c.Secondary
 	
-	return baml.EncodeClass(builder, "ContactInfo", fields, nil)
-}
-
-func (c ContactInfo) BamlTypeName() string {
-	return "ContactInfo"
+	return baml.EncodeClass(builder, typeMap, "ContactInfo", fields, nil)
 }
 
 
@@ -1050,7 +978,7 @@ type CustomStory struct {
 
 }
 
-func (c *CustomStory) Decode(holder cffi.CFFIValueClass) {
+func (c *CustomStory) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "CustomStory" {
 		panic(fmt.Sprintf("expected CustomStory, got %s", string(holder.Name())))
 	}
@@ -1065,15 +993,15 @@ func (c *CustomStory) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "title":
-					c.Title = baml.Decode(valueHolder).(string)
+					c.Title = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "characters":
-					c.Characters = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) string {
-    return baml.Decode(__holder).(string)
+					c.Characters = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
 })
 				
 				case "content":
-					c.Content = baml.Decode(valueHolder).(string)
+					c.Content = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -1083,7 +1011,7 @@ func (c *CustomStory) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c CustomStory) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c CustomStory) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["title"] = c.Title
@@ -1092,11 +1020,7 @@ func (c CustomStory) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 	
 	fields["content"] = c.Content
 	
-	return baml.EncodeClass(builder, "CustomStory", fields, nil)
-}
-
-func (c CustomStory) BamlTypeName() string {
-	return "CustomStory"
+	return baml.EncodeClass(builder, typeMap, "CustomStory", fields, nil)
 }
 
 
@@ -1111,7 +1035,7 @@ type CustomTaskResult struct {
 
 }
 
-func (c *CustomTaskResult) Decode(holder cffi.CFFIValueClass) {
+func (c *CustomTaskResult) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "CustomTaskResult" {
 		panic(fmt.Sprintf("expected CustomTaskResult, got %s", string(holder.Name())))
 	}
@@ -1126,13 +1050,13 @@ func (c *CustomTaskResult) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "bookOrder":
-					c.BookOrder = baml.Decode(valueHolder).(*BookOrder)
+					c.BookOrder = baml.Decode(valueHolder, typeMap).(*BookOrder)
 				
 				case "flightConfirmation":
-					c.FlightConfirmation = baml.Decode(valueHolder).(*FlightConfirmation)
+					c.FlightConfirmation = baml.Decode(valueHolder, typeMap).(*FlightConfirmation)
 				
 				case "groceryReceipt":
-					c.GroceryReceipt = baml.Decode(valueHolder).(*GroceryReceipt)
+					c.GroceryReceipt = baml.Decode(valueHolder, typeMap).(*GroceryReceipt)
 				
 			}
 		}
@@ -1142,7 +1066,7 @@ func (c *CustomTaskResult) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c CustomTaskResult) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c CustomTaskResult) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["bookOrder"] = c.BookOrder
@@ -1151,11 +1075,7 @@ func (c CustomTaskResult) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUn
 	
 	fields["groceryReceipt"] = c.GroceryReceipt
 	
-	return baml.EncodeClass(builder, "CustomTaskResult", fields, nil)
-}
-
-func (c CustomTaskResult) BamlTypeName() string {
-	return "CustomTaskResult"
+	return baml.EncodeClass(builder, typeMap, "CustomTaskResult", fields, nil)
 }
 
 
@@ -1168,7 +1088,7 @@ type Document1559 struct {
 
 }
 
-func (c *Document1559) Decode(holder cffi.CFFIValueClass) {
+func (c *Document1559) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Document1559" {
 		panic(fmt.Sprintf("expected Document1559, got %s", string(holder.Name())))
 	}
@@ -1183,11 +1103,11 @@ func (c *Document1559) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "client_details":
-					c.Client_details = *baml.Decode(valueHolder).(*ClientDetails1559)
+					c.Client_details = *baml.Decode(valueHolder, typeMap).(*ClientDetails1559)
 				
 				case "notes":
-					c.Notes = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Note1599 {
-    return *baml.Decode(__holder).(*Note1599)
+					c.Notes = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Note1599 {
+    return *baml.Decode(__holder, typeMap).(*Note1599)
 })
 				
 			}
@@ -1198,18 +1118,14 @@ func (c *Document1559) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Document1559) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Document1559) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["client_details"] = c.Client_details
 	
 	fields["notes"] = c.Notes
 	
-	return baml.EncodeClass(builder, "Document1559", fields, nil)
-}
-
-func (c Document1559) BamlTypeName() string {
-	return "Document1559"
+	return baml.EncodeClass(builder, typeMap, "Document1559", fields, nil)
 }
 
 
@@ -1224,7 +1140,7 @@ type DummyOutput struct {
 
 }
 
-func (c *DummyOutput) Decode(holder cffi.CFFIValueClass) {
+func (c *DummyOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "DummyOutput" {
 		panic(fmt.Sprintf("expected DummyOutput, got %s", string(holder.Name())))
 	}
@@ -1239,10 +1155,10 @@ func (c *DummyOutput) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "nonce":
-					c.Nonce = baml.Decode(valueHolder).(string)
+					c.Nonce = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "nonce2":
-					c.Nonce2 = baml.Decode(valueHolder).(string)
+					c.Nonce2 = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -1255,24 +1171,20 @@ func (c *DummyOutput) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c DummyOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c DummyOutput) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["nonce"] = c.Nonce
 	
 	fields["nonce2"] = c.Nonce2
 	
-	return baml.EncodeClass(builder, "DummyOutput", fields, &c.DynamicProperties)
-}
-
-func (c DummyOutput) BamlTypeName() string {
-	return "DummyOutput"
+	return baml.EncodeClass(builder, typeMap, "DummyOutput", fields, &c.DynamicProperties)
 }
 
 
@@ -1285,7 +1197,7 @@ type DynInputOutput struct {
 
 }
 
-func (c *DynInputOutput) Decode(holder cffi.CFFIValueClass) {
+func (c *DynInputOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "DynInputOutput" {
 		panic(fmt.Sprintf("expected DynInputOutput, got %s", string(holder.Name())))
 	}
@@ -1300,7 +1212,7 @@ func (c *DynInputOutput) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "testKey":
-					c.TestKey = baml.Decode(valueHolder).(string)
+					c.TestKey = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -1313,22 +1225,18 @@ func (c *DynInputOutput) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c DynInputOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c DynInputOutput) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["testKey"] = c.TestKey
 	
-	return baml.EncodeClass(builder, "DynInputOutput", fields, &c.DynamicProperties)
-}
-
-func (c DynInputOutput) BamlTypeName() string {
-	return "DynInputOutput"
+	return baml.EncodeClass(builder, typeMap, "DynInputOutput", fields, &c.DynamicProperties)
 }
 
 
@@ -1339,7 +1247,7 @@ type DynamicClassOne struct {
 
 }
 
-func (c *DynamicClassOne) Decode(holder cffi.CFFIValueClass) {
+func (c *DynamicClassOne) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "DynamicClassOne" {
 		panic(fmt.Sprintf("expected DynamicClassOne, got %s", string(holder.Name())))
 	}
@@ -1353,20 +1261,16 @@ func (c *DynamicClassOne) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c DynamicClassOne) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c DynamicClassOne) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
-	return baml.EncodeClass(builder, "DynamicClassOne", fields, &c.DynamicProperties)
-}
-
-func (c DynamicClassOne) BamlTypeName() string {
-	return "DynamicClassOne"
+	return baml.EncodeClass(builder, typeMap, "DynamicClassOne", fields, &c.DynamicProperties)
 }
 
 
@@ -1383,7 +1287,7 @@ type DynamicClassTwo struct {
 
 }
 
-func (c *DynamicClassTwo) Decode(holder cffi.CFFIValueClass) {
+func (c *DynamicClassTwo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "DynamicClassTwo" {
 		panic(fmt.Sprintf("expected DynamicClassTwo, got %s", string(holder.Name())))
 	}
@@ -1398,13 +1302,13 @@ func (c *DynamicClassTwo) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "hi":
-					c.Hi = baml.Decode(valueHolder).(string)
+					c.Hi = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "some_class":
-					c.Some_class = *baml.Decode(valueHolder).(*SomeClassNestedDynamic)
+					c.Some_class = *baml.Decode(valueHolder, typeMap).(*SomeClassNestedDynamic)
 				
 				case "status":
-					c.Status = baml.Decode(valueHolder).(DynEnumOne)
+					c.Status = baml.Decode(valueHolder, typeMap).(DynEnumOne)
 				
 			}
 		}
@@ -1417,13 +1321,13 @@ func (c *DynamicClassTwo) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c DynamicClassTwo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c DynamicClassTwo) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["hi"] = c.Hi
@@ -1432,11 +1336,7 @@ func (c DynamicClassTwo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUni
 	
 	fields["status"] = c.Status
 	
-	return baml.EncodeClass(builder, "DynamicClassTwo", fields, &c.DynamicProperties)
-}
-
-func (c DynamicClassTwo) BamlTypeName() string {
-	return "DynamicClassTwo"
+	return baml.EncodeClass(builder, typeMap, "DynamicClassTwo", fields, &c.DynamicProperties)
 }
 
 
@@ -1447,7 +1347,7 @@ type DynamicOutput struct {
 
 }
 
-func (c *DynamicOutput) Decode(holder cffi.CFFIValueClass) {
+func (c *DynamicOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "DynamicOutput" {
 		panic(fmt.Sprintf("expected DynamicOutput, got %s", string(holder.Name())))
 	}
@@ -1461,20 +1361,16 @@ func (c *DynamicOutput) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c DynamicOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c DynamicOutput) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
-	return baml.EncodeClass(builder, "DynamicOutput", fields, &c.DynamicProperties)
-}
-
-func (c DynamicOutput) BamlTypeName() string {
-	return "DynamicOutput"
+	return baml.EncodeClass(builder, typeMap, "DynamicOutput", fields, &c.DynamicProperties)
 }
 
 
@@ -1485,7 +1381,7 @@ type DynamicSchema struct {
 
 }
 
-func (c *DynamicSchema) Decode(holder cffi.CFFIValueClass) {
+func (c *DynamicSchema) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "DynamicSchema" {
 		panic(fmt.Sprintf("expected DynamicSchema, got %s", string(holder.Name())))
 	}
@@ -1499,20 +1395,16 @@ func (c *DynamicSchema) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c DynamicSchema) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c DynamicSchema) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
-	return baml.EncodeClass(builder, "DynamicSchema", fields, &c.DynamicProperties)
-}
-
-func (c DynamicSchema) BamlTypeName() string {
-	return "DynamicSchema"
+	return baml.EncodeClass(builder, typeMap, "DynamicSchema", fields, &c.DynamicProperties)
 }
 
 
@@ -1523,7 +1415,7 @@ type Earthling struct {
 
 }
 
-func (c *Earthling) Decode(holder cffi.CFFIValueClass) {
+func (c *Earthling) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Earthling" {
 		panic(fmt.Sprintf("expected Earthling, got %s", string(holder.Name())))
 	}
@@ -1538,7 +1430,7 @@ func (c *Earthling) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "age":
-					c.Age = baml.Decode(valueHolder).(Checked[int64])
+					c.Age = baml.Decode(valueHolder, typeMap).(Checked[int64])
 				
 			}
 		}
@@ -1548,16 +1440,12 @@ func (c *Earthling) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Earthling) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Earthling) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["age"] = c.Age
 	
-	return baml.EncodeClass(builder, "Earthling", fields, nil)
-}
-
-func (c Earthling) BamlTypeName() string {
-	return "Earthling"
+	return baml.EncodeClass(builder, typeMap, "Earthling", fields, nil)
 }
 
 
@@ -1576,7 +1464,7 @@ type Education struct {
 
 }
 
-func (c *Education) Decode(holder cffi.CFFIValueClass) {
+func (c *Education) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Education" {
 		panic(fmt.Sprintf("expected Education, got %s", string(holder.Name())))
 	}
@@ -1591,21 +1479,21 @@ func (c *Education) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "institution":
-					c.Institution = baml.Decode(valueHolder).(string)
+					c.Institution = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "location":
-					c.Location = baml.Decode(valueHolder).(string)
+					c.Location = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "degree":
-					c.Degree = baml.Decode(valueHolder).(string)
+					c.Degree = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "major":
-					c.Major = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) string {
-    return baml.Decode(__holder).(string)
+					c.Major = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
 })
 				
 				case "graduation_date":
-					c.Graduation_date = baml.Decode(valueHolder).(*string)
+					c.Graduation_date = baml.Decode(valueHolder, typeMap).(*string)
 				
 			}
 		}
@@ -1615,7 +1503,7 @@ func (c *Education) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Education) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Education) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["institution"] = c.Institution
@@ -1628,11 +1516,7 @@ func (c Education) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 	
 	fields["graduation_date"] = c.Graduation_date
 	
-	return baml.EncodeClass(builder, "Education", fields, nil)
-}
-
-func (c Education) BamlTypeName() string {
-	return "Education"
+	return baml.EncodeClass(builder, typeMap, "Education", fields, nil)
 }
 
 
@@ -1647,7 +1531,7 @@ type Email struct {
 
 }
 
-func (c *Email) Decode(holder cffi.CFFIValueClass) {
+func (c *Email) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Email" {
 		panic(fmt.Sprintf("expected Email, got %s", string(holder.Name())))
 	}
@@ -1662,13 +1546,13 @@ func (c *Email) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "subject":
-					c.Subject = baml.Decode(valueHolder).(string)
+					c.Subject = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "body":
-					c.Body = baml.Decode(valueHolder).(string)
+					c.Body = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "from_address":
-					c.From_address = baml.Decode(valueHolder).(string)
+					c.From_address = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -1678,7 +1562,7 @@ func (c *Email) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Email) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Email) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["subject"] = c.Subject
@@ -1687,11 +1571,7 @@ func (c Email) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbu
 	
 	fields["from_address"] = c.From_address
 	
-	return baml.EncodeClass(builder, "Email", fields, nil)
-}
-
-func (c Email) BamlTypeName() string {
-	return "Email"
+	return baml.EncodeClass(builder, typeMap, "Email", fields, nil)
 }
 
 
@@ -1702,7 +1582,7 @@ type EmailAddress struct {
 
 }
 
-func (c *EmailAddress) Decode(holder cffi.CFFIValueClass) {
+func (c *EmailAddress) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "EmailAddress" {
 		panic(fmt.Sprintf("expected EmailAddress, got %s", string(holder.Name())))
 	}
@@ -1717,7 +1597,7 @@ func (c *EmailAddress) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder).(string)
+					c.Value = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -1727,16 +1607,12 @@ func (c *EmailAddress) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c EmailAddress) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c EmailAddress) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["value"] = c.Value
 	
-	return baml.EncodeClass(builder, "EmailAddress", fields, nil)
-}
-
-func (c EmailAddress) BamlTypeName() string {
-	return "EmailAddress"
+	return baml.EncodeClass(builder, typeMap, "EmailAddress", fields, nil)
 }
 
 
@@ -1753,7 +1629,7 @@ type Event struct {
 
 }
 
-func (c *Event) Decode(holder cffi.CFFIValueClass) {
+func (c *Event) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Event" {
 		panic(fmt.Sprintf("expected Event, got %s", string(holder.Name())))
 	}
@@ -1768,16 +1644,16 @@ func (c *Event) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "title":
-					c.Title = baml.Decode(valueHolder).(string)
+					c.Title = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "date":
-					c.Date = baml.Decode(valueHolder).(string)
+					c.Date = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "location":
-					c.Location = baml.Decode(valueHolder).(string)
+					c.Location = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "description":
-					c.Description = baml.Decode(valueHolder).(string)
+					c.Description = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -1787,7 +1663,7 @@ func (c *Event) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Event) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Event) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["title"] = c.Title
@@ -1798,11 +1674,7 @@ func (c Event) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbu
 	
 	fields["description"] = c.Description
 	
-	return baml.EncodeClass(builder, "Event", fields, nil)
-}
-
-func (c Event) BamlTypeName() string {
-	return "Event"
+	return baml.EncodeClass(builder, typeMap, "Event", fields, nil)
 }
 
 
@@ -1813,7 +1685,7 @@ type FakeImage struct {
 
 }
 
-func (c *FakeImage) Decode(holder cffi.CFFIValueClass) {
+func (c *FakeImage) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "FakeImage" {
 		panic(fmt.Sprintf("expected FakeImage, got %s", string(holder.Name())))
 	}
@@ -1828,7 +1700,7 @@ func (c *FakeImage) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "url":
-					c.Url = baml.Decode(valueHolder).(string)
+					c.Url = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -1838,16 +1710,12 @@ func (c *FakeImage) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c FakeImage) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c FakeImage) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["url"] = c.Url
 	
-	return baml.EncodeClass(builder, "FakeImage", fields, nil)
-}
-
-func (c FakeImage) BamlTypeName() string {
-	return "FakeImage"
+	return baml.EncodeClass(builder, typeMap, "FakeImage", fields, nil)
 }
 
 
@@ -1866,7 +1734,7 @@ type FlightConfirmation struct {
 
 }
 
-func (c *FlightConfirmation) Decode(holder cffi.CFFIValueClass) {
+func (c *FlightConfirmation) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "FlightConfirmation" {
 		panic(fmt.Sprintf("expected FlightConfirmation, got %s", string(holder.Name())))
 	}
@@ -1881,19 +1749,19 @@ func (c *FlightConfirmation) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "confirmationNumber":
-					c.ConfirmationNumber = baml.Decode(valueHolder).(string)
+					c.ConfirmationNumber = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "flightNumber":
-					c.FlightNumber = baml.Decode(valueHolder).(string)
+					c.FlightNumber = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "departureTime":
-					c.DepartureTime = baml.Decode(valueHolder).(string)
+					c.DepartureTime = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "arrivalTime":
-					c.ArrivalTime = baml.Decode(valueHolder).(string)
+					c.ArrivalTime = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "seatNumber":
-					c.SeatNumber = baml.Decode(valueHolder).(string)
+					c.SeatNumber = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -1903,7 +1771,7 @@ func (c *FlightConfirmation) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c FlightConfirmation) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c FlightConfirmation) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["confirmationNumber"] = c.ConfirmationNumber
@@ -1916,11 +1784,7 @@ func (c FlightConfirmation) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 	
 	fields["seatNumber"] = c.SeatNumber
 	
-	return baml.EncodeClass(builder, "FlightConfirmation", fields, nil)
-}
-
-func (c FlightConfirmation) BamlTypeName() string {
-	return "FlightConfirmation"
+	return baml.EncodeClass(builder, typeMap, "FlightConfirmation", fields, nil)
 }
 
 
@@ -1935,7 +1799,7 @@ type FooAny struct {
 
 }
 
-func (c *FooAny) Decode(holder cffi.CFFIValueClass) {
+func (c *FooAny) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "FooAny" {
 		panic(fmt.Sprintf("expected FooAny, got %s", string(holder.Name())))
 	}
@@ -1950,13 +1814,13 @@ func (c *FooAny) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "planetary_age":
-					c.Planetary_age = *baml.Decode(valueHolder).(*Union__Martian__Earthling)
+					c.Planetary_age = *baml.Decode(valueHolder, typeMap).(*Union__Martian__Earthling)
 				
 				case "certainty":
-					c.Certainty = baml.Decode(valueHolder).(Checked[int64])
+					c.Certainty = baml.Decode(valueHolder, typeMap).(Checked[int64])
 				
 				case "species":
-					c.Species = baml.Decode(valueHolder).(Checked[string])
+					c.Species = baml.Decode(valueHolder, typeMap).(Checked[string])
 				
 			}
 		}
@@ -1966,7 +1830,7 @@ func (c *FooAny) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c FooAny) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c FooAny) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["planetary_age"] = c.Planetary_age
@@ -1975,11 +1839,7 @@ func (c FooAny) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 	
 	fields["species"] = c.Species
 	
-	return baml.EncodeClass(builder, "FooAny", fields, nil)
-}
-
-func (c FooAny) BamlTypeName() string {
-	return "FooAny"
+	return baml.EncodeClass(builder, typeMap, "FooAny", fields, nil)
 }
 
 
@@ -1990,7 +1850,7 @@ type Forest struct {
 
 }
 
-func (c *Forest) Decode(holder cffi.CFFIValueClass) {
+func (c *Forest) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Forest" {
 		panic(fmt.Sprintf("expected Forest, got %s", string(holder.Name())))
 	}
@@ -2005,8 +1865,8 @@ func (c *Forest) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "trees":
-					c.Trees = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Tree {
-    return *baml.Decode(__holder).(*Tree)
+					c.Trees = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Tree {
+    return *baml.Decode(__holder, typeMap).(*Tree)
 })
 				
 			}
@@ -2017,16 +1877,12 @@ func (c *Forest) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Forest) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Forest) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["trees"] = c.Trees
 	
-	return baml.EncodeClass(builder, "Forest", fields, nil)
-}
-
-func (c Forest) BamlTypeName() string {
-	return "Forest"
+	return baml.EncodeClass(builder, typeMap, "Forest", fields, nil)
 }
 
 
@@ -2039,7 +1895,7 @@ type FormatterTest0 struct {
 
 }
 
-func (c *FormatterTest0) Decode(holder cffi.CFFIValueClass) {
+func (c *FormatterTest0) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "FormatterTest0" {
 		panic(fmt.Sprintf("expected FormatterTest0, got %s", string(holder.Name())))
 	}
@@ -2054,10 +1910,10 @@ func (c *FormatterTest0) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "lorem":
-					c.Lorem = baml.Decode(valueHolder).(string)
+					c.Lorem = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "ipsum":
-					c.Ipsum = baml.Decode(valueHolder).(string)
+					c.Ipsum = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2067,18 +1923,14 @@ func (c *FormatterTest0) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c FormatterTest0) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c FormatterTest0) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["lorem"] = c.Lorem
 	
 	fields["ipsum"] = c.Ipsum
 	
-	return baml.EncodeClass(builder, "FormatterTest0", fields, nil)
-}
-
-func (c FormatterTest0) BamlTypeName() string {
-	return "FormatterTest0"
+	return baml.EncodeClass(builder, typeMap, "FormatterTest0", fields, nil)
 }
 
 
@@ -2091,7 +1943,7 @@ type FormatterTest1 struct {
 
 }
 
-func (c *FormatterTest1) Decode(holder cffi.CFFIValueClass) {
+func (c *FormatterTest1) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "FormatterTest1" {
 		panic(fmt.Sprintf("expected FormatterTest1, got %s", string(holder.Name())))
 	}
@@ -2106,10 +1958,10 @@ func (c *FormatterTest1) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "lorem":
-					c.Lorem = baml.Decode(valueHolder).(string)
+					c.Lorem = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "ipsum":
-					c.Ipsum = baml.Decode(valueHolder).(string)
+					c.Ipsum = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2119,18 +1971,14 @@ func (c *FormatterTest1) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c FormatterTest1) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c FormatterTest1) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["lorem"] = c.Lorem
 	
 	fields["ipsum"] = c.Ipsum
 	
-	return baml.EncodeClass(builder, "FormatterTest1", fields, nil)
-}
-
-func (c FormatterTest1) BamlTypeName() string {
-	return "FormatterTest1"
+	return baml.EncodeClass(builder, typeMap, "FormatterTest1", fields, nil)
 }
 
 
@@ -2143,7 +1991,7 @@ type FormatterTest2 struct {
 
 }
 
-func (c *FormatterTest2) Decode(holder cffi.CFFIValueClass) {
+func (c *FormatterTest2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "FormatterTest2" {
 		panic(fmt.Sprintf("expected FormatterTest2, got %s", string(holder.Name())))
 	}
@@ -2158,10 +2006,10 @@ func (c *FormatterTest2) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "lorem":
-					c.Lorem = baml.Decode(valueHolder).(string)
+					c.Lorem = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "ipsum":
-					c.Ipsum = baml.Decode(valueHolder).(string)
+					c.Ipsum = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2171,18 +2019,14 @@ func (c *FormatterTest2) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c FormatterTest2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c FormatterTest2) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["lorem"] = c.Lorem
 	
 	fields["ipsum"] = c.Ipsum
 	
-	return baml.EncodeClass(builder, "FormatterTest2", fields, nil)
-}
-
-func (c FormatterTest2) BamlTypeName() string {
-	return "FormatterTest2"
+	return baml.EncodeClass(builder, typeMap, "FormatterTest2", fields, nil)
 }
 
 
@@ -2195,7 +2039,7 @@ type FormatterTest3 struct {
 
 }
 
-func (c *FormatterTest3) Decode(holder cffi.CFFIValueClass) {
+func (c *FormatterTest3) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "FormatterTest3" {
 		panic(fmt.Sprintf("expected FormatterTest3, got %s", string(holder.Name())))
 	}
@@ -2210,10 +2054,10 @@ func (c *FormatterTest3) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "lorem":
-					c.Lorem = baml.Decode(valueHolder).(string)
+					c.Lorem = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "ipsum":
-					c.Ipsum = baml.Decode(valueHolder).(string)
+					c.Ipsum = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2223,18 +2067,14 @@ func (c *FormatterTest3) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c FormatterTest3) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c FormatterTest3) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["lorem"] = c.Lorem
 	
 	fields["ipsum"] = c.Ipsum
 	
-	return baml.EncodeClass(builder, "FormatterTest3", fields, nil)
-}
-
-func (c FormatterTest3) BamlTypeName() string {
-	return "FormatterTest3"
+	return baml.EncodeClass(builder, typeMap, "FormatterTest3", fields, nil)
 }
 
 
@@ -2251,7 +2091,7 @@ type GroceryReceipt struct {
 
 }
 
-func (c *GroceryReceipt) Decode(holder cffi.CFFIValueClass) {
+func (c *GroceryReceipt) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "GroceryReceipt" {
 		panic(fmt.Sprintf("expected GroceryReceipt, got %s", string(holder.Name())))
 	}
@@ -2266,18 +2106,18 @@ func (c *GroceryReceipt) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "receiptId":
-					c.ReceiptId = baml.Decode(valueHolder).(string)
+					c.ReceiptId = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "storeName":
-					c.StoreName = baml.Decode(valueHolder).(string)
+					c.StoreName = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "items":
-					c.Items = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Union__string__int__float {
-    return *baml.Decode(__holder).(*Union__string__int__float)
+					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__string__int__float {
+    return *baml.Decode(__holder, typeMap).(*Union__string__int__float)
 })
 				
 				case "totalAmount":
-					c.TotalAmount = baml.Decode(valueHolder).(float64)
+					c.TotalAmount = baml.Decode(valueHolder, typeMap).(float64)
 				
 			}
 		}
@@ -2287,7 +2127,7 @@ func (c *GroceryReceipt) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c GroceryReceipt) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c GroceryReceipt) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["receiptId"] = c.ReceiptId
@@ -2298,11 +2138,7 @@ func (c GroceryReceipt) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 	
 	fields["totalAmount"] = c.TotalAmount
 	
-	return baml.EncodeClass(builder, "GroceryReceipt", fields, nil)
-}
-
-func (c GroceryReceipt) BamlTypeName() string {
-	return "GroceryReceipt"
+	return baml.EncodeClass(builder, typeMap, "GroceryReceipt", fields, nil)
 }
 
 
@@ -2317,7 +2153,7 @@ type Haiku struct {
 
 }
 
-func (c *Haiku) Decode(holder cffi.CFFIValueClass) {
+func (c *Haiku) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Haiku" {
 		panic(fmt.Sprintf("expected Haiku, got %s", string(holder.Name())))
 	}
@@ -2332,13 +2168,13 @@ func (c *Haiku) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "line1":
-					c.Line1 = baml.Decode(valueHolder).(string)
+					c.Line1 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "line2":
-					c.Line2 = baml.Decode(valueHolder).(string)
+					c.Line2 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "line3":
-					c.Line3 = baml.Decode(valueHolder).(string)
+					c.Line3 = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2348,7 +2184,7 @@ func (c *Haiku) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Haiku) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Haiku) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["line1"] = c.Line1
@@ -2357,11 +2193,7 @@ func (c Haiku) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbu
 	
 	fields["line3"] = c.Line3
 	
-	return baml.EncodeClass(builder, "Haiku", fields, nil)
-}
-
-func (c Haiku) BamlTypeName() string {
-	return "Haiku"
+	return baml.EncodeClass(builder, typeMap, "Haiku", fields, nil)
 }
 
 
@@ -2376,7 +2208,7 @@ type InnerClass struct {
 
 }
 
-func (c *InnerClass) Decode(holder cffi.CFFIValueClass) {
+func (c *InnerClass) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "InnerClass" {
 		panic(fmt.Sprintf("expected InnerClass, got %s", string(holder.Name())))
 	}
@@ -2391,13 +2223,13 @@ func (c *InnerClass) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = baml.Decode(valueHolder).(string)
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "prop2":
-					c.Prop2 = baml.Decode(valueHolder).(string)
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "inner":
-					c.Inner = *baml.Decode(valueHolder).(*InnerClass2)
+					c.Inner = *baml.Decode(valueHolder, typeMap).(*InnerClass2)
 				
 			}
 		}
@@ -2407,7 +2239,7 @@ func (c *InnerClass) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c InnerClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c InnerClass) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop1"] = c.Prop1
@@ -2416,11 +2248,7 @@ func (c InnerClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 	
 	fields["inner"] = c.Inner
 	
-	return baml.EncodeClass(builder, "InnerClass", fields, nil)
-}
-
-func (c InnerClass) BamlTypeName() string {
-	return "InnerClass"
+	return baml.EncodeClass(builder, typeMap, "InnerClass", fields, nil)
 }
 
 
@@ -2433,7 +2261,7 @@ type InnerClass2 struct {
 
 }
 
-func (c *InnerClass2) Decode(holder cffi.CFFIValueClass) {
+func (c *InnerClass2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "InnerClass2" {
 		panic(fmt.Sprintf("expected InnerClass2, got %s", string(holder.Name())))
 	}
@@ -2448,10 +2276,10 @@ func (c *InnerClass2) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop2":
-					c.Prop2 = baml.Decode(valueHolder).(int64)
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "prop3":
-					c.Prop3 = baml.Decode(valueHolder).(float64)
+					c.Prop3 = baml.Decode(valueHolder, typeMap).(float64)
 				
 			}
 		}
@@ -2461,18 +2289,14 @@ func (c *InnerClass2) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c InnerClass2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c InnerClass2) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop2"] = c.Prop2
 	
 	fields["prop3"] = c.Prop3
 	
-	return baml.EncodeClass(builder, "InnerClass2", fields, nil)
-}
-
-func (c InnerClass2) BamlTypeName() string {
-	return "InnerClass2"
+	return baml.EncodeClass(builder, typeMap, "InnerClass2", fields, nil)
 }
 
 
@@ -2485,7 +2309,7 @@ type InputClass struct {
 
 }
 
-func (c *InputClass) Decode(holder cffi.CFFIValueClass) {
+func (c *InputClass) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "InputClass" {
 		panic(fmt.Sprintf("expected InputClass, got %s", string(holder.Name())))
 	}
@@ -2500,10 +2324,10 @@ func (c *InputClass) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "key":
-					c.Key = baml.Decode(valueHolder).(string)
+					c.Key = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "key2":
-					c.Key2 = baml.Decode(valueHolder).(string)
+					c.Key2 = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2513,18 +2337,14 @@ func (c *InputClass) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c InputClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c InputClass) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["key"] = c.Key
 	
 	fields["key2"] = c.Key2
 	
-	return baml.EncodeClass(builder, "InputClass", fields, nil)
-}
-
-func (c InputClass) BamlTypeName() string {
-	return "InputClass"
+	return baml.EncodeClass(builder, typeMap, "InputClass", fields, nil)
 }
 
 
@@ -2537,7 +2357,7 @@ type InputClassNested struct {
 
 }
 
-func (c *InputClassNested) Decode(holder cffi.CFFIValueClass) {
+func (c *InputClassNested) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "InputClassNested" {
 		panic(fmt.Sprintf("expected InputClassNested, got %s", string(holder.Name())))
 	}
@@ -2552,10 +2372,10 @@ func (c *InputClassNested) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "key":
-					c.Key = baml.Decode(valueHolder).(string)
+					c.Key = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "nested":
-					c.Nested = *baml.Decode(valueHolder).(*InputClass)
+					c.Nested = *baml.Decode(valueHolder, typeMap).(*InputClass)
 				
 			}
 		}
@@ -2565,18 +2385,14 @@ func (c *InputClassNested) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c InputClassNested) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c InputClassNested) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["key"] = c.Key
 	
 	fields["nested"] = c.Nested
 	
-	return baml.EncodeClass(builder, "InputClassNested", fields, nil)
-}
-
-func (c InputClassNested) BamlTypeName() string {
-	return "InputClassNested"
+	return baml.EncodeClass(builder, typeMap, "InputClassNested", fields, nil)
 }
 
 
@@ -2589,7 +2405,7 @@ type LinkedList struct {
 
 }
 
-func (c *LinkedList) Decode(holder cffi.CFFIValueClass) {
+func (c *LinkedList) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "LinkedList" {
 		panic(fmt.Sprintf("expected LinkedList, got %s", string(holder.Name())))
 	}
@@ -2604,10 +2420,10 @@ func (c *LinkedList) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "head":
-					c.Head = baml.Decode(valueHolder).(*Node)
+					c.Head = baml.Decode(valueHolder, typeMap).(*Node)
 				
 				case "len":
-					c.Len = baml.Decode(valueHolder).(int64)
+					c.Len = baml.Decode(valueHolder, typeMap).(int64)
 				
 			}
 		}
@@ -2617,18 +2433,14 @@ func (c *LinkedList) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c LinkedList) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c LinkedList) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["head"] = c.Head
 	
 	fields["len"] = c.Len
 	
-	return baml.EncodeClass(builder, "LinkedList", fields, nil)
-}
-
-func (c LinkedList) BamlTypeName() string {
-	return "LinkedList"
+	return baml.EncodeClass(builder, typeMap, "LinkedList", fields, nil)
 }
 
 
@@ -2641,7 +2453,7 @@ type LinkedListAliasNode struct {
 
 }
 
-func (c *LinkedListAliasNode) Decode(holder cffi.CFFIValueClass) {
+func (c *LinkedListAliasNode) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "LinkedListAliasNode" {
 		panic(fmt.Sprintf("expected LinkedListAliasNode, got %s", string(holder.Name())))
 	}
@@ -2656,10 +2468,10 @@ func (c *LinkedListAliasNode) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder).(int64)
+					c.Value = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "next":
-					c.Next = baml.Decode(valueHolder).(*LinkedListAliasNode)
+					c.Next = baml.Decode(valueHolder, typeMap).(*LinkedListAliasNode)
 				
 			}
 		}
@@ -2669,18 +2481,14 @@ func (c *LinkedListAliasNode) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c LinkedListAliasNode) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c LinkedListAliasNode) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["value"] = c.Value
 	
 	fields["next"] = c.Next
 	
-	return baml.EncodeClass(builder, "LinkedListAliasNode", fields, nil)
-}
-
-func (c LinkedListAliasNode) BamlTypeName() string {
-	return "LinkedListAliasNode"
+	return baml.EncodeClass(builder, typeMap, "LinkedListAliasNode", fields, nil)
 }
 
 
@@ -2691,7 +2499,7 @@ type LiteralClassHello struct {
 
 }
 
-func (c *LiteralClassHello) Decode(holder cffi.CFFIValueClass) {
+func (c *LiteralClassHello) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "LiteralClassHello" {
 		panic(fmt.Sprintf("expected LiteralClassHello, got %s", string(holder.Name())))
 	}
@@ -2706,7 +2514,7 @@ func (c *LiteralClassHello) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop":
-					c.Prop = baml.Decode(valueHolder).(string)
+					c.Prop = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2716,16 +2524,12 @@ func (c *LiteralClassHello) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c LiteralClassHello) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c LiteralClassHello) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop"] = c.Prop
 	
-	return baml.EncodeClass(builder, "LiteralClassHello", fields, nil)
-}
-
-func (c LiteralClassHello) BamlTypeName() string {
-	return "LiteralClassHello"
+	return baml.EncodeClass(builder, typeMap, "LiteralClassHello", fields, nil)
 }
 
 
@@ -2736,7 +2540,7 @@ type LiteralClassOne struct {
 
 }
 
-func (c *LiteralClassOne) Decode(holder cffi.CFFIValueClass) {
+func (c *LiteralClassOne) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "LiteralClassOne" {
 		panic(fmt.Sprintf("expected LiteralClassOne, got %s", string(holder.Name())))
 	}
@@ -2751,7 +2555,7 @@ func (c *LiteralClassOne) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop":
-					c.Prop = baml.Decode(valueHolder).(string)
+					c.Prop = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2761,16 +2565,12 @@ func (c *LiteralClassOne) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c LiteralClassOne) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c LiteralClassOne) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop"] = c.Prop
 	
-	return baml.EncodeClass(builder, "LiteralClassOne", fields, nil)
-}
-
-func (c LiteralClassOne) BamlTypeName() string {
-	return "LiteralClassOne"
+	return baml.EncodeClass(builder, typeMap, "LiteralClassOne", fields, nil)
 }
 
 
@@ -2781,7 +2581,7 @@ type LiteralClassTwo struct {
 
 }
 
-func (c *LiteralClassTwo) Decode(holder cffi.CFFIValueClass) {
+func (c *LiteralClassTwo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "LiteralClassTwo" {
 		panic(fmt.Sprintf("expected LiteralClassTwo, got %s", string(holder.Name())))
 	}
@@ -2796,7 +2596,7 @@ func (c *LiteralClassTwo) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop":
-					c.Prop = baml.Decode(valueHolder).(string)
+					c.Prop = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2806,16 +2606,12 @@ func (c *LiteralClassTwo) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c LiteralClassTwo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c LiteralClassTwo) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop"] = c.Prop
 	
-	return baml.EncodeClass(builder, "LiteralClassTwo", fields, nil)
-}
-
-func (c LiteralClassTwo) BamlTypeName() string {
-	return "LiteralClassTwo"
+	return baml.EncodeClass(builder, typeMap, "LiteralClassTwo", fields, nil)
 }
 
 
@@ -2826,7 +2622,7 @@ type MalformedConstraints struct {
 
 }
 
-func (c *MalformedConstraints) Decode(holder cffi.CFFIValueClass) {
+func (c *MalformedConstraints) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "MalformedConstraints" {
 		panic(fmt.Sprintf("expected MalformedConstraints, got %s", string(holder.Name())))
 	}
@@ -2841,7 +2637,7 @@ func (c *MalformedConstraints) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "foo":
-					c.Foo = baml.Decode(valueHolder).(Checked[int64])
+					c.Foo = baml.Decode(valueHolder, typeMap).(Checked[int64])
 				
 			}
 		}
@@ -2851,16 +2647,12 @@ func (c *MalformedConstraints) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c MalformedConstraints) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c MalformedConstraints) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["foo"] = c.Foo
 	
-	return baml.EncodeClass(builder, "MalformedConstraints", fields, nil)
-}
-
-func (c MalformedConstraints) BamlTypeName() string {
-	return "MalformedConstraints"
+	return baml.EncodeClass(builder, typeMap, "MalformedConstraints", fields, nil)
 }
 
 
@@ -2871,7 +2663,7 @@ type MalformedConstraints2 struct {
 
 }
 
-func (c *MalformedConstraints2) Decode(holder cffi.CFFIValueClass) {
+func (c *MalformedConstraints2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "MalformedConstraints2" {
 		panic(fmt.Sprintf("expected MalformedConstraints2, got %s", string(holder.Name())))
 	}
@@ -2886,7 +2678,7 @@ func (c *MalformedConstraints2) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "foo":
-					c.Foo = baml.Decode(valueHolder).(int64)
+					c.Foo = baml.Decode(valueHolder, typeMap).(int64)
 				
 			}
 		}
@@ -2896,16 +2688,12 @@ func (c *MalformedConstraints2) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c MalformedConstraints2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c MalformedConstraints2) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["foo"] = c.Foo
 	
-	return baml.EncodeClass(builder, "MalformedConstraints2", fields, nil)
-}
-
-func (c MalformedConstraints2) BamlTypeName() string {
-	return "MalformedConstraints2"
+	return baml.EncodeClass(builder, typeMap, "MalformedConstraints2", fields, nil)
 }
 
 
@@ -2919,7 +2707,7 @@ type Martian struct {
 
 }
 
-func (c *Martian) Decode(holder cffi.CFFIValueClass) {
+func (c *Martian) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Martian" {
 		panic(fmt.Sprintf("expected Martian, got %s", string(holder.Name())))
 	}
@@ -2934,7 +2722,7 @@ func (c *Martian) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "age":
-					c.Age = baml.Decode(valueHolder).(Checked[int64])
+					c.Age = baml.Decode(valueHolder, typeMap).(Checked[int64])
 				
 			}
 		}
@@ -2944,16 +2732,12 @@ func (c *Martian) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Martian) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Martian) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["age"] = c.Age
 	
-	return baml.EncodeClass(builder, "Martian", fields, nil)
-}
-
-func (c Martian) BamlTypeName() string {
-	return "Martian"
+	return baml.EncodeClass(builder, typeMap, "Martian", fields, nil)
 }
 
 
@@ -2968,7 +2752,7 @@ type MemoryObject struct {
 
 }
 
-func (c *MemoryObject) Decode(holder cffi.CFFIValueClass) {
+func (c *MemoryObject) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "MemoryObject" {
 		panic(fmt.Sprintf("expected MemoryObject, got %s", string(holder.Name())))
 	}
@@ -2983,13 +2767,13 @@ func (c *MemoryObject) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "id":
-					c.Id = baml.Decode(valueHolder).(string)
+					c.Id = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "name":
-					c.Name = baml.Decode(valueHolder).(string)
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "description":
-					c.Description = baml.Decode(valueHolder).(string)
+					c.Description = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -2999,7 +2783,7 @@ func (c *MemoryObject) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c MemoryObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c MemoryObject) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["id"] = c.Id
@@ -3008,11 +2792,7 @@ func (c MemoryObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion,
 	
 	fields["description"] = c.Description
 	
-	return baml.EncodeClass(builder, "MemoryObject", fields, nil)
-}
-
-func (c MemoryObject) BamlTypeName() string {
-	return "MemoryObject"
+	return baml.EncodeClass(builder, typeMap, "MemoryObject", fields, nil)
 }
 
 
@@ -3023,7 +2803,7 @@ type MergeAttrs struct {
 
 }
 
-func (c *MergeAttrs) Decode(holder cffi.CFFIValueClass) {
+func (c *MergeAttrs) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "MergeAttrs" {
 		panic(fmt.Sprintf("expected MergeAttrs, got %s", string(holder.Name())))
 	}
@@ -3038,7 +2818,7 @@ func (c *MergeAttrs) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "amount":
-					c.Amount = baml.Decode(valueHolder).(Checked[int64])
+					c.Amount = baml.Decode(valueHolder, typeMap).(Checked[int64])
 				
 			}
 		}
@@ -3048,16 +2828,12 @@ func (c *MergeAttrs) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c MergeAttrs) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c MergeAttrs) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["amount"] = c.Amount
 	
-	return baml.EncodeClass(builder, "MergeAttrs", fields, nil)
-}
-
-func (c MergeAttrs) BamlTypeName() string {
-	return "MergeAttrs"
+	return baml.EncodeClass(builder, typeMap, "MergeAttrs", fields, nil)
 }
 
 
@@ -3072,7 +2848,7 @@ type NamedArgsSingleClass struct {
 
 }
 
-func (c *NamedArgsSingleClass) Decode(holder cffi.CFFIValueClass) {
+func (c *NamedArgsSingleClass) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "NamedArgsSingleClass" {
 		panic(fmt.Sprintf("expected NamedArgsSingleClass, got %s", string(holder.Name())))
 	}
@@ -3087,13 +2863,13 @@ func (c *NamedArgsSingleClass) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "key":
-					c.Key = baml.Decode(valueHolder).(string)
+					c.Key = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "key_two":
-					c.Key_two = baml.Decode(valueHolder).(bool)
+					c.Key_two = baml.Decode(valueHolder, typeMap).(bool)
 				
 				case "key_three":
-					c.Key_three = baml.Decode(valueHolder).(int64)
+					c.Key_three = baml.Decode(valueHolder, typeMap).(int64)
 				
 			}
 		}
@@ -3103,7 +2879,7 @@ func (c *NamedArgsSingleClass) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c NamedArgsSingleClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c NamedArgsSingleClass) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["key"] = c.Key
@@ -3112,11 +2888,7 @@ func (c NamedArgsSingleClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIVal
 	
 	fields["key_three"] = c.Key_three
 	
-	return baml.EncodeClass(builder, "NamedArgsSingleClass", fields, nil)
-}
-
-func (c NamedArgsSingleClass) BamlTypeName() string {
-	return "NamedArgsSingleClass"
+	return baml.EncodeClass(builder, typeMap, "NamedArgsSingleClass", fields, nil)
 }
 
 
@@ -3131,7 +2903,7 @@ type Nested struct {
 
 }
 
-func (c *Nested) Decode(holder cffi.CFFIValueClass) {
+func (c *Nested) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Nested" {
 		panic(fmt.Sprintf("expected Nested, got %s", string(holder.Name())))
 	}
@@ -3146,13 +2918,13 @@ func (c *Nested) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop3":
-					c.Prop3 = baml.Decode(valueHolder).(*string)
+					c.Prop3 = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "prop4":
-					c.Prop4 = baml.Decode(valueHolder).(*string)
+					c.Prop4 = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "prop20":
-					c.Prop20 = *baml.Decode(valueHolder).(*Nested2)
+					c.Prop20 = *baml.Decode(valueHolder, typeMap).(*Nested2)
 				
 			}
 		}
@@ -3162,7 +2934,7 @@ func (c *Nested) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Nested) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Nested) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop3"] = c.Prop3
@@ -3171,11 +2943,7 @@ func (c Nested) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 	
 	fields["prop20"] = c.Prop20
 	
-	return baml.EncodeClass(builder, "Nested", fields, nil)
-}
-
-func (c Nested) BamlTypeName() string {
-	return "Nested"
+	return baml.EncodeClass(builder, typeMap, "Nested", fields, nil)
 }
 
 
@@ -3188,7 +2956,7 @@ type Nested2 struct {
 
 }
 
-func (c *Nested2) Decode(holder cffi.CFFIValueClass) {
+func (c *Nested2) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Nested2" {
 		panic(fmt.Sprintf("expected Nested2, got %s", string(holder.Name())))
 	}
@@ -3203,10 +2971,10 @@ func (c *Nested2) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop11":
-					c.Prop11 = baml.Decode(valueHolder).(*string)
+					c.Prop11 = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "prop12":
-					c.Prop12 = baml.Decode(valueHolder).(*string)
+					c.Prop12 = baml.Decode(valueHolder, typeMap).(*string)
 				
 			}
 		}
@@ -3216,18 +2984,14 @@ func (c *Nested2) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Nested2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Nested2) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop11"] = c.Prop11
 	
 	fields["prop12"] = c.Prop12
 	
-	return baml.EncodeClass(builder, "Nested2", fields, nil)
-}
-
-func (c Nested2) BamlTypeName() string {
-	return "Nested2"
+	return baml.EncodeClass(builder, typeMap, "Nested2", fields, nil)
 }
 
 
@@ -3238,7 +3002,7 @@ type NestedBlockConstraint struct {
 
 }
 
-func (c *NestedBlockConstraint) Decode(holder cffi.CFFIValueClass) {
+func (c *NestedBlockConstraint) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "NestedBlockConstraint" {
 		panic(fmt.Sprintf("expected NestedBlockConstraint, got %s", string(holder.Name())))
 	}
@@ -3253,7 +3017,7 @@ func (c *NestedBlockConstraint) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "nbc":
-					c.Nbc = baml.Decode(valueHolder).(Checked[BlockConstraint])
+					c.Nbc = baml.Decode(valueHolder, typeMap).(Checked[BlockConstraint])
 				
 			}
 		}
@@ -3263,16 +3027,12 @@ func (c *NestedBlockConstraint) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c NestedBlockConstraint) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c NestedBlockConstraint) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["nbc"] = c.Nbc
 	
-	return baml.EncodeClass(builder, "NestedBlockConstraint", fields, nil)
-}
-
-func (c NestedBlockConstraint) BamlTypeName() string {
-	return "NestedBlockConstraint"
+	return baml.EncodeClass(builder, typeMap, "NestedBlockConstraint", fields, nil)
 }
 
 
@@ -3283,7 +3043,7 @@ type NestedBlockConstraintForParam struct {
 
 }
 
-func (c *NestedBlockConstraintForParam) Decode(holder cffi.CFFIValueClass) {
+func (c *NestedBlockConstraintForParam) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "NestedBlockConstraintForParam" {
 		panic(fmt.Sprintf("expected NestedBlockConstraintForParam, got %s", string(holder.Name())))
 	}
@@ -3298,7 +3058,7 @@ func (c *NestedBlockConstraintForParam) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "nbcfp":
-					c.Nbcfp = baml.Decode(valueHolder).(BlockConstraintForParam)
+					c.Nbcfp = baml.Decode(valueHolder, typeMap).(BlockConstraintForParam)
 				
 			}
 		}
@@ -3308,16 +3068,12 @@ func (c *NestedBlockConstraintForParam) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c NestedBlockConstraintForParam) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c NestedBlockConstraintForParam) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["nbcfp"] = c.Nbcfp
 	
-	return baml.EncodeClass(builder, "NestedBlockConstraintForParam", fields, nil)
-}
-
-func (c NestedBlockConstraintForParam) BamlTypeName() string {
-	return "NestedBlockConstraintForParam"
+	return baml.EncodeClass(builder, typeMap, "NestedBlockConstraintForParam", fields, nil)
 }
 
 
@@ -3330,7 +3086,7 @@ type Node struct {
 
 }
 
-func (c *Node) Decode(holder cffi.CFFIValueClass) {
+func (c *Node) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Node" {
 		panic(fmt.Sprintf("expected Node, got %s", string(holder.Name())))
 	}
@@ -3345,10 +3101,10 @@ func (c *Node) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "data":
-					c.Data = baml.Decode(valueHolder).(int64)
+					c.Data = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "next":
-					c.Next = baml.Decode(valueHolder).(*Node)
+					c.Next = baml.Decode(valueHolder, typeMap).(*Node)
 				
 			}
 		}
@@ -3358,18 +3114,14 @@ func (c *Node) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Node) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Node) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["data"] = c.Data
 	
 	fields["next"] = c.Next
 	
-	return baml.EncodeClass(builder, "Node", fields, nil)
-}
-
-func (c Node) BamlTypeName() string {
-	return "Node"
+	return baml.EncodeClass(builder, typeMap, "Node", fields, nil)
 }
 
 
@@ -3382,7 +3134,7 @@ type NodeWithAliasIndirection struct {
 
 }
 
-func (c *NodeWithAliasIndirection) Decode(holder cffi.CFFIValueClass) {
+func (c *NodeWithAliasIndirection) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "NodeWithAliasIndirection" {
 		panic(fmt.Sprintf("expected NodeWithAliasIndirection, got %s", string(holder.Name())))
 	}
@@ -3397,10 +3149,10 @@ func (c *NodeWithAliasIndirection) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder).(int64)
+					c.Value = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "next":
-					c.Next = baml.Decode(valueHolder).(*NodeWithAliasIndirection)
+					c.Next = baml.Decode(valueHolder, typeMap).(*NodeWithAliasIndirection)
 				
 			}
 		}
@@ -3410,18 +3162,14 @@ func (c *NodeWithAliasIndirection) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c NodeWithAliasIndirection) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c NodeWithAliasIndirection) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["value"] = c.Value
 	
 	fields["next"] = c.Next
 	
-	return baml.EncodeClass(builder, "NodeWithAliasIndirection", fields, nil)
-}
-
-func (c NodeWithAliasIndirection) BamlTypeName() string {
-	return "NodeWithAliasIndirection"
+	return baml.EncodeClass(builder, typeMap, "NodeWithAliasIndirection", fields, nil)
 }
 
 
@@ -3436,7 +3184,7 @@ type Note1599 struct {
 
 }
 
-func (c *Note1599) Decode(holder cffi.CFFIValueClass) {
+func (c *Note1599) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Note1599" {
 		panic(fmt.Sprintf("expected Note1599, got %s", string(holder.Name())))
 	}
@@ -3451,13 +3199,13 @@ func (c *Note1599) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "note_title":
-					c.Note_title = baml.Decode(valueHolder).(string)
+					c.Note_title = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "note_description":
-					c.Note_description = baml.Decode(valueHolder).(*string)
+					c.Note_description = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "note_amount":
-					c.Note_amount = baml.Decode(valueHolder).(*string)
+					c.Note_amount = baml.Decode(valueHolder, typeMap).(*string)
 				
 			}
 		}
@@ -3467,7 +3215,7 @@ func (c *Note1599) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Note1599) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Note1599) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["note_title"] = c.Note_title
@@ -3476,11 +3224,7 @@ func (c Note1599) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fla
 	
 	fields["note_amount"] = c.Note_amount
 	
-	return baml.EncodeClass(builder, "Note1599", fields, nil)
-}
-
-func (c Note1599) BamlTypeName() string {
-	return "Note1599"
+	return baml.EncodeClass(builder, typeMap, "Note1599", fields, nil)
 }
 
 
@@ -3493,7 +3237,7 @@ type OptionalListAndMap struct {
 
 }
 
-func (c *OptionalListAndMap) Decode(holder cffi.CFFIValueClass) {
+func (c *OptionalListAndMap) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "OptionalListAndMap" {
 		panic(fmt.Sprintf("expected OptionalListAndMap, got %s", string(holder.Name())))
 	}
@@ -3508,10 +3252,10 @@ func (c *OptionalListAndMap) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "p":
-					c.P = baml.Decode(valueHolder).(*[]string)
+					c.P = baml.Decode(valueHolder, typeMap).(*[]string)
 				
 				case "q":
-					c.Q = baml.Decode(valueHolder).(*map[string]string)
+					c.Q = baml.Decode(valueHolder, typeMap).(*map[string]string)
 				
 			}
 		}
@@ -3521,18 +3265,14 @@ func (c *OptionalListAndMap) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c OptionalListAndMap) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c OptionalListAndMap) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["p"] = c.P
 	
 	fields["q"] = c.Q
 	
-	return baml.EncodeClass(builder, "OptionalListAndMap", fields, nil)
-}
-
-func (c OptionalListAndMap) BamlTypeName() string {
-	return "OptionalListAndMap"
+	return baml.EncodeClass(builder, typeMap, "OptionalListAndMap", fields, nil)
 }
 
 
@@ -3545,7 +3285,7 @@ type OptionalTest_Prop1 struct {
 
 }
 
-func (c *OptionalTest_Prop1) Decode(holder cffi.CFFIValueClass) {
+func (c *OptionalTest_Prop1) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "OptionalTest_Prop1" {
 		panic(fmt.Sprintf("expected OptionalTest_Prop1, got %s", string(holder.Name())))
 	}
@@ -3560,10 +3300,10 @@ func (c *OptionalTest_Prop1) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "omega_a":
-					c.Omega_a = baml.Decode(valueHolder).(string)
+					c.Omega_a = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "omega_b":
-					c.Omega_b = baml.Decode(valueHolder).(int64)
+					c.Omega_b = baml.Decode(valueHolder, typeMap).(int64)
 				
 			}
 		}
@@ -3573,18 +3313,14 @@ func (c *OptionalTest_Prop1) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c OptionalTest_Prop1) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c OptionalTest_Prop1) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["omega_a"] = c.Omega_a
 	
 	fields["omega_b"] = c.Omega_b
 	
-	return baml.EncodeClass(builder, "OptionalTest_Prop1", fields, nil)
-}
-
-func (c OptionalTest_Prop1) BamlTypeName() string {
-	return "OptionalTest_Prop1"
+	return baml.EncodeClass(builder, typeMap, "OptionalTest_Prop1", fields, nil)
 }
 
 
@@ -3599,7 +3335,7 @@ type OptionalTest_ReturnType struct {
 
 }
 
-func (c *OptionalTest_ReturnType) Decode(holder cffi.CFFIValueClass) {
+func (c *OptionalTest_ReturnType) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "OptionalTest_ReturnType" {
 		panic(fmt.Sprintf("expected OptionalTest_ReturnType, got %s", string(holder.Name())))
 	}
@@ -3614,14 +3350,14 @@ func (c *OptionalTest_ReturnType) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "omega_1":
-					c.Omega_1 = baml.Decode(valueHolder).(*OptionalTest_Prop1)
+					c.Omega_1 = baml.Decode(valueHolder, typeMap).(*OptionalTest_Prop1)
 				
 				case "omega_2":
-					c.Omega_2 = baml.Decode(valueHolder).(*string)
+					c.Omega_2 = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "omega_3":
-					c.Omega_3 = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) *OptionalTest_CategoryType {
-    return baml.Decode(__holder).(*OptionalTest_CategoryType)
+					c.Omega_3 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) *OptionalTest_CategoryType {
+    return baml.Decode(__holder, typeMap).(*OptionalTest_CategoryType)
 })
 				
 			}
@@ -3632,7 +3368,7 @@ func (c *OptionalTest_ReturnType) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c OptionalTest_ReturnType) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c OptionalTest_ReturnType) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["omega_1"] = c.Omega_1
@@ -3641,11 +3377,7 @@ func (c OptionalTest_ReturnType) Encode(builder *flatbuffers.Builder) (cffi.CFFI
 	
 	fields["omega_3"] = c.Omega_3
 	
-	return baml.EncodeClass(builder, "OptionalTest_ReturnType", fields, nil)
-}
-
-func (c OptionalTest_ReturnType) BamlTypeName() string {
-	return "OptionalTest_ReturnType"
+	return baml.EncodeClass(builder, typeMap, "OptionalTest_ReturnType", fields, nil)
 }
 
 
@@ -3660,7 +3392,7 @@ type OrderInfo struct {
 
 }
 
-func (c *OrderInfo) Decode(holder cffi.CFFIValueClass) {
+func (c *OrderInfo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "OrderInfo" {
 		panic(fmt.Sprintf("expected OrderInfo, got %s", string(holder.Name())))
 	}
@@ -3675,13 +3407,13 @@ func (c *OrderInfo) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "order_status":
-					c.Order_status = baml.Decode(valueHolder).(OrderStatus)
+					c.Order_status = baml.Decode(valueHolder, typeMap).(OrderStatus)
 				
 				case "tracking_number":
-					c.Tracking_number = baml.Decode(valueHolder).(*string)
+					c.Tracking_number = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "estimated_arrival_date":
-					c.Estimated_arrival_date = baml.Decode(valueHolder).(*string)
+					c.Estimated_arrival_date = baml.Decode(valueHolder, typeMap).(*string)
 				
 			}
 		}
@@ -3691,7 +3423,7 @@ func (c *OrderInfo) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c OrderInfo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c OrderInfo) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["order_status"] = c.Order_status
@@ -3700,11 +3432,7 @@ func (c OrderInfo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 	
 	fields["estimated_arrival_date"] = c.Estimated_arrival_date
 	
-	return baml.EncodeClass(builder, "OrderInfo", fields, nil)
-}
-
-func (c OrderInfo) BamlTypeName() string {
-	return "OrderInfo"
+	return baml.EncodeClass(builder, typeMap, "OrderInfo", fields, nil)
 }
 
 
@@ -3715,7 +3443,7 @@ type OriginalA struct {
 
 }
 
-func (c *OriginalA) Decode(holder cffi.CFFIValueClass) {
+func (c *OriginalA) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "OriginalA" {
 		panic(fmt.Sprintf("expected OriginalA, got %s", string(holder.Name())))
 	}
@@ -3730,7 +3458,7 @@ func (c *OriginalA) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder).(int64)
+					c.Value = baml.Decode(valueHolder, typeMap).(int64)
 				
 			}
 		}
@@ -3740,16 +3468,12 @@ func (c *OriginalA) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c OriginalA) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c OriginalA) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["value"] = c.Value
 	
-	return baml.EncodeClass(builder, "OriginalA", fields, nil)
-}
-
-func (c OriginalA) BamlTypeName() string {
-	return "OriginalA"
+	return baml.EncodeClass(builder, typeMap, "OriginalA", fields, nil)
 }
 
 
@@ -3762,7 +3486,7 @@ type OriginalB struct {
 
 }
 
-func (c *OriginalB) Decode(holder cffi.CFFIValueClass) {
+func (c *OriginalB) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "OriginalB" {
 		panic(fmt.Sprintf("expected OriginalB, got %s", string(holder.Name())))
 	}
@@ -3777,7 +3501,7 @@ func (c *OriginalB) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder).(int64)
+					c.Value = baml.Decode(valueHolder, typeMap).(int64)
 				
 			}
 		}
@@ -3790,22 +3514,18 @@ func (c *OriginalB) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c OriginalB) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c OriginalB) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["value"] = c.Value
 	
-	return baml.EncodeClass(builder, "OriginalB", fields, &c.DynamicProperties)
-}
-
-func (c OriginalB) BamlTypeName() string {
-	return "OriginalB"
+	return baml.EncodeClass(builder, typeMap, "OriginalB", fields, &c.DynamicProperties)
 }
 
 
@@ -3820,7 +3540,7 @@ type Person struct {
 
 }
 
-func (c *Person) Decode(holder cffi.CFFIValueClass) {
+func (c *Person) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Person" {
 		panic(fmt.Sprintf("expected Person, got %s", string(holder.Name())))
 	}
@@ -3835,10 +3555,10 @@ func (c *Person) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "name":
-					c.Name = baml.Decode(valueHolder).(*string)
+					c.Name = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "hair_color":
-					c.Hair_color = baml.Decode(valueHolder).(*Color)
+					c.Hair_color = baml.Decode(valueHolder, typeMap).(*Color)
 				
 			}
 		}
@@ -3851,24 +3571,20 @@ func (c *Person) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c Person) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Person) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["name"] = c.Name
 	
 	fields["hair_color"] = c.Hair_color
 	
-	return baml.EncodeClass(builder, "Person", fields, &c.DynamicProperties)
-}
-
-func (c Person) BamlTypeName() string {
-	return "Person"
+	return baml.EncodeClass(builder, typeMap, "Person", fields, &c.DynamicProperties)
 }
 
 
@@ -3879,7 +3595,7 @@ type PhoneNumber struct {
 
 }
 
-func (c *PhoneNumber) Decode(holder cffi.CFFIValueClass) {
+func (c *PhoneNumber) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "PhoneNumber" {
 		panic(fmt.Sprintf("expected PhoneNumber, got %s", string(holder.Name())))
 	}
@@ -3894,7 +3610,7 @@ func (c *PhoneNumber) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder).(string)
+					c.Value = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -3904,16 +3620,12 @@ func (c *PhoneNumber) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c PhoneNumber) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c PhoneNumber) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["value"] = c.Value
 	
-	return baml.EncodeClass(builder, "PhoneNumber", fields, nil)
-}
-
-func (c PhoneNumber) BamlTypeName() string {
-	return "PhoneNumber"
+	return baml.EncodeClass(builder, typeMap, "PhoneNumber", fields, nil)
 }
 
 
@@ -3926,7 +3638,7 @@ type Quantity struct {
 
 }
 
-func (c *Quantity) Decode(holder cffi.CFFIValueClass) {
+func (c *Quantity) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Quantity" {
 		panic(fmt.Sprintf("expected Quantity, got %s", string(holder.Name())))
 	}
@@ -3941,10 +3653,10 @@ func (c *Quantity) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "amount":
-					c.Amount = *baml.Decode(valueHolder).(*Union__int__float)
+					c.Amount = *baml.Decode(valueHolder, typeMap).(*Union__int__float)
 				
 				case "unit":
-					c.Unit = baml.Decode(valueHolder).(*string)
+					c.Unit = baml.Decode(valueHolder, typeMap).(*string)
 				
 			}
 		}
@@ -3954,18 +3666,14 @@ func (c *Quantity) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Quantity) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Quantity) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["amount"] = c.Amount
 	
 	fields["unit"] = c.Unit
 	
-	return baml.EncodeClass(builder, "Quantity", fields, nil)
-}
-
-func (c Quantity) BamlTypeName() string {
-	return "Quantity"
+	return baml.EncodeClass(builder, typeMap, "Quantity", fields, nil)
 }
 
 
@@ -3978,7 +3686,7 @@ type RaysData struct {
 
 }
 
-func (c *RaysData) Decode(holder cffi.CFFIValueClass) {
+func (c *RaysData) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "RaysData" {
 		panic(fmt.Sprintf("expected RaysData, got %s", string(holder.Name())))
 	}
@@ -3993,10 +3701,10 @@ func (c *RaysData) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "dataType":
-					c.DataType = baml.Decode(valueHolder).(DataType)
+					c.DataType = baml.Decode(valueHolder, typeMap).(DataType)
 				
 				case "value":
-					c.Value = *baml.Decode(valueHolder).(*Union__Resume__Event)
+					c.Value = *baml.Decode(valueHolder, typeMap).(*Union__Resume__Event)
 				
 			}
 		}
@@ -4006,18 +3714,14 @@ func (c *RaysData) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c RaysData) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c RaysData) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["dataType"] = c.DataType
 	
 	fields["value"] = c.Value
 	
-	return baml.EncodeClass(builder, "RaysData", fields, nil)
-}
-
-func (c RaysData) BamlTypeName() string {
-	return "RaysData"
+	return baml.EncodeClass(builder, typeMap, "RaysData", fields, nil)
 }
 
 
@@ -4032,7 +3736,7 @@ type ReceiptInfo struct {
 
 }
 
-func (c *ReceiptInfo) Decode(holder cffi.CFFIValueClass) {
+func (c *ReceiptInfo) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ReceiptInfo" {
 		panic(fmt.Sprintf("expected ReceiptInfo, got %s", string(holder.Name())))
 	}
@@ -4047,15 +3751,15 @@ func (c *ReceiptInfo) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "items":
-					c.Items = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) ReceiptItem {
-    return *baml.Decode(__holder).(*ReceiptItem)
+					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) ReceiptItem {
+    return *baml.Decode(__holder, typeMap).(*ReceiptItem)
 })
 				
 				case "total_cost":
-					c.Total_cost = baml.Decode(valueHolder).(*float64)
+					c.Total_cost = baml.Decode(valueHolder, typeMap).(*float64)
 				
 				case "venue":
-					c.Venue = *baml.Decode(valueHolder).(*Union__string_barisa__string_ox_burger)
+					c.Venue = *baml.Decode(valueHolder, typeMap).(*Union__string_barisa__string_ox_burger)
 				
 			}
 		}
@@ -4065,7 +3769,7 @@ func (c *ReceiptInfo) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ReceiptInfo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ReceiptInfo) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["items"] = c.Items
@@ -4074,11 +3778,7 @@ func (c ReceiptInfo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 	
 	fields["venue"] = c.Venue
 	
-	return baml.EncodeClass(builder, "ReceiptInfo", fields, nil)
-}
-
-func (c ReceiptInfo) BamlTypeName() string {
-	return "ReceiptInfo"
+	return baml.EncodeClass(builder, typeMap, "ReceiptInfo", fields, nil)
 }
 
 
@@ -4095,7 +3795,7 @@ type ReceiptItem struct {
 
 }
 
-func (c *ReceiptItem) Decode(holder cffi.CFFIValueClass) {
+func (c *ReceiptItem) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "ReceiptItem" {
 		panic(fmt.Sprintf("expected ReceiptItem, got %s", string(holder.Name())))
 	}
@@ -4110,16 +3810,16 @@ func (c *ReceiptItem) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "name":
-					c.Name = baml.Decode(valueHolder).(string)
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "description":
-					c.Description = baml.Decode(valueHolder).(*string)
+					c.Description = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "quantity":
-					c.Quantity = baml.Decode(valueHolder).(int64)
+					c.Quantity = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "price":
-					c.Price = baml.Decode(valueHolder).(float64)
+					c.Price = baml.Decode(valueHolder, typeMap).(float64)
 				
 			}
 		}
@@ -4129,7 +3829,7 @@ func (c *ReceiptItem) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c ReceiptItem) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ReceiptItem) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["name"] = c.Name
@@ -4140,11 +3840,7 @@ func (c ReceiptItem) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 	
 	fields["price"] = c.Price
 	
-	return baml.EncodeClass(builder, "ReceiptItem", fields, nil)
-}
-
-func (c ReceiptItem) BamlTypeName() string {
-	return "ReceiptItem"
+	return baml.EncodeClass(builder, typeMap, "ReceiptItem", fields, nil)
 }
 
 
@@ -4157,7 +3853,7 @@ type Recipe struct {
 
 }
 
-func (c *Recipe) Decode(holder cffi.CFFIValueClass) {
+func (c *Recipe) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Recipe" {
 		panic(fmt.Sprintf("expected Recipe, got %s", string(holder.Name())))
 	}
@@ -4172,10 +3868,10 @@ func (c *Recipe) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "ingredients":
-					c.Ingredients = baml.Decode(valueHolder).(map[string]Quantity)
+					c.Ingredients = baml.Decode(valueHolder, typeMap).(map[string]Quantity)
 				
 				case "recipe_type":
-					c.Recipe_type = *baml.Decode(valueHolder).(*Union__string_breakfast__string_dinner)
+					c.Recipe_type = *baml.Decode(valueHolder, typeMap).(*Union__string_breakfast__string_dinner)
 				
 			}
 		}
@@ -4185,18 +3881,14 @@ func (c *Recipe) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Recipe) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Recipe) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["ingredients"] = c.Ingredients
 	
 	fields["recipe_type"] = c.Recipe_type
 	
-	return baml.EncodeClass(builder, "Recipe", fields, nil)
-}
-
-func (c Recipe) BamlTypeName() string {
-	return "Recipe"
+	return baml.EncodeClass(builder, typeMap, "Recipe", fields, nil)
 }
 
 
@@ -4207,7 +3899,7 @@ type RecursiveAliasDependency struct {
 
 }
 
-func (c *RecursiveAliasDependency) Decode(holder cffi.CFFIValueClass) {
+func (c *RecursiveAliasDependency) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "RecursiveAliasDependency" {
 		panic(fmt.Sprintf("expected RecursiveAliasDependency, got %s", string(holder.Name())))
 	}
@@ -4222,7 +3914,7 @@ func (c *RecursiveAliasDependency) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder).(JsonValue)
+					c.Value = baml.Decode(valueHolder, typeMap).(JsonValue)
 				
 			}
 		}
@@ -4232,16 +3924,12 @@ func (c *RecursiveAliasDependency) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c RecursiveAliasDependency) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c RecursiveAliasDependency) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["value"] = c.Value
 	
-	return baml.EncodeClass(builder, "RecursiveAliasDependency", fields, nil)
-}
-
-func (c RecursiveAliasDependency) BamlTypeName() string {
-	return "RecursiveAliasDependency"
+	return baml.EncodeClass(builder, typeMap, "RecursiveAliasDependency", fields, nil)
 }
 
 
@@ -4262,7 +3950,7 @@ type Resume struct {
 
 }
 
-func (c *Resume) Decode(holder cffi.CFFIValueClass) {
+func (c *Resume) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Resume" {
 		panic(fmt.Sprintf("expected Resume, got %s", string(holder.Name())))
 	}
@@ -4277,27 +3965,27 @@ func (c *Resume) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "name":
-					c.Name = baml.Decode(valueHolder).(string)
+					c.Name = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "email":
-					c.Email = baml.Decode(valueHolder).(string)
+					c.Email = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "phone":
-					c.Phone = baml.Decode(valueHolder).(string)
+					c.Phone = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "experience":
-					c.Experience = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) string {
-    return baml.Decode(__holder).(string)
+					c.Experience = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
 })
 				
 				case "education":
-					c.Education = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Education {
-    return *baml.Decode(__holder).(*Education)
+					c.Education = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Education {
+    return *baml.Decode(__holder, typeMap).(*Education)
 })
 				
 				case "skills":
-					c.Skills = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) string {
-    return baml.Decode(__holder).(string)
+					c.Skills = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
 })
 				
 			}
@@ -4308,7 +3996,7 @@ func (c *Resume) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Resume) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Resume) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["name"] = c.Name
@@ -4323,11 +4011,7 @@ func (c Resume) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 	
 	fields["skills"] = c.Skills
 	
-	return baml.EncodeClass(builder, "Resume", fields, nil)
-}
-
-func (c Resume) BamlTypeName() string {
-	return "Resume"
+	return baml.EncodeClass(builder, typeMap, "Resume", fields, nil)
 }
 
 
@@ -4350,7 +4034,7 @@ type Schema struct {
 
 }
 
-func (c *Schema) Decode(holder cffi.CFFIValueClass) {
+func (c *Schema) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Schema" {
 		panic(fmt.Sprintf("expected Schema, got %s", string(holder.Name())))
 	}
@@ -4365,29 +4049,29 @@ func (c *Schema) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = baml.Decode(valueHolder).(*string)
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "prop2":
-					c.Prop2 = *baml.Decode(valueHolder).(*Union__Nested__string)
+					c.Prop2 = *baml.Decode(valueHolder, typeMap).(*Union__Nested__string)
 				
 				case "prop5":
-					c.Prop5 = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) *string {
-    return baml.Decode(__holder).(*string)
+					c.Prop5 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) *string {
+    return baml.Decode(__holder, typeMap).(*string)
 })
 				
 				case "prop6":
-					c.Prop6 = *baml.Decode(valueHolder).(*Union__string__List__Nested)
+					c.Prop6 = *baml.Decode(valueHolder, typeMap).(*Union__string__List__Nested)
 				
 				case "nested_attrs":
-					c.Nested_attrs = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) *Union__string__Nested {
-    return baml.Decode(__holder).(*Union__string__Nested)
+					c.Nested_attrs = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) *Union__string__Nested {
+    return baml.Decode(__holder, typeMap).(*Union__string__Nested)
 })
 				
 				case "parens":
-					c.Parens = baml.Decode(valueHolder).(*string)
+					c.Parens = baml.Decode(valueHolder, typeMap).(*string)
 				
 				case "other_group":
-					c.Other_group = *baml.Decode(valueHolder).(*Union__string__int)
+					c.Other_group = *baml.Decode(valueHolder, typeMap).(*Union__string__int)
 				
 			}
 		}
@@ -4397,7 +4081,7 @@ func (c *Schema) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Schema) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Schema) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop1"] = c.Prop1
@@ -4414,11 +4098,7 @@ func (c Schema) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 	
 	fields["other_group"] = c.Other_group
 	
-	return baml.EncodeClass(builder, "Schema", fields, nil)
-}
-
-func (c Schema) BamlTypeName() string {
-	return "Schema"
+	return baml.EncodeClass(builder, typeMap, "Schema", fields, nil)
 }
 
 
@@ -4439,7 +4119,7 @@ type SearchParams struct {
 
 }
 
-func (c *SearchParams) Decode(holder cffi.CFFIValueClass) {
+func (c *SearchParams) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "SearchParams" {
 		panic(fmt.Sprintf("expected SearchParams, got %s", string(holder.Name())))
 	}
@@ -4454,27 +4134,27 @@ func (c *SearchParams) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "dateRange":
-					c.DateRange = baml.Decode(valueHolder).(*int64)
+					c.DateRange = baml.Decode(valueHolder, typeMap).(*int64)
 				
 				case "location":
-					c.Location = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) string {
-    return baml.Decode(__holder).(string)
+					c.Location = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) string {
+    return baml.Decode(__holder, typeMap).(string)
 })
 				
 				case "jobTitle":
-					c.JobTitle = baml.Decode(valueHolder).(*WithReasoning)
+					c.JobTitle = baml.Decode(valueHolder, typeMap).(*WithReasoning)
 				
 				case "company":
-					c.Company = baml.Decode(valueHolder).(*WithReasoning)
+					c.Company = baml.Decode(valueHolder, typeMap).(*WithReasoning)
 				
 				case "description":
-					c.Description = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) WithReasoning {
-    return *baml.Decode(__holder).(*WithReasoning)
+					c.Description = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) WithReasoning {
+    return *baml.Decode(__holder, typeMap).(*WithReasoning)
 })
 				
 				case "tags":
-					c.Tags = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Union__Tag__string {
-    return *baml.Decode(__holder).(*Union__Tag__string)
+					c.Tags = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__Tag__string {
+    return *baml.Decode(__holder, typeMap).(*Union__Tag__string)
 })
 				
 			}
@@ -4485,7 +4165,7 @@ func (c *SearchParams) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c SearchParams) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SearchParams) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["dateRange"] = c.DateRange
@@ -4500,11 +4180,7 @@ func (c SearchParams) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion,
 	
 	fields["tags"] = c.Tags
 	
-	return baml.EncodeClass(builder, "SearchParams", fields, nil)
-}
-
-func (c SearchParams) BamlTypeName() string {
-	return "SearchParams"
+	return baml.EncodeClass(builder, typeMap, "SearchParams", fields, nil)
 }
 
 
@@ -4529,7 +4205,7 @@ type SemanticContainer struct {
 
 }
 
-func (c *SemanticContainer) Decode(holder cffi.CFFIValueClass) {
+func (c *SemanticContainer) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "SemanticContainer" {
 		panic(fmt.Sprintf("expected SemanticContainer, got %s", string(holder.Name())))
 	}
@@ -4544,30 +4220,30 @@ func (c *SemanticContainer) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "sixteen_digit_number":
-					c.Sixteen_digit_number = baml.Decode(valueHolder).(int64)
+					c.Sixteen_digit_number = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "string_with_twenty_words":
-					c.String_with_twenty_words = baml.Decode(valueHolder).(string)
+					c.String_with_twenty_words = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "class_1":
-					c.Class_1 = *baml.Decode(valueHolder).(*ClassWithoutDone)
+					c.Class_1 = *baml.Decode(valueHolder, typeMap).(*ClassWithoutDone)
 				
 				case "class_2":
-					c.Class_2 = *baml.Decode(valueHolder).(*ClassWithBlockDone)
+					c.Class_2 = *baml.Decode(valueHolder, typeMap).(*ClassWithBlockDone)
 				
 				case "class_done_needed":
-					c.Class_done_needed = *baml.Decode(valueHolder).(*ClassWithBlockDone)
+					c.Class_done_needed = *baml.Decode(valueHolder, typeMap).(*ClassWithBlockDone)
 				
 				case "class_needed":
-					c.Class_needed = *baml.Decode(valueHolder).(*ClassWithoutDone)
+					c.Class_needed = *baml.Decode(valueHolder, typeMap).(*ClassWithoutDone)
 				
 				case "three_small_things":
-					c.Three_small_things = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) SmallThing {
-    return *baml.Decode(__holder).(*SmallThing)
+					c.Three_small_things = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) SmallThing {
+    return *baml.Decode(__holder, typeMap).(*SmallThing)
 })
 				
 				case "final_string":
-					c.Final_string = baml.Decode(valueHolder).(string)
+					c.Final_string = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -4577,7 +4253,7 @@ func (c *SemanticContainer) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c SemanticContainer) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SemanticContainer) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["sixteen_digit_number"] = c.Sixteen_digit_number
@@ -4596,11 +4272,7 @@ func (c SemanticContainer) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueU
 	
 	fields["final_string"] = c.Final_string
 	
-	return baml.EncodeClass(builder, "SemanticContainer", fields, nil)
-}
-
-func (c SemanticContainer) BamlTypeName() string {
-	return "SemanticContainer"
+	return baml.EncodeClass(builder, typeMap, "SemanticContainer", fields, nil)
 }
 
 
@@ -4611,7 +4283,7 @@ type SimpleTag struct {
 
 }
 
-func (c *SimpleTag) Decode(holder cffi.CFFIValueClass) {
+func (c *SimpleTag) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "SimpleTag" {
 		panic(fmt.Sprintf("expected SimpleTag, got %s", string(holder.Name())))
 	}
@@ -4626,7 +4298,7 @@ func (c *SimpleTag) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "field":
-					c.Field = baml.Decode(valueHolder).(string)
+					c.Field = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -4636,16 +4308,12 @@ func (c *SimpleTag) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c SimpleTag) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SimpleTag) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["field"] = c.Field
 	
-	return baml.EncodeClass(builder, "SimpleTag", fields, nil)
-}
-
-func (c SimpleTag) BamlTypeName() string {
-	return "SimpleTag"
+	return baml.EncodeClass(builder, typeMap, "SimpleTag", fields, nil)
 }
 
 
@@ -4658,7 +4326,7 @@ type SmallThing struct {
 
 }
 
-func (c *SmallThing) Decode(holder cffi.CFFIValueClass) {
+func (c *SmallThing) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "SmallThing" {
 		panic(fmt.Sprintf("expected SmallThing, got %s", string(holder.Name())))
 	}
@@ -4673,10 +4341,10 @@ func (c *SmallThing) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "i_16_digits":
-					c.I_16_digits = baml.Decode(valueHolder).(int64)
+					c.I_16_digits = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "i_8_digits":
-					c.I_8_digits = baml.Decode(valueHolder).(int64)
+					c.I_8_digits = baml.Decode(valueHolder, typeMap).(int64)
 				
 			}
 		}
@@ -4686,18 +4354,14 @@ func (c *SmallThing) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c SmallThing) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SmallThing) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["i_16_digits"] = c.I_16_digits
 	
 	fields["i_8_digits"] = c.I_8_digits
 	
-	return baml.EncodeClass(builder, "SmallThing", fields, nil)
-}
-
-func (c SmallThing) BamlTypeName() string {
-	return "SmallThing"
+	return baml.EncodeClass(builder, typeMap, "SmallThing", fields, nil)
 }
 
 
@@ -4710,7 +4374,7 @@ type SomeClassNestedDynamic struct {
 
 }
 
-func (c *SomeClassNestedDynamic) Decode(holder cffi.CFFIValueClass) {
+func (c *SomeClassNestedDynamic) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "SomeClassNestedDynamic" {
 		panic(fmt.Sprintf("expected SomeClassNestedDynamic, got %s", string(holder.Name())))
 	}
@@ -4725,7 +4389,7 @@ func (c *SomeClassNestedDynamic) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "hi":
-					c.Hi = baml.Decode(valueHolder).(string)
+					c.Hi = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -4738,22 +4402,18 @@ func (c *SomeClassNestedDynamic) Decode(holder cffi.CFFIValueClass) {
 		if holder.DynamicFields(&field, i) {
 			key := string(field.Key())
 			valueHolder := field.Value(nil)
-			c.DynamicProperties[key] = baml.Decode(valueHolder)
+			c.DynamicProperties[key] = baml.Decode(valueHolder, typeMap)
 		}
 	}
 
 }
 
-func (c SomeClassNestedDynamic) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SomeClassNestedDynamic) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["hi"] = c.Hi
 	
-	return baml.EncodeClass(builder, "SomeClassNestedDynamic", fields, &c.DynamicProperties)
-}
-
-func (c SomeClassNestedDynamic) BamlTypeName() string {
-	return "SomeClassNestedDynamic"
+	return baml.EncodeClass(builder, typeMap, "SomeClassNestedDynamic", fields, &c.DynamicProperties)
 }
 
 
@@ -4764,7 +4424,7 @@ type StringToClassEntry struct {
 
 }
 
-func (c *StringToClassEntry) Decode(holder cffi.CFFIValueClass) {
+func (c *StringToClassEntry) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "StringToClassEntry" {
 		panic(fmt.Sprintf("expected StringToClassEntry, got %s", string(holder.Name())))
 	}
@@ -4779,7 +4439,7 @@ func (c *StringToClassEntry) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "word":
-					c.Word = baml.Decode(valueHolder).(string)
+					c.Word = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -4789,16 +4449,12 @@ func (c *StringToClassEntry) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c StringToClassEntry) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c StringToClassEntry) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["word"] = c.Word
 	
-	return baml.EncodeClass(builder, "StringToClassEntry", fields, nil)
-}
-
-func (c StringToClassEntry) BamlTypeName() string {
-	return "StringToClassEntry"
+	return baml.EncodeClass(builder, typeMap, "StringToClassEntry", fields, nil)
 }
 
 
@@ -4817,7 +4473,7 @@ type TestClassAlias struct {
 
 }
 
-func (c *TestClassAlias) Decode(holder cffi.CFFIValueClass) {
+func (c *TestClassAlias) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "TestClassAlias" {
 		panic(fmt.Sprintf("expected TestClassAlias, got %s", string(holder.Name())))
 	}
@@ -4832,19 +4488,19 @@ func (c *TestClassAlias) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "key":
-					c.Key = baml.Decode(valueHolder).(string)
+					c.Key = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "key2":
-					c.Key2 = baml.Decode(valueHolder).(string)
+					c.Key2 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "key3":
-					c.Key3 = baml.Decode(valueHolder).(string)
+					c.Key3 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "key4":
-					c.Key4 = baml.Decode(valueHolder).(string)
+					c.Key4 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "key5":
-					c.Key5 = baml.Decode(valueHolder).(string)
+					c.Key5 = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -4854,7 +4510,7 @@ func (c *TestClassAlias) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c TestClassAlias) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c TestClassAlias) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["key"] = c.Key
@@ -4867,11 +4523,7 @@ func (c TestClassAlias) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 	
 	fields["key5"] = c.Key5
 	
-	return baml.EncodeClass(builder, "TestClassAlias", fields, nil)
-}
-
-func (c TestClassAlias) BamlTypeName() string {
-	return "TestClassAlias"
+	return baml.EncodeClass(builder, typeMap, "TestClassAlias", fields, nil)
 }
 
 
@@ -4884,7 +4536,7 @@ type TestClassNested struct {
 
 }
 
-func (c *TestClassNested) Decode(holder cffi.CFFIValueClass) {
+func (c *TestClassNested) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "TestClassNested" {
 		panic(fmt.Sprintf("expected TestClassNested, got %s", string(holder.Name())))
 	}
@@ -4899,10 +4551,10 @@ func (c *TestClassNested) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = baml.Decode(valueHolder).(string)
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "prop2":
-					c.Prop2 = *baml.Decode(valueHolder).(*InnerClass)
+					c.Prop2 = *baml.Decode(valueHolder, typeMap).(*InnerClass)
 				
 			}
 		}
@@ -4912,18 +4564,14 @@ func (c *TestClassNested) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c TestClassNested) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c TestClassNested) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop1"] = c.Prop1
 	
 	fields["prop2"] = c.Prop2
 	
-	return baml.EncodeClass(builder, "TestClassNested", fields, nil)
-}
-
-func (c TestClassNested) BamlTypeName() string {
-	return "TestClassNested"
+	return baml.EncodeClass(builder, typeMap, "TestClassNested", fields, nil)
 }
 
 
@@ -4936,7 +4584,7 @@ type TestClassWithEnum struct {
 
 }
 
-func (c *TestClassWithEnum) Decode(holder cffi.CFFIValueClass) {
+func (c *TestClassWithEnum) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "TestClassWithEnum" {
 		panic(fmt.Sprintf("expected TestClassWithEnum, got %s", string(holder.Name())))
 	}
@@ -4951,10 +4599,10 @@ func (c *TestClassWithEnum) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = baml.Decode(valueHolder).(string)
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "prop2":
-					c.Prop2 = baml.Decode(valueHolder).(EnumInClass)
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(EnumInClass)
 				
 			}
 		}
@@ -4964,18 +4612,14 @@ func (c *TestClassWithEnum) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c TestClassWithEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c TestClassWithEnum) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop1"] = c.Prop1
 	
 	fields["prop2"] = c.Prop2
 	
-	return baml.EncodeClass(builder, "TestClassWithEnum", fields, nil)
-}
-
-func (c TestClassWithEnum) BamlTypeName() string {
-	return "TestClassWithEnum"
+	return baml.EncodeClass(builder, typeMap, "TestClassWithEnum", fields, nil)
 }
 
 
@@ -4988,7 +4632,7 @@ type TestMemoryOutput struct {
 
 }
 
-func (c *TestMemoryOutput) Decode(holder cffi.CFFIValueClass) {
+func (c *TestMemoryOutput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "TestMemoryOutput" {
 		panic(fmt.Sprintf("expected TestMemoryOutput, got %s", string(holder.Name())))
 	}
@@ -5003,13 +4647,13 @@ func (c *TestMemoryOutput) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "items":
-					c.Items = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Union__MemoryObject__ComplexMemoryObject__AnotherObject {
-    return *baml.Decode(__holder).(*Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+					c.Items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__MemoryObject__ComplexMemoryObject__AnotherObject {
+    return *baml.Decode(__holder, typeMap).(*Union__MemoryObject__ComplexMemoryObject__AnotherObject)
 })
 				
 				case "more_items":
-					c.More_items = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Union__MemoryObject__ComplexMemoryObject__AnotherObject {
-    return *baml.Decode(__holder).(*Union__MemoryObject__ComplexMemoryObject__AnotherObject)
+					c.More_items = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__MemoryObject__ComplexMemoryObject__AnotherObject {
+    return *baml.Decode(__holder, typeMap).(*Union__MemoryObject__ComplexMemoryObject__AnotherObject)
 })
 				
 			}
@@ -5020,18 +4664,14 @@ func (c *TestMemoryOutput) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c TestMemoryOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c TestMemoryOutput) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["items"] = c.Items
 	
 	fields["more_items"] = c.More_items
 	
-	return baml.EncodeClass(builder, "TestMemoryOutput", fields, nil)
-}
-
-func (c TestMemoryOutput) BamlTypeName() string {
-	return "TestMemoryOutput"
+	return baml.EncodeClass(builder, typeMap, "TestMemoryOutput", fields, nil)
 }
 
 
@@ -5044,7 +4684,7 @@ type TestOutputClass struct {
 
 }
 
-func (c *TestOutputClass) Decode(holder cffi.CFFIValueClass) {
+func (c *TestOutputClass) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "TestOutputClass" {
 		panic(fmt.Sprintf("expected TestOutputClass, got %s", string(holder.Name())))
 	}
@@ -5059,10 +4699,10 @@ func (c *TestOutputClass) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = baml.Decode(valueHolder).(string)
+					c.Prop1 = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "prop2":
-					c.Prop2 = baml.Decode(valueHolder).(int64)
+					c.Prop2 = baml.Decode(valueHolder, typeMap).(int64)
 				
 			}
 		}
@@ -5072,18 +4712,14 @@ func (c *TestOutputClass) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c TestOutputClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c TestOutputClass) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop1"] = c.Prop1
 	
 	fields["prop2"] = c.Prop2
 	
-	return baml.EncodeClass(builder, "TestOutputClass", fields, nil)
-}
-
-func (c TestOutputClass) BamlTypeName() string {
-	return "TestOutputClass"
+	return baml.EncodeClass(builder, typeMap, "TestOutputClass", fields, nil)
 }
 
 
@@ -5096,7 +4732,7 @@ type Tree struct {
 
 }
 
-func (c *Tree) Decode(holder cffi.CFFIValueClass) {
+func (c *Tree) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "Tree" {
 		panic(fmt.Sprintf("expected Tree, got %s", string(holder.Name())))
 	}
@@ -5111,10 +4747,10 @@ func (c *Tree) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "data":
-					c.Data = baml.Decode(valueHolder).(int64)
+					c.Data = baml.Decode(valueHolder, typeMap).(int64)
 				
 				case "children":
-					c.Children = *baml.Decode(valueHolder).(*Forest)
+					c.Children = *baml.Decode(valueHolder, typeMap).(*Forest)
 				
 			}
 		}
@@ -5124,18 +4760,14 @@ func (c *Tree) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c Tree) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Tree) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["data"] = c.Data
 	
 	fields["children"] = c.Children
 	
-	return baml.EncodeClass(builder, "Tree", fields, nil)
-}
-
-func (c Tree) BamlTypeName() string {
-	return "Tree"
+	return baml.EncodeClass(builder, typeMap, "Tree", fields, nil)
 }
 
 
@@ -5150,7 +4782,7 @@ type TwoStoriesOneTitle struct {
 
 }
 
-func (c *TwoStoriesOneTitle) Decode(holder cffi.CFFIValueClass) {
+func (c *TwoStoriesOneTitle) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "TwoStoriesOneTitle" {
 		panic(fmt.Sprintf("expected TwoStoriesOneTitle, got %s", string(holder.Name())))
 	}
@@ -5165,13 +4797,13 @@ func (c *TwoStoriesOneTitle) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "title":
-					c.Title = baml.Decode(valueHolder).(string)
+					c.Title = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "story_a":
-					c.Story_a = baml.Decode(valueHolder).(string)
+					c.Story_a = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "story_b":
-					c.Story_b = baml.Decode(valueHolder).(string)
+					c.Story_b = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -5181,7 +4813,7 @@ func (c *TwoStoriesOneTitle) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c TwoStoriesOneTitle) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c TwoStoriesOneTitle) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["title"] = c.Title
@@ -5190,11 +4822,7 @@ func (c TwoStoriesOneTitle) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 	
 	fields["story_b"] = c.Story_b
 	
-	return baml.EncodeClass(builder, "TwoStoriesOneTitle", fields, nil)
-}
-
-func (c TwoStoriesOneTitle) BamlTypeName() string {
-	return "TwoStoriesOneTitle"
+	return baml.EncodeClass(builder, typeMap, "TwoStoriesOneTitle", fields, nil)
 }
 
 
@@ -5209,7 +4837,7 @@ type UnionTest_ReturnType struct {
 
 }
 
-func (c *UnionTest_ReturnType) Decode(holder cffi.CFFIValueClass) {
+func (c *UnionTest_ReturnType) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "UnionTest_ReturnType" {
 		panic(fmt.Sprintf("expected UnionTest_ReturnType, got %s", string(holder.Name())))
 	}
@@ -5224,15 +4852,15 @@ func (c *UnionTest_ReturnType) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "prop1":
-					c.Prop1 = *baml.Decode(valueHolder).(*Union__string__bool)
+					c.Prop1 = *baml.Decode(valueHolder, typeMap).(*Union__string__bool)
 				
 				case "prop2":
-					c.Prop2 = baml.DecodeList(valueHolder, func(__holder *cffi.CFFIValueHolder) Union__float__bool {
-    return *baml.Decode(__holder).(*Union__float__bool)
+					c.Prop2 = baml.DecodeList(valueHolder, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) Union__float__bool {
+    return *baml.Decode(__holder, typeMap).(*Union__float__bool)
 })
 				
 				case "prop3":
-					c.Prop3 = *baml.Decode(valueHolder).(*Union__List__bool__List__int)
+					c.Prop3 = *baml.Decode(valueHolder, typeMap).(*Union__List__bool__List__int)
 				
 			}
 		}
@@ -5242,7 +4870,7 @@ func (c *UnionTest_ReturnType) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c UnionTest_ReturnType) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c UnionTest_ReturnType) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["prop1"] = c.Prop1
@@ -5251,11 +4879,7 @@ func (c UnionTest_ReturnType) Encode(builder *flatbuffers.Builder) (cffi.CFFIVal
 	
 	fields["prop3"] = c.Prop3
 	
-	return baml.EncodeClass(builder, "UnionTest_ReturnType", fields, nil)
-}
-
-func (c UnionTest_ReturnType) BamlTypeName() string {
-	return "UnionTest_ReturnType"
+	return baml.EncodeClass(builder, typeMap, "UnionTest_ReturnType", fields, nil)
 }
 
 
@@ -5269,7 +4893,7 @@ type UniverseQuestion struct {
 
 }
 
-func (c *UniverseQuestion) Decode(holder cffi.CFFIValueClass) {
+func (c *UniverseQuestion) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "UniverseQuestion" {
 		panic(fmt.Sprintf("expected UniverseQuestion, got %s", string(holder.Name())))
 	}
@@ -5284,10 +4908,10 @@ func (c *UniverseQuestion) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "question":
-					c.Question = baml.Decode(valueHolder).(string)
+					c.Question = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "answer":
-					c.Answer = baml.Decode(valueHolder).(string)
+					c.Answer = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -5297,18 +4921,14 @@ func (c *UniverseQuestion) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c UniverseQuestion) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c UniverseQuestion) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["question"] = c.Question
 	
 	fields["answer"] = c.Answer
 	
-	return baml.EncodeClass(builder, "UniverseQuestion", fields, nil)
-}
-
-func (c UniverseQuestion) BamlTypeName() string {
-	return "UniverseQuestion"
+	return baml.EncodeClass(builder, typeMap, "UniverseQuestion", fields, nil)
 }
 
 
@@ -5319,7 +4939,7 @@ type UniverseQuestionInput struct {
 
 }
 
-func (c *UniverseQuestionInput) Decode(holder cffi.CFFIValueClass) {
+func (c *UniverseQuestionInput) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "UniverseQuestionInput" {
 		panic(fmt.Sprintf("expected UniverseQuestionInput, got %s", string(holder.Name())))
 	}
@@ -5334,7 +4954,7 @@ func (c *UniverseQuestionInput) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "question":
-					c.Question = baml.Decode(valueHolder).(string)
+					c.Question = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -5344,16 +4964,12 @@ func (c *UniverseQuestionInput) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c UniverseQuestionInput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c UniverseQuestionInput) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["question"] = c.Question
 	
-	return baml.EncodeClass(builder, "UniverseQuestionInput", fields, nil)
-}
-
-func (c UniverseQuestionInput) BamlTypeName() string {
-	return "UniverseQuestionInput"
+	return baml.EncodeClass(builder, typeMap, "UniverseQuestionInput", fields, nil)
 }
 
 
@@ -5366,7 +4982,7 @@ type WithReasoning struct {
 
 }
 
-func (c *WithReasoning) Decode(holder cffi.CFFIValueClass) {
+func (c *WithReasoning) Decode(holder cffi.CFFIValueClass, typeMap baml.TypeMap) {
 	if string(holder.Name()) != "WithReasoning" {
 		panic(fmt.Sprintf("expected WithReasoning, got %s", string(holder.Name())))
 	}
@@ -5381,10 +4997,10 @@ func (c *WithReasoning) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 				
 				case "value":
-					c.Value = baml.Decode(valueHolder).(string)
+					c.Value = baml.Decode(valueHolder, typeMap).(string)
 				
 				case "reasoning":
-					c.Reasoning = baml.Decode(valueHolder).(string)
+					c.Reasoning = baml.Decode(valueHolder, typeMap).(string)
 				
 			}
 		}
@@ -5394,18 +5010,14 @@ func (c *WithReasoning) Decode(holder cffi.CFFIValueClass) {
 
 }
 
-func (c WithReasoning) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c WithReasoning) Encode(builder *flatbuffers.Builder, typeMap baml.TypeMap) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 	
 	fields["value"] = c.Value
 	
 	fields["reasoning"] = c.Reasoning
 	
-	return baml.EncodeClass(builder, "WithReasoning", fields, nil)
-}
-
-func (c WithReasoning) BamlTypeName() string {
-	return "WithReasoning"
+	return baml.EncodeClass(builder, typeMap, "WithReasoning", fields, nil)
 }
 
 

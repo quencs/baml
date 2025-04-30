@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use baml_rpc::{
-    ApiEndpoint, CreateTraceEventUploadUrl, CreateTraceEventUploadUrlRequest,
+    ApiEndpoint, CreateBamlSrcUpload, CreateTraceEventUploadUrl, CreateTraceEventUploadUrlRequest,
     CreateTraceEventUploadUrlResponse, S3UploadMetadata, TraceEventBatch,
 };
 use baml_types::tracing::events::{TraceData, TraceEvent};
@@ -174,7 +174,7 @@ impl TracePublisher {
                             // lookup.
                             let base_url = lookup.base_url();
                             let api_key = lookup.api_key();
-                            let url = format!("{}/v1/baml-traces", base_url);
+                            let url = format!("{}{}", base_url, CreateBamlSrcUpload::path());
                             let body = serde_json::to_string(&lookup).unwrap();
                             log::info!("Updating runtime with lookup: {}", body);
                             let client = reqwest::Client::new();
