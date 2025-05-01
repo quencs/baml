@@ -40,7 +40,7 @@ pub struct ListFunctionSpansRequest {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ListFunctionSpansResponse {
-    pub function_spans: Vec<ui_types::FunctionSpan>,
+    pub function_spans: Vec<ui_types::FunctionCall>,
     pub function_definitions: Vec<ui_types::FunctionDefinition>,
     pub type_definitions: Vec<ui_types::TypeDefinition>,
 }

@@ -163,6 +163,12 @@ impl TracePublisher {
         let mut buffer: Vec<Arc<TraceEventWithMeta>> = Vec::new();
         let mut tick_interval = interval(Duration::from_secs(2));
 
+        tracing::info!(
+            message = "Starting publisher loop",
+            api_key = self.lookup.api_key(),
+            base_url = self.lookup.base_url(),
+        );
+
         loop {
             tokio::select! {
                 // Process any incoming command or event.
@@ -176,18 +182,18 @@ impl TracePublisher {
                             let api_key = lookup.api_key();
                             let url = format!("{}{}", base_url, CreateBamlSrcUpload::path());
                             let body = serde_json::to_string(&lookup).unwrap();
-                            log::info!("Updating runtime with lookup: {}", body);
                             let client = reqwest::Client::new();
 
-                            if let Ok(response) = client.post(url.clone()).bearer_auth(api_key).body(body).send().await {
-                                if response.status().is_success() {
-                                    log::info!("Uploaded trace events to {}", url);
-                                } else {
-                                    log::error!("Failed to upload trace events to {}", url);
-                                }
-                            } else {
-                                log::error!("Failed to send request to {}", url);
-                            }
+                            // if let Ok(response) = client.post(url.clone()).bearer_auth(api_key).body(body).send().await {
+                            //     if response.status().is_success() {
+                            //         log::info!("Uploaded trace events to {}", url);
+                            //     } else {
+                            //         log::error!("Failed to upload trace events to {}", url);
+                            //     }
+                            // } else {
+                            //     log::error!("Failed to send request to {}", url);
+                            // }
+                            tracing::info!("Skipping runtime type upload");
 
                             // Update the lookup
                             self.lookup = lookup;
@@ -228,7 +234,7 @@ impl TracePublisher {
     async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
         let batch_result = self.process_batch_impl(batch).await;
         if let Err(e) = batch_result {
-            tracing::error!("Failed to upload trace events: {}", e);
+            tracing::error!("Failed to upload trace events: {:?}", e);
         }
     }
 
@@ -278,10 +284,11 @@ impl TracePublisher {
         let client = reqwest::Client::new();
         let response = client
             .post(format!(
-                // "https://abe8c5ez29.execute-api.us-east-1.amazonaws.com/{}",
-                "https://o2em3sulde.execute-api.us-east-1.amazonaws.com/{}",
+                "{}/{}",
+                self.lookup.base_url(),
                 CreateTraceEventUploadUrl::path()
             ))
+            .bearer_auth(self.lookup.api_key())
             .json(&CreateTraceEventUploadUrlRequest {})
             .send()
             .await
@@ -289,8 +296,13 @@ impl TracePublisher {
                 "Failed to send {}",
                 type_name::<CreateTraceEventUploadUrlRequest>(),
             ))?;
+        let response_body = response
+            .text()
+            .await
+            .context("Failed to parse response as text")?;
+        tracing::info!("response body: {}", response_body);
         let upload_url_details: CreateTraceEventUploadUrlResponse =
-            response.json().await.context(format!(
+            serde_json::from_str(&response_body).context(format!(
                 "Failed to parse {}",
                 type_name::<CreateTraceEventUploadUrlResponse>(),
             ))?;

@@ -44,11 +44,11 @@ impl FunctionId {
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct FunctionSpan {
+pub struct FunctionCall {
     #[ts(type = "string")]
     pub function_span_id: SpanId,
     pub source: String,
-    pub function_id: FunctionId,
+    pub function_id: Option<FunctionId>,
     #[serde(rename = "start_epoch_ms")]
     #[ts(type = "number | null")]
     pub start_time: Option<EpochMsTimestamp>,
@@ -62,7 +62,7 @@ pub struct FunctionSpan {
     pub output: serde_json::Value,
     pub status: String,
     #[ts(type = "any")]
-    pub error: serde_json::Value,
+    pub error: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize, Serialize, TS)]
