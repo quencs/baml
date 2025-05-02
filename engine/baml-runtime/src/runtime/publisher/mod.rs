@@ -12,10 +12,10 @@ pub type WithDependency<T> = (Arc<T>, Arc<Vec<Arc<TypeId>>>);
 #[derive(Default, Serialize)]
 pub struct AstSignatureWrapper {
     /// Path to source code
-    source_code: HashMap<PathBuf, CowStr>,
-    functions: HashMap<String, WithDependency<BamlFunctionId>>,
-    types: HashMap<String, WithDependency<TypeId>>,
-    env_vars: HashMap<String, String>,
+    pub source_code: HashMap<PathBuf, CowStr>,
+    pub functions: HashMap<String, WithDependency<BamlFunctionId>>,
+    pub types: HashMap<String, WithDependency<TypeId>>,
+    pub env_vars: HashMap<String, String>,
 }
 
 impl AstSignatureWrapper {
