@@ -175,27 +175,11 @@ impl TracePublisher {
                 Some(message) = self.rx.recv() => {
                     match message {
                         PublisherMessage::UpdateRuntime(lookup) => {
+
                             // Empty the buffer
                             self.process_batch(std::mem::take(&mut buffer)).await;
-                            // lookup.
-                            let base_url = lookup.base_url();
-                            let api_key = lookup.api_key();
-                            let url = format!("{}{}", base_url, CreateBamlSrcUpload::path());
-                            let body = serde_json::to_string(&lookup).unwrap();
-                            let client = reqwest::Client::new();
+                            self.process_baml_src_upload(&lookup).await;
 
-                            // if let Ok(response) = client.post(url.clone()).bearer_auth(api_key).body(body).send().await {
-                            //     if response.status().is_success() {
-                            //         log::info!("Uploaded trace events to {}", url);
-                            //     } else {
-                            //         log::error!("Failed to upload trace events to {}", url);
-                            //     }
-                            // } else {
-                            //     log::error!("Failed to send request to {}", url);
-                            // }
-                            tracing::info!("Skipping runtime type upload");
-
-                            // Update the lookup
                             self.lookup = lookup;
                         },
                         PublisherMessage::Trace(event) => {
@@ -228,6 +212,46 @@ impl TracePublisher {
                     }
                 }
             }
+        }
+    }
+
+    async fn process_baml_src_upload(&self, lookup: &RuntimeAST) {
+        let result = self.process_baml_src_upload_impl(lookup).await;
+        if let Err(e) = result {
+            tracing::error!("Failed to upload baml src: {}", e);
+        }
+    }
+
+    async fn process_baml_src_upload_impl(&self, lookup: &RuntimeAST) -> Result<()> {
+        let url = format!("{}{}", lookup.base_url(), CreateBamlSrcUpload::path());
+        let body = serde_json::to_string(&lookup).context("Failed to serialize runtime lookup")?;
+
+        tracing::debug!("Updating runtime with lookup at {}", url);
+
+        let client = reqwest::Client::new();
+        let response = client
+            .post(&url)
+            .bearer_auth(&lookup.api_key())
+            .body(body)
+            .send()
+            .await
+            .context("Failed to send BAML source upload request")?;
+
+        let status = response.status();
+        let response_text = response
+            .text()
+            .await
+            .context("Failed to get response body from BAML source upload")?;
+
+        if status.is_success() {
+            tracing::info!("Successfully uploaded BAML source");
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(
+                "Failed to upload BAML source. Status: {}, Response: {}",
+                status,
+                response_text
+            ))
         }
     }
 

@@ -4,4 +4,6 @@ pub mod values;
 
 pub use baml_src_upload::*;
 pub use trace_event_upload::*;
+#[allow(unused)]
+pub use values::TraceEvent;
 pub use values::*;
