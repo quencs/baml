@@ -76,14 +76,12 @@ pub(super) fn request<'a>(req: lsp_server::Request) -> Task<'a> {
         request::Rename::METHOD => local_request_task::<request::Rename>(req),
         request::DocumentDiagnosticRequestHandler::METHOD => {
             tracing::info!("diagnostic notif");
-            background_request_task::<request::DocumentDiagnosticRequestHandler>(
-                req,
-                BackgroundSchedule::LatencySensitive,
-            )
+            local_request_task::<request::DocumentDiagnosticRequestHandler>(req)
+            // note background request task here sometimes results in inconsistent baml project state...
         }
         "getBAMLFunctions" => {
             tracing::info!("getBAMLFunctions");
-            return Task::local(move |session, notifier, requester, responder| {
+            return Task::local(move |session, _notifier, requester, responder| {
                 let result: anyhow::Result<(serde_json::Value,)> = (|| {
                     let mut all_functions = Vec::new();
                     let projects = session.baml_src_projects.lock().unwrap();
@@ -128,7 +126,7 @@ pub(super) fn request<'a>(req: lsp_server::Request) -> Task<'a> {
         }
         "requestDiagnostics" => {
             tracing::info!("---- requestDiagnostics");
-            return Task::local(move |session, notifier, requester, responder| {
+            return Task::local(move |session, notifier, _requester, responder| {
                 let result: anyhow::Result<()> = (|| {
                     // tracing::info!("requestDiagnostics: {:?}", req.params);
 
@@ -162,13 +160,6 @@ pub(super) fn request<'a>(req: lsp_server::Request) -> Task<'a> {
                 })
             });
         }
-        request::DocumentDiagnosticRequestHandler::METHOD => {
-            tracing::info!("DocumentDiagnosticRequestHandler");
-            background_request_task::<request::DocumentDiagnosticRequestHandler>(
-                req,
-                BackgroundSchedule::LatencySensitive,
-            )
-        }
 
         // request::ExecuteCommand::METHOD => local_request_task::<request::ExecuteCommand>(req),
         // request::Format::METHOD => {
@@ -181,7 +172,7 @@ pub(super) fn request<'a>(req: lsp_server::Request) -> Task<'a> {
             local_request_task::<request::DocumentFormatting>(req)
         }
         request::Hover::METHOD => local_request_task::<request::Hover>(req),
-        method => {
+        _method => {
             // tracing::warn!("Received request {method} which does not have a handler");
             return Task::nothing();
         }
@@ -225,6 +216,11 @@ pub(super) fn notification<'a>(notif: lsp_server::Notification) -> Vec<Task<'a>>
         notification::DidChangeWatchedFiles::METHOD => {
             handle_notification_result_error::<notification::DidChangeWatchedFiles>(
                 local_notification_task::<notification::DidChangeWatchedFiles>(notif),
+            )
+        }
+        notification::DidChangeConfiguration::METHOD => {
+            handle_notification_result_error::<notification::DidChangeConfiguration>(
+                local_notification_task::<notification::DidChangeConfiguration>(notif),
             )
         }
         notification::DidCloseTextDocumentHandler::METHOD => {
@@ -294,7 +290,7 @@ fn background_request_task<'a, R: traits::BackgroundDocumentRequestHandler>(
         let _db = _db.unwrap();
 
         Box::new(move |_notifier, _responder| {
-            R::run_with_snapshot(_snapshot, _db, _notifier, params);
+            let _ = R::run_with_snapshot(_snapshot, _db, _notifier, params);
         })
     }))
 }

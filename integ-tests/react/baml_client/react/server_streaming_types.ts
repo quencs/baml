@@ -18,7 +18,7 @@ $ pnpm add @boundaryml/baml
 import type { Check, Checked  } from "../types";
 import type { Image, Audio } from "@boundaryml/baml";
 
-import type {  AliasedEnum,  AnotherObject,  BigNumbers,  BinaryNode,  Blah,  BlockConstraint,  BlockConstraintForParam,  BookOrder,  Category,  Category2,  Category3,  ClassForNullLiteral,  ClassOptionalOutput,  ClassOptionalOutput2,  ClassToRecAlias,  ClassWithBlockDone,  ClassWithImage,  ClassWithoutDone,  ClientDetails1559,  Color,  ComplexMemoryObject,  CompoundBigNumbers,  ContactInfo,  CustomStory,  CustomTaskResult,  DataType,  Document1559,  DummyOutput,  DynEnumOne,  DynEnumTwo,  DynInputOutput,  DynamicClassOne,  DynamicClassTwo,  DynamicOutput,  DynamicSchema,  Earthling,  Education,  Email,  EmailAddress,  EnumInClass,  EnumOutput,  Event,  FakeImage,  FlightConfirmation,  FooAny,  Forest,  FormatterTest0,  FormatterTest1,  FormatterTest2,  FormatterTest3,  GroceryReceipt,  Haiku,  Hobby,  InnerClass,  InnerClass2,  InputClass,  InputClassNested,  JsonArray,  JsonEntry,  JsonObject,  JsonTemplate,  JsonValue,  LinkedList,  LinkedListAliasNode,  LiteralClassHello,  LiteralClassOne,  LiteralClassTwo,  MalformedConstraints,  MalformedConstraints2,  MapKey,  Martian,  MemoryObject,  MergeAttrs,  NamedArgsSingleClass,  NamedArgsSingleEnum,  NamedArgsSingleEnumList,  Nested,  Nested2,  NestedBlockConstraint,  NestedBlockConstraintForParam,  Node,  NodeWithAliasIndirection,  Note1599,  OptionalListAndMap,  OptionalTest_CategoryType,  OptionalTest_Prop1,  OptionalTest_ReturnType,  OrderInfo,  OrderStatus,  OriginalA,  OriginalB,  Person,  PhoneNumber,  Quantity,  RaysData,  RecAliasOne,  RecAliasThree,  RecAliasTwo,  ReceiptInfo,  ReceiptItem,  Recipe,  RecursiveAliasDependency,  RecursiveListAlias,  RecursiveMapAlias,  Resume,  Schema,  SearchParams,  SemanticContainer,  SimpleTag,  SmallThing,  SomeClassNestedDynamic,  StringToClassEntry,  Tag,  TestClassAlias,  TestClassNested,  TestClassWithEnum,  TestEnum,  TestMemoryOutput,  TestOutputClass,  Tree,  TwoStoriesOneTitle,  UnionTest_ReturnType,  UniverseQuestion,  UniverseQuestionInput,  WithReasoning } from "../types"
+import type {  AliasedEnum,  AnotherObject,  BigNumbers,  BinaryNode,  Blah,  BlockConstraint,  BlockConstraintForParam,  BookOrder,  Category,  Category2,  Category3,  ClassForNullLiteral,  ClassOptionalOutput,  ClassOptionalOutput2,  ClassToRecAlias,  ClassWithBlockDone,  ClassWithImage,  ClassWithoutDone,  ClientDetails1559,  Color,  ComplexMemoryObject,  CompoundBigNumbers,  ContactInfo,  CustomStory,  CustomTaskResult,  DataType,  Document1559,  DummyOutput,  DynEnumOne,  DynEnumTwo,  DynInputOutput,  DynamicClassOne,  DynamicClassTwo,  DynamicOutput,  DynamicSchema,  Earthling,  Education,  Email,  EmailAddress,  EnumInClass,  EnumOutput,  Event,  FakeImage,  FlightConfirmation,  FooAny,  Forest,  FormatterTest0,  FormatterTest1,  FormatterTest2,  FormatterTest3,  GroceryReceipt,  Haiku,  Hobby,  InnerClass,  InnerClass2,  InputClass,  InputClassNested,  JsonArray,  JsonEntry,  JsonObject,  JsonTemplate,  JsonValue,  LinkedList,  LinkedListAliasNode,  LiteralClassHello,  LiteralClassOne,  LiteralClassTwo,  MalformedConstraints,  MalformedConstraints2,  MapKey,  Martian,  MemoryObject,  MergeAttrs,  NamedArgsSingleClass,  NamedArgsSingleEnum,  NamedArgsSingleEnumList,  Nested,  Nested2,  NestedBlockConstraint,  NestedBlockConstraintForParam,  Node,  NodeWithAliasIndirection,  Note1599,  OptionalListAndMap,  OptionalTest_CategoryType,  OptionalTest_Prop1,  OptionalTest_ReturnType,  OrderInfo,  OrderStatus,  OriginalA,  OriginalB,  Person,  PhoneNumber,  Quantity,  RaysData,  RecAliasOne,  RecAliasThree,  RecAliasTwo,  ReceiptInfo,  ReceiptItem,  Recipe,  RecursiveAliasDependency,  RecursiveListAlias,  RecursiveMapAlias,  Resume,  Schema,  SearchParams,  SemanticContainer,  SimpleTag,  SmallThing,  SomeClassNestedDynamic,  StringToClassEntry,  Tag,  TestClassAlias,  TestClassNested,  TestClassWithEnum,  TestEnum,  TestMemoryOutput,  TestOutputClass,  Tree,  TwoStoriesOneTitle,  TwoStoriesOneTitleCheck,  UnionTest_ReturnType,  UniverseQuestion,  UniverseQuestionInput,  WithReasoning } from "../types"
 
 import type * as types from "../types"
 import type { partial_types }from "../partial_types";
@@ -92,6 +92,8 @@ export type StreamingServerTypes = {
   JsonTypeAliasCycle: JsonValue,
   LiteralUnionsTest: (1 | true | "string output"),
   MakeBlockConstraint: Checked<partial_types.BlockConstraint,"cross_field">,
+  MakeClassWithBlockDone: types.ClassWithBlockDone,
+  MakeClassWithExternalDone: types.ClassWithoutDone,
   MakeNestedBlockConstraint: partial_types.NestedBlockConstraint,
   MakeSemanticContainer: partial_types.SemanticContainer,
   MapAlias: (Record<string, (string | null)[]> ),
@@ -122,6 +124,7 @@ export type StreamingServerTypes = {
   SimpleRecursiveMapAlias: RecursiveMapAlias,
   StreamBigNumbers: partial_types.BigNumbers,
   StreamFailingAssertion: partial_types.TwoStoriesOneTitle,
+  StreamFailingCheck: partial_types.TwoStoriesOneTitleCheck,
   StreamOneBigNumber: number,
   StreamUnionIntegers: ((number | null) | (string | null) | null)[],
   StreamingCompoundNumbers: partial_types.CompoundBigNumbers,
@@ -131,6 +134,8 @@ export type StreamingServerTypes = {
   TestAnthropic: string,
   TestAnthropicShorthand: string,
   TestAws: string,
+  TestAwsClaude37: string,
+  TestAwsInferenceProfile: string,
   TestAwsInvalidAccessKey: string,
   TestAwsInvalidProfile: string,
   TestAwsInvalidRegion: string,
@@ -162,6 +167,7 @@ export type StreamingServerTypes = {
   TestGeminiOpenAiGeneric: string,
   TestGeminiSystem: string,
   TestGeminiSystemAsChat: string,
+  TestGroq: string,
   TestImageInput: string,
   TestImageInputAnthropic: string,
   TestImageListInput: string,
@@ -182,6 +188,7 @@ export type StreamingServerTypes = {
   TestOpenAIShorthand: string,
   TestOpenAIWithMaxTokens: string,
   TestOpenAIWithNullMaxTokens: string,
+  TestOpenRouterMistralSmall3_1_24b: string,
   TestRetryConstant: string,
   TestRetryExponential: string,
   TestRoundRobinStrategy: string,
@@ -189,6 +196,7 @@ export type StreamingServerTypes = {
   TestThinking: partial_types.CustomStory,
   TestUniverseQuestion: partial_types.UniverseQuestion,
   TestVertex: string,
+  TestVertexClaude: string,
   TestVertexWithSystemInstructions: string,
   UnionTest_Function: partial_types.UnionTest_ReturnType,
   UseBlockConstraint: number,

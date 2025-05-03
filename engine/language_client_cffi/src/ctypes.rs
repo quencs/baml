@@ -7,9 +7,19 @@ mod cffi_generated;
 
 use cffi_generated::cffi::*;
 
+use crate::BamlFunctionArguments;
+
 pub fn buffer_to_cffi_value_holder(buffer: &[u8]) -> Result<BamlValue> {
     let root = flatbuffers::root::<CFFIValueHolder>(buffer)?;
     Ok(root.into())
+}
+
+pub fn buffer_to_cffi_function_arguments(buffer: &[u8]) -> Result<BamlFunctionArguments> {
+    let root = flatbuffers::root::<CFFIValueHolder>(buffer)?;
+    Ok(root
+        .value_as_cffifunction_arguments()
+        .expect("Failed to convert CFFIValueHolder to CFFIFunctionArguments")
+        .into())
 }
 
 impl From<cffi_generated::cffi::CFFIValueHolder<'_>> for BamlValue {
@@ -73,6 +83,9 @@ impl From<cffi_generated::cffi::CFFIValueHolder<'_>> for BamlValue {
                 .value_as_cffivalue_streaming_state()
                 .expect("Failed to convert CFFIValueStreamingState to BamlValue")
                 .into(),
+            CFFIValueUnion::CFFIFunctionArguments => {
+                panic!("CFFIFunctionArguments is not supported in BamlValue");
+            }
             other => {
                 panic!("Unsupported value type: {:?}", other);
             }
@@ -203,6 +216,18 @@ impl From<CFFIValueUnionVariant<'_>> for BamlValue {
     }
 }
 
+impl From<CFFIFunctionArguments<'_>> for BamlFunctionArguments {
+    fn from(value: CFFIFunctionArguments) -> Self {
+        let kwargs = value
+            .kwargs()
+            .expect("Failed to have CFFIFunctionArguments kwargs")
+            .into_iter()
+            .map(|v| v.into())
+            .collect();
+        BamlFunctionArguments { kwargs }
+    }
+}
+
 impl From<CFFIValueChecked<'_>> for BamlValue {
     fn from(_value: CFFIValueChecked) -> Self {
         unimplemented!("CFFIValueChecked is not supported");
@@ -277,9 +302,12 @@ where
 
             let values = builder.create_vector_from_iter(items.into_iter());
 
+            let field_type = field_type_to_cffi_value_holder(value.field_type(), &mut builder);
+
             let value_list = CFFIValueList::create(
                 &mut builder,
                 &CFFIValueListArgs {
+                    field_type: Some(field_type),
                     values: Some(values),
                 },
             );
@@ -303,9 +331,12 @@ where
 
             let entries = builder.create_vector_from_iter(items.into_iter());
 
+            let field_types = field_type_to_cffi_value_holder(value.field_type(), &mut builder);
+
             let value_map = CFFIValueMap::create(
                 &mut builder,
                 &CFFIValueMapArgs {
+                    field_types: Some(field_types),
                     entries: Some(entries),
                 },
             );

@@ -1609,6 +1609,50 @@ class AsyncHttpRequest:
         False,
       )
     
+    async def MakeClassWithBlockDone(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "MakeClassWithBlockDone",
+        {
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        False,
+      )
+    
+    async def MakeClassWithExternalDone(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "MakeClassWithExternalDone",
+        {
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        False,
+      )
+    
     async def MakeNestedBlockConstraint(
         self,
         
@@ -2298,6 +2342,30 @@ class AsyncHttpRequest:
         False,
       )
     
+    async def StreamFailingCheck(
+        self,
+        theme: str,length: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "StreamFailingCheck",
+        {
+          "theme": theme,
+          "length": length,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        False,
+      )
+    
     async def StreamOneBigNumber(
         self,
         digits: int,
@@ -2497,6 +2565,52 @@ class AsyncHttpRequest:
 
       return await self.__runtime.build_request(
         "TestAws",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        False,
+      )
+    
+    async def TestAwsClaude37(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestAwsClaude37",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        False,
+      )
+    
+    async def TestAwsInferenceProfile(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestAwsInferenceProfile",
         {
           "input": input,
         },
@@ -3218,6 +3332,29 @@ class AsyncHttpRequest:
         False,
       )
     
+    async def TestGroq(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestGroq",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        False,
+      )
+    
     async def TestImageInput(
         self,
         img: baml_py.Image,
@@ -3679,6 +3816,29 @@ class AsyncHttpRequest:
         False,
       )
     
+    async def TestOpenRouterMistralSmall3_1_24b(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestOpenRouterMistralSmall3_1_24b",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        False,
+      )
+    
     async def TestRetryConstant(
         self,
         
@@ -3828,6 +3988,29 @@ class AsyncHttpRequest:
 
       return await self.__runtime.build_request(
         "TestVertex",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        False,
+      )
+    
+    async def TestVertexClaude(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestVertexClaude",
         {
           "input": input,
         },
@@ -5534,6 +5717,50 @@ class AsyncHttpStreamRequest:
         True,
       )
     
+    async def MakeClassWithBlockDone(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "MakeClassWithBlockDone",
+        {
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        True,
+      )
+    
+    async def MakeClassWithExternalDone(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "MakeClassWithExternalDone",
+        {
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        True,
+      )
+    
     async def MakeNestedBlockConstraint(
         self,
         
@@ -6223,6 +6450,30 @@ class AsyncHttpStreamRequest:
         True,
       )
     
+    async def StreamFailingCheck(
+        self,
+        theme: str,length: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "StreamFailingCheck",
+        {
+          "theme": theme,
+          "length": length,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        True,
+      )
+    
     async def StreamOneBigNumber(
         self,
         digits: int,
@@ -6422,6 +6673,52 @@ class AsyncHttpStreamRequest:
 
       return await self.__runtime.build_request(
         "TestAws",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        True,
+      )
+    
+    async def TestAwsClaude37(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestAwsClaude37",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        True,
+      )
+    
+    async def TestAwsInferenceProfile(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestAwsInferenceProfile",
         {
           "input": input,
         },
@@ -7143,6 +7440,29 @@ class AsyncHttpStreamRequest:
         True,
       )
     
+    async def TestGroq(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestGroq",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        True,
+      )
+    
     async def TestImageInput(
         self,
         img: baml_py.Image,
@@ -7604,6 +7924,29 @@ class AsyncHttpStreamRequest:
         True,
       )
     
+    async def TestOpenRouterMistralSmall3_1_24b(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestOpenRouterMistralSmall3_1_24b",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        True,
+      )
+    
     async def TestRetryConstant(
         self,
         
@@ -7753,6 +8096,29 @@ class AsyncHttpStreamRequest:
 
       return await self.__runtime.build_request(
         "TestVertex",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        True,
+      )
+    
+    async def TestVertexClaude(
+        self,
+        input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      return await self.__runtime.build_request(
+        "TestVertexClaude",
         {
           "input": input,
         },

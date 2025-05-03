@@ -54,31 +54,29 @@ pub(crate) fn cast_value(container_variable_name: &str, field_type: &GoType) -> 
 }
 
 fn render_value_coercion(container_variable_name: &str, field_type: &GoType) -> String {
-    if field_type.is_class {
+    if field_type.is_pointer {
         return format!(
-            "*baml.Decode({}, typeMap).(*{})",
-            container_variable_name,
-            filters::type_name_without_pointer(&field_type.name)
-                .ok()
-                .unwrap()
+            "func () {} {{
+    val := baml.Decode({})
+    if val == nil {{
+        return nil
+    }}
+    return val.({})
+}}()",
+            field_type.name, container_variable_name, field_type.name,
         );
     } else if field_type.is_slice {
         let inner_type = field_type.underlying_type.as_ref().unwrap();
         return format!(
-            r#"baml.DecodeList({container_variable_name}, typeMap, func(__holder *cffi.CFFIValueHolder, typeMap baml.TypeMap) {} {{
+            r#"baml.DecodeList({container_variable_name}, func(__holder *cffi.CFFIValueHolder) {} {{
     return {}
 }})"#,
             inner_type.name,
             render_value_coercion("__holder", inner_type),
         );
-    } else if field_type.is_union {
-        return format!(
-            "*baml.Decode({container_variable_name}, typeMap).(*{})",
-            field_type.name
-        );
     } else {
         return format!(
-            "baml.Decode({container_variable_name}, typeMap).({})",
+            "*baml.Decode({container_variable_name}).(*{})",
             field_type.name
         );
     }

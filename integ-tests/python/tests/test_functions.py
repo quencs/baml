@@ -485,6 +485,12 @@ async def test_should_work_with_vertex():
 
 
 @pytest.mark.asyncio
+async def test_should_work_with_vertex_claude():
+    res = await b.TestVertexClaude("donkey kong")
+    assert_that("donkey kong" in res.lower())
+
+
+@pytest.mark.asyncio
 async def test_should_work_with_image_base64():
     res = await b.TestImageInput(img=baml_py.Image.from_base64("image/png", image_b64))
     assert_that(res.lower()).matches(r"(green|yellow|shrek|ogre)")
@@ -576,6 +582,35 @@ async def test_aws():
 
 
 @pytest.mark.asyncio
+async def test_aws_inference_profile():
+    res = await b.TestAwsInferenceProfile("Hello, world!")
+    assert len(res) > 0, "Expected non-empty result but got empty."
+
+
+@pytest.mark.asyncio
+async def test_aws_streaming():
+    res = b.stream.TestAws("Tell me a story in 8 sentences.")
+    chunks = []
+    async for chunk in res:
+        chunks.append(chunk)
+    assert len(chunks) > 1, "Expected more than one stream chunk."
+
+
+@pytest.mark.asyncio
+async def test_aws_streaming_claude_37():
+    # for i in range(10):
+    # print(f"================= Test {i} ==================")
+    # res = b.stream.TestAwsClaude37("Tell me a story in 8 sentences.")
+    # chunks = []
+    # async for chunk in res:
+    #     print(chunk)
+    #     chunks.append(chunk)
+    # assert len(chunks) > 1, "Expected more than one stream chunk."
+    res = await b.TestAwsClaude37("")
+    assert len(res) > 0, "Expected non-empty result but got empty."
+
+
+@pytest.mark.asyncio
 async def test_openai_shorthand():
     res = await b.TestOpenAIShorthand(input="Mt Rainier is tall")
     assert len(res) > 0, "Expected non-empty result but got empty."
@@ -612,12 +647,6 @@ async def test_fallback_to_shorthand():
 
 
 @pytest.mark.asyncio
-async def test_aws_streaming():
-    res = await b.stream.TestAws(input="Mt Rainier is tall").get_final_response()
-    assert len(res) > 0, "Expected non-empty result but got empty."
-
-
-@pytest.mark.asyncio
 async def test_streaming():
     stream = b.stream.PromptTestStreaming(
         input="Programming languages are fun to create"
@@ -628,6 +657,7 @@ async def test_streaming():
     last_msg_time = start_time
     first_msg_time = start_time + 10
     async for msg in stream:
+        print("stream event", msg)
         msgs.append(str(msg))
         if len(msgs) == 1:
             first_msg_time = asyncio.get_event_loop().time()

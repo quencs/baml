@@ -21,7 +21,7 @@ import { b } from '../index';
 import type { Check, Checked  } from "../types";
 import type { Image, Audio } from "@boundaryml/baml";
 
-import type {  AliasedEnum,  AnotherObject,  BigNumbers,  BinaryNode,  Blah,  BlockConstraint,  BlockConstraintForParam,  BookOrder,  Category,  Category2,  Category3,  ClassForNullLiteral,  ClassOptionalOutput,  ClassOptionalOutput2,  ClassToRecAlias,  ClassWithBlockDone,  ClassWithImage,  ClassWithoutDone,  ClientDetails1559,  Color,  ComplexMemoryObject,  CompoundBigNumbers,  ContactInfo,  CustomStory,  CustomTaskResult,  DataType,  Document1559,  DummyOutput,  DynEnumOne,  DynEnumTwo,  DynInputOutput,  DynamicClassOne,  DynamicClassTwo,  DynamicOutput,  DynamicSchema,  Earthling,  Education,  Email,  EmailAddress,  EnumInClass,  EnumOutput,  Event,  FakeImage,  FlightConfirmation,  FooAny,  Forest,  FormatterTest0,  FormatterTest1,  FormatterTest2,  FormatterTest3,  GroceryReceipt,  Haiku,  Hobby,  InnerClass,  InnerClass2,  InputClass,  InputClassNested,  JsonArray,  JsonEntry,  JsonObject,  JsonTemplate,  JsonValue,  LinkedList,  LinkedListAliasNode,  LiteralClassHello,  LiteralClassOne,  LiteralClassTwo,  MalformedConstraints,  MalformedConstraints2,  MapKey,  Martian,  MemoryObject,  MergeAttrs,  NamedArgsSingleClass,  NamedArgsSingleEnum,  NamedArgsSingleEnumList,  Nested,  Nested2,  NestedBlockConstraint,  NestedBlockConstraintForParam,  Node,  NodeWithAliasIndirection,  Note1599,  OptionalListAndMap,  OptionalTest_CategoryType,  OptionalTest_Prop1,  OptionalTest_ReturnType,  OrderInfo,  OrderStatus,  OriginalA,  OriginalB,  Person,  PhoneNumber,  Quantity,  RaysData,  RecAliasOne,  RecAliasThree,  RecAliasTwo,  ReceiptInfo,  ReceiptItem,  Recipe,  RecursiveAliasDependency,  RecursiveListAlias,  RecursiveMapAlias,  Resume,  Schema,  SearchParams,  SemanticContainer,  SimpleTag,  SmallThing,  SomeClassNestedDynamic,  StringToClassEntry,  Tag,  TestClassAlias,  TestClassNested,  TestClassWithEnum,  TestEnum,  TestMemoryOutput,  TestOutputClass,  Tree,  TwoStoriesOneTitle,  UnionTest_ReturnType,  UniverseQuestion,  UniverseQuestionInput,  WithReasoning } from "../types"
+import type {  AliasedEnum,  AnotherObject,  BigNumbers,  BinaryNode,  Blah,  BlockConstraint,  BlockConstraintForParam,  BookOrder,  Category,  Category2,  Category3,  ClassForNullLiteral,  ClassOptionalOutput,  ClassOptionalOutput2,  ClassToRecAlias,  ClassWithBlockDone,  ClassWithImage,  ClassWithoutDone,  ClientDetails1559,  Color,  ComplexMemoryObject,  CompoundBigNumbers,  ContactInfo,  CustomStory,  CustomTaskResult,  DataType,  Document1559,  DummyOutput,  DynEnumOne,  DynEnumTwo,  DynInputOutput,  DynamicClassOne,  DynamicClassTwo,  DynamicOutput,  DynamicSchema,  Earthling,  Education,  Email,  EmailAddress,  EnumInClass,  EnumOutput,  Event,  FakeImage,  FlightConfirmation,  FooAny,  Forest,  FormatterTest0,  FormatterTest1,  FormatterTest2,  FormatterTest3,  GroceryReceipt,  Haiku,  Hobby,  InnerClass,  InnerClass2,  InputClass,  InputClassNested,  JsonArray,  JsonEntry,  JsonObject,  JsonTemplate,  JsonValue,  LinkedList,  LinkedListAliasNode,  LiteralClassHello,  LiteralClassOne,  LiteralClassTwo,  MalformedConstraints,  MalformedConstraints2,  MapKey,  Martian,  MemoryObject,  MergeAttrs,  NamedArgsSingleClass,  NamedArgsSingleEnum,  NamedArgsSingleEnumList,  Nested,  Nested2,  NestedBlockConstraint,  NestedBlockConstraintForParam,  Node,  NodeWithAliasIndirection,  Note1599,  OptionalListAndMap,  OptionalTest_CategoryType,  OptionalTest_Prop1,  OptionalTest_ReturnType,  OrderInfo,  OrderStatus,  OriginalA,  OriginalB,  Person,  PhoneNumber,  Quantity,  RaysData,  RecAliasOne,  RecAliasThree,  RecAliasTwo,  ReceiptInfo,  ReceiptItem,  Recipe,  RecursiveAliasDependency,  RecursiveListAlias,  RecursiveMapAlias,  Resume,  Schema,  SearchParams,  SemanticContainer,  SimpleTag,  SmallThing,  SomeClassNestedDynamic,  StringToClassEntry,  Tag,  TestClassAlias,  TestClassNested,  TestClassWithEnum,  TestEnum,  TestMemoryOutput,  TestOutputClass,  Tree,  TwoStoriesOneTitle,  TwoStoriesOneTitleCheck,  UnionTest_ReturnType,  UniverseQuestion,  UniverseQuestionInput,  WithReasoning } from "../types"
 
 import type * as types from "../types"
 
@@ -1278,6 +1278,36 @@ export const MakeBlockConstraint = async (
 };
 
 /**
+ * Executes the "MakeClassWithBlockDone" BAML action.
+ *
+ * This server action calls the underlying BAML function "MakeClassWithBlockDone"
+ * with the specified parameters.
+ *
+ *
+ * @returns {Promise<ClassWithBlockDone>} A promise that resolves with the result of the action.
+ */
+export const MakeClassWithBlockDone = async (
+): Promise<ClassWithBlockDone> => {
+  return b.MakeClassWithBlockDone(
+  );
+};
+
+/**
+ * Executes the "MakeClassWithExternalDone" BAML action.
+ *
+ * This server action calls the underlying BAML function "MakeClassWithExternalDone"
+ * with the specified parameters.
+ *
+ *
+ * @returns {Promise<ClassWithoutDone>} A promise that resolves with the result of the action.
+ */
+export const MakeClassWithExternalDone = async (
+): Promise<ClassWithoutDone> => {
+  return b.MakeClassWithExternalDone(
+  );
+};
+
+/**
  * Executes the "MakeNestedBlockConstraint" BAML action.
  *
  * This server action calls the underlying BAML function "MakeNestedBlockConstraint"
@@ -1815,6 +1845,27 @@ export const StreamFailingAssertion = async (
 };
 
 /**
+ * Executes the "StreamFailingCheck" BAML action.
+ *
+ * This server action calls the underlying BAML function "StreamFailingCheck"
+ * with the specified parameters.
+ *
+ * @param { string } theme - Input parameter.
+ * @param { number } length - Input parameter.
+ *
+ * @returns {Promise<TwoStoriesOneTitleCheck>} A promise that resolves with the result of the action.
+ */
+export const StreamFailingCheck = async (
+  theme: string,
+  length: number,
+): Promise<TwoStoriesOneTitleCheck> => {
+  return b.StreamFailingCheck(
+    theme,
+    length,
+  );
+};
+
+/**
  * Executes the "StreamOneBigNumber" BAML action.
  *
  * This server action calls the underlying BAML function "StreamOneBigNumber"
@@ -1975,6 +2026,42 @@ export const TestAws = async (
   input: string,
 ): Promise<string> => {
   return b.TestAws(
+    input,
+  );
+};
+
+/**
+ * Executes the "TestAwsClaude37" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestAwsClaude37"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestAwsClaude37 = async (
+  input: string,
+): Promise<string> => {
+  return b.TestAwsClaude37(
+    input,
+  );
+};
+
+/**
+ * Executes the "TestAwsInferenceProfile" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestAwsInferenceProfile"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestAwsInferenceProfile = async (
+  input: string,
+): Promise<string> => {
+  return b.TestAwsInferenceProfile(
     input,
   );
 };
@@ -2535,6 +2622,24 @@ export const TestGeminiSystemAsChat = async (
 };
 
 /**
+ * Executes the "TestGroq" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestGroq"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestGroq = async (
+  input: string,
+): Promise<string> => {
+  return b.TestGroq(
+    input,
+  );
+};
+
+/**
  * Executes the "TestImageInput" BAML action.
  *
  * This server action calls the underlying BAML function "TestImageInput"
@@ -2898,6 +3003,24 @@ export const TestOpenAIWithNullMaxTokens = async (
 };
 
 /**
+ * Executes the "TestOpenRouterMistralSmall3_1_24b" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestOpenRouterMistralSmall3_1_24b"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestOpenRouterMistralSmall3_1_24b = async (
+  input: string,
+): Promise<string> => {
+  return b.TestOpenRouterMistralSmall3_1_24b(
+    input,
+  );
+};
+
+/**
  * Executes the "TestRetryConstant" BAML action.
  *
  * This server action calls the underlying BAML function "TestRetryConstant"
@@ -3010,6 +3133,24 @@ export const TestVertex = async (
   input: string,
 ): Promise<string> => {
   return b.TestVertex(
+    input,
+  );
+};
+
+/**
+ * Executes the "TestVertexClaude" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestVertexClaude"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestVertexClaude = async (
+  input: string,
+): Promise<string> => {
+  return b.TestVertexClaude(
     input,
   );
 };

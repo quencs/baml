@@ -1598,6 +1598,52 @@ module Baml
       params(
         llm_response: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(Baml::Types::ClassWithBlockDone)
+    }
+    def MakeClassWithBlockDone(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "MakeClassWithBlockDone",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        false,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(Baml::Types::ClassWithoutDone)
+    }
+    def MakeClassWithExternalDone(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "MakeClassWithExternalDone",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        false,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(Baml::Types::NestedBlockConstraint)
     }
     def MakeNestedBlockConstraint(llm_response:, baml_options: {})
@@ -2288,6 +2334,29 @@ module Baml
       params(
         llm_response: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(Baml::Types::TwoStoriesOneTitleCheck)
+    }
+    def StreamFailingCheck(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "StreamFailingCheck",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        false,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(Integer)
     }
     def StreamOneBigNumber(llm_response:, baml_options: {})
@@ -2481,6 +2550,52 @@ module Baml
 
       @runtime.parse_llm_response(
         "TestAws",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        false,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(String)
+    }
+    def TestAwsClaude37(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestAwsClaude37",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        false,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(String)
+    }
+    def TestAwsInferenceProfile(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestAwsInferenceProfile",
         llm_response,
         Baml::Types,
         Baml::PartialTypes,
@@ -3210,6 +3325,29 @@ module Baml
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(String)
     }
+    def TestGroq(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestGroq",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        false,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(String)
+    }
     def TestImageInput(llm_response:, baml_options: {})
       if (baml_options.keys - [:client_registry, :tb]).any?
         raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
@@ -3670,6 +3808,29 @@ module Baml
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(String)
     }
+    def TestOpenRouterMistralSmall3_1_24b(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestOpenRouterMistralSmall3_1_24b",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        false,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(String)
+    }
     def TestRetryConstant(llm_response:, baml_options: {})
       if (baml_options.keys - [:client_registry, :tb]).any?
         raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
@@ -3815,6 +3976,29 @@ module Baml
 
       @runtime.parse_llm_response(
         "TestVertex",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        false,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(String)
+    }
+    def TestVertexClaude(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestVertexClaude",
         llm_response,
         Baml::Types,
         Baml::PartialTypes,
@@ -5520,6 +5704,52 @@ module Baml
       params(
         llm_response: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(T.nilable(Baml::PartialTypes::ClassWithBlockDone))
+    }
+    def MakeClassWithBlockDone(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "MakeClassWithBlockDone",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        true,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(T.nilable(Baml::PartialTypes::ClassWithoutDone))
+    }
+    def MakeClassWithExternalDone(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "MakeClassWithExternalDone",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        true,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(T.nilable(Baml::PartialTypes::NestedBlockConstraint))
     }
     def MakeNestedBlockConstraint(llm_response:, baml_options: {})
@@ -6210,6 +6440,29 @@ module Baml
       params(
         llm_response: String,
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(T.nilable(Baml::PartialTypes::TwoStoriesOneTitleCheck))
+    }
+    def StreamFailingCheck(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "StreamFailingCheck",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        true,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(T.nilable(Integer))
     }
     def StreamOneBigNumber(llm_response:, baml_options: {})
@@ -6403,6 +6656,52 @@ module Baml
 
       @runtime.parse_llm_response(
         "TestAws",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        true,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(T.nilable(String))
+    }
+    def TestAwsClaude37(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestAwsClaude37",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        true,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(T.nilable(String))
+    }
+    def TestAwsInferenceProfile(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestAwsInferenceProfile",
         llm_response,
         Baml::Types,
         Baml::PartialTypes,
@@ -7132,6 +7431,29 @@ module Baml
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(T.nilable(String))
     }
+    def TestGroq(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestGroq",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        true,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(T.nilable(String))
+    }
     def TestImageInput(llm_response:, baml_options: {})
       if (baml_options.keys - [:client_registry, :tb]).any?
         raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
@@ -7592,6 +7914,29 @@ module Baml
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
       ).returns(T.nilable(String))
     }
+    def TestOpenRouterMistralSmall3_1_24b(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestOpenRouterMistralSmall3_1_24b",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        true,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(T.nilable(String))
+    }
     def TestRetryConstant(llm_response:, baml_options: {})
       if (baml_options.keys - [:client_registry, :tb]).any?
         raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
@@ -7737,6 +8082,29 @@ module Baml
 
       @runtime.parse_llm_response(
         "TestVertex",
+        llm_response,
+        Baml::Types,
+        Baml::PartialTypes,
+        true,
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+      )
+    end
+
+    sig {
+      params(
+        llm_response: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry)]
+      ).returns(T.nilable(String))
+    }
+    def TestVertexClaude(llm_response:, baml_options: {})
+      if (baml_options.keys - [:client_registry, :tb]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb): #{baml_options.keys - [:client_registry, :tb]}")
+      end
+
+      @runtime.parse_llm_response(
+        "TestVertexClaude",
         llm_response,
         Baml::Types,
         Baml::PartialTypes,

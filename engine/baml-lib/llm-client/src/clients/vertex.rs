@@ -10,8 +10,6 @@ use baml_derive::BamlHash;
 use baml_types::{GetEnvVar, StringOr, UnresolvedValue};
 use either::Either;
 use indexmap::IndexMap;
-use secrecy::SecretString;
-use serde::Deserialize;
 
 use super::helpers::{Error, PropertyHandler, UnresolvedUrl};
 
@@ -27,19 +25,12 @@ enum UnresolvedGcpAuthStrategy<Meta> {
     SystemDefault,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ServiceAccount {
-    pub token_uri: String,
-    pub project_id: String,
-    pub client_email: String,
-    pub private_key: SecretString,
-}
-
 pub enum ResolvedGcpAuthStrategy {
-    /// This is the mechanism that GCP SDKs usually support for GOOGLE_APPLICATION_CREDENTIALS
-    FilePath(String),
+    /// GCP SDKs usually support passing in GOOGLE_APPLICATION_CREDENTIALS as a file path
+    /// In WASM, however, we treat both StringContainingJson and MaybeFilePath as a string
+    MaybeFilePath(String),
     /// Because the WASM playground needs a way to pass in credentials.
-    JsonString(String),
+    StringContainingJson(String),
     /// JsonObject was implemented for a user: https://github.com/BoundaryML/baml/issues/1001
     JsonObject(IndexMap<String, String>),
     /// The normal GCP application default credentials flow, after checking
@@ -95,8 +86,8 @@ impl<Meta> UnresolvedGcpAuthStrategy<Meta> {
             UnresolvedGcpAuthStrategy::CredentialsString(s) => {
                 let s = s.resolve(ctx)?;
                 match serde_json::from_str::<serde_json::Value>(&s) {
-                    Ok(_) => ResolvedGcpAuthStrategy::JsonString(s),
-                    Err(_) => ResolvedGcpAuthStrategy::FilePath(s),
+                    Ok(_) => ResolvedGcpAuthStrategy::StringContainingJson(s),
+                    Err(_) => ResolvedGcpAuthStrategy::MaybeFilePath(s),
                 }
             }
             UnresolvedGcpAuthStrategy::CredentialsJsonObject(m) => {
@@ -108,7 +99,7 @@ impl<Meta> UnresolvedGcpAuthStrategy<Meta> {
             }
             UnresolvedGcpAuthStrategy::CredentialsContentString(s) => {
                 let s = s.resolve(ctx)?;
-                ResolvedGcpAuthStrategy::JsonString(s)
+                ResolvedGcpAuthStrategy::StringContainingJson(s)
             }
             UnresolvedGcpAuthStrategy::SystemDefault => {
                 log::debug!("Neither options.credentials nor options.credentials_content are set, falling back to env vars");
@@ -126,8 +117,8 @@ impl<Meta> UnresolvedGcpAuthStrategy<Meta> {
                             log::warn!("Resolving GOOGLE_APPLICATION_CREDENTIALS from env, but it is an empty string");
                         }
                         match serde_json::from_str::<serde_json::Value>(&credentials) {
-                            Ok(_) => ResolvedGcpAuthStrategy::JsonString(credentials),
-                            Err(_) => ResolvedGcpAuthStrategy::FilePath(credentials),
+                            Ok(_) => ResolvedGcpAuthStrategy::StringContainingJson(credentials),
+                            Err(_) => ResolvedGcpAuthStrategy::MaybeFilePath(credentials),
                         }
                     }
                     (None, Some(credentials_content)) => {
@@ -135,7 +126,7 @@ impl<Meta> UnresolvedGcpAuthStrategy<Meta> {
                         if credentials_content.is_empty() {
                             log::warn!("Resolving GOOGLE_APPLICATION_CREDENTIALS_CONTENT from env, but it is an empty string");
                         }
-                        ResolvedGcpAuthStrategy::JsonString(credentials_content)
+                        ResolvedGcpAuthStrategy::StringContainingJson(credentials_content)
                     }
                     (None, None) => {
                         log::debug!("Using UseSystemDefault strategy");
@@ -162,6 +153,7 @@ pub struct UnresolvedVertex<Meta> {
     finish_reason_filter: UnresolvedFinishReasonFilter,
     #[baml_safe_hash]
     properties: IndexMap<String, (Meta, UnresolvedValue<Meta>)>,
+    anthropic_version: Option<StringOr>,
 }
 
 pub enum BaseUrlOrLocation {
@@ -175,12 +167,14 @@ pub struct ResolvedVertex {
     pub auth_strategy: ResolvedGcpAuthStrategy,
     pub model: String,
     pub headers: IndexMap<String, String>,
-    role_selection: RolesSelection,
+    /// This is usually not pub, but we need it so that we can pass it through to the Anthropic client.
+    pub role_selection: RolesSelection,
     pub allowed_metadata: AllowedRoleMetadata,
     pub supported_request_modes: SupportedRequestModes,
     pub properties: IndexMap<String, serde_json::Value>,
     pub proxy_url: Option<String>,
     pub finish_reason_filter: FinishReasonFilter,
+    pub anthropic_version: Option<String>,
 }
 
 impl ResolvedVertex {
@@ -250,6 +244,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
                 .map(|(k, (_, v))| (k.clone(), ((), v.without_meta())))
                 .collect(),
             finish_reason_filter: self.finish_reason_filter.clone(),
+            anthropic_version: self.anthropic_version.clone(),
         }
     }
 
@@ -289,6 +284,10 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
                 .collect::<Result<IndexMap<_, _>>>()?,
             proxy_url: super::helpers::get_proxy_url(ctx),
             finish_reason_filter: self.finish_reason_filter.resolve(ctx)?,
+            anthropic_version: match self.anthropic_version {
+                Some(ref anthropic_version) => Some(anthropic_version.resolve(ctx)?),
+                None => None,
+            },
         })
     }
 
@@ -368,6 +367,10 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
         let headers = properties.ensure_headers().unwrap_or_default();
         let finish_reason_filter = properties.ensure_finish_reason_filter();
 
+        let anthropic_version = properties
+            .ensure_string("anthropic_version", false)
+            .map(|(_, v, _)| v);
+
         let (properties, errors) = properties.finalize();
         if !errors.is_empty() {
             return Err(errors);
@@ -388,6 +391,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
             supported_request_modes,
             properties,
             finish_reason_filter,
+            anthropic_version,
         })
     }
 }

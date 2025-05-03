@@ -1805,6 +1805,58 @@ class LlmResponseParser:
 
       return cast(Checked[types.BlockConstraint, Literal["cross_field"]], parsed)
     
+    def MakeClassWithBlockDone(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassWithBlockDone:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "MakeClassWithBlockDone",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        False,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(types.ClassWithBlockDone, parsed)
+    
+    def MakeClassWithExternalDone(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassWithoutDone:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "MakeClassWithExternalDone",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        False,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(types.ClassWithoutDone, parsed)
+    
     def MakeNestedBlockConstraint(
         self,
         llm_response: str,
@@ -2585,6 +2637,32 @@ class LlmResponseParser:
 
       return cast(types.TwoStoriesOneTitle, parsed)
     
+    def StreamFailingCheck(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.TwoStoriesOneTitleCheck:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "StreamFailingCheck",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        False,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(types.TwoStoriesOneTitleCheck, parsed)
+    
     def StreamOneBigNumber(
         self,
         llm_response: str,
@@ -2807,6 +2885,58 @@ class LlmResponseParser:
 
       parsed = self.__runtime.parse_llm_response(
         "TestAws",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        False,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(str, parsed)
+    
+    def TestAwsClaude37(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestAwsClaude37",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        False,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(str, parsed)
+    
+    def TestAwsInferenceProfile(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestAwsInferenceProfile",
         llm_response,
         types,
         types,
@@ -3625,6 +3755,32 @@ class LlmResponseParser:
 
       return cast(str, parsed)
     
+    def TestGroq(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestGroq",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        False,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(str, parsed)
+    
     def TestImageInput(
         self,
         llm_response: str,
@@ -4145,6 +4301,32 @@ class LlmResponseParser:
 
       return cast(str, parsed)
     
+    def TestOpenRouterMistralSmall3_1_24b(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestOpenRouterMistralSmall3_1_24b",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        False,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(str, parsed)
+    
     def TestRetryConstant(
         self,
         llm_response: str,
@@ -4315,6 +4497,32 @@ class LlmResponseParser:
 
       parsed = self.__runtime.parse_llm_response(
         "TestVertex",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        False,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(str, parsed)
+    
+    def TestVertexClaude(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestVertexClaude",
         llm_response,
         types,
         types,
@@ -5486,7 +5694,7 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> partial_types.ClassOptionalOutput:
+    ) -> Optional[partial_types.ClassOptionalOutput]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5506,13 +5714,13 @@ class LlmStreamParser:
         __cr__,
       )
 
-      return cast(partial_types.ClassOptionalOutput, parsed)
+      return cast(Optional[partial_types.ClassOptionalOutput], parsed)
     
     def FnClassOptionalOutput2(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> partial_types.ClassOptionalOutput2:
+    ) -> Optional[partial_types.ClassOptionalOutput2]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5532,7 +5740,7 @@ class LlmStreamParser:
         __cr__,
       )
 
-      return cast(partial_types.ClassOptionalOutput2, parsed)
+      return cast(Optional[partial_types.ClassOptionalOutput2], parsed)
     
     def FnEnumListOutput(
         self,
@@ -6236,6 +6444,58 @@ class LlmStreamParser:
 
       return cast(Checked[partial_types.BlockConstraint, Literal["cross_field"]], parsed)
     
+    def MakeClassWithBlockDone(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassWithBlockDone:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "MakeClassWithBlockDone",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        True,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(types.ClassWithBlockDone, parsed)
+    
+    def MakeClassWithExternalDone(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassWithoutDone:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "MakeClassWithExternalDone",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        True,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(types.ClassWithoutDone, parsed)
+    
     def MakeNestedBlockConstraint(
         self,
         llm_response: str,
@@ -6448,7 +6708,7 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> List[partial_types.OptionalTest_ReturnType]:
+    ) -> List[Optional[partial_types.OptionalTest_ReturnType]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6468,7 +6728,7 @@ class LlmStreamParser:
         __cr__,
       )
 
-      return cast(List[partial_types.OptionalTest_ReturnType], parsed)
+      return cast(List[Optional[partial_types.OptionalTest_ReturnType]], parsed)
     
     def PredictAge(
         self,
@@ -7016,6 +7276,32 @@ class LlmStreamParser:
 
       return cast(partial_types.TwoStoriesOneTitle, parsed)
     
+    def StreamFailingCheck(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> partial_types.TwoStoriesOneTitleCheck:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "StreamFailingCheck",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        True,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(partial_types.TwoStoriesOneTitleCheck, parsed)
+    
     def StreamOneBigNumber(
         self,
         llm_response: str,
@@ -7238,6 +7524,58 @@ class LlmStreamParser:
 
       parsed = self.__runtime.parse_llm_response(
         "TestAws",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        True,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(Optional[str], parsed)
+    
+    def TestAwsClaude37(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> Optional[str]:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestAwsClaude37",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        True,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(Optional[str], parsed)
+    
+    def TestAwsInferenceProfile(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> Optional[str]:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestAwsInferenceProfile",
         llm_response,
         types,
         types,
@@ -8056,6 +8394,32 @@ class LlmStreamParser:
 
       return cast(Optional[str], parsed)
     
+    def TestGroq(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> Optional[str]:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestGroq",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        True,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(Optional[str], parsed)
+    
     def TestImageInput(
         self,
         llm_response: str,
@@ -8576,6 +8940,32 @@ class LlmStreamParser:
 
       return cast(Optional[str], parsed)
     
+    def TestOpenRouterMistralSmall3_1_24b(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> Optional[str]:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestOpenRouterMistralSmall3_1_24b",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        True,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(Optional[str], parsed)
+    
     def TestRetryConstant(
         self,
         llm_response: str,
@@ -8746,6 +9136,32 @@ class LlmStreamParser:
 
       parsed = self.__runtime.parse_llm_response(
         "TestVertex",
+        llm_response,
+        types,
+        types,
+        partial_types,
+        True,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+      )
+
+      return cast(Optional[str], parsed)
+    
+    def TestVertexClaude(
+        self,
+        llm_response: str,
+        baml_options: BamlCallOptions = {},
+    ) -> Optional[str]:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+
+      parsed = self.__runtime.parse_llm_response(
+        "TestVertexClaude",
         llm_response,
         types,
         types,

@@ -47,8 +47,6 @@ pub struct ServeArgs {
     pub from: PathBuf,
     #[arg(long, help = "port to expose BAML on", default_value = "2024")]
     port: u16,
-    #[arg(long, help = "turn on preview features", default_value = "false")]
-    preview: bool,
     #[arg(
         long,
         help = "Generate baml_client without checking for version mismatch",
@@ -64,51 +62,6 @@ pub struct BamlOptions {
 
 impl ServeArgs {
     pub fn run(&self) -> Result<()> {
-        if !self.preview {
-            log::warn!(
-                r#"BAML-over-HTTP API is a preview feature.
-
-Please run with --preview, like so:
-
-    {} serve --preview
-
-Please provide feedback and let us know if you run into any issues:
-
-    - join our Discord at https://docs.boundaryml.com/discord, or
-    - comment on https://github.com/BoundaryML/baml/issues/892
-
-We expect to stabilize this feature over the next few weeks, but we need
-your feedback to do so.
-
-Thanks for trying out BAML!
-"#,
-                if matches!(
-                    std::env::var("npm_lifecycle_event").ok().as_deref(),
-                    Some("npx")
-                ) {
-                    "npx @boundaryml/baml"
-                } else {
-                    "baml-cli"
-                }
-            );
-            anyhow::bail!("--preview is not set")
-        }
-
-        log::warn!(
-            r#"BAML-over-HTTP is a preview feature.
-
-Please provide feedback and let us know if you run into any issues:
-
-    - join our Discord at https://docs.boundaryml.com/discord, or
-    - comment on https://github.com/BoundaryML/baml/issues/892
-
-We expect to stabilize this feature over the next few weeks, but we need
-your feedback to do so.
-
-Thanks for trying out BAML!
-"#
-        );
-
         let t: Arc<tokio::runtime::Runtime> = BamlRuntime::get_tokio_singleton()?;
 
         let (server, tcp_listener) = t.block_on(Server::new(self.from.clone(), self.port))?;
@@ -229,7 +182,7 @@ impl Server {
         };
 
         if !password.starts_with("sk-baml") {
-            log::warn!("We recommend using BAML_PASSWORD=sk-baml-... so that static analysis tools can detect if you accidentally commit and push your password.")
+            baml_log::warn!("We recommend using BAML_PASSWORD=sk-baml-... so that static analysis tools can detect if you accidentally commit and push your password.")
         }
 
         if let Some(XBamlApiKey(baml_api_key)) = baml_api_key {
@@ -358,8 +311,7 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
             Err(e) => return e.into_response(),
         };
 
-        let ctx_mgr =
-            RuntimeContextManager::new_from_env_vars(std::env::vars().collect(), None, None);
+        let ctx_mgr = RuntimeContextManager::new_from_env_vars(std::env::vars().collect(), None);
         let client_registry = b_options.and_then(|options| options.client_registry);
 
         let locked = self.b.read().await;
@@ -447,7 +399,7 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
 
         tokio::spawn(async move {
             let ctx_mgr =
-                RuntimeContextManager::new_from_env_vars(std::env::vars().collect(), None, None);
+                RuntimeContextManager::new_from_env_vars(std::env::vars().collect(), None);
 
             let result_stream = self.b.read().await.stream_function(
                 b_fn,
@@ -619,6 +571,7 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
             true,
             GeneratorDefaultClientMode::Sync,
             Vec::new(),
+            None,
             None,
             None,
         )
