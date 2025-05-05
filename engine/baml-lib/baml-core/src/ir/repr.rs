@@ -152,10 +152,13 @@ impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
             .ok_or(anyhow::anyhow!(
                 "Expression functions must have a return type"
             ))?;
-        let lambda_type = FieldType::Arrow(Box::new(Arrow {
-            param_types: arg_types,
-            return_type: return_type.clone(),
-        }));
+        let lambda_type = FieldType::Arrow(
+            Box::new(Arrow {
+                param_types: arg_types,
+                return_type: return_type.clone(),
+            }),
+            todo!(),
+        );
         let expr_fn = ExprFunction {
             name: self.expr_fn().name.to_string(),
             inputs: args,
@@ -239,154 +242,155 @@ fn convert_function_body(
 
 impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
     fn repr(&self, db: &ParserDatabase) -> Result<Expr<ExprMetadata>> {
-        match self {
-            ast::Expression::BoolValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::Bool(
-                *val,
-                (span.clone(), Some(FieldType::Primitive(TypeValue::Bool))),
-            ))),
-            ast::Expression::NumericValue(val, span) => val
-                .parse::<i64>()
-                .map(|v| {
-                    Expr::Atom(BamlValueWithMeta::Int(
-                        v,
-                        (span.clone(), Some(FieldType::Primitive(TypeValue::Int))),
-                    ))
-                })
-                .or_else(|_| {
-                    val.parse::<f64>()
-                        .map(|v| {
-                            Expr::Atom(BamlValueWithMeta::Float(
-                                v,
-                                (span.clone(), Some(FieldType::Primitive(TypeValue::Float))),
-                            ))
-                        })
-                        .or_else(|_| Err(anyhow!("Invalid numeric value: {}", val)))
-                }),
-            ast::Expression::StringValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::String(
-                val.to_string(),
-                (span.clone(), Some(FieldType::Primitive(TypeValue::String))),
-            ))),
-            ast::Expression::RawStringValue(val) => Ok(Expr::Atom(BamlValueWithMeta::String(
-                val.value().to_string(),
-                (
-                    val.span().clone(),
-                    Some(FieldType::Primitive(TypeValue::String)),
-                ),
-            ))),
-            ast::Expression::JinjaExpressionValue(val, span) => {
-                Ok(Expr::Atom(BamlValueWithMeta::String(
-                    val.to_string(),
-                    (span.clone(), Some(FieldType::Primitive(TypeValue::String))),
-                )))
-            }
-            ast::Expression::Array(vals, span) => {
-                let new_items = vals
-                    .iter()
-                    .map(|v| v.repr(db))
-                    .collect::<Result<Vec<_>>>()?;
-                let mut item_types = new_items
-                    .iter()
-                    .filter_map(|v| v.meta().1.clone())
-                    .collect::<Vec<_>>();
-                item_types.dedup();
-                let item_type = match item_types.len() {
-                    0 => None,
-                    1 => Some(item_types[0].clone()),
-                    _ => Some(FieldType::Union(item_types)),
-                };
-                let list_type = item_type.map(|t| FieldType::List(Box::new(t)));
-                Ok(Expr::List(new_items, (span.clone(), list_type)))
-            }
-            ast::Expression::Map(vals, span) => {
-                let new_items = vals
-                    .iter()
-                    .map(|(k, v)| v.repr(db).map(|v2| (k.to_string(), v2)))
-                    .collect::<Result<IndexMap<_, _>>>()?;
-                let mut item_types = new_items
-                    .iter()
-                    .filter_map(|v| v.1.meta().1.clone())
-                    .collect::<Vec<_>>();
-                item_types.dedup();
-                let item_type = match item_types.len() {
-                    0 => None,
-                    1 => Some(item_types[0].clone()),
-                    _ => Some(FieldType::Union(item_types)),
-                };
-                // TODO: Is this correct?
-                let key_type = FieldType::Primitive(TypeValue::String);
-                let map_type = item_type.map(|t| FieldType::Map(Box::new(key_type), Box::new(t)));
-                Ok(Expr::Map(new_items, (span.clone(), map_type)))
-            }
-            ast::Expression::Identifier(id) => Ok(Expr::FreeVar(
-                id.name().to_string(),
-                (id.span().clone(), None),
-            )),
+        todo!();
+        // match self {
+        //     ast::Expression::BoolValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::Bool(
+        //         *val,
+        //         (span.clone(), Some(FieldType::Primitive(TypeValue::Bool))),
+        //     ))),
+        //     ast::Expression::NumericValue(val, span) => val
+        //         .parse::<i64>()
+        //         .map(|v| {
+        //             Expr::Atom(BamlValueWithMeta::Int(
+        //                 v,
+        //                 (span.clone(), Some(FieldType::Primitive(TypeValue::Int))),
+        //             ))
+        //         })
+        //         .or_else(|_| {
+        //             val.parse::<f64>()
+        //                 .map(|v| {
+        //                     Expr::Atom(BamlValueWithMeta::Float(
+        //                         v,
+        //                         (span.clone(), Some(FieldType::Primitive(TypeValue::Float))),
+        //                     ))
+        //                 })
+        //                 .or_else(|_| Err(anyhow!("Invalid numeric value: {}", val)))
+        //         }),
+        //     ast::Expression::StringValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::String(
+        //         val.to_string(),
+        //         (span.clone(), Some(FieldType::Primitive(TypeValue::String))),
+        //     ))),
+        //     ast::Expression::RawStringValue(val) => Ok(Expr::Atom(BamlValueWithMeta::String(
+        //         val.value().to_string(),
+        //         (
+        //             val.span().clone(),
+        //             Some(FieldType::Primitive(TypeValue::String)),
+        //         ),
+        //     ))),
+        //     ast::Expression::JinjaExpressionValue(val, span) => {
+        //         Ok(Expr::Atom(BamlValueWithMeta::String(
+        //             val.to_string(),
+        //             (span.clone(), Some(FieldType::Primitive(TypeValue::String))),
+        //         )))
+        //     }
+        //     ast::Expression::Array(vals, span) => {
+        //         let new_items = vals
+        //             .iter()
+        //             .map(|v| v.repr(db))
+        //             .collect::<Result<Vec<_>>>()?;
+        //         let mut item_types = new_items
+        //             .iter()
+        //             .filter_map(|v| v.meta().1.clone())
+        //             .collect::<Vec<_>>();
+        //         item_types.dedup();
+        //         let item_type = match item_types.len() {
+        //             0 => None,
+        //             1 => Some(item_types[0].clone()),
+        //             _ => Some(FieldType::Union(item_types)),
+        //         };
+        //         let list_type = item_type.map(|t| FieldType::List(Box::new(t)));
+        //         Ok(Expr::List(new_items, (span.clone(), list_type)))
+        //     }
+        //     ast::Expression::Map(vals, span) => {
+        //         let new_items = vals
+        //             .iter()
+        //             .map(|(k, v)| v.repr(db).map(|v2| (k.to_string(), v2)))
+        //             .collect::<Result<IndexMap<_, _>>>()?;
+        //         let mut item_types = new_items
+        //             .iter()
+        //             .filter_map(|v| v.1.meta().1.clone())
+        //             .collect::<Vec<_>>();
+        //         item_types.dedup();
+        //         let item_type = match item_types.len() {
+        //             0 => None,
+        //             1 => Some(item_types[0].clone()),
+        //             _ => Some(FieldType::Union(item_types)),
+        //         };
+        //         // TODO: Is this correct?
+        //         let key_type = FieldType::Primitive(TypeValue::String);
+        //         let map_type = item_type.map(|t| FieldType::Map(Box::new(key_type), Box::new(t)));
+        //         Ok(Expr::Map(new_items, (span.clone(), map_type)))
+        //     }
+        //     ast::Expression::Identifier(id) => Ok(Expr::FreeVar(
+        //         id.name().to_string(),
+        //         (id.span().clone(), None),
+        //     )),
 
-            ast::Expression::Lambda(args, body, span) => {
-                let args = args
-                    .arguments
-                    .iter()
-                    .filter_map(|arg| arg.value.as_string_value().map(|v| v.0.to_string()))
-                    .collect::<Vec<String>>();
-                let arity = args.len();
-                let body = convert_function_body(*body.to_owned(), db)?;
-                let closed_body = args.iter().enumerate().fold(body, |acc, (ind, arg_name)| {
-                    acc.close(
-                        &VarIndex {
-                            de_bruijn: 0,
-                            tuple: ind as u32,
-                        },
-                        arg_name,
-                    )
-                });
-                Ok(Expr::Lambda(
-                    arity,
-                    Arc::new(closed_body),
-                    (span.clone(), None),
-                ))
-            }
-            ast::Expression::FnApp(func, args, span) => {
-                let func = Expr::FreeVar(func.name().to_string(), (func.span().clone(), None));
-                let args = args.iter().map(|arg| arg.repr(db)).collect::<Result<_>>()?;
-                Ok(Expr::App(
-                    Arc::new(func),
-                    Arc::new(Expr::ArgsTuple(args, (span.clone(), None))), // TODO: We don't really have a span for the ArgsTuple, so we're using the one for the whole FnApp.
-                    (span.clone(), None),
-                ))
-            }
-            ast::Expression::ClassConstructor(
-                ast::ClassConstructor { class_name, fields },
-                span,
-            ) => {
-                let mut new_fields = BamlMap::new();
-                let mut spread = None;
-                for f in fields {
-                    match f {
-                        ast::ClassConstructorField::Named(name, expr) => {
-                            new_fields.insert(name.to_string(), expr.repr(db)?);
-                        }
-                        ast::ClassConstructorField::Spread(expr) => {
-                            spread = Some(Box::new(expr.repr(db)?));
-                        }
-                    }
-                }
-                Ok(Expr::ClassConstructor {
-                    name: class_name.name().to_string(),
-                    fields: new_fields,
-                    spread,
-                    meta: (
-                        span.clone(),
-                        Some(FieldType::Class(class_name.name().to_string())),
-                    ),
-                })
-            }
-            ast::Expression::ExprBlock(block, span) => {
-                // We use "function_body" and "expr_block" interchangeably.
-                // This may need to be revisited?
-                let body = convert_function_body(block.clone(), db)?;
-                Ok(body)
-            }
-        }
+        //     ast::Expression::Lambda(args, body, span) => {
+        //         let args = args
+        //             .arguments
+        //             .iter()
+        //             .filter_map(|arg| arg.value.as_string_value().map(|v| v.0.to_string()))
+        //             .collect::<Vec<String>>();
+        //         let arity = args.len();
+        //         let body = convert_function_body(*body.to_owned(), db)?;
+        //         let closed_body = args.iter().enumerate().fold(body, |acc, (ind, arg_name)| {
+        //             acc.close(
+        //                 &VarIndex {
+        //                     de_bruijn: 0,
+        //                     tuple: ind as u32,
+        //                 },
+        //                 arg_name,
+        //             )
+        //         });
+        //         Ok(Expr::Lambda(
+        //             arity,
+        //             Arc::new(closed_body),
+        //             (span.clone(), None),
+        //         ))
+        //     }
+        //     ast::Expression::FnApp(func, args, span) => {
+        //         let func = Expr::FreeVar(func.name().to_string(), (func.span().clone(), None));
+        //         let args = args.iter().map(|arg| arg.repr(db)).collect::<Result<_>>()?;
+        //         Ok(Expr::App(
+        //             Arc::new(func),
+        //             Arc::new(Expr::ArgsTuple(args, (span.clone(), None))), // TODO: We don't really have a span for the ArgsTuple, so we're using the one for the whole FnApp.
+        //             (span.clone(), None),
+        //         ))
+        //     }
+        //     ast::Expression::ClassConstructor(
+        //         ast::ClassConstructor { class_name, fields },
+        //         span,
+        //     ) => {
+        //         let mut new_fields = BamlMap::new();
+        //         let mut spread = None;
+        //         for f in fields {
+        //             match f {
+        //                 ast::ClassConstructorField::Named(name, expr) => {
+        //                     new_fields.insert(name.to_string(), expr.repr(db)?);
+        //                 }
+        //                 ast::ClassConstructorField::Spread(expr) => {
+        //                     spread = Some(Box::new(expr.repr(db)?));
+        //                 }
+        //             }
+        //         }
+        //         Ok(Expr::ClassConstructor {
+        //             name: class_name.name().to_string(),
+        //             fields: new_fields,
+        //             spread,
+        //             meta: (
+        //                 span.clone(),
+        //                 Some(FieldType::Class(class_name.name().to_string())),
+        //             ),
+        //         })
+        //     }
+        //     ast::Expression::ExprBlock(block, span) => {
+        //         // We use "function_body" and "expr_block" interchangeably.
+        //         // This may need to be revisited?
+        //         let body = convert_function_body(block.clone(), db)?;
+        //         Ok(body)
+        //     }
+        // }
     }
 }
 
@@ -961,7 +965,7 @@ pub trait WithRepr<T> {
 fn type_with_arity(t: FieldType, arity: &FieldArity) -> FieldType {
     match arity {
         FieldArity::Required => t,
-        FieldArity::Optional => FieldType::Optional(Box::new(t)),
+        FieldArity::Optional => FieldType::optional(t),
     }
 }
 
@@ -1048,7 +1052,9 @@ impl WithRepr<FieldType> for ast::FieldType {
                     stack.extend(items.iter());
                 }
                 // No identifiers here.
-                ast::FieldType::Primitive(..) | ast::FieldType::Literal(..) => {}
+                ast::FieldType::Null(..)
+                | ast::FieldType::Primitive(..)
+                | ast::FieldType::Literal(..) => {}
             }
         }
 
@@ -1069,18 +1075,19 @@ impl WithRepr<FieldType> for ast::FieldType {
         let streaming_behavior = attributes.streaming_behavior();
         let has_special_streaming_behavior = streaming_behavior != StreamingBehavior::default();
         let base = match self {
+            ast::FieldType::Null(..) => FieldType::null(),
             ast::FieldType::Primitive(arity, typeval, ..) => {
-                let repr = FieldType::Primitive(*typeval);
+                let repr = FieldType::primitive(*typeval);
                 if arity.is_optional() {
-                    FieldType::Optional(Box::new(repr))
+                    repr.as_optional()
                 } else {
                     repr
                 }
             }
             ast::FieldType::Literal(arity, literal_value, ..) => {
-                let repr = FieldType::Literal(literal_value.clone());
+                let repr = FieldType::literal(literal_value.clone());
                 if arity.is_optional() {
-                    FieldType::Optional(Box::new(repr))
+                    repr.as_optional()
                 } else {
                     repr
                 }
@@ -1088,7 +1095,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ast::FieldType::Symbol(arity, idn, ..) => type_with_arity(
                 match db.find_type(idn) {
                     Some(TypeWalker::Class(class_walker)) => {
-                        let base_class = FieldType::Class(class_walker.name().to_string());
+                        let base_class = FieldType::class(class_walker.name());
                         match class_walker.get_constraints(SubType::Class) {
                             Some(constraints) if !constraints.is_empty() => {
                                 FieldType::WithMetadata {
@@ -1132,25 +1139,24 @@ impl WithRepr<FieldType> for ast::FieldType {
             ),
             ast::FieldType::List(arity, ft, dims, ..) => {
                 // NB: potential bug: this hands back a 1D list when dims == 0
-                let mut repr = FieldType::List(Box::new(ft.repr(db)?));
+                let mut repr = ft.repr(db)?.as_list();
 
                 for _ in 1u32..*dims {
                     repr = FieldType::list(repr);
                 }
 
                 if arity.is_optional() {
-                    repr = FieldType::optional(repr);
+                    repr = repr.as_optional();
                 }
 
                 repr
             }
             ast::FieldType::Map(arity, kv, ..) => {
                 // NB: we can't just unpack (*kv) into k, v because that would require a move/copy
-                let mut repr =
-                    FieldType::Map(Box::new((kv).0.repr(db)?), Box::new((kv).1.repr(db)?));
+                let mut repr = FieldType::map((kv).0.repr(db)?, (kv).1.repr(db)?);
 
                 if arity.is_optional() {
-                    repr = FieldType::optional(repr);
+                    repr = repr.as_optional();
                 }
 
                 repr

@@ -24,24 +24,35 @@ pub fn typecheck_exprs(ctx: &mut Context<'_>) -> Result<()> {
             .map(|expr_fn| {
                 (
                     expr_fn.elem.name.clone(),
-                    FieldType::Arrow(Box::new(Arrow {
-                        param_types: expr_fn.elem.inputs.iter().map(|(_, t)| t.clone()).collect(),
-                        return_type: expr_fn.elem.output.clone(),
-                    })),
+                    FieldType::Arrow(
+                        Box::new(Arrow {
+                            param_types: expr_fn
+                                .elem
+                                .inputs
+                                .iter()
+                                .map(|(_, t)| t.clone())
+                                .collect(),
+                            return_type: expr_fn.elem.output.clone(),
+                        }),
+                        todo!(),
+                    ),
                 )
             })
             .chain(ir.functions.iter().map(|llm_function| {
                 (
                     llm_function.elem.name.clone(),
-                    FieldType::Arrow(Box::new(Arrow {
-                        param_types: llm_function
-                            .elem
-                            .inputs
-                            .iter()
-                            .map(|(_, t)| t.clone())
-                            .collect(),
-                        return_type: llm_function.elem.output.clone(),
-                    })),
+                    FieldType::Arrow(
+                        Box::new(Arrow {
+                            param_types: llm_function
+                                .elem
+                                .inputs
+                                .iter()
+                                .map(|(_, t)| t.clone())
+                                .collect(),
+                            return_type: llm_function.elem.output.clone(),
+                        }),
+                        todo!(),
+                    ),
                 )
             }))
             .collect();
@@ -75,181 +86,182 @@ pub fn typecheck_in_context(
     typing_context: &HashMap<String, FieldType>,
     expr: &Expr<ExprMetadata>,
 ) -> Result<()> {
-    match expr {
-        Expr::Atom(atom) => {
-            // Atoms always typecheck.
-            Ok(())
-        }
-        Expr::LLMFunction(llm_function, args, _) => {
-            // Bare functions always typecheck.
-            Ok(())
-        }
-        Expr::FreeVar(var, (var_span, maybe_type)) => {
-            if let Some(var_type) = maybe_type {
-                if let Some(ctx_type) = typing_context.get(var) {
-                    if ir.is_subtype(&ctx_type, var_type) {
-                        Ok(())
-                    } else {
-                        diagnostics.push_error(DatamodelError::new_validation_error(
-                            "Type mismatch",
-                            var_span.clone(),
-                        ));
-                        Ok(())
-                    }
-                } else {
-                    Ok(())
-                }
-            } else {
-                Ok(())
-            }
-        }
-        Expr::BoundVar(_, _) => Ok(()),
-        Expr::Lambda(arity, body, (span, maybe_type)) => {
-            // (\(x,y) -> x + y) : (Int,Int) -> Int
-            if let Some(FieldType::Arrow(arrow)) = maybe_type {
-                let mut inner_context = typing_context.clone();
-                let fresh_names = body.fresh_names(*arity);
-                let opened_body = fresh_names.iter().enumerate().fold(
-                    body.clone(),
-                    |body, (index, fresh_name)| {
-                        let target = VarIndex {
-                            de_bruijn: 0,
-                            tuple: index as u32,
-                        };
-                        Arc::new(body.open(&target, fresh_name))
-                    },
-                );
-                for ((ind, param_name), param_type) in
-                    fresh_names.iter().enumerate().zip(arrow.param_types.iter())
-                {
-                    inner_context.insert(param_name.to_string(), param_type.clone());
-                }
-                if !compatible_as_subtype(ir, &body.meta().1, &Some(arrow.return_type.clone())) {
-                    diagnostics.push_error(DatamodelError::new_validation_error(
-                        &format!(
-                            "Type mismatch in lambda: {} vs {}",
-                            body.meta()
-                                .1
-                                .as_ref()
-                                .map_or("?".to_string(), |t| t.to_string()),
-                            arrow.return_type.to_string()
-                        ),
-                        body.meta().0.clone(),
-                    ));
-                }
-                typecheck_in_context(ir, diagnostics, &inner_context, &opened_body)?;
-            }
-            Ok(())
-        }
-        // (\[x,y] -> x + y) (1,2)
-        // ([Int,Int] -> Int) ([Int,Int]
-        Expr::App(f, xs, (span, maybe_app_type)) => {
-            // First check that the param types are compatible with the arguments.
-            match (&f.meta().1, xs.as_ref()) {
-                (Some(FieldType::Arrow(arrow)), Expr::ArgsTuple(args, _)) => {
-                    for (param_type, arg) in arrow.param_types.iter().zip(args.iter()) {
-                        if !compatible_as_subtype(ir, &arg.meta().1, &Some(param_type.clone())) {
-                            diagnostics.push_error(DatamodelError::new_validation_error(
-                                "Type mismatch in app",
-                                span.clone(),
-                            ));
-                        }
-                    }
-                }
-                x => {
-                    eprintln!(
-                        "TYPECHECKING APP: UNEXPECTED ARGS: ({}: {:?} ) {:?}",
-                        f.dump_str(),
-                        f.meta()
-                            .1
-                            .as_ref()
-                            .map_or("?".to_string(), |t| t.to_string()),
-                        x
-                    );
-                }
-            }
-            Ok(())
-        }
-        Expr::Let(let_expr, _, _, _) => Ok(()),
-        Expr::ArgsTuple(args, _) => Ok(()),
-        Expr::List(items, meta) => {
-            for item in items.iter() {
-                if let Some(item_type) = item.meta().1.as_ref() {
-                    let item_list_type = FieldType::List(Box::new(item_type.clone()));
-                    if !compatible_as_subtype(ir, &Some(item_list_type), &meta.1.clone()) {
-                        diagnostics.push_error(DatamodelError::new_validation_error(
-                            "Type mismatch in list",
-                            meta.0.clone(),
-                        ));
-                    }
-                }
-                typecheck_in_context(ir, diagnostics, typing_context, item)?;
-            }
-            Ok(())
-        }
-        Expr::Map(items, meta) => {
-            if let Some(map_type) = meta.1.as_ref() {
-                if let Some((key_type, item_type)) = match map_type {
-                    FieldType::Map(key_type, item_type) => Some((key_type, item_type)),
-                    _ => None,
-                } {
-                    for (_key, item) in items.iter() {
-                        if let Some(item_type) = item.meta().1.as_ref() {
-                            let item_map_type =
-                                FieldType::Map(key_type.clone(), Box::new(item_type.clone()));
-                            if !compatible_as_subtype(ir, &Some(item_map_type), &meta.1.clone()) {
-                                diagnostics.push_error(DatamodelError::new_validation_error(
-                                    "Type mismatch in map",
-                                    meta.0.clone(),
-                                ));
-                            }
-                        }
-                        typecheck_in_context(ir, diagnostics, typing_context, item)?;
-                    }
-                } else {
-                    diagnostics.push_error(DatamodelError::new_validation_error(
-                        "Type mismatch in map",
-                        meta.0.clone(),
-                    ));
-                }
-            }
-            Ok(())
-        }
-        Expr::ClassConstructor {
-            name,
-            fields,
-            spread,
-            meta,
-        } => {
-            if let Ok(class_walker) = ir.find_class(name) {
-                for (field_name, field_value) in fields.iter() {
-                    let maybe_field_type = field_value.meta().1.clone();
-                    if let Some(field_type) = maybe_field_type {
-                        if let Some(field_walker) = class_walker.find_field(field_name) {
-                            if !compatible_as_subtype(
-                                ir,
-                                &Some(field_walker.r#type().clone()),
-                                &Some(field_type),
-                            ) {
-                                diagnostics.push_error(DatamodelError::new_validation_error(
-                                    "Type mismatch in class constructor",
-                                    meta.0.clone(),
-                                ));
-                            }
-                        }
-                    }
-                }
-            }
-            let spread_type = spread.as_ref().and_then(|s| s.meta().1.clone());
-            if !compatible_as_subtype(ir, &meta.1, &spread_type) {
-                diagnostics.push_error(DatamodelError::new_validation_error(
-                    "Type mismatch in class constructor",
-                    meta.0.clone(),
-                ));
-            }
-            Ok(())
-        }
-    }
+    // match expr {
+    //     Expr::Atom(atom) => {
+    //         // Atoms always typecheck.
+    //         Ok(())
+    //     }
+    //     Expr::LLMFunction(llm_function, args, _) => {
+    //         // Bare functions always typecheck.
+    //         Ok(())
+    //     }
+    //     Expr::FreeVar(var, (var_span, maybe_type)) => {
+    //         if let Some(var_type) = maybe_type {
+    //             if let Some(ctx_type) = typing_context.get(var) {
+    //                 if ir.is_subtype(&ctx_type, var_type) {
+    //                     Ok(())
+    //                 } else {
+    //                     diagnostics.push_error(DatamodelError::new_validation_error(
+    //                         "Type mismatch",
+    //                         var_span.clone(),
+    //                     ));
+    //                     Ok(())
+    //                 }
+    //             } else {
+    //                 Ok(())
+    //             }
+    //         } else {
+    //             Ok(())
+    //         }
+    //     }
+    //     Expr::BoundVar(_, _) => Ok(()),
+    //     Expr::Lambda(arity, body, (span, maybe_type)) => {
+    //         // (\(x,y) -> x + y) : (Int,Int) -> Int
+    //         if let Some(FieldType::Arrow(arrow, ..)) = maybe_type {
+    //             let mut inner_context = typing_context.clone();
+    //             let fresh_names = body.fresh_names(*arity);
+    //             let opened_body = fresh_names.iter().enumerate().fold(
+    //                 body.clone(),
+    //                 |body, (index, fresh_name)| {
+    //                     let target = VarIndex {
+    //                         de_bruijn: 0,
+    //                         tuple: index as u32,
+    //                     };
+    //                     Arc::new(body.open(&target, fresh_name))
+    //                 },
+    //             );
+    //             for ((ind, param_name), param_type) in
+    //                 fresh_names.iter().enumerate().zip(arrow.param_types.iter())
+    //             {
+    //                 inner_context.insert(param_name.to_string(), param_type.clone());
+    //             }
+    //             if !compatible_as_subtype(ir, &body.meta().1, &Some(arrow.return_type.clone())) {
+    //                 diagnostics.push_error(DatamodelError::new_validation_error(
+    //                     &format!(
+    //                         "Type mismatch in lambda: {} vs {}",
+    //                         body.meta()
+    //                             .1
+    //                             .as_ref()
+    //                             .map_or("?".to_string(), |t| t.to_string()),
+    //                         arrow.return_type.to_string()
+    //                     ),
+    //                     body.meta().0.clone(),
+    //                 ));
+    //             }
+    //             typecheck_in_context(ir, diagnostics, &inner_context, &opened_body)?;
+    //         }
+    //         Ok(())
+    //     }
+    //     // (\[x,y] -> x + y) (1,2)
+    //     // ([Int,Int] -> Int) ([Int,Int]
+    //     Expr::App(f, xs, (span, maybe_app_type)) => {
+    //         // First check that the param types are compatible with the arguments.
+    //         match (&f.meta().1, xs.as_ref()) {
+    //             (Some(FieldType::Arrow(arrow)), Expr::ArgsTuple(args, _)) => {
+    //                 for (param_type, arg) in arrow.param_types.iter().zip(args.iter()) {
+    //                     if !compatible_as_subtype(ir, &arg.meta().1, &Some(param_type.clone())) {
+    //                         diagnostics.push_error(DatamodelError::new_validation_error(
+    //                             "Type mismatch in app",
+    //                             span.clone(),
+    //                         ));
+    //                     }
+    //                 }
+    //             }
+    //             x => {
+    //                 eprintln!(
+    //                     "TYPECHECKING APP: UNEXPECTED ARGS: ({}: {:?} ) {:?}",
+    //                     f.dump_str(),
+    //                     f.meta()
+    //                         .1
+    //                         .as_ref()
+    //                         .map_or("?".to_string(), |t| t.to_string()),
+    //                     x
+    //                 );
+    //             }
+    //         }
+    //         Ok(())
+    //     }
+    //     Expr::Let(let_expr, _, _, _) => Ok(()),
+    //     Expr::ArgsTuple(args, _) => Ok(()),
+    //     Expr::List(items, meta) => {
+    //         for item in items.iter() {
+    //             if let Some(item_type) = item.meta().1.as_ref() {
+    //                 let item_list_type = FieldType::List(Box::new(item_type.clone()));
+    //                 if !compatible_as_subtype(ir, &Some(item_list_type), &meta.1.clone()) {
+    //                     diagnostics.push_error(DatamodelError::new_validation_error(
+    //                         "Type mismatch in list",
+    //                         meta.0.clone(),
+    //                     ));
+    //                 }
+    //             }
+    //             typecheck_in_context(ir, diagnostics, typing_context, item)?;
+    //         }
+    //         Ok(())
+    //     }
+    //     Expr::Map(items, meta) => {
+    //         if let Some(map_type) = meta.1.as_ref() {
+    //             if let Some((key_type, item_type)) = match map_type {
+    //                 FieldType::Map(key_type, item_type) => Some((key_type, item_type)),
+    //                 _ => None,
+    //             } {
+    //                 for (_key, item) in items.iter() {
+    //                     if let Some(item_type) = item.meta().1.as_ref() {
+    //                         let item_map_type =
+    //                             FieldType::Map(key_type.clone(), Box::new(item_type.clone()));
+    //                         if !compatible_as_subtype(ir, &Some(item_map_type), &meta.1.clone()) {
+    //                             diagnostics.push_error(DatamodelError::new_validation_error(
+    //                                 "Type mismatch in map",
+    //                                 meta.0.clone(),
+    //                             ));
+    //                         }
+    //                     }
+    //                     typecheck_in_context(ir, diagnostics, typing_context, item)?;
+    //                 }
+    //             } else {
+    //                 diagnostics.push_error(DatamodelError::new_validation_error(
+    //                     "Type mismatch in map",
+    //                     meta.0.clone(),
+    //                 ));
+    //             }
+    //         }
+    //         Ok(())
+    //     }
+    //     Expr::ClassConstructor {
+    //         name,
+    //         fields,
+    //         spread,
+    //         meta,
+    //     } => {
+    //         if let Ok(class_walker) = ir.find_class(name) {
+    //             for (field_name, field_value) in fields.iter() {
+    //                 let maybe_field_type = field_value.meta().1.clone();
+    //                 if let Some(field_type) = maybe_field_type {
+    //                     if let Some(field_walker) = class_walker.find_field(field_name) {
+    //                         if !compatible_as_subtype(
+    //                             ir,
+    //                             &Some(field_walker.r#type().clone()),
+    //                             &Some(field_type),
+    //                         ) {
+    //                             diagnostics.push_error(DatamodelError::new_validation_error(
+    //                                 "Type mismatch in class constructor",
+    //                                 meta.0.clone(),
+    //                             ));
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         let spread_type = spread.as_ref().and_then(|s| s.meta().1.clone());
+    //         if !compatible_as_subtype(ir, &meta.1, &spread_type) {
+    //             diagnostics.push_error(DatamodelError::new_validation_error(
+    //                 "Type mismatch in class constructor",
+    //                 meta.0.clone(),
+    //             ));
+    //         }
+    //         Ok(())
+    //     }
+    // }
+    todo!()
 }
 
 // fn is_subtype(ir: &IntermediateRepr, a: &ExprType, b: &ExprType) -> bool {
@@ -287,161 +299,162 @@ pub fn infer_types_in_context(
     typing_context: &mut HashMap<String, FieldType>,
     expr: Arc<Expr<ExprMetadata>>,
 ) -> Arc<Expr<ExprMetadata>> {
-    match expr.as_ref() {
-        Expr::FreeVar(ref var_name, (span, maybe_type)) => {
-            // Assign variables from the context.
-            if let Some(ctx_ty) = typing_context.get(var_name) {
-                Arc::new(Expr::FreeVar(
-                    var_name.clone(),
-                    (span.clone(), Some(ctx_ty.clone())),
-                ))
-            } else {
-                // Otherwise, and if we know the type, add it to the context.
-                if let Some(var_ty) = &expr.meta().1 {
-                    typing_context.insert(var_name.to_string(), var_ty.clone());
-                }
-                expr.clone()
-            }
-        }
-        Expr::Atom(_) => {
-            // All atoms are typed during parsing, so we ignore them.
-            expr.clone()
-        }
-        Expr::Let(ref var_name, expr, ref body, _) => {
-            let new_expr = infer_types_in_context(typing_context, expr.clone());
-            let new_body = infer_types_in_context(typing_context, body.clone());
-            if let Some(ref expr_ty) = new_expr.meta().1 {
-                typing_context.insert(var_name.to_string(), expr_ty.clone());
-            }
-            let new_meta = (expr.meta().0.clone(), new_body.meta().1.clone());
-            Arc::new(Expr::Let(var_name.clone(), new_expr, new_body, new_meta))
-        }
-        Expr::App(f, args, (span, maybe_app_type)) => {
-            // Infer the type of an App from the return type of the function, if
-            // it is a function with a known return type.
-            let new_f = infer_types_in_context(typing_context, f.clone());
-            let new_args = infer_types_in_context(typing_context, args.clone());
-            let new_app_type = match &new_f.meta().1 {
-                Some(FieldType::Arrow(arrow)) => Some(arrow.return_type.clone()),
-                ty => None,
-            }
-            .or(maybe_app_type.clone());
-            let new_meta = (span.clone(), new_app_type);
-            Arc::new(Expr::App(new_f, new_args, new_meta))
-        }
-        Expr::ArgsTuple(ref args, _) => {
-            let new_args = args
-                .iter()
-                .map(|arg| {
-                    Arc::unwrap_or_clone(infer_types_in_context(
-                        typing_context,
-                        Arc::new(arg.clone()),
-                    ))
-                })
-                .collect();
-            Arc::new(Expr::ArgsTuple(
-                new_args,
-                (expr.meta().0.clone(), expr.meta().1.clone()),
-            ))
-        }
-        Expr::Lambda(arity, body, (span, maybe_type)) => {
-            let fresh_names = body.fresh_names(*arity);
-            let mut local_typing_context = typing_context.clone();
-            let opened_body =
-                fresh_names
-                    .iter()
-                    .enumerate()
-                    .fold(body.clone(), |body, (index, fresh_name)| {
-                        let target = VarIndex {
-                            de_bruijn: 0,
-                            tuple: index as u32,
-                        };
-                        Arc::new(body.open(&target, fresh_name))
-                    });
-            if let Some(FieldType::Arrow(arrow)) = maybe_type {
-                for (param_type, param_name) in arrow.param_types.iter().zip(fresh_names.iter()) {
-                    local_typing_context.insert(param_name.to_string(), param_type.clone());
-                }
-            }
-            let body_with_inferred_types =
-                infer_types_in_context(&mut local_typing_context, opened_body.clone());
-            let new_body = fresh_names.iter().enumerate().fold(
-                body_with_inferred_types.clone(),
-                |body, (index, fresh_name)| {
-                    let target = VarIndex {
-                        de_bruijn: 0,
-                        tuple: index as u32,
-                    };
-                    Arc::new(body.close(&target, fresh_name))
-                },
-            );
-            Arc::new(Expr::Lambda(
-                *arity,
-                new_body,
-                (span.clone(), maybe_type.clone()),
-            ))
-        }
-        Expr::List(items, (span, maybe_type)) => {
-            let new_items = items
-                .iter()
-                .map(|item| {
-                    Arc::unwrap_or_clone(infer_types_in_context(
-                        typing_context,
-                        Arc::new(item.clone()),
-                    ))
-                })
-                .collect();
-            Arc::new(Expr::List(new_items, (span.clone(), maybe_type.clone())))
-        }
-        Expr::Map(items, (span, maybe_type)) => {
-            let new_items = items
-                .iter()
-                .map(|(key, value)| {
-                    (
-                        key.clone(),
-                        Arc::unwrap_or_clone(infer_types_in_context(
-                            typing_context,
-                            Arc::new(value.clone()),
-                        )),
-                    )
-                })
-                .collect();
-            Arc::new(Expr::Map(new_items, (span.clone(), maybe_type.clone())))
-        }
-        Expr::ClassConstructor {
-            name,
-            fields,
-            spread,
-            meta,
-        } => {
-            let new_fields = fields
-                .iter()
-                .map(|(name, value)| {
-                    (
-                        name.clone(),
-                        Arc::unwrap_or_clone(infer_types_in_context(
-                            typing_context,
-                            Arc::new(value.clone()),
-                        )),
-                    )
-                })
-                .collect();
-            let new_spread = spread.as_ref().map(|s| {
-                Box::new(Arc::unwrap_or_clone(infer_types_in_context(
-                    typing_context,
-                    Arc::new(s.as_ref().clone()),
-                )))
-            });
-            Arc::new(Expr::ClassConstructor {
-                name: name.clone(),
-                fields: new_fields,
-                spread: new_spread,
-                meta: meta.clone(),
-            })
-        }
-        Expr::LLMFunction(llm_function, args, (span, maybe_type)) => expr.clone(),
-        Expr::BoundVar(_, _) => expr.clone(),
-    }
+    todo!("greg")
+    // match expr.as_ref() {
+    //     Expr::FreeVar(ref var_name, (span, maybe_type)) => {
+    //         // Assign variables from the context.
+    //         if let Some(ctx_ty) = typing_context.get(var_name) {
+    //             Arc::new(Expr::FreeVar(
+    //                 var_name.clone(),
+    //                 (span.clone(), Some(ctx_ty.clone())),
+    //             ))
+    //         } else {
+    //             // Otherwise, and if we know the type, add it to the context.
+    //             if let Some(var_ty) = &expr.meta().1 {
+    //                 typing_context.insert(var_name.to_string(), var_ty.clone());
+    //             }
+    //             expr.clone()
+    //         }
+    //     }
+    //     Expr::Atom(_) => {
+    //         // All atoms are typed during parsing, so we ignore them.
+    //         expr.clone()
+    //     }
+    //     Expr::Let(ref var_name, expr, ref body, _) => {
+    //         let new_expr = infer_types_in_context(typing_context, expr.clone());
+    //         let new_body = infer_types_in_context(typing_context, body.clone());
+    //         if let Some(ref expr_ty) = new_expr.meta().1 {
+    //             typing_context.insert(var_name.to_string(), expr_ty.clone());
+    //         }
+    //         let new_meta = (expr.meta().0.clone(), new_body.meta().1.clone());
+    //         Arc::new(Expr::Let(var_name.clone(), new_expr, new_body, new_meta))
+    //     }
+    //     Expr::App(f, args, (span, maybe_app_type)) => {
+    //         // Infer the type of an App from the return type of the function, if
+    //         // it is a function with a known return type.
+    //         let new_f = infer_types_in_context(typing_context, f.clone());
+    //         let new_args = infer_types_in_context(typing_context, args.clone());
+    //         let new_app_type = match &new_f.meta().1 {
+    //             Some(FieldType::Arrow(arrow)) => Some(arrow.return_type.clone()),
+    //             ty => None,
+    //         }
+    //         .or(maybe_app_type.clone());
+    //         let new_meta = (span.clone(), new_app_type);
+    //         Arc::new(Expr::App(new_f, new_args, new_meta))
+    //     }
+    //     Expr::ArgsTuple(ref args, _) => {
+    //         let new_args = args
+    //             .iter()
+    //             .map(|arg| {
+    //                 Arc::unwrap_or_clone(infer_types_in_context(
+    //                     typing_context,
+    //                     Arc::new(arg.clone()),
+    //                 ))
+    //             })
+    //             .collect();
+    //         Arc::new(Expr::ArgsTuple(
+    //             new_args,
+    //             (expr.meta().0.clone(), expr.meta().1.clone()),
+    //         ))
+    //     }
+    //     Expr::Lambda(arity, body, (span, maybe_type)) => {
+    //         let fresh_names = body.fresh_names(*arity);
+    //         let mut local_typing_context = typing_context.clone();
+    //         let opened_body =
+    //             fresh_names
+    //                 .iter()
+    //                 .enumerate()
+    //                 .fold(body.clone(), |body, (index, fresh_name)| {
+    //                     let target = VarIndex {
+    //                         de_bruijn: 0,
+    //                         tuple: index as u32,
+    //                     };
+    //                     Arc::new(body.open(&target, fresh_name))
+    //                 });
+    //         if let Some(FieldType::Arrow(arrow)) = maybe_type {
+    //             for (param_type, param_name) in arrow.param_types.iter().zip(fresh_names.iter()) {
+    //                 local_typing_context.insert(param_name.to_string(), param_type.clone());
+    //             }
+    //         }
+    //         let body_with_inferred_types =
+    //             infer_types_in_context(&mut local_typing_context, opened_body.clone());
+    //         let new_body = fresh_names.iter().enumerate().fold(
+    //             body_with_inferred_types.clone(),
+    //             |body, (index, fresh_name)| {
+    //                 let target = VarIndex {
+    //                     de_bruijn: 0,
+    //                     tuple: index as u32,
+    //                 };
+    //                 Arc::new(body.close(&target, fresh_name))
+    //             },
+    //         );
+    //         Arc::new(Expr::Lambda(
+    //             *arity,
+    //             new_body,
+    //             (span.clone(), maybe_type.clone()),
+    //         ))
+    //     }
+    //     Expr::List(items, (span, maybe_type)) => {
+    //         let new_items = items
+    //             .iter()
+    //             .map(|item| {
+    //                 Arc::unwrap_or_clone(infer_types_in_context(
+    //                     typing_context,
+    //                     Arc::new(item.clone()),
+    //                 ))
+    //             })
+    //             .collect();
+    //         Arc::new(Expr::List(new_items, (span.clone(), maybe_type.clone())))
+    //     }
+    //     Expr::Map(items, (span, maybe_type)) => {
+    //         let new_items = items
+    //             .iter()
+    //             .map(|(key, value)| {
+    //                 (
+    //                     key.clone(),
+    //                     Arc::unwrap_or_clone(infer_types_in_context(
+    //                         typing_context,
+    //                         Arc::new(value.clone()),
+    //                     )),
+    //                 )
+    //             })
+    //             .collect();
+    //         Arc::new(Expr::Map(new_items, (span.clone(), maybe_type.clone())))
+    //     }
+    //     Expr::ClassConstructor {
+    //         name,
+    //         fields,
+    //         spread,
+    //         meta,
+    //     } => {
+    //         let new_fields = fields
+    //             .iter()
+    //             .map(|(name, value)| {
+    //                 (
+    //                     name.clone(),
+    //                     Arc::unwrap_or_clone(infer_types_in_context(
+    //                         typing_context,
+    //                         Arc::new(value.clone()),
+    //                     )),
+    //                 )
+    //             })
+    //             .collect();
+    //         let new_spread = spread.as_ref().map(|s| {
+    //             Box::new(Arc::unwrap_or_clone(infer_types_in_context(
+    //                 typing_context,
+    //                 Arc::new(s.as_ref().clone()),
+    //             )))
+    //         });
+    //         Arc::new(Expr::ClassConstructor {
+    //             name: name.clone(),
+    //             fields: new_fields,
+    //             spread: new_spread,
+    //             meta: meta.clone(),
+    //         })
+    //     }
+    //     Expr::LLMFunction(llm_function, args, (span, maybe_type)) => expr.clone(),
+    //     Expr::BoundVar(_, _) => expr.clone(),
+    // }
 }
 
 #[cfg(test)]

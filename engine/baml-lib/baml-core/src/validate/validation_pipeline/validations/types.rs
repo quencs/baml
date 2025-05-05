@@ -53,6 +53,7 @@ fn validate_type_exists(ctx: &mut Context<'_>, field_type: &FieldType) -> bool {
 
 fn validate_type_allowed(ctx: &mut Context<'_>, field_type: &FieldType) {
     match field_type {
+        FieldType::Null(..) => todo!(),
         FieldType::Map(arity, kv_types, ..) => {
             match &kv_types.0 {
                 // String key.

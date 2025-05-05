@@ -111,6 +111,7 @@ impl FieldArity {
 
 #[derive(Debug, Clone)]
 pub enum FieldType {
+    Null(Span, Option<Vec<Attribute>>),
     Symbol(FieldArity, Identifier, Option<Vec<Attribute>>),
     Primitive(FieldArity, TypeValue, Span, Option<Vec<Attribute>>),
     Literal(FieldArity, LiteralValue, Span, Option<Vec<Attribute>>),
@@ -144,6 +145,7 @@ impl FieldType {
 
     pub fn span(&self) -> &Span {
         match self {
+            FieldType::Null(span, ..) => span,
             FieldType::Primitive(.., span, _) => span,
             FieldType::Literal(.., span, _) => span,
             FieldType::Symbol(.., idn, _) => idn.span(),
@@ -160,6 +162,8 @@ impl FieldType {
             return as_nullable;
         }
         match &mut as_nullable {
+            // nothing to change
+            FieldType::Null(..) => {}
             FieldType::Symbol(ref mut arity, ..) => *arity = FieldArity::Optional,
             FieldType::Primitive(ref mut arity, ..) => *arity = FieldArity::Optional,
             FieldType::Literal(ref mut arity, ..) => *arity = FieldArity::Optional,
@@ -174,6 +178,7 @@ impl FieldType {
 
     pub fn is_optional(&self) -> bool {
         match self {
+            FieldType::Null(..) => true,
             FieldType::Symbol(arity, ..) => arity.is_optional(),
             FieldType::Union(arity, f, _, _) => {
                 arity.is_optional() || f.iter().any(|t| t.is_optional())
@@ -189,10 +194,10 @@ impl FieldType {
     // All the identifiers used in this type.
     pub fn flat_idns(&self) -> Vec<&Identifier> {
         match self {
+            FieldType::Null(..) => vec![],
             FieldType::Symbol(_, idn, ..) => {
                 vec![&idn]
             }
-
             FieldType::Union(_, f, _, _) => f.iter().flat_map(|t| t.flat_idns()).collect(),
             FieldType::Tuple(_, f, ..) => f.iter().flat_map(|t| t.flat_idns()).collect(),
             FieldType::Map(_, kv, ..) => {
@@ -208,7 +213,8 @@ impl FieldType {
 
     pub fn attributes(&self) -> &[Attribute] {
         match self {
-            FieldType::Symbol(.., attr)
+            FieldType::Null(.., attr)
+            | FieldType::Symbol(.., attr)
             | FieldType::Primitive(.., attr)
             | FieldType::Literal(.., attr)
             | FieldType::Union(.., attr)
@@ -220,7 +226,8 @@ impl FieldType {
 
     pub fn reset_attributes(&mut self) {
         match self {
-            FieldType::Symbol(.., attr)
+            FieldType::Null(.., attr)
+            | FieldType::Symbol(.., attr)
             | FieldType::Primitive(.., attr)
             | FieldType::Literal(.., attr)
             | FieldType::Union(.., attr)
@@ -232,7 +239,8 @@ impl FieldType {
 
     pub fn set_attributes(&mut self, attributes: Vec<Attribute>) {
         match self {
-            FieldType::Symbol(.., attr)
+            FieldType::Null(.., attr)
+            | FieldType::Symbol(.., attr)
             | FieldType::Primitive(.., attr)
             | FieldType::Literal(.., attr)
             | FieldType::Union(.., attr)
@@ -244,7 +252,8 @@ impl FieldType {
 
     pub fn extend_attributes(&mut self, attributes: Vec<Attribute>) {
         match self {
-            FieldType::Symbol(.., attr)
+            FieldType::Null(.., attr)
+            | FieldType::Symbol(.., attr)
             | FieldType::Primitive(.., attr)
             | FieldType::Literal(.., attr)
             | FieldType::Union(.., attr)
@@ -279,6 +288,10 @@ impl FieldType {
             }
         }
         match (self, other) {
+            (Null(..), Null(..)) => {}
+            (Null(..), _) => {
+                panic!("Different types:\n{self}\n---\n{other}")
+            }
             (Symbol(arity1, ident1, attrs1), Symbol(arity2, ident2, attrs2)) => {
                 assert_eq!(arity1, arity2);
                 ident1.assert_eq_up_to_span(ident2);
@@ -354,6 +367,7 @@ impl FieldType {
 impl std::fmt::Display for FieldType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            FieldType::Null(..) => write!(f, "null"),
             FieldType::Symbol(arity, idn, ..) => {
                 write!(
                     f,

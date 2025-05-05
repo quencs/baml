@@ -1288,6 +1288,7 @@ name = "baml-types"
 version = "0.86.1"
 dependencies = [
  "anyhow",
+ "baml-derive",
  "baml-ids",
  "clap",
  "derive_builder",

@@ -1,4 +1,5 @@
 use crate::{BamlMedia, BamlValue};
+use serde::Serialize;
 use std::fmt;
 
 /// A wrapper around a jinja expression. The inner `String` should not contain
@@ -10,6 +11,18 @@ pub struct JinjaExpression(pub String);
 impl fmt::Display for JinjaExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl JinjaExpression {
+    pub fn evaluate<T: ?Sized + Serialize>(
+        &self,
+        value: &T,
+    ) -> Result<minijinja::Value, anyhow::Error> {
+        let expr = minijinja::Environment::new();
+        let expr = expr.compile_expression(&self.0)?;
+        let result = expr.eval(value)?;
+        Ok(result)
     }
 }
 

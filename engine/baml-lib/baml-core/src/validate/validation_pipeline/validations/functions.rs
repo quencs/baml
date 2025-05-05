@@ -250,6 +250,7 @@ impl<'c> NestedChecks<'c> {
         }
 
         match field_type {
+            FieldType::Null(..) => todo!(),
             FieldType::Symbol(_, id, ..) => match self.ctx.db.find_type(id) {
                 Some(TypeWalker::Class(class_walker)) => {
                     // Stop recursion when dealing with recursive types.

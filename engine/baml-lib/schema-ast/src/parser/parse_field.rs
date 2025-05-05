@@ -529,7 +529,7 @@ mod tests {
     }
     #[allow(dead_code)]
     fn mk_null(attrs: Option<Vec<Attribute>>) -> FieldType {
-        FieldType::Primitive(FieldArity::Required, TypeValue::Null, Span::fake(), attrs)
+        FieldType::Null(Span::fake(), attrs)
     }
 
     fn mk_description(value: &'static str, parenthesized: bool) -> Attribute {

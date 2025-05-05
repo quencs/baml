@@ -21,14 +21,14 @@ use baml_types::TypeValue;
 pub use client::*;
 pub use configuration::*;
 use either::Either;
+pub use expr_fn::{ExprFnWalker, TopLevelAssignmentWalker};
 pub use field::*;
 pub use function::FunctionWalker;
 use internal_baml_schema_ast::ast::{
-    FieldType, Identifier, SchemaAst, TopId, TypeAliasId, TypeExpId, WithName
+    FieldType, Identifier, SchemaAst, TopId, TypeAliasId, TypeExpId, WithName,
 };
 pub use r#class::*;
 pub use r#enum::*;
-pub use expr_fn::{ExprFnWalker, TopLevelAssignmentWalker};
 pub use template_string::TemplateStringWalker;
 
 /// A generic walker. Only walkers intantiated with a concrete ID type (`I`) are useful.
@@ -40,8 +40,7 @@ pub struct Walker<'db, I> {
     pub id: I,
 }
 
-impl<'db, I> Walker<'db, I>
-{
+impl<'db, I> Walker<'db, I> {
     /// Traverse something else in the same schema.
     pub fn walk<J>(self, other: J) -> Walker<'db, J> {
         self.db.walk(other)
@@ -257,7 +256,10 @@ impl<'db> crate::ParserDatabase {
         self.ast()
             .iter_tops()
             .filter_map(|(top_id, _)| top_id.as_toplevel_assignment_id())
-            .map(move |top_id| Walker { db: self, id: top_id })
+            .map(move |top_id| Walker {
+                db: self,
+                id: top_id,
+            })
     }
 
     /// Walk all expr functions in the schema.
@@ -265,7 +267,10 @@ impl<'db> crate::ParserDatabase {
         self.ast()
             .iter_tops()
             .filter_map(|(top_id, _)| top_id.as_expr_fn_id())
-            .map(move |top_id| Walker { db: self, id: top_id })
+            .map(move |top_id| Walker {
+                db: self,
+                id: top_id,
+            })
     }
 
     /// Walk all functions in the schema.
@@ -317,6 +322,7 @@ impl<'db> crate::ParserDatabase {
         use internal_baml_jinja_types::Type;
 
         match ft {
+            FieldType::Null(..) => Type::None,
             FieldType::Symbol(arity, idn, ..) => {
                 let mut t = match self.find_type(idn) {
                     None => Type::Undefined,
@@ -379,7 +385,6 @@ impl<'db> crate::ParserDatabase {
                     TypeValue::Int => Type::Int,
                     TypeValue::Float => Type::Float,
                     TypeValue::Bool => Type::Bool,
-                    TypeValue::Null => Type::None,
                     TypeValue::Media(_) => Type::Unknown,
                 };
                 if arity.is_optional() || matches!(t, Type::None) {
