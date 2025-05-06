@@ -1,10 +1,10 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use super::InternalBamlRuntime;
 use crate::internal::llm_client::traits::WithClientProperties;
 use crate::internal::llm_client::LLMResponse;
 use crate::tracingv2::storage::storage::{Collector, BAML_TRACER};
 use crate::type_builder::TypeBuilder;
+use crate::InternalBamlRuntime;
 use crate::RuntimeContextManager;
 use crate::{
     client_registry::ClientProperty,
@@ -24,7 +24,7 @@ use crate::{
     runtime_interface::{InternalClientLookup, RuntimeConstructor},
     tracing::BamlTracer,
     FunctionResult, FunctionResultStream, InternalRuntimeInterface, RenderCurlSettings,
-    RuntimeContext, RuntimeInterface,
+    RuntimeContext,
 };
 use anyhow::{Context, Result};
 use baml_types::tracing::events::{FunctionEnd, FunctionStart, TraceData, TraceEvent};
@@ -381,155 +381,5 @@ impl RuntimeConstructor for InternalBamlRuntime {
     #[cfg(not(target_arch = "wasm32"))]
     fn from_directory(dir: &std::path::Path) -> Result<InternalBamlRuntime> {
         InternalBamlRuntime::from_files(dir, crate::baml_src_files(&dir.to_path_buf())?)
-    }
-}
-
-impl RuntimeInterface for InternalBamlRuntime {
-    async fn call_function_impl(
-        &self,
-        function_name: String,
-        params: &BamlMap<String, BamlValue>,
-        ctx: RuntimeContext,
-    ) -> Result<crate::FunctionResult> {
-        let local_function_name = function_name.clone();
-
-        let func = match self.get_function(&function_name) {
-            Ok(func) => func,
-            Err(e) => {
-            return Ok(FunctionResult::new(
-                OrchestrationScope::default(),
-                LLMResponse::UserFailure(format!(
-                    "BAML function {function_name} does not exist in baml_src/ (did you typo it?): {:?}",
-                    e
-                )),
-                None,
-            ))
-            }
-        };
-
-        let future = async {
-            let baml_args = self.ir().check_function_params(
-                &func.inputs(),
-                params,
-                ArgCoercer {
-                    span_path: None,
-                    allow_implicit_cast_to_string: false,
-                },
-            )?;
-
-            let renderer = PromptRenderer::from_function(&func, self.ir(), &ctx)?;
-            let orchestrator = self.orchestration_graph(renderer.client_spec(), &ctx)?;
-
-            // Now actually execute the code.
-            let (history, _) =
-                orchestrate_call(orchestrator, self.ir(), &ctx, &renderer, &baml_args, |s| {
-                    renderer.parse(self.ir(), &ctx, s, false)
-                })
-                .await;
-
-            FunctionResult::new_chain(history)
-        };
-        let baml_args = self.ir().check_function_params(
-            func.inputs(),
-            params,
-            ArgCoercer {
-                span_path: None,
-                allow_implicit_cast_to_string: false,
-            },
-        )?;
-        let baml_args = match self.ir().check_function_params(
-            &func.inputs(),
-            &params,
-            ArgCoercer {
-                span_path: None,
-                allow_implicit_cast_to_string: false,
-            },
-        ) {
-            Ok(args) => args,
-            Err(e) => {
-                return Ok(FunctionResult::new(
-                    OrchestrationScope::default(),
-                    LLMResponse::UserFailure(format!(
-                        "Failed while validating args for {function_name}: {:?}",
-                        e
-                    )),
-                    None,
-                ))
-            }
-        };
-
-        future.await
-    }
-
-    // Note that this only returns a FunctionResultStream object,
-    // but does not actually start the stream.
-    // The stream is started when one calls functionResultStream.run()
-    fn stream_function_impl(
-        &self,
-        function_name: String,
-        params: &BamlMap<String, BamlValue>,
-        tracer: Arc<BamlTracer>,
-        ctx: RuntimeContext,
-        #[cfg(not(target_arch = "wasm32"))] tokio_runtime: Arc<tokio::runtime::Runtime>,
-        collectors: Vec<Arc<Collector>>,
-    ) -> Result<FunctionResultStream> {
-        let is_expr_fn = self.get_expr_function(&function_name, &ctx).is_ok();
-        if is_expr_fn {
-            let func = self.get_expr_function(&function_name, &ctx)?;
-            let renderer = PromptRenderer::mk_fake();
-            let orchestrator = vec![];
-            let baml_args = self
-                .ir
-                .check_function_params(
-                    &func.inputs(),
-                    params,
-                    ArgCoercer {
-                        span_path: None,
-                        allow_implicit_cast_to_string: false,
-                    },
-                )?
-                .as_map_owned()
-                .ok_or(anyhow::anyhow!("Failed to check function params."))?;
-            Ok(FunctionResultStream {
-                function_name,
-                ir: self.ir.clone(),
-                params: baml_args,
-                orchestrator,
-                tracer,
-                renderer,
-                #[cfg(not(target_arch = "wasm32"))]
-                tokio_runtime,
-                collectors,
-            })
-        } else {
-            let func = self.get_function(&function_name)?;
-            let renderer = PromptRenderer::from_function(&func, self.ir(), &ctx)?;
-            let orchestrator = self.orchestration_graph(renderer.client_spec(), &ctx)?;
-            let Some(baml_args) = self
-                .ir
-                .check_function_params(
-                    &func.inputs(),
-                    params,
-                    ArgCoercer {
-                        span_path: None,
-                        allow_implicit_cast_to_string: false,
-                    },
-                )?
-                .as_map_owned()
-            else {
-                anyhow::bail!("Expected parameters to be a map for: {}", function_name);
-            };
-            Ok(FunctionResultStream {
-                function_name,
-                ir: self.ir.clone(),
-                params: baml_args,
-                orchestrator,
-                tracer,
-                renderer,
-                #[cfg(not(target_arch = "wasm32"))]
-                tokio_runtime,
-                collectors,
-            })
-        }
     }
 }

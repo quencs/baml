@@ -31,31 +31,7 @@ pub(crate) trait RuntimeConstructor {
     ) -> Result<InternalBamlRuntime>;
 }
 
-// This is a runtime that has full access (disk, network, etc) - feature full
-pub trait RuntimeInterface {
-    #[allow(async_fn_in_trait)]
-    async fn call_function_impl(
-        &self,
-        function_name: String,
-        params: &BamlMap<String, BamlValue>,
-        ctx: RuntimeContext,
-    ) -> Result<FunctionResult>;
-
-    fn stream_function_impl(
-        &self,
-        function_name: String,
-        params: &BamlMap<String, BamlValue>,
-        tracer: Arc<BamlTracer>,
-        ctx: RuntimeContext,
-        #[cfg(not(target_arch = "wasm32"))] tokio_runtime: Arc<tokio::runtime::Runtime>,
-        collectors: Vec<Arc<Collector>>,
-    ) -> Result<FunctionResultStream>;
-}
-
-//
 // These are UNSTABLE, and should be considered as a work in progress
-//
-
 pub trait ExperimentalTracingInterface {
     fn start_span(
         &self,

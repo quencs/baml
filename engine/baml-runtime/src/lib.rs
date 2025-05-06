@@ -17,6 +17,7 @@ pub mod test_constraints;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod test_executor;
 
+mod runtime_methods;
 pub mod tracing;
 pub mod tracingv2;
 pub mod type_builder;
@@ -86,7 +87,6 @@ pub use cli::RuntimeCliDefaults;
 pub use runtime_context::BamlSrcReader;
 use runtime_interface::ExperimentalTracingInterface;
 use runtime_interface::RuntimeConstructor;
-use runtime_interface::RuntimeInterface;
 use tracing::{BamlTracer, TracingSpan};
 use type_builder::TypeBuilder;
 pub use types::*;
@@ -608,6 +608,14 @@ impl BamlRuntime {
                     .is_some();
                 if !is_expr_fn {
                     let span_id_chain = rctx.span_id_chain.clone();
+                    // TODO: is this the right naming?
+                    let unevaluated_func =
+                        match self.inner.prepare_function(function_name.clone(), params) {
+                            Ok(unevaluated_func) => unevaluated_func,
+                            Err(e) => {
+                                return (e.into(), curr_span_id);
+                            }
+                        };
                     let trace_event = TraceEvent::new_function_start(
                         span_id_chain.clone(),
                         function_name.clone(),
@@ -617,10 +625,7 @@ impl BamlRuntime {
                     );
                     BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
                     // Call (CANNOT RETURN HERE until trace event is finished)
-                    let result = self
-                        .inner
-                        .call_function_impl(function_name.clone(), params, rctx)
-                        .await;
+                    let result = self.inner.call_function_impl(unevaluated_func, rctx).await;
                     // Trace event
                     let trace_event = TraceEvent::new_function_end(
                         span_id_chain.clone(),
