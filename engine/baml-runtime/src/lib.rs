@@ -723,8 +723,8 @@ impl BamlRuntime {
                         .transpose();
 
                     let llm_response = LLMResponse::Success(LLMCompleteResponse {
-                        client: "openai".to_string(),
-                        model: "gpt-3.5-turbo".to_string(),
+                        client: "placeholder-expr-client".to_string(),
+                        model: "placeholder-expr-model".to_string(),
                         prompt: RenderedPrompt::Completion("Sample raw response".to_string()),
                         request_options: BamlMap::new(),
                         content: "Sample raw response".to_string(),
