@@ -3390,6 +3390,7 @@ version = "0.86.1"
 dependencies = [
  "anyhow",
  "baml-derive",
+ "baml-rpc",
  "baml-types",
  "base64 0.13.1",
  "bstd",

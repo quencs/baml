@@ -1,6 +1,7 @@
 use super::InternalBamlRuntime;
 use crate::{internal::ir_features::WithInternal, tracingv2::publisher::TypeLookup};
 use baml_rpc::ast::{ast_node_id::AstNodeId, tops::BamlFunctionId, types::type_definition::TypeId};
+use baml_types::FieldType;
 use cowstr::CowStr;
 use internal_baml_core::ir::ir_hasher;
 use serde::Serialize;
@@ -9,11 +10,20 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 /// Type alias for a value with its dependencies
 pub type WithDependency<T> = (Arc<T>, Arc<Vec<Arc<TypeId>>>);
 
+use super::super::tracingv2::publisher::rpc_converters::IntoRpcEvent;
+
+#[derive(Serialize)]
+pub struct FunctionSignatureWithDependencies {
+    pub function_id: WithDependency<BamlFunctionId>,
+    pub inputs: Vec<(String, FieldType)>,
+    pub output: FieldType,
+}
+
 #[derive(Default, Serialize)]
 pub struct AstSignatureWrapper {
     /// Path to source code
     pub source_code: HashMap<PathBuf, CowStr>,
-    pub functions: HashMap<String, WithDependency<BamlFunctionId>>,
+    pub functions: HashMap<String, FunctionSignatureWithDependencies>,
     pub types: HashMap<String, WithDependency<TypeId>>,
     pub env_vars: HashMap<String, String>,
 }
@@ -30,7 +40,7 @@ impl TypeLookup for AstSignatureWrapper {
     }
 
     fn function_lookup(&self, name: &str) -> Option<Arc<BamlFunctionId>> {
-        self.functions.get(name).map(|(id, _)| id.clone())
+        self.functions.get(name).map(|f| f.function_id.0.clone())
     }
 }
 
@@ -114,20 +124,31 @@ impl TryFrom<(Arc<InternalBamlRuntime>, HashMap<String, String>)> for AstSignatu
         }
 
         // Build functions map
-        let functions: HashMap<String, WithDependency<BamlFunctionId>> = ir_signature
+        let functions: HashMap<String, FunctionSignatureWithDependencies> = ir_signature
             .functions
             .into_iter()
             .map(|(name, signature)| {
                 let id = Arc::new(BamlFunctionId(AstNodeId::new_function(
                     name.clone(),
-                    signature.interface_hash(),
-                    signature.implementation_hash(),
+                    signature.signature.interface_hash(),
+                    signature.signature.implementation_hash(),
                 )));
                 let deps = resolve_dependencies(
-                    signature.dependency_names().iter().map(|s| s.as_str()),
+                    signature
+                        .signature
+                        .dependency_names()
+                        .iter()
+                        .map(|s| s.as_str()),
                     &ir_types,
                 );
-                (name, (id, deps))
+                (
+                    name,
+                    FunctionSignatureWithDependencies {
+                        function_id: (id, deps),
+                        inputs: signature.inputs.clone(),
+                        output: signature.output.clone(),
+                    },
+                )
             })
             .collect();
 

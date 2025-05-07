@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
 use baml_rpc::ast::tops::{FunctionSignature, SourceCode, AST};
 use baml_rpc::ast::types::type_definition::TypeDefinition;
+use baml_rpc::ast::types::type_reference::TypeReference;
+use baml_rpc::type_definition::{NamedType, TypeDefinitionSource};
 use baml_rpc::CreateBamlSrcUploadRequest;
 use baml_rpc::{
     ApiEndpoint, CreateBamlSrcUpload, CreateTraceEventUploadUrl, CreateTraceEventUploadUrlRequest,
@@ -8,6 +10,7 @@ use baml_rpc::{
 };
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use tracing::field;
 
 use baml_types::tracing::events::{TraceData, TraceEvent};
 use baml_types::{BamlValueWithMeta, HasFieldType};
@@ -29,7 +32,7 @@ use wasmtimer::tokio::*;
 use crate::runtime::{AstSignatureWrapper, InternalBamlRuntime};
 use crate::tracingv2::storage::interface::TraceEventWithMeta;
 
-use super::rpc_converters::{to_rpc_event, TypeLookup};
+use super::rpc_converters::{to_rpc_event, IntoRpcEvent, TypeLookup};
 
 enum PublisherMessage {
     Trace(Arc<TraceEventWithMeta>),
@@ -236,13 +239,26 @@ impl TracePublisher {
         let functions: Vec<FunctionSignature> = ast
             .functions
             .iter()
-            .map(|(name, (func_id, deps))| {
-                // TODO(seawatts): Fill in inputs, output, dependencies if available in AstSignatureWrapper
+            .map(|(name, signature)| {
+                let inputs = signature
+                    .inputs
+                    .iter()
+                    .map(|(name, field_type)| NamedType {
+                        name: name.clone(),
+                        r#type: field_type.into_rpc_event(self.lookup.as_ref()),
+                    })
+                    .collect();
+
                 FunctionSignature {
-                    id: (**func_id).clone(),
-                    inputs: vec![],
-                    output: baml_rpc::ast::types::type_reference::TypeReference::bool(),
-                    dependencies: deps.iter().map(|d| d.0.clone()).collect(),
+                    function_id: signature.function_id.0.clone(),
+                    inputs,
+                    output: signature.output.into_rpc_event(self.lookup.as_ref()),
+                    dependencies: signature
+                        .function_id
+                        .1
+                        .iter()
+                        .map(|dep| (**dep).0.clone())
+                        .collect(),
                 }
             })
             .collect();
@@ -251,12 +267,30 @@ impl TracePublisher {
         let types: Vec<TypeDefinition> = ast
             .types
             .iter()
-            .map(|(_name, (type_id, _deps))| {
-                // TODO(seawatts): Fill in the actual TypeDefinition if available
-                // Here we just create a dummy Alias for now
-                TypeDefinition::Alias {
-                    name: (**type_id).clone(),
-                    rhs: baml_rpc::ast::types::type_reference::TypeReference::bool(),
+            .map(|(name, (type_id, _deps))| {
+                let node_id = &(**type_id).0;
+                let type_name = node_id.to_string();
+
+                if type_name.starts_with("class") {
+                    TypeDefinition::Class {
+                        name: (**type_id).clone(),
+                        fields: vec![], // Would need to extract actual fields
+                        source: TypeDefinitionSource::CompileTime,
+                        dependencies: vec![], // Would need actual dependencies
+                    }
+                } else if type_name.starts_with("enum") {
+                    TypeDefinition::Enum {
+                        name: (**type_id).clone(),
+                        values: vec![], // Would need to extract actual values
+                        source: TypeDefinitionSource::CompileTime,
+                        dependencies: vec![], // Would need actual dependencies
+                    }
+                } else {
+                    // Default to Alias for other types
+                    TypeDefinition::Alias {
+                        name: (**type_id).clone(),
+                        rhs: TypeReference::string(), // Default type
+                    }
                 }
             })
             .collect();
@@ -266,7 +300,7 @@ impl TracePublisher {
             .source_code
             .iter()
             .map(|(path, content)| {
-                // Compute a simple hash for content_hash
+                // TODO(seawatts): Compute a simple hash for content_hash
                 let mut hasher = DefaultHasher::new();
                 content.hash(&mut hasher);
                 let content_hash = format!("{:x}", hasher.finish());

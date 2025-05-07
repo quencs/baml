@@ -1,10 +1,16 @@
 use anyhow::Result;
+use baml_types::HasFieldType;
 use std::{
     collections::{HashMap, HashSet},
     hash::{Hash, Hasher},
 };
 
-use super::{repr::Node, IntermediateRepr, Walker};
+use baml_rpc::{
+    type_definition::{NamedType, TypeDefinition},
+    type_reference::TypeReference,
+};
+
+use super::{repr::Node, FieldType, IntermediateRepr, Walker};
 
 mod class;
 mod client;
@@ -37,6 +43,7 @@ trait ShallowSignature {
     }
 }
 
+#[derive(Clone)]
 enum SignatureType {
     AST,
     Function,
@@ -47,6 +54,7 @@ enum SignatureType {
     RetryPolicy,
 }
 
+#[derive(Clone)]
 pub struct Signature {
     r#type: SignatureType,
     display_name: String,
@@ -245,201 +253,201 @@ impl ShallowHash {
 }
 
 pub struct IRSignature {
-    pub functions: HashMap<String, Signature>,
+    pub functions: HashMap<String, FunctionSignature>,
     pub classes: HashMap<String, Signature>,
     pub enums: HashMap<String, Signature>,
     pub type_aliases: HashMap<String, Signature>,
     pub clients: HashMap<String, Signature>,
+    pub retry_policies: HashMap<String, Signature>,
 
     // Aggregate signature for the AST
     pub ast_signature: Signature,
 }
 
+pub struct FunctionSignature {
+    pub signature: Signature,
+    pub inputs: Vec<(String, FieldType)>,
+    pub output: FieldType,
+}
+
 impl IRSignature {
     pub fn new_from_ir(ir: &IntermediateRepr) -> Result<Self> {
-        let functions = ir
-            .walk_functions()
-            .map(|f| (f.name(), ShallowHash::from_signature(f)));
-        let classes = ir
-            .walk_classes()
-            .map(|c| (c.name(), ShallowHash::from_signature(c)));
-        let enums = ir
-            .walk_enums()
-            .map(|e| (e.name(), ShallowHash::from_signature(e)));
-        let type_aliases = ir
-            .walk_type_aliases()
-            .map(|t| (t.name(), ShallowHash::from_signature(t)));
-        let clients = ir
-            .walk_clients()
-            .map(|c| (c.name(), ShallowHash::from_signature(c)));
-        let retry_policies = ir
-            .walk_retry_policies()
-            .map(|r| (r.name(), ShallowHash::from_signature(r)));
+        // Collect all walks and shallow hashes in a single pass for each type
 
-        let shallow_hashes: HashMap<_, _> = functions
-            .into_iter()
-            .chain(classes.into_iter())
-            .chain(enums.into_iter())
-            .chain(type_aliases.into_iter())
-            .chain(clients.into_iter())
-            .chain(retry_policies.into_iter())
-            .collect();
+        // Functions
+        let mut shallow_hashes = HashMap::new();
+        let mut functions_data = Vec::new();
+        for function in ir.walk_functions() {
+            let name = function.name();
+            shallow_hashes.insert(name, ShallowHash::from_signature(function));
+            functions_data.push((name.to_string(), function));
+        }
 
-        let mut functions = ir
-            .walk_functions()
-            .map(|f| {
-                (
-                    f.name().to_string(),
-                    Signature::new_function(f.name(), &shallow_hashes),
-                )
-            })
-            .collect::<Vec<_>>();
-        let mut classes = ir
-            .walk_classes()
-            .map(|c| {
-                (
-                    c.name().to_string(),
-                    Signature::new_class(c.name(), &shallow_hashes),
-                )
-            })
-            .collect::<Vec<_>>();
-        let mut enums = ir
-            .walk_enums()
-            .map(|e| {
-                (
-                    e.name().to_string(),
-                    Signature::new_enum(e.name(), &shallow_hashes),
-                )
-            })
-            .collect::<Vec<_>>();
-        let mut type_aliases = ir
-            .walk_type_aliases()
-            .map(|t| {
-                (
-                    t.name().to_string(),
-                    Signature::new_type_alias(t.name(), &shallow_hashes),
-                )
-            })
-            .collect::<Vec<_>>();
-        let mut clients = ir
-            .walk_clients()
-            .map(|c| {
-                (
-                    c.name().to_string(),
-                    Signature::new_client(c.name(), &shallow_hashes),
-                )
-            })
-            .collect::<Vec<_>>();
-        let mut retry_policies = ir
-            .walk_retry_policies()
-            .map(|r| {
-                (
-                    r.name().to_string(),
-                    Signature::new_retry_policy(r.name(), &shallow_hashes),
-                )
-            })
-            .collect::<Vec<_>>();
+        // Classes
+        let mut classes_data = Vec::new();
+        for class in ir.walk_classes() {
+            let name = class.name();
+            shallow_hashes.insert(name, ShallowHash::from_signature(class));
+            classes_data.push((name.to_string(), class));
+        }
 
-        let functions = {
-            functions.sort_by_key(|f| f.0.clone());
-            functions
-                .into_iter()
-                .map(|(name, signature)| signature.map(|s| (name, s)))
-                .collect::<Result<HashMap<_, _>>>()?
-        };
+        // Enums
+        let mut enums_data = Vec::new();
+        for enum_node in ir.walk_enums() {
+            let name = enum_node.name();
+            shallow_hashes.insert(name, ShallowHash::from_signature(enum_node));
+            enums_data.push((name.to_string(), enum_node));
+        }
 
+        // Type aliases
+        let mut type_aliases_data = Vec::new();
+        for type_alias in ir.walk_type_aliases() {
+            let name = type_alias.name();
+            shallow_hashes.insert(name, ShallowHash::from_signature(type_alias));
+            type_aliases_data.push((name.to_string(), type_alias));
+        }
+
+        // Clients
+        let mut clients_data = Vec::new();
+        for client in ir.walk_clients() {
+            let name = client.name();
+            shallow_hashes.insert(name, ShallowHash::from_signature(client));
+            clients_data.push((name.to_string(), client));
+        }
+
+        // Retry policies
+        let mut retry_policies_data = Vec::new();
+        for retry_policy in ir.walk_retry_policies() {
+            let name = retry_policy.name();
+            shallow_hashes.insert(name, ShallowHash::from_signature(retry_policy));
+            retry_policies_data.push((name.to_string(), retry_policy));
+        }
+
+        // Generate signature objects for all types except functions first
         let classes = {
-            classes.sort_by_key(|c| c.0.clone());
-            classes
+            classes_data.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
+            classes_data
                 .into_iter()
-                .map(|(name, signature)| signature.map(|s| (name, s)))
+                .map(|(name, class)| {
+                    Signature::new_class(class.name(), &shallow_hashes).map(|s| (name, s))
+                })
                 .collect::<Result<HashMap<_, _>>>()?
         };
 
         let enums = {
-            enums.sort_by_key(|e| e.0.clone());
-            enums
+            enums_data.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
+            enums_data
                 .into_iter()
-                .map(|(name, signature)| signature.map(|s| (name, s)))
+                .map(|(name, enum_node)| {
+                    Signature::new_enum(enum_node.name(), &shallow_hashes).map(|s| (name, s))
+                })
                 .collect::<Result<HashMap<_, _>>>()?
         };
 
         let type_aliases = {
-            type_aliases.sort_by_key(|t| t.0.clone());
-            type_aliases
+            type_aliases_data.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
+            type_aliases_data
                 .into_iter()
-                .map(|(name, signature)| signature.map(|s| (name, s)))
+                .map(|(name, type_alias)| {
+                    Signature::new_type_alias(type_alias.name(), &shallow_hashes).map(|s| (name, s))
+                })
                 .collect::<Result<HashMap<_, _>>>()?
         };
 
         let clients = {
-            clients.sort_by_key(|c| c.0.clone());
-            clients
+            clients_data.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
+            clients_data
                 .into_iter()
-                .map(|(name, signature)| signature.map(|s| (name, s)))
+                .map(|(name, client)| {
+                    Signature::new_client(client.name(), &shallow_hashes).map(|s| (name, s))
+                })
                 .collect::<Result<HashMap<_, _>>>()?
         };
 
         let retry_policies = {
-            retry_policies.sort_by_key(|r| r.0.clone());
-            retry_policies
+            retry_policies_data.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
+            retry_policies_data
                 .into_iter()
-                .map(|(name, signature)| signature.map(|s| (name, s)))
+                .map(|(name, retry_policy)| {
+                    Signature::new_retry_policy(retry_policy.name(), &shallow_hashes)
+                        .map(|s| (name, s))
+                })
                 .collect::<Result<HashMap<_, _>>>()?
         };
 
+        // Now create function signatures with their respective input and output signatures
+        let functions = {
+            functions_data.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
+            functions_data
+                .into_iter()
+                .map(|(name, function)| {
+                    let signature = Signature::new_function(function.name(), &shallow_hashes)?;
+
+                    // Create simplified FunctionSignature
+                    let mut inputs = Vec::new();
+                    for (input_name, input_type) in function.inputs().iter() {
+                        inputs.push((input_name.to_string(), input_type.field_type()));
+                    }
+
+                    // Create output signature
+                    let output = function.output().field_type().clone();
+
+                    Ok((
+                        name,
+                        FunctionSignature {
+                            signature,
+                            inputs: inputs
+                                .into_iter()
+                                .map(|(name, field_type)| (name, field_type.clone()))
+                                .collect(),
+                            output,
+                        },
+                    ))
+                })
+                .collect::<Result<HashMap<_, _>>>()?
+        };
+
+        // Calculate AST signature
         let ast_signature = {
             let mut has_implementation_hash = false;
             let mut implementation_hash = std::collections::hash_map::DefaultHasher::new();
             let mut interface_hash = std::collections::hash_map::DefaultHasher::new();
-            for (name, signature) in &functions {
+
+            // Hash functions
+            for (name, function_sig) in &functions {
                 name.hash(&mut interface_hash);
-                signature.interface_hash.hash(&mut interface_hash);
-                signature.implementation_hash.map(|h| {
+                function_sig
+                    .signature
+                    .interface_hash
+                    .hash(&mut interface_hash);
+
+                if let Some(h) = function_sig.signature.implementation_hash {
                     name.hash(&mut implementation_hash);
                     h.hash(&mut implementation_hash);
-                });
-                has_implementation_hash |= signature.implementation_hash.is_some();
+                    has_implementation_hash = true;
+                }
             }
-            for (name, signature) in &classes {
-                name.hash(&mut interface_hash);
-                signature.interface_hash.hash(&mut interface_hash);
-                signature.implementation_hash.map(|h| {
-                    name.hash(&mut implementation_hash);
-                    h.hash(&mut implementation_hash);
-                });
-                has_implementation_hash |= signature.implementation_hash.is_some();
-            }
-            for (name, signature) in &enums {
-                name.hash(&mut interface_hash);
-                signature.interface_hash.hash(&mut interface_hash);
-                signature.implementation_hash.map(|h| {
-                    name.hash(&mut implementation_hash);
-                    h.hash(&mut implementation_hash);
-                });
-                has_implementation_hash |= signature.implementation_hash.is_some();
-            }
-            for (name, signature) in &type_aliases {
-                name.hash(&mut interface_hash);
-                signature.interface_hash.hash(&mut interface_hash);
-                signature.implementation_hash.map(|h| {
-                    name.hash(&mut implementation_hash);
-                    h.hash(&mut implementation_hash);
-                });
-                has_implementation_hash |= signature.implementation_hash.is_some();
-            }
-            for (name, signature) in &clients {
-                name.hash(&mut interface_hash);
-                signature.interface_hash.hash(&mut interface_hash);
-                signature.implementation_hash.map(|h| {
-                    name.hash(&mut implementation_hash);
-                    h.hash(&mut implementation_hash);
-                });
-                has_implementation_hash |= signature.implementation_hash.is_some();
-            }
-            for (name, signature) in &retry_policies {
-                name.hash(&mut interface_hash);
-                signature.interface_hash.hash(&mut interface_hash);
+
+            // Hash other types
+            for (collection, has_impl) in [
+                (&classes, true),
+                (&enums, true),
+                (&type_aliases, true),
+                (&clients, true),
+                (&retry_policies, false),
+            ] {
+                for (name, signature) in collection.iter() {
+                    name.hash(&mut interface_hash);
+                    signature.interface_hash.hash(&mut interface_hash);
+
+                    if has_impl {
+                        if let Some(h) = signature.implementation_hash {
+                            name.hash(&mut implementation_hash);
+                            h.hash(&mut implementation_hash);
+                            has_implementation_hash = true;
+                        }
+                    }
+                }
             }
 
             Signature {
@@ -458,6 +466,7 @@ impl IRSignature {
             enums,
             type_aliases,
             clients,
+            retry_policies,
             ast_signature,
         })
     }

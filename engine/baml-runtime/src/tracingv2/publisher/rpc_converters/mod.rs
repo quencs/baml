@@ -9,14 +9,14 @@ use crate::tracingv2::storage::interface::TraceEventWithMeta;
 
 mod errors;
 mod trace_data;
-mod types;
+pub mod types;
 
 pub trait TypeLookup {
     fn type_lookup(&self, name: &str) -> Option<Arc<TypeId>>;
     fn function_lookup(&self, name: &str) -> Option<Arc<BamlFunctionId>>;
 }
 
-trait IntoRpcEvent<'a, RpcOutputType> {
+pub(crate) trait IntoRpcEvent<'a, RpcOutputType> {
     fn into_rpc_event(&'a self, lookup: &(impl TypeLookup + ?Sized)) -> RpcOutputType;
 }
 

@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     hash::{DefaultHasher, Hash, Hasher},
+    sync::Arc,
 };
 
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,7 @@ pub struct BamlFunctionId(pub AstNodeId);
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub struct FunctionSignature {
-    pub id: BamlFunctionId,
+    pub function_id: Arc<BamlFunctionId>,
     pub inputs: Vec<NamedType>,
     pub output: TypeReference,
     pub dependencies: Vec<AstNodeId>,
@@ -39,7 +40,7 @@ impl AST {
         let top_ids = self
             .functions
             .iter()
-            .map(|function| Cow::Borrowed(&function.id.0))
+            .map(|function| Cow::Borrowed(&function.function_id.0))
             .chain(
                 self.types
                     .iter()
