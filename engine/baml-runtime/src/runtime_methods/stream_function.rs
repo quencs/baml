@@ -52,28 +52,33 @@ impl InternalBamlRuntime {
     ) -> Result<FunctionResultStream> {
         let is_expr_fn = self.get_expr_function(&function_name, &ctx).is_ok();
         if is_expr_fn {
+            // TODO: this likely breaks something, the expr_fn eval logic is now unreferenced
             let func = self.get_expr_function(&function_name, &ctx)?;
-            let renderer = PromptRenderer::mk_fake();
-            let orchestrator = vec![];
-            let baml_args = self
-                .ir
-                .check_function_params(
-                    &func.inputs(),
-                    params,
-                    ArgCoercer {
-                        span_path: None,
-                        allow_implicit_cast_to_string: false,
-                    },
-                )?
-                .as_map_owned()
-                .ok_or(anyhow::anyhow!("Failed to check function params."))?;
+            // let renderer = PromptRenderer::mk_fake();
+            // let orchestrator = vec![];
+            // let baml_args = self
+            //     .ir
+            //     .check_function_params(
+            //         &func.inputs(),
+            //         params,
+            //         ArgCoercer {
+            //             span_path: None,
+            //             allow_implicit_cast_to_string: false,
+            //         },
+            //     )?
+            //     .as_map_owned()
+            //     .ok_or(anyhow::anyhow!("Failed to check function params."))?;
+            let prepared = self
+                .prepare_function(function_name, params)
+                .map_err(|e| e.as_error())?;
+
             Ok(FunctionResultStream {
-                function_name,
+                function_name: prepared.function_name,
+                prepared_func: prepared.baml_args,
                 ir: self.ir.clone(),
-                params: baml_args,
-                orchestrator,
+                orchestrator: vec![],
                 tracer,
-                renderer,
+                renderer: PromptRenderer::mk_fake(),
                 #[cfg(not(target_arch = "wasm32"))]
                 tokio_runtime,
                 collectors,
@@ -89,7 +94,7 @@ impl InternalBamlRuntime {
             Ok(FunctionResultStream {
                 function_name: prepared.function_name,
                 ir: self.ir.clone(),
-                params: prepared.baml_args.value,
+                prepared_func: prepared.baml_args,
                 orchestrator,
                 tracer,
                 renderer,

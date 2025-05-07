@@ -17,7 +17,7 @@ use crate::{
     tracing::BamlTracer,
     tracingv2::storage::storage::{Collector, BAML_TRACER},
     type_builder::TypeBuilder,
-    FunctionResult, RuntimeContextManager,
+    FunctionResult, PreparedFunctionArgs, RuntimeContextManager,
 };
 
 /// Wrapper that holds a stream of responses from a BAML function call.
@@ -27,7 +27,7 @@ use crate::{
 /// users to cancel the stream.
 pub struct FunctionResultStream {
     pub(crate) function_name: String,
-    pub(crate) params: crate::BamlMap<String, crate::BamlValue>,
+    pub(crate) prepared_func: PreparedFunctionArgs,
     pub(crate) renderer: PromptRenderer,
     pub(crate) ir: Arc<IntermediateRepr>,
     pub(crate) orchestrator: OrchestratorNodeIterator,
@@ -90,12 +90,12 @@ impl FunctionResultStream {
         let mut local_orchestrator = Vec::new();
         std::mem::swap(&mut local_orchestrator, &mut self.orchestrator);
 
-        let mut local_params = crate::BamlMap::new();
-        std::mem::swap(&mut local_params, &mut self.params);
+        // let mut local_params = crate::BamlMap::new();
+        // std::mem::swap(&mut local_params, &mut self.params);
 
         let span = self
             .tracer
-            .start_span(&self.function_name, ctx, &local_params);
+            .start_span(&self.function_name, ctx, &self.prepared_func.value);
         let rctx = ctx.create_ctx(tb, cb, span.new_span_id_chain.clone());
         let res = match rctx {
             Ok(rctx) => {
@@ -107,7 +107,7 @@ impl FunctionResultStream {
                 let trace_event = TraceEvent::new_function_start(
                     span.new_span_id_chain.clone(),
                     self.function_name.clone(),
-                    vec![],
+                    self.prepared_func.value2.clone().into_iter().collect(),
                     baml_types::tracing::events::EvaluationContext::default(),
                     true,
                 );
@@ -119,7 +119,7 @@ impl FunctionResultStream {
                         self.ir.as_ref(),
                         &rctx,
                         &self.renderer,
-                        &baml_types::BamlValue::Map(local_params),
+                        &baml_types::BamlValue::Map(self.prepared_func.value.clone()),
                         |content| self.renderer.parse(self.ir.as_ref(), &rctx, content, true),
                         |content| self.renderer.parse(self.ir.as_ref(), &rctx, content, false),
                         on_event,

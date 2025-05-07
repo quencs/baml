@@ -29,7 +29,7 @@ use crate::{
 use anyhow::{Context, Result};
 use baml_types::tracing::events::{FunctionEnd, FunctionStart, TraceData, TraceEvent};
 
-use baml_types::{BamlMap, BamlValue, Constraint, EvaluationContext};
+use baml_types::{BamlMap, BamlValue, BamlValueWithMeta, Constraint, EvaluationContext, FieldType};
 use indexmap::IndexMap;
 use internal_baml_core::ir::repr::{Node, TypeBuilderEntry};
 use internal_baml_core::ir::TestCase;
@@ -49,6 +49,7 @@ pub(crate) struct PreparedFunction<'ir> {
 
 pub(crate) struct PreparedFunctionArgs {
     pub value: IndexMap<String, BamlValue>,
+    pub value2: IndexMap<String, BamlValueWithMeta<FieldType>>,
 }
 
 pub(crate) enum PrepareFunctionError {
@@ -139,7 +140,10 @@ impl InternalBamlRuntime {
         Ok(PreparedFunction {
             function_name,
             func,
-            baml_args: PreparedFunctionArgs { value: baml_args },
+            baml_args: PreparedFunctionArgs {
+                value: baml_args,
+                value2: unimplemented!(),
+            },
         })
     }
 }

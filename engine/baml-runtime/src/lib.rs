@@ -107,6 +107,7 @@ pub use internal_baml_core::internal_baml_diagnostics::Diagnostics as Diagnostic
 pub use internal_baml_core::ir::{
     ir_helpers::infer_type, scope_diagnostics, FieldType, IRHelper, TypeValue,
 };
+pub(crate) use runtime_methods::prepare_function::PreparedFunctionArgs;
 
 use crate::internal::llm_client::LLMResponse;
 use crate::test_constraints::{evaluate_test_constraints, TestConstraintsResult};
@@ -609,9 +610,9 @@ impl BamlRuntime {
                 if !is_expr_fn {
                     let span_id_chain = rctx.span_id_chain.clone();
                     // TODO: is this the right naming?
-                    let unevaluated_func =
+                    let prepared_func =
                         match self.inner.prepare_function(function_name.clone(), params) {
-                            Ok(unevaluated_func) => unevaluated_func,
+                            Ok(prepared_func) => prepared_func,
                             Err(e) => {
                                 return (e.into(), curr_span_id);
                             }
@@ -619,13 +620,13 @@ impl BamlRuntime {
                     let trace_event = TraceEvent::new_function_start(
                         span_id_chain.clone(),
                         function_name.clone(),
-                        vec![],
+                        prepared_func.baml_args.value2.clone().into_iter().collect(),
                         baml_types::tracing::events::EvaluationContext::default(),
                         true,
                     );
                     BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
                     // Call (CANNOT RETURN HERE until trace event is finished)
-                    let result = self.inner.call_function_impl(unevaluated_func, rctx).await;
+                    let result = self.inner.call_function_impl(prepared_func, rctx).await;
                     // Trace event
                     let trace_event = TraceEvent::new_function_end(
                         span_id_chain.clone(),
