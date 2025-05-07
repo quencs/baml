@@ -177,6 +177,9 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
             ));
         }
 
+        // TODO: remove this clone, it's only here because we're being lazy about the type tree beneath render_prompt
+        let baml_args =
+            BamlValue::Map(baml_args.into_iter().map(|(k, v)| (k, v.value())).collect());
         let node = selected.swap_remove(node_index);
         return node
             .provider
@@ -287,17 +290,16 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
                     ));
                 }
 
-                let baml_args = self.ir().check_function_params(
-                    &function_params,
-                    &params,
-                    ArgCoercer {
-                        span_path: span.map(|s| s.file.path_buf().clone()),
-                        allow_implicit_cast_to_string: true,
-                    },
-                )?;
-                baml_args
-                    .as_map_owned()
-                    .context("Test params must be a map")
+                self.ir()
+                    .check_function_params(
+                        &function_params,
+                        &params,
+                        ArgCoercer {
+                            span_path: span.map(|s| s.file.path_buf().clone()),
+                            allow_implicit_cast_to_string: true,
+                        },
+                    )
+                    .map(|bv| bv.into_iter().map(|(k, v)| (k, v.value())).collect())
             }
             Err(e) => Err(anyhow::anyhow!("Unable to resolve test params: {:?}", e)),
         }

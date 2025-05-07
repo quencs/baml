@@ -133,16 +133,17 @@ impl InternalBamlRuntime {
                 });
             }
         };
-        let baml_args = baml_args
-            .as_map_owned()
-            .expect("Type-checking of PreparedFunctionArgs should always ensure this is a string.");
 
         Ok(PreparedFunction {
             function_name,
             func,
             baml_args: PreparedFunctionArgs {
-                value: baml_args,
-                value2: unimplemented!(),
+                value: baml_args
+                    .clone()
+                    .into_iter()
+                    .map(|(k, v)| (k, v.value()))
+                    .collect(),
+                value2: baml_args,
             },
         })
     }
