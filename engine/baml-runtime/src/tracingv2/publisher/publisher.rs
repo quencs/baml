@@ -77,15 +77,17 @@ impl RuntimeAST {
         self.ast
             .env_var("BOUNDARY_API_URL")
             .cloned()
+            // .expect("BOUNDARY_API_URL is not set")
             // .unwrap_or_else(|| "https://api.boundaryml.com".to_string())
-            .unwrap_or_else(|| "https://abe8c5ez29.execute-api.us-east-1.amazonaws.com".to_string())
+            .unwrap_or_else(|| "https://o2em3sulde.execute-api.us-east-1.amazonaws.com".to_string())
     }
 
     pub fn api_key(&self) -> String {
         self.ast
             .env_var("BOUNDARY_API_KEY")
             .cloned()
-            .unwrap_or_else(|| "".to_string())
+            .unwrap_or_else(|| "7fc9adc617ed731ba6048daffe0e0de2ec168283624d07a94c2ed520183ea3f722633aa2a5eee9109098254e294f995e".to_string())
+        // .expect("BOUNDARY_API_KEY is not set")
     }
 }
 
@@ -160,7 +162,7 @@ impl TracePublisher {
     pub fn new(rx: mpsc::UnboundedReceiver<PublisherMessage>, lookup: Arc<RuntimeAST>) -> Self {
         Self {
             rx,
-            batch_size: 10,
+            batch_size: 1,
             lookup,
         }
     }
@@ -185,11 +187,7 @@ impl TracePublisher {
                 Some(message) = self.rx.recv() => {
                     match message {
                         PublisherMessage::UpdateRuntime(lookup) => {
-
-                            // Empty the buffer
-                            self.process_batch(std::mem::take(&mut buffer)).await;
                             self.process_baml_src_upload(&lookup).await;
-
                             self.lookup = lookup;
                         },
                         PublisherMessage::Trace(event) => {
@@ -422,7 +420,7 @@ impl TracePublisher {
             .text()
             .await
             .context("Failed to parse response as text")?;
-        tracing::info!("response body: {}", response_body);
+        tracing::error!("response body: {}", response_body);
         let upload_url_details: CreateTraceEventUploadUrlResponse =
             serde_json::from_str(&response_body).context(format!(
                 "Failed to parse {}",

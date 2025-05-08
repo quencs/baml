@@ -9,7 +9,7 @@ macro_rules! define_id {
             const TYPE: &'static str = $type_str;
         }
 
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
         pub struct $name(TypeSafeId<$inner_name>);
 
         impl $name {
@@ -54,6 +54,14 @@ macro_rules! define_id {
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", self.0.to_string())
+            }
+        }
+
+        impl std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_tuple(stringify!($name))
+                    .field(&self.0.to_string())
+                    .finish()
             }
         }
     };
