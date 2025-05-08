@@ -77,7 +77,8 @@ impl RuntimeAST {
         self.ast
             .env_var("BOUNDARY_API_URL")
             .cloned()
-            .unwrap_or_else(|| "https://api.boundaryml.com".to_string())
+            // .unwrap_or_else(|| "https://api.boundaryml.com".to_string())
+            .unwrap_or_else(|| "https://abe8c5ez29.execute-api.us-east-1.amazonaws.com".to_string())
     }
 
     pub fn api_key(&self) -> String {

@@ -1,6 +1,6 @@
 use baml_types::{
-    BamlMap, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, LiteralValue,
-    TypeValue,
+    BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType,
+    LiteralValue, TypeValue,
 };
 use core::result::Result;
 use std::path::PathBuf;
@@ -36,140 +36,162 @@ pub struct ArgCoercer {
 }
 
 impl ArgCoercer {
-    pub fn coerce_arg2(
+    pub fn coerce_arg(
         &self,
         ir: &IntermediateRepr,
         field_type: &FieldType,
         value: &BamlValue, // original value passed in by user
         scope: &mut ScopeStack,
-    ) -> Result<BamlValue, ()> {
+    ) -> Result<BamlValueWithMeta<FieldType>, ()> {
         let value = match ir.distribute_constraints(field_type) {
-            (FieldType::Primitive(t), _) => match t {
-                TypeValue::String if matches!(value, BamlValue::String(_)) => Ok(value.clone()),
-                TypeValue::String if self.allow_implicit_cast_to_string => match value {
-                    BamlValue::Int(i) => Ok(BamlValue::String(i.to_string())),
-                    BamlValue::Float(f) => Ok(BamlValue::String(f.to_string())),
-                    BamlValue::Bool(true) => Ok(BamlValue::String("true".to_string())),
-                    BamlValue::Bool(false) => Ok(BamlValue::String("false".to_string())),
-                    BamlValue::Null => Ok(BamlValue::String("null".to_string())),
+            (FieldType::Primitive(t), _) => match (t, value) {
+                (TypeValue::String, BamlValue::String(v)) => {
+                    Ok(BamlValueWithMeta::String(v.clone(), FieldType::string()))
+                }
+                (TypeValue::String, v) if self.allow_implicit_cast_to_string => match v {
+                    BamlValue::Int(i) => Ok(BamlValueWithMeta::String(
+                        i.to_string(),
+                        FieldType::string(),
+                    )),
+                    BamlValue::Float(f) => Ok(BamlValueWithMeta::String(
+                        f.to_string(),
+                        FieldType::string(),
+                    )),
+                    BamlValue::Bool(true) => Ok(BamlValueWithMeta::String(
+                        "true".to_string(),
+                        FieldType::string(),
+                    )),
+                    BamlValue::Bool(false) => Ok(BamlValueWithMeta::String(
+                        "false".to_string(),
+                        FieldType::string(),
+                    )),
+                    BamlValue::Null => Ok(BamlValueWithMeta::String(
+                        "null".to_string(),
+                        FieldType::string(),
+                    )),
                     _ => {
                         scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
                         Err(())
                     }
                 },
-                TypeValue::Int if matches!(value, BamlValue::Int(_)) => Ok(value.clone()),
-                TypeValue::Float => match value {
-                    BamlValue::Int(val) => Ok(BamlValue::Float(*val as f64)),
-                    BamlValue::Float(_) => Ok(value.clone()),
-                    _ => {
-                        scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
-                        Err(())
-                    }
-                },
-                TypeValue::Bool if matches!(value, BamlValue::Bool(_)) => Ok(value.clone()),
-                TypeValue::Null if matches!(value, BamlValue::Null) => Ok(value.clone()),
-                TypeValue::Media(media_type) => match value {
-                    BamlValue::Media(v) => Ok(BamlValue::Media(v.clone())),
-                    BamlValue::Map(kv) => {
-                        if let Some(BamlValue::String(s)) = kv.get("file") {
-                            let mime_type = match kv.get("media_type") {
-                                Some(t) => match t.as_str() {
-                                    Some(s) => Some(s.to_string()),
-                                    None => {
-                                        scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
-                                        return Err(());
-                                    }
-                                },
-                                None => None,
-                            };
+                (TypeValue::Int, BamlValue::Int(v)) => {
+                    Ok(BamlValueWithMeta::Int(*v, FieldType::int()))
+                }
+                (TypeValue::Float, BamlValue::Int(val)) => {
+                    Ok(BamlValueWithMeta::Float(*val as f64, FieldType::float()))
+                }
+                (TypeValue::Float, BamlValue::Float(v)) => {
+                    Ok(BamlValueWithMeta::Float(*v, FieldType::float()))
+                }
+                (TypeValue::Bool, BamlValue::Bool(v)) => {
+                    Ok(BamlValueWithMeta::Bool(*v, FieldType::bool()))
+                }
+                (TypeValue::Null, BamlValue::Null) => {
+                    Ok(BamlValueWithMeta::Null(FieldType::null()))
+                }
+                (TypeValue::Media(BamlMediaType::Image), BamlValue::Media(v)) => {
+                    Ok(BamlValueWithMeta::Media(v.clone(), FieldType::image()))
+                }
+                (TypeValue::Media(BamlMediaType::Audio), BamlValue::Media(v)) => {
+                    Ok(BamlValueWithMeta::Media(v.clone(), FieldType::audio()))
+                }
+                (TypeValue::Media(media_type), BamlValue::Map(kv)) => {
+                    unimplemented!("Media type coercion not implemented");
+                    // if let Some(BamlValue::String(s)) = kv.get("file") {
+                    //     let mime_type = match kv.get("media_type") {
+                    //         Some(t) => match t.as_str() {
+                    //             Some(s) => Some(s.to_string()),
+                    //             None => {
+                    //                 scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
+                    //                 return Err(());
+                    //             }
+                    //         },
+                    //         None => None,
+                    //     };
 
-                            for key in kv.keys() {
-                                if !["file", "media_type"].contains(&key.as_str()) {
-                                    scope.push_error(format!(
-                                        "Invalid property `{}` on file {}: `media_type` is the only supported property",
-                                        key,
-                                        media_type
-                                    ));
-                                }
-                            }
-                            match self.span_path.as_ref() {
-                                Some(span_path) => {
-                                    Ok(BamlValue::Media(baml_types::BamlMedia::file(
-                                        *media_type,
-                                        span_path.clone(),
-                                        s.to_string(),
-                                        mime_type,
-                                    )))
-                                }
-                                None => {
-                                    scope.push_error("BAML internal error: span is missing, cannot resolve file ref".to_string());
-                                    Err(())
-                                }
-                            }
-                        } else if let Some(BamlValue::String(s)) = kv.get("url") {
-                            let mime_type = match kv.get("media_type") {
-                                Some(t) => match t.as_str() {
-                                    Some(s) => Some(s.to_string()),
-                                    None => {
-                                        scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
-                                        return Err(());
-                                    }
-                                },
-                                None => None,
-                            };
-                            for key in kv.keys() {
-                                if !["url", "media_type"].contains(&key.as_str()) {
-                                    scope.push_error(format!(
-                                        "Invalid property `{}` on url {}: `media_type` is the only supported property",
-                                        key,
-                                        media_type
-                                    ));
-                                }
-                            }
-                            Ok(BamlValue::Media(baml_types::BamlMedia::url(
-                                *media_type,
-                                s.to_string(),
-                                mime_type,
-                            )))
-                        } else if let Some(BamlValue::String(s)) = kv.get("base64") {
-                            let mime_type = match kv.get("media_type") {
-                                Some(t) => match t.as_str() {
-                                    Some(s) => Some(s.to_string()),
-                                    None => {
-                                        scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
-                                        return Err(());
-                                    }
-                                },
-                                None => None,
-                            };
-                            for key in kv.keys() {
-                                if !["base64", "media_type"].contains(&key.as_str()) {
-                                    scope.push_error(format!(
-                                        "Invalid property `{}` on base64 {}: `media_type` is the only supported property",
-                                        key,
-                                        media_type
-                                    ));
-                                }
-                            }
-                            Ok(BamlValue::Media(baml_types::BamlMedia::base64(
-                                *media_type,
-                                s.to_string(),
-                                mime_type,
-                            )))
-                        } else {
-                            scope.push_error(format!(
-                                "Invalid image: expected `file`, `url`, or `base64`, got `{}`",
-                                value
-                            ));
-                            Err(())
-                        }
-                    }
-                    _ => {
-                        scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
-                        Err(())
-                    }
-                },
-                _ => {
+                    //     for key in kv.keys() {
+                    //         if !["file", "media_type"].contains(&key.as_str()) {
+                    //             scope.push_error(format!(
+                    //                 "Invalid property `{}` on file {}: `media_type` is the only supported property",
+                    //                 key,
+                    //                 media_type
+                    //             ));
+                    //         }
+                    //     }
+                    //     match self.span_path.as_ref() {
+                    //         Some(span_path) => Ok(BamlValue::Media(baml_types::BamlMedia::file(
+                    //             *media_type,
+                    //             span_path.clone(),
+                    //             s.to_string(),
+                    //             mime_type,
+                    //         ))),
+                    //         None => {
+                    //             scope.push_error(
+                    //                 "BAML internal error: span is missing, cannot resolve file ref"
+                    //                     .to_string(),
+                    //             );
+                    //             Err(())
+                    //         }
+                    //     }
+                    // } else if let Some(BamlValue::String(s)) = kv.get("url") {
+                    //     let mime_type = match kv.get("media_type") {
+                    //         Some(t) => match t.as_str() {
+                    //             Some(s) => Some(s.to_string()),
+                    //             None => {
+                    //                 scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
+                    //                 return Err(());
+                    //             }
+                    //         },
+                    //         None => None,
+                    //     };
+                    //     for key in kv.keys() {
+                    //         if !["url", "media_type"].contains(&key.as_str()) {
+                    //             scope.push_error(format!(
+                    //                 "Invalid property `{}` on url {}: `media_type` is the only supported property",
+                    //                 key,
+                    //                 media_type
+                    //             ));
+                    //         }
+                    //     }
+                    //     Ok(BamlValue::Media(baml_types::BamlMedia::url(
+                    //         *media_type,
+                    //         s.to_string(),
+                    //         mime_type,
+                    //     )))
+                    // } else if let Some(BamlValue::String(s)) = kv.get("base64") {
+                    //     let mime_type = match kv.get("media_type") {
+                    //         Some(t) => match t.as_str() {
+                    //             Some(s) => Some(s.to_string()),
+                    //             None => {
+                    //                 scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
+                    //                 return Err(());
+                    //             }
+                    //         },
+                    //         None => None,
+                    //     };
+                    //     for key in kv.keys() {
+                    //         if !["base64", "media_type"].contains(&key.as_str()) {
+                    //             scope.push_error(format!(
+                    //                 "Invalid property `{}` on base64 {}: `media_type` is the only supported property",
+                    //                 key,
+                    //                 media_type
+                    //             ));
+                    //         }
+                    //     }
+                    //     Ok(BamlValue::Media(baml_types::BamlMedia::base64(
+                    //         *media_type,
+                    //         s.to_string(),
+                    //         mime_type,
+                    //     )))
+                    // } else {
+                    //     scope.push_error(format!(
+                    //         "Invalid image: expected `file`, `url`, or `base64`, got `{}`",
+                    //         value
+                    //     ));
+                    //     Err(())
+                    // }
+                }
+                (_, _) => {
                     scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
                     Err(())
                 }
@@ -180,7 +202,11 @@ impl ArgCoercer {
                         if e.walk_values().any(|v| v.item.elem.0 == *s)
                             || e.item.attributes.dynamic()
                         {
-                            Ok(BamlValue::Enum(name.to_string(), s.to_string()))
+                            Ok(BamlValueWithMeta::Enum(
+                                name.to_string(),
+                                s.to_string(),
+                                FieldType::r#enum(name),
+                            ))
                         } else {
                             scope.push_error(format!(
                                 "Invalid enum {}: expected one of ({}), got `{}`",
@@ -198,32 +224,40 @@ impl ArgCoercer {
                         Err(())
                     }
                 }
-                BamlValue::Enum(n, _) if n == name => Ok(value.clone()),
+                BamlValue::Enum(n, s) if n == name => Ok(BamlValueWithMeta::Enum(
+                    name.to_string(),
+                    s.to_string(),
+                    FieldType::r#enum(name),
+                )),
                 _ => {
                     scope.push_error(format!("Invalid enum {}: Got `{}`", name, value));
                     Err(())
                 }
             },
-            (FieldType::Literal(literal), _) => Ok(match (literal, value) {
-                (LiteralValue::Int(lit), BamlValue::Int(baml)) if lit == baml => value.clone(),
-                (LiteralValue::String(lit), BamlValue::String(baml)) if lit == baml => {
-                    value.clone()
+            (FieldType::Literal(literal), _) => match (literal, value) {
+                (LiteralValue::Int(lit), BamlValue::Int(v)) if lit == v => {
+                    Ok(BamlValueWithMeta::Int(*v, FieldType::literal_int(*lit)))
                 }
-                (LiteralValue::Bool(lit), BamlValue::Bool(baml)) if lit == baml => value.clone(),
+                (LiteralValue::String(lit), BamlValue::String(v)) if lit == v => Ok(
+                    BamlValueWithMeta::String(v.clone(), FieldType::literal_string(lit.clone())),
+                ),
+                (LiteralValue::Bool(lit), BamlValue::Bool(v)) if lit == v => {
+                    Ok(BamlValueWithMeta::Bool(*v, FieldType::literal_bool(*lit)))
+                }
                 _ => {
                     scope.push_error(format!("Expected literal {:?}, got `{}`", literal, value));
-                    return Err(());
+                    Err(())
                 }
-            }),
+            },
             (FieldType::Class(name), _) => match value {
-                BamlValue::Class(n, _) if n == name => Ok(value.clone()),
+                // BamlValue::Class(n, _) if n == name => Ok(value.clone()),
                 BamlValue::Class(_, obj) | BamlValue::Map(obj) => match ir.find_class(name) {
                     Ok(c) => {
                         let mut fields = BamlMap::new();
 
                         for f in c.walk_fields() {
                             if let Some(v) = obj.get(f.name()) {
-                                if let Ok(v) = self.coerce_arg2(ir, f.r#type(), v, scope) {
+                                if let Ok(v) = self.coerce_arg(ir, f.r#type(), v, scope) {
                                     fields.insert(f.name().to_string(), v);
                                 }
                             } else if !f.r#type().is_optional() {
@@ -234,26 +268,21 @@ impl ArgCoercer {
                                 ));
                             }
                         }
-                        let is_dynamic = c.item.attributes.dynamic();
-                        if is_dynamic {
-                            for (key, value) in obj {
-                                if !fields.contains_key(key) {
-                                    fields.insert(key.clone(), value.clone());
-                                }
-                            }
-                        } else {
-                            // We let it slide here... but we should probably emit a warning like this:
-                            // for key in obj.keys() {
-                            //     if !fields.contains_key(key) {
-                            //         scope.push_error(format!(
-                            //             "Unexpected field `{}` for class {}. Mark the class as @@dynamic if you want to allow additional fields.",
-                            //             key, name
-                            //         ));
-                            //     }
-                            // }
-                        }
+                        // TODO: restore dynamic fields
+                        // let is_dynamic = c.item.attributes.dynamic();
+                        // if is_dynamic {
+                        //     for (key, value) in obj {
+                        //         if !fields.contains_key(key) {
+                        //             fields.insert(key.clone(), value.clone());
+                        //         }
+                        //     }
+                        // }
 
-                        Ok(BamlValue::Class(name.to_string(), fields))
+                        Ok(BamlValueWithMeta::Class(
+                            name.to_string(),
+                            fields,
+                            FieldType::class(name),
+                        ))
                     }
                     Err(_) => {
                         scope.push_error(format!("Class {} not found", name));
@@ -270,7 +299,7 @@ impl ArgCoercer {
                 // TODO: Fix this O(n)
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if let Some(target) = cycle.get(name) {
-                        maybe_coerced = Some(self.coerce_arg2(ir, target, value, scope)?);
+                        maybe_coerced = Some(self.coerce_arg(ir, target, value, scope)?);
                         break;
                     }
                 }
@@ -287,11 +316,11 @@ impl ArgCoercer {
                 BamlValue::List(arr) => {
                     let mut items = Vec::new();
                     for v in arr {
-                        if let Ok(v) = self.coerce_arg2(ir, item, v, scope) {
+                        if let Ok(v) = self.coerce_arg(ir, item, v, scope) {
                             items.push(v);
                         }
                     }
-                    Ok(BamlValue::List(items))
+                    Ok(BamlValueWithMeta::List(items, item.clone().as_list()))
                 }
                 _ => {
                     scope.push_error(format!("Expected array, got `{}`", value));
@@ -302,34 +331,35 @@ impl ArgCoercer {
                 scope.push_error("Tuples are not yet supported".to_string());
                 Err(())
             }
-            (FieldType::Map(k, v), _) => {
-                if let BamlValue::Map(kv) = value {
+            (FieldType::Map(k, v), _) => match value {
+                BamlValue::Map(kv) => {
                     let mut map = BamlMap::new();
                     for (key, value) in kv {
                         scope.push("<key>".to_string());
-                        let k = self.coerce_arg2(ir, k, &BamlValue::String(key.clone()), scope);
+                        let k = self.coerce_arg(ir, k, &BamlValue::String(key.clone()), scope);
                         scope.pop(false);
 
                         if k.is_ok() {
                             scope.push(key.to_string());
-                            if let Ok(v) = self.coerce_arg2(ir, v, value, scope) {
+                            if let Ok(v) = self.coerce_arg(ir, v, value, scope) {
                                 map.insert(key.clone(), v);
                             }
                             scope.pop(false);
                         }
                     }
-                    Ok(BamlValue::Map(map))
-                } else {
+                    Ok(BamlValueWithMeta::Map(map, (**v).clone()))
+                }
+                _ => {
                     scope.push_error(format!("Expected map, got `{}`", value));
                     Err(())
                 }
-            }
+            },
             (FieldType::Union(options), _) => {
                 let mut first_good_result = Err(());
                 for option in options {
                     let mut scope = ScopeStack::new();
                     if first_good_result.is_err() {
-                        let result = self.coerce_arg2(ir, option, value, &mut scope);
+                        let result = self.coerce_arg(ir, option, value, &mut scope);
                         if !scope.has_errors() && first_good_result.is_err() {
                             first_good_result = result
                         }
@@ -342,12 +372,11 @@ impl ArgCoercer {
                     first_good_result
                 }
             }
-            (FieldType::Optional(inner), _) => {
-                if matches!(value, BamlValue::Null) {
-                    Ok(value.clone())
-                } else {
+            (FieldType::Optional(inner), _) => match value {
+                BamlValue::Null => Ok(BamlValueWithMeta::Null(inner.clone().as_optional())),
+                _ => {
                     let mut inner_scope = ScopeStack::new();
-                    let baml_arg = self.coerce_arg2(ir, inner, value, &mut inner_scope);
+                    let baml_arg = self.coerce_arg(ir, inner, value, &mut inner_scope);
                     if inner_scope.has_errors() {
                         scope.push_error(format!("Expected optional {}, got `{}`", inner, value));
                         Err(())
@@ -355,7 +384,7 @@ impl ArgCoercer {
                         baml_arg
                     }
                 }
-            }
+            },
             (FieldType::Arrow(_), _) => {
                 scope.push_error(format!(
                     "A json value may not be coerced into a function type"
@@ -367,8 +396,8 @@ impl ArgCoercer {
             }
         }?;
 
-        let search_for_failures_result = first_failing_assert_nested(ir, &value, field_type)
-            .map_err(|e| {
+        let search_for_failures_result =
+            first_failing_assert_nested(ir, &value.clone().value(), field_type).map_err(|e| {
                 scope.push_error(format!("Failed to evaluate assert: {:?}", e));
             })?;
         match search_for_failures_result {
@@ -381,354 +410,6 @@ impl ArgCoercer {
             }
             None => Ok(value),
         }
-    }
-
-    pub fn coerce_arg(
-        &self,
-        ir: &IntermediateRepr,
-        field_type: &FieldType,
-        value: &BamlValue, // original value passed in by user
-        scope: &mut ScopeStack,
-    ) -> Result<BamlValueWithMeta<FieldType>, ()> {
-        return unimplemented!();
-        // let value = match ir.distribute_constraints(field_type) {
-        //     (FieldType::Primitive(t), _) => match t {
-        //         TypeValue::String if matches!(value, BamlValue::String(_)) => Ok(value.clone()),
-        //         TypeValue::String if self.allow_implicit_cast_to_string => match value {
-        //             BamlValue::Int(i) => Ok(BamlValue::String(i.to_string())),
-        //             BamlValue::Float(f) => Ok(BamlValue::String(f.to_string())),
-        //             BamlValue::Bool(true) => Ok(BamlValue::String("true".to_string())),
-        //             BamlValue::Bool(false) => Ok(BamlValue::String("false".to_string())),
-        //             BamlValue::Null => Ok(BamlValue::String("null".to_string())),
-        //             _ => {
-        //                 scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
-        //                 Err(())
-        //             }
-        //         },
-        //         TypeValue::Int if matches!(value, BamlValue::Int(_)) => Ok(value.clone()),
-        //         TypeValue::Float => match value {
-        //             BamlValue::Int(val) => Ok(BamlValue::Float(*val as f64)),
-        //             BamlValue::Float(_) => Ok(value.clone()),
-        //             _ => {
-        //                 scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
-        //                 Err(())
-        //             }
-        //         },
-        //         TypeValue::Bool if matches!(value, BamlValue::Bool(_)) => Ok(value.clone()),
-        //         TypeValue::Null if matches!(value, BamlValue::Null) => Ok(value.clone()),
-        //         TypeValue::Media(media_type) => match value {
-        //             BamlValue::Media(v) => Ok(BamlValue::Media(v.clone())),
-        //             BamlValue::Map(kv) => {
-        //                 if let Some(BamlValue::String(s)) = kv.get("file") {
-        //                     let mime_type = match kv.get("media_type") {
-        //                         Some(t) => match t.as_str() {
-        //                             Some(s) => Some(s.to_string()),
-        //                             None => {
-        //                                 scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
-        //                                 return Err(());
-        //                             }
-        //                         },
-        //                         None => None,
-        //                     };
-
-        //                     for key in kv.keys() {
-        //                         if !["file", "media_type"].contains(&key.as_str()) {
-        //                             scope.push_error(format!(
-        //                                 "Invalid property `{}` on file {}: `media_type` is the only supported property",
-        //                                 key,
-        //                                 media_type
-        //                             ));
-        //                         }
-        //                     }
-        //                     match self.span_path.as_ref() {
-        //                         Some(span_path) => {
-        //                             Ok(BamlValue::Media(baml_types::BamlMedia::file(
-        //                                 *media_type,
-        //                                 span_path.clone(),
-        //                                 s.to_string(),
-        //                                 mime_type,
-        //                             )))
-        //                         }
-        //                         None => {
-        //                             scope.push_error("BAML internal error: span is missing, cannot resolve file ref".to_string());
-        //                             Err(())
-        //                         }
-        //                     }
-        //                 } else if let Some(BamlValue::String(s)) = kv.get("url") {
-        //                     let mime_type = match kv.get("media_type") {
-        //                         Some(t) => match t.as_str() {
-        //                             Some(s) => Some(s.to_string()),
-        //                             None => {
-        //                                 scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
-        //                                 return Err(());
-        //                             }
-        //                         },
-        //                         None => None,
-        //                     };
-        //                     for key in kv.keys() {
-        //                         if !["url", "media_type"].contains(&key.as_str()) {
-        //                             scope.push_error(format!(
-        //                                 "Invalid property `{}` on url {}: `media_type` is the only supported property",
-        //                                 key,
-        //                                 media_type
-        //                             ));
-        //                         }
-        //                     }
-        //                     Ok(BamlValue::Media(baml_types::BamlMedia::url(
-        //                         *media_type,
-        //                         s.to_string(),
-        //                         mime_type,
-        //                     )))
-        //                 } else if let Some(BamlValue::String(s)) = kv.get("base64") {
-        //                     let mime_type = match kv.get("media_type") {
-        //                         Some(t) => match t.as_str() {
-        //                             Some(s) => Some(s.to_string()),
-        //                             None => {
-        //                                 scope.push_error(format!("Invalid property `media_type` on file {}: expected string, got {:?}", media_type, t.r#type()));
-        //                                 return Err(());
-        //                             }
-        //                         },
-        //                         None => None,
-        //                     };
-        //                     for key in kv.keys() {
-        //                         if !["base64", "media_type"].contains(&key.as_str()) {
-        //                             scope.push_error(format!(
-        //                                 "Invalid property `{}` on base64 {}: `media_type` is the only supported property",
-        //                                 key,
-        //                                 media_type
-        //                             ));
-        //                         }
-        //                     }
-        //                     Ok(BamlValue::Media(baml_types::BamlMedia::base64(
-        //                         *media_type,
-        //                         s.to_string(),
-        //                         mime_type,
-        //                     )))
-        //                 } else {
-        //                     scope.push_error(format!(
-        //                         "Invalid image: expected `file`, `url`, or `base64`, got `{}`",
-        //                         value
-        //                     ));
-        //                     Err(())
-        //                 }
-        //             }
-        //             _ => {
-        //                 scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
-        //                 Err(())
-        //             }
-        //         },
-        //         _ => {
-        //             scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
-        //             Err(())
-        //         }
-        //     },
-        //     (FieldType::Enum(name), _) => match value {
-        //         BamlValue::String(s) => {
-        //             if let Ok(e) = ir.find_enum(name) {
-        //                 if e.walk_values().any(|v| v.item.elem.0 == *s)
-        //                     || e.item.attributes.dynamic()
-        //                 {
-        //                     Ok(BamlValue::Enum(name.to_string(), s.to_string()))
-        //                 } else {
-        //                     scope.push_error(format!(
-        //                         "Invalid enum {}: expected one of ({}), got `{}`",
-        //                         name,
-        //                         e.walk_values()
-        //                             .map(|v| v.item.elem.0.as_str())
-        //                             .collect::<Vec<&str>>()
-        //                             .join(" | "),
-        //                         s
-        //                     ));
-        //                     Err(())
-        //                 }
-        //             } else {
-        //                 scope.push_error(format!("Enum {} not found", name));
-        //                 Err(())
-        //             }
-        //         }
-        //         BamlValue::Enum(n, _) if n == name => Ok(value.clone()),
-        //         _ => {
-        //             scope.push_error(format!("Invalid enum {}: Got `{}`", name, value));
-        //             Err(())
-        //         }
-        //     },
-        //     (FieldType::Literal(literal), _) => Ok(match (literal, value) {
-        //         (LiteralValue::Int(lit), BamlValue::Int(baml)) if lit == baml => value.clone(),
-        //         (LiteralValue::String(lit), BamlValue::String(baml)) if lit == baml => {
-        //             value.clone()
-        //         }
-        //         (LiteralValue::Bool(lit), BamlValue::Bool(baml)) if lit == baml => value.clone(),
-        //         _ => {
-        //             scope.push_error(format!("Expected literal {:?}, got `{}`", literal, value));
-        //             return Err(());
-        //         }
-        //     }),
-        //     (FieldType::Class(name), _) => match value {
-        //         BamlValue::Class(n, _) if n == name => Ok(value.clone()),
-        //         BamlValue::Class(_, obj) | BamlValue::Map(obj) => match ir.find_class(name) {
-        //             Ok(c) => {
-        //                 let mut fields = BamlMap::new();
-
-        //                 for f in c.walk_fields() {
-        //                     if let Some(v) = obj.get(f.name()) {
-        //                         if let Ok(v) = self.coerce_arg(ir, f.r#type(), v, scope) {
-        //                             fields.insert(f.name().to_string(), v);
-        //                         }
-        //                     } else if !f.r#type().is_optional() {
-        //                         scope.push_error(format!(
-        //                             "Missing required field `{}` for class {}",
-        //                             f.name(),
-        //                             name
-        //                         ));
-        //                     }
-        //                 }
-        //                 let is_dynamic = c.item.attributes.dynamic();
-        //                 if is_dynamic {
-        //                     for (key, value) in obj {
-        //                         if !fields.contains_key(key) {
-        //                             fields.insert(key.clone(), value.clone());
-        //                         }
-        //                     }
-        //                 } else {
-        //                     // We let it slide here... but we should probably emit a warning like this:
-        //                     // for key in obj.keys() {
-        //                     //     if !fields.contains_key(key) {
-        //                     //         scope.push_error(format!(
-        //                     //             "Unexpected field `{}` for class {}. Mark the class as @@dynamic if you want to allow additional fields.",
-        //                     //             key, name
-        //                     //         ));
-        //                     //     }
-        //                     // }
-        //                 }
-
-        //                 Ok(BamlValue::Class(name.to_string(), fields))
-        //             }
-        //             Err(_) => {
-        //                 scope.push_error(format!("Class {} not found", name));
-        //                 Err(())
-        //             }
-        //         },
-        //         _ => {
-        //             scope.push_error(format!("Expected class {}, got `{}`", name, value));
-        //             Err(())
-        //         }
-        //     },
-        //     (FieldType::RecursiveTypeAlias(name), _) => {
-        //         let mut maybe_coerced = None;
-        //         // TODO: Fix this O(n)
-        //         for cycle in ir.structural_recursive_alias_cycles() {
-        //             if let Some(target) = cycle.get(name) {
-        //                 maybe_coerced = Some(self.coerce_arg(ir, target, value, scope)?);
-        //                 break;
-        //             }
-        //         }
-
-        //         match maybe_coerced {
-        //             Some(coerced) => Ok(coerced),
-        //             None => {
-        //                 scope.push_error(format!("Recursive type alias {} not found", name));
-        //                 Err(())
-        //             }
-        //         }
-        //     }
-        //     (FieldType::List(item), _) => match value {
-        //         BamlValue::List(arr) => {
-        //             let mut items = Vec::new();
-        //             for v in arr {
-        //                 if let Ok(v) = self.coerce_arg(ir, item, v, scope) {
-        //                     items.push(v);
-        //                 }
-        //             }
-        //             Ok(BamlValue::List(items))
-        //         }
-        //         _ => {
-        //             scope.push_error(format!("Expected array, got `{}`", value));
-        //             Err(())
-        //         }
-        //     },
-        //     (FieldType::Tuple(_), _) => {
-        //         scope.push_error("Tuples are not yet supported".to_string());
-        //         Err(())
-        //     }
-        //     (FieldType::Map(k, v), _) => {
-        //         if let BamlValue::Map(kv) = value {
-        //             let mut map = BamlMap::new();
-        //             for (key, value) in kv {
-        //                 scope.push("<key>".to_string());
-        //                 let k = self.coerce_arg(ir, k, &BamlValue::String(key.clone()), scope);
-        //                 scope.pop(false);
-
-        //                 if k.is_ok() {
-        //                     scope.push(key.to_string());
-        //                     if let Ok(v) = self.coerce_arg(ir, v, value, scope) {
-        //                         map.insert(key.clone(), v);
-        //                     }
-        //                     scope.pop(false);
-        //                 }
-        //             }
-        //             Ok(BamlValue::Map(map))
-        //         } else {
-        //             scope.push_error(format!("Expected map, got `{}`", value));
-        //             Err(())
-        //         }
-        //     }
-        //     (FieldType::Union(options), _) => {
-        //         let mut first_good_result = Err(());
-        //         for option in options {
-        //             let mut scope = ScopeStack::new();
-        //             if first_good_result.is_err() {
-        //                 let result = self.coerce_arg(ir, option, value, &mut scope);
-        //                 if !scope.has_errors() && first_good_result.is_err() {
-        //                     first_good_result = result
-        //                 }
-        //             }
-        //         }
-        //         if first_good_result.is_err() {
-        //             scope.push_error(format!("Expected one of {:?}, got `{}`", options, value));
-        //             Err(())
-        //         } else {
-        //             first_good_result
-        //         }
-        //     }
-        //     (FieldType::Optional(inner), _) => {
-        //         if matches!(value, BamlValue::Null) {
-        //             Ok(value.clone())
-        //         } else {
-        //             let mut inner_scope = ScopeStack::new();
-        //             let baml_arg = self.coerce_arg(ir, inner, value, &mut inner_scope);
-        //             if inner_scope.has_errors() {
-        //                 scope.push_error(format!("Expected optional {}, got `{}`", inner, value));
-        //                 Err(())
-        //             } else {
-        //                 baml_arg
-        //             }
-        //         }
-        //     }
-        //     (FieldType::Arrow(_), _) => {
-        //         scope.push_error(format!(
-        //             "A json value may not be coerced into a function type"
-        //         ));
-        //         Err(())
-        //     }
-        //     (FieldType::WithMetadata { .. }, _) => {
-        //         unreachable!("The return value of distribute_constraints can never be FieldType::Constrainted");
-        //     }
-        // }?;
-
-        // let search_for_failures_result = first_failing_assert_nested(ir, &value, field_type)
-        //     .map_err(|e| {
-        //         scope.push_error(format!("Failed to evaluate assert: {:?}", e));
-        //     })?;
-        // match search_for_failures_result {
-        //     Some(Constraint {
-        //         label, expression, ..
-        //     }) => {
-        //         let msg = label.as_ref().unwrap_or(&expression.0);
-        //         scope.push_error(format!("Failed assert: {msg}"));
-        //         Err(())
-        //     }
-        //     None => Ok(value),
-        // }
     }
 }
 
@@ -831,11 +512,14 @@ type JsonArray = JsonValue[]
             allow_implicit_cast_to_string: true,
         };
 
-        let json = BamlValue::Map(BamlMap::from([
-            ("number".to_string(), BamlValue::Int(1)),
-            ("string".to_string(), BamlValue::String("test".to_string())),
-            ("bool".to_string(), BamlValue::Bool(true)),
-        ]));
+        let json = BamlValueWithMeta::Map(
+            BamlMap::from([
+                ("number".to_string(), BamlValue::Int(1)),
+                ("string".to_string(), BamlValue::String("test".to_string())),
+                ("bool".to_string(), BamlValue::Bool(true)),
+            ]),
+            FieldType::RecursiveTypeAlias("JsonValue".to_string()),
+        );
 
         let res = arg_coercer.coerce_arg(
             &ir,
