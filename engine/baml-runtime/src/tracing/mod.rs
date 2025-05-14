@@ -48,13 +48,13 @@ cfg_if! {
 #[derive(Debug, Clone)]
 pub struct TracingSpan {
     pub span_id: Uuid,
-    pub new_span_id_chain: Vec<baml_ids::SpanId>,
+    pub new_span_id_chain: Vec<baml_ids::FunctionCallId>,
     params: BamlMap<String, BamlValue>,
     start_time: web_time::SystemTime,
 }
 
 impl TracingSpan {
-    pub fn curr_span_id(&self) -> baml_ids::SpanId {
+    pub fn curr_span_id(&self) -> baml_ids::FunctionCallId {
         self.new_span_id_chain
             .last()
             .expect("Span ID chain is empty")
@@ -488,7 +488,7 @@ impl BamlTracer {
         span: TracingSpan,
         ctx: &RuntimeContextManager,
         response: &Result<FunctionResult>,
-    ) -> Result<(uuid::Uuid, Vec<baml_ids::SpanId>)> {
+    ) -> Result<(uuid::Uuid, Vec<baml_ids::FunctionCallId>)> {
         let guard = self.trace_stats.guard();
         let Some((span_id, event_chain, tags)) = ctx.exit() else {
             anyhow::bail!("Attempting to finish a span without first starting one");
@@ -540,7 +540,7 @@ impl BamlTracer {
         span: TracingSpan,
         ctx: &RuntimeContextManager,
         response: &Result<FunctionResult>,
-    ) -> Result<(uuid::Uuid, Vec<baml_ids::SpanId>)> {
+    ) -> Result<(uuid::Uuid, Vec<baml_ids::FunctionCallId>)> {
         let guard = self.trace_stats.guard();
         let Some((span_id, event_chain, tags)) = ctx.exit() else {
             anyhow::bail!("Attempting to finish a span without first starting one");

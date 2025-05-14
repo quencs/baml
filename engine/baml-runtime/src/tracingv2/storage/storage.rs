@@ -2,10 +2,10 @@
 //! including a global tracer, FunctionLog, Collector, and all related data types.
 //!
 //! This version ensures we don't allocate multiple copies of the same FunctionLogInner
-//! for a single SpanId, even if multiple Collectors or FunctionLogs want it.
+//! for a single FunctionCallId, even if multiple Collectors or FunctionLogs want it.
 //! It uses manual reference counting (`inc_ref` / `dec_ref`) to free memory for
-//! a SpanId as soon as there are no more "owners."
-use baml_ids::{HttpRequestId, SpanId};
+//! a FunctionCallId as soon as there are no more "owners."
+use baml_ids::{FunctionCallId, HttpRequestId};
 use baml_types::tracing::events::{
     FunctionEnd, FunctionStart, HTTPRequest, HTTPResponse, LoggedLLMRequest, LoggedLLMResponse,
     TraceData, TraceEvent,
@@ -27,22 +27,22 @@ pub static BAML_TRACER: Lazy<Mutex<TraceStorage>> =
     Lazy::new(|| Mutex::new(TraceStorage::default()));
 
 /// Our main storage struct. Holds:
-/// 1) A map of SpanId -> list of events (Vec<Arc<TraceEvent>>).
-/// 2) A map of SpanId -> reference count (how many "owners" are tracking it).
-/// 3) A cache of SpanId -> Arc<Mutex<FunctionLogInner>> to avoid rebuilding
+/// 1) A map of FunctionCallId -> list of events (Vec<Arc<TraceEvent>>).
+/// 2) A map of FunctionCallId -> reference count (how many "owners" are tracking it).
+/// 3) A cache of FunctionCallId -> Arc<Mutex<FunctionLogInner>> to avoid rebuilding
 ///    the same FunctionLogInner multiple times.
 #[derive(Default)]
 pub struct TraceStorage {
     /// For each function (span), we keep a vector of TraceEvents.
     /// This data is only kept while ref_count > 0.
-    span_map: HashMap<SpanId, Vec<Arc<TraceEventWithMeta>>>,
+    span_map: HashMap<FunctionCallId, Vec<Arc<TraceEventWithMeta>>>,
     /// Manual reference count for each function ID. If it hits 0, we remove that ID's data.
-    ref_counts: HashMap<SpanId, usize>,
+    ref_counts: HashMap<FunctionCallId, usize>,
 
     /// Cache of built FunctionLogInner objects, so multiple calls to build_function_log
-    /// for the same SpanId share the same Arc. Because we may need to modify this
+    /// for the same FunctionCallId share the same Arc. Because we may need to modify this
     /// while holding only an &TraceStorage, we wrap it in a Mutex for interior mutability.
-    function_inners: Mutex<HashMap<SpanId, Arc<Mutex<FunctionLogInner>>>>,
+    function_inners: Mutex<HashMap<FunctionCallId, Arc<Mutex<FunctionLogInner>>>>,
 }
 
 impl fmt::Debug for TraceStorage {
@@ -57,9 +57,9 @@ impl fmt::Debug for TraceStorage {
 }
 
 impl TraceStorage {
-    /// Increase the reference count for the given SpanId.
+    /// Increase the reference count for the given FunctionCallId.
     /// If there's no entry yet, create one (with an empty Vec of events).
-    pub fn inc_ref(&mut self, function_id: &SpanId) {
+    pub fn inc_ref(&mut self, function_id: &FunctionCallId) {
         let count = self.ref_counts.entry(function_id.clone()).or_insert(0);
         *count += 1;
 
@@ -69,9 +69,9 @@ impl TraceStorage {
             .or_insert_with(Vec::new);
     }
 
-    /// Decrease the reference count for the given SpanId,
+    /// Decrease the reference count for the given FunctionCallId,
     /// and if it hits zero, remove from memory (both events and cached FunctionLogInner).
-    pub fn dec_ref(&mut self, function_id: &SpanId) {
+    pub fn dec_ref(&mut self, function_id: &FunctionCallId) {
         match self.ref_counts.get_mut(function_id) {
             Some(rc) => {
                 if *rc == 0 {
@@ -125,12 +125,15 @@ impl TraceStorage {
 
     /// Retrieve events for a particular function (span).
     /// Returns None if the function isn't being tracked (or was removed).
-    pub fn get_events(&self, function_id: &SpanId) -> Option<&Vec<Arc<TraceEventWithMeta>>> {
+    pub fn get_events(
+        &self,
+        function_id: &FunctionCallId,
+    ) -> Option<&Vec<Arc<TraceEventWithMeta>>> {
         self.span_map.get(function_id)
     }
 
     /// Returns how many references a given function currently has.
-    pub fn ref_count_for(&self, function_id: &SpanId) -> usize {
+    pub fn ref_count_for(&self, function_id: &FunctionCallId) -> usize {
         self.ref_counts.get(function_id).copied().unwrap_or(0)
     }
 
@@ -139,7 +142,7 @@ impl TraceStorage {
     }
 
     /// For debugging – return a copy of all events in memory.
-    pub fn events(&self) -> HashMap<SpanId, Vec<Arc<TraceEventWithMeta>>> {
+    pub fn events(&self) -> HashMap<FunctionCallId, Vec<Arc<TraceEventWithMeta>>> {
         self.span_map.clone()
     }
 
@@ -157,7 +160,7 @@ impl TraceStorage {
 ///
 fn build_function_log(
     storage: &TraceStorage,
-    function_id: &SpanId,
+    function_id: &FunctionCallId,
 ) -> Option<Arc<Mutex<FunctionLogInner>>> {
     // First, check if there's already a cached FunctionLogInner.
     {
@@ -377,7 +380,7 @@ fn system_time_to_utc_ms(st: &web_time::SystemTime) -> i64 {
 ///
 #[derive(Debug)]
 pub struct FunctionLog {
-    id: SpanId,
+    id: FunctionCallId,
     /// We store an optional Arc<Mutex<FunctionLogInner>> so that we only load it lazily.
     inner: Option<Arc<Mutex<FunctionLogInner>>>,
     instance_id: String,
@@ -391,7 +394,7 @@ impl Clone for FunctionLog {
 }
 
 impl FunctionLog {
-    pub fn new(id: SpanId) -> Self {
+    pub fn new(id: FunctionCallId) -> Self {
         // Manually increment the global reference count
         BAML_TRACER.lock().unwrap().inc_ref(&id);
         let instance_id = Uuid::new_v4().to_string();
@@ -417,7 +420,7 @@ impl FunctionLog {
         self.inner.as_ref().unwrap()
     }
 
-    pub fn id(&self) -> SpanId {
+    pub fn id(&self) -> FunctionCallId {
         self.id.clone()
     }
 
@@ -464,7 +467,7 @@ impl Drop for FunctionLog {
 ///
 #[derive(Debug, Clone, Serialize)]
 pub struct FunctionLogInner {
-    pub id: SpanId,
+    pub id: FunctionCallId,
     pub function_name: String,
     pub r#type: String,
     pub timing: Timing,
@@ -548,7 +551,7 @@ pub struct LLMStreamCall {
 pub struct Collector {
     name: String,
     // Using IndexSet to preserve the insertion order of tracked FuncIds
-    tracked_ids: Mutex<IndexSet<SpanId>>,
+    tracked_ids: Mutex<IndexSet<FunctionCallId>>,
 }
 
 impl Collector {
@@ -563,7 +566,7 @@ impl Collector {
         self.name.clone()
     }
 
-    pub fn track_function(&self, fid: SpanId) {
+    pub fn track_function(&self, fid: FunctionCallId) {
         log::trace!("Tracking function: {:?}", fid);
 
         // Then add to our set (maintaining insertion order)
@@ -573,7 +576,7 @@ impl Collector {
             BAML_TRACER.lock().unwrap().inc_ref(&fid);
         }
     }
-    pub fn untrack_function(&self, fid: &SpanId) {
+    pub fn untrack_function(&self, fid: &FunctionCallId) {
         let mut guard = self.tracked_ids.lock().unwrap();
         if guard.swap_remove(fid) {
             BAML_TRACER.lock().unwrap().dec_ref(fid);
@@ -596,7 +599,7 @@ impl Collector {
             .map(|id| FunctionLog::new(id.clone()))
     }
 
-    pub fn function_log_by_id(&self, fid: &SpanId) -> Option<FunctionLog> {
+    pub fn function_log_by_id(&self, fid: &FunctionCallId) -> Option<FunctionLog> {
         let guard = self.tracked_ids.lock().unwrap();
         guard.get(fid).map(|fid| FunctionLog::new(fid.clone()))
     }
@@ -676,7 +679,7 @@ impl Drop for Collector {
 //                 tracer.clear();
 //             }
 
-//             let f_id = SpanId::new();
+//             let f_id = FunctionCallId::new();
 
 //             // Initially, no references
 //             {
@@ -733,7 +736,7 @@ impl Drop for Collector {
 //     fn test_collector_clone_reference_counts() {
 //         let rt = Runtime::new().unwrap();
 //         rt.block_on(async {
-//             let f_id = SpanId("func_abc".to_string());
+//             let f_id = FunctionCallId("func_abc".to_string());
 //             // Clear global state
 //             {
 //                 let mut tracer = BAML_TRACER.lock().unwrap();
@@ -806,7 +809,7 @@ impl Drop for Collector {
 //     fn test_collector_and_function_log_clone_reference_counts() {
 //         let rt = Runtime::new().unwrap();
 //         rt.block_on(async {
-//             let f_id = SpanId("func_abc".to_string());
+//             let f_id = FunctionCallId("func_abc".to_string());
 //             // Clear global state
 //             {
 //                 let mut tracer = BAML_TRACER.lock().unwrap();
@@ -903,7 +906,7 @@ impl Drop for Collector {
 //     fn test_function_log_basic() {
 //         let rt = Runtime::new().unwrap();
 //         rt.block_on(async {
-//             let f_id = SpanId("test_function_log_basic".to_string());
+//             let f_id = FunctionCallId("test_function_log_basic".to_string());
 
 //             // Clear global state
 //             {
@@ -987,7 +990,7 @@ impl Drop for Collector {
 //     fn test_function_log_with_metadata() {
 //         let rt = Runtime::new().unwrap();
 //         rt.block_on(async {
-//             let f_id = SpanId("test_function_log_with_metadata".to_string());
+//             let f_id = FunctionCallId("test_function_log_with_metadata".to_string());
 
 //             // Clear global state
 //             {
@@ -1054,7 +1057,7 @@ impl Drop for Collector {
 //     fn test_timing_calculations() {
 //         let rt = Runtime::new().unwrap();
 //         rt.block_on(async {
-//             let f_id = SpanId("test_timing".to_string());
+//             let f_id = FunctionCallId("test_timing".to_string());
 //             let collector = Collector::new(Some("test_collector".to_string()));
 //             collector.track_function(f_id.clone());
 //             let start_time = web_time::SystemTime::now();
@@ -1132,7 +1135,7 @@ impl Drop for Collector {
 //     }
 //     /// Helper function to inject a sequence of events for testing
 //     async fn inject_test_events(
-//         f_id: &SpanId,
+//         f_id: &FunctionCallId,
 //         function_name: &str,
 //         llm_calls: Vec<(LoggedLLMRequest, LoggedLLMResponse)>,
 //     ) -> Collector {
@@ -1233,13 +1236,13 @@ impl Drop for Collector {
 //     fn test_usage_accumulation_within_function_log_retries() {
 //         use baml_types::tracing::events::{
 //             ContentId, FunctionEnd, FunctionStart, LLMUsage, LoggedLLMRequest, LoggedLLMResponse,
-//             SpanId, TraceData, TraceEvent, TraceLevel,
+//             FunctionCallId, TraceData, TraceEvent, TraceLevel,
 //         };
 //         use std::time::Duration;
 
 //         let rt = tokio::runtime::Runtime::new().unwrap();
 //         rt.block_on(async {
-//             let f_id = SpanId("test_usage_accumulation".to_string());
+//             let f_id = FunctionCallId("test_usage_accumulation".to_string());
 
 //             let llm_calls = vec![
 //                 (

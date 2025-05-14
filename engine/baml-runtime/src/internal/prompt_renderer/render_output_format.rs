@@ -447,7 +447,7 @@ fn relevant_data_models<'a>(
 mod tests {
     use std::collections::HashMap;
 
-    use baml_ids::SpanId;
+    use baml_ids::FunctionCallId;
     use internal_baml_jinja::types::RenderOptions;
 
     use super::*;
@@ -469,7 +469,7 @@ mod tests {
         let baml_runtime = BamlRuntime::from_file_content(".", &files, env_vars).unwrap();
         let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
         let ctx: RuntimeContext = ctx_manager
-            .create_ctx(None, None, vec![SpanId::new()])
+            .create_ctx(None, None, vec![FunctionCallId::new()])
             .unwrap();
 
         let field_type = FieldType::Enum("Foo".to_string());
@@ -528,7 +528,7 @@ class Resume {
         let baml_runtime = BamlRuntime::from_file_content(".", &files, env_vars).unwrap();
         let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
         let ctx: RuntimeContext = ctx_manager
-            .create_ctx(None, None, vec![SpanId::new()])
+            .create_ctx(None, None, vec![FunctionCallId::new()])
             .unwrap();
 
         let field_type = FieldType::class("Resume");
@@ -626,7 +626,7 @@ class Resume {
         let baml_runtime = BamlRuntime::from_file_content(".", &files, env_vars).unwrap();
         let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
         let ctx: RuntimeContext = ctx_manager
-            .create_ctx(None, None, vec![SpanId::new()])
+            .create_ctx(None, None, vec![FunctionCallId::new()])
             .unwrap();
 
         let field_type = FieldType::class("Resume");

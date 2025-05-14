@@ -126,13 +126,13 @@ fn serde_json_to_aws_document(value: serde_json::Value) -> Document {
 
 #[derive(Debug)]
 struct CollectorInterceptor {
-    span_chain: Vec<baml_ids::SpanId>,
+    span_chain: Vec<baml_ids::FunctionCallId>,
     http_request_id: baml_ids::HttpRequestId,
 }
 
 impl CollectorInterceptor {
     pub fn new(
-        span_chain: Vec<baml_ids::SpanId>,
+        span_chain: Vec<baml_ids::FunctionCallId>,
         http_request_id: baml_ids::HttpRequestId,
     ) -> Self {
         Self {
@@ -304,7 +304,7 @@ impl AwsClient {
     // cURL previews.
     async fn client_anyhow(
         &self,
-        span_chain: Vec<baml_ids::SpanId>,
+        span_chain: Vec<baml_ids::FunctionCallId>,
         http_request_id: baml_ids::HttpRequestId,
     ) -> Result<bedrock::Client> {
         #[cfg(target_arch = "wasm32")]

@@ -161,7 +161,7 @@ impl FunctionResult {
 #[derive(Debug)]
 pub struct TestResponse {
     pub function_response: FunctionResult,
-    pub function_span: baml_ids::SpanId,
+    pub function_span: baml_ids::FunctionCallId,
     pub constraints_result: TestConstraintsResult,
 }
 

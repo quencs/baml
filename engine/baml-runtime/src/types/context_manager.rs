@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use baml_ids::SpanId;
+use baml_ids::FunctionCallId;
 use baml_types::BamlValue;
 use std::fmt;
 
@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::runtime_context::BamlSrcReader;
-pub type BamlContext = (uuid::Uuid, String, HashMap<String, BamlValue>, SpanId);
+pub type BamlContext = (uuid::Uuid, String, HashMap<String, BamlValue>, FunctionCallId);
 
 #[derive(Clone)]
 pub struct RuntimeContextManager {
@@ -52,8 +52,8 @@ impl RuntimeContextManager {
     //         .ok_or_else(|| anyhow::anyhow!("No span id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
     // }
 
-    pub fn span_id_chain(&self, allow_empty: bool) -> Result<Vec<SpanId>> {
-        let res: Vec<SpanId> = self
+    pub fn span_id_chain(&self, allow_empty: bool) -> Result<Vec<FunctionCallId>> {
+        let res: Vec<FunctionCallId> = self
             .context
             .lock()
             .unwrap()
@@ -98,10 +98,10 @@ impl RuntimeContextManager {
     }
 
     // Note, after entering, calling ctx.span_id() will return the span id of the old context still.
-    pub fn enter(&self, name: &str) -> (uuid::Uuid, Vec<SpanId>) {
+    pub fn enter(&self, name: &str) -> (uuid::Uuid, Vec<FunctionCallId>) {
         let last_tags = self.clone_last_tags();
         let span = uuid::Uuid::new_v4();
-        let span_id = SpanId::new();
+        let span_id = FunctionCallId::new();
         let mut ctx = self.context.lock().unwrap();
         ctx.push((span, name.to_string(), last_tags, span_id));
 
@@ -143,7 +143,7 @@ impl RuntimeContextManager {
         // 1. Tracer creates a new span id using the current context that's passe dinto call_function()
         // 2. Tracer passes the span_id back in here for a new context
         // 3. profit
-        span_id_chain: Vec<SpanId>,
+        span_id_chain: Vec<FunctionCallId>,
     ) -> Result<RuntimeContext> {
         // let mut tags = self.global_tags.lock().unwrap().clone();
         // let ctx_tags = {
@@ -208,7 +208,7 @@ impl RuntimeContextManager {
             Default::default(),
             Default::default(),
             Default::default(),
-            vec![SpanId::new()],
+            vec![FunctionCallId::new()],
         )
     }
 

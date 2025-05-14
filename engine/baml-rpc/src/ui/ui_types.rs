@@ -1,4 +1,4 @@
-use baml_ids::SpanId;
+use baml_ids::FunctionCallId;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -46,7 +46,7 @@ impl FunctionId {
 #[ts(export)]
 pub struct FunctionCall {
     #[ts(type = "string")]
-    pub function_span_id: SpanId,
+    pub function_span_id: FunctionCallId,
     pub source: String,
     pub function_id: Option<FunctionId>,
     #[serde(rename = "start_epoch_ms")]

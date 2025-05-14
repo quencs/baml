@@ -68,7 +68,7 @@ impl FunctionResultStream {
         ctx: &RuntimeContextManager,
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
-    ) -> (Result<FunctionResult>, baml_ids::SpanId)
+    ) -> (Result<FunctionResult>, baml_ids::FunctionCallId)
     where
         F: Fn(FunctionResult),
     {
@@ -83,7 +83,7 @@ impl FunctionResultStream {
         ctx: &RuntimeContextManager,
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
-    ) -> (Result<FunctionResult>, baml_ids::SpanId)
+    ) -> (Result<FunctionResult>, baml_ids::FunctionCallId)
     where
         F: Fn(FunctionResult),
     {

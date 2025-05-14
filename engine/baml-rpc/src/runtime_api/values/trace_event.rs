@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use baml_ids::{ContentSpanId, SpanId};
+use baml_ids::{ContentSpanId, FunctionCallId};
 
 use super::Media;
 
@@ -25,14 +25,14 @@ pub struct TraceEvent<'a> {
      * (span_id, content_event_id) is a unique identifier for a log event
      * The query (span_id, *) gets all logs for a function call
      */
-    pub span_id: SpanId,
+    pub span_id: FunctionCallId,
 
     // a unique identifier for this particular content
     pub content_event_id: ContentSpanId,
 
     // The chain of spans that lead to this log event
     // Includes span_id at the last position (content_event_id is not included)
-    pub span_chain: Vec<SpanId>,
+    pub span_chain: Vec<FunctionCallId>,
 
     // The timestamp of the log
     #[serde(rename = "timestamp_epoch_ms")]

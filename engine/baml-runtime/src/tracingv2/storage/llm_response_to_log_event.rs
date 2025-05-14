@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use baml_ids::{HttpRequestId, SpanId};
+use baml_ids::{HttpRequestId, FunctionCallId};
 use baml_types::tracing::events::{LLMUsage, LoggedLLMResponse, TraceData, TraceEvent};
 use web_time::SystemTime;
 
@@ -13,7 +13,7 @@ use super::interface::TraceEventWithMeta;
 /// LoggedLLMResponse fields and verbosity.
 pub fn make_trace_event_for_response(
     llm_response: &LLMResponse,
-    span_chain: Vec<SpanId>,
+    span_chain: Vec<FunctionCallId>,
     request_id: &HttpRequestId,
 ) -> TraceEventWithMeta {
     let response = match llm_response {

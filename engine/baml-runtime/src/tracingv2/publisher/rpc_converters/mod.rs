@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::sync::Arc;
 
-use baml_ids::SpanId;
+use baml_ids::FunctionCallId;
 use baml_rpc::ast::{tops::BamlFunctionId, types::type_definition::TypeId};
 use baml_types::HasFieldType;
 

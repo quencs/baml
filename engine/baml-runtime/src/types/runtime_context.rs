@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_ids::SpanId;
+use baml_ids::FunctionCallId;
 use baml_types::{BamlValue, EvaluationContext, UnresolvedValue};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::FieldType;
@@ -12,7 +12,7 @@ use crate::{internal::llm_client::llm_provider::LLMProvider, tracing::BamlTracer
 pub struct SpanCtx {
     pub span_id: uuid::Uuid,
     pub name: String,
-    pub new_span_id: SpanId,
+    pub new_span_id: FunctionCallId,
 }
 
 #[derive(Debug)]
@@ -60,7 +60,7 @@ pub struct RuntimeContext {
     pub type_alias_overrides: IndexMap<String, FieldType>,
     pub recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
     // Only the BAML_TRACER depends on this.
-    pub span_id_chain: Vec<SpanId>,
+    pub span_id_chain: Vec<FunctionCallId>,
     pub recursive_class_overrides: Vec<IndexSet<String>>,
 }
 
@@ -87,7 +87,7 @@ impl RuntimeContext {
         type_alias_overrides: IndexMap<String, FieldType>,
         recursive_class_overrides: Vec<IndexSet<String>>,
         recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
-        span_id_chain: Vec<SpanId>,
+        span_id_chain: Vec<FunctionCallId>,
     ) -> RuntimeContext {
         RuntimeContext {
             baml_src,

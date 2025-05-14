@@ -29,8 +29,8 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use anyhow::Result;
+use baml_ids::FunctionCallId;
 use baml_ids::HttpRequestId;
-use baml_ids::SpanId;
 use baml_types::tracing::events::TraceEvent;
 use eval_expr::ExprEvalResult;
 use futures::channel::mpsc;
@@ -347,7 +347,7 @@ impl BamlRuntime {
         on_event: Option<F>,
         expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
         collector: Option<Arc<Collector>>,
-    ) -> (Result<TestResponse>, SpanId)
+    ) -> (Result<TestResponse>, FunctionCallId)
     where
         F: Fn(FunctionResult),
     {
@@ -525,7 +525,7 @@ impl BamlRuntime {
         ctx: &RuntimeContextManager,
         on_event: Option<F>,
         collector: Option<Arc<Collector>>,
-    ) -> (Result<TestResponse>, SpanId)
+    ) -> (Result<TestResponse>, FunctionCallId)
     where
         F: Fn(FunctionResult),
     {
@@ -551,7 +551,7 @@ impl BamlRuntime {
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
         collectors: Option<Vec<Arc<Collector>>>,
-    ) -> (Result<FunctionResult>, SpanId) {
+    ) -> (Result<FunctionResult>, FunctionCallId) {
         let fut = self.call_function(function_name, params, ctx, tb, cb, collectors);
         self.async_runtime.block_on(fut)
     }
@@ -564,7 +564,7 @@ impl BamlRuntime {
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
         collectors: Option<Vec<Arc<Collector>>>,
-    ) -> (Result<FunctionResult>, SpanId) {
+    ) -> (Result<FunctionResult>, FunctionCallId) {
         let res = Box::pin(self.call_function_with_expr_events(
             function_name,
             params,
@@ -587,7 +587,7 @@ impl BamlRuntime {
         cb: Option<&ClientRegistry>,
         collectors: Option<Vec<Arc<Collector>>>,
         expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
-    ) -> (Result<FunctionResult>, SpanId) {
+    ) -> (Result<FunctionResult>, FunctionCallId) {
         log::trace!("Calling function: {}", function_name);
         let span = self.tracer.start_span(&function_name, ctx, params);
         let curr_span_id = span.curr_span_id();

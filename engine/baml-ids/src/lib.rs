@@ -68,7 +68,7 @@ macro_rules! define_id {
 }
 
 // USED FOR TOP LEVEL IDS
-define_id!(SpanId, Span_, "bspan");
+define_id!(FunctionCallId, FunctionCall_, "bfcall");
 // USED FOR CONTENT SPAN IDS
 define_id!(ContentSpanId, ContentSpan_, "bcontent");
 // Used for HTTP request IDs internal to BAML

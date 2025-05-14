@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{BamlMap, BamlMedia, BamlValueWithMeta, HasFieldType};
-use baml_ids::{ContentSpanId, HttpRequestId, SpanId};
+use baml_ids::{ContentSpanId, HttpRequestId, FunctionCallId};
 use serde::{Deserialize, Serialize};
 
 pub use super::errors::BamlError;
@@ -16,7 +16,7 @@ pub struct TraceEvent<'a, T: HasFieldType> {
      * (span_id, content_span_id) is a unique identifier for a log event
      * The query (span_id, *) gets all logs for a function call
      */
-    pub span_id: SpanId,
+    pub span_id: FunctionCallId,
     // a unique identifier for this particular content
     pub content_span_id: ContentSpanId,
 
@@ -25,14 +25,14 @@ pub struct TraceEvent<'a, T: HasFieldType> {
 
     // The chain of spans that lead to this log event
     // Includes span_id at the last position (content_span_id is not included)
-    pub span_chain: Vec<SpanId>,
+    pub span_chain: Vec<FunctionCallId>,
 
     // The timestamp of the log
     pub timestamp: web_time::SystemTime,
 }
 
 impl<'a, T: HasFieldType> TraceEvent<'a, T> {
-    fn from_existing_span(span_chain: Vec<SpanId>, content: TraceData<'a, T>) -> Result<Self> {
+    fn from_existing_span(span_chain: Vec<FunctionCallId>, content: TraceData<'a, T>) -> Result<Self> {
         let Some(last_span_id) = span_chain.last() else {
             return Err(anyhow::anyhow!("Span chain is empty"));
         };
@@ -47,7 +47,7 @@ impl<'a, T: HasFieldType> TraceEvent<'a, T> {
 
     pub fn new_function_start(
         // Already has the new span_id of the function
-        span_chain: Vec<SpanId>,
+        span_chain: Vec<FunctionCallId>,
         function_name: String,
         args: Vec<(String, BamlValueWithMeta<T>)>,
         options: EvaluationContext,
@@ -66,7 +66,7 @@ impl<'a, T: HasFieldType> TraceEvent<'a, T> {
     }
 
     pub fn new_function_end(
-        span_chain: Vec<SpanId>,
+        span_chain: Vec<FunctionCallId>,
         result: Result<BamlValueWithMeta<T>, BamlError<'a>>,
     ) -> Self {
         Self::from_existing_span(
@@ -79,22 +79,22 @@ impl<'a, T: HasFieldType> TraceEvent<'a, T> {
         .expect("Failed to create function end event")
     }
 
-    pub fn new_llm_request(span_chain: Vec<SpanId>, request: Arc<LoggedLLMRequest>) -> Self {
+    pub fn new_llm_request(span_chain: Vec<FunctionCallId>, request: Arc<LoggedLLMRequest>) -> Self {
         Self::from_existing_span(span_chain, TraceData::LLMRequest(request))
             .expect("Failed to create LLM request event")
     }
 
-    pub fn new_llm_response(span_chain: Vec<SpanId>, response: Arc<LoggedLLMResponse>) -> Self {
+    pub fn new_llm_response(span_chain: Vec<FunctionCallId>, response: Arc<LoggedLLMResponse>) -> Self {
         Self::from_existing_span(span_chain, TraceData::LLMResponse(response))
             .expect("Failed to create LLM response event")
     }
 
-    pub fn new_raw_llm_request(span_chain: Vec<SpanId>, request: Arc<HTTPRequest>) -> Self {
+    pub fn new_raw_llm_request(span_chain: Vec<FunctionCallId>, request: Arc<HTTPRequest>) -> Self {
         Self::from_existing_span(span_chain, TraceData::RawLLMRequest(request))
             .expect("Failed to create raw LLM request event")
     }
 
-    pub fn new_raw_llm_response(span_chain: Vec<SpanId>, response: Arc<HTTPResponse>) -> Self {
+    pub fn new_raw_llm_response(span_chain: Vec<FunctionCallId>, response: Arc<HTTPResponse>) -> Self {
         Self::from_existing_span(span_chain, TraceData::RawLLMResponse(response))
             .expect("Failed to create raw LLM response event")
     }
