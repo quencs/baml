@@ -2,4 +2,4 @@
 import type { FunctionId } from "./FunctionId";
 import type { FunctionInput } from "./FunctionInput";
 
-export type FunctionCall = { function_span_id: string, source: string, function_id: FunctionId | null, start_epoch_ms: number | null, end_epoch_ms: number | null, baml_options: any, inputs: Array<FunctionInput>, output: any, status: string, error: any, };
+export type FunctionCall = { function_call_id: string, source: string, function_id: FunctionId | null, start_epoch_ms: number | null, end_epoch_ms: number | null, baml_options: any, inputs: Array<FunctionInput>, output: any, status: string, error: any, };

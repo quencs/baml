@@ -33,9 +33,9 @@ pub static BAML_TRACER: Lazy<Mutex<TraceStorage>> =
 ///    the same FunctionLogInner multiple times.
 #[derive(Default)]
 pub struct TraceStorage {
-    /// For each function (span), we keep a vector of TraceEvents.
+    /// For each function (call), we keep a vector of TraceEvents.
     /// This data is only kept while ref_count > 0.
-    span_map: HashMap<FunctionCallId, Vec<Arc<TraceEventWithMeta>>>,
+    call_map: HashMap<FunctionCallId, Vec<Arc<TraceEventWithMeta>>>,
     /// Manual reference count for each function ID. If it hits 0, we remove that ID's data.
     ref_counts: HashMap<FunctionCallId, usize>,
 
@@ -49,9 +49,9 @@ impl fmt::Debug for TraceStorage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "TraceStorage {{ ref_counts: {:#?}, function_span_count: {:#?} }}",
+            "TraceStorage {{ ref_counts: {:#?}, function_call_count: {:#?} }}",
             self.ref_counts,
-            self.function_span_count()
+            self.function_call_count()
         )
     }
 }
@@ -63,8 +63,8 @@ impl TraceStorage {
         let count = self.ref_counts.entry(function_id.clone()).or_insert(0);
         *count += 1;
 
-        // Ensure span_map has an entry for the ID; create if not present.
-        self.span_map
+        // Ensure call_map has an entry for the ID; create if not present.
+        self.call_map
             .entry(function_id.clone())
             .or_insert_with(Vec::new);
     }
@@ -84,7 +84,7 @@ impl TraceStorage {
                 // If refcount hits 0, remove from both maps
                 if *rc == 0 {
                     self.ref_counts.remove(function_id);
-                    self.span_map.remove(function_id);
+                    self.call_map.remove(function_id);
 
                     // Remove the cached FunctionLogInner
                     let mut lock = self.function_inners.lock().unwrap();
@@ -104,32 +104,32 @@ impl TraceStorage {
     pub fn put(&mut self, event: Arc<TraceEventWithMeta>) {
         log::info!(
             "#####################   Putting event: {} ############\n{}\n\n",
-            event.span_id,
+            event.call_id,
             event.content.type_name()
         );
         if let Err(e) = crate::tracingv2::publisher::publish_trace_event(event.clone()) {
             log::warn!("Failed to publish trace event: {:?}", e);
         }
 
-        let Some(&count) = self.ref_counts.get(&event.span_id) else {
+        let Some(&count) = self.ref_counts.get(&event.call_id) else {
             // If no references exist, skip or handle otherwise
-            // log::trace!("No references for FunctionID {:?} -- dropping events", event.span_id);
+            // log::trace!("No references for FunctionID {:?} -- dropping events", event.call_id);
             return;
         };
         if count > 0 {
-            if let Some(events_vec) = self.span_map.get_mut(&event.span_id) {
+            if let Some(events_vec) = self.call_map.get_mut(&event.call_id) {
                 events_vec.push(event);
             }
         }
     }
 
-    /// Retrieve events for a particular function (span).
+    /// Retrieve events for a particular function (call).
     /// Returns None if the function isn't being tracked (or was removed).
     pub fn get_events(
         &self,
         function_id: &FunctionCallId,
     ) -> Option<&Vec<Arc<TraceEventWithMeta>>> {
-        self.span_map.get(function_id)
+        self.call_map.get(function_id)
     }
 
     /// Returns how many references a given function currently has.
@@ -137,17 +137,17 @@ impl TraceStorage {
         self.ref_counts.get(function_id).copied().unwrap_or(0)
     }
 
-    pub fn function_span_count(&self) -> usize {
-        self.span_map.len()
+    pub fn function_call_count(&self) -> usize {
+        self.call_map.len()
     }
 
     /// For debugging – return a copy of all events in memory.
     pub fn events(&self) -> HashMap<FunctionCallId, Vec<Arc<TraceEventWithMeta>>> {
-        self.span_map.clone()
+        self.call_map.clone()
     }
 
     pub fn clear(&mut self) {
-        self.span_map.clear();
+        self.call_map.clear();
         self.ref_counts.clear();
         self.function_inners.lock().unwrap().clear();
     }
@@ -697,9 +697,9 @@ impl Drop for Collector {
 
 //             // Put an event
 //             let event = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId("event_abc".to_string()),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: web_time::SystemTime::now(),
 //                 callsite: "test_event".into(),
 //                 verbosity: TraceLevel::Info,
@@ -762,9 +762,9 @@ impl Drop for Collector {
 
 //             // Put an event
 //             let event = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId("event_abc".to_string()),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: web_time::SystemTime::now(),
 //                 callsite: "test_event".into(),
 //                 verbosity: TraceLevel::Info,
@@ -843,9 +843,9 @@ impl Drop for Collector {
 
 //             // Put an event
 //             let event = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId("event_abc".to_string()),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: web_time::SystemTime::now(),
 //                 callsite: "test_event".into(),
 //                 verbosity: TraceLevel::Info,
@@ -920,9 +920,9 @@ impl Drop for Collector {
 
 //             // Create and insert start event
 //             let start_event = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId("start_event".to_string()),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: web_time::SystemTime::now(),
 //                 callsite: "unit_test_start".into(),
 //                 verbosity: TraceLevel::Info,
@@ -943,9 +943,9 @@ impl Drop for Collector {
 
 //             // Create and insert end event
 //             let end_event = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId("end_event".to_string()),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: web_time::SystemTime::now(),
 //                 callsite: "unit_test_end".into(),
 //                 verbosity: TraceLevel::Info,
@@ -1013,9 +1013,9 @@ impl Drop for Collector {
 //             );
 
 //             let start_event = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId("start_event".to_string()),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: web_time::SystemTime::now(),
 //                 callsite: "unit_test_start".into(),
 //                 verbosity: TraceLevel::Info,
@@ -1063,9 +1063,9 @@ impl Drop for Collector {
 //             let start_time = web_time::SystemTime::now();
 //             // Create start event
 //             let start_event = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId("start_event".to_string()),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: start_time,
 //                 callsite: "unit_test_start".into(),
 //                 verbosity: TraceLevel::Info,
@@ -1092,9 +1092,9 @@ impl Drop for Collector {
 
 //             // Create end event
 //             let end_event = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId("end_event".to_string()),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: end_time,
 //                 callsite: "unit_test_end".into(),
 //                 verbosity: TraceLevel::Info,
@@ -1151,9 +1151,9 @@ impl Drop for Collector {
 
 //         // Insert a FunctionStart event
 //         let start_event = Arc::new(TraceEvent {
-//             span_id: f_id.clone(),
+//             call_id: f_id.clone(),
 //             event_id: ContentId("start_id".to_string()),
-//             span_chain: vec![],
+//             call_stack: vec![],
 //             timestamp: web_time::SystemTime::now(),
 //             callsite: "test_start".into(),
 //             verbosity: TraceLevel::Info,
@@ -1179,9 +1179,9 @@ impl Drop for Collector {
 
 //             // Put the request
 //             let event_req = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId(format!("request_{}", i)),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: web_time::SystemTime::now(),
 //                 callsite: format!("llm_request_{}", i).into(),
 //                 verbosity: TraceLevel::Info,
@@ -1195,9 +1195,9 @@ impl Drop for Collector {
 
 //             // Put the response
 //             let event_resp = Arc::new(TraceEvent {
-//                 span_id: f_id.clone(),
+//                 call_id: f_id.clone(),
 //                 event_id: ContentId(format!("response_{}", i)),
-//                 span_chain: vec![],
+//                 call_stack: vec![],
 //                 timestamp: web_time::SystemTime::now(),
 //                 callsite: format!("llm_response_{}", i).into(),
 //                 verbosity: TraceLevel::Info,
@@ -1212,9 +1212,9 @@ impl Drop for Collector {
 
 //         // Insert the function end event
 //         let end_event = Arc::new(TraceEvent {
-//             span_id: f_id.clone(),
+//             call_id: f_id.clone(),
 //             event_id: ContentId("end_event".to_string()),
-//             span_chain: vec![],
+//             call_stack: vec![],
 //             timestamp: web_time::SystemTime::now(),
 //             callsite: "test_end".into(),
 //             verbosity: TraceLevel::Info,

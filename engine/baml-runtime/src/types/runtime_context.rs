@@ -9,10 +9,10 @@ use thiserror::Error;
 use crate::{internal::llm_client::llm_provider::LLMProvider, tracing::BamlTracer};
 
 #[derive(Debug, Clone)]
-pub struct SpanCtx {
-    pub span_id: uuid::Uuid,
+pub struct CallCtx {
+    pub call_id: uuid::Uuid,
     pub name: String,
-    pub new_span_id: FunctionCallId,
+    pub new_call_id: FunctionCallId,
 }
 
 #[derive(Debug)]
@@ -60,7 +60,7 @@ pub struct RuntimeContext {
     pub type_alias_overrides: IndexMap<String, FieldType>,
     pub recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
     // Only the BAML_TRACER depends on this.
-    pub span_id_chain: Vec<FunctionCallId>,
+    pub call_id_stack: Vec<FunctionCallId>,
     pub recursive_class_overrides: Vec<IndexSet<String>>,
 }
 
@@ -87,7 +87,7 @@ impl RuntimeContext {
         type_alias_overrides: IndexMap<String, FieldType>,
         recursive_class_overrides: Vec<IndexSet<String>>,
         recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
-        span_id_chain: Vec<FunctionCallId>,
+        call_id_stack: Vec<FunctionCallId>,
     ) -> RuntimeContext {
         RuntimeContext {
             baml_src,
@@ -98,7 +98,7 @@ impl RuntimeContext {
             enum_overrides,
             type_alias_overrides,
             recursive_type_alias_overrides,
-            span_id_chain,
+            call_id_stack,
             recursive_class_overrides,
         }
     }

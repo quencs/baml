@@ -224,7 +224,7 @@ impl WithSingleCallable for OrchestratorNode {
             };
 
             let event = TraceEvent::new_llm_request(
-                ctx.runtime_context().span_id_chain.clone(),
+                ctx.runtime_context().call_id_stack.clone(),
                 Arc::new(request),
             );
             BAML_TRACER.lock().unwrap().put(Arc::new(event));
@@ -248,7 +248,7 @@ impl WithSingleCallable for OrchestratorNode {
         {
             let trace_event = make_trace_event_for_response(
                 &response,
-                ctx.runtime_context().span_id_chain.clone(),
+                ctx.runtime_context().call_id_stack.clone(),
                 ctx.http_request_id(),
             );
             BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
@@ -281,7 +281,7 @@ impl WithStreamable for OrchestratorNode {
             };
 
             let event = TraceEvent::new_llm_request(
-                ctx.runtime_context().span_id_chain.clone(),
+                ctx.runtime_context().call_id_stack.clone(),
                 Arc::new(request),
             );
             BAML_TRACER.lock().unwrap().put(Arc::new(event));
@@ -308,7 +308,7 @@ impl WithStreamable for OrchestratorNode {
         if let Err(err_resp) = &result {
             let trace_event = make_trace_event_for_response(
                 err_resp,
-                ctx.runtime_context().span_id_chain.clone(),
+                ctx.runtime_context().call_id_stack.clone(),
                 ctx.http_request_id(),
             );
             BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));

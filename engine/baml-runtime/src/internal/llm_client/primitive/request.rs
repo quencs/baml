@@ -126,7 +126,7 @@ async fn log_http_response(
     body: HTTPBody,
 ) {
     let event = TraceEvent::new_raw_llm_response(
-        runtime_context.runtime_context().span_id_chain.clone(),
+        runtime_context.runtime_context().call_id_stack.clone(),
         Arc::new(HTTPResponse {
             request_id: runtime_context.http_request_id().clone(),
             status,
@@ -182,7 +182,7 @@ pub(crate) async fn build_and_log_outbound_request(
 
     {
         let event = TraceEvent::new_raw_llm_request(
-            runtime_context.runtime_context().span_id_chain.clone(),
+            runtime_context.runtime_context().call_id_stack.clone(),
             Arc::new(HTTPRequest {
                 id: runtime_context.http_request_id().clone(),
                 url: built_req.url().to_string(),

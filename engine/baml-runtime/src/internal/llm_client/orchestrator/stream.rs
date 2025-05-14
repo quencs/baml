@@ -154,7 +154,7 @@ where
         {
             let trace_event = make_trace_event_for_response(
                 &final_response,
-                ctx.runtime_context().span_id_chain.clone(),
+                ctx.runtime_context().call_id_stack.clone(),
                 ctx.http_request_id(),
             );
             BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));

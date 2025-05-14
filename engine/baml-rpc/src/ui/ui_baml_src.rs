@@ -32,11 +32,11 @@ pub struct AstNodeDefinition {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BamlSourceQuery {
     pub project_id: String,
-    pub function_spans: Vec<FunctionSpanQuery>,
+    pub function_calls: Vec<FunctionCallQuery>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FunctionSpanQuery {
+pub struct FunctionCallQuery {
     pub ast_node_id: String,
     pub baml_source_fingerprint: String,
 }

@@ -3,4 +3,4 @@ import type { FunctionCall } from "./FunctionCall";
 import type { FunctionDefinition } from "./FunctionDefinition";
 import type { TypeDefinition } from "./TypeDefinition";
 
-export type ListFunctionSpansResponse = { function_spans: Array<FunctionCall>, function_definitions: Array<FunctionDefinition>, type_definitions: Array<TypeDefinition>, };
+export type ListFunctionCallsResponse = { function_calls: Array<FunctionCall>, function_definitions: Array<FunctionDefinition>, type_definitions: Array<TypeDefinition>, };

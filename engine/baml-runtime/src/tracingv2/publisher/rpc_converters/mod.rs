@@ -27,9 +27,9 @@ pub(super) fn to_rpc_event<'a>(
     let timestamp = baml_rpc::EpochMsTimestamp::try_from(event.timestamp)
         .expect("Failed to convert timestamp to EpochMsTimestamp");
     baml_rpc::runtime_api::TraceEvent {
-        span_id: event.span_id.clone(),
-        content_event_id: event.content_span_id.clone(),
-        span_chain: event.span_chain.clone(),
+        call_id: event.call_id.clone(),
+        function_event_id: event.function_event_id.clone(),
+        call_stack: event.call_stack.clone(),
         timestamp,
         content: event.content.into_rpc_event(lookup),
     }

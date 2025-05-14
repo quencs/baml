@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use baml_ids::{HttpRequestId, FunctionCallId};
+use baml_ids::{FunctionCallId, HttpRequestId};
 use baml_types::tracing::events::{LLMUsage, LoggedLLMResponse, TraceData, TraceEvent};
 use web_time::SystemTime;
 
@@ -13,7 +13,7 @@ use super::interface::TraceEventWithMeta;
 /// LoggedLLMResponse fields and verbosity.
 pub fn make_trace_event_for_response(
     llm_response: &LLMResponse,
-    span_chain: Vec<FunctionCallId>,
+    call_stack: Vec<FunctionCallId>,
     request_id: &HttpRequestId,
 ) -> TraceEventWithMeta {
     let response = match llm_response {
@@ -38,7 +38,7 @@ pub fn make_trace_event_for_response(
             LoggedLLMResponse::new_failure(request_id.clone(), e.to_string(), None, None)
         }
     };
-    TraceEventWithMeta::new_llm_response(span_chain, Arc::new(response))
+    TraceEventWithMeta::new_llm_response(call_stack, Arc::new(response))
 
     // let (verbosity, logged_response) = match llm_response {
     //     LLMResponse::Success(success) => (
@@ -93,11 +93,11 @@ pub fn make_trace_event_for_response(
 
     // let event_id = ContentId(uuid::Uuid::new_v4().to_string());
     // TraceEvent {
-    //     span_id: function_id.clone(),
+    //     call_id: function_id.clone(),
     //     event_id: event_id.clone(),
     //     // Could also parameterize or omit entirely; in your snippet you set
     //     // vector with function_id or empty. Adjust as needed.
-    //     span_chain: vec![function_id.clone()],
+    //     call_stack: vec![function_id.clone()],
     //     timestamp: SystemTime::now(),
     //     callsite: callsite.to_string(),
     //     verbosity,

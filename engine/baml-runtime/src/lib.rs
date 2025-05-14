@@ -87,7 +87,7 @@ pub use cli::RuntimeCliDefaults;
 pub use runtime_context::BamlSrcReader;
 use runtime_interface::ExperimentalTracingInterface;
 use runtime_interface::RuntimeConstructor;
-use tracing::{BamlTracer, TracingSpan};
+use tracing::{BamlTracer, TracingCall};
 use type_builder::TypeBuilder;
 pub use types::*;
 use web_time::Duration;
@@ -351,17 +351,17 @@ impl BamlRuntime {
     where
         F: Fn(FunctionResult),
     {
-        let span = self.tracer.start_span(test_name, ctx, &Default::default());
+        let call = self.tracer.start_call(test_name, ctx, &Default::default());
 
         let expr_fn = self.inner.ir().find_expr_fn(function_name);
         let is_expr_fn = expr_fn.is_ok();
 
         if let Some(collector) = collector.clone() {
-            collector.track_function(span.curr_span_id());
+            collector.track_function(call.curr_call_id());
         }
 
         let run_to_response = || async {
-            let rctx_no_tb = ctx.create_ctx(None, None, span.new_span_id_chain.clone())?;
+            let rctx_no_tb = ctx.create_ctx(None, None, call.new_call_id_stack.clone())?;
             let (params, constraints) =
                 self.get_test_params_and_constraints(function_name, test_name, &rctx_no_tb, true)?;
 
@@ -399,7 +399,7 @@ impl BamlRuntime {
             };
 
             let rctx =
-                ctx.create_ctx(type_builder.as_ref(), None, span.new_span_id_chain.clone())?;
+                ctx.create_ctx(type_builder.as_ref(), None, call.new_call_id_stack.clone())?;
 
             let (function_name, params) = match expr_eval_result {
                 ExprEvalResult::Value { value, field_type } => {
@@ -436,7 +436,7 @@ impl BamlRuntime {
                                 )
                             })))),
                         ),
-                        function_span: span.curr_span_id(),
+                        function_call: call.curr_call_id(),
                         constraints_result: TestConstraintsResult::empty(),
                     });
                 }
@@ -453,7 +453,7 @@ impl BamlRuntime {
                 // TODO: collectors here?
                 vec![],
             )?;
-            let (response_res, span_uuid) =
+            let (response_res, call_uuid) =
                 stream.run(on_event, ctx, type_builder.as_ref(), None).await;
             let res = response_res?;
             let (_, llm_resp, val) = res
@@ -494,28 +494,28 @@ impl BamlRuntime {
 
             Ok(TestResponse {
                 function_response: res,
-                function_span: span_uuid,
+                function_call: call_uuid,
                 constraints_result: test_constraints_result,
             })
         };
 
         let response = run_to_response().await;
 
-        let span_id = span.curr_span_id();
+        let call_id = call.curr_call_id();
         {
             #[cfg(not(target_arch = "wasm32"))]
-            match self.tracer.finish_span(span, ctx, None) {
+            match self.tracer.finish_call(call, ctx, None) {
                 Ok(id) => {}
                 Err(e) => log::debug!("Error during logging: {}", e),
             }
             #[cfg(target_arch = "wasm32")]
-            match self.tracer.finish_span(span, ctx, None).await {
+            match self.tracer.finish_call(call, ctx, None).await {
                 Ok(id) => {}
                 Err(e) => log::debug!("Error during logging: {}", e),
             }
         }
 
-        (response, span_id)
+        (response, call_id)
     }
 
     pub async fn run_test<F>(
@@ -589,16 +589,16 @@ impl BamlRuntime {
         expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
     ) -> (Result<FunctionResult>, FunctionCallId) {
         log::trace!("Calling function: {}", function_name);
-        let span = self.tracer.start_span(&function_name, ctx, params);
-        let curr_span_id = span.curr_span_id();
+        let call = self.tracer.start_call(&function_name, ctx, params);
+        let curr_call_id = call.curr_call_id();
         if let Some(collectors) = collectors {
             for collector in collectors.iter() {
-                collector.track_function(span.curr_span_id());
+                collector.track_function(call.curr_call_id());
             }
         }
 
         let fake_syntax_span = Span::fake();
-        let response = match ctx.create_ctx(tb, cb, span.new_span_id_chain.clone()) {
+        let response = match ctx.create_ctx(tb, cb, call.new_call_id_stack.clone()) {
             Ok(rctx) => {
                 let is_expr_fn = self
                     .inner
@@ -608,17 +608,17 @@ impl BamlRuntime {
                     .find(|f| f.elem.name == function_name)
                     .is_some();
                 if !is_expr_fn {
-                    let span_id_chain = rctx.span_id_chain.clone();
+                    let call_id_stack = rctx.call_id_stack.clone();
                     // TODO: is this the right naming?
                     let prepared_func =
                         match self.inner.prepare_function(function_name.clone(), params) {
                             Ok(prepared_func) => prepared_func,
                             Err(e) => {
-                                return (e.into(), curr_span_id);
+                                return (e.into(), curr_call_id);
                             }
                         };
                     let trace_event = TraceEvent::new_function_start(
-                        span_id_chain.clone(),
+                        call_id_stack.clone(),
                         function_name.clone(),
                         prepared_func.baml_args.value2.clone().into_iter().collect(),
                         baml_types::tracing::events::EvaluationContext::default(),
@@ -629,7 +629,7 @@ impl BamlRuntime {
                     let result = self.inner.call_function_impl(prepared_func, rctx).await;
                     // Trace event
                     let trace_event = TraceEvent::new_function_end(
-                        span_id_chain.clone(),
+                        call_id_stack.clone(),
                         match &result {
                             Ok(result) => match result.parsed() {
                                 Some(Ok(value)) => Ok(value.0.map_meta(|f| f.3.clone())),
@@ -750,17 +750,17 @@ impl BamlRuntime {
         };
 
         #[cfg(not(target_arch = "wasm32"))]
-        match self.tracer.finish_baml_span(span, ctx, &response) {
+        match self.tracer.finish_baml_call(call, ctx, &response) {
             Ok(id) => {}
             Err(e) => log::debug!("Error during logging: {}", e),
         }
         #[cfg(target_arch = "wasm32")]
-        match self.tracer.finish_baml_span(span, ctx, &response).await {
+        match self.tracer.finish_baml_call(call, ctx, &response).await {
             Ok(id) => {}
             Err(e) => log::debug!("Error during logging: {}", e),
         }
 
-        (response, curr_span_id)
+        (response, curr_call_id)
     }
 
     pub fn stream_function_with_expr_events(
@@ -777,7 +777,7 @@ impl BamlRuntime {
             function_name,
             params,
             self.tracer.clone(),
-            ctx.create_ctx(tb, cb, ctx.span_id_chain(true)?)?,
+            ctx.create_ctx(tb, cb, ctx.call_id_stack(true)?)?,
             #[cfg(not(target_arch = "wasm32"))]
             self.async_runtime.clone(),
             collectors.unwrap_or_else(|| vec![]),
@@ -1037,54 +1037,54 @@ impl<'a> InternalClientLookup<'a> for BamlRuntime {
 }
 
 impl ExperimentalTracingInterface for BamlRuntime {
-    fn start_span(
+    fn start_call(
         &self,
         function_name: &str,
         params: &BamlMap<String, BamlValue>,
         ctx: &RuntimeContextManager,
-    ) -> TracingSpan {
-        self.tracer.start_span(function_name, ctx, params)
+    ) -> TracingCall {
+        self.tracer.start_call(function_name, ctx, params)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn finish_function_span(
+    fn finish_function_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
     ) -> Result<uuid::Uuid> {
-        self.tracer.finish_baml_span(span, ctx, result).map(|r| r.0)
+        self.tracer.finish_baml_call(call, ctx, result).map(|r| r.0)
     }
 
     #[cfg(target_arch = "wasm32")]
-    async fn finish_function_span(
+    async fn finish_function_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
     ) -> Result<uuid::Uuid> {
-        self.tracer.finish_baml_span(span, ctx, result).await
+        self.tracer.finish_baml_call(call, ctx, result).await
     }
 
     // For non-LLM calls -- used by FFI boundary like with @trace in python
     #[cfg(not(target_arch = "wasm32"))]
-    fn finish_span(
+    fn finish_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
     ) -> Result<uuid::Uuid> {
-        self.tracer.finish_span(span, ctx, result)
+        self.tracer.finish_call(call, ctx, result)
     }
 
     #[cfg(target_arch = "wasm32")]
-    async fn finish_span(
+    async fn finish_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
     ) -> Result<uuid::Uuid> {
-        self.tracer.finish_span(span, ctx, result).await
+        self.tracer.finish_call(call, ctx, result).await
     }
 
     fn flush(&self) -> Result<()> {
@@ -1184,12 +1184,12 @@ async fn expr_eval_result(
     match maybe_expr_f {
         Ok(expr_fn) => {
             log::trace!("Calling function: {}", function_name);
-            let span = tracer.start_span(&function_name, mgr, params);
+            let call = tracer.start_call(&function_name, mgr, params);
 
             if let Some(collector) = collector {
-                collector.track_function(span.curr_span_id());
+                collector.track_function(call.curr_call_id());
             }
-            let ctx = mgr.create_ctx(tb, cb, span.new_span_id_chain.clone())?;
+            let ctx = mgr.create_ctx(tb, cb, call.new_call_id_stack.clone())?;
             let env = EvalEnv {
                 context: initial_context(ir),
                 runtime,

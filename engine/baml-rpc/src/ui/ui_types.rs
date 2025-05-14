@@ -46,7 +46,7 @@ impl FunctionId {
 #[ts(export)]
 pub struct FunctionCall {
     #[ts(type = "string")]
-    pub function_span_id: FunctionCallId,
+    pub function_call_id: FunctionCallId,
     pub source: String,
     pub function_id: Option<FunctionId>,
     #[serde(rename = "start_epoch_ms")]

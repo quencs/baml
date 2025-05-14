@@ -21,8 +21,8 @@ pub use ui::ui_control_plane_projects::{
     CreateProject, CreateProjectRequest, CreateProjectResponse, ListProjects, ListProjectsRequest,
     ListProjectsResponse, Project, UpdateProject, UpdateProjectRequest, UpdateProjectResponse,
 };
-pub use ui::ui_function_spans::{
-    ListFunctionSpans, ListFunctionSpansRequest, ListFunctionSpansResponse,
+pub use ui::ui_function_calls::{
+    ListFunctionCalls, ListFunctionCallsRequest, ListFunctionCallsResponse,
 };
 
 pub use runtime_api::baml_src_upload::*;

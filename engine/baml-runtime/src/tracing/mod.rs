@@ -20,8 +20,8 @@ use uuid::Uuid;
 
 use crate::{
     client_registry::ClientRegistry, internal::llm_client::LLMResponse,
-    tracing::api_wrapper::core_types::Role, type_builder::TypeBuilder, FunctionResult,
-    RuntimeContext, RuntimeContextManager, SpanCtx, TestResponse, TraceStats,
+    tracing::api_wrapper::core_types::Role, type_builder::TypeBuilder, CallCtx, FunctionResult,
+    RuntimeContext, RuntimeContextManager, TestResponse, TraceStats,
 };
 
 use self::api_wrapper::{
@@ -46,18 +46,18 @@ cfg_if! {
 }
 
 #[derive(Debug, Clone)]
-pub struct TracingSpan {
-    pub span_id: Uuid,
-    pub new_span_id_chain: Vec<baml_ids::FunctionCallId>,
+pub struct TracingCall {
+    pub call_id: Uuid,
+    pub new_call_id_stack: Vec<baml_ids::FunctionCallId>,
     params: BamlMap<String, BamlValue>,
     start_time: web_time::SystemTime,
 }
 
-impl TracingSpan {
-    pub fn curr_span_id(&self) -> baml_ids::FunctionCallId {
-        self.new_span_id_chain
+impl TracingCall {
+    pub fn curr_call_id(&self) -> baml_ids::FunctionCallId {
+        self.new_call_id_stack
             .last()
-            .expect("Span ID chain is empty")
+            .expect("Call ID chain is empty")
             .clone()
     }
 }
@@ -180,7 +180,7 @@ impl Visualize for FunctionResult {
 // Users will see this as JSON in their logs (primarily in baml server)
 // We may break this at any time.
 // It differs from the LogEvent that is sent to the on_log_event callback in that it doesn't include
-// actual tracing details like span_id, event_chain, (for now).
+// actual tracing details like call_id, event_chain, (for now).
 #[derive(Serialize)]
 struct BamlEventJson {
     // Metadata
@@ -212,7 +212,7 @@ struct BamlEventJson {
 
 struct BamlEventLoggable<'a> {
     function_name: &'a str,
-    span: &'a TracingSpan,
+    call: &'a TracingCall,
     data: &'a Result<FunctionResult>,
 }
 
@@ -240,9 +240,9 @@ impl baml_log::Loggable for BamlEventLoggable<'_> {
 
 impl BamlEventLoggable<'_> {
     fn build_baml_event_json(&self) -> BamlEventJson {
-        let span = self.span;
+        let call = self.call;
 
-        let start_time = to_iso_string(&span.start_time);
+        let start_time = to_iso_string(&call.start_time);
         match self.data.as_ref() {
             Ok(response) => {
                 let last_ctx = response.llm_response();
@@ -393,53 +393,53 @@ impl BamlTracer {
         self.trace_stats.drain()
     }
 
-    pub(crate) fn start_span(
+    pub(crate) fn start_call(
         &self,
         function_name: &str,
         ctx: &RuntimeContextManager,
         params: &BamlMap<String, BamlValue>,
-    ) -> TracingSpan {
+    ) -> TracingCall {
         self.trace_stats.guard().start();
-        let (span_id, span_chain) = ctx.enter(function_name);
+        let (call_id, call_stack) = ctx.enter(function_name);
 
-        log::trace!(" Entering span {:#?} in {:?}", span_id, function_name);
-        let span = TracingSpan {
-            span_id,
-            new_span_id_chain: span_chain,
+        log::trace!(" Entering call {:#?} in {:?}", call_id, function_name);
+        let call = TracingCall {
+            call_id,
+            new_call_id_stack: call_stack,
             params: params.clone(),
             start_time: web_time::SystemTime::now(),
         };
 
-        span
+        call
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub(crate) async fn finish_span(
+    pub(crate) async fn finish_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         ctx: &RuntimeContextManager,
         response: Option<BamlValue>,
     ) -> Result<Option<uuid::Uuid>> {
         let guard = self.trace_stats.guard();
 
-        let Some((span_id, event_chain, tags)) = ctx.exit() else {
+        let Some((call_id, event_chain, tags)) = ctx.exit() else {
             anyhow::bail!(
-                "Attempting to finish a span {:#?} without first starting one. Current context {:#?}",
-                span,
+                "Attempting to finish a call {:#?} without first starting one. Current context {:#?}",
+                call,
                 ctx
             );
         };
 
-        if span.span_id != span_id {
-            anyhow::bail!("Span ID mismatch: {} != {}", span.span_id, span_id);
+        if call.call_id != call_id {
+            anyhow::bail!("Call ID mismatch: {} != {}", call.call_id, call_id);
         }
 
         if let Some(tracer) = &self.tracer {
             tracer
-                .submit(response.to_log_schema(&self.options, event_chain, tags, span))
+                .submit(response.to_log_schema(&self.options, event_chain, tags, call))
                 .await?;
             guard.done();
-            Ok(Some(span_id))
+            Ok(Some(call_id))
         } else {
             guard.done();
             Ok(None)
@@ -448,54 +448,54 @@ impl BamlTracer {
 
     // For non-LLM function calls -- used by FFI boundary like with @trace in python
     #[cfg(not(target_arch = "wasm32"))]
-    pub(crate) fn finish_span(
+    pub(crate) fn finish_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         ctx: &RuntimeContextManager,
         response: Option<BamlValue>,
     ) -> Result<uuid::Uuid> {
         let guard = self.trace_stats.guard();
-        let Some((span_id, event_chain, tags)) = ctx.exit() else {
+        let Some((call_id, event_chain, tags)) = ctx.exit() else {
             anyhow::bail!(
-                "Attempting to finish a span {:#?} without first starting one. Current context {:#?}",
-                span,
+                "Attempting to finish a call {:#?} without first starting one. Current context {:#?}",
+                call,
                 ctx
             );
         };
         log::trace!(
-            "Finishing span: {:#?} {}\nevent chain {:?}",
-            span,
-            span_id,
+            "Finishing call: {:#?} {}\nevent chain {:?}",
+            call,
+            call_id,
             event_chain
         );
 
-        if span.span_id != span_id {
-            anyhow::bail!("Span ID mismatch: {} != {}", span.span_id, span_id);
+        if call.call_id != call_id {
+            anyhow::bail!("Call ID mismatch: {} != {}", call.call_id, call_id);
         }
 
         if let Some(tracer) = &self.tracer {
-            tracer.submit(response.to_log_schema(&self.options, event_chain, tags, span))?;
+            tracer.submit(response.to_log_schema(&self.options, event_chain, tags, call))?;
             guard.finalize();
         } else {
             guard.done();
         }
-        Ok(span_id)
+        Ok(call_id)
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub(crate) async fn finish_baml_span(
+    pub(crate) async fn finish_baml_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         ctx: &RuntimeContextManager,
         response: &Result<FunctionResult>,
     ) -> Result<(uuid::Uuid, Vec<baml_ids::FunctionCallId>)> {
         let guard = self.trace_stats.guard();
-        let Some((span_id, event_chain, tags)) = ctx.exit() else {
-            anyhow::bail!("Attempting to finish a span without first starting one");
+        let Some((call_id, event_chain, tags)) = ctx.exit() else {
+            anyhow::bail!("Attempting to finish a call without first starting one");
         };
 
-        if span.span_id != span_id {
-            anyhow::bail!("Span ID mismatch: {} != {}", span.span_id, span_id);
+        if call.call_id != call_id {
+            anyhow::bail!("Call ID mismatch: {} != {}", call.call_id, call_id);
         }
 
         if let Ok(response) = &response {
@@ -525,36 +525,36 @@ impl BamlTracer {
 
         if let Some(tracer) = &self.tracer {
             tracer
-                .submit(response.to_log_schema(&self.options, event_chain, tags, span))
+                .submit(response.to_log_schema(&self.options, event_chain, tags, call))
                 .await?;
             guard.done();
         } else {
             guard.done();
         }
-        Ok((span_id, event_chain))
+        Ok((call_id, event_chain))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub(crate) fn finish_baml_span(
+    pub(crate) fn finish_baml_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         ctx: &RuntimeContextManager,
         response: &Result<FunctionResult>,
     ) -> Result<(uuid::Uuid, Vec<baml_ids::FunctionCallId>)> {
         let guard = self.trace_stats.guard();
-        let Some((span_id, event_chain, tags)) = ctx.exit() else {
-            anyhow::bail!("Attempting to finish a span without first starting one");
+        let Some((call_id, event_chain, tags)) = ctx.exit() else {
+            anyhow::bail!("Attempting to finish a call without first starting one");
         };
 
         log::trace!(
-            "Finishing baml span: {:#?} {}\nevent chain {:?}",
-            span,
-            span_id,
+            "Finishing baml call: {:#?} {}\nevent chain {:?}",
+            call,
+            call_id,
             event_chain
         );
 
-        if span.span_id != span_id {
-            anyhow::bail!("Span ID mismatch: {} != {}", span.span_id, span_id);
+        if call.call_id != call_id {
+            anyhow::bail!("Call ID mismatch: {} != {}", call.call_id, call_id);
         }
 
         let log_level = match response {
@@ -578,19 +578,19 @@ impl BamlTracer {
                 .map(|s| s.name.as_str())
                 .unwrap_or_default(),
             data: response,
-            span: &span,
+            call: &call,
         };
 
         baml_log::elog!(log_level, &event);
 
-        let new_span_ids = event_chain.iter().map(|s| s.new_span_id.clone()).collect();
+        let new_call_ids = event_chain.iter().map(|s| s.new_call_id.clone()).collect();
         if let Some(tracer) = &self.tracer {
-            tracer.submit(response.to_log_schema(&self.options, event_chain, tags, span))?;
+            tracer.submit(response.to_log_schema(&self.options, event_chain, tags, call))?;
             guard.finalize();
         } else {
             guard.done();
         }
-        Ok((span_id, new_span_ids))
+        Ok((call_id, new_call_ids))
     }
 }
 
@@ -640,17 +640,17 @@ fn to_iso_string(web_time: &web_time::SystemTime) -> String {
 impl
     From<(
         &APIWrapper,
-        Vec<SpanCtx>,
+        Vec<CallCtx>,
         HashMap<String, BamlValue>,
-        &TracingSpan,
+        &TracingCall,
     )> for LogSchemaContext
 {
     fn from(
-        (api, event_chain, tags, span): (
+        (api, event_chain, tags, call): (
             &APIWrapper,
-            Vec<SpanCtx>,
+            Vec<CallCtx>,
             HashMap<String, BamlValue>,
-            &TracingSpan,
+            &TracingCall,
         ),
     ) -> Self {
         let parent_chain = event_chain
@@ -663,7 +663,7 @@ impl
         LogSchemaContext {
             hostname: api.host_name().to_string(),
             stage: Some(api.stage().to_string()),
-            latency_ms: span
+            latency_ms: call
                 .start_time
                 .elapsed()
                 .map(|d| d.as_millis() as i128)
@@ -684,7 +684,7 @@ impl
                 )))
                 .collect(),
             event_chain: parent_chain,
-            start_time: to_iso_string(&span.start_time),
+            start_time: to_iso_string(&call.start_time),
         }
     }
 }
@@ -766,9 +766,9 @@ trait ToLogSchema {
     fn to_log_schema(
         &self,
         api: &APIWrapper,
-        event_chain: Vec<SpanCtx>,
+        event_chain: Vec<CallCtx>,
         tags: HashMap<String, BamlValue>,
-        span: TracingSpan,
+        call: TracingCall,
     ) -> LogSchema;
 }
 
@@ -776,21 +776,21 @@ impl<T: ToLogSchema> ToLogSchema for Result<T> {
     fn to_log_schema(
         &self,
         api: &APIWrapper,
-        event_chain: Vec<SpanCtx>,
+        event_chain: Vec<CallCtx>,
         tags: HashMap<String, BamlValue>,
-        span: TracingSpan,
+        call: TracingCall,
     ) -> LogSchema {
         match self {
-            Ok(r) => r.to_log_schema(api, event_chain, tags, span),
+            Ok(r) => r.to_log_schema(api, event_chain, tags, call),
             Err(e) => LogSchema {
                 project_id: api.project_id().map(|s| s.to_string()),
                 event_type: api_wrapper::core_types::EventType::FuncCode,
-                root_event_id: event_chain.first().map(|s| s.span_id).unwrap().to_string(),
-                event_id: event_chain.last().map(|s| s.span_id).unwrap().to_string(),
+                root_event_id: event_chain.first().map(|s| s.call_id).unwrap().to_string(),
+                event_id: event_chain.last().map(|s| s.call_id).unwrap().to_string(),
                 parent_event_id: None,
-                context: (api, event_chain, tags, &span).into(),
+                context: (api, event_chain, tags, &call).into(),
                 io: IO {
-                    input: Some((&span.params).into()),
+                    input: Some((&call.params).into()),
                     output: None,
                 },
                 error: Some(api_wrapper::core_types::Error {
@@ -810,25 +810,25 @@ impl ToLogSchema for Option<BamlValue> {
     fn to_log_schema(
         &self,
         api: &APIWrapper,
-        event_chain: Vec<SpanCtx>,
+        event_chain: Vec<CallCtx>,
         tags: HashMap<String, BamlValue>,
-        span: TracingSpan,
+        call: TracingCall,
     ) -> LogSchema {
         LogSchema {
             project_id: api.project_id().map(|s| s.to_string()),
             event_type: api_wrapper::core_types::EventType::FuncCode,
-            root_event_id: event_chain.first().map(|s| s.span_id).unwrap().to_string(),
-            event_id: event_chain.last().map(|s| s.span_id).unwrap().to_string(),
+            root_event_id: event_chain.first().map(|s| s.call_id).unwrap().to_string(),
+            event_id: event_chain.last().map(|s| s.call_id).unwrap().to_string(),
             parent_event_id: if event_chain.len() >= 2 {
                 event_chain
                     .get(event_chain.len() - 2)
-                    .map(|s| s.span_id.to_string())
+                    .map(|s| s.call_id.to_string())
             } else {
                 None
             },
-            context: (api, event_chain, tags, &span).into(),
+            context: (api, event_chain, tags, &call).into(),
             io: IO {
-                input: Some((&span.params).into()),
+                input: Some((&call.params).into()),
                 output: self.as_ref().map(|r| r.into()),
             },
             error: None,
@@ -841,12 +841,12 @@ impl ToLogSchema for TestResponse {
     fn to_log_schema(
         &self,
         api: &APIWrapper,
-        event_chain: Vec<SpanCtx>,
+        event_chain: Vec<CallCtx>,
         tags: HashMap<String, BamlValue>,
-        span: TracingSpan,
+        call: TracingCall,
     ) -> LogSchema {
         self.function_response
-            .to_log_schema(api, event_chain, tags, span)
+            .to_log_schema(api, event_chain, tags, call)
     }
 }
 
@@ -854,26 +854,26 @@ impl ToLogSchema for FunctionResult {
     fn to_log_schema(
         &self,
         api: &APIWrapper,
-        event_chain: Vec<SpanCtx>,
+        event_chain: Vec<CallCtx>,
         tags: HashMap<String, BamlValue>,
-        span: TracingSpan,
+        call: TracingCall,
     ) -> LogSchema {
         LogSchema {
             project_id: api.project_id().map(|s| s.to_string()),
             event_type: api_wrapper::core_types::EventType::FuncLlm,
-            root_event_id: event_chain.first().map(|s| s.span_id).unwrap().to_string(),
-            event_id: event_chain.last().map(|s| s.span_id).unwrap().to_string(),
+            root_event_id: event_chain.first().map(|s| s.call_id).unwrap().to_string(),
+            event_id: event_chain.last().map(|s| s.call_id).unwrap().to_string(),
             // Second to last element in the event chain
             parent_event_id: if event_chain.len() >= 2 {
                 event_chain
                     .get(event_chain.len() - 2)
-                    .map(|s| s.span_id.to_string())
+                    .map(|s| s.call_id.to_string())
             } else {
                 None
             },
-            context: (api, event_chain, tags, &span).into(),
+            context: (api, event_chain, tags, &call).into(),
             io: IO {
-                input: Some((&span.params).into()),
+                input: Some((&call.params).into()),
                 output: self
                     .result_with_constraints()
                     .as_ref()

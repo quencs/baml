@@ -126,17 +126,17 @@ fn serde_json_to_aws_document(value: serde_json::Value) -> Document {
 
 #[derive(Debug)]
 struct CollectorInterceptor {
-    span_chain: Vec<baml_ids::FunctionCallId>,
+    call_stack: Vec<baml_ids::FunctionCallId>,
     http_request_id: baml_ids::HttpRequestId,
 }
 
 impl CollectorInterceptor {
     pub fn new(
-        span_chain: Vec<baml_ids::FunctionCallId>,
+        call_stack: Vec<baml_ids::FunctionCallId>,
         http_request_id: baml_ids::HttpRequestId,
     ) -> Self {
         Self {
-            span_chain,
+            call_stack,
             http_request_id,
         }
     }
@@ -177,7 +177,7 @@ impl aws_smithy_runtime_api::client::interceptors::Intercept for CollectorInterc
             headers,
             body: HTTPBody::new(request.body().bytes().unwrap_or_default().to_vec().into()),
         };
-        let event = TraceEvent::new_raw_llm_request(self.span_chain.clone(), Arc::new(request));
+        let event = TraceEvent::new_raw_llm_request(self.call_stack.clone(), Arc::new(request));
         BAML_TRACER.lock().unwrap().put(Arc::new(event));
 
         Ok(())
@@ -198,7 +198,7 @@ impl aws_smithy_runtime_api::client::interceptors::Intercept for CollectorInterc
             };
 
             let event =
-                TraceEvent::new_raw_llm_response(self.span_chain.clone(), Arc::new(response));
+                TraceEvent::new_raw_llm_response(self.call_stack.clone(), Arc::new(response));
             BAML_TRACER.lock().unwrap().put(Arc::new(event));
         }
 
@@ -304,7 +304,7 @@ impl AwsClient {
     // cURL previews.
     async fn client_anyhow(
         &self,
-        span_chain: Vec<baml_ids::FunctionCallId>,
+        call_stack: Vec<baml_ids::FunctionCallId>,
         http_request_id: baml_ids::HttpRequestId,
     ) -> Result<bedrock::Client> {
         #[cfg(target_arch = "wasm32")]
@@ -394,7 +394,7 @@ impl AwsClient {
             // Adding a custom http client (above) breaks the stalled stream protection for some reason. If a bedrock request takes longer than 5s (the default grace period, it makes it error out), so we disable it.
             .stalled_stream_protection(StalledStreamProtectionConfig::disabled())
             .interceptor(CollectorInterceptor::new(
-                span_chain,
+                call_stack,
                 http_request_id.clone(),
             ))
             .build();
@@ -596,7 +596,7 @@ impl WithStreamChat for AwsClient {
 
         let aws_client = match self
             .client_anyhow(
-                ctx.runtime_context().span_id_chain.clone(),
+                ctx.runtime_context().call_id_stack.clone(),
                 ctx.http_request_id().clone(),
             )
             .await
@@ -897,7 +897,7 @@ impl WithChat for AwsClient {
 
         let aws_client = match self
             .client_anyhow(
-                ctx.runtime_context().span_id_chain.clone(),
+                ctx.runtime_context().call_id_stack.clone(),
                 ctx.http_request_id().clone(),
             )
             .await

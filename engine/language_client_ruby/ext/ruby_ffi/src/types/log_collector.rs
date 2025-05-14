@@ -101,9 +101,9 @@ impl Collector {
     }
 
     pub fn id(&self, function_log_id: String) -> Option<FunctionLog> {
-        let span_id = function_log_id.parse().expect("Invalid span id");
+        let call_id = function_log_id.parse().expect("Invalid call id");
         self.inner
-            .function_log_by_id(&span_id)
+            .function_log_by_id(&call_id)
             .map(|inner_function_log| FunctionLog {
                 inner: Arc::new(Mutex::new(inner_function_log.clone())),
             })
@@ -126,8 +126,8 @@ impl Collector {
     }
 
     pub fn __function_span_count() -> u32 {
-        let span_count = BAML_TRACER.lock().unwrap().function_span_count();
-        span_count as u32
+        let call_count = BAML_TRACER.lock().unwrap().function_span_count();
+        call_count as u32
     }
 
     pub fn __print_storage() {

@@ -9,7 +9,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::internal::llm_client::llm_provider::LLMProvider;
 use crate::internal::llm_client::orchestrator::{OrchestrationScope, OrchestratorNode};
-use crate::tracing::{BamlTracer, TracingSpan};
+use crate::tracing::{BamlTracer, TracingCall};
 use crate::tracingv2::storage::storage::Collector;
 use crate::type_builder::TypeBuilder;
 use crate::types::on_log_event::LogEventCallbackSync;
@@ -33,43 +33,43 @@ pub(crate) trait RuntimeConstructor {
 
 // These are UNSTABLE, and should be considered as a work in progress
 pub trait ExperimentalTracingInterface {
-    fn start_span(
+    fn start_call(
         &self,
         function_name: &str,
         params: &BamlMap<String, BamlValue>,
         ctx: &RuntimeContextManager,
-    ) -> TracingSpan;
+    ) -> TracingCall;
 
     #[cfg(target_arch = "wasm32")]
     #[allow(async_fn_in_trait)]
-    async fn finish_function_span(
+    async fn finish_function_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
     ) -> Result<uuid::Uuid>;
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn finish_function_span(
+    fn finish_function_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
     ) -> Result<uuid::Uuid>;
 
     #[cfg(target_arch = "wasm32")]
     #[allow(async_fn_in_trait)]
-    async fn finish_span(
+    async fn finish_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
     ) -> Result<uuid::Uuid>;
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn finish_span(
+    fn finish_call(
         &self,
-        span: TracingSpan,
+        call: TracingCall,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
     ) -> Result<uuid::Uuid>;

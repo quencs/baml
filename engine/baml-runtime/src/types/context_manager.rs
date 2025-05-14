@@ -9,12 +9,17 @@ use baml_types::BamlValue;
 use std::fmt;
 
 use crate::{
-    client_registry::ClientRegistry, tracing::BamlTracer, type_builder::TypeBuilder,
-    RuntimeContext, SpanCtx,
+    client_registry::ClientRegistry, tracing::BamlTracer, type_builder::TypeBuilder, CallCtx,
+    RuntimeContext,
 };
 
 use super::runtime_context::BamlSrcReader;
-pub type BamlContext = (uuid::Uuid, String, HashMap<String, BamlValue>, FunctionCallId);
+pub type BamlContext = (
+    uuid::Uuid,
+    String,
+    HashMap<String, BamlValue>,
+    FunctionCallId,
+);
 
 #[derive(Clone)]
 pub struct RuntimeContextManager {
@@ -43,25 +48,25 @@ impl RuntimeContextManager {
         }
     }
 
-    // pub fn span_id(&self) -> Result<uuid::Uuid> {
+    // pub fn call_id(&self) -> Result<uuid::Uuid> {
     //     self.context
     //         .lock()
     //         .unwrap()
     //         .last()
     //         .map(|(id, ..)| *id)
-    //         .ok_or_else(|| anyhow::anyhow!("No span id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
+    //         .ok_or_else(|| anyhow::anyhow!("No call id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
     // }
 
-    pub fn span_id_chain(&self, allow_empty: bool) -> Result<Vec<FunctionCallId>> {
+    pub fn call_id_stack(&self, allow_empty: bool) -> Result<Vec<FunctionCallId>> {
         let res: Vec<FunctionCallId> = self
             .context
             .lock()
             .unwrap()
             .iter()
-            .map(|(.., span_id)| span_id.clone())
+            .map(|(.., call_id)| call_id.clone())
             .collect();
         if res.is_empty() && !allow_empty {
-            Err(anyhow::anyhow!("No span_id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
+            Err(anyhow::anyhow!("No call_id found. This indicates a bug in BAML. Please report this with a stack trace (RUST_BACKTRACE=1)"))
         } else {
             Ok(res)
         }
@@ -97,29 +102,29 @@ impl RuntimeContextManager {
             .unwrap_or_default()
     }
 
-    // Note, after entering, calling ctx.span_id() will return the span id of the old context still.
+    // Note, after entering, calling ctx.call_id() will return the call id of the old context still.
     pub fn enter(&self, name: &str) -> (uuid::Uuid, Vec<FunctionCallId>) {
         let last_tags = self.clone_last_tags();
-        let span = uuid::Uuid::new_v4();
-        let span_id = FunctionCallId::new();
+        let call = uuid::Uuid::new_v4();
+        let call_id = FunctionCallId::new();
         let mut ctx = self.context.lock().unwrap();
-        ctx.push((span, name.to_string(), last_tags, span_id));
+        ctx.push((call, name.to_string(), last_tags, call_id));
 
-        let span_chain = ctx.iter().map(|(.., span_id)| span_id.clone()).collect();
+        let call_stack = ctx.iter().map(|(.., call_id)| call_id.clone()).collect();
         log::trace!("Entering with: {:#?}", ctx);
-        (span, span_chain)
+        (call, call_stack)
     }
 
-    pub fn exit(&self) -> Option<(uuid::Uuid, Vec<SpanCtx>, HashMap<String, BamlValue>)> {
+    pub fn exit(&self) -> Option<(uuid::Uuid, Vec<CallCtx>, HashMap<String, BamlValue>)> {
         let mut ctx = self.context.lock().unwrap();
         log::trace!("Exiting: {:#?}", ctx);
 
         let prev = ctx
             .iter()
-            .map(|(span, name, _, span_id)| SpanCtx {
-                span_id: *span,
+            .map(|(call, name, _, call_id)| CallCtx {
+                call_id: *call,
                 name: name.clone(),
-                new_span_id: span_id.clone(),
+                new_call_id: call_id.clone(),
             })
             .collect();
 
@@ -136,14 +141,14 @@ impl RuntimeContextManager {
         &self,
         type_builder: Option<&TypeBuilder>,
         client_registry: Option<&ClientRegistry>,
-        // the tracer initializes the new span_id,
-        // and then passes it back in here for a new context. It's kind of circular since tracer uses this class to _create_ the span_id....
-        // Anyway RuntimeCtx is passed everywhere and we need to know what the last span_id that the tracer created was.
+        // the tracer initializes the new call_id,
+        // and then passes it back in here for a new context. It's kind of circular since tracer uses this class to _create_ the call_id....
+        // Anyway RuntimeCtx is passed everywhere and we need to know what the last call_id that the tracer created was.
         // tl;dr
-        // 1. Tracer creates a new span id using the current context that's passe dinto call_function()
-        // 2. Tracer passes the span_id back in here for a new context
+        // 1. Tracer creates a new call id using the current context that's passe dinto call_function()
+        // 2. Tracer passes the call_id back in here for a new context
         // 3. profit
-        span_id_chain: Vec<FunctionCallId>,
+        call_id_stack: Vec<FunctionCallId>,
     ) -> Result<RuntimeContext> {
         // let mut tags = self.global_tags.lock().unwrap().clone();
         // let ctx_tags = {
@@ -180,7 +185,7 @@ impl RuntimeContextManager {
             als,
             rec_cls,
             rec_als,
-            span_id_chain,
+            call_id_stack,
         );
 
         ctx.client_overrides = match client_registry {

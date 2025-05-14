@@ -23,14 +23,14 @@ pub struct Filter {
     #[ts(type = "number | null")]
     pub end_at: Option<EpochMsTimestamp>,
     pub relative_time: Option<String>,
-    pub span_id: Option<String>,
+    pub call_id: Option<String>,
     pub streamed: Option<bool>,
     pub status: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct ListFunctionSpansRequest {
+pub struct ListFunctionCallsRequest {
     #[ts(type = "string")]
     pub project_id: ProjectId,
     pub function_call_id: Option<String>,
@@ -39,17 +39,17 @@ pub struct ListFunctionSpansRequest {
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct ListFunctionSpansResponse {
-    pub function_spans: Vec<ui_types::FunctionCall>,
+pub struct ListFunctionCallsResponse {
+    pub function_calls: Vec<ui_types::FunctionCall>,
     pub function_definitions: Vec<ui_types::FunctionDefinition>,
     pub type_definitions: Vec<ui_types::TypeDefinition>,
 }
 
-pub struct ListFunctionSpans;
+pub struct ListFunctionCalls;
 
-impl ApiEndpoint for ListFunctionSpans {
-    type Request<'a> = ListFunctionSpansRequest;
-    type Response<'a> = ListFunctionSpansResponse;
+impl ApiEndpoint for ListFunctionCalls {
+    type Request<'a> = ListFunctionCallsRequest;
+    type Response<'a> = ListFunctionCallsResponse;
 
-    const PATH: &'static str = "/v1/function-spans";
+    const PATH: &'static str = "/v1/function-calls";
 }

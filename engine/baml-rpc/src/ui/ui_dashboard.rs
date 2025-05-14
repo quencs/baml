@@ -18,7 +18,7 @@ interface DashboardQueryParams {
     clientName?: string; // MyFallbackClient -> 4o // o1
     functionId?: string; // function##MyFunction##{hash}..
     functionName?: string; // MyFunction
-    functionSpanId?: string; // specific to uuid / cuid etc
+    functionCallId?: string; // specific to uuid / cuid etc
     sessionId?: string;
     callType?: "async" | "sync";
     startAt?: string; // ISO8601
