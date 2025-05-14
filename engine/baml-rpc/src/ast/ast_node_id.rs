@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, PartialEq, Eq, Hash, Deserialize, Serialize, Clone)]
-#[serde(into = "String", from = "String")]
+#[derive(Debug, PartialEq, Eq, Hash, Deserialize, Serialize, Clone, TS)]
+#[serde()]
+#[ts(export)]
 pub struct AstNodeId {
     type_name: String,
     name: String,
