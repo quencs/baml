@@ -311,9 +311,6 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            FieldType::Optional(inner) => {
-                format!("Optional[{}]", inner.to_type_ref(ir))
-            }
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
                 Some(checks) => {
                     let base_type_ref = base.to_type_ref(ir);
@@ -406,30 +403,30 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 )
             }
             FieldType::Primitive(r#type) => {
-                // Note: The `false` here preserves potentially bugged codegen
-                // from before this commit. As the `false` implies, we always
-                // wrap primitives in `Optional` when generating partial types,
-                // although we should probably only do this when `!needed`.
-                if false {
+                if needed {
                     r#type.to_python()
                 } else {
                     format!("Optional[{}]", r#type.to_python())
                 }
             }
             FieldType::Union(inner) => {
-                let union_contents = inner
+                let is_optional = self.is_optional();
+                let not_null_field_types = inner.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
+                let inner_str = if not_null_field_types.len() > 1 {
+                    let content = not_null_field_types
                     .iter()
                     .map(|t| t.to_partial_type_ref(ir, true))
                     .collect::<Vec<_>>()
                     .join(", ");
-                // Note: The `false` here preserves potentially bugged codegen
-                // from before this commit. As the `false` implies, we always
-                // wrap primitives in `Optional` when generating partial types,
-                // although we should probably only do this when `!needed`.
-                if false {
-                    format!("Union[{union_contents}]")
+                    format!("Union[{}]", content)
                 } else {
-                    format!("Optional[Union[{union_contents}]]")
+                    not_null_field_types[0].to_partial_type_ref(ir, true)
+                };
+
+                if is_optional || !needed {
+                    format!("Optional[{}]", inner_str)
+                } else {
+                    inner_str
                 }
             }
             FieldType::Tuple(inner) => {
@@ -442,20 +439,6 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     format!("Tuple[{tuple_contents}]")
                 } else {
                     format!("Optional[Tuple[{tuple_contents}]]")
-                }
-            }
-            FieldType::Optional(inner) => {
-                // We do special handling of primitive types here,
-                // using to_type_ref, because primitives get unconditionally
-                // wrapped in Optional when using partial_type_ref().
-                // Using that function here would give us Optional[Optional[P]].
-                // After we verify that we don't need to wrap all primitives
-                // in optional, we should remove this workaround.
-                if let FieldType::Primitive(_) = inner.as_ref() {
-                  format!("Optional[{}]", inner.to_type_ref(ir))
-                } else {
-                  let inner_rep = inner.to_partial_type_ref(ir, true);
-                  format!("Optional[{}]", inner_rep)
                 }
             }
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
@@ -494,7 +477,6 @@ impl ToTypeReferenceInClientDefinition for FieldType {
 //   ...
 fn default_value_for_parameter_type(field_type: &FieldType) -> Option<&'static str> {
     match field_type {
-        FieldType::Optional(_) => Some("None"),
         FieldType::List(_) => Some("[]"),
         FieldType::Map(_, _) => Some("{}"),
         FieldType::Class(_) => None,
@@ -503,7 +485,8 @@ fn default_value_for_parameter_type(field_type: &FieldType) -> Option<&'static s
         FieldType::Enum(_) => None,
         FieldType::Tuple(_) => None,
         FieldType::Primitive(_) => None,
-        FieldType::Union(xs) => None,
+        FieldType::Union(_) if field_type.is_optional() => Some("None"),
+        FieldType::Union(_) => None,
         FieldType::WithMetadata { base, .. } => default_value_for_parameter_type(base),
         FieldType::Arrow(_) => None,
     }
@@ -521,7 +504,7 @@ mod tests {
     #[test]
     fn optional_str() { 
         let ir = make_test_ir("").unwrap();
-        let field_type = FieldType::Optional(Box::new(FieldType::Primitive(TypeValue::String)));
+        let field_type = FieldType::Primitive(TypeValue::String).as_optional();
         let rep = field_type.to_partial_type_ref(&ir, true);
         assert_eq!(rep, "Optional[str]")
     }

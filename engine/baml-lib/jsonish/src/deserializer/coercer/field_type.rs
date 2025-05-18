@@ -12,7 +12,6 @@ use super::{
     array_helper,
     coerce_array::coerce_array,
     coerce_map::coerce_map,
-    coerce_optional::coerce_optional,
     coerce_union::coerce_union,
     ir_ref::{coerce_alias::coerce_alias, IrRef},
     ParsingContext, ParsingError,
@@ -92,9 +91,6 @@ impl TypeCoercer for FieldType {
                 FieldType::List(_) => coerce_array(ctx, self, value).map(|v| v.with_target(target)),
                 FieldType::Union(_) => {
                     coerce_union(ctx, self, value).map(|v| v.with_target(target))
-                }
-                FieldType::Optional(_) => {
-                    coerce_optional(ctx, self, value).map(|v| v.with_target(target))
                 }
                 FieldType::Map(_, _) => coerce_map(ctx, self, value).map(|v| v.with_target(target)),
                 FieldType::Tuple(_) => Err(ctx.error_internal("Tuple not supported")),
@@ -190,7 +186,7 @@ impl DefaultValue for FieldType {
                 Vec::new(),
             )),
             FieldType::Union(items) => items.iter().find_map(|i| i.default_value(error)),
-            FieldType::Primitive(TypeValue::Null) | FieldType::Optional(_) => {
+            FieldType::Primitive(TypeValue::Null) => {
                 Some(BamlValueWithFlags::Null(self.clone(), get_flags()))
             }
             FieldType::Map(_, _) => Some(BamlValueWithFlags::Map(

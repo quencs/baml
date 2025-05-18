@@ -78,7 +78,7 @@ impl WithJsonSchema for FunctionArgs {
                 let mut required_props = vec![];
                 for (name, t) in args.iter() {
                     properties[name] = t.json_schema();
-                    if let FieldType::Optional(_) = t {
+                    if !t.is_optional() {
                         required_props.push(name.clone());
                     }
                 }
@@ -98,11 +98,8 @@ impl WithJsonSchema for Vec<(String, FieldType)> {
         let mut required_props = vec![];
         for (name, t) in self.iter() {
             properties[name.clone()] = t.json_schema();
-            match t {
-                FieldType::Optional(_) => {}
-                _ => {
-                    required_props.push(name.clone());
-                }
+            if !t.is_optional() {
+                required_props.push(name.clone());
             }
         }
         json!({
@@ -134,11 +131,8 @@ impl WithJsonSchema for Walker<'_, &Class> {
         let mut required_props = vec![];
         for field in self.elem().static_fields.iter() {
             properties[field.elem.name.clone()] = field.elem.r#type.elem.json_schema();
-            match field.elem.r#type.elem {
-                FieldType::Optional(_) => {}
-                _ => {
-                    required_props.push(field.elem.name.clone());
-                }
+            if !field.elem.r#type.elem.is_optional() {
+                required_props.push(field.elem.name.clone());
             }
         }
         json!({
@@ -238,30 +232,6 @@ impl WithJsonSchema for FieldType {
                 "type": "array",
                 "prefixItems": options.iter().map(|t| t.json_schema()).collect::<Vec<_>>(),
             }),
-            // Handle optional types (marked with ?) that aren't lists or maps
-            FieldType::Optional(inner) => {
-                match **inner {
-                    // For primitive types, we can simply add "null" to the allowed types
-                    FieldType::Primitive(_) => {
-                        let mut res = inner.json_schema();
-                        res["type"] = json!([res["type"], "null"]);
-                        res["default"] = serde_json::Value::Null;
-                        res
-                    }
-                    // For complex types, we need to use anyOf to allow either the type or null
-                    _ => {
-                        let mut res = inner.json_schema();
-                        // Add a title for better schema documentation
-                        if let serde_json::Value::Object(r) = &mut res {
-                            r.insert("title".to_string(), json!(inner.to_string()));
-                        }
-                        json!({
-                            "anyOf": [res, json!({"type": "null", "title": "null"})],
-                            "default": serde_json::Value::Null,
-                        })
-                    }
-                }
-            }
             FieldType::WithMetadata { base, .. } => base.json_schema(),
             FieldType::Arrow(_) => json!({}), // TODO: Make this function partial - it should not return for Arrow.
         }

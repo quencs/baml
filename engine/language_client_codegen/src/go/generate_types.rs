@@ -487,7 +487,6 @@ fn has_none_default(ir: &IntermediateRepr, field_type: &FieldType) -> bool {
     match base_type {
         FieldType::Primitive(TypeValue::Null) => true,
         FieldType::Primitive(_) => false,
-        FieldType::Optional(_) => true,
         FieldType::Class(_) => false,
         FieldType::Enum(_) => false,
         FieldType::List(_) => false,
@@ -543,9 +542,6 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             is_enum: matches!(simplified, FieldType::Enum(_)),
             underlying_type: match simplified {
                 FieldType::List(value) => Some(Box::new(value.to_type_ref_2(ir, module_prefix))),
-                FieldType::Optional(value) => {
-                    Some(Box::new(value.to_type_ref_2(ir, module_prefix)))
-                }
                 _ => None,
             },
         }
@@ -578,7 +574,21 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 )
             }
             FieldType::Primitive(r#type) => r#type.to_go(),
-            FieldType::Union(inner) => format!("{module_prefix}{}", self.to_union_name()),
+            FieldType::Union(inner) => {
+                let is_optional = self.is_optional();
+                let not_null_field_types = inner.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
+                let name = if not_null_field_types.len() > 1 {
+                    format!("{module_prefix}{}", self.to_union_name())
+                } else {
+                    not_null_field_types[0].to_type_ref_2(ir, use_module_prefix).name
+                };
+
+                if is_optional {
+                    format!("*{}", name)
+                } else {
+                    name
+                }
+            },
             FieldType::Tuple(inner) => format!(
                 "Tuple[{}]",
                 inner
@@ -587,9 +597,6 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            FieldType::Optional(inner) => {
-                format!("*{}", inner.to_type_ref_2(ir, use_module_prefix).name)
-            }
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
                 Some(_) => {
                     let base_type_ref = base.to_type_ref_2(ir, use_module_prefix).name;
@@ -660,17 +667,28 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 }
             }
             FieldType::Union(inner) => {
-                if needed || wrapped {
+                let is_optional = self.is_optional();
+                let not_null_field_types = inner.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
+                let name = if not_null_field_types.len() > 1 {
                     format!("{module_prefix}{}", self.to_union_name())
                 } else {
-                    format!("*{module_prefix}{}", self.to_union_name())
+                    not_null_field_types[0].to_type_ref_2(ir, use_module_prefix).name
+                };
+
+                let union_name = if is_optional {
+                    format!("*{}", name)
+                } else {
+                    name
+                };
+
+                if needed || wrapped || is_optional {
+                    union_name
+                } else {
+                    format!("*{}", union_name)
                 }
             }
             FieldType::Tuple(inner) => {
                 todo!("Tuples are not supported in partial types.")
-            }
-            FieldType::Optional(inner) => {
-                format!("*{}", inner.to_partial_type_ref_2(ir, true, false))
             }
             FieldType::WithMetadata { .. } => {
                 unreachable!("distribute_metadata makes this branch unreachable.")
@@ -727,9 +745,7 @@ mod tests {
     #[test]
     fn test_optional_list() {
         let ir = make_test_ir("").unwrap();
-        let optional_list = FieldType::Optional(Box::new(FieldType::List(Box::new(
-            FieldType::Primitive(TypeValue::String),
-        ))));
+        let optional_list = FieldType::Primitive(TypeValue::String).as_list().as_optional();
         let full = optional_list.to_type_ref_2(&ir, false);
         let partial = optional_list.to_partial_type_ref_2(&ir, false, false);
         assert_eq!(full.name, "*[]string");
@@ -751,7 +767,7 @@ mod tests {
     fn test_union_with_optional() {
         let ir = make_test_ir("").unwrap();
         let union = FieldType::Union(vec![
-            FieldType::Optional(Box::new(FieldType::Primitive(TypeValue::String))),
+            FieldType::Primitive(TypeValue::String).as_optional(),
             FieldType::Primitive(TypeValue::Int),
         ]);
         let full = union.to_type_ref_2(&ir, false);

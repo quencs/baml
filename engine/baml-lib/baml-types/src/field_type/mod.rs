@@ -86,7 +86,6 @@ pub enum FieldType {
     Map(Box<FieldType>, Box<FieldType>),
     Union(Vec<FieldType>),
     Tuple(Vec<FieldType>),
-    Optional(Box<FieldType>),
     RecursiveTypeAlias(String),
     Arrow(Box<Arrow>),
     WithMetadata {
@@ -116,15 +115,25 @@ impl std::fmt::Display for FieldType {
             FieldType::Primitive(t) => write!(f, "{t}"),
             FieldType::Literal(v) => write!(f, "{v}"),
             FieldType::Union(choices) => {
-                write!(
-                    f,
-                    "({})",
-                    choices
-                        .iter()
-                        .map(|t| t.to_string())
-                        .collect::<Vec<_>>()
-                        .join(" | ")
-                )
+                let not_null_choices = choices.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
+                let not_null_choices_len = not_null_choices.len();
+                let not_null_choices_str = not_null_choices
+                    .into_iter()
+                    .map(|t| t.to_string())
+                    .collect::<Vec<_>>()
+                    .join(" | ");
+                let not_null_choices_str = if not_null_choices_len > 1 {
+                    format!("({})", not_null_choices_str)
+                } else {
+                    not_null_choices_str
+                };
+
+                
+                if self.is_optional() {
+                    write!(f, "{}?", not_null_choices_str)
+                } else {
+                    write!(f, "{}", not_null_choices_str)
+                }
             }
             FieldType::Tuple(choices) => {
                 write!(
@@ -139,7 +148,6 @@ impl std::fmt::Display for FieldType {
             }
             FieldType::Map(k, v) => write!(f, "map<{k}, {v}>"),
             FieldType::List(t) => write!(f, "{t}[]"),
-            FieldType::Optional(t) => write!(f, "{t}?"),
             FieldType::Arrow(arrow) => write!(
                 f,
                 "({}) -> {}",
@@ -160,11 +168,6 @@ impl FieldType {
     fn flatten(&self) -> Vec<FieldType> {
         match self {
             FieldType::Union(inner) => inner.iter().flat_map(|t| t.flatten()).collect(),
-            FieldType::Optional(inner) => {
-                let mut values = inner.flatten();
-                values.push(FieldType::Primitive(TypeValue::Null));
-                values
-            }
             _ => vec![self.clone()],
         }
     }
@@ -176,10 +179,14 @@ impl FieldType {
                 let unique = flattened.into_iter().unique().collect::<Vec<_>>();
                 let has_null = unique.contains(&FieldType::Primitive(TypeValue::Null));
                 // if the union contains null, we'll detect that here.
-                let unique_without_null = unique
+                let mut unique_without_null = unique
                     .into_iter()
                     .filter(|t| t != &FieldType::Primitive(TypeValue::Null))
                     .collect::<Vec<_>>();
+
+                if has_null {
+                    unique_without_null.push(FieldType::Primitive(TypeValue::Null));
+                }
 
                 let simplified = match unique_without_null.len() {
                     0 => return FieldType::Primitive(TypeValue::Null),
@@ -187,11 +194,7 @@ impl FieldType {
                     _ => FieldType::Union(unique_without_null),
                 };
 
-                if has_null {
-                    FieldType::Optional(Box::new(simplified))
-                } else {
-                    simplified
-                }
+                simplified
             }
             _ => self.clone(),
         }
@@ -200,7 +203,6 @@ impl FieldType {
     pub fn is_primitive(&self) -> bool {
         match self {
             FieldType::Primitive(_) => true,
-            FieldType::Optional(t) => t.is_primitive(),
             FieldType::List(t) => t.is_primitive(),
             FieldType::WithMetadata { base, .. } => base.is_primitive(),
             _ => false,
@@ -209,7 +211,6 @@ impl FieldType {
 
     pub fn is_optional(&self) -> bool {
         match self {
-            FieldType::Optional(_) => true,
             FieldType::Primitive(TypeValue::Null) => true,
             FieldType::Union(types) => types.iter().any(FieldType::is_optional),
             FieldType::WithMetadata { base, .. } => base.is_optional(),
@@ -220,7 +221,6 @@ impl FieldType {
     pub fn is_null(&self) -> bool {
         match self {
             FieldType::Primitive(TypeValue::Null) => true,
-            FieldType::Optional(t) => t.is_null(),
             FieldType::WithMetadata { base, .. } => base.is_null(),
             _ => false,
         }
@@ -260,7 +260,6 @@ impl ToUnionName for FieldType {
             | FieldType::RecursiveTypeAlias(_)
             | FieldType::Arrow(_) => IndexSet::new(),
             FieldType::Tuple(inner) => inner.iter().flat_map(|t| t.find_union_types()).collect(),
-            FieldType::Optional(inner) => inner.find_union_types(),
             FieldType::WithMetadata { base, .. } => base.find_union_types(),
         }
     }
@@ -291,15 +290,22 @@ impl ToUnionName for FieldType {
                     field_type1.to_union_name()
                 )
             }
-            FieldType::Union(field_types) => format!(
-                "Union__{}",
-                field_types
-                    .iter()
-                    .map(|v| v.to_union_name())
-                    .collect::<Vec<_>>()
-                    .join("__")
-                    .to_string()
-            ),
+            FieldType::Union(field_types) => {
+                let not_null_field_types = field_types.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
+                if not_null_field_types.len() > 1 {
+                format!(
+                    "Union__{}",
+                    not_null_field_types
+                        .into_iter()
+                        .map(|v| v.to_union_name())
+                        .collect::<Vec<_>>()
+                        .join("__")
+                        .to_string()
+                )
+                } else {
+                    not_null_field_types[0].to_union_name()
+                }
+            },
             FieldType::Tuple(field_types) => format!(
                 "Tuple__{}",
                 field_types
@@ -309,9 +315,6 @@ impl ToUnionName for FieldType {
                     .join("__")
                     .to_string()
             ),
-            FieldType::Optional(field_type) => {
-                format!("Optional__{}", field_type.to_union_name())
-            }
             FieldType::RecursiveTypeAlias(name) => name.to_string(),
             FieldType::WithMetadata { base, .. } => base.to_union_name(),
             FieldType::Arrow(_) => "function".to_string(),

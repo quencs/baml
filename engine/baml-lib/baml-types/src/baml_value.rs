@@ -375,7 +375,6 @@ impl<T> BamlValueWithMeta<T> {
 
     fn is_type(&self, field_type: &FieldType) -> bool {
         let handle_composite = |field_type: &FieldType| match field_type {
-            FieldType::Optional(inner) => self.is_type(inner),
             FieldType::Union(options) => options.iter().any(|t| self.is_type(t)),
             _ => false,
         };
@@ -429,7 +428,6 @@ impl<T> BamlValueWithMeta<T> {
             },
             BamlValueWithMeta::Null(_) => match field_type {
                 FieldType::Primitive(TypeValue::Null) => true,
-                FieldType::Optional(_) => true,
                 _ => handle_composite(field_type),
             },
         }

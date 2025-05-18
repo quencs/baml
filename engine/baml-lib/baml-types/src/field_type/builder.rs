@@ -70,10 +70,10 @@ impl FieldType {
     }
 
     pub fn optional(inner: FieldType) -> Self {
-        FieldType::Optional(Box::new(inner))
+        FieldType::Union(vec![inner, FieldType::Primitive(TypeValue::Null)])
     }
 
     pub fn as_optional(self) -> Self {
-        FieldType::Optional(Box::new(self))
+        FieldType::Union(vec![self, FieldType::Primitive(TypeValue::Null)])
     }
 }

@@ -292,7 +292,6 @@ fn required_done<T>(
             TypeValue::Bool => true,
             TypeValue::Null => true,
         },
-        FieldType::Optional(_) => false, // TODO: Think so? Or depends on Optional's base?
         FieldType::Literal(_) => true,
         FieldType::List(_) => false,
         FieldType::Map(_, _) => false,

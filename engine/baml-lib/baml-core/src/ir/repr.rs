@@ -943,7 +943,7 @@ pub trait WithRepr<T> {
 fn type_with_arity(t: FieldType, arity: &FieldArity) -> FieldType {
     match arity {
         FieldArity::Required => t,
-        FieldArity::Optional => FieldType::Optional(Box::new(t)),
+        FieldArity::Optional => t.as_optional()
     }
 }
 
@@ -1054,7 +1054,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ast::FieldType::Primitive(arity, typeval, ..) => {
                 let repr = FieldType::Primitive(*typeval);
                 if arity.is_optional() {
-                    FieldType::Optional(Box::new(repr))
+                    repr.as_optional()
                 } else {
                     repr
                 }
@@ -1062,7 +1062,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ast::FieldType::Literal(arity, literal_value, ..) => {
                 let repr = FieldType::Literal(literal_value.clone());
                 if arity.is_optional() {
-                    FieldType::Optional(Box::new(repr))
+                    repr.as_optional()
                 } else {
                     repr
                 }

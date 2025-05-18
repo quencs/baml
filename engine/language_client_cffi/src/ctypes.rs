@@ -609,25 +609,25 @@ where
                 value_union_variant.as_union_value(),
             )
         }
-        baml_types::FieldType::Optional(field_type) => {
-            let field_type = field_type_to_cffi_value_holder(field_type, &mut builder);
-            let null_type = field_type_to_cffi_value_holder(
-                &baml_types::FieldType::Primitive(baml_types::TypeValue::Null),
-                &mut builder,
-            );
-            let options = builder.create_vector_from_iter(vec![field_type, null_type].into_iter());
-            let value_union_variant = CFFIFieldTypeUnionVariant::create(
-                &mut builder,
-                &CFFIFieldTypeUnionVariantArgs {
-                    options: Some(options),
-                },
-            );
+        // baml_types::FieldType::Optional(field_type) => {
+        //     let field_type = field_type_to_cffi_value_holder(field_type, &mut builder);
+        //     let null_type = field_type_to_cffi_value_holder(
+        //         &baml_types::FieldType::Primitive(baml_types::TypeValue::Null),
+        //         &mut builder,
+        //     );
+        //     let options = builder.create_vector_from_iter(vec![field_type, null_type].into_iter());
+        //     let value_union_variant = CFFIFieldTypeUnionVariant::create(
+        //         &mut builder,
+        //         &CFFIFieldTypeUnionVariantArgs {
+        //             options: Some(options),
+        //         },
+        //     );
 
-            (
-                CFFIFieldTypeUnion::CFFIFieldTypeUnionVariant,
-                value_union_variant.as_union_value(),
-            )
-        }
+        //     (
+        //         CFFIFieldTypeUnion::CFFIFieldTypeUnionVariant,
+        //         value_union_variant.as_union_value(),
+        //     )
+        // }
         baml_types::FieldType::RecursiveTypeAlias(name) => {
             let name = builder.create_string(name);
             let type_alias = CFFIFieldTypeTypeAlias::create(

@@ -1421,7 +1421,6 @@ fn get_dummy_value(
                 .join(", ");
             Some(format!("({},)", dummy))
         }
-        baml_runtime::FieldType::Optional(_) => None,
         baml_runtime::FieldType::WithMetadata { base, .. } => {
             get_dummy_value(indent, allow_multiline, base)
         }

@@ -375,10 +375,13 @@ impl OutputFormatContent {
                 FieldType::List(_) => Some(String::from(
                     "Answer with a JSON Array using this schema:\n",
                 )),
-                FieldType::Union(_) => {
-                    Some(String::from("Answer in JSON using any of these schemas:\n"))
+                FieldType::Union(items) => {
+                    if ft.is_optional() && items.len() == 2 {
+                        Some(String::from("Answer in JSON using this schema:\n"))
+                    } else {
+                        Some(String::from("Answer in JSON using any of these schemas:\n"))
+                    }
                 }
-                FieldType::Optional(_) => Some(String::from("Answer in JSON using this schema:\n")),
                 FieldType::Map(_, _) => Some(String::from("Answer in JSON using this schema:\n")),
                 FieldType::Tuple(_) => None,
                 FieldType::WithMetadata { base, .. } => {
@@ -540,13 +543,13 @@ impl OutputFormatContent {
                 if !is_recursive
                     && match inner.as_ref() {
                         FieldType::Primitive(_) => false,
-                        FieldType::Optional(t) => !t.is_primitive(),
                         FieldType::Enum(_e) => inner_str.len() > 15,
+                        FieldType::Union(items) => items.iter().all(|t| !t.is_primitive()),
                         _ => true,
                     }
                 {
                     format!("[\n  {}\n]", inner_str.replace('\n', "\n  "))
-                } else if matches!(inner.as_ref(), FieldType::Optional(_)) {
+                } else if matches!(inner.as_ref(), FieldType::Union(_)) {
                     format!("({})[]", inner_str)
                 } else {
                     format!("{}[]", inner_str)
@@ -557,15 +560,6 @@ impl OutputFormatContent {
                 .map(|t| self.render_possibly_recursive_type(options, t, render_state, false))
                 .collect::<Result<Vec<_>, minijinja::Error>>()?
                 .join(&options.or_splitter),
-            FieldType::Optional(inner) => {
-                let inner_str =
-                    self.render_possibly_recursive_type(options, inner, render_state, false)?;
-                if inner.is_optional() {
-                    inner_str
-                } else {
-                    format!("{inner_str}{}null", options.or_splitter)
-                }
-            }
             FieldType::Tuple(_) => {
                 return Err(minijinja::Error::new(
                     minijinja::ErrorKind::BadSerialization,

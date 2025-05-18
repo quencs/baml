@@ -342,20 +342,6 @@ impl ArgCoercer {
                     first_good_result
                 }
             }
-            (FieldType::Optional(inner), _) => {
-                if matches!(value, BamlValue::Null) {
-                    Ok(value.clone())
-                } else {
-                    let mut inner_scope = ScopeStack::new();
-                    let baml_arg = self.coerce_arg(ir, inner, value, &mut inner_scope);
-                    if inner_scope.has_errors() {
-                        scope.push_error(format!("Expected optional {}, got `{}`", inner, value));
-                        Err(())
-                    } else {
-                        baml_arg
-                    }
-                }
-            }
             (FieldType::Arrow(_), _) => {
                 scope.push_error(format!("A json value may not be coerced into a function type"));
                 Err(())

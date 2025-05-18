@@ -639,10 +639,6 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     (format!("([{tuple_contents}] | null)"), true)
                 }
             }
-            FieldType::Optional(inner) => (
-                format!("({} | null)", inner.to_partial_type_ref(ir, false).0),
-                false,
-            ),
             FieldType::WithMetadata { .. } => {
                 unreachable!("distribute_metadata makes this field unreachable.")
             }
@@ -691,7 +687,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             FieldType::RecursiveTypeAlias(name) => name.to_owned(),
             FieldType::Class(name) => format!("{module_prefix}{name}"),
             FieldType::List(inner) => match inner.as_ref() {
-                FieldType::Union(_) | FieldType::Optional(_) => {
+                FieldType::Union(_) => {
                     format!("({})[]", inner.to_type_ref(ir, use_module_prefix))
                 }
                 _ => format!("{}[]", inner.to_type_ref(ir, use_module_prefix)),
@@ -726,9 +722,6 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            FieldType::Optional(inner) => {
-                format!("{} | null", inner.to_type_ref(ir, use_module_prefix))
-            }
             FieldType::Arrow(_) => {
                 todo!("Arrow types should not be used in generated type definitions")
             }

@@ -147,7 +147,17 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 )
             }
             FieldType::Primitive(r#type) => r#type.to_go(),
-            FieldType::Union(inner) => format!("types.{}", self.to_union_name()),
+            FieldType::Union(inner) => {
+                if self.is_optional() {
+                    match inner.len() {
+                        0 => format!("nil"),
+                        1 => format!("*{}", inner[0].to_type_ref(ir, _with_checked)),
+                        _ => format!("*types.{}", self.to_union_name()),
+                    }
+                } else {
+                    format!("types.{}", self.to_union_name())
+                }
+            },
             FieldType::Tuple(inner) => format!(
                 "Tuple[{}]",
                 inner
@@ -156,9 +166,6 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            FieldType::Optional(inner) => {
-                format!("*{}", inner.to_type_ref(ir, _with_checked))
-            }
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
                 Some(_) => {
                     let base_type_ref = base.to_type_ref(ir, _with_checked);
@@ -213,7 +220,6 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            FieldType::Optional(inner) => inner.to_partial_type_ref(ir, with_checked),
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
                 Some(_) => {
                     let base_type_ref = base.to_partial_type_ref(ir, with_checked);

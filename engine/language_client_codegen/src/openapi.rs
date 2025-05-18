@@ -659,11 +659,6 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
             FieldType::Tuple(_) => {
                 anyhow::bail!("BAML<->OpenAPI tuple support is not implemented")
             }
-            FieldType::Optional(inner) => {
-                // TODO: if type_spec is of an enum, consider adding "null" to the list of values
-                // something i saw suggested doing this
-                inner.to_type_spec(_ir)?
-            }
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
                 Some(checks) => {
                     let base_type_ref = base.to_type_spec(_ir)?;

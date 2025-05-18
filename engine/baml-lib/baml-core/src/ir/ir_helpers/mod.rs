@@ -126,14 +126,6 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             (_, FieldType::RecursiveTypeAlias(name)) => self
                 .get_all_recursive_aliases(name)
                 .any(|target| self.is_subtype(base, target)),
-
-            (FieldType::Optional(base_item), FieldType::Optional(other_item)) => {
-                self.is_subtype(base_item, other_item)
-            }
-            (FieldType::Primitive(TypeValue::Null), FieldType::Optional(_)) => true,
-            (_, FieldType::Optional(t)) => self.is_subtype(base, t),
-            (FieldType::Optional(_), _) => false,
-
             (FieldType::Primitive(p1), FieldType::Primitive(p2)) => p1 == p2,
             (FieldType::Primitive(TypeValue::Null), _) => false,
             (FieldType::Primitive(p1), _) => false,
@@ -1108,7 +1100,6 @@ pub fn item_type<'ir, 'a, T: std::fmt::Debug>(
         FieldType::List(inner) => Some(*inner.clone()),
         FieldType::Literal(_) => None,
         FieldType::Map(k, v) => Some(*v.clone()),
-        FieldType::Optional(inner) => item_type(ir, &*inner, baml_child_values),
         FieldType::Primitive(_) => None,
         FieldType::RecursiveTypeAlias(alias_name) => ir
             .recursive_alias_definition(alias_name)
@@ -1148,7 +1139,6 @@ where
         FieldType::Enum(_) => None,
         FieldType::List(_) => None,
         FieldType::Literal(_) => None,
-        FieldType::Optional(base) => map_types(ir, base.as_ref()),
         FieldType::Tuple(_) => None,
         FieldType::Union(variants) => {
             // When encountering a union, we return the key/value types of the
@@ -1614,7 +1604,7 @@ mod subtype_tests {
     }
 
     fn mk_optional(ft: FieldType) -> FieldType {
-        FieldType::Optional(Box::new(ft))
+        ft.as_optional()
     }
 
     fn mk_list(ft: FieldType) -> FieldType {

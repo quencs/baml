@@ -279,7 +279,7 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            (FieldType::List(inner), _) | (FieldType::Optional(inner), _) => {
+            (FieldType::List(inner), _) => {
                 if !checked_types.contains(&inner.to_string()) {
                     stack.push(inner.as_ref().clone());
                 }
