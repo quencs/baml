@@ -37,14 +37,37 @@ func castOptional[T any](result any, castResult func(any) T) *T {
 	return &val
 }
 
+type callOption struct {
+	clientRegistry *baml.ClientRegistry
+}
+
+type CallOptionFunc func(*callOption)
+
+func WithClientRegistry(clientRegistry *baml.ClientRegistry) CallOptionFunc {
+	return func(o *callOption) {
+		o.clientRegistry = clientRegistry
+	}
+}
+
+
 {% for fn in funcs %}
 
 func {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
         , {{name}} {{type}}
-        {%- endfor %}) (*{{ fn.return_type }}, error) {
+        {%- endfor %}, opts ...CallOptionFunc) (*{{ fn.return_type }}, error) {
 	args := baml.BamlFunctionArguments{
 		Kwargs: map[string]any{ {% for (name, type) in fn.args -%}"{{name}}": {{name}},{% endfor %} },
 	}
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
 		panic(err)
