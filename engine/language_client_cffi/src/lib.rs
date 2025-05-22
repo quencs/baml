@@ -382,7 +382,7 @@ fn call_collector_function_inner(
 
             match function_name.as_str() {
                 "destroy" => {
-                    let _ = unsafe { Box::from_raw(usage) };
+                    let _ = unsafe { Box::from_raw(object as *mut Usage) };
                     Ok(null())
                 }
                 "input_tokens" => Ok(usage.input_tokens.unwrap_or_default() as *mut libc::c_void),
