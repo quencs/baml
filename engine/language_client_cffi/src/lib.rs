@@ -1,14 +1,18 @@
 /// cbindgen:ignore
 mod ctypes;
 
+mod raw_ptr_wrapper;
+
 use std::ops::Deref;
 use std::{collections::HashMap, ffi::CStr, ptr::null, sync::Arc};
-
 use anyhow::Result;
 use baml_runtime::client_registry::ClientRegistry;
 use baml_runtime::tracingv2::storage::storage::{Collector, Usage};
 use baml_runtime::{BamlRuntime, FunctionResult};
 use once_cell::sync::{Lazy, OnceCell};
+use raw_ptr_wrapper::CollectorWrapper;
+
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 struct BamlFunctionArguments {
@@ -206,18 +210,14 @@ fn call_function_from_c_inner(
     let buffer = unsafe { std::slice::from_raw_parts(encoded_args as *const u8, length) };
     let function_args = ctypes::buffer_to_cffi_function_arguments(buffer)?;
 
-    let collector_ptrs = collectors as *const *const libc::c_void;
+    // let runtime = unsafe { &*(runtime as *const BamlRuntime) };
+    let collector_ptrs = unsafe { std::slice::from_raw_parts(collectors as *const *const libc::c_void, collectors_length) };
     let collectors = match collectors_length {
         0 => None,
         _ => Some(
-            unsafe { std::slice::from_raw_parts(collector_ptrs, collectors_length) }
+            collector_ptrs
                 .iter()
-                .map(|c| unsafe {
-                    let collector = Arc::from_raw(*c as *const Collector);
-                    let clone = collector.clone();
-                    let _ = Arc::into_raw(clone);
-                    collector
-                })
+                .map(|c|  CollectorWrapper::from_raw(*c, true))
                 .collect::<Vec<_>>(),
         ),
     };
@@ -235,7 +235,7 @@ fn call_function_from_c_inner(
                 &ctx,
                 None,
                 function_args.client_registry.as_ref(),
-                collectors,
+                collectors.map(|c| c.iter().map(|c| c.deref().clone()).collect()),
             )
             .await;
         safe_trigger_callback(id, true, result);
@@ -357,13 +357,12 @@ fn call_collector_function_inner(
 
     match object_type.as_str() {
         "collector" => {
-            let collector = unsafe { Arc::from_raw(object as *const Collector) };
-            let clone = collector.clone();
-            let _ = Arc::into_raw(clone);
+            let collector = CollectorWrapper::from_raw(object, true);
 
             match function_name.as_str() {
                 "destroy" => {
-                    let _ = collector.deref();
+                    collector.destroy();
+                    // collector goes out of scope here
                     Ok(null())
                 }
                 "usage" => {
