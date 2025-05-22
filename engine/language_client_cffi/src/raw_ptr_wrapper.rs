@@ -17,10 +17,6 @@ impl<T> RawPtrWrapper<T> {
     pub fn destroy(self) {
         self.persist.store(false, std::sync::atomic::Ordering::Relaxed);
     }
-
-    pub fn inner(&self) -> &Arc<T> {
-        &self.inner
-    }
 }
 
 impl<T> Deref for RawPtrWrapper<T> {
