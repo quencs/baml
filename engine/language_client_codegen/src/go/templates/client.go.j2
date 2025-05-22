@@ -39,6 +39,7 @@ func castOptional[T any](result any, castResult func(any) T) *T {
 
 type callOption struct {
 	clientRegistry *baml.ClientRegistry
+	collectors []*baml.Collector
 }
 
 type CallOptionFunc func(*callOption)
@@ -46,6 +47,15 @@ type CallOptionFunc func(*callOption)
 func WithClientRegistry(clientRegistry *baml.ClientRegistry) CallOptionFunc {
 	return func(o *callOption) {
 		o.clientRegistry = clientRegistry
+	}
+}
+
+func WithCollector(collector *baml.Collector) CallOptionFunc {
+	return func(o *callOption) {
+		if o.collectors == nil {
+			o.collectors = []*baml.Collector{}
+		}
+		o.collectors = append(o.collectors, collector)
 	}
 }
 
@@ -79,7 +89,7 @@ func {{ fn.name }}(ctx context.Context{% for (name, type) in fn.args -%}
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "{{ fn.name }}", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "{{ fn.name }}", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}

@@ -23,9 +23,12 @@ void SetRegisterCallbacksFn(void *fn);
 void WrapRegisterCallbacks(CallbackFn callback_fn, CallbackFn error_callback_fn);
 
 void SetCallFunctionFromCFn(void *fn);
-const void *WrapCallFunctionFromC(const void *runtime, const char *function_name, const char *encoded_args, uintptr_t length, uint32_t id);
+const void *WrapCallFunctionFromC(const void *runtime, const char *function_name, const char *encoded_args, uintptr_t length, uint32_t id, const void *const *collectors, uint32_t collectors_length);
 
 void SetCallFunctionStreamFromCFn(void *fn);
 const void *WrapCallFunctionStreamFromC(const void *runtime, const char *function_name, const char *encoded_args, uintptr_t length, uint32_t id);
+
+void SetCallCollectorFunctionFn(void *fn);
+const void *WrapCallCollectorFunction(const void *object, const char *object_type, const char *function_name);
 
 #endif // BAML_CFFI_WRAPPER_H

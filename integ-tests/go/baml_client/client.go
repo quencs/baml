@@ -49,6 +49,7 @@ func castOptional[T any](result any, castResult func(any) T) *T {
 
 type callOption struct {
 	clientRegistry *baml.ClientRegistry
+	collectors     []*baml.Collector
 }
 
 type CallOptionFunc func(*callOption)
@@ -56,6 +57,15 @@ type CallOptionFunc func(*callOption)
 func WithClientRegistry(clientRegistry *baml.ClientRegistry) CallOptionFunc {
 	return func(o *callOption) {
 		o.clientRegistry = clientRegistry
+	}
+}
+
+func WithCollector(collector *baml.Collector) CallOptionFunc {
+	return func(o *callOption) {
+		if o.collectors == nil {
+			o.collectors = []*baml.Collector{}
+		}
+		o.collectors = append(o.collectors, collector)
 	}
 }
 
@@ -77,7 +87,7 @@ func AaaSamOutputFormat(ctx context.Context, recipe string, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AaaSamOutputFormat", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AaaSamOutputFormat", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +159,7 @@ func AliasThatPointsToRecursiveType(ctx context.Context, data types.LinkedListAl
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AliasThatPointsToRecursiveType", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasThatPointsToRecursiveType", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +231,7 @@ func AliasWithMultipleAttrs(ctx context.Context, money int64, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AliasWithMultipleAttrs", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasWithMultipleAttrs", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +303,7 @@ func AliasedInputClass(ctx context.Context, input types.InputClass, opts ...Call
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClass", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClass", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +375,7 @@ func AliasedInputClass2(ctx context.Context, input types.InputClass, opts ...Cal
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClass2", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClass2", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +447,7 @@ func AliasedInputClassNested(ctx context.Context, input types.InputClassNested, 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClassNested", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputClassNested", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -509,7 +519,7 @@ func AliasedInputEnum(ctx context.Context, input types.AliasedEnum, opts ...Call
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputEnum", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputEnum", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -581,7 +591,7 @@ func AliasedInputList(ctx context.Context, input []types.AliasedEnum, opts ...Ca
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputList", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AliasedInputList", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -653,7 +663,7 @@ func AllowedOptionals(ctx context.Context, optionals types.OptionalListAndMap, o
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AllowedOptionals", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AllowedOptionals", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -725,7 +735,7 @@ func AssertFn(ctx context.Context, a int64, opts ...CallOptionFunc) (*int64, err
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AssertFn", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AssertFn", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -797,7 +807,7 @@ func AudioInput(ctx context.Context, aud any, opts ...CallOptionFunc) (*string, 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AudioInput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AudioInput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -869,7 +879,7 @@ func AudioInputOpenai(ctx context.Context, aud any, prompt string, opts ...CallO
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "AudioInputOpenai", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "AudioInputOpenai", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -941,7 +951,7 @@ func BuildLinkedList(ctx context.Context, input []int64, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "BuildLinkedList", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "BuildLinkedList", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1013,7 +1023,7 @@ func BuildTree(ctx context.Context, input types.BinaryNode, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "BuildTree", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "BuildTree", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1085,7 +1095,7 @@ func ClassThatPointsToRecursiveClassThroughAlias(ctx context.Context, cls types.
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ClassThatPointsToRecursiveClassThroughAlias", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassThatPointsToRecursiveClassThroughAlias", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1157,7 +1167,7 @@ func ClassifyDynEnumTwo(ctx context.Context, input string, opts ...CallOptionFun
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ClassifyDynEnumTwo", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassifyDynEnumTwo", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1229,7 +1239,7 @@ func ClassifyMessage(ctx context.Context, input string, opts ...CallOptionFunc) 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1301,7 +1311,7 @@ func ClassifyMessage2(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage2", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage2", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1373,7 +1383,7 @@ func ClassifyMessage3(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage3", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ClassifyMessage3", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1445,7 +1455,7 @@ func Completion(ctx context.Context, prefix string, suffix string, language stri
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "Completion", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "Completion", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1517,7 +1527,7 @@ func CustomTask(ctx context.Context, input string, opts ...CallOptionFunc) (*typ
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "CustomTask", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "CustomTask", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1589,7 +1599,7 @@ func DescribeImage(ctx context.Context, img any, opts ...CallOptionFunc) (*strin
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1661,7 +1671,7 @@ func DescribeImage2(ctx context.Context, classWithImage types.ClassWithImage, im
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage2", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage2", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1733,7 +1743,7 @@ func DescribeImage3(ctx context.Context, classWithImage types.ClassWithImage, im
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage3", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage3", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1805,7 +1815,7 @@ func DescribeImage4(ctx context.Context, classWithImage types.ClassWithImage, im
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage4", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeImage4", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1877,7 +1887,7 @@ func DescribeMedia1599(ctx context.Context, img any, client_sector string, clien
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DescribeMedia1599", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DescribeMedia1599", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -1949,7 +1959,7 @@ func DifferentiateUnions(ctx context.Context, opts ...CallOptionFunc) (*types.Un
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DifferentiateUnions", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DifferentiateUnions", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2021,7 +2031,7 @@ func DummyOutputFunction(ctx context.Context, input string, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DummyOutputFunction", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DummyOutputFunction", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2093,7 +2103,7 @@ func DynamicFunc(ctx context.Context, input types.DynamicClassOne, opts ...CallO
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DynamicFunc", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DynamicFunc", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2165,7 +2175,7 @@ func DynamicInputOutput(ctx context.Context, input types.DynInputOutput, opts ..
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DynamicInputOutput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DynamicInputOutput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2237,7 +2247,7 @@ func DynamicListInputOutput(ctx context.Context, input []types.DynInputOutput, o
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "DynamicListInputOutput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "DynamicListInputOutput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2309,7 +2319,7 @@ func ExpectFailure(ctx context.Context, opts ...CallOptionFunc) (*string, error)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExpectFailure", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExpectFailure", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2381,7 +2391,7 @@ func ExtractContactInfo(ctx context.Context, document string, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExtractContactInfo", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractContactInfo", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2453,7 +2463,7 @@ func ExtractEntities(ctx context.Context, text string, opts ...CallOptionFunc) (
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExtractEntities", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractEntities", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2525,7 +2535,7 @@ func ExtractHobby(ctx context.Context, text string, opts ...CallOptionFunc) ([]t
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExtractHobby", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractHobby", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2597,7 +2607,7 @@ func ExtractNames(ctx context.Context, input string, opts ...CallOptionFunc) ([]
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExtractNames", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractNames", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2669,7 +2679,7 @@ func ExtractPeople(ctx context.Context, text string, opts ...CallOptionFunc) ([]
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExtractPeople", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractPeople", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2741,7 +2751,7 @@ func ExtractReceiptInfo(ctx context.Context, email string, reason types.Union__s
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExtractReceiptInfo", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractReceiptInfo", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2813,7 +2823,7 @@ func ExtractResume(ctx context.Context, resume string, img *any, opts ...CallOpt
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExtractResume", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractResume", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2885,7 +2895,7 @@ func ExtractResume2(ctx context.Context, resume string, opts ...CallOptionFunc) 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ExtractResume2", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ExtractResume2", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -2957,7 +2967,7 @@ func FnClassOptionalOutput(ctx context.Context, input string, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnClassOptionalOutput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnClassOptionalOutput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3031,7 +3041,7 @@ func FnClassOptionalOutput2(ctx context.Context, input string, opts ...CallOptio
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnClassOptionalOutput2", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnClassOptionalOutput2", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3105,7 +3115,7 @@ func FnEnumListOutput(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnEnumListOutput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnEnumListOutput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3177,7 +3187,7 @@ func FnEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (*t
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnEnumOutput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnEnumOutput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3249,7 +3259,7 @@ func FnLiteralClassInputOutput(ctx context.Context, input types.LiteralClassHell
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnLiteralClassInputOutput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnLiteralClassInputOutput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3321,7 +3331,7 @@ func FnLiteralUnionClassInputOutput(ctx context.Context, input types.Union__Lite
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnLiteralUnionClassInputOutput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnLiteralUnionClassInputOutput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3393,7 +3403,7 @@ func FnNamedArgsSingleStringOptional(ctx context.Context, myString *string, opts
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnNamedArgsSingleStringOptional", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnNamedArgsSingleStringOptional", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3465,7 +3475,7 @@ func FnOutputBool(ctx context.Context, input string, opts ...CallOptionFunc) (*b
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputBool", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputBool", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3537,7 +3547,7 @@ func FnOutputClass(ctx context.Context, input string, opts ...CallOptionFunc) (*
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClass", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClass", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3609,7 +3619,7 @@ func FnOutputClassList(ctx context.Context, input string, opts ...CallOptionFunc
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassList", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassList", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3681,7 +3691,7 @@ func FnOutputClassNested(ctx context.Context, input string, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassNested", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassNested", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3753,7 +3763,7 @@ func FnOutputClassWithEnum(ctx context.Context, input string, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassWithEnum", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputClassWithEnum", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3825,7 +3835,7 @@ func FnOutputInt(ctx context.Context, input string, opts ...CallOptionFunc) (*in
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputInt", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputInt", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3897,7 +3907,7 @@ func FnOutputLiteralBool(ctx context.Context, input string, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralBool", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralBool", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -3969,7 +3979,7 @@ func FnOutputLiteralInt(ctx context.Context, input string, opts ...CallOptionFun
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralInt", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralInt", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4041,7 +4051,7 @@ func FnOutputLiteralString(ctx context.Context, input string, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralString", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputLiteralString", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4113,7 +4123,7 @@ func FnOutputStringList(ctx context.Context, input string, opts ...CallOptionFun
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnOutputStringList", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnOutputStringList", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4185,7 +4195,7 @@ func FnTestAliasedEnumOutput(ctx context.Context, input string, opts ...CallOpti
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnTestAliasedEnumOutput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnTestAliasedEnumOutput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4257,7 +4267,7 @@ func FnTestClassAlias(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnTestClassAlias", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnTestClassAlias", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4329,7 +4339,7 @@ func FnTestNamedArgsSingleEnum(ctx context.Context, myArg types.NamedArgsSingleE
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "FnTestNamedArgsSingleEnum", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "FnTestNamedArgsSingleEnum", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4401,7 +4411,7 @@ func GetDataType(ctx context.Context, text string, opts ...CallOptionFunc) (*typ
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "GetDataType", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "GetDataType", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4473,7 +4483,7 @@ func GetOrderInfo(ctx context.Context, email types.Email, opts ...CallOptionFunc
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "GetOrderInfo", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "GetOrderInfo", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4545,7 +4555,7 @@ func GetQuery(ctx context.Context, query string, opts ...CallOptionFunc) (*types
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "GetQuery", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "GetQuery", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4617,7 +4627,7 @@ func InOutEnumMapKey(ctx context.Context, i1 map[types.MapKey]string, i2 map[typ
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "InOutEnumMapKey", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "InOutEnumMapKey", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4689,7 +4699,7 @@ func InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.Union__stri
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "InOutLiteralStringUnionMapKey", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "InOutLiteralStringUnionMapKey", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4761,7 +4771,7 @@ func InOutSingleLiteralStringMapKey(ctx context.Context, m map[string]string, op
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "InOutSingleLiteralStringMapKey", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "InOutSingleLiteralStringMapKey", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4833,7 +4843,7 @@ func JsonTypeAliasCycle(ctx context.Context, input types.JsonValue, opts ...Call
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "JsonTypeAliasCycle", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "JsonTypeAliasCycle", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4905,7 +4915,7 @@ func LLMEcho(ctx context.Context, input string, opts ...CallOptionFunc) (*string
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "LLMEcho", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "LLMEcho", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -4977,7 +4987,7 @@ func LiteralUnionsTest(ctx context.Context, input string, opts ...CallOptionFunc
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "LiteralUnionsTest", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "LiteralUnionsTest", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5049,7 +5059,7 @@ func MakeBlockConstraint(ctx context.Context, opts ...CallOptionFunc) (*types.Ch
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "MakeBlockConstraint", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "MakeBlockConstraint", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5121,7 +5131,7 @@ func MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFunc) (*types
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "MakeClassWithBlockDone", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "MakeClassWithBlockDone", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5193,7 +5203,7 @@ func MakeClassWithExternalDone(ctx context.Context, opts ...CallOptionFunc) (*ty
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "MakeClassWithExternalDone", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "MakeClassWithExternalDone", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5265,7 +5275,7 @@ func MakeNestedBlockConstraint(ctx context.Context, opts ...CallOptionFunc) (*ty
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "MakeNestedBlockConstraint", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "MakeNestedBlockConstraint", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5337,7 +5347,7 @@ func MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc) (*types.
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "MakeSemanticContainer", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "MakeSemanticContainer", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5409,7 +5419,7 @@ func MapAlias(ctx context.Context, m map[string][]string, opts ...CallOptionFunc
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "MapAlias", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "MapAlias", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5481,7 +5491,7 @@ func MergeAliasAttributes(ctx context.Context, money int64, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "MergeAliasAttributes", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "MergeAliasAttributes", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5553,7 +5563,7 @@ func MyFunc(ctx context.Context, input string, opts ...CallOptionFunc) (*types.D
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "MyFunc", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "MyFunc", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5625,7 +5635,7 @@ func NestedAlias(ctx context.Context, c types.Union__int__string__bool__float__L
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "NestedAlias", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "NestedAlias", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5697,7 +5707,7 @@ func NullLiteralClassHello(ctx context.Context, s string, opts ...CallOptionFunc
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "NullLiteralClassHello", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "NullLiteralClassHello", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5769,7 +5779,7 @@ func OpenAIWithAnthropicResponseHello(ctx context.Context, s string, opts ...Cal
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "OpenAIWithAnthropicResponseHello", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "OpenAIWithAnthropicResponseHello", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5841,7 +5851,7 @@ func OptionalTest_Function(ctx context.Context, input string, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "OptionalTest_Function", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "OptionalTest_Function", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5913,7 +5923,7 @@ func PredictAge(ctx context.Context, name string, opts ...CallOptionFunc) (*type
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PredictAge", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PredictAge", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -5985,7 +5995,7 @@ func PredictAgeBare(ctx context.Context, inp string, opts ...CallOptionFunc) (*t
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PredictAgeBare", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PredictAgeBare", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6057,7 +6067,7 @@ func PrimitiveAlias(ctx context.Context, p types.Union__int__string__bool__float
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PrimitiveAlias", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PrimitiveAlias", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6129,7 +6139,7 @@ func PromptTestClaude(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaude", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaude", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6201,7 +6211,7 @@ func PromptTestClaudeChat(ctx context.Context, input string, opts ...CallOptionF
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaudeChat", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaudeChat", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6273,7 +6283,7 @@ func PromptTestClaudeChatNoSystem(ctx context.Context, input string, opts ...Cal
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaudeChatNoSystem", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestClaudeChatNoSystem", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6345,7 +6355,7 @@ func PromptTestOpenAI(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAI", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAI", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6417,7 +6427,7 @@ func PromptTestOpenAIChat(ctx context.Context, input string, opts ...CallOptionF
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAIChat", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAIChat", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6489,7 +6499,7 @@ func PromptTestOpenAIChatNoSystem(ctx context.Context, input string, opts ...Cal
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAIChatNoSystem", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestOpenAIChatNoSystem", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6561,7 +6571,7 @@ func PromptTestStreaming(ctx context.Context, input string, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "PromptTestStreaming", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "PromptTestStreaming", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6633,7 +6643,7 @@ func RecursiveAliasCycle(ctx context.Context, input types.RecAliasOne, opts ...C
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "RecursiveAliasCycle", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "RecursiveAliasCycle", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6705,7 +6715,7 @@ func RecursiveClassWithAliasIndirection(ctx context.Context, cls types.NodeWithA
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "RecursiveClassWithAliasIndirection", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "RecursiveClassWithAliasIndirection", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6777,7 +6787,7 @@ func RecursiveUnionTest(ctx context.Context, input types.RecursiveUnion, opts ..
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "RecursiveUnionTest", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "RecursiveUnionTest", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6849,7 +6859,7 @@ func ReturnAliasWithMergedAttributes(ctx context.Context, money int64, opts ...C
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ReturnAliasWithMergedAttributes", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ReturnAliasWithMergedAttributes", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6921,7 +6931,7 @@ func ReturnFailingAssert(ctx context.Context, inp int64, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ReturnFailingAssert", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ReturnFailingAssert", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -6993,7 +7003,7 @@ func ReturnJsonEntry(ctx context.Context, s string, opts ...CallOptionFunc) (*ty
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ReturnJsonEntry", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ReturnJsonEntry", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7065,7 +7075,7 @@ func ReturnMalformedConstraints(ctx context.Context, a int64, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "ReturnMalformedConstraints", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "ReturnMalformedConstraints", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7137,7 +7147,7 @@ func SchemaDescriptions(ctx context.Context, input string, opts ...CallOptionFun
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "SchemaDescriptions", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "SchemaDescriptions", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7209,7 +7219,7 @@ func SimpleRecursiveListAlias(ctx context.Context, input types.RecursiveListAlia
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "SimpleRecursiveListAlias", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "SimpleRecursiveListAlias", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7281,7 +7291,7 @@ func SimpleRecursiveMapAlias(ctx context.Context, input types.RecursiveMapAlias,
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "SimpleRecursiveMapAlias", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "SimpleRecursiveMapAlias", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7353,7 +7363,7 @@ func StreamBigNumbers(ctx context.Context, digits int64, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "StreamBigNumbers", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamBigNumbers", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7425,7 +7435,7 @@ func StreamFailingAssertion(ctx context.Context, theme string, length int64, opt
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "StreamFailingAssertion", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamFailingAssertion", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7497,7 +7507,7 @@ func StreamFailingCheck(ctx context.Context, theme string, length int64, opts ..
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "StreamFailingCheck", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamFailingCheck", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7569,7 +7579,7 @@ func StreamOneBigNumber(ctx context.Context, digits int64, opts ...CallOptionFun
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "StreamOneBigNumber", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamOneBigNumber", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7641,7 +7651,7 @@ func StreamUnionIntegers(ctx context.Context, digits int64, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "StreamUnionIntegers", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamUnionIntegers", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7713,7 +7723,7 @@ func StreamingCompoundNumbers(ctx context.Context, digits int64, yapping bool, o
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "StreamingCompoundNumbers", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "StreamingCompoundNumbers", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7785,7 +7795,7 @@ func StructureDocument1559(ctx context.Context, document_txt string, opts ...Cal
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "StructureDocument1559", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "StructureDocument1559", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7857,7 +7867,7 @@ func TakeRecAliasDep(ctx context.Context, input types.RecursiveAliasDependency, 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TakeRecAliasDep", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TakeRecAliasDep", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -7929,7 +7939,7 @@ func TellStory(ctx context.Context, story string, opts ...CallOptionFunc) (*stri
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TellStory", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TellStory", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8001,7 +8011,7 @@ func TestAnthropic(ctx context.Context, input string, opts ...CallOptionFunc) (*
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAnthropic", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAnthropic", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8073,7 +8083,7 @@ func TestAnthropicShorthand(ctx context.Context, input string, opts ...CallOptio
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAnthropicShorthand", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAnthropicShorthand", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8145,7 +8155,7 @@ func TestAws(ctx context.Context, input string, opts ...CallOptionFunc) (*string
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAws", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAws", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8217,7 +8227,7 @@ func TestAwsClaude37(ctx context.Context, input string, opts ...CallOptionFunc) 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAwsClaude37", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsClaude37", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8289,7 +8299,7 @@ func TestAwsInferenceProfile(ctx context.Context, input string, opts ...CallOpti
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInferenceProfile", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInferenceProfile", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8361,7 +8371,7 @@ func TestAwsInvalidAccessKey(ctx context.Context, input string, opts ...CallOpti
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidAccessKey", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidAccessKey", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8433,7 +8443,7 @@ func TestAwsInvalidProfile(ctx context.Context, input string, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidProfile", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidProfile", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8505,7 +8515,7 @@ func TestAwsInvalidRegion(ctx context.Context, input string, opts ...CallOptionF
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidRegion", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidRegion", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8577,7 +8587,7 @@ func TestAwsInvalidSessionToken(ctx context.Context, input string, opts ...CallO
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidSessionToken", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAwsInvalidSessionToken", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8649,7 +8659,7 @@ func TestAzure(ctx context.Context, input string, opts ...CallOptionFunc) (*stri
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAzure", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzure", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8721,7 +8731,7 @@ func TestAzureFailure(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAzureFailure", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureFailure", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8793,7 +8803,7 @@ func TestAzureO1NoMaxTokens(ctx context.Context, input string, opts ...CallOptio
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1NoMaxTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1NoMaxTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8865,7 +8875,7 @@ func TestAzureO1WithMaxCompletionTokens(ctx context.Context, input string, opts 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1WithMaxCompletionTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1WithMaxCompletionTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -8937,7 +8947,7 @@ func TestAzureO1WithMaxTokens(ctx context.Context, input string, opts ...CallOpt
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1WithMaxTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO1WithMaxTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9009,7 +9019,7 @@ func TestAzureO3NoMaxTokens(ctx context.Context, input string, opts ...CallOptio
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO3NoMaxTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO3NoMaxTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9081,7 +9091,7 @@ func TestAzureO3WithMaxCompletionTokens(ctx context.Context, input string, opts 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO3WithMaxCompletionTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureO3WithMaxCompletionTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9153,7 +9163,7 @@ func TestAzureWithMaxTokens(ctx context.Context, input string, opts ...CallOptio
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestAzureWithMaxTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestAzureWithMaxTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9225,7 +9235,7 @@ func TestCaching(ctx context.Context, input string, not_cached string, opts ...C
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestCaching", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestCaching", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9297,7 +9307,7 @@ func TestFallbackClient(ctx context.Context, opts ...CallOptionFunc) (*string, e
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackClient", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackClient", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9369,7 +9379,7 @@ func TestFallbackStrategy(ctx context.Context, input string, opts ...CallOptionF
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackStrategy", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackStrategy", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9441,7 +9451,7 @@ func TestFallbackToShorthand(ctx context.Context, input string, opts ...CallOpti
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackToShorthand", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFallbackToShorthand", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9513,7 +9523,7 @@ func TestFnNamedArgsSingleBool(ctx context.Context, myBool bool, opts ...CallOpt
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleBool", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleBool", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9585,7 +9595,7 @@ func TestFnNamedArgsSingleClass(ctx context.Context, myArg types.NamedArgsSingle
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleClass", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleClass", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9657,7 +9667,7 @@ func TestFnNamedArgsSingleEnumList(ctx context.Context, myArg []types.NamedArgsS
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleEnumList", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleEnumList", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9729,7 +9739,7 @@ func TestFnNamedArgsSingleFloat(ctx context.Context, myFloat float64, opts ...Ca
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleFloat", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleFloat", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9801,7 +9811,7 @@ func TestFnNamedArgsSingleInt(ctx context.Context, myInt int64, opts ...CallOpti
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleInt", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleInt", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9873,7 +9883,7 @@ func TestFnNamedArgsSingleMapStringToClass(ctx context.Context, myMap map[string
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToClass", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToClass", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -9945,7 +9955,7 @@ func TestFnNamedArgsSingleMapStringToMap(ctx context.Context, myMap map[string]m
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToMap", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToMap", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10017,7 +10027,7 @@ func TestFnNamedArgsSingleMapStringToString(ctx context.Context, myMap map[strin
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToString", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleMapStringToString", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10089,7 +10099,7 @@ func TestFnNamedArgsSingleString(ctx context.Context, myString string, opts ...C
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleString", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleString", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10161,7 +10171,7 @@ func TestFnNamedArgsSingleStringArray(ctx context.Context, myStringArray []strin
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleStringArray", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleStringArray", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10233,7 +10243,7 @@ func TestFnNamedArgsSingleStringList(ctx context.Context, myArg []string, opts .
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleStringList", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestFnNamedArgsSingleStringList", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10305,7 +10315,7 @@ func TestGemini(ctx context.Context, input string, opts ...CallOptionFunc) (*str
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestGemini", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGemini", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10377,7 +10387,7 @@ func TestGeminiOpenAiGeneric(ctx context.Context, opts ...CallOptionFunc) (*stri
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiOpenAiGeneric", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiOpenAiGeneric", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10449,7 +10459,7 @@ func TestGeminiSystem(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiSystem", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiSystem", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10521,7 +10531,7 @@ func TestGeminiSystemAsChat(ctx context.Context, input string, opts ...CallOptio
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiSystemAsChat", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGeminiSystemAsChat", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10593,7 +10603,7 @@ func TestGroq(ctx context.Context, input string, opts ...CallOptionFunc) (*strin
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestGroq", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestGroq", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10665,7 +10675,7 @@ func TestImageInput(ctx context.Context, img any, opts ...CallOptionFunc) (*stri
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestImageInput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestImageInput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10737,7 +10747,7 @@ func TestImageInputAnthropic(ctx context.Context, img any, opts ...CallOptionFun
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestImageInputAnthropic", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestImageInputAnthropic", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10809,7 +10819,7 @@ func TestImageListInput(ctx context.Context, imgs []any, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestImageListInput", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestImageListInput", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10881,7 +10891,7 @@ func TestMemory(ctx context.Context, input string, opts ...CallOptionFunc) (*typ
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestMemory", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestMemory", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -10953,7 +10963,7 @@ func TestMulticlassNamedArgs(ctx context.Context, myArg types.NamedArgsSingleCla
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestMulticlassNamedArgs", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestMulticlassNamedArgs", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11025,7 +11035,7 @@ func TestNamedArgsLiteralBool(ctx context.Context, myBool bool, opts ...CallOpti
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralBool", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralBool", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11097,7 +11107,7 @@ func TestNamedArgsLiteralInt(ctx context.Context, myInt int, opts ...CallOptionF
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralInt", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralInt", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11169,7 +11179,7 @@ func TestNamedArgsLiteralString(ctx context.Context, myString string, opts ...Ca
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralString", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestNamedArgsLiteralString", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11241,7 +11251,7 @@ func TestOllama(ctx context.Context, input string, opts ...CallOptionFunc) (**st
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOllama", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOllama", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11315,7 +11325,7 @@ func TestOllamaHaiku(ctx context.Context, input string, opts ...CallOptionFunc) 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOllamaHaiku", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOllamaHaiku", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11387,7 +11397,7 @@ func TestOpenAI(ctx context.Context, input string, opts ...CallOptionFunc) (*str
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAI", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAI", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11459,7 +11469,7 @@ func TestOpenAIDummyClient(ctx context.Context, input string, opts ...CallOption
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIDummyClient", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIDummyClient", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11531,7 +11541,7 @@ func TestOpenAIGPT4oMini(ctx context.Context, input string, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIGPT4oMini", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIGPT4oMini", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11603,7 +11613,7 @@ func TestOpenAILegacyProvider(ctx context.Context, input string, opts ...CallOpt
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAILegacyProvider", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAILegacyProvider", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11675,7 +11685,7 @@ func TestOpenAIO1NoMaxTokens(ctx context.Context, input string, opts ...CallOpti
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1NoMaxTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1NoMaxTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11747,7 +11757,7 @@ func TestOpenAIO1WithMaxCompletionTokens(ctx context.Context, input string, opts
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1WithMaxCompletionTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1WithMaxCompletionTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11819,7 +11829,7 @@ func TestOpenAIO1WithMaxTokens(ctx context.Context, input string, opts ...CallOp
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1WithMaxTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIO1WithMaxTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11891,7 +11901,7 @@ func TestOpenAIShorthand(ctx context.Context, input string, opts ...CallOptionFu
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIShorthand", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIShorthand", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -11963,7 +11973,7 @@ func TestOpenAIWithFinishReasonError(ctx context.Context, input string, opts ...
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithFinishReasonError", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithFinishReasonError", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12035,7 +12045,7 @@ func TestOpenAIWithMaxTokens(ctx context.Context, input string, opts ...CallOpti
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithMaxTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithMaxTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12107,7 +12117,7 @@ func TestOpenAIWithNullMaxTokens(ctx context.Context, input string, opts ...Call
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithNullMaxTokens", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIWithNullMaxTokens", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12179,7 +12189,7 @@ func TestOpenRouterMistralSmall3_1_24b(ctx context.Context, input string, opts .
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestOpenRouterMistralSmall3_1_24b", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenRouterMistralSmall3_1_24b", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12251,7 +12261,7 @@ func TestRetryConstant(ctx context.Context, opts ...CallOptionFunc) (*string, er
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestRetryConstant", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestRetryConstant", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12323,7 +12333,7 @@ func TestRetryExponential(ctx context.Context, opts ...CallOptionFunc) (*string,
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestRetryExponential", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestRetryExponential", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12395,7 +12405,7 @@ func TestRoundRobinStrategy(ctx context.Context, input string, opts ...CallOptio
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestRoundRobinStrategy", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestRoundRobinStrategy", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12467,7 +12477,7 @@ func TestSingleFallbackClient(ctx context.Context, opts ...CallOptionFunc) (*str
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestSingleFallbackClient", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestSingleFallbackClient", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12539,7 +12549,7 @@ func TestThinking(ctx context.Context, input string, opts ...CallOptionFunc) (*t
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestThinking", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestThinking", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12611,7 +12621,7 @@ func TestUniverseQuestion(ctx context.Context, question types.UniverseQuestionIn
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestUniverseQuestion", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestUniverseQuestion", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12683,7 +12693,7 @@ func TestVertex(ctx context.Context, input string, opts ...CallOptionFunc) (*str
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestVertex", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestVertex", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12755,7 +12765,7 @@ func TestVertexClaude(ctx context.Context, input string, opts ...CallOptionFunc)
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestVertexClaude", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestVertexClaude", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12827,7 +12837,7 @@ func TestVertexWithSystemInstructions(ctx context.Context, opts ...CallOptionFun
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "TestVertexWithSystemInstructions", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "TestVertexWithSystemInstructions", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12899,7 +12909,7 @@ func UnionTest_Function(ctx context.Context, input types.Union__string__bool, op
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "UnionTest_Function", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "UnionTest_Function", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -12971,7 +12981,7 @@ func UseBlockConstraint(ctx context.Context, inp types.BlockConstraintForParam, 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "UseBlockConstraint", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "UseBlockConstraint", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -13043,7 +13053,7 @@ func UseMaintainFieldOrder(ctx context.Context, input types.MaintainFieldOrder, 
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "UseMaintainFieldOrder", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "UseMaintainFieldOrder", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -13115,7 +13125,7 @@ func UseMalformedConstraints(ctx context.Context, a types.MalformedConstraints2,
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "UseMalformedConstraints", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "UseMalformedConstraints", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}
@@ -13187,7 +13197,7 @@ func UseNestedBlockConstraint(ctx context.Context, inp types.NestedBlockConstrai
 	if err != nil {
 		panic(err)
 	}
-	result, err := bamlRuntime.CallFunction(ctx, "UseNestedBlockConstraint", encoded)
+	result, err := bamlRuntime.CallFunction(ctx, "UseNestedBlockConstraint", encoded, callOpts.collectors)
 	if err != nil {
 		return nil, err
 	}

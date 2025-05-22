@@ -1,13 +1,14 @@
 /// cbindgen:ignore
 mod ctypes;
 
+use std::ops::Deref;
 use std::{collections::HashMap, ffi::CStr, ptr::null, sync::Arc};
 
 use anyhow::Result;
 use baml_runtime::client_registry::ClientRegistry;
+use baml_runtime::tracingv2::storage::storage::{Collector, Usage};
 use baml_runtime::{BamlRuntime, FunctionResult};
 use once_cell::sync::{Lazy, OnceCell};
-
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 struct BamlFunctionArguments {
@@ -162,8 +163,18 @@ pub extern "C" fn call_function_from_c(
     encoded_args: *const libc::c_char,
     length: usize,
     id: u32,
+    collectors: *const libc::c_void,
+    collectors_length: usize,
 ) -> *const libc::c_void {
-    match call_function_from_c_inner(runtime, function_name, encoded_args, length, id) {
+    match call_function_from_c_inner(
+        runtime,
+        function_name,
+        encoded_args,
+        length,
+        id,
+        collectors,
+        collectors_length,
+    ) {
         Ok(_) => null(),
         Err(e) => {
             Box::into_raw(Box::new(CString::new(e.to_string()).unwrap())) as *const libc::c_void
@@ -177,6 +188,8 @@ fn call_function_from_c_inner(
     encoded_args: *const libc::c_char,
     length: usize,
     id: u32,
+    collectors: *const libc::c_void,
+    collectors_length: usize,
 ) -> Result<()> {
     // Safety: assume that the pointers provided are valid.
     let runtime = unsafe { &*(runtime as *const BamlRuntime) };
@@ -193,6 +206,22 @@ fn call_function_from_c_inner(
     let buffer = unsafe { std::slice::from_raw_parts(encoded_args as *const u8, length) };
     let function_args = ctypes::buffer_to_cffi_function_arguments(buffer)?;
 
+    let collector_ptrs = collectors as *const *const libc::c_void;
+    let collectors = match collectors_length {
+        0 => None,
+        _ => Some(
+            unsafe { std::slice::from_raw_parts(collector_ptrs, collectors_length) }
+                .iter()
+                .map(|c| unsafe {
+                    let collector = Arc::from_raw(*c as *const Collector);
+                    let clone = collector.clone();
+                    let _ = Arc::into_raw(clone);
+                    collector
+                })
+                .collect::<Vec<_>>(),
+        ),
+    };
+
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
 
     // Spawn an async task to await the future and call the callback when done.
@@ -206,7 +235,7 @@ fn call_function_from_c_inner(
                 &ctx,
                 None,
                 function_args.client_registry.as_ref(),
-                None,
+                collectors,
             )
             .await;
         safe_trigger_callback(id, true, result);
@@ -278,4 +307,97 @@ fn call_function_stream_from_c_inner(
 
 fn on_event(id: u32, result: FunctionResult) {
     safe_trigger_callback(id, true, Ok(result));
+}
+
+#[no_mangle]
+pub extern "C" fn call_collector_function(
+    object: *const libc::c_void,
+    object_type: *const c_char,
+    function_name: *const c_char,
+) -> *const libc::c_void {
+    match call_collector_function_inner(object, object_type, function_name) {
+        Ok(result) => result,
+        Err(e) => {
+            Box::into_raw(Box::new(CString::new(e.to_string()).unwrap())) as *const libc::c_void
+        }
+    }
+}
+
+fn call_collector_function_inner(
+    object: *const libc::c_void,
+    object_type: *const c_char,
+    function_name: *const c_char,
+) -> Result<*const libc::c_void> {
+    let object_type = match unsafe { CStr::from_ptr(object_type) }.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(_) => {
+            return Err(anyhow::anyhow!("Failed to convert object type to string"));
+        }
+    };
+
+    let function_name = match unsafe { CStr::from_ptr(function_name) }.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(_) => {
+            return Err(anyhow::anyhow!("Failed to convert function name to string"));
+        }
+    };
+
+    if object.is_null() {
+        return match (object_type.as_str(), function_name.as_str()) {
+            ("collector", "new") => {
+                let collector = Collector::new(None);
+                Ok(Arc::into_raw(Arc::new(collector)) as *const libc::c_void)
+            }
+            _ => Err(anyhow::anyhow!(
+                "Failed to call collector function: {}",
+                function_name
+            )),
+        };
+    }
+
+    match object_type.as_str() {
+        "collector" => {
+            let collector = unsafe { Arc::from_raw(object as *const Collector) };
+            let clone = collector.clone();
+            let _ = Arc::into_raw(clone);
+
+            match function_name.as_str() {
+                "destroy" => {
+                    let _ = collector.deref();
+                    Ok(null())
+                }
+                "usage" => {
+                    let usage = collector.usage();
+                    Ok(Box::into_raw(Box::new(usage)) as *const libc::c_void)
+                }
+                _ => Err(anyhow::anyhow!(
+                    "Failed to call function: {} on object type: {}",
+                    function_name,
+                    object_type
+                )),
+            }
+        }
+        "usage" => {
+            let usage = unsafe { Box::from_raw(object as *mut Usage) };
+
+            match function_name.as_str() {
+                "destroy" => {
+                    let _ = drop(usage);
+                    Ok(null())
+                }
+                "input_tokens" => Ok(usage.input_tokens.unwrap_or_default() as *mut libc::c_void),
+                "output_tokens" => Ok(usage.output_tokens.unwrap_or_default() as *mut libc::c_void),
+                _ => Err(anyhow::anyhow!(
+                    "Failed to call function: {} on object type: {}",
+                    function_name,
+                    object_type
+                )),
+            }
+        }
+        _ => Err(anyhow::anyhow!(
+            "Failed to call function: {} on object type: {}",
+            function_name,
+            object_type
+        )),
+    }
 }

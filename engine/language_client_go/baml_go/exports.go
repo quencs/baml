@@ -62,13 +62,28 @@ func RegisterCallbacks(callbackFn unsafe.Pointer, errorFn unsafe.Pointer) error 
 	return nil
 }
 
-func CallFunctionFromC(runtime unsafe.Pointer, functionName string, encodedArgs []byte, id uint32) (unsafe.Pointer, error) {
+func CallFunctionFromC(runtime unsafe.Pointer, functionName string, encodedArgs []byte, id uint32, collectors []unsafe.Pointer) (unsafe.Pointer, error) {
 	cFunctionName := C.CString(functionName)
 	defer C.free(unsafe.Pointer(cFunctionName))
 
 	cEncodedArgs := (*C.char)(unsafe.Pointer(&encodedArgs[0]))
 
-	result := C.WrapCallFunctionFromC(runtime, cFunctionName, cEncodedArgs, C.uintptr_t(len(encodedArgs)), C.uint32_t(id))
+	fmt.Printf("collectors: len=%d\n", len(collectors))
+	for i, c := range collectors {
+		fmt.Printf("  [%d] ptr=%p\n", i, c)
+	}
+
+	cCollectorArraySize := C.size_t(len(collectors)) * C.size_t(unsafe.Sizeof(uintptr(0)))
+	cCollectorArray := C.malloc(cCollectorArraySize)
+	defer C.free(cCollectorArray)
+
+	// Copy Go pointers into C array
+	collectorSlice := (*[1 << 30]unsafe.Pointer)(cCollectorArray)[:len(collectors):len(collectors)]
+	for i, ptr := range collectors {
+		collectorSlice[i] = ptr
+	}
+
+	result := C.WrapCallFunctionFromC(runtime, cFunctionName, cEncodedArgs, C.uintptr_t(len(encodedArgs)), C.uint32_t(id), (*unsafe.Pointer)(cCollectorArray), C.uint32_t(len(collectors)))
 
 	return result, nil
 }
@@ -82,4 +97,16 @@ func CallFunctionStreamFromC(runtime unsafe.Pointer, functionName string, encode
 	result := C.WrapCallFunctionStreamFromC(runtime, cFunctionName, cEncodedArgs, C.uintptr_t(len(encodedArgs)), C.uint32_t(id))
 
 	return result, nil
+}
+
+func CallCollectorFunction(object unsafe.Pointer, objectType string, functionName string) (unsafe.Pointer, error) {
+	cObjectType := C.CString(objectType)
+	defer C.free(unsafe.Pointer(cObjectType))
+
+	cFunctionName := C.CString(functionName)
+	defer C.free(unsafe.Pointer(cFunctionName))
+
+	pointer := C.WrapCallCollectorFunction(object, cObjectType, cFunctionName)
+
+	return pointer, nil
 }

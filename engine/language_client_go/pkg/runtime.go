@@ -30,7 +30,7 @@ type BamlFunctionArguments struct {
 
 type ClientRegistry struct {
 	primary *string
-	clients ClientRegistryMap
+	clients clientRegistryMap
 }
 
 type clientProperty struct {
@@ -39,12 +39,12 @@ type clientProperty struct {
 	options     map[string]any
 }
 
-type ClientRegistryMap map[string]clientProperty
+type clientRegistryMap map[string]clientProperty
 
 func NewClientRegistry() *ClientRegistry {
 	return &ClientRegistry{
 		primary: nil,
-		clients: ClientRegistryMap{},
+		clients: clientRegistryMap{},
 	}
 }
 
@@ -106,7 +106,7 @@ func CreateRuntime(
 	return BamlRuntime{runtime: runtime}, nil
 }
 
-func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, encoded_args []byte) (*ResultCallback, error) {
+func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, encoded_args []byte, collectors []*Collector) (*ResultCallback, error) {
 	callback_id, callback := create_unique_id(ctx)
 	return_channel := make(chan ResultCallback)
 	go func() {
@@ -123,7 +123,12 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, enc
 		}
 	}()
 
-	_, err := baml_go.CallFunctionFromC(r.runtime, functionName, encoded_args, callback_id)
+	collectorPointers := make([]unsafe.Pointer, len(collectors))
+	for i, collector := range collectors {
+		collectorPointers[i] = collector.c
+	}
+
+	_, err := baml_go.CallFunctionFromC(r.runtime, functionName, encoded_args, callback_id, collectorPointers)
 	if err != nil {
 		close(return_channel)
 		return nil, err
