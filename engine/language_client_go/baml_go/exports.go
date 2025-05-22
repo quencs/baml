@@ -68,11 +68,6 @@ func CallFunctionFromC(runtime unsafe.Pointer, functionName string, encodedArgs 
 
 	cEncodedArgs := (*C.char)(unsafe.Pointer(&encodedArgs[0]))
 
-	fmt.Printf("collectors: len=%d\n", len(collectors))
-	for i, c := range collectors {
-		fmt.Printf("  [%d] ptr=%p\n", i, c)
-	}
-
 	cCollectorArraySize := C.size_t(len(collectors)) * C.size_t(unsafe.Sizeof(uintptr(0)))
 	cCollectorArray := C.malloc(cCollectorArraySize)
 	defer C.free(cCollectorArray)

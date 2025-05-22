@@ -278,7 +278,7 @@ class Foo {
             true,
             GeneratorDefaultClientMode::Async,
             Vec::new(),
-            Some(GeneratorOutputType::Go),
+            GeneratorOutputType::Go,
             Some("example.com/integ-tests".to_string()),
             None,
         )
