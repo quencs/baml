@@ -27,7 +27,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	output_tokens, err := usage.OutputTokens()
+	if err != nil {
+		panic(err)
+	}
 	fmt.Printf("input_tokens: %d\n", input_tokens)
+	fmt.Printf("output_tokens: %d\n", output_tokens)
 
 	v2, err = b.AaaSamOutputFormat(ctx, "pineapple")
 	if err != nil {
