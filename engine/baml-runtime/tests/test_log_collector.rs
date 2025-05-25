@@ -102,6 +102,7 @@ mod internal_tests {
             None,
             // TODO: add an actual collector
             None,
+            HashMap::new(),
         );
 
         let (res, function_span_id) = runtime.async_runtime.block_on(call_function_future);
