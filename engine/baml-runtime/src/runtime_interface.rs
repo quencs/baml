@@ -62,6 +62,7 @@ pub trait ExperimentalTracingInterface {
         function_name: &str,
         params: &BamlMap<String, BamlValue>,
         ctx: &RuntimeContextManager,
+        env_vars: &HashMap<String, String>,
     ) -> Option<TracingSpan>;
 
     #[cfg(target_arch = "wasm32")]
@@ -71,6 +72,7 @@ pub trait ExperimentalTracingInterface {
         span: Option<TracingSpan>,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
+        env_vars: &HashMap<String, String>,
     ) -> Result<Option<uuid::Uuid>>;
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -79,6 +81,7 @@ pub trait ExperimentalTracingInterface {
         span: Option<TracingSpan>,
         result: &Result<FunctionResult>,
         ctx: &RuntimeContextManager,
+        env_vars: &HashMap<String, String>,
     ) -> Result<Option<uuid::Uuid>>;
 
     #[cfg(target_arch = "wasm32")]
@@ -88,6 +91,7 @@ pub trait ExperimentalTracingInterface {
         span: Option<TracingSpan>,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
+        env_vars: &HashMap<String, String>,
     ) -> Result<Option<uuid::Uuid>>;
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -96,6 +100,7 @@ pub trait ExperimentalTracingInterface {
         span: Option<TracingSpan>,
         result: Option<BamlValue>,
         ctx: &RuntimeContextManager,
+        env_vars: &HashMap<String, String>,
     ) -> Result<Option<uuid::Uuid>>;
 
     fn flush(&self) -> Result<()>;
