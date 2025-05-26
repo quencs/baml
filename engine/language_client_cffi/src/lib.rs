@@ -3,15 +3,20 @@ mod ctypes;
 
 mod raw_ptr_wrapper;
 
-use std::ops::Deref;
-use std::{collections::HashMap, ffi::CStr, ptr::null, sync::Arc};
 use anyhow::Result;
 use baml_runtime::client_registry::ClientRegistry;
-use baml_runtime::tracingv2::storage::storage::{Collector, Usage};
+use baml_runtime::tracingv2::storage::storage::{Collector, LLMCall, LLMStreamCall, Timing, Usage};
 use baml_runtime::{BamlRuntime, FunctionResult};
 use once_cell::sync::{Lazy, OnceCell};
-use raw_ptr_wrapper::CollectorWrapper;
-
+use raw_ptr_wrapper::{CollectorWrapper, FunctionLogWrapper};
+use std::ops::Deref;
+use std::ptr::null_mut;
+use std::{
+    collections::HashMap,
+    ffi::CStr,
+    ptr::null,
+    sync::{Arc, Mutex},
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -211,13 +216,15 @@ fn call_function_from_c_inner(
     let function_args = ctypes::buffer_to_cffi_function_arguments(buffer)?;
 
     // let runtime = unsafe { &*(runtime as *const BamlRuntime) };
-    let collector_ptrs = unsafe { std::slice::from_raw_parts(collectors as *const *const libc::c_void, collectors_length) };
+    let collector_ptrs = unsafe {
+        std::slice::from_raw_parts(collectors as *const *const libc::c_void, collectors_length)
+    };
     let collectors = match collectors_length {
         0 => None,
         _ => Some(
             collector_ptrs
                 .iter()
-                .map(|c|  CollectorWrapper::from_raw(*c, true))
+                .map(|c| CollectorWrapper::from_raw(*c, true))
                 .collect::<Vec<_>>(),
         ),
     };
@@ -369,6 +376,11 @@ fn call_collector_function_inner(
                     let usage = collector.usage();
                     Ok(Box::into_raw(Box::new(usage)) as *const libc::c_void)
                 }
+                "last" => {
+                    let last = collector.last_function_log();
+                    let wrapper = Arc::new(Mutex::new(last));
+                    Ok(Arc::into_raw(wrapper) as *const libc::c_void)
+                }
                 _ => Err(anyhow::anyhow!(
                     "Failed to call function: {} on object type: {}",
                     function_name,
@@ -384,8 +396,147 @@ fn call_collector_function_inner(
                     let _ = unsafe { Box::from_raw(object as *mut Usage) };
                     Ok(null())
                 }
+                // pretend this is an integer not a pointer, which is dirty but works for now
                 "input_tokens" => Ok(usage.input_tokens.unwrap_or_default() as *mut libc::c_void),
                 "output_tokens" => Ok(usage.output_tokens.unwrap_or_default() as *mut libc::c_void),
+                _ => Err(anyhow::anyhow!(
+                    "Failed to call function: {} on object type: {}",
+                    function_name,
+                    object_type
+                )),
+            }
+        }
+        "function_log" => {
+            let function_log = FunctionLogWrapper::from_raw(object, true);
+            match function_name.as_str() {
+                "id" => {
+                    let id = function_log.lock().unwrap().id().0;
+                    let c_id = CString::new(id).unwrap();
+                    Ok(c_id.into_raw() as *const libc::c_void)
+                }
+                "function_name" => {
+                    let function_name = function_log.lock().unwrap().function_name();
+                    let c_function_name = CString::new(function_name).unwrap();
+                    Ok(c_function_name.into_raw() as *const libc::c_void)
+                }
+                "log_type" => {
+                    let log_type = function_log.lock().unwrap().log_type();
+                    let c_log_type = CString::new(log_type.to_string()).unwrap();
+                    Ok(c_log_type.into_raw() as *const libc::c_void)
+                }
+                "raw_llm_response" => {
+                    let raw_llm_response = function_log.lock().unwrap().raw_llm_response();
+                    let c_raw_llm_response =
+                        CString::new(raw_llm_response.unwrap_or_default()).unwrap();
+                    Ok(c_raw_llm_response.into_raw() as *const libc::c_void)
+                }
+                "calls" => {
+                    let calls = function_log.lock().unwrap().calls();
+                    let c_calls = calls
+                        .iter()
+                        .map(|c| match c {
+                            baml_runtime::tracingv2::storage::storage::LLMCallKind::Basic(
+                                inner,
+                            ) => Box::into_raw(Box::new(inner.clone())) as *mut libc::c_void,
+                            baml_runtime::tracingv2::storage::storage::LLMCallKind::Stream(
+                                inner,
+                            ) => Box::into_raw(Box::new(inner.clone())) as *mut libc::c_void,
+                        })
+                        .chain(std::iter::once(null_mut()))
+                        .collect::<Vec<_>>();
+                    let c_calls_ptr = c_calls.as_ptr() as *const libc::c_void;
+                    // leak this so go can have it
+                    std::mem::forget(c_calls);
+                    Ok(c_calls_ptr)
+                }
+                "timing" => {
+                    let timing = function_log.lock().unwrap().timing();
+                    Ok(Box::into_raw(Box::new(timing)) as *const libc::c_void)
+                }
+                "usage" => {
+                    let usage = function_log.lock().unwrap().usage();
+                    Ok(Box::into_raw(Box::new(usage)) as *const libc::c_void)
+                }
+                "destroy" => {
+                    function_log.destroy();
+                    Ok(null())
+                }
+                _ => Err(anyhow::anyhow!(
+                    "Failed to call function: {} on object type: {}",
+                    function_name,
+                    object_type
+                )),
+            }
+        }
+        "timing" => {
+            let timing = unsafe { &mut *(object as *mut Timing) };
+            match function_name.as_str() {
+                "destroy" => {
+                    let _ = unsafe { Box::from_raw(object as *mut Timing) };
+                    Ok(null())
+                }
+                "start_time_utc_ms" => Ok(timing.start_time_utc_ms as *mut libc::c_void),
+                "duration_ms" => Ok(timing
+                    .duration_ms
+                    .map(|d| d as *mut libc::c_void)
+                    .unwrap_or(null_mut())),
+                _ => Err(anyhow::anyhow!(
+                    "Failed to call function: {} on object type: {}",
+                    function_name,
+                    object_type
+                )),
+            }
+        }
+        "llm_call" => {
+            let llm_call = unsafe { &mut *(object as *mut LLMCall) };
+            match function_name.as_str() {
+                "client_name" => {
+                    let c_client_name = CString::new(llm_call.client_name.clone()).unwrap();
+                    Ok(c_client_name.into_raw() as *const libc::c_void)
+                }
+                "provider" => {
+                    let c_provider = CString::new(llm_call.provider.clone()).unwrap();
+                    Ok(c_provider.into_raw() as *const libc::c_void)
+                }
+                "timing" => {
+                    let timing = llm_call.timing.clone();
+                    Ok(Box::into_raw(Box::new(timing)) as *const libc::c_void)
+                }
+                "usage" => {
+                    let usage = llm_call.usage.clone().unwrap();
+                    Ok(Box::into_raw(Box::new(usage)) as *const libc::c_void)
+                }
+                "destroy" => {
+                    let _ = unsafe { Box::from_raw(object as *mut LLMCall) };
+                    Ok(null())
+                }
+                _ => Err(anyhow::anyhow!(
+                    "Failed to call function: {} on object type: {}",
+                    function_name,
+                    object_type
+                )),
+            }
+        }
+        "string" => match function_name.as_str() {
+            "destroy" => {
+                let _ = unsafe { CString::from_raw(object as *mut c_char) };
+                Ok(null())
+            }
+            _ => Err(anyhow::anyhow!(
+                "Failed to call function: {} on object type: {}",
+                function_name,
+                object_type
+            )),
+        },
+        "list" => {
+            let ptrs = object as *mut *mut libc::c_void;
+            match function_name.as_str() {
+                "destroy" => {
+                    unsafe {
+                        drop(Box::from_raw(ptrs));
+                    }
+                    Ok(null())
+                }
                 _ => Err(anyhow::anyhow!(
                     "Failed to call function: {} on object type: {}",
                     function_name,
