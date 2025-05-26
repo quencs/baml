@@ -18,20 +18,114 @@ const llmCallType = "llm_call"
 type Collector struct {
 	c unsafe.Pointer
 }
+
+func (c *Collector) pointer() unsafe.Pointer {
+	return c.c
+}
+
+func (c *Collector) rustType() string {
+	return collectorType
+}
+
 type Usage struct {
 	c unsafe.Pointer
+}
+
+func (u *Usage) pointer() unsafe.Pointer {
+	return u.c
+}
+
+func (u *Usage) rustType() string {
+	return usageType
+}
+
+func createUsage(c unsafe.Pointer) *Usage {
+	return &Usage{
+		c: c,
+	}
 }
 
 type FunctionLog struct {
 	c unsafe.Pointer
 }
 
+func (f *FunctionLog) pointer() unsafe.Pointer {
+	return f.c
+}
+
+func (f *FunctionLog) rustType() string {
+	return functionLogType
+}
+
+func createFunctionLog(c unsafe.Pointer) *FunctionLog {
+	return &FunctionLog{
+		c: c,
+	}
+}
+
 type Timing struct {
 	c unsafe.Pointer
 }
 
+func (t *Timing) pointer() unsafe.Pointer {
+	return t.c
+}
+
+func (t *Timing) rustType() string {
+	return timingType
+}
+
+func createTiming(c unsafe.Pointer) *Timing {
+	return &Timing{
+		c: c,
+	}
+}
+
 type LLMCall struct {
 	c unsafe.Pointer
+}
+
+func (l *LLMCall) pointer() unsafe.Pointer {
+	return l.c
+}
+
+func (l *LLMCall) rustType() string {
+	return llmCallType
+}
+
+func createLLMCall(c unsafe.Pointer) *LLMCall {
+	return &LLMCall{
+		c: c,
+	}
+}
+
+type rustPointer interface {
+	pointer() unsafe.Pointer
+	rustType() string
+}
+
+func wrap[T rustPointer](createFn func(c unsafe.Pointer) T, c unsafe.Pointer) T {
+	wrapped := createFn(c)
+
+	runtime.AddCleanup(&wrapped, func(ptr unsafe.Pointer) {
+		baml_go.CallCollectorFunction(ptr, wrapped.rustType(), "destroy")
+	}, wrapped.pointer())
+
+	return wrapped
+}
+
+func createCollector(c unsafe.Pointer) *Collector {
+	return &Collector{
+		c: c,
+	}
+}
+
+func convertString(ptr unsafe.Pointer) string {
+	str := C.GoString((*C.char)(ptr))
+
+	baml_go.CallCollectorFunction(ptr, stringType, "destroy")
+
+	return str
 }
 
 func NewCollector() *Collector {
@@ -40,15 +134,7 @@ func NewCollector() *Collector {
 		panic(err)
 	}
 
-	collector := &Collector{
-		c: collectorPtr,
-	}
-
-	runtime.AddCleanup(collector, func(c unsafe.Pointer) {
-		baml_go.CallCollectorFunction(c, collectorType, "destroy")
-	}, collector.c)
-
-	return collector
+	return wrap(createCollector, collectorPtr)
 }
 
 func (c *Collector) Usage() (*Usage, error) {
@@ -57,15 +143,7 @@ func (c *Collector) Usage() (*Usage, error) {
 		return nil, err
 	}
 
-	usage := &Usage{
-		c: usagePtr,
-	}
-
-	runtime.AddCleanup(usage, func(c unsafe.Pointer) {
-		baml_go.CallCollectorFunction(c, usageType, "destroy")
-	}, usage.c)
-
-	return usage, nil
+	return wrap(createUsage, usagePtr), nil
 }
 
 func (c *Collector) Last() (*FunctionLog, error) {
@@ -74,15 +152,7 @@ func (c *Collector) Last() (*FunctionLog, error) {
 		return nil, err
 	}
 
-	functionLog := &FunctionLog{
-		c: functionLogPtr,
-	}
-
-	runtime.AddCleanup(functionLog, func(c unsafe.Pointer) {
-		baml_go.CallCollectorFunction(c, functionLogType, "destroy")
-	}, functionLog.c)
-
-	return functionLog, nil
+	return wrap(createFunctionLog, functionLogPtr), nil
 }
 
 func (u *Usage) InputTokens() (int, error) {
@@ -109,15 +179,7 @@ func (f *FunctionLog) Usage() (*Usage, error) {
 		return nil, err
 	}
 
-	usage := &Usage{
-		c: usagePtr,
-	}
-
-	runtime.AddCleanup(usage, func(c unsafe.Pointer) {
-		baml_go.CallCollectorFunction(c, usageType, "destroy")
-	}, usage.c)
-
-	return usage, nil
+	return wrap(createUsage, usagePtr), nil
 }
 
 func (f *FunctionLog) Id() (string, error) {
@@ -126,11 +188,7 @@ func (f *FunctionLog) Id() (string, error) {
 		return "", err
 	}
 
-	id := C.GoString((*C.char)(stringPtr))
-
-	baml_go.CallCollectorFunction(stringPtr, stringType, "destroy")
-
-	return id, nil
+	return convertString(stringPtr), nil
 }
 
 func (f *FunctionLog) FunctionName() (string, error) {
@@ -139,11 +197,7 @@ func (f *FunctionLog) FunctionName() (string, error) {
 		return "", err
 	}
 
-	functionName := C.GoString((*C.char)(stringPtr))
-
-	baml_go.CallCollectorFunction(stringPtr, stringType, "destroy")
-
-	return functionName, nil
+	return convertString(stringPtr), nil
 }
 
 func (f *FunctionLog) LogType() (string, error) {
@@ -152,11 +206,7 @@ func (f *FunctionLog) LogType() (string, error) {
 		return "", err
 	}
 
-	logType := C.GoString((*C.char)(stringPtr))
-
-	baml_go.CallCollectorFunction(stringPtr, stringType, "destroy")
-
-	return logType, nil
+	return convertString(stringPtr), nil
 }
 
 func (f *FunctionLog) Timing() (*Timing, error) {
@@ -165,15 +215,7 @@ func (f *FunctionLog) Timing() (*Timing, error) {
 		return nil, err
 	}
 
-	timing := &Timing{
-		c: timingPtr,
-	}
-
-	runtime.AddCleanup(timing, func(c unsafe.Pointer) {
-		baml_go.CallCollectorFunction(c, timingType, "destroy")
-	}, timing.c)
-
-	return timing, nil
+	return wrap(createTiming, timingPtr), nil
 }
 
 func (f *FunctionLog) RawLlmResponse() (string, error) {
@@ -182,11 +224,7 @@ func (f *FunctionLog) RawLlmResponse() (string, error) {
 		return "", err
 	}
 
-	rawLlmResponse := C.GoString((*C.char)(stringPtr))
-
-	baml_go.CallCollectorFunction(stringPtr, stringType, "destroy")
-
-	return rawLlmResponse, nil
+	return convertString(stringPtr), nil
 }
 
 func (f *FunctionLog) Calls() ([]*LLMCall, error) {
@@ -206,13 +244,7 @@ func (f *FunctionLog) Calls() ([]*LLMCall, error) {
 			break
 		}
 
-		call := &LLMCall{c: unsafe.Pointer(ptr)}
-
-		runtime.AddCleanup(call, func(c unsafe.Pointer) {
-			baml_go.CallCollectorFunction(c, llmCallType, "destroy")
-		}, call.c)
-
-		calls = append(calls, call)
+		calls = append(calls, wrap(createLLMCall, unsafe.Pointer(ptr)))
 	}
 
 	baml_go.CallCollectorFunction(callsRaw, "list", "destroy")
@@ -244,11 +276,7 @@ func (l *LLMCall) ClientName() (string, error) {
 		return "", err
 	}
 
-	clientName := C.GoString((*C.char)(stringPtr))
-
-	baml_go.CallCollectorFunction(stringPtr, stringType, "destroy")
-
-	return clientName, nil
+	return convertString(stringPtr), nil
 }
 
 func (l *LLMCall) Provider() (string, error) {
@@ -257,11 +285,7 @@ func (l *LLMCall) Provider() (string, error) {
 		return "", err
 	}
 
-	provider := C.GoString((*C.char)(stringPtr))
-
-	baml_go.CallCollectorFunction(stringPtr, stringType, "destroy")
-
-	return provider, nil
+	return convertString(stringPtr), nil
 }
 
 func (l *LLMCall) Timing() (*Timing, error) {
@@ -270,15 +294,7 @@ func (l *LLMCall) Timing() (*Timing, error) {
 		return nil, err
 	}
 
-	timing := &Timing{
-		c: timingPtr,
-	}
-
-	runtime.AddCleanup(timing, func(c unsafe.Pointer) {
-		baml_go.CallCollectorFunction(c, timingType, "destroy")
-	}, timing.c)
-
-	return timing, nil
+	return wrap(createTiming, timingPtr), nil
 }
 
 func (l *LLMCall) Usage() (*Usage, error) {
@@ -287,13 +303,5 @@ func (l *LLMCall) Usage() (*Usage, error) {
 		return nil, err
 	}
 
-	usage := &Usage{
-		c: usagePtr,
-	}
-
-	runtime.AddCleanup(usage, func(c unsafe.Pointer) {
-		baml_go.CallCollectorFunction(c, usageType, "destroy")
-	}, usage.c)
-
-	return usage, nil
+	return wrap(createUsage, usagePtr), nil
 }
