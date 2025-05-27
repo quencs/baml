@@ -23,6 +23,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 struct BamlFunctionArguments {
     kwargs: baml_types::BamlMap<String, BamlValue>,
     client_registry: Option<ClientRegistry>,
+    env_vars: HashMap<String, String>,
 }
 
 #[no_mangle]
@@ -214,6 +215,7 @@ fn call_function_from_c_inner(
     // Convert keyword arguments.
     let buffer = unsafe { std::slice::from_raw_parts(encoded_args as *const u8, length) };
     let function_args = ctypes::buffer_to_cffi_function_arguments(buffer)?;
+    let env_vars = function_args.env_vars.clone();
 
     // let runtime = unsafe { &*(runtime as *const BamlRuntime) };
     let collector_ptrs = unsafe {
@@ -243,6 +245,7 @@ fn call_function_from_c_inner(
                 None,
                 function_args.client_registry.as_ref(),
                 collectors.map(|c| c.iter().map(|c| c.deref().clone()).collect()),
+                env_vars,
             )
             .await;
         safe_trigger_callback(id, true, result);
@@ -290,21 +293,29 @@ fn call_function_stream_from_c_inner(
     // Convert keyword arguments.
     let buffer = unsafe { std::slice::from_raw_parts(encoded_args as *const u8, length) };
     let function_args = ctypes::buffer_to_cffi_function_arguments(buffer)?;
+    let env_vars = function_args.env_vars.clone();
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
-    let mut stream =
-        match runtime.stream_function(func_name, &function_args.kwargs, &ctx, None, None, None) {
-            Ok(stream) => stream,
-            Err(e) => {
-                return Err(anyhow::anyhow!("Failed to stream function: {}", e));
-            }
-        };
+    let mut stream = match runtime.stream_function(
+        func_name,
+        &function_args.kwargs,
+        &ctx,
+        None,
+        None,
+        None,
+        env_vars,
+    ) {
+        Ok(stream) => stream,
+        Err(e) => {
+            return Err(anyhow::anyhow!("Failed to stream function: {}", e));
+        }
+    };
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
 
     RUNTIME.spawn(async move {
         let (result, _) = stream
-            .run(Some(|r| on_event(id, r)), &ctx, None, None)
+            .run(Some(|r| on_event(id, r)), &ctx, None, None, HashMap::new())
             .await;
         safe_trigger_callback(id, false, result);
     });
@@ -410,7 +421,7 @@ fn call_collector_function_inner(
             let function_log = FunctionLogWrapper::from_raw(object, true);
             match function_name.as_str() {
                 "id" => {
-                    let id = function_log.lock().unwrap().id().0;
+                    let id = function_log.lock().unwrap().id().to_string();
                     let c_id = CString::new(id).unwrap();
                     Ok(c_id.into_raw() as *const libc::c_void)
                 }

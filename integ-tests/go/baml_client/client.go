@@ -21,14 +21,28 @@ import (
 
 var bamlRuntime *baml.BamlRuntime
 
-func init() {
-	var env_vars = map[string]string{}
+func getEnvVars(overrides map[string]string) map[string]string {
+	var env = map[string]string{}
 	for _, env_var := range os.Environ() {
 		key, value, _ := strings.Cut(env_var, "=")
-		env_vars[key] = value
+		env[key] = value
 	}
+	if overrides != nil {
+		// Since go uses empty strings as zero values for string and not a `null` value, we unset env vars that are empty.
+		for key, value := range overrides {
+			if value != "" {
+				env[key] = value
+			} else {
+				delete(env, key)
+			}
+		}
+	}
+	return env
+}
+
+func init() {
 	baml.SetTypeMap(typeMap)
-	runtime, err := baml.CreateRuntime("./baml_src", getBamlFiles(), env_vars)
+	runtime, err := baml.CreateRuntime("./baml_src", getBamlFiles(), getEnvVars(nil))
 	if err != nil {
 		panic(err)
 	}
@@ -50,6 +64,7 @@ func castOptional[T any](result any, castResult func(any) T) *T {
 type callOption struct {
 	clientRegistry *baml.ClientRegistry
 	collectors     []*baml.Collector
+	env            map[string]string
 }
 
 type CallOptionFunc func(*callOption)
@@ -69,14 +84,22 @@ func WithCollector(collector *baml.Collector) CallOptionFunc {
 	}
 }
 
-func AaaSamOutputFormat(ctx context.Context, recipe string, opts ...CallOptionFunc) (*types.Recipe, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"recipe": recipe},
+func WithEnv(env map[string]string) CallOptionFunc {
+	return func(o *callOption) {
+		o.env = env
 	}
+}
+
+func AaaSamOutputFormat(ctx context.Context, recipe string, opts ...CallOptionFunc) (*types.Recipe, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"recipe": recipe},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -142,13 +165,15 @@ func (*stream) AaaSamOutputFormat(ctx context.Context, recipe string) <-chan *ty
 }
 
 func AliasThatPointsToRecursiveType(ctx context.Context, data types.LinkedListAliasNode, opts ...CallOptionFunc) (*types.LinkedListAliasNode, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"data": data},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"data": data},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -214,13 +239,15 @@ func (*stream) AliasThatPointsToRecursiveType(ctx context.Context, data types.Li
 }
 
 func AliasWithMultipleAttrs(ctx context.Context, money int64, opts ...CallOptionFunc) (*types.Checked[int64], error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"money": money},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"money": money},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -286,13 +313,15 @@ func (*stream) AliasWithMultipleAttrs(ctx context.Context, money int64) <-chan *
 }
 
 func AliasedInputClass(ctx context.Context, input types.InputClass, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -358,13 +387,15 @@ func (*stream) AliasedInputClass(ctx context.Context, input types.InputClass) <-
 }
 
 func AliasedInputClass2(ctx context.Context, input types.InputClass, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -430,13 +461,15 @@ func (*stream) AliasedInputClass2(ctx context.Context, input types.InputClass) <
 }
 
 func AliasedInputClassNested(ctx context.Context, input types.InputClassNested, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -502,13 +535,15 @@ func (*stream) AliasedInputClassNested(ctx context.Context, input types.InputCla
 }
 
 func AliasedInputEnum(ctx context.Context, input types.AliasedEnum, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -574,13 +609,15 @@ func (*stream) AliasedInputEnum(ctx context.Context, input types.AliasedEnum) <-
 }
 
 func AliasedInputList(ctx context.Context, input []types.AliasedEnum, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -646,13 +683,15 @@ func (*stream) AliasedInputList(ctx context.Context, input []types.AliasedEnum) 
 }
 
 func AllowedOptionals(ctx context.Context, optionals types.OptionalListAndMap, opts ...CallOptionFunc) (*types.OptionalListAndMap, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"optionals": optionals},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"optionals": optionals},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -718,13 +757,15 @@ func (*stream) AllowedOptionals(ctx context.Context, optionals types.OptionalLis
 }
 
 func AssertFn(ctx context.Context, a int64, opts ...CallOptionFunc) (*int64, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"a": a},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"a": a},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -790,13 +831,15 @@ func (*stream) AssertFn(ctx context.Context, a int64) <-chan *int64 {
 }
 
 func AudioInput(ctx context.Context, aud any, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"aud": aud},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"aud": aud},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -862,13 +905,15 @@ func (*stream) AudioInput(ctx context.Context, aud any) <-chan *string {
 }
 
 func AudioInputOpenai(ctx context.Context, aud any, prompt string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"aud": aud, "prompt": prompt},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"aud": aud, "prompt": prompt},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -934,13 +979,15 @@ func (*stream) AudioInputOpenai(ctx context.Context, aud any, prompt string) <-c
 }
 
 func BuildLinkedList(ctx context.Context, input []int64, opts ...CallOptionFunc) (*types.LinkedList, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1006,13 +1053,15 @@ func (*stream) BuildLinkedList(ctx context.Context, input []int64) <-chan *types
 }
 
 func BuildTree(ctx context.Context, input types.BinaryNode, opts ...CallOptionFunc) (*types.Tree, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1078,13 +1127,15 @@ func (*stream) BuildTree(ctx context.Context, input types.BinaryNode) <-chan *ty
 }
 
 func ClassThatPointsToRecursiveClassThroughAlias(ctx context.Context, cls types.ClassToRecAlias, opts ...CallOptionFunc) (*types.ClassToRecAlias, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"cls": cls},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"cls": cls},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1150,13 +1201,15 @@ func (*stream) ClassThatPointsToRecursiveClassThroughAlias(ctx context.Context, 
 }
 
 func ClassifyDynEnumTwo(ctx context.Context, input string, opts ...CallOptionFunc) (*types.DynEnumTwo, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1222,13 +1275,15 @@ func (*stream) ClassifyDynEnumTwo(ctx context.Context, input string) <-chan *typ
 }
 
 func ClassifyMessage(ctx context.Context, input string, opts ...CallOptionFunc) (*types.Category, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1294,13 +1349,15 @@ func (*stream) ClassifyMessage(ctx context.Context, input string) <-chan *types.
 }
 
 func ClassifyMessage2(ctx context.Context, input string, opts ...CallOptionFunc) (*types.Category, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1366,13 +1423,15 @@ func (*stream) ClassifyMessage2(ctx context.Context, input string) <-chan *types
 }
 
 func ClassifyMessage3(ctx context.Context, input string, opts ...CallOptionFunc) (*types.Category, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1438,13 +1497,15 @@ func (*stream) ClassifyMessage3(ctx context.Context, input string) <-chan *types
 }
 
 func Completion(ctx context.Context, prefix string, suffix string, language string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"prefix": prefix, "suffix": suffix, "language": language},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"prefix": prefix, "suffix": suffix, "language": language},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1510,13 +1571,15 @@ func (*stream) Completion(ctx context.Context, prefix string, suffix string, lan
 }
 
 func CustomTask(ctx context.Context, input string, opts ...CallOptionFunc) (*types.Union__BookOrder__FlightConfirmation__GroceryReceipt, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1582,13 +1645,15 @@ func (*stream) CustomTask(ctx context.Context, input string) <-chan *types.Union
 }
 
 func DescribeImage(ctx context.Context, img any, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"img": img},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"img": img},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1654,13 +1719,15 @@ func (*stream) DescribeImage(ctx context.Context, img any) <-chan *string {
 }
 
 func DescribeImage2(ctx context.Context, classWithImage types.ClassWithImage, img2 any, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"classWithImage": classWithImage, "img2": img2},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"classWithImage": classWithImage, "img2": img2},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1726,13 +1793,15 @@ func (*stream) DescribeImage2(ctx context.Context, classWithImage types.ClassWit
 }
 
 func DescribeImage3(ctx context.Context, classWithImage types.ClassWithImage, img2 any, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"classWithImage": classWithImage, "img2": img2},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"classWithImage": classWithImage, "img2": img2},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1798,13 +1867,15 @@ func (*stream) DescribeImage3(ctx context.Context, classWithImage types.ClassWit
 }
 
 func DescribeImage4(ctx context.Context, classWithImage types.ClassWithImage, img2 any, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"classWithImage": classWithImage, "img2": img2},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"classWithImage": classWithImage, "img2": img2},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1870,13 +1941,15 @@ func (*stream) DescribeImage4(ctx context.Context, classWithImage types.ClassWit
 }
 
 func DescribeMedia1599(ctx context.Context, img any, client_sector string, client_name string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"img": img, "client_sector": client_sector, "client_name": client_name},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"img": img, "client_sector": client_sector, "client_name": client_name},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -1942,13 +2015,15 @@ func (*stream) DescribeMedia1599(ctx context.Context, img any, client_sector str
 }
 
 func DifferentiateUnions(ctx context.Context, opts ...CallOptionFunc) (*types.Union__OriginalA__OriginalB, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2014,13 +2089,15 @@ func (*stream) DifferentiateUnions(ctx context.Context) <-chan *types.Union__Ori
 }
 
 func DummyOutputFunction(ctx context.Context, input string, opts ...CallOptionFunc) (*types.DummyOutput, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2086,13 +2163,15 @@ func (*stream) DummyOutputFunction(ctx context.Context, input string) <-chan *ty
 }
 
 func DynamicFunc(ctx context.Context, input types.DynamicClassOne, opts ...CallOptionFunc) (*types.DynamicClassTwo, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2158,13 +2237,15 @@ func (*stream) DynamicFunc(ctx context.Context, input types.DynamicClassOne) <-c
 }
 
 func DynamicInputOutput(ctx context.Context, input types.DynInputOutput, opts ...CallOptionFunc) (*types.DynInputOutput, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2230,13 +2311,15 @@ func (*stream) DynamicInputOutput(ctx context.Context, input types.DynInputOutpu
 }
 
 func DynamicListInputOutput(ctx context.Context, input []types.DynInputOutput, opts ...CallOptionFunc) ([]types.DynInputOutput, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2302,13 +2385,15 @@ func (*stream) DynamicListInputOutput(ctx context.Context, input []types.DynInpu
 }
 
 func ExpectFailure(ctx context.Context, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2374,13 +2459,15 @@ func (*stream) ExpectFailure(ctx context.Context) <-chan *string {
 }
 
 func ExtractContactInfo(ctx context.Context, document string, opts ...CallOptionFunc) (*types.ContactInfo, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"document": document},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"document": document},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2446,13 +2533,15 @@ func (*stream) ExtractContactInfo(ctx context.Context, document string) <-chan *
 }
 
 func ExtractEntities(ctx context.Context, text string, opts ...CallOptionFunc) (*types.DynamicSchema, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"text": text},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"text": text},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2518,13 +2607,15 @@ func (*stream) ExtractEntities(ctx context.Context, text string) <-chan *types.D
 }
 
 func ExtractHobby(ctx context.Context, text string, opts ...CallOptionFunc) ([]types.Hobby, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"text": text},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"text": text},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2590,13 +2681,15 @@ func (*stream) ExtractHobby(ctx context.Context, text string) <-chan []types.Hob
 }
 
 func ExtractNames(ctx context.Context, input string, opts ...CallOptionFunc) ([]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2662,13 +2755,15 @@ func (*stream) ExtractNames(ctx context.Context, input string) <-chan []string {
 }
 
 func ExtractPeople(ctx context.Context, text string, opts ...CallOptionFunc) ([]types.Person, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"text": text},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"text": text},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2734,13 +2829,15 @@ func (*stream) ExtractPeople(ctx context.Context, text string) <-chan []types.Pe
 }
 
 func ExtractReceiptInfo(ctx context.Context, email string, reason types.Union__string_curiosity__string_personal_finance, opts ...CallOptionFunc) (*types.ReceiptInfo, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"email": email, "reason": reason},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"email": email, "reason": reason},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2806,13 +2903,15 @@ func (*stream) ExtractReceiptInfo(ctx context.Context, email string, reason type
 }
 
 func ExtractResume(ctx context.Context, resume string, img *any, opts ...CallOptionFunc) (*types.Resume, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"resume": resume, "img": img},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"resume": resume, "img": img},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2878,13 +2977,15 @@ func (*stream) ExtractResume(ctx context.Context, resume string, img *any) <-cha
 }
 
 func ExtractResume2(ctx context.Context, resume string, opts ...CallOptionFunc) (*types.Resume, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"resume": resume},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"resume": resume},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -2950,13 +3051,15 @@ func (*stream) ExtractResume2(ctx context.Context, resume string) <-chan *types.
 }
 
 func FnClassOptionalOutput(ctx context.Context, input string, opts ...CallOptionFunc) (**types.ClassOptionalOutput, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3024,13 +3127,15 @@ func (*stream) FnClassOptionalOutput(ctx context.Context, input string) <-chan *
 }
 
 func FnClassOptionalOutput2(ctx context.Context, input string, opts ...CallOptionFunc) (**types.ClassOptionalOutput2, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3098,13 +3203,15 @@ func (*stream) FnClassOptionalOutput2(ctx context.Context, input string) <-chan 
 }
 
 func FnEnumListOutput(ctx context.Context, input string, opts ...CallOptionFunc) ([]types.EnumOutput, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3170,13 +3277,15 @@ func (*stream) FnEnumListOutput(ctx context.Context, input string) <-chan []type
 }
 
 func FnEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (*types.EnumOutput, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3242,13 +3351,15 @@ func (*stream) FnEnumOutput(ctx context.Context, input string) <-chan *types.Enu
 }
 
 func FnLiteralClassInputOutput(ctx context.Context, input types.LiteralClassHello, opts ...CallOptionFunc) (*types.LiteralClassHello, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3314,13 +3425,15 @@ func (*stream) FnLiteralClassInputOutput(ctx context.Context, input types.Litera
 }
 
 func FnLiteralUnionClassInputOutput(ctx context.Context, input types.Union__LiteralClassOne__LiteralClassTwo, opts ...CallOptionFunc) (*types.Union__LiteralClassOne__LiteralClassTwo, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3386,13 +3499,15 @@ func (*stream) FnLiteralUnionClassInputOutput(ctx context.Context, input types.U
 }
 
 func FnNamedArgsSingleStringOptional(ctx context.Context, myString *string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myString": myString},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myString": myString},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3458,13 +3573,15 @@ func (*stream) FnNamedArgsSingleStringOptional(ctx context.Context, myString *st
 }
 
 func FnOutputBool(ctx context.Context, input string, opts ...CallOptionFunc) (*bool, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3530,13 +3647,15 @@ func (*stream) FnOutputBool(ctx context.Context, input string) <-chan *bool {
 }
 
 func FnOutputClass(ctx context.Context, input string, opts ...CallOptionFunc) (*types.TestOutputClass, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3602,13 +3721,15 @@ func (*stream) FnOutputClass(ctx context.Context, input string) <-chan *types.Te
 }
 
 func FnOutputClassList(ctx context.Context, input string, opts ...CallOptionFunc) ([]types.TestOutputClass, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3674,13 +3795,15 @@ func (*stream) FnOutputClassList(ctx context.Context, input string) <-chan []typ
 }
 
 func FnOutputClassNested(ctx context.Context, input string, opts ...CallOptionFunc) (*types.TestClassNested, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3746,13 +3869,15 @@ func (*stream) FnOutputClassNested(ctx context.Context, input string) <-chan *ty
 }
 
 func FnOutputClassWithEnum(ctx context.Context, input string, opts ...CallOptionFunc) (*types.TestClassWithEnum, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3818,13 +3943,15 @@ func (*stream) FnOutputClassWithEnum(ctx context.Context, input string) <-chan *
 }
 
 func FnOutputInt(ctx context.Context, input string, opts ...CallOptionFunc) (*int64, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3890,13 +4017,15 @@ func (*stream) FnOutputInt(ctx context.Context, input string) <-chan *int64 {
 }
 
 func FnOutputLiteralBool(ctx context.Context, input string, opts ...CallOptionFunc) (*bool, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -3962,13 +4091,15 @@ func (*stream) FnOutputLiteralBool(ctx context.Context, input string) <-chan *bo
 }
 
 func FnOutputLiteralInt(ctx context.Context, input string, opts ...CallOptionFunc) (*int, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4034,13 +4165,15 @@ func (*stream) FnOutputLiteralInt(ctx context.Context, input string) <-chan *int
 }
 
 func FnOutputLiteralString(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4106,13 +4239,15 @@ func (*stream) FnOutputLiteralString(ctx context.Context, input string) <-chan *
 }
 
 func FnOutputStringList(ctx context.Context, input string, opts ...CallOptionFunc) ([]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4178,13 +4313,15 @@ func (*stream) FnOutputStringList(ctx context.Context, input string) <-chan []st
 }
 
 func FnTestAliasedEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (*types.TestEnum, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4250,13 +4387,15 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string) <-chan
 }
 
 func FnTestClassAlias(ctx context.Context, input string, opts ...CallOptionFunc) (*types.TestClassAlias, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4322,13 +4461,15 @@ func (*stream) FnTestClassAlias(ctx context.Context, input string) <-chan *types
 }
 
 func FnTestNamedArgsSingleEnum(ctx context.Context, myArg types.NamedArgsSingleEnum, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myArg": myArg},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myArg": myArg},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4394,13 +4535,15 @@ func (*stream) FnTestNamedArgsSingleEnum(ctx context.Context, myArg types.NamedA
 }
 
 func GetDataType(ctx context.Context, text string, opts ...CallOptionFunc) (*types.RaysData, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"text": text},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"text": text},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4466,13 +4609,15 @@ func (*stream) GetDataType(ctx context.Context, text string) <-chan *types.RaysD
 }
 
 func GetOrderInfo(ctx context.Context, email types.Email, opts ...CallOptionFunc) (*types.OrderInfo, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"email": email},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"email": email},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4538,13 +4683,15 @@ func (*stream) GetOrderInfo(ctx context.Context, email types.Email) <-chan *type
 }
 
 func GetQuery(ctx context.Context, query string, opts ...CallOptionFunc) (*types.SearchParams, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"query": query},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"query": query},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4610,13 +4757,15 @@ func (*stream) GetQuery(ctx context.Context, query string) <-chan *types.SearchP
 }
 
 func InOutEnumMapKey(ctx context.Context, i1 map[types.MapKey]string, i2 map[types.MapKey]string, opts ...CallOptionFunc) (map[types.MapKey]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"i1": i1, "i2": i2},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"i1": i1, "i2": i2},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4682,13 +4831,15 @@ func (*stream) InOutEnumMapKey(ctx context.Context, i1 map[types.MapKey]string, 
 }
 
 func InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.Union__string_one__string_two__string_three__string_four]string, i2 map[types.Union__string_one__string_two__string_three__string_four]string, opts ...CallOptionFunc) (map[types.Union__string_one__string_two__string_three__string_four]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"i1": i1, "i2": i2},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"i1": i1, "i2": i2},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4754,13 +4905,15 @@ func (*stream) InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.U
 }
 
 func InOutSingleLiteralStringMapKey(ctx context.Context, m map[string]string, opts ...CallOptionFunc) (map[string]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"m": m},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"m": m},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4826,13 +4979,15 @@ func (*stream) InOutSingleLiteralStringMapKey(ctx context.Context, m map[string]
 }
 
 func JsonTypeAliasCycle(ctx context.Context, input types.JsonValue, opts ...CallOptionFunc) (*types.JsonValue, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4898,13 +5053,15 @@ func (*stream) JsonTypeAliasCycle(ctx context.Context, input types.JsonValue) <-
 }
 
 func LLMEcho(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -4970,13 +5127,15 @@ func (*stream) LLMEcho(ctx context.Context, input string) <-chan *string {
 }
 
 func LiteralUnionsTest(ctx context.Context, input string, opts ...CallOptionFunc) (*types.Union__int_1__bool_true__string_string_output, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5042,13 +5201,15 @@ func (*stream) LiteralUnionsTest(ctx context.Context, input string) <-chan *type
 }
 
 func MakeBlockConstraint(ctx context.Context, opts ...CallOptionFunc) (*types.Checked[types.BlockConstraint], error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5114,13 +5275,15 @@ func (*stream) MakeBlockConstraint(ctx context.Context) <-chan *types.Checked[ty
 }
 
 func MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFunc) (*types.ClassWithBlockDone, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5186,13 +5349,15 @@ func (*stream) MakeClassWithBlockDone(ctx context.Context) <-chan *types.ClassWi
 }
 
 func MakeClassWithExternalDone(ctx context.Context, opts ...CallOptionFunc) (*types.ClassWithoutDone, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5258,13 +5423,15 @@ func (*stream) MakeClassWithExternalDone(ctx context.Context) <-chan *types.Clas
 }
 
 func MakeNestedBlockConstraint(ctx context.Context, opts ...CallOptionFunc) (*types.NestedBlockConstraint, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5330,13 +5497,15 @@ func (*stream) MakeNestedBlockConstraint(ctx context.Context) <-chan *types.Nest
 }
 
 func MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc) (*types.SemanticContainer, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5402,13 +5571,15 @@ func (*stream) MakeSemanticContainer(ctx context.Context) <-chan *types.Semantic
 }
 
 func MapAlias(ctx context.Context, m map[string][]string, opts ...CallOptionFunc) (map[string][]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"m": m},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"m": m},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5474,13 +5645,15 @@ func (*stream) MapAlias(ctx context.Context, m map[string][]string) <-chan map[s
 }
 
 func MergeAliasAttributes(ctx context.Context, money int64, opts ...CallOptionFunc) (*types.MergeAttrs, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"money": money},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"money": money},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5546,13 +5719,15 @@ func (*stream) MergeAliasAttributes(ctx context.Context, money int64) <-chan *ty
 }
 
 func MyFunc(ctx context.Context, input string, opts ...CallOptionFunc) (*types.DynamicOutput, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5618,13 +5793,15 @@ func (*stream) MyFunc(ctx context.Context, input string) <-chan *types.DynamicOu
 }
 
 func NestedAlias(ctx context.Context, c types.Union__int__string__bool__float__List__string__Map__string_List__string, opts ...CallOptionFunc) (*types.Union__int__string__bool__float__List__string__Map__string_List__string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"c": c},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"c": c},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5690,13 +5867,15 @@ func (*stream) NestedAlias(ctx context.Context, c types.Union__int__string__bool
 }
 
 func NullLiteralClassHello(ctx context.Context, s string, opts ...CallOptionFunc) (*types.ClassForNullLiteral, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"s": s},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"s": s},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5762,13 +5941,15 @@ func (*stream) NullLiteralClassHello(ctx context.Context, s string) <-chan *type
 }
 
 func OpenAIWithAnthropicResponseHello(ctx context.Context, s string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"s": s},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"s": s},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5834,13 +6015,15 @@ func (*stream) OpenAIWithAnthropicResponseHello(ctx context.Context, s string) <
 }
 
 func OptionalTest_Function(ctx context.Context, input string, opts ...CallOptionFunc) ([]*types.OptionalTest_ReturnType, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5906,13 +6089,15 @@ func (*stream) OptionalTest_Function(ctx context.Context, input string) <-chan [
 }
 
 func PredictAge(ctx context.Context, name string, opts ...CallOptionFunc) (*types.FooAny, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"name": name},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"name": name},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -5978,13 +6163,15 @@ func (*stream) PredictAge(ctx context.Context, name string) <-chan *types.FooAny
 }
 
 func PredictAgeBare(ctx context.Context, inp string, opts ...CallOptionFunc) (*types.Checked[int64], error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"inp": inp},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"inp": inp},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6050,13 +6237,15 @@ func (*stream) PredictAgeBare(ctx context.Context, inp string) <-chan *types.Che
 }
 
 func PrimitiveAlias(ctx context.Context, p types.Union__int__string__bool__float, opts ...CallOptionFunc) (*types.Union__int__string__bool__float, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"p": p},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"p": p},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6122,13 +6311,15 @@ func (*stream) PrimitiveAlias(ctx context.Context, p types.Union__int__string__b
 }
 
 func PromptTestClaude(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6194,13 +6385,15 @@ func (*stream) PromptTestClaude(ctx context.Context, input string) <-chan *strin
 }
 
 func PromptTestClaudeChat(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6266,13 +6459,15 @@ func (*stream) PromptTestClaudeChat(ctx context.Context, input string) <-chan *s
 }
 
 func PromptTestClaudeChatNoSystem(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6338,13 +6533,15 @@ func (*stream) PromptTestClaudeChatNoSystem(ctx context.Context, input string) <
 }
 
 func PromptTestOpenAI(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6410,13 +6607,15 @@ func (*stream) PromptTestOpenAI(ctx context.Context, input string) <-chan *strin
 }
 
 func PromptTestOpenAIChat(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6482,13 +6681,15 @@ func (*stream) PromptTestOpenAIChat(ctx context.Context, input string) <-chan *s
 }
 
 func PromptTestOpenAIChatNoSystem(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6554,13 +6755,15 @@ func (*stream) PromptTestOpenAIChatNoSystem(ctx context.Context, input string) <
 }
 
 func PromptTestStreaming(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6626,13 +6829,15 @@ func (*stream) PromptTestStreaming(ctx context.Context, input string) <-chan *st
 }
 
 func RecursiveAliasCycle(ctx context.Context, input types.RecAliasOne, opts ...CallOptionFunc) (*types.RecAliasOne, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6698,13 +6903,15 @@ func (*stream) RecursiveAliasCycle(ctx context.Context, input types.RecAliasOne)
 }
 
 func RecursiveClassWithAliasIndirection(ctx context.Context, cls types.NodeWithAliasIndirection, opts ...CallOptionFunc) (*types.NodeWithAliasIndirection, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"cls": cls},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"cls": cls},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6770,13 +6977,15 @@ func (*stream) RecursiveClassWithAliasIndirection(ctx context.Context, cls types
 }
 
 func RecursiveUnionTest(ctx context.Context, input types.RecursiveUnion, opts ...CallOptionFunc) (*types.RecursiveUnion, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6842,13 +7051,15 @@ func (*stream) RecursiveUnionTest(ctx context.Context, input types.RecursiveUnio
 }
 
 func ReturnAliasWithMergedAttributes(ctx context.Context, money int64, opts ...CallOptionFunc) (*types.Checked[int64], error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"money": money},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"money": money},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6914,13 +7125,15 @@ func (*stream) ReturnAliasWithMergedAttributes(ctx context.Context, money int64)
 }
 
 func ReturnFailingAssert(ctx context.Context, inp int64, opts ...CallOptionFunc) (*int64, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"inp": inp},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"inp": inp},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -6986,13 +7199,15 @@ func (*stream) ReturnFailingAssert(ctx context.Context, inp int64) <-chan *int64
 }
 
 func ReturnJsonEntry(ctx context.Context, s string, opts ...CallOptionFunc) (*types.JsonTemplate, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"s": s},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"s": s},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7058,13 +7273,15 @@ func (*stream) ReturnJsonEntry(ctx context.Context, s string) <-chan *types.Json
 }
 
 func ReturnMalformedConstraints(ctx context.Context, a int64, opts ...CallOptionFunc) (*types.MalformedConstraints, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"a": a},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"a": a},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7130,13 +7347,15 @@ func (*stream) ReturnMalformedConstraints(ctx context.Context, a int64) <-chan *
 }
 
 func SchemaDescriptions(ctx context.Context, input string, opts ...CallOptionFunc) (*types.Schema, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7202,13 +7421,15 @@ func (*stream) SchemaDescriptions(ctx context.Context, input string) <-chan *typ
 }
 
 func SimpleRecursiveListAlias(ctx context.Context, input types.RecursiveListAlias, opts ...CallOptionFunc) (*types.RecursiveListAlias, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7274,13 +7495,15 @@ func (*stream) SimpleRecursiveListAlias(ctx context.Context, input types.Recursi
 }
 
 func SimpleRecursiveMapAlias(ctx context.Context, input types.RecursiveMapAlias, opts ...CallOptionFunc) (*types.RecursiveMapAlias, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7346,13 +7569,15 @@ func (*stream) SimpleRecursiveMapAlias(ctx context.Context, input types.Recursiv
 }
 
 func StreamBigNumbers(ctx context.Context, digits int64, opts ...CallOptionFunc) (*types.BigNumbers, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"digits": digits},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"digits": digits},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7418,13 +7643,15 @@ func (*stream) StreamBigNumbers(ctx context.Context, digits int64) <-chan *types
 }
 
 func StreamFailingAssertion(ctx context.Context, theme string, length int64, opts ...CallOptionFunc) (*types.TwoStoriesOneTitle, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"theme": theme, "length": length},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"theme": theme, "length": length},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7490,13 +7717,15 @@ func (*stream) StreamFailingAssertion(ctx context.Context, theme string, length 
 }
 
 func StreamFailingCheck(ctx context.Context, theme string, length int64, opts ...CallOptionFunc) (*types.TwoStoriesOneTitleCheck, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"theme": theme, "length": length},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"theme": theme, "length": length},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7562,13 +7791,15 @@ func (*stream) StreamFailingCheck(ctx context.Context, theme string, length int6
 }
 
 func StreamOneBigNumber(ctx context.Context, digits int64, opts ...CallOptionFunc) (*int64, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"digits": digits},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"digits": digits},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7634,13 +7865,15 @@ func (*stream) StreamOneBigNumber(ctx context.Context, digits int64) <-chan *int
 }
 
 func StreamUnionIntegers(ctx context.Context, digits int64, opts ...CallOptionFunc) ([]types.Union__int__string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"digits": digits},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"digits": digits},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7706,13 +7939,15 @@ func (*stream) StreamUnionIntegers(ctx context.Context, digits int64) <-chan []t
 }
 
 func StreamingCompoundNumbers(ctx context.Context, digits int64, yapping bool, opts ...CallOptionFunc) (*types.CompoundBigNumbers, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"digits": digits, "yapping": yapping},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"digits": digits, "yapping": yapping},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7778,13 +8013,15 @@ func (*stream) StreamingCompoundNumbers(ctx context.Context, digits int64, yappi
 }
 
 func StructureDocument1559(ctx context.Context, document_txt string, opts ...CallOptionFunc) (*types.Document1559, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"document_txt": document_txt},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"document_txt": document_txt},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7850,13 +8087,15 @@ func (*stream) StructureDocument1559(ctx context.Context, document_txt string) <
 }
 
 func TakeRecAliasDep(ctx context.Context, input types.RecursiveAliasDependency, opts ...CallOptionFunc) (*types.RecursiveAliasDependency, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7922,13 +8161,15 @@ func (*stream) TakeRecAliasDep(ctx context.Context, input types.RecursiveAliasDe
 }
 
 func TellStory(ctx context.Context, story string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"story": story},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"story": story},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -7994,13 +8235,15 @@ func (*stream) TellStory(ctx context.Context, story string) <-chan *string {
 }
 
 func TestAnthropic(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8066,13 +8309,15 @@ func (*stream) TestAnthropic(ctx context.Context, input string) <-chan *string {
 }
 
 func TestAnthropicShorthand(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8138,13 +8383,15 @@ func (*stream) TestAnthropicShorthand(ctx context.Context, input string) <-chan 
 }
 
 func TestAws(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8210,13 +8457,15 @@ func (*stream) TestAws(ctx context.Context, input string) <-chan *string {
 }
 
 func TestAwsClaude37(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8282,13 +8531,15 @@ func (*stream) TestAwsClaude37(ctx context.Context, input string) <-chan *string
 }
 
 func TestAwsInferenceProfile(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8354,13 +8605,15 @@ func (*stream) TestAwsInferenceProfile(ctx context.Context, input string) <-chan
 }
 
 func TestAwsInvalidAccessKey(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8426,13 +8679,15 @@ func (*stream) TestAwsInvalidAccessKey(ctx context.Context, input string) <-chan
 }
 
 func TestAwsInvalidProfile(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8498,13 +8753,15 @@ func (*stream) TestAwsInvalidProfile(ctx context.Context, input string) <-chan *
 }
 
 func TestAwsInvalidRegion(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8570,13 +8827,15 @@ func (*stream) TestAwsInvalidRegion(ctx context.Context, input string) <-chan *s
 }
 
 func TestAwsInvalidSessionToken(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8642,13 +8901,15 @@ func (*stream) TestAwsInvalidSessionToken(ctx context.Context, input string) <-c
 }
 
 func TestAzure(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8714,13 +8975,15 @@ func (*stream) TestAzure(ctx context.Context, input string) <-chan *string {
 }
 
 func TestAzureFailure(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8786,13 +9049,15 @@ func (*stream) TestAzureFailure(ctx context.Context, input string) <-chan *strin
 }
 
 func TestAzureO1NoMaxTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8858,13 +9123,15 @@ func (*stream) TestAzureO1NoMaxTokens(ctx context.Context, input string) <-chan 
 }
 
 func TestAzureO1WithMaxCompletionTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -8930,13 +9197,15 @@ func (*stream) TestAzureO1WithMaxCompletionTokens(ctx context.Context, input str
 }
 
 func TestAzureO1WithMaxTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9002,13 +9271,15 @@ func (*stream) TestAzureO1WithMaxTokens(ctx context.Context, input string) <-cha
 }
 
 func TestAzureO3NoMaxTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9074,13 +9345,15 @@ func (*stream) TestAzureO3NoMaxTokens(ctx context.Context, input string) <-chan 
 }
 
 func TestAzureO3WithMaxCompletionTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9146,13 +9419,15 @@ func (*stream) TestAzureO3WithMaxCompletionTokens(ctx context.Context, input str
 }
 
 func TestAzureWithMaxTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9218,13 +9493,15 @@ func (*stream) TestAzureWithMaxTokens(ctx context.Context, input string) <-chan 
 }
 
 func TestCaching(ctx context.Context, input string, not_cached string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input, "not_cached": not_cached},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input, "not_cached": not_cached},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9290,13 +9567,15 @@ func (*stream) TestCaching(ctx context.Context, input string, not_cached string)
 }
 
 func TestFallbackClient(ctx context.Context, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9362,13 +9641,15 @@ func (*stream) TestFallbackClient(ctx context.Context) <-chan *string {
 }
 
 func TestFallbackStrategy(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9434,13 +9715,15 @@ func (*stream) TestFallbackStrategy(ctx context.Context, input string) <-chan *s
 }
 
 func TestFallbackToShorthand(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9506,13 +9789,15 @@ func (*stream) TestFallbackToShorthand(ctx context.Context, input string) <-chan
 }
 
 func TestFnNamedArgsSingleBool(ctx context.Context, myBool bool, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myBool": myBool},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myBool": myBool},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9578,13 +9863,15 @@ func (*stream) TestFnNamedArgsSingleBool(ctx context.Context, myBool bool) <-cha
 }
 
 func TestFnNamedArgsSingleClass(ctx context.Context, myArg types.NamedArgsSingleClass, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myArg": myArg},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myArg": myArg},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9650,13 +9937,15 @@ func (*stream) TestFnNamedArgsSingleClass(ctx context.Context, myArg types.Named
 }
 
 func TestFnNamedArgsSingleEnumList(ctx context.Context, myArg []types.NamedArgsSingleEnumList, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myArg": myArg},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myArg": myArg},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9722,13 +10011,15 @@ func (*stream) TestFnNamedArgsSingleEnumList(ctx context.Context, myArg []types.
 }
 
 func TestFnNamedArgsSingleFloat(ctx context.Context, myFloat float64, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myFloat": myFloat},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myFloat": myFloat},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9794,13 +10085,15 @@ func (*stream) TestFnNamedArgsSingleFloat(ctx context.Context, myFloat float64) 
 }
 
 func TestFnNamedArgsSingleInt(ctx context.Context, myInt int64, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myInt": myInt},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myInt": myInt},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9866,13 +10159,15 @@ func (*stream) TestFnNamedArgsSingleInt(ctx context.Context, myInt int64) <-chan
 }
 
 func TestFnNamedArgsSingleMapStringToClass(ctx context.Context, myMap map[string]types.StringToClassEntry, opts ...CallOptionFunc) (map[string]types.StringToClassEntry, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myMap": myMap},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myMap": myMap},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -9938,13 +10233,15 @@ func (*stream) TestFnNamedArgsSingleMapStringToClass(ctx context.Context, myMap 
 }
 
 func TestFnNamedArgsSingleMapStringToMap(ctx context.Context, myMap map[string]map[string]string, opts ...CallOptionFunc) (map[string]map[string]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myMap": myMap},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myMap": myMap},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10010,13 +10307,15 @@ func (*stream) TestFnNamedArgsSingleMapStringToMap(ctx context.Context, myMap ma
 }
 
 func TestFnNamedArgsSingleMapStringToString(ctx context.Context, myMap map[string]string, opts ...CallOptionFunc) (map[string]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myMap": myMap},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myMap": myMap},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10082,13 +10381,15 @@ func (*stream) TestFnNamedArgsSingleMapStringToString(ctx context.Context, myMap
 }
 
 func TestFnNamedArgsSingleString(ctx context.Context, myString string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myString": myString},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myString": myString},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10154,13 +10455,15 @@ func (*stream) TestFnNamedArgsSingleString(ctx context.Context, myString string)
 }
 
 func TestFnNamedArgsSingleStringArray(ctx context.Context, myStringArray []string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myStringArray": myStringArray},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myStringArray": myStringArray},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10226,13 +10529,15 @@ func (*stream) TestFnNamedArgsSingleStringArray(ctx context.Context, myStringArr
 }
 
 func TestFnNamedArgsSingleStringList(ctx context.Context, myArg []string, opts ...CallOptionFunc) ([]string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myArg": myArg},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myArg": myArg},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10298,13 +10603,15 @@ func (*stream) TestFnNamedArgsSingleStringList(ctx context.Context, myArg []stri
 }
 
 func TestGemini(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10370,13 +10677,15 @@ func (*stream) TestGemini(ctx context.Context, input string) <-chan *string {
 }
 
 func TestGeminiOpenAiGeneric(ctx context.Context, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10442,13 +10751,15 @@ func (*stream) TestGeminiOpenAiGeneric(ctx context.Context) <-chan *string {
 }
 
 func TestGeminiSystem(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10514,13 +10825,15 @@ func (*stream) TestGeminiSystem(ctx context.Context, input string) <-chan *strin
 }
 
 func TestGeminiSystemAsChat(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10586,13 +10899,15 @@ func (*stream) TestGeminiSystemAsChat(ctx context.Context, input string) <-chan 
 }
 
 func TestGroq(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10658,13 +10973,15 @@ func (*stream) TestGroq(ctx context.Context, input string) <-chan *string {
 }
 
 func TestImageInput(ctx context.Context, img any, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"img": img},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"img": img},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10730,13 +11047,15 @@ func (*stream) TestImageInput(ctx context.Context, img any) <-chan *string {
 }
 
 func TestImageInputAnthropic(ctx context.Context, img any, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"img": img},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"img": img},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10802,13 +11121,15 @@ func (*stream) TestImageInputAnthropic(ctx context.Context, img any) <-chan *str
 }
 
 func TestImageListInput(ctx context.Context, imgs []any, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"imgs": imgs},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"imgs": imgs},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10874,13 +11195,15 @@ func (*stream) TestImageListInput(ctx context.Context, imgs []any) <-chan *strin
 }
 
 func TestMemory(ctx context.Context, input string, opts ...CallOptionFunc) (*types.TestMemoryOutput, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -10946,13 +11269,15 @@ func (*stream) TestMemory(ctx context.Context, input string) <-chan *types.TestM
 }
 
 func TestMulticlassNamedArgs(ctx context.Context, myArg types.NamedArgsSingleClass, myArg2 types.NamedArgsSingleClass, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myArg": myArg, "myArg2": myArg2},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myArg": myArg, "myArg2": myArg2},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11018,13 +11343,15 @@ func (*stream) TestMulticlassNamedArgs(ctx context.Context, myArg types.NamedArg
 }
 
 func TestNamedArgsLiteralBool(ctx context.Context, myBool bool, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myBool": myBool},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myBool": myBool},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11090,13 +11417,15 @@ func (*stream) TestNamedArgsLiteralBool(ctx context.Context, myBool bool) <-chan
 }
 
 func TestNamedArgsLiteralInt(ctx context.Context, myInt int, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myInt": myInt},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myInt": myInt},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11162,13 +11491,15 @@ func (*stream) TestNamedArgsLiteralInt(ctx context.Context, myInt int) <-chan *s
 }
 
 func TestNamedArgsLiteralString(ctx context.Context, myString string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"myString": myString},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"myString": myString},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11234,13 +11565,15 @@ func (*stream) TestNamedArgsLiteralString(ctx context.Context, myString string) 
 }
 
 func TestOllama(ctx context.Context, input string, opts ...CallOptionFunc) (**string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11308,13 +11641,15 @@ func (*stream) TestOllama(ctx context.Context, input string) <-chan **string {
 }
 
 func TestOllamaHaiku(ctx context.Context, input string, opts ...CallOptionFunc) (*types.Haiku, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11380,13 +11715,15 @@ func (*stream) TestOllamaHaiku(ctx context.Context, input string) <-chan *types.
 }
 
 func TestOpenAI(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11452,13 +11789,15 @@ func (*stream) TestOpenAI(ctx context.Context, input string) <-chan *string {
 }
 
 func TestOpenAIDummyClient(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11524,13 +11863,15 @@ func (*stream) TestOpenAIDummyClient(ctx context.Context, input string) <-chan *
 }
 
 func TestOpenAIGPT4oMini(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11596,13 +11937,15 @@ func (*stream) TestOpenAIGPT4oMini(ctx context.Context, input string) <-chan *st
 }
 
 func TestOpenAILegacyProvider(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11668,13 +12011,15 @@ func (*stream) TestOpenAILegacyProvider(ctx context.Context, input string) <-cha
 }
 
 func TestOpenAIO1NoMaxTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11740,13 +12085,15 @@ func (*stream) TestOpenAIO1NoMaxTokens(ctx context.Context, input string) <-chan
 }
 
 func TestOpenAIO1WithMaxCompletionTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11812,13 +12159,15 @@ func (*stream) TestOpenAIO1WithMaxCompletionTokens(ctx context.Context, input st
 }
 
 func TestOpenAIO1WithMaxTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11884,13 +12233,15 @@ func (*stream) TestOpenAIO1WithMaxTokens(ctx context.Context, input string) <-ch
 }
 
 func TestOpenAIShorthand(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -11956,13 +12307,15 @@ func (*stream) TestOpenAIShorthand(ctx context.Context, input string) <-chan *st
 }
 
 func TestOpenAIWithFinishReasonError(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12028,13 +12381,15 @@ func (*stream) TestOpenAIWithFinishReasonError(ctx context.Context, input string
 }
 
 func TestOpenAIWithMaxTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12100,13 +12455,15 @@ func (*stream) TestOpenAIWithMaxTokens(ctx context.Context, input string) <-chan
 }
 
 func TestOpenAIWithNullMaxTokens(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12172,13 +12529,15 @@ func (*stream) TestOpenAIWithNullMaxTokens(ctx context.Context, input string) <-
 }
 
 func TestOpenRouterMistralSmall3_1_24b(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12244,13 +12603,15 @@ func (*stream) TestOpenRouterMistralSmall3_1_24b(ctx context.Context, input stri
 }
 
 func TestRetryConstant(ctx context.Context, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12316,13 +12677,15 @@ func (*stream) TestRetryConstant(ctx context.Context) <-chan *string {
 }
 
 func TestRetryExponential(ctx context.Context, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12388,13 +12751,15 @@ func (*stream) TestRetryExponential(ctx context.Context) <-chan *string {
 }
 
 func TestRoundRobinStrategy(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12460,13 +12825,15 @@ func (*stream) TestRoundRobinStrategy(ctx context.Context, input string) <-chan 
 }
 
 func TestSingleFallbackClient(ctx context.Context, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12532,13 +12899,15 @@ func (*stream) TestSingleFallbackClient(ctx context.Context) <-chan *string {
 }
 
 func TestThinking(ctx context.Context, input string, opts ...CallOptionFunc) (*types.CustomStory, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12604,13 +12973,15 @@ func (*stream) TestThinking(ctx context.Context, input string) <-chan *types.Cus
 }
 
 func TestUniverseQuestion(ctx context.Context, question types.UniverseQuestionInput, opts ...CallOptionFunc) (*types.UniverseQuestion, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"question": question},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"question": question},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12676,13 +13047,15 @@ func (*stream) TestUniverseQuestion(ctx context.Context, question types.Universe
 }
 
 func TestVertex(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12748,13 +13121,15 @@ func (*stream) TestVertex(ctx context.Context, input string) <-chan *string {
 }
 
 func TestVertexClaude(ctx context.Context, input string, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12820,13 +13195,15 @@ func (*stream) TestVertexClaude(ctx context.Context, input string) <-chan *strin
 }
 
 func TestVertexWithSystemInstructions(ctx context.Context, opts ...CallOptionFunc) (*string, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12892,13 +13269,15 @@ func (*stream) TestVertexWithSystemInstructions(ctx context.Context) <-chan *str
 }
 
 func UnionTest_Function(ctx context.Context, input types.Union__string__bool, opts ...CallOptionFunc) (*types.UnionTest_ReturnType, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -12964,13 +13343,15 @@ func (*stream) UnionTest_Function(ctx context.Context, input types.Union__string
 }
 
 func UseBlockConstraint(ctx context.Context, inp types.BlockConstraintForParam, opts ...CallOptionFunc) (*int64, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"inp": inp},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"inp": inp},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -13036,13 +13417,15 @@ func (*stream) UseBlockConstraint(ctx context.Context, inp types.BlockConstraint
 }
 
 func UseMaintainFieldOrder(ctx context.Context, input types.MaintainFieldOrder, opts ...CallOptionFunc) (*types.MaintainFieldOrder, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"input": input},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -13108,13 +13491,15 @@ func (*stream) UseMaintainFieldOrder(ctx context.Context, input types.MaintainFi
 }
 
 func UseMalformedConstraints(ctx context.Context, a types.MalformedConstraints2, opts ...CallOptionFunc) (*int64, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"a": a},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"a": a},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
@@ -13180,13 +13565,15 @@ func (*stream) UseMalformedConstraints(ctx context.Context, a types.MalformedCon
 }
 
 func UseNestedBlockConstraint(ctx context.Context, inp types.NestedBlockConstraintForParam, opts ...CallOptionFunc) (*int64, error) {
-	args := baml.BamlFunctionArguments{
-		Kwargs: map[string]any{"inp": inp},
-	}
 
 	var callOpts callOption
 	for _, opt := range opts {
 		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"inp": inp},
+		Env:    getEnvVars(callOpts.env),
 	}
 
 	if callOpts.clientRegistry != nil {
