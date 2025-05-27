@@ -131,6 +131,11 @@ func main() {
 			panic(err)
 		}
 		fmt.Printf("call output tokens: %d\n", outputTokens)
+		selected, err := call.Selected()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("call selected: %t\n", selected)
 	}
 
 	// v2, err = b.AaaSamOutputFormat(ctx, "pineapple")

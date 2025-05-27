@@ -510,6 +510,10 @@ fn call_collector_function_inner(
                     let _ = unsafe { Box::from_raw(object as *mut LLMCall) };
                     Ok(null())
                 }
+                "selected" => {
+                    let selected = if llm_call.selected { 1 } else { 0 };
+                    Ok(selected as *const libc::c_void)
+                }
                 _ => Err(anyhow::anyhow!(
                     "Failed to call function: {} on object type: {}",
                     function_name,

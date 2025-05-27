@@ -305,3 +305,12 @@ func (l *LLMCall) Usage() (*Usage, error) {
 
 	return wrap(createUsage, usagePtr), nil
 }
+
+func (l *LLMCall) Selected() (bool, error) {
+	selectedPtr, err := baml_go.CallCollectorFunction(l.c, llmCallType, "selected")
+	if err != nil {
+		return false, err
+	}
+
+	return int(uintptr(unsafe.Pointer(selectedPtr))) == 1, nil
+}
