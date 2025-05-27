@@ -6,7 +6,7 @@ use baml_types::BamlMap;
 use baml_types::{
     expr::{self, Expr, ExprMetadata, Name, VarIndex},
     Arrow, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, JinjaExpression, Resolvable,
-    StreamingBehavior, StringOr, TypeValue, UnresolvedValue,
+    StreamingBehavior, StringOr, TypeValue, UnresolvedValue, UnionType,
 };
 use either::Either;
 use indexmap::{IndexMap, IndexSet};
@@ -285,15 +285,14 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .iter()
                     .map(|v| v.repr(db))
                     .collect::<Result<Vec<_>>>()?;
-                let mut item_types = new_items
+                let item_types = new_items
                     .iter()
                     .filter_map(|v| v.meta().1.clone())
                     .collect::<Vec<_>>();
-                item_types.dedup();
-                let item_type = match item_types.len() {
-                    0 => None,
-                    1 => Some(item_types[0].clone()),
-                    _ => Some(FieldType::Union(item_types)),
+                let item_type = if item_types.is_empty() {
+                    None
+                } else {
+                    Some(FieldType::union(item_types))
                 };
                 let list_type = item_type.map(|t| FieldType::List(Box::new(t)));
                 Ok(Expr::List(new_items, (span.clone(), list_type)))
@@ -303,16 +302,18 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .iter()
                     .map(|(k, v)| v.repr(db).map(|v2| (k.to_string(), v2)))
                     .collect::<Result<IndexMap<_, _>>>()?;
-                let mut item_types = new_items
+                let item_types = new_items
                     .iter()
                     .filter_map(|v| v.1.meta().1.clone())
                     .collect::<Vec<_>>();
-                item_types.dedup();
-                let item_type = match item_types.len() {
-                    0 => None,
-                    1 => Some(item_types[0].clone()),
-                    _ => Some(FieldType::Union(item_types)),
+
+
+                let item_type = if item_types.is_empty() {
+                    None
+                } else {
+                    Some(FieldType::union(item_types))
                 };
+
                 // TODO: Is this correct?
                 let key_type = FieldType::Primitive(TypeValue::String);
                 let map_type = item_type.map(|t| FieldType::Map(Box::new(key_type), Box::new(t)));
@@ -1172,7 +1173,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                     types.push(FieldType::Primitive(baml_types::TypeValue::Null));
                 }
 
-                FieldType::Union(types)
+                FieldType::union(types)
             }
             ast::FieldType::Tuple(arity, t, ..) => type_with_arity(
                 FieldType::Tuple(t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?),

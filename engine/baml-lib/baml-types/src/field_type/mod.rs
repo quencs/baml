@@ -75,6 +75,88 @@ impl std::fmt::Display for LiteralValue {
     }
 }
 
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UnionType {
+    types: Vec<FieldType>,
+}
+
+pub enum UnionTypeView<'a> {
+    Null, // Someone unioned null | null
+    // A union type may never hold more than 1 null
+    Optional(&'a FieldType),
+    OneOf(Vec<&'a FieldType>),
+    OneOfOptional(Vec<&'a FieldType>),
+}
+
+static NULL_TYPE: FieldType = FieldType::Primitive(TypeValue::Null);
+
+impl<'a> UnionTypeView<'a> {
+    fn flatten(&self) -> Vec<FieldType> {
+        match self {
+            UnionTypeView::Null => vec![NULL_TYPE.clone()],
+            UnionTypeView::Optional(field_type) => field_type.flatten().into_iter().chain(
+                vec![NULL_TYPE.clone()],
+            ).collect(),
+            UnionTypeView::OneOf(field_types) => field_types.iter().flat_map(|t| t.flatten()).collect(),
+            UnionTypeView::OneOfOptional(field_types) => field_types.iter().flat_map(|t| t.flatten()).chain(
+                vec![NULL_TYPE.clone()],
+            ).collect(),
+        }
+    }
+}
+
+impl UnionType {
+    // disallow construction so people have to use:
+    // FieldType::union(vec![...]) which does a simplify() default
+    pub(crate) fn new(types: Vec<FieldType>) -> Self {
+        if types.len() <= 1 {
+            panic!("FATAL, please report this bug: Union type must have at least 2 types. Got {:?}", types);
+        }
+        Self { types }
+    }
+
+    pub fn is_optional(&self) -> bool {
+        self.types.iter().any(|t| t.is_optional())
+    }
+
+    pub fn add_type(&mut self, t: FieldType) {
+        self.types.push(t);
+    }
+
+    pub fn view<'a>(&'a self) -> UnionTypeView<'a> {
+        let non_null_types = self.types.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
+        match non_null_types.len() {
+            0 => UnionTypeView::Null,
+            1 => UnionTypeView::Optional(&non_null_types[0]),
+            _ => {
+                if non_null_types.len() == self.types.len() {
+                    UnionTypeView::OneOf(non_null_types)
+                } else {
+                    UnionTypeView::OneOfOptional(non_null_types)
+                }
+            }
+        }
+    }
+
+    pub fn view_as_iter(&self, include_null: bool) -> (Vec<&FieldType>, bool) {
+        match self.view() {
+            UnionTypeView::Null => (if include_null { vec![&NULL_TYPE] } else { vec![] }, true),
+            UnionTypeView::Optional(field_type) => if include_null {
+                (vec![field_type, &NULL_TYPE], true)
+            } else {
+                (vec![field_type], true)
+            },
+            UnionTypeView::OneOf(items) => (items, false),
+            UnionTypeView::OneOfOptional(items) => if include_null {
+                (items.into_iter().chain(std::iter::once(&NULL_TYPE)).collect(), true)
+            } else {
+                (items, true)
+            },
+        }
+    }
+}
+
+
 /// FieldType represents the type of either a class field or a function arg.
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FieldType {
@@ -84,10 +166,10 @@ pub enum FieldType {
     Class(String),
     List(Box<FieldType>),
     Map(Box<FieldType>, Box<FieldType>),
-    Union(Vec<FieldType>),
-    Tuple(Vec<FieldType>),
     RecursiveTypeAlias(String),
+    Tuple(Vec<FieldType>),
     Arrow(Box<Arrow>),
+    Union(UnionType),
     WithMetadata {
         base: Box<FieldType>,
         constraints: Vec<Constraint>,
@@ -115,25 +197,27 @@ impl std::fmt::Display for FieldType {
             FieldType::Primitive(t) => write!(f, "{t}"),
             FieldType::Literal(v) => write!(f, "{v}"),
             FieldType::Union(choices) => {
-                let not_null_choices = choices.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
-                let not_null_choices_len = not_null_choices.len();
-                let not_null_choices_str = not_null_choices
-                    .into_iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(" | ");
-                let not_null_choices_str = if not_null_choices_len > 1 {
-                    format!("({})", not_null_choices_str)
-                } else {
-                    not_null_choices_str
+                let view = choices.view();
+                let res = match view {
+                    UnionTypeView::Null => "null".to_string(),
+                    UnionTypeView::Optional(field_type) => format!("{}?", field_type.to_string()),
+                    UnionTypeView::OneOf(field_types) => {
+                        field_types
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(" | ")
+                    },
+                    UnionTypeView::OneOfOptional(field_types) => {
+                        let not_null_choices_str = field_types
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(" | ");
+                        format!("({})?", not_null_choices_str)
+                    },
                 };
-
-                
-                if self.is_optional() {
-                    write!(f, "{}?", not_null_choices_str)
-                } else {
-                    write!(f, "{}", not_null_choices_str)
-                }
+                write!(f, "{res}")
             }
             FieldType::Tuple(choices) => {
                 write!(
@@ -165,9 +249,9 @@ impl std::fmt::Display for FieldType {
 }
 
 impl FieldType {
-    fn flatten(&self) -> Vec<FieldType> {
+    pub fn flatten(&self) -> Vec<FieldType> {
         match self {
-            FieldType::Union(inner) => inner.iter().flat_map(|t| t.flatten()).collect(),
+            FieldType::Union(inner) => inner.view().flatten(),
             _ => vec![self.clone()],
         }
     }
@@ -175,23 +259,24 @@ impl FieldType {
     pub fn simplify(&self) -> FieldType {
         match self {
             FieldType::Union(inner) => {
-                let flattened = inner.iter().flat_map(|t| t.flatten()).collect::<Vec<_>>();
+                let flattened = inner.view().flatten();
                 let unique = flattened.into_iter().unique().collect::<Vec<_>>();
-                let has_null = unique.contains(&FieldType::Primitive(TypeValue::Null));
+                let has_null = unique.contains(&NULL_TYPE);
                 // if the union contains null, we'll detect that here.
                 let mut unique_without_null = unique
                     .into_iter()
-                    .filter(|t| t != &FieldType::Primitive(TypeValue::Null))
+                    .filter(|t| t != &NULL_TYPE)
                     .collect::<Vec<_>>();
-
-                if has_null {
-                    unique_without_null.push(FieldType::Primitive(TypeValue::Null));
-                }
 
                 let simplified = match unique_without_null.len() {
                     0 => return FieldType::Primitive(TypeValue::Null),
                     1 => unique_without_null[0].clone(),
-                    _ => FieldType::Union(unique_without_null),
+                    _ => {
+                        if has_null {
+                            unique_without_null.push(NULL_TYPE.clone());
+                        }
+                        FieldType::Union(UnionType::new(unique_without_null))
+                    },
                 };
 
                 simplified
@@ -212,7 +297,7 @@ impl FieldType {
     pub fn is_optional(&self) -> bool {
         match self {
             FieldType::Primitive(TypeValue::Null) => true,
-            FieldType::Union(types) => types.iter().any(FieldType::is_optional),
+            FieldType::Union(choices) => choices.is_optional(),
             FieldType::WithMetadata { base, .. } => base.is_optional(),
             _ => false,
         }
@@ -291,19 +376,15 @@ impl ToUnionName for FieldType {
                 )
             }
             FieldType::Union(field_types) => {
-                let not_null_field_types = field_types.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
-                if not_null_field_types.len() > 1 {
-                format!(
-                    "Union__{}",
-                    not_null_field_types
-                        .into_iter()
-                        .map(|v| v.to_union_name())
-                        .collect::<Vec<_>>()
-                        .join("__")
-                        .to_string()
-                )
-                } else {
-                    not_null_field_types[0].to_union_name()
+                match field_types.view() {
+                    UnionTypeView::Null => "null".to_string(),
+                    UnionTypeView::Optional(field_type) => {
+                        field_type.to_union_name()
+                    }
+                    UnionTypeView::OneOf(field_types) | UnionTypeView::OneOfOptional(field_types) => {
+                        format!("Union__{}", field_types.iter().map(|t| t.to_union_name()).collect::<Vec<_>>().join("__"))
+                    }
+                    
                 }
             },
             FieldType::Tuple(field_types) => format!(

@@ -311,20 +311,31 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoUnion
             )
             .chain(ir.walk_alias_cycles().map(|c| c.item.1.find_union_types()))
             .flat_map(|set| set.into_iter())
-            .filter_map(|t| match t {
-                FieldType::Union(variants) => Some(variants),
+            .filter_map(|t| match &t {
+                FieldType::Union(variants) => match variants.view() {
+                    baml_types::UnionTypeView::Null => None,
+                    baml_types::UnionTypeView::Optional(_) => None,
+                    _ => Some(t),
+                },
                 _ => None,
             })
             .collect::<IndexSet<_>>()
             .into_iter()
-            .map(|variants| GoUnion {
-                name: FieldType::Union(variants.clone()).to_union_name(),
+            .map(|union_type| {
+                let union_name = union_type.to_union_name();
+                let FieldType::Union(variants) = union_type else {
+                    unreachable!("This should have been filtered out earlier");
+                };
+                GoUnion {
+                name: union_name,
                 variants: variants
+                    .view_as_iter(false).0
                     .iter()
                     .map(|v| (v.to_union_name(), v.to_type_ref_2(ir, false)))
                     .collect(),
                 docstring: None,
-            })
+            }
+    })
             .collect::<Vec<_>>();
 
         unions.sort_by_key(|u| u.name.clone());
@@ -486,10 +497,7 @@ fn has_none_default(ir: &IntermediateRepr, field_type: &FieldType) -> bool {
         FieldType::Map(_, _) => false,
         FieldType::RecursiveTypeAlias(_) => false,
         FieldType::Tuple(_) => false,
-        FieldType::Union(variants) => variants
-            .iter()
-            .map(|variant| has_none_default(ir, variant))
-            .any(|b| b),
+        FieldType::Union(variants) => variants.is_optional(),
         FieldType::WithMetadata { .. } => {
             unreachable!("FieldType::WithMetadata is always consumed by distribute_metadata")
         }
@@ -534,6 +542,11 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             is_enum: matches!(simplified, FieldType::Enum(_)),
             underlying_type: match simplified {
                 FieldType::List(value) => Some(Box::new(value.to_type_ref_2(ir, module_prefix))),
+                FieldType::Union(inner) => match inner.view() {
+                    baml_types::UnionTypeView::Null => None,
+                    baml_types::UnionTypeView::Optional(field_type) => Some(Box::new(field_type.to_type_ref_2(ir, module_prefix))),
+                    _ => None,
+                },
                 _ => None,
             },
         }
@@ -567,18 +580,11 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             }
             FieldType::Primitive(r#type) => r#type.to_go(),
             FieldType::Union(inner) => {
-                let is_optional = self.is_optional();
-                let not_null_field_types = inner.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
-                let name = if not_null_field_types.len() > 1 {
-                    format!("{module_prefix}{}", self.to_union_name())
-                } else {
-                    not_null_field_types[0].to_type_ref_2(ir, use_module_prefix).name
-                };
-
-                if is_optional {
-                    format!("*{}", name)
-                } else {
-                    name
+                match inner.view() {
+                    baml_types::UnionTypeView::Null => "any".to_string(),
+                    baml_types::UnionTypeView::Optional(field_type) => format!("*{}", field_type.to_type_ref_impl_2(ir, use_module_prefix)),
+                    baml_types::UnionTypeView::OneOf(field_types) => format!("{module_prefix}{}", self.to_union_name()),
+                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("*{module_prefix}{}", self.to_union_name()),
                 }
             },
             FieldType::Tuple(inner) => format!(
@@ -659,24 +665,15 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 }
             }
             FieldType::Union(inner) => {
-                let is_optional = self.is_optional();
-                let not_null_field_types = inner.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
-                let name = if not_null_field_types.len() > 1 {
-                    format!("{module_prefix}{}", self.to_union_name())
-                } else {
-                    not_null_field_types[0].to_type_ref_2(ir, use_module_prefix).name
-                };
-
-                let union_name = if is_optional {
-                    format!("*{}", name)
-                } else {
-                    name
-                };
-
-                if needed || wrapped || is_optional {
-                    union_name
-                } else {
-                    format!("*{}", union_name)
+                match inner.view() {
+                    baml_types::UnionTypeView::Null => "any".to_string(),
+                    baml_types::UnionTypeView::Optional(field_type) => format!("*{}", field_type.to_type_ref_impl_2(ir, use_module_prefix)),
+                    baml_types::UnionTypeView::OneOf(field_types) => if needed {
+                        format!("{module_prefix}{}", self.to_union_name())
+                    } else {
+                        format!("*{module_prefix}{}", self.to_union_name())
+                    },
+                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("*{module_prefix}{}", self.to_union_name()),
                 }
             }
             FieldType::Tuple(inner) => {
@@ -746,7 +743,7 @@ mod tests {
     #[test]
     fn test_union() {
         let ir = make_test_ir("").unwrap();
-        let union = FieldType::Union(vec![
+        let union = FieldType::union(vec![
             FieldType::Primitive(TypeValue::String),
             FieldType::Primitive(TypeValue::Int),
         ]);
@@ -758,7 +755,7 @@ mod tests {
     #[test]
     fn test_union_with_optional() {
         let ir = make_test_ir("").unwrap();
-        let union = FieldType::Union(vec![
+        let union = FieldType::union(vec![
             FieldType::Primitive(TypeValue::String).as_optional(),
             FieldType::Primitive(TypeValue::Int),
         ]);

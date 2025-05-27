@@ -209,7 +209,7 @@ test_partial_deserializer_streaming!(
   test_map_with_literal_keys_streaming,
   "",
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::Union(vec![
+  FieldType::map(FieldType::union(vec![
     FieldType::Literal(LiteralValue::String("A".to_string())),
     FieldType::Literal(LiteralValue::String("B".to_string())),
   ]), FieldType::string()),

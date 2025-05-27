@@ -168,7 +168,7 @@ test_deserializer!(
     test_union_literal_integer_positive,
     EMPTY_FILE,
     "2",
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(2)),
         FieldType::Literal(LiteralValue::Int(3)),
     ]),
@@ -179,7 +179,7 @@ test_failing_deserializer!(
     test_union_literal_integer_positive_with_both,
     EMPTY_FILE,
     "2 or 3",
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(2)),
         FieldType::Literal(LiteralValue::Int(3)),
     ])
@@ -189,7 +189,7 @@ test_failing_deserializer!(
     test_union_literal_bool_with_both,
     EMPTY_FILE,
     "true or false",
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(2)),
         FieldType::Literal(LiteralValue::Int(3)),
     ])
@@ -203,7 +203,7 @@ test_deserializer!(
     test_union_literal_string_with_both,
     EMPTY_FILE,
     "TWO or THREE",
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::String("TWO".into())),
         FieldType::Literal(LiteralValue::String("THREE".into())),
     ]),
@@ -216,7 +216,7 @@ test_deserializer!(
     r#"{
   "status": 1
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),
@@ -231,7 +231,7 @@ test_deserializer!(
     r#"{
   "status": 1
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),
@@ -246,7 +246,7 @@ test_deserializer!(
     r#"{
   "result": true
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),
@@ -261,7 +261,7 @@ test_deserializer!(
     r#"{
   "value": "THREE"
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),
@@ -275,7 +275,7 @@ test_deserializer!(
     r#"
         "pay"
     "#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::String("pay".into())),
         FieldType::Literal(LiteralValue::String("pay_without_credit_card".into())),
     ]),
@@ -288,7 +288,7 @@ test_partial_deserializer_streaming_failure!(
     r#"
         "pay
     "#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::String("pay".into())),
         FieldType::Literal(LiteralValue::String("pay_without_credit_card".into())),
     ])
@@ -302,7 +302,7 @@ test_failing_deserializer!(
   "status": 1,
   "message": "success"
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),
@@ -318,7 +318,7 @@ test_failing_deserializer!(
     "code": 1
   }
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),
@@ -332,7 +332,7 @@ test_deserializer!(
     r#"{
   "value": "\"THREE\""
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),
@@ -347,7 +347,7 @@ test_deserializer!(
     r#"{
   "value": "The answer is THREE"
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),
@@ -362,7 +362,7 @@ test_failing_deserializer!(
     r#"{
   "values": [1]
 }"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::Literal(LiteralValue::Int(1)),
         FieldType::Literal(LiteralValue::Bool(true)),
         FieldType::Literal(LiteralValue::String("THREE".into())),

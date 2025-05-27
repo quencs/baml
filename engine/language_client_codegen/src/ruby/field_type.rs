@@ -38,15 +38,14 @@ impl ToRuby for FieldType {
                 TypeValue::Media(BamlMediaType::Image) => "Baml::Image",
                 TypeValue::Media(BamlMediaType::Audio) => "Baml::Audio",
             }),
-            FieldType::Union(inner) => format!(
-                // https://sorbet.org/docs/union-types
-                "T.any({})",
-                inner
-                    .iter()
-                    .map(|t| t.to_ruby())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            FieldType::Union(inner) => {
+                match inner.view() {
+                    baml_types::UnionTypeView::Null => "NilClass".to_string(),
+                    baml_types::UnionTypeView::Optional(field_type) => format!("T.nilable({})", field_type.to_ruby()),
+                    baml_types::UnionTypeView::OneOf(field_types) => format!("T.any({})", field_types.iter().map(|t| t.to_ruby()).collect::<Vec<_>>().join(", ")),
+                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("T.nilable(T.any({}))", field_types.iter().map(|t| t.to_ruby()).collect::<Vec<_>>().join(", ")),
+                }
+            }
             FieldType::Tuple(inner) => format!(
                 // https://sorbet.org/docs/tuples
                 "[{}]",

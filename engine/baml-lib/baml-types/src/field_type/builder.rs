@@ -1,4 +1,4 @@
-use super::{BamlMediaType, FieldType, TypeValue};
+use super::{BamlMediaType, FieldType, TypeValue, UnionType};
 
 impl FieldType {
     pub fn string() -> Self {
@@ -62,7 +62,7 @@ impl FieldType {
     }
 
     pub fn union(choices: Vec<FieldType>) -> Self {
-        FieldType::Union(choices)
+        FieldType::Union(UnionType::new(choices)).simplify()
     }
 
     pub fn tuple(choices: Vec<FieldType>) -> Self {
@@ -70,10 +70,10 @@ impl FieldType {
     }
 
     pub fn optional(inner: FieldType) -> Self {
-        FieldType::Union(vec![inner, FieldType::Primitive(TypeValue::Null)])
+        FieldType::Union(UnionType::new(vec![inner, FieldType::Primitive(TypeValue::Null)])).simplify()
     }
 
     pub fn as_optional(self) -> Self {
-        FieldType::Union(vec![self, FieldType::Primitive(TypeValue::Null)])
+        FieldType::Union(UnionType::new(vec![self, FieldType::Primitive(TypeValue::Null)])).simplify()
     }
 }

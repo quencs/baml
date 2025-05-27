@@ -411,10 +411,11 @@ impl OutputFormatContent {
                     "Answer with a JSON Array using this schema:\n",
                 )),
                 FieldType::Union(items) => {
-                    if ft.is_optional() && items.len() == 2 {
-                        Some(String::from("Answer in JSON using this schema:\n"))
-                    } else {
-                        Some(String::from("Answer in JSON using any of these schemas:\n"))
+                    match items.view() {
+                        baml_types::UnionTypeView::Null => Some(String::from("Answer ONLY with null:\n")),
+                        baml_types::UnionTypeView::Optional(_) => Some(String::from("Answer in JSON using this schema:\n")),
+                        baml_types::UnionTypeView::OneOf(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
+                        baml_types::UnionTypeView::OneOfOptional(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
                     }
                 }
                 FieldType::Map(_, _) => Some(String::from("Answer in JSON using this schema:\n")),
@@ -670,7 +671,7 @@ impl OutputFormatContent {
                     && match inner.as_ref() {
                         FieldType::Primitive(_) => false,
                         FieldType::Enum(_e) => inner_str.len() > 15,
-                        FieldType::Union(items) => items.iter().all(|t| !t.is_primitive()),
+                        FieldType::Union(items) => items.view_as_iter(true).0.iter().all(|t| !t.is_primitive()),
                         _ => true,
                     }
                 {
@@ -682,6 +683,8 @@ impl OutputFormatContent {
                 }
             }
             FieldType::Union(items) => items
+                .view_as_iter(true)
+                .0
                 .iter()
                 .map(|t| self.render_possibly_hoisted_type(options, t, render_ctx))
                 .collect::<Result<Vec<_>, minijinja::Error>>()?
@@ -1282,7 +1285,7 @@ Answer in JSON using this schema:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::Union(vec![
+        let content = OutputFormatContent::target(FieldType::union(vec![
             FieldType::class("Bug"),
             FieldType::class("Enhancement"),
             FieldType::class("Documentation"),
@@ -1317,7 +1320,7 @@ r#"Answer in JSON using any of these schemas:
                 fields: vec![
                     (
                         Name::new("category".to_string()),
-                        FieldType::Union(vec![
+                        FieldType::union(vec![
                             FieldType::class("Bug"),
                             FieldType::class("Enhancement"),
                             FieldType::class("Documentation"),
@@ -1847,7 +1850,7 @@ Answer in JSON using this schema: Tree"#
             name: Name::new("SelfReferential".to_string()),
             fields: vec![(
                 Name::new("recursion".to_string()),
-                FieldType::Union(vec![
+                FieldType::union(vec![
                     FieldType::int(),
                     FieldType::string(),
                     FieldType::optional(FieldType::class("SelfReferential")),
@@ -1912,7 +1915,7 @@ Answer in JSON using this schema: SelfReferential"#
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::Union(vec![
+        let content = OutputFormatContent::target(FieldType::union(vec![
             FieldType::class("Node"),
             FieldType::class("Tree"),
         ]))
@@ -1950,7 +1953,7 @@ Node or Tree"#
                 fields: vec![
                     (
                         Name::new("data_type".to_string()),
-                        FieldType::Union(vec![FieldType::class("Node"), FieldType::class("Tree")]),
+                        FieldType::union(vec![FieldType::class("Node"), FieldType::class("Tree")]),
                         None,
                         false,
                     ),
@@ -2073,7 +2076,7 @@ Answer in JSON using this schema:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::Union(vec![
+        let content = OutputFormatContent::target(FieldType::union(vec![
             FieldType::class("Node"),
             FieldType::class("Tree"),
             FieldType::class("NonRecursive"),
@@ -2115,7 +2118,7 @@ Node or Tree or {
                 fields: vec![
                     (
                         Name::new("data_type".to_string()),
-                        FieldType::Union(vec![
+                        FieldType::union(vec![
                             FieldType::class("Node"),
                             FieldType::class("Tree"),
                             FieldType::class("NonRecursive"),
@@ -2338,9 +2341,9 @@ Answer in JSON using this interface:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::Union(vec![
-            FieldType::Union(vec![FieldType::class("Node"), FieldType::int()]),
-            FieldType::Union(vec![FieldType::string(), FieldType::class("Tree")]),
+        let content = OutputFormatContent::target(FieldType::union(vec![
+            FieldType::union(vec![FieldType::class("Node"), FieldType::int()]),
+            FieldType::union(vec![FieldType::string(), FieldType::class("Tree")]),
         ]))
         .classes(classes)
         .recursive_classes(IndexSet::from_iter(
@@ -2404,9 +2407,9 @@ Node or int or string or Tree"#
                 fields: vec![
                     (
                         Name::new("the_union".to_string()),
-                        FieldType::Union(vec![
-                            FieldType::Union(vec![FieldType::class("Node"), FieldType::int()]),
-                            FieldType::Union(vec![FieldType::string(), FieldType::class("Tree")]),
+                        FieldType::union(vec![
+                            FieldType::union(vec![FieldType::class("Node"), FieldType::int()]),
+                            FieldType::union(vec![FieldType::string(), FieldType::class("Tree")]),
                         ]),
                         None,
                         false,

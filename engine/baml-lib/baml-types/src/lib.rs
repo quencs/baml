@@ -14,7 +14,7 @@ mod value_expr;
 pub use baml_value::{BamlValue, BamlValueWithMeta, Completion, CompletionState};
 pub use constraint::*;
 pub use field_type::{
-    Arrow, FieldType, HasFieldType, LiteralValue, StreamingBehavior, ToUnionName, TypeValue,
+    Arrow, FieldType, HasFieldType, LiteralValue, StreamingBehavior, ToUnionName, TypeValue, UnionType, UnionTypeView
 };
 pub use generator::{GeneratorDefaultClientMode, GeneratorOutputType};
 pub use map::Map as BamlMap;

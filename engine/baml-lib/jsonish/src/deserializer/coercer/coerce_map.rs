@@ -46,11 +46,12 @@ pub(super) fn coerce_map(
 
         // For unions we need to check if all the items are literal strings.
         FieldType::Union(items) => {
-            let mut queue = VecDeque::from_iter(items.iter());
+            let (items, _) = items.view_as_iter(true);
+            let mut queue = VecDeque::from_iter(items.into_iter());
             while let Some(item) = queue.pop_front() {
                 match item {
                     FieldType::Literal(LiteralValue::String(_)) => continue,
-                    FieldType::Union(nested) => queue.extend(nested.iter()),
+                    FieldType::Union(nested) => queue.extend(nested.view_as_iter(true).0),
                     other => return Err(ctx.error_map_must_have_supported_key(other)),
                 }
             }

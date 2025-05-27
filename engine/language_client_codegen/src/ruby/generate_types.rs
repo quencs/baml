@@ -223,18 +223,11 @@ impl ToTypeReferenceInTypeDefinition<'_> for FieldType {
                 }
             }
             FieldType::Union(inner) => {
-                let inner_string =
-                // https://sorbet.org/docs/union-types
-                inner
-                    .iter()
-                    .map(|t| t.to_partial_type_ref(ir, false))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-                ;
-                if already_nilable {
-                    format!("T.any({inner_string})")
-                } else {
-                    format!("T.nilable(T.any({}))", inner_string)
+                match inner.view() {
+                    baml_types::UnionTypeView::Null => "NilClass".to_string(),
+                    baml_types::UnionTypeView::Optional(field_type) => format!("T.nilable({})", field_type.to_partial_type_ref(ir, false)),
+                    baml_types::UnionTypeView::OneOf(field_types) => format!("T.any({})", field_types.iter().map(|t| t.to_partial_type_ref(ir, false)).collect::<Vec<_>>().join(", ")),
+                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("T.nilable(T.any({}))", field_types.iter().map(|t| t.to_partial_type_ref(ir, false)).collect::<Vec<_>>().join(", ")),
                 }
             }
             FieldType::Tuple(inner) => {

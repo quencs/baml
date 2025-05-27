@@ -185,7 +185,7 @@ impl DefaultValue for FieldType {
                 self.clone(),
                 Vec::new(),
             )),
-            FieldType::Union(items) => items.iter().find_map(|i| i.default_value(error)),
+            FieldType::Union(items) => items.view_as_iter(true).0.iter().find_map(|i| i.default_value(error)),
             FieldType::Primitive(TypeValue::Null) => {
                 Some(BamlValueWithFlags::Null(self.clone(), get_flags()))
             }

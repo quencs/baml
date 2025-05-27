@@ -198,7 +198,7 @@ impl WithJsonSchema for FieldType {
                     schema["default"] = serde_json::Value::Null;
                 }
                 schema
-            },
+            }
             // Handle map types with optional support
             // For example: map<string, int>? generates a schema that allows both object and null
             FieldType::Map(_k, v) => {
@@ -216,17 +216,17 @@ impl WithJsonSchema for FieldType {
                     schema["default"] = serde_json::Value::Null;
                 }
                 schema
-            },
+            }
             FieldType::Union(options) => json!({
-                "anyOf": options.iter().map(|t| {
-                    let mut res = t.json_schema();
-                    // if res is a map, add a "title" field
-                    if let serde_json::Value::Object(r) = &mut res {
-                        r.insert("title".to_string(), json!(t.to_string()));
+                    "anyOf": options.view_as_iter(true).0.iter().map(|t| {
+                        let mut res = t.json_schema();
+                        // if res is a map, add a "title" field
+                        if let serde_json::Value::Object(r) = &mut res {
+                            r.insert("title".to_string(), json!(t.to_string()));
+                        }
+                        res
                     }
-                    res
-                }
-            ).collect::<Vec<_>>(),
+                ).collect::<Vec<_>>(),
             }),
             FieldType::Tuple(options) => json!({
                 "type": "array",

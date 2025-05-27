@@ -326,7 +326,7 @@ impl ArgCoercer {
             }
             (FieldType::Union(options), _) => {
                 let mut first_good_result = Err(());
-                for option in options {
+                for option in options.view_as_iter(true).0 {
                     let mut scope = ScopeStack::new();
                     if first_good_result.is_err() {
                         let result = self.coerce_arg(ir, option, value, &mut scope);

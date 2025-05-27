@@ -294,9 +294,18 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Tuple(options), _) | (FieldType::Union(options), _) => {
+            (FieldType::Tuple(options), _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options {
+                        if !checked_types.contains(&inner.to_string()) {
+                            stack.push(inner.clone());
+                        }
+                    }
+                }
+            }
+            (FieldType::Union(options), _) => {
+                if checked_types.insert(output.to_string()) {
+                    for inner in options.view_as_iter(true).0 {
                         if !checked_types.contains(&inner.to_string()) {
                             stack.push(inner.clone());
                         }

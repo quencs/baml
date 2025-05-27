@@ -616,15 +616,17 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 }
             }
             FieldType::Union(inner) => {
-                let union_contents = inner
+                let (nonnull_types, nullable) = inner.view_as_iter(false);
+                let union_contents = nonnull_types
                     .iter()
                     .map(|t| t.to_partial_type_ref(ir, false).0)
                     .collect::<Vec<_>>()
                     .join(" | ");
-                if needed {
-                    (format!("({})", union_contents), false)
-                } else {
+
+                if nullable || !needed {
                     (format!("({} | null)", union_contents), true)
+                } else {
+                    (format!("({})", union_contents), false)
                 }
             }
             FieldType::Tuple(inner) => {
@@ -709,6 +711,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             // In typescript we can just use literal values as type defs.
             FieldType::Literal(value) => value.to_string(),
             FieldType::Union(inner) => inner
+                .view_as_iter(true).0
                 .iter()
                 .map(|t| t.to_type_ref(ir, use_module_prefix))
                 .collect::<Vec<_>>()

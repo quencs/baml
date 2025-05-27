@@ -300,24 +300,25 @@ fn required_done<T>(
         FieldType::RecursiveTypeAlias(_) => false,
         FieldType::Class(_) => false,
         FieldType::Union(options) => {
+            let (view, is_optional) = options.view_as_iter(false);
             // Determining whether a union requires done is complicated.
             // If all the variants are required to be done, then the union
             // requires done.
-            let all_require_done = options.iter().all(|option| required_done(ir, option, value));
+            let all_require_done = view.iter().all(|option| required_done(ir, option, value));
             if all_require_done { return true; }
 
             // If none of the variants are required to be done, then the union
             // does not require done.
-            let none_require_done = options.iter().all(|option| !required_done(ir, option, value));
+            let none_require_done = view.iter().all(|option| !required_done(ir, option, value));
             if none_require_done { return false; }
 
             // Otherwise, the answer depends on the value we are streaming.
             // Search for the variant that matches the value, and use the
             // required_done property of that variant.
-            options.iter().any(|option| {
+            view.iter().any(|option| {
                 let variant_required_done = required_done(ir, option, value);
                 let value_unifies_with_variant =
-                    infer_type_with_meta(value).map_or(false, |v| &v == option);
+                    infer_type_with_meta(value).map_or(false, |v| &v == *option);
                 variant_required_done && value_unifies_with_variant
             })
         },

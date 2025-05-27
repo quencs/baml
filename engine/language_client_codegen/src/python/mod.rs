@@ -296,14 +296,12 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 )
             }
             FieldType::Primitive(r#type) => r#type.to_python(),
-            FieldType::Union(inner) => format!(
-                "Union[{}]",
-                inner
-                    .iter()
-                    .map(|t| t.to_type_ref(ir))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            FieldType::Union(inner) => match inner.view() {
+                baml_types::UnionTypeView::Null => "None".to_string(),
+                baml_types::UnionTypeView::Optional(field_type) => format!("Optional[{}]", field_type.to_type_ref(ir)),
+                baml_types::UnionTypeView::OneOf(field_types) => format!("Union[{}]", field_types.iter().map(|t| t.to_type_ref(ir)).collect::<Vec<_>>().join(", ")),
+                baml_types::UnionTypeView::OneOfOptional(field_types) => format!("Optional[Union[{}]]", field_types.iter().map(|t| t.to_type_ref(ir)).collect::<Vec<_>>().join(", ")),
+            },
             FieldType::Tuple(inner) => format!(
                 "Tuple[{}]",
                 inner
@@ -411,23 +409,15 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 }
             }
             FieldType::Union(inner) => {
-                let is_optional = self.is_optional();
-                let not_null_field_types = inner.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
-                let inner_str = if not_null_field_types.len() > 1 {
-                    let content = not_null_field_types
-                    .iter()
-                    .map(|t| t.to_partial_type_ref(ir, true))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                    format!("Union[{}]", content)
-                } else {
-                    not_null_field_types[0].to_partial_type_ref(ir, true)
-                };
-
-                if is_optional || !needed {
-                    format!("Optional[{}]", inner_str)
-                } else {
-                    inner_str
+                match inner.view() {
+                    baml_types::UnionTypeView::Null => "None".to_string(),
+                    baml_types::UnionTypeView::Optional(field_type) => format!("Optional[{}]", field_type.to_partial_type_ref(ir, true)),
+                    baml_types::UnionTypeView::OneOf(field_types) => if needed {
+                        format!("Union[{}]", field_types.iter().map(|t| t.to_partial_type_ref(ir, true)).collect::<Vec<_>>().join(", "))
+                    } else {
+                        format!("Optional[Union[{}]]", field_types.iter().map(|t| t.to_partial_type_ref(ir, true)).collect::<Vec<_>>().join(", "))
+                    },
+                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("Optional[Union[{}]]", field_types.iter().map(|t| t.to_partial_type_ref(ir, true)).collect::<Vec<_>>().join(", ")),
                 }
             }
             FieldType::Tuple(inner) => {

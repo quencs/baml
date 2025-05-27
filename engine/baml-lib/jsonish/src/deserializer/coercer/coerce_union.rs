@@ -24,6 +24,8 @@ pub(super) fn coerce_union(
     };
 
     let parsed = options
+        .view_as_iter(true)
+        .0
         .iter()
         .map(|option| option.coerce(ctx, union_target, value))
         .collect::<Vec<_>>();

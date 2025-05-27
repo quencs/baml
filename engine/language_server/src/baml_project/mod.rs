@@ -1410,6 +1410,7 @@ fn get_dummy_value(
             }
         }
         baml_runtime::FieldType::Union(fields) => fields
+            .view_as_iter(true).0
             .iter()
             .filter_map(|f| get_dummy_value(indent, allow_multiline, f))
             .next(),

@@ -529,15 +529,16 @@ where
     let target_type = value.field_type().simplify();
     if let baml_types::FieldType::Union(options) = &target_type {
         let mut options_vec = vec![];
-        for t in options.iter() {
+        for t in options.view_as_iter(true).0 {
             options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
         }
 
         // figure out which index of the options is the target_type
         let real_type = value.real_type();
+        let (options, _) = options.view_as_iter(true);
         let value_type_index = options
             .iter()
-            .position(|t| real_type == *t)
+            .position(|t| real_type == **t)
             .expect("Failed to find target_type in options");
         let variant_name = options[value_type_index].to_union_name();
         let options = builder.create_vector_from_iter(options_vec.into_iter());
@@ -644,7 +645,7 @@ where
         }
         baml_types::FieldType::Union(field_types) => {
             let mut options_vec = vec![];
-            for t in field_types.iter() {
+            for t in field_types.view_as_iter(true).0 {
                 options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
             }
             let options = builder.create_vector_from_iter(options_vec.into_iter());

@@ -633,12 +633,11 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     },
                 },
             },
-            FieldType::Union(union) => {
-                let (_nulls, nonnull_types): (Vec<_>, Vec<_>) =
-                    union.iter().partition(|t| t.is_null());
+            FieldType::Union(options) => {
+                let (nonnull_types, nullable) = options.view_as_iter(false);
 
                 let one_of = nonnull_types
-                    .iter()
+                    .into_iter()
                     .map(|t| t.to_type_spec(_ir))
                     .collect::<Result<Vec<_>>>()?;
 
@@ -651,7 +650,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                         title: None,
                         r#enum: None,
                         r#const: None,
-                        nullable: false,
+                        nullable,
                     },
                     type_spec: TypeSpec::Union { one_of },
                 }

@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use indexmap::IndexMap;
 use serde::{de::Visitor, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{media::BamlMediaType, HasFieldType, LiteralValue, ResponseCheck, TypeValue};
+use crate::{field_type::UnionTypeView, media::BamlMediaType, HasFieldType, LiteralValue, ResponseCheck, TypeValue};
 use crate::{BamlMap, BamlMedia, FieldType};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -350,12 +350,16 @@ impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
     pub fn real_type(&self) -> FieldType {
         let field_type = self.field_type();
         if let FieldType::Union(options) = field_type {
-            return options
-                .iter()
-                .filter(|t| self.is_type(t))
-                .next()
-                .expect("At least one type must be supported")
-                .clone();
+            return match options.view() {
+                UnionTypeView::Null => FieldType::Primitive(TypeValue::Null),
+                UnionTypeView::Optional(field_type) => if self.is_type(field_type) {
+                    field_type.clone()
+                } else {
+                    FieldType::Primitive(TypeValue::Null)
+                },
+                UnionTypeView::OneOf(field_types) => field_types.into_iter().find(|t| self.is_type(t)).expect("At least one type must be supported").clone(),
+                UnionTypeView::OneOfOptional(field_types) => field_types.into_iter().find(|t| self.is_type(t)).map_or_else(|| FieldType::Primitive(TypeValue::Null), |t| t.clone()),
+            }
         }
         field_type.clone()
     }
@@ -375,7 +379,12 @@ impl<T> BamlValueWithMeta<T> {
 
     fn is_type(&self, field_type: &FieldType) -> bool {
         let handle_composite = |field_type: &FieldType| match field_type {
-            FieldType::Union(options) => options.iter().any(|t| self.is_type(t)),
+            FieldType::Union(options) => match options.view() {
+                UnionTypeView::Null => self.is_type(&FieldType::Primitive(TypeValue::Null)),
+                UnionTypeView::Optional(field_type) => self.is_type(field_type) || self.is_type(&FieldType::Primitive(TypeValue::Null)),
+                UnionTypeView::OneOf(field_types) => field_types.iter().any(|t| self.is_type(t)),
+                UnionTypeView::OneOfOptional(field_types) => field_types.iter().any(|t| self.is_type(t)) || self.is_type(&FieldType::Primitive(TypeValue::Null)),
+            }
             _ => false,
         };
 

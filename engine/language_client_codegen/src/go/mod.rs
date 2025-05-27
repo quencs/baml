@@ -146,14 +146,11 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             }
             FieldType::Primitive(r#type) => r#type.to_go(),
             FieldType::Union(inner) => {
-                if self.is_optional() {
-                    match inner.len() {
-                        0 => format!("nil"),
-                        1 => format!("*{}", inner[0].to_type_ref(ir, _with_checked)),
-                        _ => format!("*types.{}", self.to_union_name()),
-                    }
-                } else {
-                    format!("types.{}", self.to_union_name())
+                match inner.view() {
+                    baml_types::UnionTypeView::Null => "any".to_string(),
+                    baml_types::UnionTypeView::Optional(field_type) => format!("*{}", field_type.to_type_ref(ir, _with_checked)),
+                    baml_types::UnionTypeView::OneOf(field_types) => format!("types.{}", self.to_union_name()),
+                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("*types.{}", self.to_union_name()),
                 }
             },
             FieldType::Tuple(inner) => format!(
@@ -202,14 +199,12 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 )
             }
             FieldType::Primitive(r#type) => format!("*{}", r#type.to_go()),
-            FieldType::Union(inner) => format!(
-                "*Union[{}]",
-                inner
-                    .iter()
-                    .map(|t| t.to_partial_type_ref(ir, with_checked))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            FieldType::Union(inner) => match inner.view() {
+                baml_types::UnionTypeView::Null => "any".to_string(),
+                baml_types::UnionTypeView::Optional(field_type) => format!("*{}", field_type.to_partial_type_ref(ir, with_checked)),
+                baml_types::UnionTypeView::OneOf(field_types) => format!("types.{}", self.to_union_name()),
+                baml_types::UnionTypeView::OneOfOptional(field_types) => format!("*types.{}", self.to_union_name()),
+            },
             FieldType::Tuple(inner) => format!(
                 "*Tuple[{}]",
                 inner

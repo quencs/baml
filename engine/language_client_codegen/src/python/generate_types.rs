@@ -1,7 +1,7 @@
 use anyhow::Result;
 use baml_types::{FieldType, LiteralValue, TypeValue};
 use itertools::Itertools;
-use std::borrow::Cow;
+use std::{borrow::Cow, env::var};
 
 use crate::{field_type_attributes, type_check_attributes, TypeCheckAttributes};
 
@@ -255,10 +255,7 @@ fn has_none_default(ir: &IntermediateRepr, field_type: &FieldType) -> bool {
         FieldType::Map(_, _) => false,
         FieldType::RecursiveTypeAlias(_) => false,
         FieldType::Tuple(_) => false,
-        FieldType::Union(variants) => variants
-            .iter()
-            .map(|variant| has_none_default(ir, variant))
-            .any(|b| b),
+        FieldType::Union(variants) => variants.is_optional(),
         FieldType::WithMetadata { .. } => {
             unreachable!("FieldType::WithMetadata is always consumed by distribute_metadata")
         }
@@ -332,22 +329,11 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             }
             FieldType::Primitive(r#type) => r#type.to_python(),
             FieldType::Union(inner) => {
-                let is_optional = self.is_optional();
-                let not_null_field_types = inner.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
-                let name = if not_null_field_types.len() > 1 {
-                    format!("Union[{}]", not_null_field_types
-                    .iter()
-                    .map(|t| t.to_type_ref(ir, use_module_prefix))
-                    .collect::<Vec<_>>()
-                    .join(", "))
-                } else {
-                    not_null_field_types[0].to_type_ref(ir, use_module_prefix)
-                };
-
-                if is_optional {
-                    format!("Optional[{}]", name)
-                } else {
-                    name
+                match inner.view() {
+                    baml_types::UnionTypeView::Null => "None".to_string(),
+                    baml_types::UnionTypeView::Optional(field_type) => format!("Optional[{}]", field_type.to_type_ref(ir, use_module_prefix)),
+                    baml_types::UnionTypeView::OneOf(field_types) => format!("Union[{}]", field_types.iter().map(|t| t.to_type_ref(ir, use_module_prefix)).collect::<Vec<_>>().join(", ")),
+                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("Optional[Union[{}]]", field_types.iter().map(|t| t.to_type_ref(ir, use_module_prefix)).collect::<Vec<_>>().join(", ")),
                 }
             },
             FieldType::Tuple(inner) => format!(
@@ -448,23 +434,13 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 }
             }
             FieldType::Union(inner) => {
-                let is_optional = self.is_optional();
-                let not_null_field_types = inner.iter().filter(|t| !t.is_null()).collect::<Vec<_>>();
-                let name = if not_null_field_types.len() > 1 {
-                    format!("Union[{}]", not_null_field_types
-                    .iter()
-                    .map(|t| t.to_partial_type_ref(ir, true, false).0)
-                    .collect::<Vec<_>>()
-                    .join(", "))
-                } else {
-                    not_null_field_types[0].to_partial_type_ref(ir, true, false).0
+                let res = match inner.view() {
+                    baml_types::UnionTypeView::Null => "None".to_string(),
+                    baml_types::UnionTypeView::Optional(field_type) => format!("Optional[{}]", field_type.to_partial_type_ref(ir, true, false).0),
+                    baml_types::UnionTypeView::OneOf(field_types) => format!("Union[{}]", field_types.iter().map(|t| t.to_partial_type_ref(ir, true, false).0).collect::<Vec<_>>().join(", ")),
+                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("Optional[Union[{}]]", field_types.iter().map(|t| t.to_partial_type_ref(ir, true, false).0).collect::<Vec<_>>().join(", ")),
                 };
-
-                if is_optional || !needed {
-                    (format!("Optional[{name}]"), true)
-                } else {
-                    (name, false)
-                }
+                (res, inner.is_optional())
             }
             FieldType::Tuple(inner) => {
                 let tuple_contents = inner

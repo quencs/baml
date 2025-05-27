@@ -23,7 +23,7 @@ use crate::{
 use anyhow::Result;
 use baml_types::{
     BamlMap, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, LiteralValue,
-    StreamingBehavior, TypeValue,
+    StreamingBehavior, TypeValue, UnionType,
 };
 pub use to_baml_arg::ArgCoercer;
 
@@ -113,7 +113,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
         }
 
         if let FieldType::Union(items) = other {
-            if items.iter().any(|item| self.is_subtype(base, item)) {
+            if items.view_as_iter(true).0.iter().any(|item| self.is_subtype(base, item)) {
                 return true;
             }
         }
@@ -175,7 +175,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                 self.is_subtype(base, &FieldType::Primitive(TypeValue::String))
             }
 
-            (FieldType::Union(items), _) => items.iter().all(|item| self.is_subtype(item, other)),
+            (FieldType::Union(items), _) => items.view_as_iter(true).0.iter().all(|item| self.is_subtype(item, other)),
 
             (FieldType::Tuple(base_items), FieldType::Tuple(other_items)) => {
                 base_items.len() == other_items.len()
@@ -945,14 +945,21 @@ pub fn item_type<'ir, 'a>(
             .recursive_alias_definition(alias_name)
             .and_then(|resolved_type| item_type(ir, resolved_type)),
         FieldType::Union(variants) => {
-            let variant_children = variants
-                .iter()
-                .filter_map(|variant| item_type(ir, variant))
-                .collect::<Vec<_>>();
-            match variant_children.len() {
-                0 => None,
-                1 => Some(variant_children[0].clone()),
-                _ => Some(FieldType::Union(variant_children)),
+            match variants.view() {
+                baml_types::UnionTypeView::Null => None,
+                baml_types::UnionTypeView::Optional(field_type) => item_type(ir, field_type),
+                baml_types::UnionTypeView::OneOf(field_types)
+                | baml_types::UnionTypeView::OneOfOptional(field_types) => {
+                    let variant_children = field_types
+                        .iter()
+                        .filter_map(|variant| item_type(ir, &variant))
+                        .collect::<Vec<_>>();
+                    match variant_children.len() {
+                        0 => None,
+                        1 => Some(variant_children[0].clone()),
+                        _ => Some(FieldType::union(variant_children)),
+                    }
+                }
             }
         }
         FieldType::Tuple(_) => None,
@@ -982,7 +989,9 @@ where
         FieldType::Tuple(_) => None,
         FieldType::Union(variants) => {
             let variant_map_types: Vec<(FieldType, FieldType)> = variants
-                .into_iter()
+                .view_as_iter(true)
+                .0
+                .iter()
                 .filter_map(|variant| map_types(ir, variant))
                 .collect();
             if variant_map_types.len() == 0 {
@@ -1003,7 +1012,7 @@ where
                     let value_type = match value_types.len() {
                         0 => None,
                         1 => Some(value_types[0].clone()),
-                        _ => Some(FieldType::Union(value_types)),
+                        _ => Some(FieldType::union(value_types)),
                     }?;
                     return Some((first_key_type, value_type));
                 }
@@ -1062,7 +1071,7 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
             let v_ty = match v_tys.len() {
                 0 => None,
                 1 => Some(v_tys[0].clone()),
-                _ => Some(FieldType::Union(v_tys)),
+                _ => Some(FieldType::union(v_tys)),
             }?;
             Some(FieldType::Map(Box::new(k_ty), Box::new(v_ty)))
         }
@@ -1075,7 +1084,7 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
             let item_ty = match item_tys.len() {
                 0 => None,
                 1 => Some(item_tys[0].clone()),
-                _ => Some(FieldType::Union(item_tys)),
+                _ => Some(FieldType::union(item_tys)),
             }?;
             Some(FieldType::List(Box::new(item_ty)))
         }
@@ -1106,7 +1115,7 @@ pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType
             let v_ty = match v_tys.len() {
                 0 => None,
                 1 => Some(v_tys[0].clone()),
-                _ => Some(FieldType::Union(v_tys)),
+                _ => Some(FieldType::union(v_tys)),
             }?;
             Some(FieldType::Map(Box::new(k_ty), Box::new(v_ty)))
         }
@@ -1119,7 +1128,7 @@ pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType
             let item_ty = match item_tys.len() {
                 0 => None,
                 1 => Some(item_tys[0].clone()),
-                _ => Some(FieldType::Union(item_tys)),
+                _ => Some(FieldType::union(item_tys)),
             }?;
             Some(FieldType::List(Box::new(item_ty)))
         }
@@ -1240,7 +1249,7 @@ mod tests {
     #[test]
     fn distribute_media_union() {
         let ir = mk_ir();
-        let field_type = FieldType::Union(vec![
+        let field_type = FieldType::union(vec![
             string_type(),
             FieldType::Primitive(TypeValue::Media(BamlMediaType::Image)),
         ]);
@@ -1259,7 +1268,7 @@ mod tests {
     fn distribute_list_of_maps() {
         let ir = mk_ir();
 
-        let elem_type = FieldType::Union(vec![
+        let elem_type = FieldType::union(vec![
             string_type(),
             int_type(),
             FieldType::Class("Foo".to_string()),
@@ -1312,9 +1321,9 @@ mod tests {
     fn distribute_map_of_lists() {
         let ir = mk_ir();
 
-        let elem_type = FieldType::Union(vec![
+        let elem_type = FieldType::union(vec![
             string_type(),
-            int_type(),
+            int_type(), 
             FieldType::Class("Foo".to_string()),
         ]);
 
@@ -1449,9 +1458,9 @@ mod tests {
             .distribute_type_with_meta(
                 BamlValueWithMeta::Null(()),
                 FieldType::WithMetadata {
-                    base: Box::new(FieldType::Optional(Box::new(FieldType::Primitive(
+                    base: Box::new(FieldType::Primitive(
                         TypeValue::String,
-                    )))),
+                    ).as_optional()),
                     streaming_behavior: StreamingBehavior::default(),
                     constraints: vec![],
                 },
@@ -1461,9 +1470,9 @@ mod tests {
             .distribute_type(
                 BamlValue::Null,
                 FieldType::WithMetadata {
-                    base: Box::new(FieldType::Optional(Box::new(FieldType::Primitive(
+                    base: Box::new(FieldType::Primitive(
                         TypeValue::String,
-                    )))),
+                    ).as_optional()),
                     streaming_behavior: StreamingBehavior::default(),
                     constraints: vec![],
                 },
@@ -1538,7 +1547,7 @@ mod subtype_tests {
         FieldType::Tuple(ft)
     }
     fn mk_union(ft: Vec<FieldType>) -> FieldType {
-        FieldType::Union(ft)
+        FieldType::union(ft)
     }
     fn mk_str_map(ft: FieldType) -> FieldType {
         FieldType::Map(Box::new(mk_str()), Box::new(ft))
@@ -1688,7 +1697,7 @@ mod subtype_tests {
         );
         assert_eq!(
             item_type(&ir, &FieldType::RecursiveTypeAlias("JsonValue".to_string()),),
-            Some(FieldType::Union(vec![
+            Some(FieldType::union(vec![
                 FieldType::RecursiveTypeAlias("JsonValue".to_string()),
                 FieldType::RecursiveTypeAlias("JsonValue".to_string())
             ]))

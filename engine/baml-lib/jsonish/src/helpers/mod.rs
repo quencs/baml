@@ -174,10 +174,18 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Tuple(options), _constraints)
-            | (FieldType::Union(options), _constraints) => {
+            (FieldType::Tuple(options), _constraints) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options {
+                        if !checked_types.contains(&inner.to_string()) {
+                            start.push(inner.clone());
+                        }
+                    }
+                }
+            }
+            (FieldType::Union(options), _constraints) => {
+                if checked_types.insert(output.to_string()) {
+                    for inner in options.view_as_iter(true).0 {
                         if !checked_types.contains(&inner.to_string()) {
                             start.push(inner.clone());
                         }
