@@ -7,7 +7,10 @@ use anyhow::{Context, Result};
 use indexmap::IndexMap;
 use serde::{de::Visitor, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{field_type::UnionTypeView, media::BamlMediaType, HasFieldType, LiteralValue, ResponseCheck, TypeValue};
+use crate::{
+    field_type::UnionTypeView, field_type::NULL_TYPE, media::BamlMediaType, HasFieldType,
+    LiteralValue, ResponseCheck, TypeValue,
+};
 use crate::{BamlMap, BamlMedia, FieldType};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -349,17 +352,26 @@ pub enum BamlValueWithMeta<T> {
 impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
     pub fn real_type(&self) -> FieldType {
         let field_type = self.field_type();
-        if let FieldType::Union(options) = field_type {
+        if let FieldType::Union(options, _) = field_type {
             return match options.view() {
-                UnionTypeView::Null => FieldType::Primitive(TypeValue::Null),
-                UnionTypeView::Optional(field_type) => if self.is_type(field_type) {
-                    field_type.clone()
-                } else {
-                    FieldType::Primitive(TypeValue::Null)
-                },
-                UnionTypeView::OneOf(field_types) => field_types.into_iter().find(|t| self.is_type(t)).expect("At least one type must be supported").clone(),
-                UnionTypeView::OneOfOptional(field_types) => field_types.into_iter().find(|t| self.is_type(t)).map_or_else(|| FieldType::Primitive(TypeValue::Null), |t| t.clone()),
-            }
+                UnionTypeView::Null => (*NULL_TYPE).clone(),
+                UnionTypeView::Optional(field_type) => {
+                    if self.is_type(field_type) {
+                        field_type.clone()
+                    } else {
+                        (*NULL_TYPE).clone()
+                    }
+                }
+                UnionTypeView::OneOf(field_types) => field_types
+                    .into_iter()
+                    .find(|t| self.is_type(t))
+                    .expect("At least one type must be supported")
+                    .clone(),
+                UnionTypeView::OneOfOptional(field_types) => field_types
+                    .into_iter()
+                    .find(|t| self.is_type(t))
+                    .map_or_else(|| (*NULL_TYPE).clone(), |t| t.clone()),
+            };
         }
         field_type.clone()
     }
@@ -379,64 +391,68 @@ impl<T> BamlValueWithMeta<T> {
 
     fn is_type(&self, field_type: &FieldType) -> bool {
         let handle_composite = |field_type: &FieldType| match field_type {
-            FieldType::Union(options) => match options.view() {
-                UnionTypeView::Null => self.is_type(&FieldType::Primitive(TypeValue::Null)),
-                UnionTypeView::Optional(field_type) => self.is_type(field_type) || self.is_type(&FieldType::Primitive(TypeValue::Null)),
+            FieldType::Union(options, _) => match options.view() {
+                UnionTypeView::Null => self.is_type(&(*NULL_TYPE)),
+                UnionTypeView::Optional(field_type) => {
+                    self.is_type(field_type) || self.is_type(&(*NULL_TYPE))
+                }
                 UnionTypeView::OneOf(field_types) => field_types.iter().any(|t| self.is_type(t)),
-                UnionTypeView::OneOfOptional(field_types) => field_types.iter().any(|t| self.is_type(t)) || self.is_type(&FieldType::Primitive(TypeValue::Null)),
-            }
+                UnionTypeView::OneOfOptional(field_types) => {
+                    field_types.iter().any(|t| self.is_type(t)) || self.is_type(&(*NULL_TYPE))
+                }
+            },
             _ => false,
         };
 
         match self {
             BamlValueWithMeta::String(val, _) => match field_type {
-                FieldType::Literal(LiteralValue::String(lit)) => val == lit,
-                FieldType::Primitive(TypeValue::String) => true,
+                FieldType::Literal(LiteralValue::String(lit), _) => val == lit,
+                FieldType::Primitive(TypeValue::String, _) => true,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Int(val, _) => match field_type {
-                FieldType::Literal(LiteralValue::Int(lit)) => val == lit,
-                FieldType::Primitive(TypeValue::Int) => true,
+                FieldType::Literal(LiteralValue::Int(lit), _) => val == lit,
+                FieldType::Primitive(TypeValue::Int, _) => true,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Float(_, _) => match field_type {
-                FieldType::Primitive(TypeValue::Float) => true,
+                FieldType::Primitive(TypeValue::Float, _) => true,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Bool(val, _) => match field_type {
-                FieldType::Literal(LiteralValue::Bool(lit)) => val == lit,
-                FieldType::Primitive(TypeValue::Bool) => true,
+                FieldType::Literal(LiteralValue::Bool(lit), _) => val == lit,
+                FieldType::Primitive(TypeValue::Bool, _) => true,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Map(index_map, _) => match field_type {
-                FieldType::Map(_, value_type) => {
+                FieldType::Map(_, value_type, _) => {
                     // TODO: Check key type
                     index_map.iter().all(|(_, v)| v.is_type(value_type))
                 }
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::List(baml_value_with_metas, _) => match field_type {
-                FieldType::List(item_type) => {
+                FieldType::List(item_type, _) => {
                     baml_value_with_metas.iter().all(|v| v.is_type(item_type))
                 }
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Media(baml_media, _) => match field_type {
-                FieldType::Primitive(TypeValue::Media(media_type)) => {
+                FieldType::Primitive(TypeValue::Media(media_type), _) => {
                     &baml_media.media_type == media_type
                 }
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Enum(enum_name, _, _) => match field_type {
-                FieldType::Enum(enm) => enum_name == enm,
+                FieldType::Enum(enm, _) => enum_name == enm,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Class(cls_name, _, _) => match field_type {
-                FieldType::Class(cls) => cls_name == cls,
+                FieldType::Class(cls, _) => cls_name == cls,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Null(_) => match field_type {
-                FieldType::Primitive(TypeValue::Null) => true,
+                FieldType::Primitive(TypeValue::Null, _) => true,
                 _ => handle_composite(field_type),
             },
         }
