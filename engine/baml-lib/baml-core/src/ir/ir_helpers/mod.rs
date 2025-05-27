@@ -74,7 +74,7 @@ pub trait IRHelper {
         function_params: &Vec<(String, FieldType)>,
         params: &BamlMap<String, BamlValue>,
         coerce_settings: ArgCoercer,
-    ) -> Result<BamlValue>;
+    ) -> Result<IndexMap<String, BamlValueWithMeta<FieldType>>>;
 }
 
 pub trait IRSemanticStreamingHelper {
@@ -758,7 +758,7 @@ impl IRHelper for IntermediateRepr {
         function_params: &Vec<(String, FieldType)>,
         params: &BamlMap<String, BamlValue>,
         coerce_settings: ArgCoercer,
-    ) -> Result<BamlValue> {
+    ) -> Result<IndexMap<String, BamlValueWithMeta<FieldType>>> {
         // Now check that all required parameters are present.
         let mut scope = ScopeStack::new();
         let mut baml_arg_map = BamlMap::new();
@@ -782,7 +782,7 @@ impl IRHelper for IntermediateRepr {
         if scope.has_errors() {
             Err(anyhow::anyhow!(scope))
         } else {
-            Ok(BamlValue::Map(baml_arg_map))
+            Ok(baml_arg_map)
         }
     }
 }
@@ -864,7 +864,7 @@ impl IRSemanticStreamingHelper for IntermediateRepr {
         Ok(class
             .walk_fields()
             .filter_map(|field: Walker<'_, &Field>| {
-                if field.streaming_needed() {
+                if field.streaming_behavior().needed {
                     Some(field.name().to_string())
                 } else {
                     None
@@ -1598,6 +1598,7 @@ mod subtype_tests {
             streaming_behavior: StreamingBehavior {
                 done: true,
                 state: false,
+                needed: false,
             },
         };
         let l_o = mk_list(mk_int());

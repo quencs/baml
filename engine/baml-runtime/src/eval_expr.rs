@@ -247,9 +247,10 @@ async fn beta_reduce<'a>(
                     tx.unbounded_send(vec![app_span]).unwrap();
                 }
                 if eval_final_llm_fn {
+                    // TODO: env vars are not supported yet for expressions.
                     let res: anyhow::Result<FunctionResult> = env
                         .runtime
-                        .call_function(name.clone(), &args_map, &ctx, None, None, None)
+                        .call_function(name.clone(), &args_map, &ctx, None, None, None, HashMap::new())
                         .await
                         .0;
 
@@ -822,7 +823,7 @@ test Poems {
         let (res, _) = rt
             // .run_test("Second", "TestSecond", &ctx, Some(on_event))
             // .run_test("Go", "Go", &ctx, Some(on_event), None)
-            .run_test("Poems", "Poems", &ctx, Some(on_event), None)
+            .run_test("Poems", "Poems", &ctx, Some(on_event), None, HashMap::new())
             // .run_test("MakePerson", "TestMakePerson", &ctx, Some(on_event), None)
             // .run_test("CompareHaikus", "Test", &ctx, Some(on_event))
             // .run_test("LlmParseInt", "TestParse", &ctx, Some(on_event))
@@ -947,7 +948,7 @@ test TestMakePerson() {
         // dbg!(&f.item);
         let (res, _) = rt
             // .run_test("Second", "TestSecond", &ctx, Some(on_event))
-            .run_test("OuterPyramid", "OuterPyramid", &ctx, Some(on_event), None)
+            .run_test("OuterPyramid", "OuterPyramid", &ctx, Some(on_event), None, HashMap::new())
             // .run_test("MakePerson", "TestMakePerson", &ctx, Some(on_event), None)
             // .run_test("CompareHaikus", "Test", &ctx, Some(on_event))
             // .run_test("LlmParseInt", "TestParse", &ctx, Some(on_event))
