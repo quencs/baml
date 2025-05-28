@@ -48,7 +48,6 @@ pub struct FunctionCall {
     #[ts(type = "string")]
     pub function_call_id: FunctionCallId,
     pub function_name: String,
-    pub source: String,
     #[ts(optional)]
     pub function_id: Option<FunctionId>,
     #[serde(rename = "start_epoch_ms")]
