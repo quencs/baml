@@ -6,7 +6,7 @@ use baml_types::BamlMap;
 use baml_types::{
     expr::{self, Expr, ExprMetadata, Name, VarIndex},
     Arrow, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, JinjaExpression, Resolvable,
-    StreamingBehavior, StringOr, TypeValue, UnresolvedValue, UnionType,
+    StreamingBehavior, StringOr, TypeMetadataIR, TypeValue, UnionType, UnresolvedValue,
 };
 use either::Either;
 use indexmap::{IndexMap, IndexSet};
@@ -152,10 +152,13 @@ impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
             .ok_or(anyhow::anyhow!(
                 "Expression functions must have a return type"
             ))?;
-        let lambda_type = FieldType::Arrow(Box::new(Arrow {
-            param_types: arg_types,
-            return_type: return_type.clone(),
-        }));
+        let lambda_type = FieldType::Arrow(
+            Box::new(Arrow {
+                param_types: arg_types,
+                return_type: return_type.clone(),
+            }),
+            TypeMetadataIR::default(),
+        );
         let expr_fn = ExprFunction {
             name: self.expr_fn().name.to_string(),
             inputs: args,
@@ -243,14 +246,26 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
         match self {
             ast::Expression::BoolValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::Bool(
                 *val,
-                (span.clone(), Some(FieldType::Primitive(TypeValue::Bool))),
+                (
+                    span.clone(),
+                    Some(FieldType::Primitive(
+                        TypeValue::Bool,
+                        TypeMetadataIR::default(),
+                    )),
+                ),
             ))),
             ast::Expression::NumericValue(val, span) => val
                 .parse::<i64>()
                 .map(|v| {
                     Expr::Atom(BamlValueWithMeta::Int(
                         v,
-                        (span.clone(), Some(FieldType::Primitive(TypeValue::Int))),
+                        (
+                            span.clone(),
+                            Some(FieldType::Primitive(
+                                TypeValue::Int,
+                                TypeMetadataIR::default(),
+                            )),
+                        ),
                     ))
                 })
                 .or_else(|_| {
@@ -258,26 +273,47 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                         .map(|v| {
                             Expr::Atom(BamlValueWithMeta::Float(
                                 v,
-                                (span.clone(), Some(FieldType::Primitive(TypeValue::Float))),
+                                (
+                                    span.clone(),
+                                    Some(FieldType::Primitive(
+                                        TypeValue::Float,
+                                        TypeMetadataIR::default(),
+                                    )),
+                                ),
                             ))
                         })
                         .or_else(|_| Err(anyhow!("Invalid numeric value: {}", val)))
                 }),
             ast::Expression::StringValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::String(
                 val.to_string(),
-                (span.clone(), Some(FieldType::Primitive(TypeValue::String))),
+                (
+                    span.clone(),
+                    Some(FieldType::Primitive(
+                        TypeValue::String,
+                        TypeMetadataIR::default(),
+                    )),
+                ),
             ))),
             ast::Expression::RawStringValue(val) => Ok(Expr::Atom(BamlValueWithMeta::String(
                 val.value().to_string(),
                 (
                     val.span().clone(),
-                    Some(FieldType::Primitive(TypeValue::String)),
+                    Some(FieldType::Primitive(
+                        TypeValue::String,
+                        TypeMetadataIR::default(),
+                    )),
                 ),
             ))),
             ast::Expression::JinjaExpressionValue(val, span) => {
                 Ok(Expr::Atom(BamlValueWithMeta::String(
                     val.to_string(),
-                    (span.clone(), Some(FieldType::Primitive(TypeValue::String))),
+                    (
+                        span.clone(),
+                        Some(FieldType::Primitive(
+                            TypeValue::String,
+                            TypeMetadataIR::default(),
+                        )),
+                    ),
                 )))
             }
             ast::Expression::Array(vals, span) => {
@@ -294,7 +330,8 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                 } else {
                     Some(FieldType::union(item_types))
                 };
-                let list_type = item_type.map(|t| FieldType::List(Box::new(t)));
+                let list_type =
+                    item_type.map(|t| FieldType::List(Box::new(t), TypeMetadataIR::default()));
                 Ok(Expr::List(new_items, (span.clone(), list_type)))
             }
             ast::Expression::Map(vals, span) => {
@@ -307,7 +344,6 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .filter_map(|v| v.1.meta().1.clone())
                     .collect::<Vec<_>>();
 
-
                 let item_type = if item_types.is_empty() {
                     None
                 } else {
@@ -315,8 +351,10 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                 };
 
                 // TODO: Is this correct?
-                let key_type = FieldType::Primitive(TypeValue::String);
-                let map_type = item_type.map(|t| FieldType::Map(Box::new(key_type), Box::new(t)));
+                let key_type = FieldType::Primitive(TypeValue::String, TypeMetadataIR::default());
+                let map_type = item_type.map(|t| {
+                    FieldType::Map(Box::new(key_type), Box::new(t), TypeMetadataIR::default())
+                });
                 Ok(Expr::Map(new_items, (span.clone(), map_type)))
             }
             ast::Expression::Identifier(id) => Ok(Expr::FreeVar(
@@ -378,7 +416,10 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     spread,
                     meta: (
                         span.clone(),
-                        Some(FieldType::Class(class_name.name().to_string())),
+                        Some(FieldType::Class(
+                            class_name.name().to_string(),
+                            TypeMetadataIR::default(),
+                        )),
                     ),
                 })
             }
@@ -989,7 +1030,7 @@ pub trait WithRepr<T> {
 fn type_with_arity(t: FieldType, arity: &FieldArity) -> FieldType {
     match arity {
         FieldArity::Required => t,
-        FieldArity::Optional => t.as_optional()
+        FieldArity::Optional => t.as_optional(),
     }
 }
 
@@ -1096,9 +1137,9 @@ impl WithRepr<FieldType> for ast::FieldType {
         let has_constraints = !attributes.constraints.is_empty();
         let streaming_behavior = attributes.streaming_behavior();
         let has_special_streaming_behavior = streaming_behavior != StreamingBehavior::default();
-        let base = match self {
+        let mut base = match self {
             ast::FieldType::Primitive(arity, typeval, ..) => {
-                let repr = FieldType::Primitive(*typeval);
+                let repr = FieldType::Primitive(*typeval, TypeMetadataIR::default());
                 if arity.is_optional() {
                     repr.as_optional()
                 } else {
@@ -1106,7 +1147,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                 }
             }
             ast::FieldType::Literal(arity, literal_value, ..) => {
-                let repr = FieldType::Literal(literal_value.clone());
+                let repr = FieldType::Literal(literal_value.clone(), TypeMetadataIR::default());
                 if arity.is_optional() {
                     repr.as_optional()
                 } else {
@@ -1116,34 +1157,43 @@ impl WithRepr<FieldType> for ast::FieldType {
             ast::FieldType::Symbol(arity, idn, ..) => type_with_arity(
                 match db.find_type(idn) {
                     Some(TypeWalker::Class(class_walker)) => {
-                        let base_class = FieldType::Class(class_walker.name().to_string());
+                        let mut base_class = FieldType::Class(
+                            class_walker.name().to_string(),
+                            TypeMetadataIR::default(),
+                        );
                         match class_walker.get_constraints(SubType::Class) {
                             Some(constraints) if !constraints.is_empty() => {
-                                FieldType::WithMetadata {
-                                    base: Box::new(base_class),
+                                base_class.set_meta(TypeMetadataIR {
                                     constraints,
                                     streaming_behavior: streaming_behavior.clone(),
-                                }
+                                });
+                                base_class
                             }
                             _ => base_class,
                         }
                     }
                     Some(TypeWalker::Enum(enum_walker)) => {
-                        let base_type = FieldType::Enum(enum_walker.name().to_string());
+                        let mut base_type = FieldType::Enum(
+                            enum_walker.name().to_string(),
+                            TypeMetadataIR::default(),
+                        );
                         match enum_walker.get_constraints(SubType::Enum) {
                             Some(constraints) if !constraints.is_empty() => {
-                                FieldType::WithMetadata {
-                                    base: Box::new(base_type),
+                                base_type.set_meta(TypeMetadataIR {
                                     constraints,
                                     streaming_behavior: streaming_behavior.clone(),
-                                }
+                                });
+                                base_type
                             }
                             _ => base_type,
                         }
                     }
                     Some(TypeWalker::TypeAlias(alias_walker)) => {
                         if db.is_recursive_type_alias(&alias_walker.id) {
-                            FieldType::RecursiveTypeAlias(alias_walker.name().to_string())
+                            FieldType::RecursiveTypeAlias(
+                                alias_walker.name().to_string(),
+                                TypeMetadataIR::default(),
+                            )
                         } else {
                             alias_walker.resolved().to_owned().repr(db)?
                         }
@@ -1160,7 +1210,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ),
             ast::FieldType::List(arity, ft, dims, ..) => {
                 // NB: potential bug: this hands back a 1D list when dims == 0
-                let mut repr = FieldType::List(Box::new(ft.repr(db)?));
+                let mut repr = FieldType::List(Box::new(ft.repr(db)?), TypeMetadataIR::default());
 
                 for _ in 1u32..*dims {
                     repr = FieldType::list(repr);
@@ -1174,8 +1224,11 @@ impl WithRepr<FieldType> for ast::FieldType {
             }
             ast::FieldType::Map(arity, kv, ..) => {
                 // NB: we can't just unpack (*kv) into k, v because that would require a move/copy
-                let mut repr =
-                    FieldType::Map(Box::new((kv).0.repr(db)?), Box::new((kv).1.repr(db)?));
+                let mut repr = FieldType::Map(
+                    Box::new((kv).0.repr(db)?),
+                    Box::new((kv).1.repr(db)?),
+                    TypeMetadataIR::default(),
+                );
 
                 if arity.is_optional() {
                     repr = FieldType::optional(repr);
@@ -1188,24 +1241,30 @@ impl WithRepr<FieldType> for ast::FieldType {
                 let mut types = t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?;
 
                 if arity.is_optional() {
-                    types.push(FieldType::Primitive(baml_types::TypeValue::Null));
+                    types.push(FieldType::Primitive(
+                        baml_types::TypeValue::Null,
+                        TypeMetadataIR::default(),
+                    ));
                 }
 
                 FieldType::union(types)
             }
             ast::FieldType::Tuple(arity, t, ..) => type_with_arity(
-                FieldType::Tuple(t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?),
+                FieldType::Tuple(
+                    t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?,
+                    TypeMetadataIR::default(),
+                ),
                 arity,
             ),
         };
 
         let use_metadata = has_constraints || has_special_streaming_behavior;
         let with_constraints = if use_metadata {
-            FieldType::WithMetadata {
-                base: Box::new(base.clone()),
+            base.set_meta(TypeMetadataIR {
                 constraints: attributes.constraints,
-                streaming_behavior,
-            }
+                streaming_behavior: streaming_behavior.clone(),
+            });
+            base
         } else {
             base
         };
@@ -2198,10 +2257,13 @@ pub fn initial_context(ir: &IntermediateRepr) -> HashMap<Name, Expr<ExprMetadata
             .map(|arg| arg.1.clone())
             .collect::<Vec<_>>();
         let body_type = llm_function.elem.output.clone();
-        let lambda_type = FieldType::Arrow(Box::new(Arrow {
-            param_types: params_type,
-            return_type: body_type,
-        }));
+        let lambda_type = FieldType::Arrow(
+            Box::new(Arrow {
+                param_types: params_type,
+                return_type: body_type,
+            }),
+            TypeMetadataIR::default(),
+        );
         ctx.insert(
             llm_function.elem.name.clone(),
             Expr::LLMFunction(
@@ -2395,7 +2457,10 @@ mod tests {
         let class = ir.find_class("Test").unwrap();
         let alias = class.find_field("field").unwrap();
 
-        assert_eq!(*alias.r#type(), FieldType::Primitive(TypeValue::Int));
+        assert_eq!(
+            *alias.r#type(),
+            FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default())
+        );
     }
 
     #[test]
@@ -2416,15 +2481,7 @@ mod tests {
         let class = ir.find_class("Test").unwrap();
         let alias = class.find_field("field").unwrap();
 
-        let FieldType::WithMetadata {
-            base, constraints, ..
-        } = alias.r#type()
-        else {
-            panic!(
-                "expected resolved constrained type, found {:?}",
-                alias.r#type()
-            );
-        };
+        let TypeMetadataIR { constraints, .. } = alias.r#type().meta();
 
         assert_eq!(constraints.len(), 3);
 

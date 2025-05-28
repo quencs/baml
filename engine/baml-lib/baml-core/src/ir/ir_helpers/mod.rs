@@ -23,7 +23,7 @@ use crate::{
 use anyhow::Result;
 use baml_types::{
     BamlMap, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, LiteralValue,
-    StreamingBehavior, TypeValue, UnionType,
+    StreamingBehavior, TypeMetadataIR, TypeValue, UnionType, NULL_TYPE,
 };
 pub use to_baml_arg::ArgCoercer;
 
@@ -112,83 +112,97 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             return true;
         }
 
-        if let FieldType::Union(items) = other {
-            if items.view_as_iter(true).0.iter().any(|item| self.is_subtype(base, item)) {
+        if let FieldType::Union(items, _) = other {
+            if items
+                .view_as_iter(true)
+                .0
+                .iter()
+                .any(|item| self.is_subtype(base, item))
+            {
                 return true;
             }
         }
 
         match (base, other) {
             // TODO: O(n)
-            (FieldType::RecursiveTypeAlias(name), _) => self
+            (FieldType::RecursiveTypeAlias(name, _), _) => self
                 .get_all_recursive_aliases(name)
                 .any(|target| self.is_subtype(target, other)),
-            (_, FieldType::RecursiveTypeAlias(name)) => self
+            (_, FieldType::RecursiveTypeAlias(name, _)) => self
                 .get_all_recursive_aliases(name)
                 .any(|target| self.is_subtype(base, target)),
-            (FieldType::Primitive(p1), FieldType::Primitive(p2)) => p1 == p2,
-            (FieldType::Primitive(TypeValue::Null), _) => false,
-            (FieldType::Primitive(p1), _) => false,
+            (FieldType::Primitive(p1, _), FieldType::Primitive(p2, _)) => p1 == p2,
+            (FieldType::Primitive(TypeValue::Null, _), _) => false,
+            (FieldType::Primitive(p1, _), _) => false,
 
             // Handle types that nest other types.
-            (FieldType::List(base_item), FieldType::List(other_item)) => {
+            (FieldType::List(base_item, _), FieldType::List(other_item, _)) => {
                 self.is_subtype(&base_item, other_item)
             }
-            (FieldType::List(_), _) => false,
+            (FieldType::List(_, _), _) => false,
 
-            (FieldType::Map(base_k, base_v), FieldType::Map(other_k, other_v)) => {
+            (FieldType::Map(base_k, base_v, _), FieldType::Map(other_k, other_v, _)) => {
                 self.is_subtype(other_k, base_k) && self.is_subtype(&**base_v, other_v)
             }
-            (FieldType::Map(_, _), _) => false,
+            (FieldType::Map(_, _, _), _) => false,
 
+            // TODO(Rahul): check if this is needed.
+            // (
+            //     FieldType::WithMetadata {
+            //         base: constrained_base,
+            //         ..
+            //     },
+            //     _,
+            // ) => self.is_subtype(constrained_base, other),
+            // (
+            //     _,
+            //     FieldType::WithMetadata {
+            //         base: other_base, ..
+            //     },
+            // ) => self.is_subtype(base, other_base),
             (
-                FieldType::WithMetadata {
-                    base: constrained_base,
-                    ..
-                },
-                _,
-            ) => self.is_subtype(constrained_base, other),
-            (
-                _,
-                FieldType::WithMetadata {
-                    base: other_base, ..
-                },
-            ) => self.is_subtype(base, other_base),
-
-            (FieldType::Literal(LiteralValue::Bool(_)), FieldType::Primitive(TypeValue::Bool)) => {
-                true
-            }
-            (FieldType::Literal(LiteralValue::Bool(_)), _) => {
-                self.is_subtype(base, &FieldType::Primitive(TypeValue::Bool))
-            }
-            (FieldType::Literal(LiteralValue::Int(_)), FieldType::Primitive(TypeValue::Int)) => {
-                true
-            }
-            (FieldType::Literal(LiteralValue::Int(_)), _) => {
-                self.is_subtype(base, &FieldType::Primitive(TypeValue::Int))
-            }
-            (
-                FieldType::Literal(LiteralValue::String(_)),
-                FieldType::Primitive(TypeValue::String),
+                FieldType::Literal(LiteralValue::Bool(_), _),
+                FieldType::Primitive(TypeValue::Bool, _),
             ) => true,
-            (FieldType::Literal(LiteralValue::String(_)), _) => {
-                self.is_subtype(base, &FieldType::Primitive(TypeValue::String))
-            }
+            (FieldType::Literal(LiteralValue::Bool(_), _), _) => self.is_subtype(
+                base,
+                &FieldType::Primitive(TypeValue::Bool, TypeMetadataIR::default()),
+            ),
+            (
+                FieldType::Literal(LiteralValue::Int(_), _),
+                FieldType::Primitive(TypeValue::Int, _),
+            ) => true,
+            (FieldType::Literal(LiteralValue::Int(_), _), _) => self.is_subtype(
+                base,
+                &FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default()),
+            ),
+            (
+                FieldType::Literal(LiteralValue::String(_), _),
+                FieldType::Primitive(TypeValue::String, _),
+            ) => true,
+            (FieldType::Literal(LiteralValue::String(_), _), _) => self.is_subtype(
+                base,
+                &FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
+            ),
 
-            (FieldType::Union(items), _) => items.view_as_iter(true).0.iter().all(|item| self.is_subtype(item, other)),
+            (FieldType::Union(items, _), _) => items
+                .view_as_iter(true)
+                .0
+                .iter()
+                .all(|item| self.is_subtype(item, other)),
 
-            (FieldType::Tuple(base_items), FieldType::Tuple(other_items)) => {
+            (FieldType::Tuple(base_items, _), FieldType::Tuple(other_items, _)) => {
                 base_items.len() == other_items.len()
                     && base_items
                         .iter()
                         .zip(other_items)
                         .all(|(base_item, other_item)| self.is_subtype(base_item, other_item))
             }
-            (FieldType::Tuple(_), _) => false,
-            (FieldType::Enum(_), _) => false,
-            (FieldType::Class(_), _) => false,
+            (FieldType::Tuple(_, _), _) => false,
+            (FieldType::Enum(_, _), _) => false,
+            (FieldType::Class(_, _), _) => false,
 
-            (FieldType::Arrow(arrow1), FieldType::Arrow(arrow2)) => {
+            (FieldType::Arrow(arrow1, _), FieldType::Arrow(arrow2, _)) => {
                 let param_lengths_match = arrow1.param_types.len() == arrow2.param_types.len();
                 // N.B. Functions are covariant in their return type and contravariant in their arguments.
                 // This is why a and b are swapped in the parameters check, and no in the return type check.
@@ -200,7 +214,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                     .all(|(a, b)| self.is_subtype(b, a));
                 param_lengths_match && return_types_match && args_match
             }
-            (FieldType::Arrow(_), _) => false,
+            (FieldType::Arrow(_, _), _) => false,
         }
     }
 
@@ -232,8 +246,10 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
         let field_base_type = self.distribute_metadata(&field_type).0;
         match value {
             BamlValueWithMeta::String(s, meta) => {
-                let literal_type = FieldType::Literal(LiteralValue::String(s.clone()));
-                let primitive_type = FieldType::Primitive(TypeValue::String);
+                let literal_type =
+                    FieldType::Literal(LiteralValue::String(s.clone()), TypeMetadataIR::default());
+                let primitive_type =
+                    FieldType::Primitive(TypeValue::String, TypeMetadataIR::default());
 
                 if self.is_subtype(&literal_type, &field_base_type)
                     || self.is_subtype(&primitive_type, &field_base_type)
@@ -243,12 +259,18 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                 anyhow::bail!("Could not unify String with {:?}", field_base_type)
             }
             BamlValueWithMeta::Int(i, meta)
-                if self.is_subtype(&FieldType::Literal(LiteralValue::Int(i)), &field_base_type) =>
+                if self.is_subtype(
+                    &FieldType::Literal(LiteralValue::Int(i), TypeMetadataIR::default()),
+                    &field_base_type,
+                ) =>
             {
                 Ok(BamlValueWithMeta::Int(i, (meta, field_type)))
             }
             BamlValueWithMeta::Int(i, meta)
-                if self.is_subtype(&FieldType::Primitive(TypeValue::Int), &field_type) =>
+                if self.is_subtype(
+                    &FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default()),
+                    &field_type,
+                ) =>
             {
                 Ok(BamlValueWithMeta::Int(i, (meta, field_type)))
             }
@@ -257,7 +279,10 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             }
 
             BamlValueWithMeta::Float(f, meta)
-                if self.is_subtype(&FieldType::Primitive(TypeValue::Float), &field_base_type) =>
+                if self.is_subtype(
+                    &FieldType::Primitive(TypeValue::Float, TypeMetadataIR::default()),
+                    &field_base_type,
+                ) =>
             {
                 Ok(BamlValueWithMeta::Float(f, (meta, field_type)))
             }
@@ -266,8 +291,10 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             }
 
             BamlValueWithMeta::Bool(b, meta) => {
-                let literal_type = FieldType::Literal(LiteralValue::Bool(b));
-                let primitive_type = FieldType::Primitive(TypeValue::Bool);
+                let literal_type =
+                    FieldType::Literal(LiteralValue::Bool(b), TypeMetadataIR::default());
+                let primitive_type =
+                    FieldType::Primitive(TypeValue::Bool, TypeMetadataIR::default());
 
                 if self.is_subtype(&literal_type, &field_base_type)
                     || self.is_subtype(&primitive_type, &field_base_type)
@@ -312,7 +339,10 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
 
             BamlValueWithMeta::Media(m, meta)
                 if self.is_subtype(
-                    &FieldType::Primitive(TypeValue::Media(m.media_type)),
+                    &FieldType::Primitive(
+                        TypeValue::Media(m.media_type),
+                        TypeMetadataIR::default(),
+                    ),
                     &field_base_type,
                 ) =>
             {
@@ -323,7 +353,10 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             }
 
             BamlValueWithMeta::Enum(name, val, meta) => {
-                if self.is_subtype(&FieldType::Enum(name.clone()), &field_base_type) {
+                if self.is_subtype(
+                    &FieldType::Enum(name.clone(), TypeMetadataIR::default()),
+                    &field_base_type,
+                ) {
                     Ok(BamlValueWithMeta::Enum(name, val, (meta, field_type)))
                 } else {
                     anyhow::bail!("Could not unify Enum {} with {:?}", name, field_base_type)
@@ -331,7 +364,10 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             }
 
             BamlValueWithMeta::Class(name, fields, meta) => {
-                if !self.is_subtype(&FieldType::Class(name.clone()), &field_base_type) {
+                if !self.is_subtype(
+                    &FieldType::Class(name.clone(), TypeMetadataIR::default()),
+                    &field_base_type,
+                ) {
                     anyhow::bail!("Could not unify Class {} with {:?}", name, field_base_type);
                 } else {
                     let class_fields = self.class_fields(&name)?;
@@ -340,7 +376,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                         .map(|(k, v)| {
                             let field_type = match class_fields.get(k.as_str()) {
                                 Some(ft) => ft.clone(),
-                                None => infer_type_with_meta(&v).unwrap_or(UNIT_TYPE),
+                                None => infer_type_with_meta(&v).unwrap_or(UNIT_TYPE.clone()),
                             };
                             let mapped_field = self.distribute_type_with_meta(v, field_type)?;
                             Ok((k, mapped_field))
@@ -793,7 +829,7 @@ impl IRHelperExtended for IntermediateRepr {
         field_type: &'a FieldType,
     ) -> (&'a FieldType, (Vec<Constraint>, StreamingBehavior)) {
         match field_type {
-            FieldType::Class(class_name) => match self.find_class(class_name) {
+            FieldType::Class(class_name, _) => match self.find_class(class_name) {
                 Err(_) => (field_type, (Vec::new(), StreamingBehavior::default())),
                 Ok(class_node) => (
                     field_type,
@@ -803,7 +839,7 @@ impl IRHelperExtended for IntermediateRepr {
                     ),
                 ),
             },
-            FieldType::Enum(enum_name) => match self.find_enum(enum_name) {
+            FieldType::Enum(enum_name, _) => match self.find_enum(enum_name) {
                 Err(_) => (field_type, (Vec::new(), StreamingBehavior::default())),
                 Ok(enum_node) => (
                     field_type,
@@ -814,6 +850,7 @@ impl IRHelperExtended for IntermediateRepr {
                 ),
             },
             // Check the first level to see if it's constrained.
+            // TODO(Rahul): This would change entirely, we'll have to match on each type's metadata probably?
             FieldType::WithMetadata {
                 base,
                 constraints,
@@ -935,36 +972,33 @@ pub fn item_type<'ir, 'a>(
     field_type: &'a FieldType,
 ) -> Option<FieldType> {
     let res = match ir.distribute_metadata(field_type).0 {
-        FieldType::Class(_) => None,
-        FieldType::Enum(_) => None,
-        FieldType::List(inner) => Some(*inner.clone()),
-        FieldType::Literal(_) => None,
-        FieldType::Map(k, v) => Some(*v.clone()),
-        FieldType::Primitive(_) => None,
-        FieldType::RecursiveTypeAlias(alias_name) => ir
+        FieldType::Class(_, _) => None,
+        FieldType::Enum(_, _) => None,
+        FieldType::List(inner, _) => Some(*inner.clone()),
+        FieldType::Literal(_, _) => None,
+        FieldType::Map(k, v, _) => Some(*v.clone()),
+        FieldType::Primitive(_, _) => None,
+        FieldType::RecursiveTypeAlias(alias_name, _) => ir
             .recursive_alias_definition(alias_name)
             .and_then(|resolved_type| item_type(ir, resolved_type)),
-        FieldType::Union(variants) => {
-            match variants.view() {
-                baml_types::UnionTypeView::Null => None,
-                baml_types::UnionTypeView::Optional(field_type) => item_type(ir, field_type),
-                baml_types::UnionTypeView::OneOf(field_types)
-                | baml_types::UnionTypeView::OneOfOptional(field_types) => {
-                    let variant_children = field_types
-                        .iter()
-                        .filter_map(|variant| item_type(ir, &variant))
-                        .collect::<Vec<_>>();
-                    match variant_children.len() {
-                        0 => None,
-                        1 => Some(variant_children[0].clone()),
-                        _ => Some(FieldType::union(variant_children)),
-                    }
+        FieldType::Union(variants, _) => match variants.view() {
+            baml_types::UnionTypeView::Null => None,
+            baml_types::UnionTypeView::Optional(field_type) => item_type(ir, field_type),
+            baml_types::UnionTypeView::OneOf(field_types)
+            | baml_types::UnionTypeView::OneOfOptional(field_types) => {
+                let variant_children = field_types
+                    .iter()
+                    .filter_map(|variant| item_type(ir, &variant))
+                    .collect::<Vec<_>>();
+                match variant_children.len() {
+                    0 => None,
+                    1 => Some(variant_children[0].clone()),
+                    _ => Some(FieldType::union(variant_children)),
                 }
             }
-        }
-        FieldType::Tuple(_) => None,
-        FieldType::Arrow(_) => None,
-        FieldType::WithMetadata { base, .. } => item_type(ir, base),
+        },
+        FieldType::Tuple(_, _) => None,
+        FieldType::Arrow(_, _) => None,
     };
     res
 }
@@ -978,16 +1012,16 @@ where
     'ir: 'a,
 {
     match ir.distribute_metadata(field_type).0 {
-        FieldType::Map(key, value) => Some((*key.clone(), *value.clone())),
-        FieldType::RecursiveTypeAlias(alias_name) => ir
+        FieldType::Map(key, value, _) => Some((*key.clone(), *value.clone())),
+        FieldType::RecursiveTypeAlias(alias_name, _) => ir
             .recursive_alias_definition(alias_name)
             .and_then(|alias_definition| map_types(ir, &alias_definition)),
-        FieldType::Primitive(_) => None,
-        FieldType::Enum(_) => None,
-        FieldType::List(_) => None,
-        FieldType::Literal(_) => None,
-        FieldType::Tuple(_) => None,
-        FieldType::Union(variants) => {
+        FieldType::Primitive(_, _) => None,
+        FieldType::Enum(_, _) => None,
+        FieldType::List(_, _) => None,
+        FieldType::Literal(_, _) => None,
+        FieldType::Tuple(_, _) => None,
+        FieldType::Union(variants, _) => {
             let variant_map_types: Vec<(FieldType, FieldType)> = variants
                 .view_as_iter(true)
                 .0
@@ -1018,15 +1052,13 @@ where
                 }
             }
         }
-        FieldType::Class(_) => None,
-        FieldType::Arrow(_) => None,
-        FieldType::WithMetadata { .. } => {
-            unreachable!("distribute_metadata never returns this variant")
-        }
+        FieldType::Class(_, _) => None,
+        FieldType::Arrow(_, _) => None,
     }
 }
 
-const UNIT_TYPE: FieldType = FieldType::Tuple(vec![]);
+pub static UNIT_TYPE: once_cell::sync::Lazy<FieldType> =
+    once_cell::sync::Lazy::new(|| FieldType::Tuple(vec![], TypeMetadataIR::default()));
 
 /// A helper function for `distribute_type_with_meta`, for cases where a class
 /// is not present in the IR. In this case, when we don't have a class
@@ -1042,7 +1074,7 @@ fn distribute_infer_class<T: Clone + std::fmt::Debug>(
     let fields = class_fields
         .into_iter()
         .map(|(k, v)| {
-            let field_type = infer_type_with_meta(&v).unwrap_or(UNIT_TYPE);
+            let field_type = infer_type_with_meta(&v).unwrap_or(UNIT_TYPE.clone());
             let field = ir.distribute_type_with_meta(v, field_type)?;
             Ok((k.to_string(), field))
         })
@@ -1056,24 +1088,43 @@ fn distribute_infer_class<T: Clone + std::fmt::Debug>(
 
 pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
     let ret = match value {
-        BamlValue::Int(_) => Some(FieldType::Primitive(TypeValue::Int)),
-        BamlValue::Bool(_) => Some(FieldType::Primitive(TypeValue::Bool)),
-        BamlValue::Float(_) => Some(FieldType::Primitive(TypeValue::Float)),
-        BamlValue::String(_) => Some(FieldType::Primitive(TypeValue::String)),
-        BamlValue::Null => Some(FieldType::Primitive(TypeValue::Null)),
+        BamlValue::Int(_) => Some(FieldType::Primitive(
+            TypeValue::Int,
+            TypeMetadataIR::default(),
+        )),
+        BamlValue::Bool(_) => Some(FieldType::Primitive(
+            TypeValue::Bool,
+            TypeMetadataIR::default(),
+        )),
+        BamlValue::Float(_) => Some(FieldType::Primitive(
+            TypeValue::Float,
+            TypeMetadataIR::default(),
+        )),
+        BamlValue::String(_) => Some(FieldType::Primitive(
+            TypeValue::String,
+            TypeMetadataIR::default(),
+        )),
+        BamlValue::Null => Some(FieldType::Primitive(
+            TypeValue::Null,
+            TypeMetadataIR::default(),
+        )),
         BamlValue::Map(pairs) => {
             let v_tys = pairs
                 .iter()
                 .filter_map(|(_, v)| infer_type(v))
                 .dedup()
                 .collect::<Vec<_>>();
-            let k_ty = FieldType::Primitive(TypeValue::String);
+            let k_ty = FieldType::Primitive(TypeValue::String, TypeMetadataIR::default());
             let v_ty = match v_tys.len() {
                 0 => None,
                 1 => Some(v_tys[0].clone()),
                 _ => Some(FieldType::union(v_tys)),
             }?;
-            Some(FieldType::Map(Box::new(k_ty), Box::new(v_ty)))
+            Some(FieldType::Map(
+                Box::new(k_ty),
+                Box::new(v_ty),
+                TypeMetadataIR::default(),
+            ))
         }
         BamlValue::List(items) => {
             let item_tys = items
@@ -1086,11 +1137,23 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
                 1 => Some(item_tys[0].clone()),
                 _ => Some(FieldType::union(item_tys)),
             }?;
-            Some(FieldType::List(Box::new(item_ty)))
+            Some(FieldType::List(
+                Box::new(item_ty),
+                TypeMetadataIR::default(),
+            ))
         }
-        BamlValue::Media(m) => Some(FieldType::Primitive(TypeValue::Media(m.media_type))),
-        BamlValue::Enum(enum_name, _) => Some(FieldType::Enum(enum_name.clone())),
-        BamlValue::Class(class_name, _) => Some(FieldType::Class(class_name.clone())),
+        BamlValue::Media(m) => Some(FieldType::Primitive(
+            TypeValue::Media(m.media_type),
+            TypeMetadataIR::default(),
+        )),
+        BamlValue::Enum(enum_name, _) => Some(FieldType::Enum(
+            enum_name.clone(),
+            TypeMetadataIR::default(),
+        )),
+        BamlValue::Class(class_name, _) => Some(FieldType::Class(
+            class_name.clone(),
+            TypeMetadataIR::default(),
+        )),
     };
     ret
 }
@@ -1100,24 +1163,43 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
 /// TODO: Tests.
 pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType> {
     let ret = match value {
-        BamlValueWithMeta::Int(_, _) => Some(FieldType::Primitive(TypeValue::Int)),
-        BamlValueWithMeta::Bool(_, _) => Some(FieldType::Primitive(TypeValue::Bool)),
-        BamlValueWithMeta::Float(_, _) => Some(FieldType::Primitive(TypeValue::Float)),
-        BamlValueWithMeta::String(_, _) => Some(FieldType::Primitive(TypeValue::String)),
-        BamlValueWithMeta::Null(_) => Some(FieldType::Primitive(TypeValue::Null)),
+        BamlValueWithMeta::Int(_, _) => Some(FieldType::Primitive(
+            TypeValue::Int,
+            TypeMetadataIR::default(),
+        )),
+        BamlValueWithMeta::Bool(_, _) => Some(FieldType::Primitive(
+            TypeValue::Bool,
+            TypeMetadataIR::default(),
+        )),
+        BamlValueWithMeta::Float(_, _) => Some(FieldType::Primitive(
+            TypeValue::Float,
+            TypeMetadataIR::default(),
+        )),
+        BamlValueWithMeta::String(_, _) => Some(FieldType::Primitive(
+            TypeValue::String,
+            TypeMetadataIR::default(),
+        )),
+        BamlValueWithMeta::Null(_) => Some(FieldType::Primitive(
+            TypeValue::Null,
+            TypeMetadataIR::default(),
+        )),
         BamlValueWithMeta::Map(pairs, _) => {
             let v_tys = pairs
                 .iter()
                 .filter_map(|(_, v)| infer_type_with_meta(v))
                 .dedup()
                 .collect::<Vec<_>>();
-            let k_ty = FieldType::Primitive(TypeValue::String);
+            let k_ty = FieldType::Primitive(TypeValue::String, TypeMetadataIR::default());
             let v_ty = match v_tys.len() {
                 0 => None,
                 1 => Some(v_tys[0].clone()),
                 _ => Some(FieldType::union(v_tys)),
             }?;
-            Some(FieldType::Map(Box::new(k_ty), Box::new(v_ty)))
+            Some(FieldType::Map(
+                Box::new(k_ty),
+                Box::new(v_ty),
+                TypeMetadataIR::default(),
+            ))
         }
         BamlValueWithMeta::List(items, _) => {
             let item_tys = items
@@ -1130,13 +1212,23 @@ pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType
                 1 => Some(item_tys[0].clone()),
                 _ => Some(FieldType::union(item_tys)),
             }?;
-            Some(FieldType::List(Box::new(item_ty)))
+            Some(FieldType::List(
+                Box::new(item_ty),
+                TypeMetadataIR::default(),
+            ))
         }
-        BamlValueWithMeta::Media(m, _) => {
-            Some(FieldType::Primitive(TypeValue::Media(m.media_type)))
-        }
-        BamlValueWithMeta::Enum(enum_name, _, _) => Some(FieldType::Enum(enum_name.clone())),
-        BamlValueWithMeta::Class(class_name, _, _) => Some(FieldType::Class(class_name.clone())),
+        BamlValueWithMeta::Media(m, _) => Some(FieldType::Primitive(
+            TypeValue::Media(m.media_type),
+            TypeMetadataIR::default(),
+        )),
+        BamlValueWithMeta::Enum(enum_name, _, _) => Some(FieldType::Enum(
+            enum_name.clone(),
+            TypeMetadataIR::default(),
+        )),
+        BamlValueWithMeta::Class(class_name, _, _) => Some(FieldType::Class(
+            class_name.clone(),
+            TypeMetadataIR::default(),
+        )),
     };
     ret
 }
@@ -1151,11 +1243,11 @@ mod tests {
     use repr::make_test_ir;
 
     fn int_type() -> FieldType {
-        FieldType::Primitive(TypeValue::Int)
+        FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default())
     }
 
     fn string_type() -> FieldType {
-        FieldType::Primitive(TypeValue::String)
+        FieldType::Primitive(TypeValue::String, TypeMetadataIR::default())
     }
 
     fn mk_int(i: i64) -> BamlValue {
@@ -1193,7 +1285,7 @@ mod tests {
         let my_list = mk_list_1();
         assert_eq!(
             infer_type(&my_list).unwrap(),
-            FieldType::List(Box::new(int_type()))
+            FieldType::List(Box::new(int_type()), TypeMetadataIR::default())
         );
     }
 
@@ -1202,7 +1294,11 @@ mod tests {
         let my_map = mk_map_1();
         assert_eq!(
             infer_type(&my_map).unwrap(),
-            FieldType::Map(Box::new(string_type()), Box::new(int_type()))
+            FieldType::Map(
+                Box::new(string_type()),
+                Box::new(int_type()),
+                TypeMetadataIR::default(),
+            )
         );
     }
 
@@ -1219,8 +1315,10 @@ mod tests {
                 Box::new(string_type()),
                 Box::new(FieldType::Map(
                     Box::new(string_type()),
-                    Box::new(int_type())
-                ))
+                    Box::new(int_type()),
+                    TypeMetadataIR::default(),
+                )),
+                TypeMetadataIR::default(),
             )
         )
     }
@@ -1242,7 +1340,10 @@ mod tests {
                 base64: "abcd=".to_string(),
             }),
         });
-        let t = FieldType::Primitive(TypeValue::Media(BamlMediaType::Audio));
+        let t = FieldType::Primitive(
+            TypeValue::Media(BamlMediaType::Audio),
+            TypeMetadataIR::default(),
+        );
         let _value_with_meta = ir.distribute_type(v, t).unwrap();
     }
 
@@ -1251,7 +1352,10 @@ mod tests {
         let ir = mk_ir();
         let field_type = FieldType::union(vec![
             string_type(),
-            FieldType::Primitive(TypeValue::Media(BamlMediaType::Image)),
+            FieldType::Primitive(
+                TypeValue::Media(BamlMediaType::Image),
+                TypeMetadataIR::default(),
+            ),
         ]);
         let baml_value = BamlValue::Media(BamlMedia {
             media_type: BamlMediaType::Image,
@@ -1271,12 +1375,16 @@ mod tests {
         let elem_type = FieldType::union(vec![
             string_type(),
             int_type(),
-            FieldType::Class("Foo".to_string()),
+            FieldType::Class("Foo".to_string(), TypeMetadataIR::default()),
         ]);
-        let map_type = FieldType::Map(Box::new(string_type()), Box::new(elem_type.clone()));
+        let map_type = FieldType::Map(
+            Box::new(string_type()),
+            Box::new(elem_type.clone()),
+            TypeMetadataIR::default(),
+        );
 
         // The compound type we want to test.
-        let list_type = FieldType::List(Box::new(map_type.clone()));
+        let list_type = FieldType::List(Box::new(map_type.clone()), TypeMetadataIR::default());
 
         let map_1 = BamlValue::Map(
             vec![
@@ -1323,14 +1431,18 @@ mod tests {
 
         let elem_type = FieldType::union(vec![
             string_type(),
-            int_type(), 
-            FieldType::Class("Foo".to_string()),
+            int_type(),
+            FieldType::Class("Foo".to_string(), TypeMetadataIR::default()),
         ]);
 
-        let list_type = FieldType::List(Box::new(elem_type));
+        let list_type = FieldType::List(Box::new(elem_type), TypeMetadataIR::default());
 
         // The compound type we want to test.
-        let map_type = FieldType::Map(Box::new(string_type()), Box::new(list_type));
+        let map_type = FieldType::Map(
+            Box::new(string_type()),
+            Box::new(list_type),
+            TypeMetadataIR::default(),
+        );
 
         let foo_1 = BamlValue::Class(
             "Foo".to_string(),
@@ -1427,24 +1539,16 @@ mod tests {
             }
         }
 
-        let input = FieldType::WithMetadata {
-            constraints: vec![mk_constraint("a")],
+        let metadata = TypeMetadataIR {
+            constraints: vec![mk_constraint("a"), mk_constraint("b"), mk_constraint("c")],
             streaming_behavior: StreamingBehavior::default(),
-            base: Box::new(FieldType::WithMetadata {
-                constraints: vec![mk_constraint("b")],
-                streaming_behavior: StreamingBehavior::default(),
-                base: Box::new(FieldType::WithMetadata {
-                    constraints: vec![mk_constraint("c")],
-                    streaming_behavior: StreamingBehavior::default(),
-                    base: Box::new(FieldType::Primitive(TypeValue::Int)),
-                }),
-            }),
         };
+        let input_type = FieldType::Primitive(TypeValue::Int, metadata.clone());
 
-        let expected_base = FieldType::Primitive(TypeValue::Int);
+        let expected_base = FieldType::Primitive(TypeValue::Int, metadata.clone());
         let expected_constraints = vec![mk_constraint("a"), mk_constraint("b"), mk_constraint("c")];
 
-        let (base, constraints) = ir.distribute_constraints(&input);
+        let (base, constraints) = ir.distribute_constraints(&input_type);
 
         assert_eq!(base, &expected_base);
         assert_eq!(constraints, expected_constraints);
@@ -1455,27 +1559,12 @@ mod tests {
         let ir = make_test_ir(r#""#).unwrap();
 
         let res = ir
-            .distribute_type_with_meta(
-                BamlValueWithMeta::Null(()),
-                FieldType::WithMetadata {
-                    base: Box::new(FieldType::Primitive(
-                        TypeValue::String,
-                    ).as_optional()),
-                    streaming_behavior: StreamingBehavior::default(),
-                    constraints: vec![],
-                },
-            )
+            .distribute_type_with_meta(BamlValueWithMeta::Null(()), NULL_TYPE.clone())
             .expect("Distribution should succeed");
         let res2 = ir
             .distribute_type(
                 BamlValue::Null,
-                FieldType::WithMetadata {
-                    base: Box::new(FieldType::Primitive(
-                        TypeValue::String,
-                    ).as_optional()),
-                    streaming_behavior: StreamingBehavior::default(),
-                    constraints: vec![],
-                },
+                FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).as_optional(),
             )
             .expect("Distribution should succeed");
 
@@ -1488,13 +1577,13 @@ mod tests {
                     ],
                     (),
                 ),
-                FieldType::WithMetadata {
-                    base: Box::new(FieldType::List(Box::new(FieldType::Primitive(
+                FieldType::List(
+                    Box::new(FieldType::Primitive(
                         TypeValue::String,
-                    )))),
-                    streaming_behavior: StreamingBehavior::default(),
-                    constraints: vec![],
-                },
+                        TypeMetadataIR::default(),
+                    )),
+                    TypeMetadataIR::default(),
+                ),
             )
             .expect("Distribution should succeed");
 
@@ -1504,13 +1593,13 @@ mod tests {
                     BamlValue::String("foo".to_string()),
                     BamlValue::String("bar".to_string()),
                 ]),
-                FieldType::WithMetadata {
-                    base: Box::new(FieldType::List(Box::new(FieldType::Primitive(
+                FieldType::List(
+                    Box::new(FieldType::Primitive(
                         TypeValue::String,
-                    )))),
-                    streaming_behavior: StreamingBehavior::default(),
-                    constraints: vec![],
-                },
+                        TypeMetadataIR::default(),
+                    )),
+                    TypeMetadataIR::default(),
+                ),
             )
             .expect("Distribution should succeed");
     }
@@ -1526,13 +1615,13 @@ mod subtype_tests {
     use super::*;
 
     fn mk_int() -> FieldType {
-        FieldType::Primitive(TypeValue::Int)
+        FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default())
     }
     fn mk_bool() -> FieldType {
-        FieldType::Primitive(TypeValue::Bool)
+        FieldType::Primitive(TypeValue::Bool, TypeMetadataIR::default())
     }
     fn mk_str() -> FieldType {
-        FieldType::Primitive(TypeValue::String)
+        FieldType::Primitive(TypeValue::String, TypeMetadataIR::default())
     }
 
     fn mk_optional(ft: FieldType) -> FieldType {
@@ -1540,17 +1629,17 @@ mod subtype_tests {
     }
 
     fn mk_list(ft: FieldType) -> FieldType {
-        FieldType::List(Box::new(ft))
+        FieldType::List(Box::new(ft), TypeMetadataIR::default())
     }
 
     fn mk_tuple(ft: Vec<FieldType>) -> FieldType {
-        FieldType::Tuple(ft)
+        FieldType::Tuple(ft, TypeMetadataIR::default())
     }
     fn mk_union(ft: Vec<FieldType>) -> FieldType {
         FieldType::union(ft)
     }
     fn mk_str_map(ft: FieldType) -> FieldType {
-        FieldType::Map(Box::new(mk_str()), Box::new(ft))
+        FieldType::Map(Box::new(mk_str()), Box::new(ft), TypeMetadataIR::default())
     }
 
     fn ir() -> IntermediateRepr {
@@ -1592,15 +1681,16 @@ mod subtype_tests {
     }
 
     fn subtype_list_with_metadata() {
-        let l_i = FieldType::WithMetadata {
-            base: Box::new(mk_list(mk_int())),
-            constraints: vec![],
-            streaming_behavior: StreamingBehavior {
+        let l_i = FieldType::List(
+            Box::new(mk_list(mk_int())),
+            TypeMetadataIR {
+                constraints: vec![],
+                streaming_behavior: StreamingBehavior {
                 done: true,
                 state: false,
                 needed: false,
             },
-        };
+        });
         let l_o = mk_list(mk_int());
         assert!(ir().is_subtype(&l_i, &l_o));
         assert!(ir().is_subtype(&l_o, &l_i));
@@ -1616,18 +1706,21 @@ mod subtype_tests {
 
     #[test]
     fn subtype_map_of_list_of_unions() {
-        let x = mk_str_map(mk_list(FieldType::Class("Foo".to_string())));
+        let x = mk_str_map(mk_list(FieldType::Class("Foo".to_string(), TypeMetadataIR::default())));
         let y = mk_str_map(mk_list(mk_union(vec![
             mk_str(),
             mk_int(),
-            FieldType::Class("Foo".to_string()),
+            FieldType::Class("Foo".to_string(), TypeMetadataIR::default()),
         ])));
         assert!(ir().is_subtype(&x, &y));
     }
 
     #[test]
     fn subtype_media() {
-        let x = FieldType::Primitive(TypeValue::Media(BamlMediaType::Audio));
+        let x = FieldType::Primitive(
+            TypeValue::Media(BamlMediaType::Audio),
+            TypeMetadataIR::default(),
+        );
         assert!(ir().is_subtype(&x, &x));
     }
 
@@ -1683,24 +1776,25 @@ mod subtype_tests {
             (),
         );
         assert_eq!(
-            item_type(&ir, &FieldType::RecursiveTypeAlias("A".to_string()),),
-            Some(FieldType::RecursiveTypeAlias("A".to_string()))
+            item_type(&ir, &FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default())),
+            Some(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default()))
         );
         assert_eq!(
-            item_type(&ir, &FieldType::RecursiveTypeAlias("B".to_string()),),
-            Some(FieldType::List(Box::new(FieldType::RecursiveTypeAlias(
-                "B".to_string()
-            ))))
+            item_type(&ir, &FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default())),
+            Some(FieldType::List(
+                Box::new(FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default())),
+                TypeMetadataIR::default(),
+            ))
         );
         assert_eq!(
-            item_type(&ir, &FieldType::RecursiveTypeAlias("C".to_string()),),
-            Some(FieldType::RecursiveTypeAlias("C".to_string()))
+            item_type(&ir, &FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default())),
+            Some(FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default()))
         );
         assert_eq!(
-            item_type(&ir, &FieldType::RecursiveTypeAlias("JsonValue".to_string()),),
+            item_type(&ir, &FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMetadataIR::default())),
             Some(FieldType::union(vec![
-                FieldType::RecursiveTypeAlias("JsonValue".to_string()),
-                FieldType::RecursiveTypeAlias("JsonValue".to_string())
+                FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMetadataIR::default()),
+                FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMetadataIR::default())
             ]))
         );
     }

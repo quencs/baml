@@ -44,7 +44,7 @@ impl ArgCoercer {
         scope: &mut ScopeStack,
     ) -> Result<BamlValueWithMeta<FieldType>, ()> {
         let value = match ir.distribute_constraints(field_type) {
-            (FieldType::Primitive(t), _) => match (t, value) {
+            (FieldType::Primitive(t, _), _) => match (t, value) {
                 (TypeValue::String, BamlValue::String(v)) => {
                     Ok(BamlValueWithMeta::String(v.clone(), FieldType::string()))
                 }
@@ -196,7 +196,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Enum(name), _) => match value {
+            (FieldType::Enum(name, _), _) => match value {
                 BamlValue::String(s) => {
                     if let Ok(e) = ir.find_enum(name) {
                         if e.walk_values().any(|v| v.item.elem.0 == *s)
@@ -234,7 +234,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Literal(literal), _) => match (literal, value) {
+            (FieldType::Literal(literal, _), _) => match (literal, value) {
                 (LiteralValue::Int(lit), BamlValue::Int(v)) if lit == v => {
                     Ok(BamlValueWithMeta::Int(*v, FieldType::literal_int(*lit)))
                 }
@@ -249,7 +249,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Class(name), _) => match value {
+            (FieldType::Class(name, _), _) => match value {
                 // BamlValue::Class(n, _) if n == name => Ok(value.clone()),
                 BamlValue::Class(_, obj) | BamlValue::Map(obj) => match ir.find_class(name) {
                     Ok(c) => {
@@ -294,7 +294,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::RecursiveTypeAlias(name), _) => {
+            (FieldType::RecursiveTypeAlias(name, _), _) => {
                 let mut maybe_coerced = None;
                 // TODO: Fix this O(n)
                 for cycle in ir.structural_recursive_alias_cycles() {
@@ -312,7 +312,7 @@ impl ArgCoercer {
                     }
                 }
             }
-            (FieldType::List(item), _) => match value {
+            (FieldType::List(item, _), _) => match value {
                 BamlValue::List(arr) => {
                     let mut items = Vec::new();
                     for v in arr {
@@ -327,11 +327,11 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Tuple(_), _) => {
+            (FieldType::Tuple(_, _), _) => {
                 scope.push_error("Tuples are not yet supported".to_string());
                 Err(())
             }
-            (FieldType::Map(k, v), _) => match value {
+            (FieldType::Map(k, v, _), _) => match value {
                 BamlValue::Map(kv) => {
                     let mut map = BamlMap::new();
                     for (key, value) in kv {
@@ -354,7 +354,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Union(options), _) => {
+            (FieldType::Union(options, _), _) => {
                 let mut first_good_result = Err(());
                 for option in options.view_as_iter(true).0 {
                     let mut scope = ScopeStack::new();
@@ -372,14 +372,11 @@ impl ArgCoercer {
                     first_good_result
                 }
             }
-            (FieldType::Arrow(_), _) => {
+            (FieldType::Arrow(_, _), _) => {
                 scope.push_error(format!(
                     "A json value may not be coerced into a function type"
                 ));
                 Err(())
-            }
-            (FieldType::WithMetadata { .. }, _) => {
-                unreachable!("The return value of distribute_constraints can never be FieldType::Constrainted");
             }
         }?;
 
@@ -441,7 +438,7 @@ fn first_failing_assert_nested<'a>(
 
 #[cfg(test)]
 mod tests {
-    use baml_types::{JinjaExpression, StreamingBehavior};
+    use baml_types::{JinjaExpression, StreamingBehavior, TypeMetadataIR};
 
     use crate::ir::repr::make_test_ir;
 
@@ -466,15 +463,17 @@ mod tests {
         )
         .unwrap();
         let value = BamlValue::Int(1);
-        let type_ = FieldType::WithMetadata {
-            base: Box::new(FieldType::Primitive(TypeValue::Int)),
-            constraints: vec![Constraint {
-                level: ConstraintLevel::Assert,
-                expression: JinjaExpression("this.length() > 0".to_string()),
-                label: Some("foo".to_string()),
-            }],
-            streaming_behavior: StreamingBehavior::default(),
-        };
+        let type_ = FieldType::Primitive(
+            TypeValue::Int,
+            TypeMetadataIR {
+                constraints: vec![Constraint {
+                    level: ConstraintLevel::Assert,
+                    expression: JinjaExpression("this.length() > 0".to_string()),
+                    label: Some("foo".to_string()),
+                }],
+                streaming_behavior: StreamingBehavior::default(),
+            },
+        );
         let arg_coercer = ArgCoercer {
             span_path: None,
             allow_implicit_cast_to_string: true,

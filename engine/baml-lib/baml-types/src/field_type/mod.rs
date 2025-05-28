@@ -351,6 +351,21 @@ impl FieldType {
         }
     }
 
+    pub fn set_meta(&mut self, meta: TypeMetadataIR) {
+        match self {
+            FieldType::Class(_, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::Arrow(_, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::Primitive(_, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::Enum(_, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::Literal(_, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::List(_, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::Map(_, _, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::RecursiveTypeAlias(_, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::Tuple(_, type_metadata_ir) => *type_metadata_ir = meta,
+            FieldType::Union(_, type_metadata_ir) => *type_metadata_ir = meta,
+        }
+    }
+
     pub fn meta(&self) -> &TypeMetadataIR {
         match self {
             FieldType::Class(_, type_metadata_ir) => type_metadata_ir,
