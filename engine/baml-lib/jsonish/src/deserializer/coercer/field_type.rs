@@ -32,7 +32,12 @@ impl TypeCoercer for FieldType {
                     scope = ctx.display_scope(),
                     current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
                 );
-                if matches!(target, FieldType::Primitive(TypeValue::String) | FieldType::Enum(_) | FieldType::Literal(LiteralValue::String(_))) {
+                if matches!(
+                    target,
+                    FieldType::Primitive(TypeValue::String, _)
+                        | FieldType::Enum(_, _)
+                        | FieldType::Literal(LiteralValue::String(_), _)
+                ) {
                     self.coerce(
                         ctx,
                         target,
@@ -59,7 +64,7 @@ impl TypeCoercer for FieldType {
                 );
                 self.coerce(ctx, target, Some(v)).map(|mut v| {
                     v.add_flag(Flag::ObjectFromMarkdown(
-                        if matches!(target, FieldType::Primitive(TypeValue::String)) {
+                        if matches!(target, FieldType::Primitive(TypeValue::String, _)) {
                             1
                         } else {
                             0
@@ -81,20 +86,22 @@ impl TypeCoercer for FieldType {
                 Ok(v)
             }
             _ => match self {
-                FieldType::Primitive(p) => p.coerce(ctx, target, value),
-                FieldType::Enum(e) => IrRef::Enum(e).coerce(ctx, target, value),
-                FieldType::Literal(l) => l.coerce(ctx, target, value),
-                FieldType::Class(c) => IrRef::Class(c).coerce(ctx, target, value),
-                FieldType::RecursiveTypeAlias(name) => {
+                FieldType::Primitive(p, _) => p.coerce(ctx, target, value),
+                FieldType::Enum(e, _) => IrRef::Enum(e).coerce(ctx, target, value),
+                FieldType::Literal(l, _) => l.coerce(ctx, target, value),
+                FieldType::Class(c, _) => IrRef::Class(c).coerce(ctx, target, value),
+                FieldType::RecursiveTypeAlias(name, _) => {
                     coerce_alias(ctx, self, value).map(|v| v.with_target(target))
                 }
-                FieldType::List(_) => coerce_array(ctx, self, value).map(|v| v.with_target(target)),
-                FieldType::Union(_) => {
+                FieldType::List(_, _) => {
+                    coerce_array(ctx, self, value).map(|v| v.with_target(target))
+                }
+                FieldType::Union(_, _) => {
                     coerce_union(ctx, self, value).map(|v| v.with_target(target))
                 }
-                FieldType::Map(_, _) => coerce_map(ctx, self, value).map(|v| v.with_target(target)),
-                FieldType::Tuple(_) => Err(ctx.error_internal("Tuple not supported")),
-                FieldType::Arrow(_) => Err(ctx.error_internal("Arrow type not supported")),
+                FieldType::Map(..) => coerce_map(ctx, self, value).map(|v| v.with_target(target)),
+                FieldType::Tuple(_, _) => Err(ctx.error_internal("Tuple not supported")),
+                FieldType::Arrow(_, _) => Err(ctx.error_internal("Arrow type not supported")),
                 FieldType::WithMetadata { base, .. } => {
                     let mut coerced_value = base.coerce(ctx, target, value)?;
                     let constraint_results = run_user_checks(&coerced_value.clone().into(), self)
@@ -176,25 +183,29 @@ impl DefaultValue for FieldType {
         };
 
         match self {
-            FieldType::Enum(e) => None,
-            FieldType::Literal(_) => None,
-            FieldType::Class(_) => None,
-            FieldType::RecursiveTypeAlias(_) => None,
-            FieldType::List(_) => Some(BamlValueWithFlags::List(
+            FieldType::Enum(e, _) => None,
+            FieldType::Literal(_, _) => None,
+            FieldType::Class(_, _) => None,
+            FieldType::RecursiveTypeAlias(_, _) => None,
+            FieldType::List(_, _) => Some(BamlValueWithFlags::List(
                 get_flags(),
                 self.clone(),
                 Vec::new(),
             )),
-            FieldType::Union(items) => items.view_as_iter(true).0.iter().find_map(|i| i.default_value(error)),
-            FieldType::Primitive(TypeValue::Null) => {
+            FieldType::Union(items, _) => items
+                .view_as_iter(true)
+                .0
+                .iter()
+                .find_map(|i| i.default_value(error)),
+            FieldType::Primitive(TypeValue::Null, _) => {
                 Some(BamlValueWithFlags::Null(self.clone(), get_flags()))
             }
-            FieldType::Map(_, _) => Some(BamlValueWithFlags::Map(
+            FieldType::Map(..) => Some(BamlValueWithFlags::Map(
                 get_flags(),
                 self.clone(),
                 BamlMap::new(),
             )),
-            FieldType::Tuple(v) => {
+            FieldType::Tuple(v, _) => {
                 let default_values: Vec<_> = v.iter().map(|f| f.default_value(error)).collect();
                 if default_values.iter().all(Option::is_some) {
                     Some(BamlValueWithFlags::List(
@@ -206,10 +217,8 @@ impl DefaultValue for FieldType {
                     None
                 }
             }
-            FieldType::Primitive(_) => None,
-            FieldType::Arrow(_) => None,
-            // If it has constraints, we can't assume our defaults meet them.
-            FieldType::WithMetadata { .. } => None,
+            FieldType::Primitive(_, _) => None,
+            FieldType::Arrow(_, _) => None,
         }
     }
 }

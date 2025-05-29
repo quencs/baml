@@ -6,28 +6,28 @@ use super::ruby_language_features::ToRuby;
 
 impl ToRuby for FieldType {
     fn to_ruby(&self) -> String {
-        match self {
-            FieldType::Class(name) => format!("Baml::Types::{}", name.clone()),
-            FieldType::Enum(name) => format!("T.any(Baml::Types::{}, String)", name.clone()),
+        let base_repr = match self {
+            FieldType::Class(name, _) => format!("Baml::Types::{}", name.clone()),
+            FieldType::Enum(name, _) => format!("T.any(Baml::Types::{}, String)", name.clone()),
             // Sorbet does not support recursive type aliases.
             // https://sorbet.org/docs/type-aliases
-            FieldType::RecursiveTypeAlias(_name) => "T.anything".to_string(),
+            FieldType::RecursiveTypeAlias(_name, _) => "T.anything".to_string(),
             // TODO: Temporary solution until we figure out Ruby literals.
-            FieldType::Literal(value) => value.literal_base_type().to_ruby(),
+            FieldType::Literal(value, _) => value.literal_base_type().to_ruby(),
             // https://sorbet.org/docs/stdlib-generics
-            FieldType::List(inner) => format!("T::Array[{}]", inner.to_ruby()),
-            FieldType::Map(key, value) => format!(
+            FieldType::List(inner, _) => format!("T::Array[{}]", inner.to_ruby()),
+            FieldType::Map(key, value, _) => format!(
                 "T::Hash[{}, {}]",
                 match key.as_ref() {
                     // For enums just default to strings.
-                    FieldType::Enum(_)
-                    | FieldType::Literal(LiteralValue::String(_))
-                    | FieldType::Union(_) => FieldType::string().to_ruby(),
+                    FieldType::Enum(_, _)
+                    | FieldType::Literal(LiteralValue::String(_), _)
+                    | FieldType::Union(_, _) => FieldType::string().to_ruby(),
                     _ => key.to_ruby(),
                 },
                 value.to_ruby()
             ),
-            FieldType::Primitive(r#type) => String::from(match r#type {
+            FieldType::Primitive(r#type, _) => String::from(match r#type {
                 // https://sorbet.org/docs/class-types
                 TypeValue::Bool => "T::Boolean",
                 TypeValue::Float => "Float",
@@ -38,7 +38,7 @@ impl ToRuby for FieldType {
                 TypeValue::Media(BamlMediaType::Image) => "Baml::Image",
                 TypeValue::Media(BamlMediaType::Audio) => "Baml::Audio",
             }),
-            FieldType::Union(inner) => {
+            FieldType::Union(inner, _) => {
                 match inner.view() {
                     baml_types::UnionTypeView::Null => "NilClass".to_string(),
                     baml_types::UnionTypeView::Optional(field_type) => format!("T.nilable({})", field_type.to_ruby()),
@@ -46,7 +46,7 @@ impl ToRuby for FieldType {
                     baml_types::UnionTypeView::OneOfOptional(field_types) => format!("T.nilable(T.any({}))", field_types.iter().map(|t| t.to_ruby()).collect::<Vec<_>>().join(", ")),
                 }
             }
-            FieldType::Tuple(inner) => format!(
+            FieldType::Tuple(inner, _) => format!(
                 // https://sorbet.org/docs/tuples
                 "[{}]",
                 inner
@@ -55,14 +55,14 @@ impl ToRuby for FieldType {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            FieldType::Arrow(_) => todo!("Arrow types should not be used in generated type definitions"),
-            FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
-                Some(_) => {
-                    let base_type_ref = base.to_ruby();
-                    format!("Baml::Checked[{base_type_ref}]")
-                }
-                None => base.to_ruby(),
-            },
-        }
+            FieldType::Arrow(_, _) => todo!("Arrow types should not be used in generated type definitions"),
+        };
+        let repr = match field_type_attributes(self) {
+            Some(_) => {
+                format!("Baml::Checked[{base_repr}]")
+            }
+            None => base_repr,
+        };
+        repr
     }
 }

@@ -235,7 +235,7 @@ fn process_node(
 /// If it is not a known class, return no field names.
 fn type_field_names(ir: &impl IRHelperExtended, field_type: &FieldType) -> IndexSet<String> {
     match ir.distribute_metadata(field_type).0 {
-        FieldType::Class(class_name) => ir.class_field_names(class_name).unwrap_or_default(),
+        FieldType::Class(class_name, _) => ir.class_field_names(class_name).unwrap_or_default(),
         _ => IndexSet::new(),
     }
 }
@@ -284,7 +284,7 @@ fn required_done<T>(
 ) -> bool {
     let (base_type, (_, streaming_behavior)) = ir.distribute_metadata(field_type);
     let type_implies_done = match base_type {
-        FieldType::Primitive(tv) => match tv {
+        FieldType::Primitive(tv, _) => match tv {
             TypeValue::String => false,
             TypeValue::Int => true,
             TypeValue::Float => true,
@@ -292,25 +292,29 @@ fn required_done<T>(
             TypeValue::Bool => true,
             TypeValue::Null => true,
         },
-        FieldType::Literal(_) => true,
-        FieldType::List(_) => false,
-        FieldType::Map(_, _) => false,
-        FieldType::Enum(_) => true,
-        FieldType::Tuple(_) => false,
-        FieldType::RecursiveTypeAlias(_) => false,
-        FieldType::Class(_) => false,
-        FieldType::Union(options) => {
+        FieldType::Literal(_, _) => true,
+        FieldType::List(_, _) => false,
+        FieldType::Map(_, _, _) => false,
+        FieldType::Enum(_, _) => true,
+        FieldType::Tuple(_, _) => false,
+        FieldType::RecursiveTypeAlias(_, _) => false,
+        FieldType::Class(_, _) => false,
+        FieldType::Union(options, _) => {
             let (view, is_optional) = options.view_as_iter(false);
             // Determining whether a union requires done is complicated.
             // If all the variants are required to be done, then the union
             // requires done.
             let all_require_done = view.iter().all(|option| required_done(ir, option, value));
-            if all_require_done { return true; }
+            if all_require_done {
+                return true;
+            }
 
             // If none of the variants are required to be done, then the union
             // does not require done.
             let none_require_done = view.iter().all(|option| !required_done(ir, option, value));
-            if none_require_done { return false; }
+            if none_require_done {
+                return false;
+            }
 
             // Otherwise, the answer depends on the value we are streaming.
             // Search for the variant that matches the value, and use the
@@ -321,11 +325,8 @@ fn required_done<T>(
                     infer_type_with_meta(value).map_or(false, |v| &v == *option);
                 variant_required_done && value_unifies_with_variant
             })
-        },
-        FieldType::Arrow(_) => false, // TODO: Error? Arrow shouldn't appear here.
-        FieldType::WithMetadata { .. } => {
-            unreachable!("distribute_metadata always consumes `WithMetadata`.")
         }
+        FieldType::Arrow(_, _) => false, // TODO: Error? Arrow shouldn't appear here.
     };
     let res = type_implies_done || streaming_behavior.done;
     res
@@ -350,6 +351,7 @@ fn type_streaming_behavior(ir: &impl IRHelperExtended, r#type: &FieldType) -> St
 
 #[cfg(test)]
 mod tests {
+    use baml_types::TypeMetadataIR;
     use internal_baml_core::ir::repr::make_test_ir;
 
     use crate::deserializer::{deserialize_flags::DeserializerConditions, types::ValueWithFlags};
@@ -358,7 +360,7 @@ mod tests {
 
     fn mk_null() -> BamlValueWithFlags {
         BamlValueWithFlags::Null(
-            FieldType::Primitive(TypeValue::Null),
+            FieldType::Primitive(TypeValue::Null, TypeMetadataIR::default()),
             DeserializerConditions::default(),
         )
     }
@@ -366,14 +368,14 @@ mod tests {
     fn mk_string(s: &str) -> BamlValueWithFlags {
         BamlValueWithFlags::String(ValueWithFlags {
             value: s.to_string(),
-            target: FieldType::Primitive(TypeValue::String),
+            target: FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
             flags: DeserializerConditions::default(),
         })
     }
     fn mk_float(s: f64) -> BamlValueWithFlags {
         BamlValueWithFlags::Float(ValueWithFlags {
             value: s,
-            target: FieldType::Primitive(TypeValue::Float),
+            target: FieldType::Primitive(TypeValue::Float, TypeMetadataIR::default()),
             flags: DeserializerConditions::default(),
         })
     }
@@ -390,7 +392,7 @@ mod tests {
         fn mk_list(items: Vec<BamlValueWithFlags>) -> BamlValueWithFlags {
             BamlValueWithFlags::List(
                 DeserializerConditions::default(),
-                FieldType::RecursiveTypeAlias("A".to_string()).as_list(),
+                FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default()).as_list(),
                 items,
             )
         }
@@ -431,14 +433,14 @@ mod tests {
         let value = BamlValueWithFlags::Class(
             "Info".to_string(),
             DeserializerConditions::default(),
-            FieldType::Class("Info".into()),
+            FieldType::Class("Info".into(), TypeMetadataIR::default()),
             vec![
                 (
                     "name".to_string(),
                     BamlValueWithFlags::Class(
                         "Name".to_string(),
                         DeserializerConditions::default(),
-                        FieldType::Class("Name".into()),
+                        FieldType::Class("Name".into(), TypeMetadataIR::default()),
                         vec![
                             ("first".to_string(), mk_string("Greg")),
                             ("last".to_string(), mk_string("Hale")),

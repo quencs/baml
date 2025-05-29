@@ -544,7 +544,7 @@ where
     );
 
     let target_type = value.field_type().simplify();
-    if let baml_types::FieldType::Union(options) = &target_type {
+    if let baml_types::FieldType::Union(options, _) = &target_type {
         let mut options_vec = vec![];
         for t in options.view_as_iter(true).0 {
             options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
@@ -595,10 +595,10 @@ fn field_type_to_cffi_value_holder<'a, 'b>(
 where
 {
     let (field_type_union, field_type_union_value) = match field_type {
-        baml_types::FieldType::Primitive(type_value) => {
+        baml_types::FieldType::Primitive(type_value, _) => {
             return type_value_to_cffi(type_value, builder)
         }
-        baml_types::FieldType::Enum(e) => {
+        baml_types::FieldType::Enum(e, _) => {
             let enum_name = builder.create_string(e);
             let enum_type = CFFIFieldTypeEnum::create(
                 &mut builder,
@@ -611,7 +611,7 @@ where
                 enum_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Literal(literal_value) => {
+        baml_types::FieldType::Literal(literal_value, _) => {
             let literal_value = literal_value_to_cffi(literal_value, &mut builder);
             let literal_type = CFFIFieldTypeLiteral::create(&mut builder, &literal_value);
             (
@@ -619,7 +619,7 @@ where
                 literal_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Class(cls) => {
+        baml_types::FieldType::Class(cls, _) => {
             let class_name = builder.create_string(cls);
             let class_type = CFFIFieldTypeClass::create(
                 &mut builder,
@@ -632,7 +632,7 @@ where
                 class_type.as_union_value(),
             )
         }
-        baml_types::FieldType::List(field_type) => {
+        baml_types::FieldType::List(field_type, _) => {
             let list_type = field_type_to_cffi_value_holder(field_type, &mut builder);
             let element_type = CFFIFieldTypeList::create(
                 &mut builder,
@@ -645,7 +645,7 @@ where
                 element_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Map(key_type, value_type) => {
+        baml_types::FieldType::Map(key_type, value_type, _) => {
             let key_type = field_type_to_cffi_value_holder(key_type, &mut builder);
             let value_type = field_type_to_cffi_value_holder(value_type, &mut builder);
             let map_type = CFFIFieldTypeMap::create(
@@ -660,7 +660,7 @@ where
                 map_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Union(field_types) => {
+        baml_types::FieldType::Union(field_types, _) => {
             let mut options_vec = vec![];
             for t in field_types.view_as_iter(true).0 {
                 options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
@@ -696,7 +696,7 @@ where
         //         value_union_variant.as_union_value(),
         //     )
         // }
-        baml_types::FieldType::RecursiveTypeAlias(name) => {
+        baml_types::FieldType::RecursiveTypeAlias(name, _) => {
             let name = builder.create_string(name);
             let type_alias = CFFIFieldTypeTypeAlias::create(
                 &mut builder,
@@ -707,11 +707,8 @@ where
                 type_alias.as_union_value(),
             )
         }
-        baml_types::FieldType::Tuple(_field_types) => unimplemented!("Tuple is not supported"),
-        baml_types::FieldType::WithMetadata { .. } => {
-            unimplemented!("WithMetadata is not supported")
-        }
-        baml_types::FieldType::Arrow(_) => unimplemented!("Functions are not supported."),
+        baml_types::FieldType::Tuple(_, _) => unimplemented!("Tuple is not supported"),
+        baml_types::FieldType::Arrow(_, _) => unimplemented!("Functions are not supported."),
     };
 
     CFFIFieldTypeHolder::create(

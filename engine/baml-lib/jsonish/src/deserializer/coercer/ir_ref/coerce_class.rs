@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_types::{BamlMap, Constraint, StreamingBehavior};
+use baml_types::{BamlMap, Constraint, StreamingBehavior, TypeMetadataIR};
 use internal_baml_core::ir::FieldType;
 use internal_baml_jinja::types::{Class, Name};
 
@@ -401,11 +401,11 @@ pub fn apply_constraints(
     if constraints.is_empty() {
         Ok(value)
     } else {
-        let constrained_class = FieldType::WithMetadata {
-            base: Box::new(class_type.clone()),
+        let mut constrained_class = class_type.clone();
+        constrained_class.set_meta(TypeMetadataIR {
             constraints,
             streaming_behavior,
-        };
+        });
         let constraint_results = run_user_checks(&value.clone().into(), &constrained_class)
             .map_err(|e| ParsingError {
                 reason: format!("Failed to evaluate constraints: {:?}", e),

@@ -235,7 +235,7 @@ fn relevant_data_models<'a>(
 
     while let Some(output) = stack.pop() {
         match ir.distribute_metadata(&output) {
-            (FieldType::Enum(enm), (constraints, streaming_behavior)) => {
+            (FieldType::Enum(enm, _), (constraints, streaming_behavior)) => {
                 if checked_types.insert(output.to_string()) {
                     let overrides = ctx.enum_overrides.get(enm);
                     let walker = ir.find_enum(enm);
@@ -279,12 +279,12 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            (FieldType::List(inner), _) => {
+            (FieldType::List(inner, _), _) => {
                 if !checked_types.contains(&inner.to_string()) {
                     stack.push(inner.as_ref().clone());
                 }
             }
-            (FieldType::Map(k, v), _) => {
+            (FieldType::Map(k, v, _), _) => {
                 if checked_types.insert(output.to_string()) {
                     if !checked_types.contains(&k.to_string()) {
                         stack.push(k.as_ref().clone());
@@ -294,7 +294,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Tuple(options), _) => {
+            (FieldType::Tuple(options, _), _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options {
                         if !checked_types.contains(&inner.to_string()) {
@@ -303,7 +303,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Union(options), _) => {
+            (FieldType::Union(options, _), _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options.view_as_iter(true).0 {
                         if !checked_types.contains(&inner.to_string()) {
@@ -312,7 +312,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Class(cls), (constraints, streaming_behavior)) => {
+            (FieldType::Class(cls, _), (constraints, streaming_behavior)) => {
                 if checked_types.insert(output.to_string()) {
                     let overrides = ctx.class_override.get(cls);
                     let walker = ir.find_class(cls);
@@ -406,7 +406,7 @@ fn relevant_data_models<'a>(
                     recursive_classes.insert(cls.to_owned());
                 }
             }
-            (FieldType::RecursiveTypeAlias(name), _) => {
+            (FieldType::RecursiveTypeAlias(name, _), _) => {
                 // TODO: Same O(n) problem as above.
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if cycle.contains_key(name) {
@@ -435,12 +435,9 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Literal(_), _) => {}
-            (FieldType::Primitive(_), _) => {}
-            (FieldType::Arrow(_), _) => {}
-            (FieldType::WithMetadata { .. }, _) => {
-                unreachable!("It is guaranteed that a call to distribute_constraints will not return FieldType::Constrained")
-            }
+            (FieldType::Literal(_, _), _) => {}
+            (FieldType::Primitive(_, _), _) => {}
+            (FieldType::Arrow(_, _), _) => {}
         }
     }
 
@@ -481,7 +478,7 @@ mod tests {
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .unwrap();
 
-        let field_type = FieldType::Enum("Foo".to_string());
+        let field_type = FieldType::Enum("Foo".to_string(), None);
         let render_output =
             render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
 
