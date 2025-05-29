@@ -3413,6 +3413,7 @@ dependencies = [
  "itertools 0.13.0",
  "log",
  "minijinja",
+ "once_cell",
  "rayon",
  "regex",
  "semver",
