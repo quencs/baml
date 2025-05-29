@@ -13,7 +13,45 @@ func main() {
 
 	collector := baml.NewCollector()
 
-	v2, err := b.AaaSamOutputFormat(ctx, "oranges", b.WithCollector(collector))
+	collector2 := baml.NewCollector()
+
+	v2, err := b.AaaSamOutputFormat(ctx, "oranges", b.WithCollector(collector), b.WithCollector(collector2))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(*v2)
+
+	// go func() {
+	// 	time.Sleep(100 * time.Millisecond)
+	// 	for {
+	// 		last, err := collector2.Last()
+	// 		if err != nil {
+	// 			panic(err)
+	// 		}
+
+	// 		calls, err := last.Calls()
+	// 		if err != nil {
+	// 			panic(err)
+	// 		}
+
+	// 		httpResponse, err := calls[0].HTTPResponse()
+	// 		if err != nil {
+	// 			panic(err)
+	// 		}
+	// 		fmt.Printf("[go func] http_response: %v\n", httpResponse)
+	// 		body, err := httpResponse.Body()
+	// 		if err != nil {
+	// 			panic(err)
+	// 		}
+	// 		text, err := body.Text()
+	// 		if err != nil {
+	// 			panic(err)
+	// 		}
+	// 		fmt.Printf("[go func] text: %s\n", text)
+	// 	}
+	// }()
+
+	v2, err = b.AaaSamOutputFormat(ctx, "oranges", b.WithCollector(collector), b.WithCollector(collector2))
 	if err != nil {
 		panic(err)
 	}
@@ -136,6 +174,20 @@ func main() {
 			panic(err)
 		}
 		fmt.Printf("call selected: %t\n", selected)
+
+		httpResponse, err := call.HTTPResponse()
+		if err != nil {
+			panic(err)
+		}
+		body, err := httpResponse.Body()
+		if err != nil {
+			panic(err)
+		}
+		text, err := body.Text()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("call http response text: %s\n", text)
 	}
 
 	// v2, err = b.AaaSamOutputFormat(ctx, "pineapple")

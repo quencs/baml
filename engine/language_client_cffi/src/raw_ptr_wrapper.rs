@@ -3,6 +3,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use baml_runtime::tracingv2::storage::storage::{Collector, FunctionLog};
+use baml_types::tracing::events::HTTPResponse;
 
 pub struct RawPtrWrapper<T> {
     inner: Arc<T>,
@@ -41,3 +42,4 @@ impl<T> Drop for RawPtrWrapper<T> {
 
 pub type CollectorWrapper = RawPtrWrapper<Collector>;
 pub type FunctionLogWrapper = RawPtrWrapper<Mutex<FunctionLog>>;
+pub type HTTPResponseWrapper = RawPtrWrapper<HTTPResponse>;

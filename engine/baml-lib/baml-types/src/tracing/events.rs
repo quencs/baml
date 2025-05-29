@@ -247,7 +247,11 @@ impl HTTPBody {
     }
 
     pub fn text(&self) -> anyhow::Result<&str> {
-        std::str::from_utf8(&self.raw).map_err(|e| anyhow::anyhow!("HTTP body is not UTF-8: {}", e))
+        match self.raw.len() {
+            0 => Ok(""),
+            _ => std::str::from_utf8(&self.raw)
+                .map_err(|e| anyhow::anyhow!("HTTP body is not UTF-8: {}", e)),
+        }
     }
 
     pub fn json(&self) -> anyhow::Result<serde_json::Value> {

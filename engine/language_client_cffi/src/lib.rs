@@ -7,8 +7,9 @@ use anyhow::Result;
 use baml_runtime::client_registry::ClientRegistry;
 use baml_runtime::tracingv2::storage::storage::{Collector, LLMCall, LLMStreamCall, Timing, Usage};
 use baml_runtime::{BamlRuntime, FunctionResult};
+use baml_types::tracing::events::HTTPBody;
 use once_cell::sync::{Lazy, OnceCell};
-use raw_ptr_wrapper::{CollectorWrapper, FunctionLogWrapper};
+use raw_ptr_wrapper::{CollectorWrapper, FunctionLogWrapper, HTTPResponseWrapper};
 use std::ops::Deref;
 use std::ptr::null_mut;
 use std::{
@@ -524,6 +525,48 @@ fn call_collector_function_inner(
                 "selected" => {
                     let selected = if llm_call.selected { 1 } else { 0 };
                     Ok(selected as *const libc::c_void)
+                }
+                "http_response" => llm_call
+                    .response
+                    .clone()
+                    .map(|r| Arc::into_raw(r) as *const libc::c_void)
+                    .ok_or(anyhow::anyhow!("No response")),
+                _ => Err(anyhow::anyhow!(
+                    "Failed to call function: {} on object type: {}",
+                    function_name,
+                    object_type
+                )),
+            }
+        }
+        "http_response" => {
+            let http_response = HTTPResponseWrapper::from_raw(object, true);
+            match function_name.as_str() {
+                "destroy" => {
+                    http_response.destroy();
+                    Ok(null())
+                }
+                "http_body" => {
+                    let http_body = http_response.body.clone();
+                    Ok(Box::into_raw(Box::new(http_body)) as *const libc::c_void)
+                }
+                _ => Err(anyhow::anyhow!(
+                    "Failed to call function: {} on object type: {}",
+                    function_name,
+                    object_type
+                )),
+            }
+        }
+        "http_body" => {
+            let http_body = unsafe { &mut *(object as *mut HTTPBody) };
+            match function_name.as_str() {
+                "destroy" => {
+                    let _ = unsafe { Box::from_raw(object as *mut HTTPBody) };
+                    Ok(null())
+                }
+                "text" => {
+                    let text = http_body.text().unwrap();
+                    let c_text = CString::new(text).unwrap();
+                    Ok(c_text.into_raw() as *const libc::c_void)
                 }
                 _ => Err(anyhow::anyhow!(
                     "Failed to call function: {} on object type: {}",

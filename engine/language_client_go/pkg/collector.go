@@ -14,6 +14,8 @@ const functionLogType = "function_log"
 const stringType = "string"
 const timingType = "timing"
 const llmCallType = "llm_call"
+const httpResponseType = "http_response"
+const httpBodyType = "http_body"
 
 type Collector struct {
 	c unsafe.Pointer
@@ -95,6 +97,42 @@ func (l *LLMCall) rustType() string {
 
 func createLLMCall(c unsafe.Pointer) *LLMCall {
 	return &LLMCall{
+		c: c,
+	}
+}
+
+type HTTPResponse struct {
+	c unsafe.Pointer
+}
+
+func (h *HTTPResponse) pointer() unsafe.Pointer {
+	return h.c
+}
+
+func (h *HTTPResponse) rustType() string {
+	return httpResponseType
+}
+
+func createHTTPResponse(c unsafe.Pointer) *HTTPResponse {
+	return &HTTPResponse{
+		c: c,
+	}
+}
+
+type HTTPBody struct {
+	c unsafe.Pointer
+}
+
+func (h *HTTPBody) pointer() unsafe.Pointer {
+	return h.c
+}
+
+func (h *HTTPBody) rustType() string {
+	return httpBodyType
+}
+
+func createHTTPBody(c unsafe.Pointer) *HTTPBody {
+	return &HTTPBody{
 		c: c,
 	}
 }
@@ -313,4 +351,31 @@ func (l *LLMCall) Selected() (bool, error) {
 	}
 
 	return int(uintptr(unsafe.Pointer(selectedPtr))) == 1, nil
+}
+
+func (l *LLMCall) HTTPResponse() (*HTTPResponse, error) {
+	httpResponsePtr, err := baml_go.CallCollectorFunction(l.c, llmCallType, "http_response")
+	if err != nil {
+		return nil, err
+	}
+
+	return wrap(createHTTPResponse, httpResponsePtr), nil
+}
+
+func (h *HTTPResponse) Body() (*HTTPBody, error) {
+	bodyPtr, err := baml_go.CallCollectorFunction(h.c, httpResponseType, "http_body")
+	if err != nil {
+		return nil, err
+	}
+
+	return wrap(createHTTPBody, bodyPtr), nil
+}
+
+func (h *HTTPBody) Text() (string, error) {
+	textPtr, err := baml_go.CallCollectorFunction(h.c, httpBodyType, "text")
+	if err != nil {
+		return "", err
+	}
+
+	return convertString(textPtr), nil
 }
