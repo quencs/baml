@@ -10,7 +10,7 @@ use internal_baml_core::{
     configuration::{GeneratorDefaultClientMode, GeneratorOutputType},
     ir::{
         repr::{IntermediateRepr, Walker},
-        ExprFnAsFunctionWalker, FieldType, IRHelper, IRHelperExtended
+        ExprFnAsFunctionWalker, FieldType, IRHelper, IRHelperExtended,
     },
 };
 
@@ -249,9 +249,7 @@ impl TryFrom<(&'_ IntermediateRepr, &'_ crate::GeneratorArgs)> for PythonClient 
                     args: f
                         .inputs()
                         .iter()
-                        .map(|(name, r#type)| {
-                            (name.to_string(), r#type.to_type_ref(ir), None)
-                        })
+                        .map(|(name, r#type)| (name.to_string(), r#type.to_type_ref(ir), None))
                         .collect(),
                 })
             })
@@ -272,8 +270,8 @@ trait ToTypeReferenceInClientDefinition {
 
 impl ToTypeReferenceInClientDefinition for FieldType {
     fn to_type_ref(&self, ir: &IntermediateRepr) -> String {
-        match self {
-            FieldType::Enum(name) => {
+        let base_rep = match self {
+            FieldType::Enum(name, _) => {
                 if ir
                     .find_enum(name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -284,25 +282,37 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     format!("types.{name}")
                 }
             }
-            FieldType::Literal(value) => to_python_literal(value),
-            FieldType::RecursiveTypeAlias(name) => format!("types.{name}"),
-            FieldType::Class(name) => format!("types.{name}"),
-            FieldType::List(inner) => format!("List[{}]", inner.to_type_ref(ir)),
-            FieldType::Map(key, value) => {
-                format!(
-                    "Dict[{}, {}]",
-                    key.to_type_ref(ir),
-                    value.to_type_ref(ir)
-                )
+            FieldType::Literal(value, _) => to_python_literal(value),
+            FieldType::RecursiveTypeAlias(name, _) => format!("types.{name}"),
+            FieldType::Class(name, _) => format!("types.{name}"),
+            FieldType::List(inner, _) => format!("List[{}]", inner.to_type_ref(ir)),
+            FieldType::Map(key, value, _) => {
+                format!("Dict[{}, {}]", key.to_type_ref(ir), value.to_type_ref(ir))
             }
-            FieldType::Primitive(r#type) => r#type.to_python(),
-            FieldType::Union(inner) => match inner.view() {
+            FieldType::Primitive(r#type, _) => r#type.to_python(),
+            FieldType::Union(inner, _) => match inner.view() {
                 baml_types::UnionTypeView::Null => "None".to_string(),
-                baml_types::UnionTypeView::Optional(field_type) => format!("Optional[{}]", field_type.to_type_ref(ir)),
-                baml_types::UnionTypeView::OneOf(field_types) => format!("Union[{}]", field_types.iter().map(|t| t.to_type_ref(ir)).collect::<Vec<_>>().join(", ")),
-                baml_types::UnionTypeView::OneOfOptional(field_types) => format!("Optional[Union[{}]]", field_types.iter().map(|t| t.to_type_ref(ir)).collect::<Vec<_>>().join(", ")),
+                baml_types::UnionTypeView::Optional(field_type) => {
+                    format!("Optional[{}]", field_type.to_type_ref(ir))
+                }
+                baml_types::UnionTypeView::OneOf(field_types) => format!(
+                    "Union[{}]",
+                    field_types
+                        .iter()
+                        .map(|t| t.to_type_ref(ir))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                baml_types::UnionTypeView::OneOfOptional(field_types) => format!(
+                    "Optional[Union[{}]]",
+                    field_types
+                        .iter()
+                        .map(|t| t.to_type_ref(ir))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
             },
-            FieldType::Tuple(inner) => format!(
+            FieldType::Tuple(inner, _) => format!(
                 "Tuple[{}]",
                 inner
                     .iter()
@@ -310,17 +320,17 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
-                Some(checks) => {
-                    let base_type_ref = base.to_type_ref(ir);
-                    let checks_type_ref = type_name_for_checks(&checks);
-                    format!("Checked[{base_type_ref}, {checks_type_ref}]")
-                }
-                None => base.to_type_ref(ir),
-            },
-            FieldType::Arrow(_) => {
+            FieldType::Arrow(_, _) => {
                 todo!("Arrow types should not be used in generated type definitions")
             }
+        };
+
+        match field_type_attributes(self) {
+            Some(checks) => {
+                let checks_type_ref = type_name_for_checks(&checks);
+                format!("Checked[{base_rep}, {checks_type_ref}]")
+            }
+            None => base_rep,
         }
     }
 
@@ -337,7 +347,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
         };
 
         let base_rep = match &base_type {
-            FieldType::Enum(name) => {
+            FieldType::Enum(name, _) => {
                 if ir
                     .find_enum(name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -364,21 +374,21 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     }
                 }
             }
-            FieldType::Class(name) => {
+            FieldType::Class(name, _) => {
                 if needed {
                     format!("{module_prefix}{name}")
                 } else {
                     format!("Optional[{module_prefix}{name}]")
                 }
             }
-            FieldType::RecursiveTypeAlias(name) => {
+            FieldType::RecursiveTypeAlias(name, _) => {
                 if needed {
                     format!("types.{name}")
                 } else {
                     format!("Optional[types.{name}]")
                 }
             }
-            FieldType::Literal(value) => {
+            FieldType::Literal(value, _) => {
                 // Note: The `false` here preserves potentially bugged codegen
                 // from before this commit. As the `false` implies, we always
                 // wrap primitives in `Optional` when generating partial types,
@@ -389,38 +399,57 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     format!("Optional[{}]", to_python_literal(value))
                 }
             }
-            FieldType::List(inner) => {
+            FieldType::List(inner, _) => {
                 let inner_type = inner.to_partial_type_ref(ir, true);
                 format!("List[{}]", inner_type)
             }
-            FieldType::Map(key, value) => {
+            FieldType::Map(key, value, _) => {
                 let value_type = value.to_partial_type_ref(ir, true);
-                format!(
-                    "Dict[{}, {}]",
-                    key.to_type_ref(ir),
-                    value_type
-                )
+                format!("Dict[{}, {}]", key.to_type_ref(ir), value_type)
             }
-            FieldType::Primitive(r#type) => {
+            FieldType::Primitive(r#type, _) => {
                 if needed {
                     r#type.to_python()
                 } else {
                     format!("Optional[{}]", r#type.to_python())
                 }
             }
-            FieldType::Union(inner) => {
-                match inner.view() {
-                    baml_types::UnionTypeView::Null => "None".to_string(),
-                    baml_types::UnionTypeView::Optional(field_type) => format!("Optional[{}]", field_type.to_partial_type_ref(ir, true)),
-                    baml_types::UnionTypeView::OneOf(field_types) => if needed {
-                        format!("Union[{}]", field_types.iter().map(|t| t.to_partial_type_ref(ir, true)).collect::<Vec<_>>().join(", "))
-                    } else {
-                        format!("Optional[Union[{}]]", field_types.iter().map(|t| t.to_partial_type_ref(ir, true)).collect::<Vec<_>>().join(", "))
-                    },
-                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("Optional[Union[{}]]", field_types.iter().map(|t| t.to_partial_type_ref(ir, true)).collect::<Vec<_>>().join(", ")),
+            FieldType::Union(inner, _) => match inner.view() {
+                baml_types::UnionTypeView::Null => "None".to_string(),
+                baml_types::UnionTypeView::Optional(field_type) => {
+                    format!("Optional[{}]", field_type.to_partial_type_ref(ir, true))
                 }
-            }
-            FieldType::Tuple(inner) => {
+                baml_types::UnionTypeView::OneOf(field_types) => {
+                    if needed {
+                        format!(
+                            "Union[{}]",
+                            field_types
+                                .iter()
+                                .map(|t| t.to_partial_type_ref(ir, true))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    } else {
+                        format!(
+                            "Optional[Union[{}]]",
+                            field_types
+                                .iter()
+                                .map(|t| t.to_partial_type_ref(ir, true))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    }
+                }
+                baml_types::UnionTypeView::OneOfOptional(field_types) => format!(
+                    "Optional[Union[{}]]",
+                    field_types
+                        .iter()
+                        .map(|t| t.to_partial_type_ref(ir, true))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            },
+            FieldType::Tuple(inner, _) => {
                 let tuple_contents = inner
                     .iter()
                     .map(|t| t.to_partial_type_ref(ir, false))
@@ -431,16 +460,8 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 } else {
                     format!("Optional[Tuple[{tuple_contents}]]")
                 }
-            }
-            FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
-                Some(checks) => {
-                    let base_type_ref = base.to_partial_type_ref(ir, needed);
-                    let checks_type_ref = type_name_for_checks(&checks);
-                    format!("Checked[{base_type_ref}, {checks_type_ref}]")
-                }
-                None => base.to_partial_type_ref(ir, needed),
             },
-            FieldType::Arrow(_) => {
+            FieldType::Arrow(_, _) => {
                 todo!("Arrow types should not be used in generated type definitions")
             }
         };
@@ -468,34 +489,34 @@ impl ToTypeReferenceInClientDefinition for FieldType {
 //   ...
 fn default_value_for_parameter_type(field_type: &FieldType) -> Option<&'static str> {
     match field_type {
-        FieldType::List(_) => Some("[]"),
-        FieldType::Map(_, _) => Some("{}"),
-        FieldType::Class(_) => None,
-        FieldType::RecursiveTypeAlias(_) => None,
-        FieldType::Literal(_) => None,
-        FieldType::Enum(_) => None,
-        FieldType::Tuple(_) => None,
-        FieldType::Primitive(_) => None,
-        FieldType::Union(_) if field_type.is_optional() => Some("None"),
-        FieldType::Union(_) => None,
-        FieldType::WithMetadata { base, .. } => default_value_for_parameter_type(base),
-        FieldType::Arrow(_) => None,
+        FieldType::List(_, _) => Some("[]"),
+        FieldType::Map(_, _, _) => Some("{}"),
+        FieldType::Class(_, _) => None,
+        FieldType::RecursiveTypeAlias(_, _) => None,
+        FieldType::Literal(_, _) => None,
+        FieldType::Enum(_, _) => None,
+        FieldType::Tuple(_, _) => None,
+        FieldType::Primitive(_, _) => None,
+        FieldType::Union(_, _) if field_type.is_optional() => Some("None"),
+        FieldType::Union(_, _) => None,
+        FieldType::Arrow(_, _) => None,
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use baml_types::{FieldType, TypeMetadataIR, TypeValue};
     use internal_baml_core::ir::repr::make_test_ir;
-    use baml_types::{FieldType, TypeValue};
 
     use crate::GeneratorArgs;
 
     use super::*;
 
     #[test]
-    fn optional_str() { 
+    fn optional_str() {
         let ir = make_test_ir("").unwrap();
-        let field_type = FieldType::Primitive(TypeValue::String).as_optional();
+        let field_type =
+            FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).as_optional();
         let rep = field_type.to_partial_type_ref(&ir, true);
         assert_eq!(rep, "Optional[str]")
     }

@@ -1,7 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
-use baml_types::{Constraint, FieldType, StreamingBehavior, TypeValue};
+use baml_types::{Constraint, FieldType, StreamingBehavior, TypeMetadataIR, TypeValue};
 use indexmap::{IndexMap, IndexSet};
 
 #[derive(Debug)]
@@ -365,7 +365,7 @@ impl OutputFormatContent {
             classes: Arc::new(IndexMap::new()),
             recursive_classes: Arc::new(IndexSet::new()),
             structural_recursive_aliases: Arc::new(IndexMap::new()),
-            target: FieldType::Primitive(TypeValue::String),
+            target: FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
         }
     }
 
@@ -374,17 +374,17 @@ impl OutputFormatContent {
             ft: &FieldType,
             options: &RenderOptions,
             render_state: &RenderCtx,
-            output_format_content: &OutputFormatContent,
+            _output_format_content: &OutputFormatContent,
         ) -> Option<String> {
             match ft {
-                FieldType::Primitive(TypeValue::String) => None,
-                FieldType::Primitive(p) => Some(format!(
+                FieldType::Primitive(TypeValue::String, _) => None,
+                FieldType::Primitive(p, _) => Some(format!(
                     "Answer as {article} ",
                     article = indefinite_article_a_or_an(&p.to_string())
                 )),
-                FieldType::Literal(_) => Some(String::from("Answer using this specific value:\n")),
-                FieldType::Enum(_) => Some(String::from("Answer with any of the categories:\n")),
-                FieldType::Class(cls) => {
+                FieldType::Literal(_, _) => Some(String::from("Answer using this specific value:\n")),
+                FieldType::Enum(_, _) => Some(String::from("Answer with any of the categories:\n")),
+                FieldType::Class(cls, _) => {
                     let type_prefix = match &options.hoisted_class_prefix {
                         RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
                         _ => RenderOptions::DEFAULT_TYPE_PREFIX_IN_RENDER_MESSAGE,
@@ -399,7 +399,7 @@ impl OutputFormatContent {
 
                     Some(format!("Answer in JSON using this {type_prefix}:{end}"))
                 }
-                FieldType::RecursiveTypeAlias(_) => {
+                FieldType::RecursiveTypeAlias(_, _) => {
                     let type_prefix = match &options.hoisted_class_prefix {
                         RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
                         _ => RenderOptions::DEFAULT_TYPE_PREFIX_IN_RENDER_MESSAGE,
@@ -407,10 +407,10 @@ impl OutputFormatContent {
 
                     Some(format!("Answer in JSON using this {type_prefix}: "))
                 }
-                FieldType::List(_) => Some(String::from(
+                FieldType::List(_, _) => Some(String::from(
                     "Answer with a JSON Array using this schema:\n",
                 )),
-                FieldType::Union(items) => {
+                FieldType::Union(items, _) => {
                     match items.view() {
                         baml_types::UnionTypeView::Null => Some(String::from("Answer ONLY with null:\n")),
                         baml_types::UnionTypeView::Optional(_) => Some(String::from("Answer in JSON using this schema:\n")),
@@ -418,12 +418,9 @@ impl OutputFormatContent {
                         baml_types::UnionTypeView::OneOfOptional(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
                     }
                 }
-                FieldType::Map(_, _) => Some(String::from("Answer in JSON using this schema:\n")),
-                FieldType::Tuple(_) => None,
-                FieldType::WithMetadata { base, .. } => {
-                    auto_prefix(base, options, render_state, output_format_content)
-                }
-                FieldType::Arrow(_) => None, // TODO: Error? Arrow shouldn't appear here.
+                FieldType::Map(_, _, _) => Some(String::from("Answer in JSON using this schema:\n")),
+                FieldType::Tuple(_, _) => None,
+                FieldType::Arrow(_, _) => None, // TODO: Error? Arrow shouldn't appear here.
             }
         }
 
@@ -573,7 +570,7 @@ impl OutputFormatContent {
         render_ctx: &RenderCtx,
     ) -> Result<String, minijinja::Error> {
         match field_type {
-            FieldType::Class(nested_class) if render_ctx.hoisted_classes.contains(nested_class) => {
+            FieldType::Class(nested_class, _) if render_ctx.hoisted_classes.contains(nested_class) => {
                 Ok(nested_class.to_owned())
             }
 
@@ -592,7 +589,7 @@ impl OutputFormatContent {
         render_ctx: &RenderCtx,
     ) -> Result<String, minijinja::Error> {
         Ok(match field {
-            FieldType::Primitive(t) => match t {
+            FieldType::Primitive(t, _) => match t {
                 TypeValue::String => "string".to_string(),
                 TypeValue::Int => "int".to_string(),
                 TypeValue::Float => "float".to_string(),
@@ -605,11 +602,8 @@ impl OutputFormatContent {
                     ))
                 }
             },
-            FieldType::Literal(v) => v.to_string(),
-            FieldType::WithMetadata { base, .. } => {
-                self.render_possibly_hoisted_type(options, base, render_ctx)?
-            }
-            FieldType::Enum(e) => {
+            FieldType::Literal(v, _) => v.to_string(),
+            FieldType::Enum(e, _) => {
                 let Some(enm) = self.enums.get(e) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -627,7 +621,7 @@ impl OutputFormatContent {
                         .join(&options.or_splitter)
                 }
             }
-            FieldType::Class(cls) => {
+            FieldType::Class(cls, _) => {
                 let Some(class) = self.classes.get(cls) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -653,13 +647,13 @@ impl OutputFormatContent {
                 }
                 .to_string()
             }
-            FieldType::RecursiveTypeAlias(name) => name.to_owned(),
-            FieldType::List(inner) => {
+            FieldType::RecursiveTypeAlias(name, _) => name.to_owned(),
+            FieldType::List(inner, _) => {
                 let is_hoisted = match inner.as_ref() {
-                    FieldType::Class(nested_class) => {
+                    FieldType::Class(nested_class, _) => {
                         render_ctx.hoisted_classes.contains(nested_class)
                     }
-                    FieldType::RecursiveTypeAlias(name) => {
+                    FieldType::RecursiveTypeAlias(name, _) => {
                         self.structural_recursive_aliases.contains_key(name)
                     }
                     _ => false,
@@ -669,39 +663,39 @@ impl OutputFormatContent {
 
                 if !is_hoisted
                     && match inner.as_ref() {
-                        FieldType::Primitive(_) => false,
-                        FieldType::Enum(_e) => inner_str.len() > 15,
-                        FieldType::Union(items) => items.view_as_iter(true).0.iter().all(|t| !t.is_primitive()),
+                        FieldType::Primitive(_, _) => false,
+                        FieldType::Enum(_, _) => inner_str.len() > 15,
+                        FieldType::Union(items, _) => items.view_as_iter(true).0.iter().all(|t| !t.is_primitive()),
                         _ => true,
                     }
                 {
                     format!("[\n  {}\n]", inner_str.replace('\n', "\n  "))
-                } else if matches!(inner.as_ref(), FieldType::Union(_)) {
+                } else if matches!(inner.as_ref(), FieldType::Union(_, _)) {
                     format!("({})[]", inner_str)
                 } else {
                     format!("{}[]", inner_str)
                 }
             }
-            FieldType::Union(items) => items
+            FieldType::Union(items, _) => items
                 .view_as_iter(true)
                 .0
                 .iter()
                 .map(|t| self.render_possibly_hoisted_type(options, t, render_ctx))
                 .collect::<Result<Vec<_>, minijinja::Error>>()?
                 .join(&options.or_splitter),
-            FieldType::Tuple(_) => {
+            FieldType::Tuple(_, _) => {
                 return Err(minijinja::Error::new(
                     minijinja::ErrorKind::BadSerialization,
                     "Tuple type is not supported in outputs",
                 ))
             }
-            FieldType::Map(key_type, value_type) => MapRender {
+            FieldType::Map(key_type, value_type, _) => MapRender {
                 style: &options.map_style,
                 key_type: self.render_possibly_hoisted_type(options, key_type, render_ctx)?,
                 value_type: self.render_possibly_hoisted_type(options, value_type, render_ctx)?,
             }
             .to_string(),
-            FieldType::Arrow(_) => {
+            FieldType::Arrow(_, _) => {
                 return Err(minijinja::Error::new(
                     minijinja::ErrorKind::BadSerialization,
                     "Arrow type is not supported in LLM function outputs",
@@ -783,8 +777,8 @@ impl OutputFormatContent {
         let prefix = self.prefix(&options, &render_ctx);
 
         let mut message = match &self.target {
-            FieldType::Primitive(TypeValue::String) if prefix.is_none() => None,
-            FieldType::Enum(e) => {
+            FieldType::Primitive(TypeValue::String, _) if prefix.is_none() => None,
+            FieldType::Enum(e, _) => {
                 let Some(enm) = self.enums.get(e) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -799,7 +793,7 @@ impl OutputFormatContent {
 
         // Top level recursive classes will just use their name instead of the
         // entire schema which should already be hoisted.
-        if let FieldType::Class(class) = &self.target {
+        if let FieldType::Class(class, _) = &self.target {
             if render_ctx.hoisted_classes.contains(class) {
                 message = Some(class.to_owned());
             }
@@ -811,7 +805,7 @@ impl OutputFormatContent {
         for class_name in &render_ctx.hoisted_classes {
             let schema = self.inner_type_render(
                 &options,
-                &FieldType::Class(class_name.to_owned()),
+                &FieldType::Class(class_name.to_owned(), TypeMetadataIR::default()),
                 &render_ctx,
             )?;
 
@@ -880,7 +874,7 @@ impl OutputFormatContent {
 #[cfg(test)]
 impl OutputFormatContent {
     pub fn new_array() -> Self {
-        Self::target(FieldType::List(Box::new(FieldType::string()))).build()
+        Self::target(FieldType::List(Box::new(FieldType::string()), TypeMetadataIR::default())).build()
     }
 
     pub fn new_string() -> Self {
@@ -957,7 +951,7 @@ mod tests {
             constraints: Vec::new(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::Enum("Color".to_string()))
+        let content = OutputFormatContent::target(FieldType::Enum("Color".to_string(), TypeMetadataIR::default()))
             .enums(enums)
             .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
@@ -1077,7 +1071,7 @@ Color
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string()),
+                FieldType::Enum("Enm".to_string(), TypeMetadataIR::default()),
                 None,
                 false,
             )],
@@ -1133,7 +1127,7 @@ Answer in JSON using this schema:
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string()),
+                FieldType::Enum("Enm".to_string(), TypeMetadataIR::default()),
                 None,
                 false,
             )],
@@ -1185,7 +1179,7 @@ Answer in JSON using this schema:
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string()),
+                FieldType::Enum("Enm".to_string(), TypeMetadataIR::default()),
                 None,
                 false,
             )],
@@ -2545,7 +2539,7 @@ Answer in JSON using this schema: RecursiveMap"#
                 name: Name::new("NonRecursive".to_string()),
                 fields: vec![(
                     Name::new("rec_map".to_string()),
-                    FieldType::Class("RecursiveMap".to_string()),
+                    FieldType::Class("RecursiveMap".to_string(), TypeMetadataIR::default()),
                     None,
                     false,
                 )],
@@ -2865,12 +2859,13 @@ Answer in JSON using this schema:
     fn render_simple_recursive_aliases() {
         let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias(
             "RecursiveMapAlias".to_string(),
+            TypeMetadataIR::default(),
         ))
         .structural_recursive_aliases(IndexMap::from([(
             "RecursiveMapAlias".to_string(),
             FieldType::map(
                 FieldType::string(),
-                FieldType::RecursiveTypeAlias("RecursiveMapAlias".to_string()),
+                FieldType::RecursiveTypeAlias("RecursiveMapAlias".to_string(), TypeMetadataIR::default()),
             ),
         )]))
         .build();
@@ -2888,19 +2883,19 @@ Answer in JSON using this schema: RecursiveMapAlias"#
 
     #[test]
     fn render_recursive_alias_cycle() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string()))
+        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default()))
             .structural_recursive_aliases(IndexMap::from([
                 (
                     "A".to_string(),
-                    FieldType::RecursiveTypeAlias("B".to_string()),
+                    FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default()),
                 ),
                 (
                     "B".to_string(),
-                    FieldType::RecursiveTypeAlias("C".to_string()),
+                    FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default()),
                 ),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string())),
+                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default())),
                 ),
             ]))
             .build();
@@ -2920,19 +2915,19 @@ Answer in JSON using this schema: A"#
 
     #[test]
     fn render_recursive_alias_cycle_with_hoist_prefix() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string()))
+        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default()))
             .structural_recursive_aliases(IndexMap::from([
                 (
                     "A".to_string(),
-                    FieldType::RecursiveTypeAlias("B".to_string()),
+                    FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default()),
                 ),
                 (
                     "B".to_string(),
-                    FieldType::RecursiveTypeAlias("C".to_string()),
+                    FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default()),
                 ),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string())),
+                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default())),
                 ),
             ]))
             .build();
