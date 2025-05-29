@@ -351,35 +351,28 @@ pub fn type_check_attributes(ir: &IntermediateRepr) -> HashSet<TypeCheckAttribut
 }
 
 /// The set of Check names associated with a type.
-/// TODO: This should use `distribute_metadata` instead of pattern matching.
 fn field_type_attributes(field_type: &FieldType) -> Option<TypeCheckAttributes> {
-    match field_type {
-        FieldType::WithMetadata {
-            base, constraints, ..
-        } => {
-            let direct_sub_attributes = field_type_attributes(base);
-            let mut check_names = TypeCheckAttributes(
-                constraints
-                    .iter()
-                    .filter_map(|Constraint { label, level, .. }| {
-                        if matches!(level, ConstraintLevel::Check) {
-                            Some(label.clone().expect("TODO"))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<HashSet<String>>(),
-            );
-            if let Some(ref sub_attrs) = direct_sub_attributes {
-                check_names.extend(sub_attrs);
-            }
-            if !check_names.is_empty() {
-                Some(check_names)
-            } else {
-                None
-            }
-        }
-        _ => None,
+    let check_names =
+        TypeCheckAttributes(
+            field_type
+                .meta()
+                .constraints
+                .iter()
+                .filter_map(|Constraint { label, level, .. }| {
+                    if matches!(level, ConstraintLevel::Check) {
+                        Some(label.clone().expect(
+                            "label always exists for a check - this is enforced by the parser",
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<HashSet<String>>(),
+        );
+    if !check_names.is_empty() {
+        Some(check_names)
+    } else {
+        None
     }
 }
 

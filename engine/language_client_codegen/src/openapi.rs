@@ -539,8 +539,8 @@ trait ToTypeReferenceInTypeDefinition<'ir> {
 
 impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
     fn to_type_spec(&self, _ir: &'ir IntermediateRepr) -> Result<TypeSpecWithMeta> {
-        Ok(match self {
-            FieldType::Enum(name) | FieldType::Class(name) => TypeSpecWithMeta {
+        let base_rep = match self {
+            FieldType::Enum(name, _) | FieldType::Class(name, _) => TypeSpecWithMeta {
                 meta: TypeMetadata {
                     title: None,
                     r#enum: None,
@@ -551,7 +551,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     r#ref: format!("#/components/schemas/{}", name),
                 },
             },
-            FieldType::RecursiveTypeAlias(_) => TypeSpecWithMeta {
+            FieldType::RecursiveTypeAlias(name, _) => TypeSpecWithMeta {
                 meta: TypeMetadata {
                     title: None,
                     r#enum: None,
@@ -562,7 +562,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     any_value: HashMap::new(),
                 },
             },
-            FieldType::Literal(v) => TypeSpecWithMeta {
+            FieldType::Literal(v, _) => TypeSpecWithMeta {
                 meta: TypeMetadata {
                     title: None,
                     r#enum: None,
@@ -575,7 +575,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     LiteralValue::String(_) => TypeSpec::Inline(TypeDef::String),
                 },
             },
-            FieldType::List(inner) => TypeSpecWithMeta {
+            FieldType::List(inner, _) => TypeSpecWithMeta {
                 meta: TypeMetadata {
                     title: None,
                     r#enum: None,
@@ -586,13 +586,13 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     items: inner.to_type_spec(_ir)?.into(),
                 }),
             },
-            FieldType::Map(key, value) => {
+            FieldType::Map(key, value, _) => {
                 if !matches!(
                     **key,
-                    FieldType::Primitive(TypeValue::String)
-                        | FieldType::Enum(_)
-                        | FieldType::Literal(LiteralValue::String(_))
-                        | FieldType::Union(_)
+                    FieldType::Primitive(TypeValue::String, _)
+                        | FieldType::Enum(_, _)
+                        | FieldType::Literal(LiteralValue::String(_), _)
+                        | FieldType::Union(_, _)
                 ) {
                     anyhow::bail!(format!("BAML<->OpenAPI only supports strings, enums and literal strings as map keys but got {key}"))
                 }
@@ -608,7 +608,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     }),
                 }
             }
-            FieldType::Primitive(inner) => TypeSpecWithMeta {
+            FieldType::Primitive(inner, _) => TypeSpecWithMeta {
                 meta: TypeMetadata {
                     title: None,
                     r#enum: None,
@@ -633,7 +633,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     },
                 },
             },
-            FieldType::Union(options) => {
+            FieldType::Union(options, _) => {
                 let (nonnull_types, nullable) = options.view_as_iter(false);
 
                 let one_of = nonnull_types
@@ -655,33 +655,33 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     type_spec: TypeSpec::Union { one_of },
                 }
             }
-            FieldType::Tuple(_) => {
+            FieldType::Tuple(_, _) => {
                 anyhow::bail!("BAML<->OpenAPI tuple support is not implemented")
             }
-            FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
-                Some(checks) => {
-                    let base_type_ref = base.to_type_spec(_ir)?;
-                    let checks_type_spec = type_def_for_checks(checks);
-                    TypeSpecWithMeta {
-                        meta: TypeMetadata::default(),
-                        type_spec: TypeSpec::Inline(TypeDef::Class {
-                            properties: vec![
-                                ("value".to_string(), base_type_ref),
-                                ("checks".to_string(), checks_type_spec),
-                            ]
-                            .into_iter()
-                            .collect(),
-                            required: vec!["value".to_string(), "checks".to_string()],
-                            additional_properties: false,
-                        }),
-                    }
-                }
-                None => base.to_type_spec(_ir)?,
-            },
-            FieldType::Arrow(_) => {
+            FieldType::Arrow(_, _) => {
                 todo!("Arrow types should not be used in generated type definitions")
             }
-        })
+        };
+        let rep = match field_type_attributes(self) {
+            Some(checks) => {
+                let checks_type_spec = type_def_for_checks(checks);
+                TypeSpecWithMeta {
+                    meta: TypeMetadata::default(),
+                    type_spec: TypeSpec::Inline(TypeDef::Class {
+                        properties: vec![
+                            ("value".to_string(), base_rep),
+                            ("checks".to_string(), checks_type_spec),
+                        ]
+                        .into_iter()
+                        .collect(),
+                        required: vec!["value".to_string(), "checks".to_string()],
+                        additional_properties: false,
+                    }),
+                }
+            }
+            None => base_rep,
+        };
+        Ok(rep)
     }
 }
 

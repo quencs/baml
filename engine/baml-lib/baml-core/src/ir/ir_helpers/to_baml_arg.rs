@@ -43,6 +43,8 @@ impl ArgCoercer {
         value: &BamlValue, // original value passed in by user
         scope: &mut ScopeStack,
     ) -> Result<BamlValueWithMeta<FieldType>, ()> {
+        let metadata = field_type.meta();
+
         let value = match ir.distribute_constraints(field_type) {
             (FieldType::Primitive(t, _), _) => match (t, value) {
                 (TypeValue::String, BamlValue::String(v)) => {

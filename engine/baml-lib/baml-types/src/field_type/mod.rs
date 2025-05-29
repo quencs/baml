@@ -167,6 +167,7 @@ impl UnionType {
         }
     }
 
+    // Hello
     pub fn view_as_iter(&self, include_null: bool) -> (Vec<&FieldType>, bool) {
         match self.view() {
             UnionTypeView::Null => (

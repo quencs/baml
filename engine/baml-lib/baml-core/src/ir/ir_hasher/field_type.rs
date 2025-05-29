@@ -79,10 +79,14 @@ impl<'a> InterfaceFieldType<'a> {
                 Box::new(Self::from(field_type)),
                 Box::new(Self::from(field_type1)),
             ),
-            // TODO(Rahul): Do we implement iter on UnionType?
-            FieldType::Union(field_types, _) => {
-                InterfaceFieldType::Union(field_types.iter().map(|ft| Self::from(ft)).collect())
-            }
+            FieldType::Union(field_types, _) => InterfaceFieldType::Union(
+                field_types
+                    .view_as_iter(true)
+                    .0
+                    .iter()
+                    .map(|ft| Self::from(ft))
+                    .collect(),
+            ),
             FieldType::Tuple(field_types, _) => {
                 InterfaceFieldType::Tuple(field_types.iter().map(|ft| Self::from(ft)).collect())
             }

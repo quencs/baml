@@ -145,21 +145,6 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                 self.is_subtype(other_k, base_k) && self.is_subtype(&**base_v, other_v)
             }
             (FieldType::Map(_, _, _), _) => false,
-
-            // TODO(Rahul): check if this is needed.
-            // (
-            //     FieldType::WithMetadata {
-            //         base: constrained_base,
-            //         ..
-            //     },
-            //     _,
-            // ) => self.is_subtype(constrained_base, other),
-            // (
-            //     _,
-            //     FieldType::WithMetadata {
-            //         base: other_base, ..
-            //     },
-            // ) => self.is_subtype(base, other_base),
             (
                 FieldType::Literal(LiteralValue::Bool(_), _),
                 FieldType::Primitive(TypeValue::Bool, _),
@@ -849,36 +834,13 @@ impl IRHelperExtended for IntermediateRepr {
                     ),
                 ),
             },
-            // Check the first level to see if it's constrained.
-            // TODO(Rahul): This would change entirely, we'll have to match on each type's metadata probably?
-            FieldType::WithMetadata {
-                base,
-                constraints,
-                streaming_behavior,
-            } => {
-                match base.as_ref() {
-                    // If so, we must check the second level to see if we need to combine
-                    // constraints across levels.
-                    // The recursion here means that arbitrarily nested `FieldType::WithMetadata`s
-                    // will be collapsed before the function returns.
-                    FieldType::WithMetadata { .. } => {
-                        let (sub_base, (sub_constraints, sub_streaming_behavior)) =
-                            self.distribute_metadata(base.as_ref());
-                        let combined_constraints = vec![constraints.clone(), sub_constraints]
-                            .into_iter()
-                            .flatten()
-                            .collect();
-                        let combined_streaming_behavior =
-                            streaming_behavior.combine(&sub_streaming_behavior);
-                        (
-                            sub_base,
-                            (combined_constraints, combined_streaming_behavior),
-                        )
-                    }
-                    _ => (base, (constraints.clone(), streaming_behavior.clone())),
-                }
-            }
-            _ => (field_type, (Vec::new(), StreamingBehavior::default())),
+            _ => (
+                field_type,
+                (
+                    field_type.meta().constraints.clone(),
+                    StreamingBehavior::default(),
+                ),
+            ),
         }
     }
 
@@ -1525,33 +1487,8 @@ mod tests {
             allow_implicit_cast_to_string: true,
         };
         let res = ir.check_function_params(&function.inputs(), &params, arg_coercer);
+        eprintln!("res: {:?}", res);
         assert!(res.is_err());
-    }
-
-    #[test]
-    fn test_nested_constraint_distribution() {
-        let ir = make_test_ir("").unwrap();
-        fn mk_constraint(s: &str) -> Constraint {
-            Constraint {
-                level: ConstraintLevel::Assert,
-                expression: JinjaExpression(s.to_string()),
-                label: Some(s.to_string()),
-            }
-        }
-
-        let metadata = TypeMetadataIR {
-            constraints: vec![mk_constraint("a"), mk_constraint("b"), mk_constraint("c")],
-            streaming_behavior: StreamingBehavior::default(),
-        };
-        let input_type = FieldType::Primitive(TypeValue::Int, metadata.clone());
-
-        let expected_base = FieldType::Primitive(TypeValue::Int, metadata.clone());
-        let expected_constraints = vec![mk_constraint("a"), mk_constraint("b"), mk_constraint("c")];
-
-        let (base, constraints) = ir.distribute_constraints(&input_type);
-
-        assert_eq!(base, &expected_base);
-        assert_eq!(constraints, expected_constraints);
     }
 
     #[test]
@@ -1686,11 +1623,12 @@ mod subtype_tests {
             TypeMetadataIR {
                 constraints: vec![],
                 streaming_behavior: StreamingBehavior {
-                done: true,
-                state: false,
-                needed: false,
+                    done: true,
+                    state: false,
+                    needed: false,
+                },
             },
-        });
+        );
         let l_o = mk_list(mk_int());
         assert!(ir().is_subtype(&l_i, &l_o));
         assert!(ir().is_subtype(&l_o, &l_i));
@@ -1706,7 +1644,10 @@ mod subtype_tests {
 
     #[test]
     fn subtype_map_of_list_of_unions() {
-        let x = mk_str_map(mk_list(FieldType::Class("Foo".to_string(), TypeMetadataIR::default())));
+        let x = mk_str_map(mk_list(FieldType::Class(
+            "Foo".to_string(),
+            TypeMetadataIR::default(),
+        )));
         let y = mk_str_map(mk_list(mk_union(vec![
             mk_str(),
             mk_int(),
@@ -1776,22 +1717,43 @@ mod subtype_tests {
             (),
         );
         assert_eq!(
-            item_type(&ir, &FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default())),
-            Some(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default()))
+            item_type(
+                &ir,
+                &FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default())
+            ),
+            Some(FieldType::RecursiveTypeAlias(
+                "A".to_string(),
+                TypeMetadataIR::default()
+            ))
         );
         assert_eq!(
-            item_type(&ir, &FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default())),
+            item_type(
+                &ir,
+                &FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default())
+            ),
             Some(FieldType::List(
-                Box::new(FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default())),
+                Box::new(FieldType::RecursiveTypeAlias(
+                    "B".to_string(),
+                    TypeMetadataIR::default()
+                )),
                 TypeMetadataIR::default(),
             ))
         );
         assert_eq!(
-            item_type(&ir, &FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default())),
-            Some(FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default()))
+            item_type(
+                &ir,
+                &FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default())
+            ),
+            Some(FieldType::RecursiveTypeAlias(
+                "C".to_string(),
+                TypeMetadataIR::default()
+            ))
         );
         assert_eq!(
-            item_type(&ir, &FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMetadataIR::default())),
+            item_type(
+                &ir,
+                &FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMetadataIR::default())
+            ),
             Some(FieldType::union(vec![
                 FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMetadataIR::default()),
                 FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMetadataIR::default())
