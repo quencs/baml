@@ -44,29 +44,72 @@ impl FunctionId {
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct FunctionCall {
+pub struct UiReprFunctionCall {
     #[ts(type = "string")]
     pub function_call_id: FunctionCallId,
     pub function_name: String,
     #[ts(optional)]
     pub function_id: Option<FunctionId>,
+
+    #[ts(optional)]
+    #[ts(type = "any | null")]
+    pub tags: Option<serde_json::Map<String, serde_json::Value>>,
+
     #[serde(rename = "start_epoch_ms")]
     #[ts(type = "number | null")]
     pub start_time: Option<EpochMsTimestamp>,
     #[serde(rename = "end_epoch_ms")]
     #[ts(type = "number | null")]
     pub end_time: Option<EpochMsTimestamp>,
+    pub status: String,
+
     #[ts(type = "any")]
     pub baml_options: serde_json::Value,
     pub inputs: Vec<FunctionInput>,
     #[ts(type = "any")]
     pub output: serde_json::Value,
-    pub status: String,
     #[ts(type = "any", optional)]
     pub error: Option<serde_json::Value>,
+
+    pub is_root: bool,
+    #[ts(type = "string | null")]
+    pub root_function_call_id: Option<FunctionCallId>,
+    pub usage_estimate: UiReprUsageEstimate,
     #[ts(optional)]
-    #[ts(type = "any | null")]
-    pub tags: Option<serde_json::Map<String, serde_json::Value>>,
+    pub details: Option<UiReprFunctionCallDetails>,
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+pub struct UiReprUsageEstimate {
+    #[ts(type = "number | null")]
+    pub input_bytes: Option<u64>,
+    #[ts(type = "number | null")]
+    pub output_bytes: Option<u64>,
+    #[ts(type = "number | null")]
+    pub input_tokens: Option<u64>,
+    #[ts(type = "number | null")]
+    pub output_tokens: Option<u64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+pub struct UiReprFunctionCallDetails {
+    // pub http_calls: Vec<UiReprHttpCall>,
+    // TODO: fix this
+    #[ts(type = "any[]")]
+    pub http_calls: Vec<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+pub struct UiReprHttpCall {
+    #[serde(rename = "start_epoch_ms")]
+    #[ts(type = "number | null")]
+    pub start_time: Option<EpochMsTimestamp>,
+    #[serde(rename = "end_epoch_ms")]
+    #[ts(type = "number | null")]
+    pub end_time: Option<EpochMsTimestamp>,
+
+    pub is_stream: bool,
+    pub is_selected: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, TS)]

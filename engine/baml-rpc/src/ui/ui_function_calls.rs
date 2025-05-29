@@ -428,7 +428,7 @@ impl ListFunctionCallsRequest {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ListFunctionCallsResponse {
-    pub function_calls: Vec<ui_types::FunctionCall>,
+    pub function_calls: Vec<ui_types::UiReprFunctionCall>,
     // pub function_definitions: Vec<ui_types::FunctionDefinition>,
     // pub type_definitions: Vec<ui_types::TypeDefinition>,
     #[ts(type = "Record<string, any>")]
