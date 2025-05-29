@@ -102,28 +102,28 @@ impl TypeCoercer for FieldType {
                 FieldType::Map(..) => coerce_map(ctx, self, value).map(|v| v.with_target(target)),
                 FieldType::Tuple(_, _) => Err(ctx.error_internal("Tuple not supported")),
                 FieldType::Arrow(_, _) => Err(ctx.error_internal("Arrow type not supported")),
-                FieldType::WithMetadata { base, .. } => {
-                    let mut coerced_value = base.coerce(ctx, target, value)?;
-                    let constraint_results = run_user_checks(&coerced_value.clone().into(), self)
-                        .map_err(|e| ParsingError {
+            },
+        };
+        if target.meta().constraints.len() > 0 {
+            if let Ok(coerced_value) = result.as_mut() {
+                let constrainted_results =
+                    run_user_checks(&coerced_value.clone().into(), self).map_err(|e| ParsingError {
                         reason: format!("Failed to evaluate constraints: {e:?}"),
                         scope: ctx.scope.clone(),
                         causes: Vec::new(),
                     })?;
-                    validate_asserts(&constraint_results)?;
-                    let check_results = constraint_results
-                        .into_iter()
-                        .filter_map(|(maybe_check, result)| {
-                            maybe_check
-                                .as_check()
-                                .map(|(label, expr)| (label, expr, result))
-                        })
-                        .collect();
-                    coerced_value.add_flag(Flag::ConstraintResults(check_results));
-                    Ok(coerced_value)
-                }
-            },
-        };
+                validate_asserts(&constrainted_results)?;
+                let check_results = constrainted_results
+                    .into_iter()
+                    .filter_map(|(maybe_check, result)| {
+                        maybe_check
+                            .as_check()
+                            .map(|(label, expr)| (label, expr, result))
+                    })
+                    .collect();
+                coerced_value.add_flag(Flag::ConstraintResults(check_results));
+            }
+        }
         if let Some(CompletionState::Incomplete) = value.map(|v| v.completion_state()) {
             result.iter_mut().for_each(|v| v.add_flag(Flag::Incomplete));
         }

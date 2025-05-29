@@ -130,7 +130,7 @@ fn relevant_data_models<'a>(
 
     while let Some(output) = start.pop() {
         match ir.distribute_constraints(&output) {
-            (FieldType::Enum(enm), constraints) => {
+            (FieldType::Enum(enm, _), constraints) => {
                 if checked_types.insert(output.to_string()) {
                     let walker = ir.find_enum(enm);
 
@@ -155,12 +155,12 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            (FieldType::List(inner), _constraints) => {
+            (FieldType::List(inner, _), _constraints) => {
                 if !checked_types.contains(&inner.to_string()) {
                     start.push(inner.as_ref().clone());
                 }
             }
-            (FieldType::Map(k, v), _constraints) => {
+            (FieldType::Map(k, v, _), _constraints) => {
                 if checked_types.insert(output.to_string()) {
                     if !checked_types.contains(&k.to_string()) {
                         start.push(k.as_ref().clone());
@@ -170,7 +170,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Tuple(options), _constraints) => {
+            (FieldType::Tuple(options, _), _constraints) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options {
                         if !checked_types.contains(&inner.to_string()) {
@@ -179,7 +179,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Union(options), _constraints) => {
+            (FieldType::Union(options, _), _constraints) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options.view_as_iter(true).0 {
                         if !checked_types.contains(&inner.to_string()) {
@@ -188,7 +188,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Class(cls), constraints) => {
+            (FieldType::Class(cls, _), constraints) => {
                 if checked_types.insert(output.to_string()) {
                     let walker = ir.find_class(cls);
 
@@ -234,7 +234,7 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            (FieldType::RecursiveTypeAlias(name), _) => {
+            (FieldType::RecursiveTypeAlias(name, _), _) => {
                 // TODO: Same O(n) problem as above.
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if cycle.contains_key(name) {
@@ -244,12 +244,9 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            (FieldType::Literal(_), _) => {}
-            (FieldType::Primitive(_), _constraints) => {}
-            (_, _) => {
-                // TODO: Don't use this wildcard.
-                unreachable!("It is guaranteed that a call to distribute_constraints will not return FieldType::Constrained")
-            }
+            (FieldType::Literal(_, _), _) => {}
+            (FieldType::Primitive(_, _), _constraints) => {}
+            (FieldType::Arrow(_, _), _) => {}
         }
     }
 

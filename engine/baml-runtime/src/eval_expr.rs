@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{BamlRuntime, FunctionResult};
 use baml_types::expr::{Expr, ExprMetadata, Name, VarIndex};
-use baml_types::{Arrow, FieldType, TypeValue};
+use baml_types::{Arrow, FieldType, TypeMetadataIR, TypeValue};
 use baml_types::{BamlMap, BamlValue, BamlValueWithMeta};
 use internal_baml_core::ir::repr::IntermediateRepr;
 
@@ -397,7 +397,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
             Expr::Atom(value) => {
                 return Ok(ExprEvalResult::Value {
                     value: value.clone().map_meta(|_| ()),
-                    field_type: FieldType::Primitive(TypeValue::Null), // TODO: get the actual type
+                    field_type: FieldType::Primitive(TypeValue::Null, TypeMetadataIR::default()), // TODO: get the actual type
                 });
             }
             Expr::List(items, meta) => {
@@ -414,7 +414,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
                     field_type: meta
                         .1
                         .clone()
-                        .unwrap_or(FieldType::Primitive(TypeValue::Null)), // TODO: get the actual type
+                        .unwrap_or(FieldType::Primitive(TypeValue::Null, TypeMetadataIR::default())), // TODO: get the actual type
                 });
             }
             Expr::Map(items, meta) => {
@@ -431,7 +431,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
                     field_type: meta
                         .1
                         .clone()
-                        .unwrap_or(FieldType::Primitive(TypeValue::Null)), // TODO: get the actual type
+                        .unwrap_or(FieldType::Primitive(TypeValue::Null, TypeMetadataIR::default())), // TODO: get the actual type
                 });
             }
             Expr::ClassConstructor {
@@ -468,7 +468,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
                 let val = BamlValueWithMeta::Class(name.clone(), spread_fields, ());
                 return Ok(ExprEvalResult::Value {
                     value: val,
-                    field_type: FieldType::Class(name),
+                    field_type: FieldType::Class(name, TypeMetadataIR::default()),
                 });
             }
             Expr::LLMFunction(_, _, _) => {

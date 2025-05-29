@@ -5,7 +5,7 @@ use crate::tracingv2::storage::storage::{Collector, BAML_TRACER};
 use crate::InnerTraceStats;
 use anyhow::{Context, Result};
 use baml_types::tracing::events::{EvaluationContext, FunctionStart, TraceData, TraceEvent};
-use baml_types::{BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta};
+use baml_types::{BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta, TypeMetadataIR};
 use cfg_if::cfg_if;
 use colored::{ColoredString, Colorize};
 use internal_baml_core::ir::ir_helpers::infer_type;
@@ -434,7 +434,7 @@ impl BamlTracer {
                 .map(|(k, v)| {
                     let field_type = infer_type(v).unwrap_or_else(|| {
                         log::warn!("Failed to infer FieldType for BamlValue in tracing. Defaulting to Null.");
-                        baml_types::FieldType::Primitive(baml_types::TypeValue::Null)
+                        baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMetadataIR::default())
                     });
                     (
                         k.clone(),
@@ -497,6 +497,8 @@ impl BamlTracer {
         ctx: &RuntimeContextManager,
         response: Option<BamlValue>,
     ) -> Result<uuid::Uuid> {
+        use baml_types::TypeMetadataIR;
+
         let guard = self.trace_stats.guard();
         let Some((call_id, event_chain, global_and_user_tags)) = ctx.exit() else {
             anyhow::bail!(
@@ -534,9 +536,9 @@ impl BamlTracer {
                 log::warn!(
                     "Failed to infer FieldType for BamlValue in tracing. Defaulting to Null."
                 );
-                baml_types::FieldType::Primitive(baml_types::TypeValue::Null)
+                baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMetadataIR::default())
             }),
-            None => baml_types::FieldType::Primitive(baml_types::TypeValue::Null),
+            None => baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMetadataIR::default()),
         };
         let baml_value_with_meta: BamlValueWithMeta<baml_types::FieldType> =
             BamlValueWithMeta::with_const_meta(
