@@ -1,5 +1,6 @@
 use crate::BamlValueWithFlags;
 use baml_types::LiteralValue;
+use baml_types::TypeMetadataIR;
 
 use super::*;
 
@@ -188,7 +189,7 @@ test_deserializer!(
   }
   "#,
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::Enum("Key".to_string()), FieldType::string()),
+  FieldType::map(FieldType::Enum("Key".to_string(), TypeMetadataIR::default()), FieldType::string()),
   {"A": "one", "B": "two"}
 );
 
@@ -201,7 +202,7 @@ test_partial_deserializer_streaming!(
   }
   "#,
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::Enum("Key".to_string()), FieldType::string()),
+    FieldType::map(FieldType::Enum("Key".to_string(), TypeMetadataIR::default()), FieldType::string()),
   {"A": "one", "B": "two"}
 );
 
@@ -210,8 +211,8 @@ test_partial_deserializer_streaming!(
   "",
   r#"{"A": "one", "B": "two"}"#,
   FieldType::map(FieldType::union(vec![
-    FieldType::Literal(LiteralValue::String("A".to_string())),
-    FieldType::Literal(LiteralValue::String("B".to_string())),
+    FieldType::Literal(LiteralValue::String("A".to_string()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("B".to_string()), TypeMetadataIR::default()),
   ]), FieldType::string()),
   {"A": "one", "B": "two"}
 );

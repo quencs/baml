@@ -1,4 +1,5 @@
 use super::*;
+use baml_types::TypeMetadataIR;
 
 //
 const FOO_FILE: &str = r#"
@@ -42,10 +43,10 @@ fn test_union_full() {
                 "hi" => {
                     assert_eq!(
                         prop_value.field_type(),
-                        &FieldType::Primitive(TypeValue::String).as_list()
+                        &FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).as_list()
                     );
                     for item in prop_value.as_list().unwrap() {
-                        assert_eq!(item.field_type(), &FieldType::Primitive(TypeValue::String));
+                        assert_eq!(item.field_type(), &FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()));
                     }
                 }
                 _ => {
@@ -312,7 +313,7 @@ test_deserializer!(
   test_phone_number_regex,
   CONTACT_INFO,
   r#"{"primary": {"value": "908-797-8281"}}"#,
-  FieldType::Class("ContactInfo".to_string()),
+  FieldType::Class("ContactInfo".to_string(), TypeMetadataIR::default()),
   {"primary": {"value": "908-797-8281"}}
 );
 
@@ -320,7 +321,7 @@ test_deserializer!(
   test_email_regex,
   CONTACT_INFO,
   r#"{"primary": {"value": "help@boundaryml.com"}}"#,
-  FieldType::Class("ContactInfo".to_string()),
+  FieldType::Class("ContactInfo".to_string(), TypeMetadataIR::default()),
   {"primary": {"value": "help@boundaryml.com"}}
 );
 
@@ -329,8 +330,8 @@ test_deserializer!(
     "",
     "1 cup unsalted butter, room temperature",
     FieldType::union(vec![
-        FieldType::Primitive(TypeValue::Float),
-        FieldType::Primitive(TypeValue::String),
+        FieldType::Primitive(TypeValue::Float, TypeMetadataIR::default()),
+        FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
     ]),
     "1 cup unsalted butter, room temperature"
 );
@@ -340,8 +341,8 @@ test_deserializer!(
     "",
     "1 cup unsalted butter, room temperature",
     FieldType::union(vec![
-        FieldType::Primitive(TypeValue::Int),
-        FieldType::Primitive(TypeValue::String),
+        FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default()),
+        FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
     ]),
     "1 cup unsalted butter, room temperature"
 );

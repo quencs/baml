@@ -150,7 +150,7 @@ test_deserializer!(
     test_string_to_float_from_comma_separated,
     "",
     "1 cup unsalted butter, room temperature",
-    FieldType::Primitive(TypeValue::Float),
+    FieldType::Primitive(TypeValue::Float, TypeMetadataIR::default()),
     1.0
 );
 
@@ -1004,7 +1004,7 @@ Here are the seven creative headings along with their descriptions and Python fu
   ]
 }
   "#.trim(),
-  baml_types::FieldType::Class("Headings".into()),
+  baml_types::FieldType::Class("Headings".into(), TypeMetadataIR::default()),
 
   {
     "headings": [
@@ -1033,7 +1033,7 @@ test_deserializer!(
   ]
 }
   "#.trim(),
-  baml_types::FieldType::Class("Headings".into()),
+  baml_types::FieldType::Class("Headings".into(), TypeMetadataIR::default()),
 
   {
     "headings": [
