@@ -6,6 +6,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>org.jetbrains.plugins.textmate</depends>
+    <depends>com.redhat.devtools.lsp4ij</depends>
 
     <resource-bundle>messages.BamlBundle</resource-bundle>
 
@@ -38,5 +39,8 @@
 
     </extensions>
 
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="/META-INF/baml-lsp4ij.xml"
+                xpointer="xpointer(/idea-plugin/*)"/>
 
 </idea-plugin>

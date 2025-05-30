@@ -12,7 +12,7 @@ function FnTestNamedArgsSingleEnum(myArg: NamedArgsSingleEnum) -> string {
 }
 
 test FnTestNamedArgsSingleEnum {
-  functions [FnTestNamedArgsSingleEnum]
+  fuctns [FnTestNamedArgsSingleEnum]
   args {
     myArg ONE
   }
