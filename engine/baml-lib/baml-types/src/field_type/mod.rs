@@ -204,6 +204,8 @@ impl UnionType {
 }
 
 /// FieldType represents the type of either a class field or a function arg.
+/// All all the variants of `FieldType` in all intermediate representations,
+/// this one is semantically closest to the source code written by the user.
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FieldType {
     Primitive(TypeValue, TypeMetadataIR),
@@ -231,6 +233,16 @@ impl Default for TypeMetadataIR {
             streaming_behavior: StreamingBehavior::default(),
         }
     }
+}
+
+/// A BAML type classifying BAML values that are being streamed.
+/// It has the exact same structure as `FieldType`. It is related
+/// to raw `FieldType` through `FieldType::partialize` - the process of
+/// modifying a type to make it suitable for streaming. See the docs
+/// of that function for more context.
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StreamingType {
+    pub inner: FieldType,
 }
 
 pub trait HasFieldType {
@@ -499,6 +511,125 @@ impl FieldType {
             }
         }
         deps
+    }
+
+    /// Convert a `FieldType` (a type specified in BAML source code) into
+    /// a `StreamingType` (a type that can be used for streaming).
+    ///
+    /// The streaming-behavior related metadata is applied to the types,
+    /// and the original annotations are also preserved (both for tracking
+    /// the original specification of the type in BAML source code, and because
+    /// not all streaming behavior is reflected in the Base-type).
+    ///
+    /// The types of transformations done here:
+    ///   - Replacing class fields with nullable counterparts
+    ///   - Overriding nullability based on @not_null annotations
+    ///   - Overriding nullability based on the field's type
+    ///   - Preserving the original type according to the @done annotation
+    ///
+    /// We do not explicitly represent @stream.with_state or @stream.checked.
+    /// Downstream consumers of `StreamingType` must check these properties
+    /// in the metadata.
+    pub fn partialize(&self) -> StreamingType {
+        // This inner worker function goes from `FieldType` to `FieldType` to be
+        // suitable for recursive use. We only wrap the outermost `FieldType` in
+        // `StreamingType`.
+        fn partialize_helper(field_type: &FieldType, meta: &TypeMetadataIR) -> FieldType {
+            let StreamingBehavior {
+                done,
+                needed,
+                state,
+            } = field_type
+                .meta()
+                .streaming_behavior
+                .combine(&inherent_streaming_behavior(field_type));
+
+            // A copy of the metadata to use in the new type.
+            let meta = TypeMetadataIR {
+                constraints: field_type.meta().constraints.clone(),
+                streaming_behavior: StreamingBehavior {
+                    done,
+                    needed,
+                    state,
+                },
+            };
+
+            match field_type {
+                FieldType::Primitive(type_value, _) => match type_value {
+                    TypeValue::Null => FieldType::Primitive(TypeValue::Null, meta),
+                    TypeValue::Int => FieldType::Primitive(TypeValue::Int, meta),
+                    TypeValue::Float => FieldType::Primitive(TypeValue::Float, meta),
+                    TypeValue::Bool => FieldType::Primitive(TypeValue::Bool, meta),
+                    TypeValue::String => FieldType::Primitive(TypeValue::String, meta),
+                    TypeValue::Media(_) => {
+                        FieldType::Primitive(TypeValue::Media(BamlMediaType::Image), meta)
+                    }
+                },
+                FieldType::Enum(_, _) => todo!(),
+                FieldType::Literal(literal_value, _) => todo!(),
+                FieldType::Class(_, _) => todo!(),
+                FieldType::List(field_type, _) => todo!(),
+                FieldType::Map(field_type, field_type1, _) => todo!(),
+                FieldType::RecursiveTypeAlias(_, _) => todo!(),
+                FieldType::Tuple(field_types, _) => todo!(),
+                FieldType::Arrow(arrow, _) => todo!(),
+                FieldType::Union(union_type, _) => todo!(),
+            }
+        }
+
+        // Types have inherent streaming behavior. For example literals and
+        // numbers are inherently @done. These behaviors are applied even
+        // without user annotations.
+        fn inherent_streaming_behavior(field_type: &FieldType) -> StreamingBehavior {
+            match field_type {
+                FieldType::Primitive(type_value, _) => match type_value {
+                    TypeValue::String => StreamingBehavior::default(),
+                    TypeValue::Int => StreamingBehavior {
+                        done: true,
+                        needed: false,
+                        state: false,
+                    },
+                    TypeValue::Float => StreamingBehavior {
+                        done: true,
+                        needed: false,
+                        state: false,
+                    },
+                    TypeValue::Bool => StreamingBehavior {
+                        done: true,
+                        needed: false,
+                        state: false,
+                    },
+                    TypeValue::Null => StreamingBehavior::default(),
+                    TypeValue::Media(_) => StreamingBehavior::default(),
+                },
+                FieldType::Enum(..) => StreamingBehavior {
+                    done: true,
+                    needed: false,
+                    state: false,
+                },
+                FieldType::Literal(_, _) => StreamingBehavior {
+                    done: true,
+                    needed: false,
+                    state: false,
+                },
+                FieldType::Class(..) => StreamingBehavior::default(),
+                FieldType::List(..) => StreamingBehavior::default(),
+                FieldType::Map(..) => StreamingBehavior::default(),
+                FieldType::RecursiveTypeAlias(..) => StreamingBehavior::default(),
+                FieldType::Tuple(..) => StreamingBehavior::default(),
+                FieldType::Arrow(..) => StreamingBehavior::default(),
+                FieldType::Union(inner, _) => inner
+                    .types
+                    .iter()
+                    .fold(StreamingBehavior::default(), |acc, t| {
+                        acc.combine(&inherent_streaming_behavior(t))
+                    }),
+            }
+        }
+
+        StreamingType {
+            inner: partialize_helper(self, &self.meta()),
+        }
     }
 }
 pub trait ToUnionName {
