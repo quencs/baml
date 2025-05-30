@@ -149,11 +149,6 @@ impl UnionType {
             .iter()
             .filter(|t| !t.is_null())
             .collect::<Vec<_>>();
-        println!(
-            "non_null_types_len: {}, self.types.len: {}",
-            non_null_types.len(),
-            self.types.len(),
-        );
         match non_null_types.len() {
             0 => UnionTypeView::Null,
             1 => UnionTypeView::Optional(&non_null_types[0]),
@@ -385,13 +380,10 @@ impl FieldType {
     /// For types that are unions, replace the variants list with
     /// a simplified (flattened) variants list.
     pub fn simplify(&self) -> FieldType {
-        println!("[self] {self:?}");
         match self {
             FieldType::Union(inner, _) => {
                 let view = inner.view();
-                println!("[view] {view:?}");
                 let flattened = view.flatten();
-                println!("[flattened] {flattened:?}");
                 let unique = flattened.into_iter().unique().collect::<Vec<_>>();
                 let has_null = unique.contains(&NULL_TYPE);
                 // if the union contains null, we'll detect that here.

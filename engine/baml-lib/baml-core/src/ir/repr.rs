@@ -325,13 +325,11 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .iter()
                     .filter_map(|v| v.meta().1.clone())
                     .collect::<Vec<_>>();
-                let item_type = if item_types.is_empty() {
-                    None
-                } else {
-                    Some(FieldType::union(item_types))
+                let list_type = match item_types.len() {
+                    0 => None,
+                    1 => Some(FieldType::List(Box::new(item_types[0].clone()), TypeMetadataIR::default())),
+                    _ => Some(FieldType::List(Box::new(FieldType::union(item_types)), TypeMetadataIR::default())),
                 };
-                let list_type =
-                    item_type.map(|t| FieldType::List(Box::new(t), TypeMetadataIR::default()));
                 Ok(Expr::List(new_items, (span.clone(), list_type)))
             }
             ast::Expression::Map(vals, span) => {
