@@ -351,7 +351,7 @@ fn type_streaming_behavior(ir: &impl IRHelperExtended, r#type: &FieldType) -> St
 
 #[cfg(test)]
 mod tests {
-    use baml_types::TypeMetadataIR;
+    use baml_types::TypeMeta;
     use internal_baml_core::ir::repr::make_test_ir;
 
     use crate::deserializer::{deserialize_flags::DeserializerConditions, types::ValueWithFlags};
@@ -360,7 +360,7 @@ mod tests {
 
     fn mk_null() -> BamlValueWithFlags {
         BamlValueWithFlags::Null(
-            FieldType::Primitive(TypeValue::Null, TypeMetadataIR::default()),
+            FieldType::Primitive(TypeValue::Null, TypeMeta::default()),
             DeserializerConditions::default(),
         )
     }
@@ -368,14 +368,14 @@ mod tests {
     fn mk_string(s: &str) -> BamlValueWithFlags {
         BamlValueWithFlags::String(ValueWithFlags {
             value: s.to_string(),
-            target: FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
+            target: FieldType::Primitive(TypeValue::String, TypeMeta::default()),
             flags: DeserializerConditions::default(),
         })
     }
     fn mk_float(s: f64) -> BamlValueWithFlags {
         BamlValueWithFlags::Float(ValueWithFlags {
             value: s,
-            target: FieldType::Primitive(TypeValue::Float, TypeMetadataIR::default()),
+            target: FieldType::Primitive(TypeValue::Float, TypeMeta::default()),
             flags: DeserializerConditions::default(),
         })
     }
@@ -392,7 +392,7 @@ mod tests {
         fn mk_list(items: Vec<BamlValueWithFlags>) -> BamlValueWithFlags {
             BamlValueWithFlags::List(
                 DeserializerConditions::default(),
-                FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default()).as_list(),
+                FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default()).as_list(),
                 items,
             )
         }
@@ -433,14 +433,14 @@ mod tests {
         let value = BamlValueWithFlags::Class(
             "Info".to_string(),
             DeserializerConditions::default(),
-            FieldType::Class("Info".into(), TypeMetadataIR::default()),
+            FieldType::Class("Info".into(), TypeMeta::default()),
             vec![
                 (
                     "name".to_string(),
                     BamlValueWithFlags::Class(
                         "Name".to_string(),
                         DeserializerConditions::default(),
-                        FieldType::Class("Name".into(), TypeMetadataIR::default()),
+                        FieldType::Class("Name".into(), TypeMeta::default()),
                         vec![
                             ("first".to_string(), mk_string("Greg")),
                             ("last".to_string(), mk_string("Hale")),

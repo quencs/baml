@@ -1,6 +1,6 @@
 use anyhow::Result;
 use baml_types::expr::VarIndex;
-use baml_types::{TypeMetadataIR, TypeValue};
+use baml_types::{TypeMeta, TypeValue};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -40,7 +40,7 @@ pub fn typecheck_exprs(ctx: &mut Context<'_>) -> Result<()> {
                                 .collect(),
                             return_type: expr_fn.elem.output.clone(),
                         }),
-                        TypeMetadataIR::default(),
+                        TypeMeta::default(),
                     ),
                 )
             })
@@ -57,7 +57,7 @@ pub fn typecheck_exprs(ctx: &mut Context<'_>) -> Result<()> {
                                 .collect(),
                             return_type: llm_function.elem.output.clone(),
                         }),
-                        TypeMetadataIR::default(),
+                        TypeMeta::default(),
                     ),
                 )
             }))
@@ -203,7 +203,7 @@ pub fn typecheck_in_context(
             for item in items.iter() {
                 if let Some(item_type) = item.meta().1.as_ref() {
                     let item_list_type =
-                        FieldType::List(Box::new(item_type.clone()), TypeMetadataIR::default());
+                        FieldType::List(Box::new(item_type.clone()), TypeMeta::default());
                     if !compatible_as_subtype(ir, &Some(item_list_type), &meta.1.clone()) {
                         diagnostics.push_error(DatamodelError::new_validation_error(
                             "Type mismatch in list",
@@ -225,7 +225,7 @@ pub fn typecheck_in_context(
                             let item_map_type = FieldType::Map(
                                 key_type.clone(),
                                 Box::new(item_type.clone()),
-                                TypeMetadataIR::default(),
+                                TypeMeta::default(),
                             );
                             if !compatible_as_subtype(ir, &Some(item_map_type), &meta.1.clone()) {
                                 diagnostics.push_error(DatamodelError::new_validation_error(
@@ -283,7 +283,7 @@ pub fn typecheck_in_context(
                 &cond.meta().1,
                 &Some(FieldType::Primitive(
                     TypeValue::Bool,
-                    TypeMetadataIR::default(),
+                    TypeMeta::default(),
                 )),
             ) {
                 diagnostics.push_error(DatamodelError::new_validation_error(
@@ -529,7 +529,7 @@ pub fn infer_types_in_context(
             let new_body = infer_types_in_context(typing_context, body.clone());
             let mut new_meta = meta.clone();
             new_meta.1 = new_body.meta().1.as_ref().map(|body_type| {
-                FieldType::List(Box::new(body_type.clone()), TypeMetadataIR::default())
+                FieldType::List(Box::new(body_type.clone()), TypeMeta::default())
             });
             Arc::new(Expr::ForLoop {
                 item: item.clone(),

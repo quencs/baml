@@ -540,18 +540,15 @@ fn stream_state(base: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use baml_types::{StreamingBehavior, TypeMetadataIR};
+    use baml_types::{StreamingBehavior, TypeMeta};
     use internal_baml_core::ir::repr::{make_test_ir, IntermediateRepr};
 
     #[test]
     fn test_optional_list() {
         let ir = make_test_ir("").unwrap();
         let optional_list = FieldType::List(
-            Box::new(FieldType::Primitive(
-                TypeValue::String,
-                TypeMetadataIR::default(),
-            )),
-            TypeMetadataIR::default(),
+            Box::new(FieldType::Primitive(TypeValue::String, TypeMeta::default())),
+            TypeMeta::default(),
         )
         .as_optional();
         let full = optional_list.to_type_ref(&ir, false);
@@ -564,11 +561,8 @@ mod tests {
     fn test_union() {
         let ir = make_test_ir("").unwrap();
         let optional_list = FieldType::List(
-            Box::new(FieldType::Primitive(
-                TypeValue::String,
-                TypeMetadataIR::default(),
-            )),
-            TypeMetadataIR::default(),
+            Box::new(FieldType::Primitive(TypeValue::String, TypeMeta::default())),
+            TypeMeta::default(),
         )
         .as_optional();
         let full = optional_list.to_type_ref(&ir, false);
@@ -582,7 +576,7 @@ mod tests {
         let ir = make_test_ir("").unwrap();
         let base: FieldType = FieldType::Class(
             "Foo".to_string(),
-            TypeMetadataIR {
+            TypeMeta {
                 constraints: vec![],
                 streaming_behavior: StreamingBehavior {
                     done: true,

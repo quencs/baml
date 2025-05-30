@@ -274,7 +274,7 @@ class ContactInfo(BaseModel):
     class Config:
         arbitrary_types_allowed = True
     primary: Union["PhoneNumber", "EmailAddress"]
-    secondary: Union["PhoneNumber", "EmailAddress", None] = None
+    secondary: Optional[Union["PhoneNumber", "EmailAddress"]] = None
 
 class CustomStory(BaseModel):
     class Config:
@@ -286,9 +286,9 @@ class CustomStory(BaseModel):
 class CustomTaskResult(BaseModel):
     class Config:
         arbitrary_types_allowed = True
-    bookOrder: Union["BookOrder", Optional[None]] = None
-    flightConfirmation: Union["FlightConfirmation", Optional[None]] = None
-    groceryReceipt: Union["GroceryReceipt", Optional[None]] = None
+    bookOrder: Optional["BookOrder"] = None
+    flightConfirmation: Optional["FlightConfirmation"] = None
+    groceryReceipt: Optional["GroceryReceipt"] = None
 
 class Document1559(BaseModel):
     class Config:
@@ -335,7 +335,7 @@ class DynamicSchema(BaseModel):
 class Earthling(BaseModel):
     class Config:
         arbitrary_types_allowed = True
-    age: Checked[int,Literal["earth_aged", "no_infants"]]
+    age: Checked[int, Literal["earth_aged", "no_infants"]]
 
 class Education(BaseModel):
     class Config:
@@ -384,8 +384,8 @@ class FooAny(BaseModel):
     class Config:
         arbitrary_types_allowed = True
     planetary_age: Union["Martian", "Earthling"]
-    certainty: Checked[int,Literal["unreasonably_certain"]]
-    species: Checked[str,Literal["regex_bad", "regex_good", "trivial"]]
+    certainty: Checked[int, Literal["unreasonably_certain"]]
+    species: Checked[str, Literal["regex_bad", "regex_good", "trivial"]]
 
 class Forest(BaseModel):
     class Config:
@@ -493,7 +493,7 @@ class MaintainFieldOrder(BaseModel):
 class MalformedConstraints(BaseModel):
     class Config:
         arbitrary_types_allowed = True
-    foo: Checked[int,Literal["foo_check"]]
+    foo: Checked[int, Literal["foo_check"]]
 
 class MalformedConstraints2(BaseModel):
     class Config:
@@ -505,7 +505,7 @@ class Martian(BaseModel):
     Such a nice type."""
     class Config:
         arbitrary_types_allowed = True
-    age: Checked[int,Literal["young_enough"]]
+    age: Checked[int, Literal["young_enough"]]
     """The age of the Martian in Mars years.
     So many Mars years."""
 
@@ -519,7 +519,7 @@ class MemoryObject(BaseModel):
 class MergeAttrs(BaseModel):
     class Config:
         arbitrary_types_allowed = True
-    amount: Checked[int,Literal["gt_ten"]]
+    amount: Checked[int, Literal["gt_ten"]]
 
 class NamedArgsSingleClass(BaseModel):
     class Config:
@@ -531,20 +531,20 @@ class NamedArgsSingleClass(BaseModel):
 class Nested(BaseModel):
     class Config:
         arbitrary_types_allowed = True
-    prop3: Union[str, Optional[None]] = None
-    prop4: Union[str, Optional[None]] = None
+    prop3: Optional[str] = None
+    prop4: Optional[str] = None
     prop20: "Nested2"
 
 class Nested2(BaseModel):
     class Config:
         arbitrary_types_allowed = True
-    prop11: Union[str, Optional[None]] = None
-    prop12: Union[str, Optional[None]] = None
+    prop11: Optional[str] = None
+    prop12: Optional[str] = None
 
 class NestedBlockConstraint(BaseModel):
     class Config:
         arbitrary_types_allowed = True
-    nbc: Checked["BlockConstraint",Literal["cross_field"]]
+    nbc: Checked["BlockConstraint", Literal["cross_field"]]
 
 class NestedBlockConstraintForParam(BaseModel):
     class Config:
@@ -670,13 +670,13 @@ class Resume(BaseModel):
 class Schema(BaseModel):
     class Config:
         arbitrary_types_allowed = True
-    prop1: Union[str, Optional[None]] = None
+    prop1: Optional[str] = None
     prop2: Union["Nested", str]
-    prop5: List[Union[str, Optional[None]]]
+    prop5: List[Optional[str]]
     prop6: Union[str, List["Nested"]]
-    nested_attrs: List[Union[str, Optional[None], "Nested"]]
-    parens: Union[str, Optional[None]] = None
-    other_group: Union[str, Union[int, str]]
+    nested_attrs: List[Optional[Union[str, "Nested"]]]
+    parens: Optional[str] = None
+    other_group: Union[str, int]
 
 class SearchParams(BaseModel):
     class Config:
@@ -772,8 +772,8 @@ class TwoStoriesOneTitleCheck(BaseModel):
     class Config:
         arbitrary_types_allowed = True
     title: str
-    story_a: Checked[str,Literal["too_long_story"]]
-    story_b: Checked[str,Literal["too_long_story"]]
+    story_a: Checked[str, Literal["too_long_story"]]
+    story_b: Checked[str, Literal["too_long_story"]]
 
 class UnionTest_ReturnType(BaseModel):
     class Config:

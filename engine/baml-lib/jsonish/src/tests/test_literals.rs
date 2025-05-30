@@ -1,4 +1,4 @@
-use baml_types::{LiteralValue, TypeMetadataIR};
+use baml_types::{LiteralValue, TypeMeta};
 
 use super::*;
 
@@ -6,7 +6,7 @@ test_deserializer!(
     test_literal_integer_positive,
     EMPTY_FILE,
     "2",
-    FieldType::Literal(LiteralValue::Int(2), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::Int(2), TypeMeta::default()),
     2
 );
 
@@ -14,7 +14,7 @@ test_deserializer!(
     test_literal_integer_negative,
     EMPTY_FILE,
     "-42",
-    FieldType::Literal(LiteralValue::Int(-42), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::Int(-42), TypeMeta::default()),
     -42
 );
 
@@ -22,7 +22,7 @@ test_deserializer!(
     test_literal_integer_zero,
     EMPTY_FILE,
     "0",
-    FieldType::Literal(LiteralValue::Int(0), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::Int(0), TypeMeta::default()),
     0
 );
 
@@ -30,7 +30,7 @@ test_deserializer!(
     test_literal_boolean_true,
     EMPTY_FILE,
     "true",
-    FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
     true
 );
 
@@ -38,7 +38,7 @@ test_deserializer!(
     test_literal_boolean_false,
     EMPTY_FILE,
     "false",
-    FieldType::Literal(LiteralValue::Bool(false), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::Bool(false), TypeMeta::default()),
     false
 );
 
@@ -46,7 +46,7 @@ test_deserializer!(
     test_literal_string_uppercase_with_double_quotes,
     EMPTY_FILE,
     r#""TWO""#,
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -54,7 +54,7 @@ test_deserializer!(
     test_literal_string_uppercase_without_quotes,
     EMPTY_FILE,
     "TWO",
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -62,7 +62,7 @@ test_deserializer!(
     test_literal_string_mismatched_case,
     EMPTY_FILE,
     "Two",
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -70,7 +70,7 @@ test_deserializer!(
     test_literal_string_lowercase,
     EMPTY_FILE,
     "two",
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -78,7 +78,7 @@ test_deserializer!(
     test_literal_string_preceded_by_extra_text,
     EMPTY_FILE,
     "The answer is TWO",
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -86,7 +86,7 @@ test_deserializer!(
     test_literal_string_preceded_by_extra_text_case_mismatch,
     EMPTY_FILE,
     "The answer is Two",
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -94,7 +94,7 @@ test_deserializer!(
     test_literal_string_followed_by_extra_text,
     EMPTY_FILE,
     "TWO is the answer",
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -102,7 +102,7 @@ test_deserializer!(
     test_literal_string_followed_by_extra_text_case_mismatch,
     EMPTY_FILE,
     "Two is the answer",
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -110,7 +110,7 @@ test_deserializer!(
     test_literal_string_with_quotes_preceded_by_extra_text,
     EMPTY_FILE,
     r#"The answer is "TWO""#,
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -118,7 +118,7 @@ test_deserializer!(
     test_literal_string_with_quotes_preceded_by_extra_text_case_mismatch,
     EMPTY_FILE,
     r#"The answer is "two""#,
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -126,7 +126,7 @@ test_deserializer!(
     test_literal_string_with_quotes_followed_by_extra_text,
     EMPTY_FILE,
     r#""TWO" is the answer"#,
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -134,7 +134,7 @@ test_deserializer!(
     test_literal_string_with_quotes_followed_by_extra_text_case_mismatch,
     EMPTY_FILE,
     r#""Two" is the answer"#,
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -144,7 +144,7 @@ test_deserializer!(
     // Came up with this example unintentioanlly but this causes ambiguity
     // issues with unions ("two" | "one"), see the TODO at the end of this file.
     r#"The ansewr "TWO" is the correct one"#,
-    FieldType::Literal(LiteralValue::String("two".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("two".into()), TypeMeta::default()),
     "two"
 );
 
@@ -152,7 +152,7 @@ test_deserializer!(
     test_literal_string_with_special_characters,
     EMPTY_FILE,
     r#""TWO!@#""#,
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -160,7 +160,7 @@ test_deserializer!(
     test_literal_string_with_whitespace,
     EMPTY_FILE,
     r#""  TWO  ""#,
-    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
+    FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
     "TWO"
 );
 
@@ -169,8 +169,8 @@ test_deserializer!(
     EMPTY_FILE,
     "2",
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(2), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Int(3), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(2), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Int(3), TypeMeta::default()),
     ]),
     2
 );
@@ -180,8 +180,8 @@ test_failing_deserializer!(
     EMPTY_FILE,
     "2 or 3",
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(2), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Int(3), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(2), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Int(3), TypeMeta::default()),
     ])
 );
 
@@ -190,8 +190,8 @@ test_failing_deserializer!(
     EMPTY_FILE,
     "true or false",
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(2), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Int(3), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(2), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Int(3), TypeMeta::default()),
     ])
 );
 
@@ -204,8 +204,8 @@ test_deserializer!(
     EMPTY_FILE,
     "TWO or THREE",
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::String("TWO".into()), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::String("TWO".into()), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ]),
     "TWO"
 );
@@ -217,9 +217,9 @@ test_deserializer!(
   "status": 1
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ]),
     1
 );
@@ -232,9 +232,9 @@ test_deserializer!(
   "status": 1
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ]),
     1
 );
@@ -247,9 +247,9 @@ test_deserializer!(
   "result": true
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ]),
     true
 );
@@ -262,9 +262,9 @@ test_deserializer!(
   "value": "THREE"
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ]),
     "THREE"
 );
@@ -276,8 +276,8 @@ test_deserializer!(
         "pay"
     "#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::String("pay".into()), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("pay_without_credit_card".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::String("pay".into()), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("pay_without_credit_card".into()), TypeMeta::default()),
     ]),
     "pay"
 );
@@ -289,8 +289,8 @@ test_partial_deserializer_streaming_failure!(
         "pay
     "#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::String("pay".into()), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("pay_without_credit_card".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::String("pay".into()), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("pay_without_credit_card".into()), TypeMeta::default()),
     ])
 );
 
@@ -303,9 +303,9 @@ test_failing_deserializer!(
   "message": "success"
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ])
 );
 
@@ -319,9 +319,9 @@ test_failing_deserializer!(
   }
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ])
 );
 
@@ -333,9 +333,9 @@ test_deserializer!(
   "value": "\"THREE\""
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ]),
     "THREE"
 );
@@ -348,9 +348,9 @@ test_deserializer!(
   "value": "The answer is THREE"
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ]),
     "THREE"
 );
@@ -363,9 +363,9 @@ test_failing_deserializer!(
   "values": [1]
 }"#,
     FieldType::union(vec![
-        FieldType::Literal(LiteralValue::Int(1), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::Bool(true), TypeMetadataIR::default()),
-        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMetadataIR::default()),
+        FieldType::Literal(LiteralValue::Int(1), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::Bool(true), TypeMeta::default()),
+        FieldType::Literal(LiteralValue::String("THREE".into()), TypeMeta::default()),
     ])
 );
 

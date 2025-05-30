@@ -1,5 +1,5 @@
 use super::*;
-use baml_types::TypeMetadataIR;
+use baml_types::TypeMeta;
 
 //
 const FOO_FILE: &str = r#"
@@ -43,10 +43,13 @@ fn test_union_full() {
                 "hi" => {
                     assert_eq!(
                         prop_value.field_type(),
-                        &FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).as_list()
+                        &FieldType::Primitive(TypeValue::String, TypeMeta::default()).as_list()
                     );
                     for item in prop_value.as_list().unwrap() {
-                        assert_eq!(item.field_type(), &FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()));
+                        assert_eq!(
+                            item.field_type(),
+                            &FieldType::Primitive(TypeValue::String, TypeMeta::default())
+                        );
                     }
                 }
                 _ => {
@@ -313,7 +316,7 @@ test_deserializer!(
   test_phone_number_regex,
   CONTACT_INFO,
   r#"{"primary": {"value": "908-797-8281"}}"#,
-  FieldType::Class("ContactInfo".to_string(), TypeMetadataIR::default()),
+  FieldType::Class("ContactInfo".to_string(), TypeMeta::default()),
   {"primary": {"value": "908-797-8281"}}
 );
 
@@ -321,7 +324,7 @@ test_deserializer!(
   test_email_regex,
   CONTACT_INFO,
   r#"{"primary": {"value": "help@boundaryml.com"}}"#,
-  FieldType::Class("ContactInfo".to_string(), TypeMetadataIR::default()),
+  FieldType::Class("ContactInfo".to_string(), TypeMeta::default()),
   {"primary": {"value": "help@boundaryml.com"}}
 );
 
@@ -330,8 +333,8 @@ test_deserializer!(
     "",
     "1 cup unsalted butter, room temperature",
     FieldType::union(vec![
-        FieldType::Primitive(TypeValue::Float, TypeMetadataIR::default()),
-        FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
+        FieldType::Primitive(TypeValue::Float, TypeMeta::default()),
+        FieldType::Primitive(TypeValue::String, TypeMeta::default()),
     ]),
     "1 cup unsalted butter, room temperature"
 );
@@ -341,8 +344,8 @@ test_deserializer!(
     "",
     "1 cup unsalted butter, room temperature",
     FieldType::union(vec![
-        FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default()),
-        FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
+        FieldType::Primitive(TypeValue::Int, TypeMeta::default()),
+        FieldType::Primitive(TypeValue::String, TypeMeta::default()),
     ]),
     "1 cup unsalted butter, room temperature"
 );

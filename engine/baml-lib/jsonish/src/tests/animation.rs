@@ -1,7 +1,7 @@
 use crate::helpers::render_output_format;
 #[cfg(test)]
 use crate::{from_str, helpers::parsed_value_to_response};
-use baml_types::{FieldType, StreamingBehavior, TypeMetadataIR};
+use baml_types::{FieldType, StreamingBehavior, TypeMeta};
 use internal_baml_core::ir::repr::make_test_ir;
 
 #[test]
@@ -22,7 +22,7 @@ pub fn make_test_data1() {
     .unwrap();
 
     let mut target_type = FieldType::class("PersonAssignment");
-    target_type.set_meta(TypeMetadataIR {
+    target_type.set_meta(TypeMeta {
         constraints: vec![],
         streaming_behavior: StreamingBehavior {
             done: false,
@@ -30,7 +30,7 @@ pub fn make_test_data1() {
             needed: false,
         },
     });
-    
+
     let target = render_output_format(&ir, &target_type, &Default::default()).unwrap();
 
     let llm_data = r#"{"person": {"name": "Greg", "age": 42}, "assignment": "Write"}"#;

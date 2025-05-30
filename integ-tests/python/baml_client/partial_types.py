@@ -94,7 +94,7 @@ class ClassWithImage(BaseModel):
 
 class ClassWithoutDone(BaseModel):
     i_16_digits: Optional[int] = None
-    s_20_words: StreamState[Optional[str]]
+    s_20_words: Optional[str] = None
 
 class ClientDetails1559(BaseModel):
     client_name: Optional[str] = None
@@ -117,8 +117,8 @@ class CompoundBigNumbers(BaseModel):
     another: Optional["BigNumbers"] = None
 
 class ContactInfo(BaseModel):
-    primary: Optional[Union["PhoneNumber", "EmailAddress"]] = None
-    secondary: Optional[Union["PhoneNumber", "EmailAddress", None]] = None
+    primary: Union["PhoneNumber", "EmailAddress"]
+    secondary: Optional[Union["PhoneNumber", "EmailAddress"]] = None
 
 class CustomStory(BaseModel):
     title: Optional[str] = None
@@ -126,9 +126,9 @@ class CustomStory(BaseModel):
     content: Optional[str] = None
 
 class CustomTaskResult(BaseModel):
-    bookOrder: Optional[Union["BookOrder", Optional[None]]] = None
-    flightConfirmation: Optional[Union["FlightConfirmation", Optional[None]]] = None
-    groceryReceipt: Optional[Union["GroceryReceipt", Optional[None]]] = None
+    bookOrder: Optional["BookOrder"] = None
+    flightConfirmation: Optional["FlightConfirmation"] = None
+    groceryReceipt: Optional["GroceryReceipt"] = None
 
 class Document1559(BaseModel):
     client_details: Optional["ClientDetails1559"] = None
@@ -193,7 +193,7 @@ class FlightConfirmation(BaseModel):
     seatNumber: Optional[str] = None
 
 class FooAny(BaseModel):
-    planetary_age: Optional[Union["Martian", "Earthling"]] = None
+    planetary_age: Union["Martian", "Earthling"]
     certainty: Checked[Optional[int],Literal["unreasonably_certain"]]
     species: Checked[Optional[str],Literal["regex_bad", "regex_good", "trivial"]]
 
@@ -293,13 +293,13 @@ class NamedArgsSingleClass(BaseModel):
     key_three: Optional[int] = None
 
 class Nested(BaseModel):
-    prop3: Optional[Union[str, Optional[None]]] = None
-    prop4: Optional[Union[str, Optional[None]]] = None
+    prop3: Optional[str] = None
+    prop4: Optional[str] = None
     prop20: Optional["Nested2"] = None
 
 class Nested2(BaseModel):
-    prop11: Optional[Union[str, Optional[None]]] = None
-    prop12: Optional[Union[str, Optional[None]]] = None
+    prop11: Optional[str] = None
+    prop12: Optional[str] = None
 
 class NestedBlockConstraint(BaseModel):
     nbc: Checked[Optional["BlockConstraint"],Literal["cross_field"]]
@@ -354,17 +354,17 @@ class PhoneNumber(BaseModel):
     value: Optional[str] = None
 
 class Quantity(BaseModel):
-    amount: Optional[Union[int, float]] = None
+    amount: Union[int, float]
     unit: Optional[str] = None
 
 class RaysData(BaseModel):
     dataType: Optional[types.DataType] = None
-    value: Optional[Union["Resume", "Event"]] = None
+    value: Union["Resume", "Event"]
 
 class ReceiptInfo(BaseModel):
     items: List["ReceiptItem"]
     total_cost: Optional[float] = None
-    venue: Optional[Union[Literal["barisa"], Literal["ox_burger"]]] = None
+    venue: Union[Literal["barisa"], Literal["ox_burger"]]
 
 class ReceiptItem(BaseModel):
     name: Optional[str] = None
@@ -374,7 +374,7 @@ class ReceiptItem(BaseModel):
 
 class Recipe(BaseModel):
     ingredients: Dict[str, Optional["Quantity"]]
-    recipe_type: Optional[Union[Literal["breakfast"], Literal["dinner"]]] = None
+    recipe_type: Union[Literal["breakfast"], Literal["dinner"]]
 
 class RecursiveAliasDependency(BaseModel):
     value: Optional["JsonValue"] = None
@@ -388,13 +388,13 @@ class Resume(BaseModel):
     skills: List[str]
 
 class Schema(BaseModel):
-    prop1: Optional[Union[str, Optional[None]]] = None
-    prop2: Optional[Union["Nested", str]] = None
-    prop5: List[Union[str, Optional[None]]]
-    prop6: Optional[Union[str, List["Nested"]]] = None
-    nested_attrs: List[Union[str, Optional[None], "Nested"]]
-    parens: Optional[Union[str, Optional[None]]] = None
-    other_group: Optional[Union[str, Union[int, str]]] = None
+    prop1: Optional[str] = None
+    prop2: Union["Nested", str]
+    prop5: List[Optional[str]]
+    prop6: Union[str, List["Nested"]]
+    nested_attrs: List[Optional[Union[str, "Nested"]]]
+    parens: Optional[str] = None
+    other_group: Union[str, int]
 
 class SearchParams(BaseModel):
     dateRange: Optional[int] = None
@@ -466,9 +466,9 @@ class TwoStoriesOneTitleCheck(BaseModel):
     story_b: Checked[Optional[str],Literal["too_long_story"]]
 
 class UnionTest_ReturnType(BaseModel):
-    prop1: Optional[Union[str, bool]] = None
+    prop1: Union[str, bool]
     prop2: List[Union[float, bool]]
-    prop3: Optional[Union[List[bool], List[int]]] = None
+    prop3: Union[List[bool], List[int]]
 
 class UniverseQuestion(BaseModel):
     """my docs"""

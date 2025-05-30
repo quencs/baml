@@ -1,7 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
-use baml_types::{Constraint, FieldType, StreamingBehavior, TypeMetadataIR, TypeValue};
+use baml_types::{Constraint, FieldType, StreamingBehavior, TypeMeta, TypeValue};
 use indexmap::{IndexMap, IndexSet};
 
 #[derive(Debug)]
@@ -365,7 +365,7 @@ impl OutputFormatContent {
             classes: Arc::new(IndexMap::new()),
             recursive_classes: Arc::new(IndexSet::new()),
             structural_recursive_aliases: Arc::new(IndexMap::new()),
-            target: FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()),
+            target: FieldType::Primitive(TypeValue::String, TypeMeta::default()),
         }
     }
 
@@ -805,7 +805,7 @@ impl OutputFormatContent {
         for class_name in &render_ctx.hoisted_classes {
             let schema = self.inner_type_render(
                 &options,
-                &FieldType::Class(class_name.to_owned(), TypeMetadataIR::default()),
+                &FieldType::Class(class_name.to_owned(), TypeMeta::default()),
                 &render_ctx,
             )?;
 
@@ -874,7 +874,7 @@ impl OutputFormatContent {
 #[cfg(test)]
 impl OutputFormatContent {
     pub fn new_array() -> Self {
-        Self::target(FieldType::List(Box::new(FieldType::string()), TypeMetadataIR::default())).build()
+        Self::target(FieldType::List(Box::new(FieldType::string()), TypeMeta::default())).build()
     }
 
     pub fn new_string() -> Self {
@@ -951,7 +951,7 @@ mod tests {
             constraints: Vec::new(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::Enum("Color".to_string(), TypeMetadataIR::default()))
+        let content = OutputFormatContent::target(FieldType::Enum("Color".to_string(), TypeMeta::default()))
             .enums(enums)
             .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
@@ -1071,7 +1071,7 @@ Color
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string(), TypeMetadataIR::default()),
+                FieldType::Enum("Enm".to_string(), TypeMeta::default()),
                 None,
                 false,
             )],
@@ -1127,7 +1127,7 @@ Answer in JSON using this schema:
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string(), TypeMetadataIR::default()),
+                FieldType::Enum("Enm".to_string(), TypeMeta::default()),
                 None,
                 false,
             )],
@@ -1179,7 +1179,7 @@ Answer in JSON using this schema:
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string(), TypeMetadataIR::default()),
+                FieldType::Enum("Enm".to_string(), TypeMeta::default()),
                 None,
                 false,
             )],
@@ -2539,7 +2539,7 @@ Answer in JSON using this schema: RecursiveMap"#
                 name: Name::new("NonRecursive".to_string()),
                 fields: vec![(
                     Name::new("rec_map".to_string()),
-                    FieldType::Class("RecursiveMap".to_string(), TypeMetadataIR::default()),
+                    FieldType::Class("RecursiveMap".to_string(), TypeMeta::default()),
                     None,
                     false,
                 )],
@@ -2859,13 +2859,13 @@ Answer in JSON using this schema:
     fn render_simple_recursive_aliases() {
         let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias(
             "RecursiveMapAlias".to_string(),
-            TypeMetadataIR::default(),
+            TypeMeta::default(),
         ))
         .structural_recursive_aliases(IndexMap::from([(
             "RecursiveMapAlias".to_string(),
             FieldType::map(
                 FieldType::string(),
-                FieldType::RecursiveTypeAlias("RecursiveMapAlias".to_string(), TypeMetadataIR::default()),
+                FieldType::RecursiveTypeAlias("RecursiveMapAlias".to_string(), TypeMeta::default()),
             ),
         )]))
         .build();
@@ -2883,19 +2883,19 @@ Answer in JSON using this schema: RecursiveMapAlias"#
 
     #[test]
     fn render_recursive_alias_cycle() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default()))
+        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default()))
             .structural_recursive_aliases(IndexMap::from([
                 (
                     "A".to_string(),
-                    FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default()),
+                    FieldType::RecursiveTypeAlias("B".to_string(), TypeMeta::default()),
                 ),
                 (
                     "B".to_string(),
-                    FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default()),
+                    FieldType::RecursiveTypeAlias("C".to_string(), TypeMeta::default()),
                 ),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default())),
+                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default())),
                 ),
             ]))
             .build();
@@ -2915,19 +2915,19 @@ Answer in JSON using this schema: A"#
 
     #[test]
     fn render_recursive_alias_cycle_with_hoist_prefix() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default()))
+        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default()))
             .structural_recursive_aliases(IndexMap::from([
                 (
                     "A".to_string(),
-                    FieldType::RecursiveTypeAlias("B".to_string(), TypeMetadataIR::default()),
+                    FieldType::RecursiveTypeAlias("B".to_string(), TypeMeta::default()),
                 ),
                 (
                     "B".to_string(),
-                    FieldType::RecursiveTypeAlias("C".to_string(), TypeMetadataIR::default()),
+                    FieldType::RecursiveTypeAlias("C".to_string(), TypeMeta::default()),
                 ),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), TypeMetadataIR::default())),
+                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default())),
                 ),
             ]))
             .build();

@@ -1,11 +1,11 @@
 use super::*;
-use baml_types::TypeMetadataIR;
+use baml_types::TypeMeta;
 
 test_deserializer!(
     test_list,
     "",
     r#"["a", "b"]"#,
-    FieldType::List(FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).into(), TypeMetadataIR::default()),
+    FieldType::List(FieldType::Primitive(TypeValue::String, TypeMeta::default()).into(), TypeMeta::default()),
     ["a", "b"]
 );
 
@@ -13,7 +13,7 @@ test_deserializer!(
     test_list_with_quotes,
     "",
     r#"["\"a\"", "\"b\""]"#,
-    FieldType::List(FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).into(), TypeMetadataIR::default()),
+    FieldType::List(FieldType::Primitive(TypeValue::String, TypeMeta::default()).into(), TypeMeta::default()),
     ["\"a\"", "\"b\""]
 );
 
@@ -21,7 +21,7 @@ test_deserializer!(
     test_list_with_extra_text,
     "",
     r#"["a", "b"] is the output."#,
-    FieldType::List(FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).into(), TypeMetadataIR::default()),
+    FieldType::List(FieldType::Primitive(TypeValue::String, TypeMeta::default()).into(), TypeMeta::default()),
     ["a", "b"]
 );
 
@@ -29,7 +29,7 @@ test_deserializer!(
     test_list_with_invalid_extra_text,
     "",
     r#"[a, b] is the output."#,
-    FieldType::List(FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).into(), TypeMetadataIR::default()),
+    FieldType::List(FieldType::Primitive(TypeValue::String, TypeMeta::default()).into(), TypeMeta::default()),
     ["a", "b"]
 );
 
@@ -41,7 +41,7 @@ test_deserializer!(
         b string
     }"#,
     r#"[{"a": 1, "b": "hello"}, {"a": 2, "b": "world"}]"#,
-    FieldType::List(FieldType::Class("Foo".to_string(), TypeMetadataIR::default()).into(), TypeMetadataIR::default()),
+    FieldType::List(FieldType::Class("Foo".to_string(), TypeMeta::default()).into(), TypeMeta::default()),
     [{"a": 1, "b": "hello"}, {"a": 2, "b": "world"}]
 );
 
@@ -89,7 +89,7 @@ test_deserializer!(
     }
   ]
     "#,
-  FieldType::List(FieldType::Class("ListClass".to_string(), TypeMetadataIR::default()).into(), TypeMetadataIR::default()),
+  FieldType::List(FieldType::Class("ListClass".to_string(), TypeMeta::default()).into(), TypeMeta::default()),
   [
       {
         "date": "01/01",
@@ -128,7 +128,7 @@ test_deserializer!(
     test_list_streaming,
     "",
     r#"[1234, 5678"#,
-    FieldType::List(FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default()).into(), TypeMetadataIR::default()),
+    FieldType::List(FieldType::Primitive(TypeValue::Int, TypeMeta::default()).into(), TypeMeta::default()),
     [1234, 5678]
 );
 
@@ -136,6 +136,6 @@ test_deserializer!(
     test_list_streaming_2,
     "",
     r#"[1234"#,
-    FieldType::List(FieldType::Primitive(TypeValue::Int, TypeMetadataIR::default()).into(), TypeMetadataIR::default()),
+    FieldType::List(FieldType::Primitive(TypeValue::Int, TypeMeta::default()).into(), TypeMeta::default()),
     [1234]
 );

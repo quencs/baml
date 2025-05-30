@@ -8,10 +8,10 @@ use indexmap::IndexMap;
 use serde::{de::Visitor, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{
-    field_type::UnionTypeView, field_type::NULL_TYPE, media::BamlMediaType, HasFieldType,
-    LiteralValue, ResponseCheck, TypeValue,
+    ir_type::{FieldType, UnionTypeViewGeneric},
+    media::BamlMediaType,
+    BamlMap, BamlMedia, HasFieldType, LiteralValue, ResponseCheck, TypeValue,
 };
-use crate::{BamlMap, BamlMedia, FieldType};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum BamlValue {
@@ -354,23 +354,23 @@ impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
         let field_type = self.field_type();
         if let FieldType::Union(options, _) = field_type {
             return match options.view() {
-                UnionTypeView::Null => (*NULL_TYPE).clone(),
-                UnionTypeView::Optional(field_type) => {
+                UnionTypeViewGeneric::Null => FieldType::null(),
+                UnionTypeViewGeneric::Optional(field_type) => {
                     if self.is_type(field_type) {
                         field_type.clone()
                     } else {
-                        (*NULL_TYPE).clone()
+                        FieldType::null()
                     }
                 }
-                UnionTypeView::OneOf(field_types) => field_types
+                UnionTypeViewGeneric::OneOf(field_types) => field_types
                     .into_iter()
                     .find(|t| self.is_type(t))
                     .expect("At least one type must be supported")
                     .clone(),
-                UnionTypeView::OneOfOptional(field_types) => field_types
+                UnionTypeViewGeneric::OneOfOptional(field_types) => field_types
                     .into_iter()
                     .find(|t| self.is_type(t))
-                    .map_or_else(|| (*NULL_TYPE).clone(), |t| t.clone()),
+                    .map_or_else(|| FieldType::null(), |t| t.clone()),
             };
         }
         field_type.clone()
@@ -392,13 +392,15 @@ impl<T> BamlValueWithMeta<T> {
     fn is_type(&self, field_type: &FieldType) -> bool {
         let handle_composite = |field_type: &FieldType| match field_type {
             FieldType::Union(options, _) => match options.view() {
-                UnionTypeView::Null => self.is_type(&(*NULL_TYPE)),
-                UnionTypeView::Optional(field_type) => {
-                    self.is_type(field_type) || self.is_type(&(*NULL_TYPE))
+                UnionTypeViewGeneric::Null => self.is_type(&FieldType::null()),
+                UnionTypeViewGeneric::Optional(field_type) => {
+                    self.is_type(field_type) || self.is_type(&FieldType::null())
                 }
-                UnionTypeView::OneOf(field_types) => field_types.iter().any(|t| self.is_type(t)),
-                UnionTypeView::OneOfOptional(field_types) => {
-                    field_types.iter().any(|t| self.is_type(t)) || self.is_type(&(*NULL_TYPE))
+                UnionTypeViewGeneric::OneOf(field_types) => {
+                    field_types.iter().any(|t| self.is_type(t))
+                }
+                UnionTypeViewGeneric::OneOfOptional(field_types) => {
+                    field_types.iter().any(|t| self.is_type(t)) || self.is_type(&FieldType::null())
                 }
             },
             _ => false,

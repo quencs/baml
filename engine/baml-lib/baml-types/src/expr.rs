@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use crate::{field_type::FieldType, BamlMap, BamlValueWithMeta};
+use crate::{ir_type::FieldType, BamlMap, BamlValueWithMeta};
 use internal_baml_diagnostics::Span;
 use itertools::join;
 
@@ -20,7 +20,6 @@ pub enum Expr<T> {
         spread: Option<Box<Expr<T>>>,
         meta: T,
     },
-
     LLMFunction(Name, Vec<Name>, T),
     // A free variable, not bound by a lambda.
     FreeVar(Name, T),
@@ -619,7 +618,7 @@ impl<T: Clone> Expr<T> {
 }
 
 /// An iterator over the sub-expressions of an expression.
-impl <'a, T: 'a> IntoIterator for &'a Expr<T> {
+impl<'a, T: 'a> IntoIterator for &'a Expr<T> {
     type Item = &'a Expr<T>;
     type IntoIter = ExprIterator<'a, T>;
 
@@ -633,11 +632,11 @@ pub struct ExprIterator<'a, T> {
     pub stack: VecDeque<&'a Expr<T>>,
 }
 
-impl <'a, T> ExprIterator<'a, T> {
+impl<'a, T> ExprIterator<'a, T> {
     fn new(root: &'a Expr<T>) -> Self {
         let mut stack = VecDeque::new();
         stack.push_back(root);
-        Self { stack}
+        Self { stack }
     }
 }
 
@@ -704,4 +703,3 @@ impl<'a, T: 'a> Iterator for ExprIterator<'a, T> {
         }
     }
 }
-

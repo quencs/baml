@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_types::{BamlMap, Constraint, StreamingBehavior, TypeMetadataIR};
+use baml_types::{BamlMap, Constraint, StreamingBehavior, TypeMeta};
 use internal_baml_core::ir::FieldType;
 use internal_baml_jinja::types::{Class, Name};
 
@@ -402,7 +402,7 @@ pub fn apply_constraints(
         Ok(value)
     } else {
         let mut constrained_class = class_type.clone();
-        constrained_class.set_meta(TypeMetadataIR {
+        constrained_class.set_meta(TypeMeta {
             constraints,
             streaming_behavior,
         });

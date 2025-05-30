@@ -59,7 +59,7 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType
     fn into_rpc_event(&'a self, lookup: &(impl TypeLookup + ?Sized)) -> baml_rpc::TypeReference {
         let simplified = self.simplify();
         use baml_rpc::{LiteralTypeDefinition, MediaTypeDefinition, TypeMetadata, TypeReference};
-        let base = match simplified {
+        let mut base_ref = match simplified {
             baml_types::FieldType::Primitive(type_value, _) => match type_value {
                 baml_types::TypeValue::String => TypeReference::string(),
                 baml_types::TypeValue::Int => TypeReference::int(),
@@ -138,13 +138,12 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType
                 .collect();
 
             let new_meta = TypeMetadata::new(narrowed_checks, narrowed_asserts);
-            let mut base = self.into_rpc_event(lookup);
-            if let Some(metadata) = base.metadata_mut() {
+            if let Some(metadata) = base_ref.metadata_mut() {
                 metadata.merge(new_meta);
             }
-            base
+            base_ref
         } else {
-            base
+            base_ref
         }
     }
 }

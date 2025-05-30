@@ -460,7 +460,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 } else {
                     format!("Optional[Tuple[{tuple_contents}]]")
                 }
-            },
+            }
             FieldType::Arrow(_, _) => {
                 todo!("Arrow types should not be used in generated type definitions")
             }
@@ -505,7 +505,7 @@ fn default_value_for_parameter_type(field_type: &FieldType) -> Option<&'static s
 
 #[cfg(test)]
 mod tests {
-    use baml_types::{FieldType, TypeMetadataIR, TypeValue};
+    use baml_types::{FieldType, TypeMeta, TypeValue};
     use internal_baml_core::ir::repr::make_test_ir;
 
     use crate::GeneratorArgs;
@@ -515,8 +515,7 @@ mod tests {
     #[test]
     fn optional_str() {
         let ir = make_test_ir("").unwrap();
-        let field_type =
-            FieldType::Primitive(TypeValue::String, TypeMetadataIR::default()).as_optional();
+        let field_type = FieldType::Primitive(TypeValue::String, TypeMeta::default()).as_optional();
         let rep = field_type.to_partial_type_ref(&ir, true);
         assert_eq!(rep, "Optional[str]")
     }

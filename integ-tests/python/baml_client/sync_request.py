@@ -1648,7 +1648,7 @@ class HttpRequest:
     
     def InOutLiteralStringUnionMapKey(
         self,
-        i1: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],i2: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],
+        i1: Dict[Union[Literal["one"], Literal["two"], Literal["three"], Literal["four"]], str],i2: Dict[Union[Literal["one"], Literal["two"], Literal["three"], Literal["four"]], str],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
@@ -1973,7 +1973,7 @@ class HttpRequest:
     
     def NestedAlias(
         self,
-        c: Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]],
+        c: Union[int, str, bool, float, List[str], Dict[str, List[str]]],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
@@ -6259,7 +6259,7 @@ class HttpStreamRequest:
     
     def InOutLiteralStringUnionMapKey(
         self,
-        i1: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],i2: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],
+        i1: Dict[Union[Literal["one"], Literal["two"], Literal["three"], Literal["four"]], str],i2: Dict[Union[Literal["one"], Literal["two"], Literal["three"], Literal["four"]], str],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
@@ -6584,7 +6584,7 @@ class HttpStreamRequest:
     
     def NestedAlias(
         self,
-        c: Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]],
+        c: Union[int, str, bool, float, List[str], Dict[str, List[str]]],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)

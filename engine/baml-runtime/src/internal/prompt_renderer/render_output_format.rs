@@ -454,7 +454,7 @@ mod tests {
     use std::collections::HashMap;
 
     use baml_ids::FunctionCallId;
-    use baml_types::TypeMetadataIR;
+    use baml_types::TypeMeta;
     use internal_baml_jinja::types::RenderOptions;
 
     use super::*;
@@ -479,7 +479,7 @@ mod tests {
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .unwrap();
 
-        let field_type = FieldType::Enum("Foo".to_string(), TypeMetadataIR::default());
+        let field_type = FieldType::Enum("Foo".to_string(), TypeMeta::default());
         let render_output =
             render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
 
