@@ -70,7 +70,7 @@ export class LlmResponseParser {
   AliasWithMultipleAttrs(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): Checked<number,"gt_ten"> {
+  ): Checked<number, "gt_ten"> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
@@ -81,7 +81,7 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as Checked<number,"gt_ten">
+      ) as Checked<number, "gt_ten">
     } catch (error) {
       throw toBamlError(error);
     }
@@ -1410,7 +1410,7 @@ export class LlmResponseParser {
   MakeBlockConstraint(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): Checked<BlockConstraint,"cross_field"> {
+  ): Checked<BlockConstraint, "cross_field"> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
@@ -1421,7 +1421,7 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as Checked<BlockConstraint,"cross_field">
+      ) as Checked<BlockConstraint, "cross_field">
     } catch (error) {
       throw toBamlError(error);
     }
@@ -1670,7 +1670,7 @@ export class LlmResponseParser {
   PredictAgeBare(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): Checked<number,"too_big"> {
+  ): Checked<number, "too_big"> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
@@ -1681,7 +1681,7 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as Checked<number,"too_big">
+      ) as Checked<number, "too_big">
     } catch (error) {
       throw toBamlError(error);
     }
@@ -1910,7 +1910,7 @@ export class LlmResponseParser {
   ReturnAliasWithMergedAttributes(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): Checked<number,"gt_ten"> {
+  ): Checked<number, "gt_ten"> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
@@ -1921,7 +1921,7 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as Checked<number,"gt_ten">
+      ) as Checked<number, "gt_ten">
     } catch (error) {
       throw toBamlError(error);
     }
@@ -5096,7 +5096,7 @@ export class LlmStreamParser {
   MakeClassWithBlockDone(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): types.ClassWithBlockDone {
+  ): partial_types.ClassWithBlockDone {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
@@ -5107,7 +5107,7 @@ export class LlmStreamParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as types.ClassWithBlockDone
+      ) as partial_types.ClassWithBlockDone
     } catch (error) {
       throw toBamlError(error);
     }
@@ -5236,7 +5236,7 @@ export class LlmStreamParser {
   NestedAlias(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): (((number | null) | (string | null) | (boolean | null) | (number | null) | null) | (string | null)[] | (Record<string, (string | null)[]> | null)) {
+  ): ((number | null) | (string | null) | (boolean | null) | (number | null) | (string | null)[] | (Record<string, (string | null)[]> | null)) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
@@ -5247,7 +5247,7 @@ export class LlmStreamParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as (((number | null) | (string | null) | (boolean | null) | (number | null) | null) | (string | null)[] | (Record<string, (string | null)[]> | null))
+      ) as ((number | null) | (string | null) | (boolean | null) | (number | null) | (string | null)[] | (Record<string, (string | null)[]> | null))
     } catch (error) {
       throw toBamlError(error);
     }

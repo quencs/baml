@@ -139,7 +139,7 @@ export class BamlSyncClient {
   AliasWithMultipleAttrs(
       money: number,
       __baml_options__?: BamlCallOptions
-  ): Checked<number,"gt_ten"> {
+  ): Checked<number, "gt_ten"> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -155,7 +155,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as Checked<number,"gt_ten">
+      return raw.parsed(false) as Checked<number, "gt_ten">
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -1814,7 +1814,7 @@ export class BamlSyncClient {
   MakeBlockConstraint(
       
       __baml_options__?: BamlCallOptions
-  ): Checked<BlockConstraint,"cross_field"> {
+  ): Checked<BlockConstraint, "cross_field"> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1830,7 +1830,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as Checked<BlockConstraint,"cross_field">
+      return raw.parsed(false) as Checked<BlockConstraint, "cross_field">
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -2139,7 +2139,7 @@ export class BamlSyncClient {
   PredictAgeBare(
       inp: string,
       __baml_options__?: BamlCallOptions
-  ): Checked<number,"too_big"> {
+  ): Checked<number, "too_big"> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -2155,7 +2155,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as Checked<number,"too_big">
+      return raw.parsed(false) as Checked<number, "too_big">
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -2439,7 +2439,7 @@ export class BamlSyncClient {
   ReturnAliasWithMergedAttributes(
       money: number,
       __baml_options__?: BamlCallOptions
-  ): Checked<number,"gt_ten"> {
+  ): Checked<number, "gt_ten"> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -2455,7 +2455,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as Checked<number,"gt_ten">
+      return raw.parsed(false) as Checked<number, "gt_ten">
     } catch (error: any) {
       throw toBamlError(error);
     }
