@@ -1334,6 +1334,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml-vm"
+version = "0.89.0"
+dependencies = [
+ "anyhow",
+ "dashmap",
+ "indexmap 2.8.0",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "baml_cffi"
 version = "0.89.0"
 dependencies = [
