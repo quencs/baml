@@ -89,7 +89,6 @@ fn test_if_expression() {
     // Compile and execute
     let mut compiler = Compiler::new();
     let program = compiler.compile_simple(statements).unwrap();
-    println!("Program: {}", program);
     let mut vm = VirtualMachine::new(program).unwrap();
     let result = vm.execute().unwrap();
     
