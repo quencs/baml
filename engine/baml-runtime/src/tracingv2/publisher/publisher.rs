@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use baml_rpc::ast::tops::{FunctionSignature, SourceCode, AST};
+use baml_rpc::ast::tops::{FunctionDefinition, SourceCode, AST};
 use baml_rpc::CreateBamlSrcUploadRequest;
 use baml_rpc::TypeDefinition;
 use baml_rpc::TypeReference;
@@ -334,7 +334,7 @@ impl TracePublisher {
         let ast = &lookup.ast;
 
         // Convert functions
-        let functions: Vec<FunctionSignature> = ast
+        let functions: Vec<FunctionDefinition> = ast
             .functions
             .iter()
             .map(|(name, signature)| {
@@ -347,7 +347,7 @@ impl TracePublisher {
                     })
                     .collect();
 
-                FunctionSignature {
+                FunctionDefinition {
                     function_id: signature.function_id.0.clone(),
                     inputs,
                     output: signature.output.into_rpc_event(self.lookup.as_ref()),
@@ -371,14 +371,14 @@ impl TracePublisher {
 
                 if type_name.starts_with("class") {
                     TypeDefinition::Class {
-                        name: (**type_id).clone(),
+                        type_id: (**type_id).clone(),
                         fields: vec![], // Would need to extract actual fields
                         source: TypeDefinitionSource::CompileTime,
                         dependencies: vec![], // Would need actual dependencies
                     }
                 } else if type_name.starts_with("enum") {
                     TypeDefinition::Enum {
-                        name: (**type_id).clone(),
+                        type_id: (**type_id).clone(),
                         values: vec![], // Would need to extract actual values
                         source: TypeDefinitionSource::CompileTime,
                         dependencies: vec![], // Would need actual dependencies
@@ -386,7 +386,7 @@ impl TracePublisher {
                 } else {
                     // Default to Alias for other types
                     TypeDefinition::Alias {
-                        name: (**type_id).clone(),
+                        type_id: (**type_id).clone(),
                         rhs: TypeReference::string(), // Default type
                     }
                 }

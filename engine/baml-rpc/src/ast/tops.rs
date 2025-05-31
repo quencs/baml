@@ -37,7 +37,7 @@ impl<'de> Deserialize<'de> for BamlFunctionId {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
-pub struct FunctionSignature {
+pub struct FunctionDefinition {
     pub function_id: Arc<BamlFunctionId>,
     pub inputs: Vec<NamedType>,
     pub output: TypeReference,
@@ -47,7 +47,7 @@ pub struct FunctionSignature {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub struct AST {
-    pub functions: Vec<FunctionSignature>,
+    pub functions: Vec<FunctionDefinition>,
     pub types: Vec<TypeDefinition>,
     pub source_code: Vec<SourceCode>,
 }

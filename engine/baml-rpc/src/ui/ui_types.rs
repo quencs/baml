@@ -2,41 +2,50 @@ use baml_ids::FunctionCallId;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::{base::EpochMsTimestamp, BamlFunctionId, BamlTypeId};
+use crate::{
+    base::EpochMsTimestamp, AstNodeId, BamlFunctionId, BamlTypeId, FunctionDefinition, NamedType,
+    TypeDefinition, TypeDefinitionSource, TypeReference,
+};
 
+// READ
+// THE GIST OF THESE TYPES IS THAT WE SIMPLIFY THE BAMLTYPEID to a string.
+// But we actually reuse all the same AST structures from the runtime.
+// So we don't have "UI*" equivalent types for all runtime types. We just annotate the actual runtimet ypes with the (TS) annotation to export those.
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct TypeId(#[ts(type = "`${string}##${string}##${string}##${string}`")] BamlTypeId);
+pub struct UiTypeIdString(#[ts(type = "`${string}##${string}##${string}##${string}`")] BamlTypeId);
 
-impl From<BamlTypeId> for TypeId {
+impl From<BamlTypeId> for UiTypeIdString {
     fn from(value: BamlTypeId) -> Self {
-        TypeId(value)
+        UiTypeIdString(value)
     }
 }
 
-impl From<&BamlTypeId> for TypeId {
+impl From<&BamlTypeId> for UiTypeIdString {
     fn from(value: &BamlTypeId) -> Self {
-        TypeId(value.clone())
+        UiTypeIdString(value.clone())
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct FunctionId(#[ts(type = "`${string}##${string}##${string}##${string}`")] BamlFunctionId);
+pub struct UiFunctionIdString(
+    #[ts(type = "`${string}##${string}##${string}##${string}`")] BamlFunctionId,
+);
 
-impl From<BamlFunctionId> for FunctionId {
+impl From<BamlFunctionId> for UiFunctionIdString {
     fn from(value: BamlFunctionId) -> Self {
-        FunctionId(value)
+        UiFunctionIdString(value)
     }
 }
 
-impl From<&BamlFunctionId> for FunctionId {
+impl From<&BamlFunctionId> for UiFunctionIdString {
     fn from(value: &BamlFunctionId) -> Self {
-        FunctionId(value.clone())
+        UiFunctionIdString(value.clone())
     }
 }
 
-impl FunctionId {
+impl UiFunctionIdString {
     pub fn inner(&self) -> &BamlFunctionId {
         &self.0
     }
@@ -44,15 +53,15 @@ impl FunctionId {
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct UiReprFunctionCall {
+pub struct UiFunctionCall {
     #[ts(type = "string")]
     pub function_call_id: FunctionCallId,
     pub function_name: String,
     #[ts(optional)]
-    pub function_id: Option<FunctionId>,
+    pub function_id: Option<UiFunctionIdString>,
 
     #[ts(optional)]
-    #[ts(type = "any | null")]
+    #[ts(type = "Record<string, any> | null")]
     pub tags: Option<serde_json::Map<String, serde_json::Value>>,
 
     #[serde(rename = "start_epoch_ms")]
@@ -65,7 +74,7 @@ pub struct UiReprFunctionCall {
 
     #[ts(type = "any")]
     pub baml_options: serde_json::Value,
-    pub inputs: Vec<FunctionInput>,
+    pub inputs: Vec<UiFunctionInput>,
     #[ts(type = "any")]
     pub output: serde_json::Value,
     #[ts(type = "any", optional)]
@@ -74,13 +83,13 @@ pub struct UiReprFunctionCall {
     pub is_root: bool,
     #[ts(type = "string | null")]
     pub root_function_call_id: Option<FunctionCallId>,
-    pub usage_estimate: UiReprUsageEstimate,
+    pub usage_estimate: UiUsageEstimate,
     #[ts(optional)]
-    pub details: Option<UiReprFunctionCallDetails>,
+    pub details: Option<UiFunctionCallDetails>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
-pub struct UiReprUsageEstimate {
+pub struct UiUsageEstimate {
     #[ts(type = "number | null")]
     pub input_bytes: Option<u64>,
     #[ts(type = "number | null")]
@@ -92,7 +101,7 @@ pub struct UiReprUsageEstimate {
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
-pub struct UiReprFunctionCallDetails {
+pub struct UiFunctionCallDetails {
     // pub http_calls: Vec<UiReprHttpCall>,
     // TODO: fix this
     #[ts(type = "any[]")]
@@ -100,7 +109,7 @@ pub struct UiReprFunctionCallDetails {
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
-pub struct UiReprHttpCall {
+pub struct UiHttpCall {
     #[serde(rename = "start_epoch_ms")]
     #[ts(type = "number | null")]
     pub start_time: Option<EpochMsTimestamp>,
@@ -114,75 +123,164 @@ pub struct UiReprHttpCall {
 
 #[derive(Debug, Deserialize, Serialize, TS)]
 #[ts(export)]
-pub struct FunctionInput {
+pub struct UiFunctionInput {
     pub field: String,
+    // TODO: this is of type baml-rpc/src/runtime_api/baml_value.rs::BamlValue IIRC.
     #[ts(type = "any")]
     pub value: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize, Serialize, TS)]
 #[ts(export)]
-pub struct FunctionDefinition {
-    pub function_id: FunctionId,
-    pub inputs: Vec<NameTypeField>,
+pub struct UiFunctionDefinition {
+    pub function_id: UiFunctionIdString,
+    pub inputs: Vec<NamedType>,
     pub output: TypeReference,
 }
 
+// Matches the runtime TypeDefinition but replaces ids with strings instead of a struct.
 #[derive(Debug, Deserialize, Serialize, TS)]
 #[ts(export)]
-pub struct TypeDefinition {
-    pub r#type: String,
-    pub type_id: TypeId,
-    #[ts(optional)]
-    pub fields: Option<Vec<NameTypeField>>,
-    #[ts(optional)]
-    pub values: Option<Vec<String>>,
+
+pub struct UiTypeDefinition {
+    pub type_id: UiTypeIdString,
+    #[serde(flatten)]
+    pub definition: UiTypeDefinitionData,
 }
 
+// Nearly the same as baml-rpc/src/ast/type_definition.rs::TypeDefinition but replaces ids with strings instead of a struct, and moves the Id to the top level.
+// These are the user-defined types in a baml_src.
+// If you want to decouple some more you can add more UI* equivalent types here with different structure than the runtime. But you will need to do the translation work (and regenerate the ui types using cargo test)
 #[derive(Debug, Deserialize, Serialize, TS)]
+#[serde(tag = "type", rename_all = "snake_case", content = "data")]
 #[ts(export)]
-pub struct NameTypeField {
-    pub name: String,
-    pub r#type: TypeReference,
-}
-
-#[derive(Debug, Deserialize, Serialize, TS)]
-#[ts(export)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum TypeReference {
-    Null,
-    String,
-    Int,
-    Float,
-    Bool,
-    Media,
-    Class {
-        type_id: TypeId,
-    },
+pub enum UiTypeDefinitionData {
+    // User-defined types
     Enum {
-        type_id: TypeId,
+        // Order matters!
+        values: Vec<String>,
+        source: TypeDefinitionSource,
+        dependencies: Vec<AstNodeId>,
     },
-    TypeAlias {
-        type_id: TypeId,
+    Class {
+        // Order matters!
+        fields: Vec<NamedType>,
+        source: TypeDefinitionSource,
+        dependencies: Vec<AstNodeId>,
     },
-    Array {
-        items: Box<TypeReference>,
+    Alias {
+        rhs: TypeReference,
     },
-    Map {
-        key: Box<TypeReference>,
-        value: Box<TypeReference>,
-    },
-    Union {
-        any_of: Vec<TypeReference>,
-    },
-    Literal(LiteralType),
 }
 
-#[derive(Debug, Deserialize, Serialize, TS)]
-#[ts(export)]
-#[serde(tag = "literal_type", content = "literal", rename_all = "snake_case")]
-pub enum LiteralType {
-    String(String),
-    Int(i64),
-    Bool(bool),
+// pub enum UiTypeDefinitionSource {
+//     CompileTime,
+//     Buildable,
+//     PureBuildable,
+// }
+
+// #[derive(Debug, Deserialize, Serialize, TS)]
+// #[ts(export)]
+// pub struct UiNameTypeField {
+//     pub name: String,
+//     pub r#type: TypeReference,
+// }
+
+// #[derive(Debug, Deserialize, Serialize, TS)]
+// #[ts(export)]
+// #[serde(tag = "type", rename_all = "snake_case")]
+// pub enum UiTypeReference {
+//     Null,
+//     String,
+//     Int,
+//     Float,
+//     Bool,
+//     Media,
+//     Class {
+//         type_id: UiTypeId,
+//     },
+//     Enum {
+//         type_id: UiTypeId,
+//     },
+//     TypeAlias {
+//         type_id: UiTypeId,
+//     },
+//     Array {
+//         items: Box<UiTypeReference>,
+//     },
+//     Map {
+//         key: Box<UiTypeReference>,
+//         value: Box<UiTypeReference>,
+//     },
+//     Union {
+//         any_of: Vec<UiTypeReference>,
+//     },
+//     Literal(LiteralType),
+// }
+
+// #[derive(Debug, Deserialize, Serialize, TS)]
+// #[ts(export)]
+// #[serde(tag = "literal_type", content = "literal", rename_all = "snake_case")]
+// pub enum LiteralType {
+//     String(String),
+//     Int(i64),
+//     Bool(bool),
+// }
+
+// Mappers
+
+// from FunctionDefinition to UiFunctionDefinition
+impl From<FunctionDefinition> for UiFunctionDefinition {
+    fn from(value: FunctionDefinition) -> Self {
+        UiFunctionDefinition {
+            function_id: UiFunctionIdString(value.function_id.as_ref().clone()),
+            inputs: value
+                .inputs
+                .into_iter()
+                .map(|input| NamedType {
+                    name: input.name,
+                    r#type: input.r#type,
+                })
+                .collect(),
+            output: value.output.into(),
+        }
+    }
+}
+
+// from TypeDefinition to UiTypeDefinition
+impl From<TypeDefinition> for UiTypeDefinition {
+    fn from(value: TypeDefinition) -> Self {
+        match value {
+            TypeDefinition::Enum {
+                type_id,
+                values,
+                source,
+                dependencies,
+            } => UiTypeDefinition {
+                type_id: UiTypeIdString(type_id),
+                definition: UiTypeDefinitionData::Enum {
+                    values,
+                    source,
+                    dependencies,
+                },
+            },
+            TypeDefinition::Class {
+                type_id,
+                fields,
+                source,
+                dependencies,
+            } => UiTypeDefinition {
+                type_id: UiTypeIdString(type_id),
+                definition: UiTypeDefinitionData::Class {
+                    fields,
+                    source,
+                    dependencies,
+                },
+            },
+            TypeDefinition::Alias { type_id, rhs } => UiTypeDefinition {
+                type_id: UiTypeIdString(type_id),
+                definition: UiTypeDefinitionData::Alias { rhs },
+            },
+        }
+    }
 }
