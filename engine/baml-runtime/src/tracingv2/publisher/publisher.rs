@@ -685,7 +685,7 @@ pub async fn flush() -> anyhow::Result<()> {
     }
 
     // Set a timeout to avoid waiting indefinitely.
-    let timeout_duration = Duration::from_secs(6);
+    let timeout_duration = Duration::from_secs(8);
 
     match timeout(timeout_duration, ack_rx).await {
         Ok(Ok(())) => Ok(()),

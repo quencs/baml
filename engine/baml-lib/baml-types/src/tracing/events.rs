@@ -282,14 +282,81 @@ impl HTTPBody {
     }
 }
 
+pub fn redact_headers(headers: HashMap<String, String>) -> HashMap<String, String> {
+    headers
+        .into_iter()
+        .map(|(key, value)| {
+            let key_lower = key.to_lowercase();
+            let sensitive_keywords = [
+                "authorization",
+                "cookie",
+                "set-cookie",
+                "key",
+                "secret",
+                "token",
+                "credential",
+                "session",
+                "auth",
+            ];
+
+            if sensitive_keywords
+                .iter()
+                .any(|&keyword| key_lower.contains(keyword))
+            {
+                (key, "REDACTED".to_string())
+            } else {
+                (key, value)
+            }
+        })
+        .collect()
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HTTPRequest {
     // since LLM requests could be made in parallel, we need to match the response to the request
     pub id: HttpRequestId,
     pub url: String,
     pub method: String,
-    pub headers: HashMap<String, String>,
+    headers: HashMap<String, String>,
     pub body: HTTPBody,
+}
+
+impl HTTPRequest {
+    pub fn new(
+        id: HttpRequestId,
+        url: String,
+        method: String,
+        headers: HashMap<String, String>,
+        body: HTTPBody,
+    ) -> Self {
+        Self {
+            id,
+            url,
+            method,
+            headers: redact_headers(headers),
+            body,
+        }
+    }
+
+    pub fn id(&self) -> &HttpRequestId {
+        &self.id
+    }
+
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
+    pub fn method(&self) -> &str {
+        &self.method
+    }
+
+    pub fn headers(&self) -> &HashMap<String, String> {
+        &self.headers
+    }
+
+    pub fn body(&self) -> &HTTPBody {
+        &self.body
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -297,8 +364,28 @@ pub struct HTTPResponse {
     // since LLM requests could be made in parallel, we need to match the response to the request
     pub request_id: HttpRequestId,
     pub status: u16,
-    pub headers: Option<HashMap<String, String>>,
+    headers: Option<HashMap<String, String>>,
     pub body: HTTPBody,
+}
+
+impl HTTPResponse {
+    pub fn new(
+        request_id: HttpRequestId,
+        status: u16,
+        headers: Option<HashMap<String, String>>,
+        body: HTTPBody,
+    ) -> Self {
+        Self {
+            request_id,
+            status,
+            headers: Some(redact_headers(headers.unwrap_or_default())),
+            body,
+        }
+    }
+
+    pub fn headers(&self) -> Option<&HashMap<String, String>> {
+        self.headers.as_ref()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

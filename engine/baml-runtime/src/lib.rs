@@ -952,12 +952,12 @@ impl BamlRuntime {
         //
         // Would also be nice if RequestBuilder had getters so we didn't have to
         // call .build()? above.
-        Ok(HTTPRequest {
-            id: HttpRequestId::new(),
-            url: request.url().to_string(),
-            method: request.method().to_string(),
-            headers: json_headers(request.headers()),
-            body: HTTPBody::new(
+        Ok(HTTPRequest::new(
+            HttpRequestId::new(),
+            request.url().to_string(),
+            request.method().to_string(),
+            json_headers(request.headers()),
+            HTTPBody::new(
                 request
                     .body()
                     .map(reqwest::Body::as_bytes)
@@ -965,7 +965,7 @@ impl BamlRuntime {
                     .unwrap_or_default()
                     .into(),
             ),
-        })
+        ))
     }
 
     #[cfg(not(target_arch = "wasm32"))]

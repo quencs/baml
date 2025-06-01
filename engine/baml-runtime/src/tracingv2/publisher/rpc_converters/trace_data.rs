@@ -214,10 +214,10 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
         lookup: &(impl TypeLookup + ?Sized),
     ) -> baml_rpc::runtime_api::IntermediateData<'a> {
         baml_rpc::runtime_api::IntermediateData::RawLLMRequest {
-            url: self.url.clone(),
-            method: self.method.clone(),
-            headers: self.headers.clone(),
-            body: self.body.into_rpc_event(lookup),
+            url: self.url().to_string(),
+            method: self.method().to_string(),
+            headers: self.headers().clone(),
+            body: self.body().into_rpc_event(lookup),
         }
     }
 }
@@ -231,7 +231,7 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::runtime_api::IntermediateData<'a>>
     ) -> baml_rpc::runtime_api::IntermediateData<'a> {
         baml_rpc::runtime_api::IntermediateData::RawLLMResponse {
             status: self.status,
-            headers: self.headers.clone(),
+            headers: self.headers().map(|h| h.clone()),
             body: self.body.into_rpc_event(lookup),
         }
     }
