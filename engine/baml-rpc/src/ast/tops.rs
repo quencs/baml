@@ -35,6 +35,7 @@ impl<'de> Deserialize<'de> for BamlFunctionId {
     }
 }
 
+// Only includes baml llm functions, not user-defined functions
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub struct FunctionDefinition {

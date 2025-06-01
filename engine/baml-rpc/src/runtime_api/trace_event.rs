@@ -7,6 +7,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 use baml_ids::{FunctionCallId, FunctionEventId};
+use ts_rs::TS;
 
 use super::baml_function_call_error::BamlFunctionCallError;
 use super::baml_value::{BamlValue, Media};
@@ -43,6 +44,16 @@ pub struct TraceEvent<'a> {
     pub content: TraceData<'a>,
 }
 
+// Same as tracing/events.rs FunctionType
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, TS)]
+#[ts(export)]
+#[serde(rename_all = "snake_case")]
+pub enum FunctionType {
+    BamlLlm,
+    // BamlExternal, // extern function in baml
+    // Baml // a function that is defined in baml, but not a baml llm function
+    Native, // python or TS function we are @tracing.
+}
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
 pub enum TraceData<'a> {
@@ -50,6 +61,7 @@ pub enum TraceData<'a> {
         function_display_name: String,
         args: Vec<(String, BamlValue<'a>)>,
         tags: TraceTags,
+        function_type: FunctionType,
         /// Only sent for BAML defined functions
         baml_function_content: Option<BamlFunctionStart>,
     },

@@ -4,7 +4,7 @@ use ts_rs::TS;
 
 use crate::{
     base::EpochMsTimestamp, AstNodeId, BamlFunctionId, BamlTypeId, BamlValue, FunctionDefinition,
-    NamedType, TypeDefinition, TypeDefinitionSource, TypeReference,
+    FunctionType, NamedType, TypeDefinition, TypeDefinitionSource, TypeReference,
 };
 
 // READ
@@ -57,6 +57,7 @@ pub struct UiFunctionCall {
     #[ts(type = "string")]
     pub function_call_id: FunctionCallId,
     pub function_name: String,
+    pub function_type: FunctionType,
     #[ts(optional)]
     pub function_id: Option<UiFunctionIdString>,
 

@@ -59,7 +59,7 @@ impl<'a, T: HasFieldType> TraceEvent<'a, T> {
         function_name: String,
         args: Vec<(String, BamlValueWithMeta<T>)>,
         options: EvaluationContext,
-        is_baml_function: bool,
+        function_type: FunctionType,
     ) -> Self {
         Self::from_existing_call(
             call_stack,
@@ -67,7 +67,7 @@ impl<'a, T: HasFieldType> TraceEvent<'a, T> {
                 name: function_name,
                 args,
                 options,
-                is_baml_function,
+                function_type,
             }),
         )
         .expect("Failed to create function start event")
@@ -166,10 +166,19 @@ pub struct EvaluationContext {
     // pub client_registry: Option<ClientRegistryValue>,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum FunctionType {
+    BamlLlm,
+    // BamlExternal, // extern function in baml
+    // Baml // a function that is defined in baml, but not a baml llm function
+    Native, // python or TS function we are @tracing.
+}
+
 #[derive(Debug)]
 pub struct FunctionStart<T: HasFieldType> {
     pub name: String,
-    pub is_baml_function: bool,
+    pub function_type: FunctionType,
     pub args: Vec<(String, BamlValueWithMeta<T>)>,
     pub options: EvaluationContext,
 }

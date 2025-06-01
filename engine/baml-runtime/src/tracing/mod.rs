@@ -4,7 +4,9 @@ use crate::on_log_event::LogEventCallbackSync;
 use crate::tracingv2::storage::storage::{Collector, BAML_TRACER};
 use crate::InnerTraceStats;
 use anyhow::{Context, Result};
-use baml_types::tracing::events::{EvaluationContext, FunctionStart, TraceData, TraceEvent};
+use baml_types::tracing::events::{
+    EvaluationContext, FunctionStart, FunctionType, TraceData, TraceEvent,
+};
 use baml_types::{BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta};
 use cfg_if::cfg_if;
 use colored::{ColoredString, Colorize};
@@ -449,7 +451,11 @@ impl BamlTracer {
                     .map(|(k, v)| (k, serde_json::to_value(v).unwrap_or_default()))
                     .collect(),
             },
-            is_baml_function,
+            if is_baml_function {
+                FunctionType::BamlLlm
+            } else {
+                FunctionType::Native
+            },
         );
         BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
 
