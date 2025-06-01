@@ -30,24 +30,22 @@ impl From<&BamlTypeId> for UiTypeIdString {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 // TODO: aaron, make this string
-pub struct UiFunctionIdString(
-    #[ts(type = "`${string}##${string}##${string}##${string}`")] BamlFunctionId,
-);
+pub struct UiFunctionIdString(#[ts(type = "`${string}##${string}##${string}##${string}`")] String);
 
 impl From<BamlFunctionId> for UiFunctionIdString {
     fn from(value: BamlFunctionId) -> Self {
-        UiFunctionIdString(value)
+        UiFunctionIdString(value.0.to_string())
     }
 }
 
 impl From<&BamlFunctionId> for UiFunctionIdString {
     fn from(value: &BamlFunctionId) -> Self {
-        UiFunctionIdString(value.clone())
+        UiFunctionIdString(value.0.to_string())
     }
 }
 
 impl UiFunctionIdString {
-    pub fn inner(&self) -> &BamlFunctionId {
+    pub fn inner(&self) -> &String {
         &self.0
     }
 }
@@ -236,7 +234,7 @@ pub enum UiTypeDefinitionData {
 impl From<FunctionDefinition> for UiFunctionDefinition {
     fn from(value: FunctionDefinition) -> Self {
         UiFunctionDefinition {
-            function_id: UiFunctionIdString(value.function_id.as_ref().clone()),
+            function_id: UiFunctionIdString(value.function_id.0.to_string()),
             inputs: value
                 .inputs
                 .into_iter()
