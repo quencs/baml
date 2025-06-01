@@ -36,7 +36,6 @@ impl TypeMetadata {
 /// FieldType represents the type of either a class field or a function arg.
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Hash, TS)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
-// TODO: aaron where is `type_alias`? How does this relate to TypeReference types??
 pub enum TypeReferenceWithMetadata<Metadata> {
     // Unknown type
     Unknown, // Not supported

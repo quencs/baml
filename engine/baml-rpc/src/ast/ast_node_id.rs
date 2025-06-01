@@ -19,6 +19,14 @@ impl AstNodeId {
         self.impl_hash
     }
 
+    pub fn type_name(&self) -> &str {
+        &self.type_name
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn new_ast(interface_hash: u64, impl_hash: Option<u64>) -> Self {
         Self {
             type_name: "ast".to_string(),
@@ -78,7 +86,6 @@ impl std::str::FromStr for AstNodeId {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        log::info!("Parsing AstNodeId from string: {}", s);
         let parts = s.split("##").collect::<Vec<_>>();
         if parts.len() != 4 {
             return Err(anyhow::anyhow!("Invalid unique id: {}", s));

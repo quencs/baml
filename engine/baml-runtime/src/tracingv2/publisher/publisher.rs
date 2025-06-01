@@ -8,6 +8,7 @@ use baml_rpc::{
     CreateTraceEventUploadUrlResponse, S3UploadMetadata, TraceEventBatch,
 };
 use baml_rpc::{NamedType, TypeDefinitionSource};
+use baml_types::FieldType;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use tracing::field;
@@ -362,43 +363,76 @@ impl TracePublisher {
             .collect();
 
         // Convert types
-        let types: Vec<TypeDefinition> = ast
-            .types
-            .iter()
-            .map(|(name, (type_id, _deps))| {
-                let node_id = &(**type_id).0;
-                let type_name = node_id.to_string();
+        let types: Vec<TypeDefinition> =
+            ast.types
+                .iter()
+                .map(|(_name, type_with_deps)| {
+                    let type_id_arc = &type_with_deps.type_id.0;
+                    let dependencies_arc = &type_with_deps.type_id.1;
 
-                if type_name.starts_with("class") {
-                    TypeDefinition::Class {
-                        type_id: (**type_id).clone(),
-                        fields: vec![], // Would need to extract actual fields
-                        source: TypeDefinitionSource::CompileTime,
-                        dependencies: vec![], // Would need actual dependencies
+                    let concrete_type_id = (**type_id_arc).clone();
+                    let concrete_dependencies = (**dependencies_arc).clone();
+
+                    let node_id = &concrete_type_id.0;
+                    let type_name_str = node_id.type_name();
+
+                    match type_name_str {
+                        "class" => {
+                            let fields: Vec<NamedType> = type_with_deps
+                                .class_fields
+                                .as_ref()
+                                .map_or(vec![], |arc_fields| {
+                                    (**arc_fields)
+                                        .iter()
+                                        .map(|(name, field_type_arc)| NamedType {
+                                            name: name.clone(),
+                                            type_ref: (**field_type_arc)
+                                                .into_rpc_event(self.lookup.as_ref()),
+                                        })
+                                        .collect()
+                                });
+                            TypeDefinition::Class {
+                                type_id: concrete_type_id,
+                                fields,
+                                source: TypeDefinitionSource::CompileTime,
+                                dependencies: concrete_dependencies
+                                    .iter()
+                                    .map(|d| d.0.clone())
+                                    .collect(),
+                            }
+                        }
+                        "enum" => {
+                            let values: Vec<String> = type_with_deps
+                                .enum_values
+                                .as_ref()
+                                .map_or(vec![], |arc_values| (**arc_values).clone());
+                            TypeDefinition::Enum {
+                                type_id: concrete_type_id,
+                                values,
+                                source: TypeDefinitionSource::CompileTime,
+                                dependencies: concrete_dependencies
+                                    .iter()
+                                    .map(|d| d.0.clone())
+                                    .collect(),
+                            }
+                        }
+                        "type_alias" => TypeDefinition::Alias {
+                            type_id: concrete_type_id,
+                            rhs: (*type_with_deps.field_type).into_rpc_event(self.lookup.as_ref()),
+                        },
+                        _ => TypeDefinition::Alias {
+                            type_id: concrete_type_id,
+                            rhs: TypeReference::string(),
+                        },
                     }
-                } else if type_name.starts_with("enum") {
-                    TypeDefinition::Enum {
-                        type_id: (**type_id).clone(),
-                        values: vec![], // Would need to extract actual values
-                        source: TypeDefinitionSource::CompileTime,
-                        dependencies: vec![], // Would need actual dependencies
-                    }
-                } else {
-                    // Default to Alias for other types
-                    TypeDefinition::Alias {
-                        type_id: (**type_id).clone(),
-                        rhs: TypeReference::string(), // Default type
-                    }
-                }
-            })
-            .collect();
+                })
+                .collect();
 
         // Convert source_code
         let source_code: Vec<SourceCode> = ast
             .source_code
             .iter()
             .map(|(path, content)| {
-                // TODO(seawatts): Compute a simple hash for content_hash
                 let mut hasher: DefaultHasher = DefaultHasher::new();
                 content.hash(&mut hasher);
                 let content_hash = format!("{:x}", hasher.finish());
@@ -424,6 +458,7 @@ impl TracePublisher {
         {
             Ok(response) => {
                 log::debug!("Successfully uploaded BAML source");
+                log::info!("BAML source uploaded:");
                 Ok(())
             }
             Err(e) => {
@@ -532,6 +567,7 @@ impl TracePublisher {
     ///   2. Append the JSON to a file (using async file I/O on macOS).
     ///   3. Post the JSON to an HTTP API with up to 3 retries.
     async fn process_batch_impl(&self, batch: Vec<Arc<TraceEventWithMeta>>) -> Result<()> {
+        log::info!("Processing {:#?}", batch);
         // Assemble the upload request structure.
         let trace_event_batch = TraceEventBatch {
             events: batch

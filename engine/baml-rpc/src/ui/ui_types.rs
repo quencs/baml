@@ -13,22 +13,23 @@ use crate::{
 // So we don't have "UI*" equivalent types for all runtime types. We just annotate the actual runtimet ypes with the (TS) annotation to export those.
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct UiTypeIdString(#[ts(type = "`${string}##${string}##${string}##${string}`")] BamlTypeId);
+pub struct UiTypeIdString(#[ts(type = "`${string}##${string}##${string}##${string}`")] String);
 
 impl From<BamlTypeId> for UiTypeIdString {
     fn from(value: BamlTypeId) -> Self {
-        UiTypeIdString(value)
+        UiTypeIdString(value.0.to_string())
     }
 }
 
 impl From<&BamlTypeId> for UiTypeIdString {
     fn from(value: &BamlTypeId) -> Self {
-        UiTypeIdString(value.clone())
+        UiTypeIdString(value.0.to_string())
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
+// TODO: aaron, make this string
 pub struct UiFunctionIdString(
     #[ts(type = "`${string}##${string}##${string}##${string}`")] BamlFunctionId,
 );
@@ -259,7 +260,7 @@ impl From<TypeDefinition> for UiTypeDefinition {
                 source,
                 dependencies,
             } => UiTypeDefinition {
-                type_id: UiTypeIdString(type_id),
+                type_id: UiTypeIdString(type_id.0.to_string()),
                 definition: UiTypeDefinitionData::Enum {
                     values,
                     source,
@@ -272,7 +273,7 @@ impl From<TypeDefinition> for UiTypeDefinition {
                 source,
                 dependencies,
             } => UiTypeDefinition {
-                type_id: UiTypeIdString(type_id),
+                type_id: UiTypeIdString(type_id.0.to_string()),
                 definition: UiTypeDefinitionData::Class {
                     fields,
                     source,
@@ -280,7 +281,7 @@ impl From<TypeDefinition> for UiTypeDefinition {
                 },
             },
             TypeDefinition::Alias { type_id, rhs } => UiTypeDefinition {
-                type_id: UiTypeIdString(type_id),
+                type_id: UiTypeIdString(type_id.0.to_string()),
                 definition: UiTypeDefinitionData::Alias { rhs },
             },
         }
