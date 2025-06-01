@@ -47,10 +47,7 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, runtime_api::BamlValue<'a>> for BamlV
             BamlValueWithMeta::Null(_) => baml_rpc::runtime_api::ValueContent::Null,
         };
 
-        baml_rpc::runtime_api::BamlValue {
-            r#type: type_ref,
-            value,
-        }
+        baml_rpc::runtime_api::BamlValue { type_ref, value }
     }
 }
 

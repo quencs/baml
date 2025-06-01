@@ -343,7 +343,7 @@ impl TracePublisher {
                     .iter()
                     .map(|(name, field_type)| NamedType {
                         name: name.clone(),
-                        r#type: field_type.into_rpc_event(self.lookup.as_ref()),
+                        type_ref: field_type.into_rpc_event(self.lookup.as_ref()),
                     })
                     .collect();
 

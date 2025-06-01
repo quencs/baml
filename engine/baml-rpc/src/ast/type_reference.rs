@@ -12,6 +12,7 @@ use ts_rs::TS;
 use super::type_definition::BamlTypeId;
 
 // a type that has checks and asserts (and possibly more) attached.
+// These are all user-defined types. Maybe rename to UserType
 pub type TypeReference = TypeReferenceWithMetadata<TypeMetadata>;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Default, TS)]
@@ -35,7 +36,7 @@ impl TypeMetadata {
 /// FieldType represents the type of either a class field or a function arg.
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Hash, TS)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
-// TODO: aaron where is `type_alias`?
+// TODO: aaron where is `type_alias`? How does this relate to TypeReference types??
 pub enum TypeReferenceWithMetadata<Metadata> {
     // Unknown type
     Unknown, // Not supported

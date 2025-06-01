@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::{
-    base::EpochMsTimestamp, AstNodeId, BamlFunctionId, BamlTypeId, FunctionDefinition, NamedType,
-    TypeDefinition, TypeDefinitionSource, TypeReference,
+    base::EpochMsTimestamp, AstNodeId, BamlFunctionId, BamlTypeId, BamlValue, FunctionDefinition,
+    NamedType, TypeDefinition, TypeDefinitionSource, TypeReference,
 };
 
 // READ
@@ -75,7 +75,7 @@ pub struct UiFunctionCall {
     #[ts(type = "any")]
     pub baml_options: serde_json::Value,
     pub inputs: Vec<UiFunctionInput>,
-    #[ts(type = "any")]
+    #[ts(as = "Option<BamlValue>")]
     pub output: serde_json::Value,
     #[ts(type = "any", optional)]
     pub error: Option<serde_json::Value>,
@@ -126,7 +126,8 @@ pub struct UiHttpCall {
 pub struct UiFunctionInput {
     pub field: String,
     // TODO: this is of type baml-rpc/src/runtime_api/baml_value.rs::BamlValue IIRC.
-    #[ts(type = "any")]
+    // The reason why we dont yet add it in directly is because of the lifetime issues.
+    #[ts(as = "BamlValue")]
     pub value: serde_json::Value,
 }
 
@@ -239,7 +240,7 @@ impl From<FunctionDefinition> for UiFunctionDefinition {
                 .into_iter()
                 .map(|input| NamedType {
                     name: input.name,
-                    r#type: input.r#type,
+                    type_ref: input.type_ref,
                 })
                 .collect(),
             output: value.output.into(),

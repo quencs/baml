@@ -51,7 +51,7 @@ impl TypeDefinition {
 #[serde(rename_all = "snake_case")]
 pub struct NamedType {
     pub name: String,
-    pub r#type: TypeReference,
+    pub type_ref: TypeReference,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Hash, TS)]
