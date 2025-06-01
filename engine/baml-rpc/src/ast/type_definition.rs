@@ -11,6 +11,7 @@ use super::type_reference::TypeReference;
 use crate::ast::ast_node_id::AstNodeId;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, TS)]
+#[ts(export)]
 pub struct BamlTypeId(pub AstNodeId);
 
 /// FieldType represents the type of either a class field or a function arg.

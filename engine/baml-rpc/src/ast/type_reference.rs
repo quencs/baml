@@ -47,7 +47,7 @@ pub enum TypeReferenceWithMetadata<Metadata> {
     Bool(Metadata),
     Null(Metadata),
     Media(MediaTypeDefinition, Metadata),
-    Literal(LiteralTypeDefinition, Metadata),
+    Literal(LiteralType, Metadata),
 
     // Container types
     List(Box<TypeReferenceWithMetadata<Metadata>>, Metadata),
@@ -109,7 +109,7 @@ impl<Metadata: Default> TypeReferenceWithMetadata<Metadata> {
         Self::Media(media_type, Metadata::default())
     }
 
-    pub fn literal(literal_type: LiteralTypeDefinition) -> Self {
+    pub fn literal(literal_type: LiteralType) -> Self {
         Self::Literal(literal_type, Metadata::default())
     }
 
@@ -220,7 +220,8 @@ pub enum MediaTypeDefinition {
 
 /// Subset of [`crate::BamlValue`] allowed for literal type definitions.
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialOrd, Ord, PartialEq, Eq, Hash, TS)]
-pub enum LiteralTypeDefinition {
+#[ts(export)]
+pub enum LiteralType {
     String(String),
     Int(i64),
     Bool(bool),
