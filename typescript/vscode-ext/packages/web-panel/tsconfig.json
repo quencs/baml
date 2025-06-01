@@ -27,5 +27,5 @@
     "../../../common/src/parser_db.ts",
     "../../../baml-schema-wasm-web/dist",
     "../../../playground-common/src/shared/baml-project-panel/vscode.ts"
-  ]
+, "../../../playground-common/src/components/hooks/use-mobile.ts"  ]
 }

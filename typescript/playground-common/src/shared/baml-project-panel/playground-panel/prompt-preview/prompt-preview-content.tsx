@@ -98,7 +98,7 @@ export const NoTestsContent = () => {
         <div className='absolute top-2 right-2'>
           <button
             onClick={handleCopy}
-            className='px-2 py-1 text-xs font-medium rounded shadow-sm bg-background text-muted-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
+            className='px-2 py-1 text-xs font-medium rounded shadow-xs bg-background text-muted-foreground hover:bg-muted focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2'
           >
             {copied ? 'Copied!' : 'Copy'}
           </button>

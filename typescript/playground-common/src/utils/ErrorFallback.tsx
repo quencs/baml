@@ -12,7 +12,7 @@ const ErrorFallback: (message?: string) => React.FC<FallbackProps> = (message) =
       >
         <div className='flex justify-between items-center mb-4'>
           <p className='font-medium text-vscode-foreground'>{message ?? 'Something went wrong'}</p>
-          <Button onClick={resetErrorBoundary} variant='outline' className='hover:bg-vscode-button-hoverBackground'>
+          <Button onClick={resetErrorBoundary} variant='outline' className='hover:bg-vscode-button-hover-background'>
             <RefreshCcw className='w-4 h-4' />
             Reload
           </Button>

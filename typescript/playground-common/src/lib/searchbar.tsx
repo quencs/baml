@@ -69,7 +69,7 @@ const SearchBarWithSelector: React.FC<{
                 'cursor-pointer w-full',
                 'py-0.5 px-1 rounded-md',
                 highlightedIndex === index
-                  ? 'bg-vscode-menu-selectionBackground text-vscode-menu-selectionForeground'
+                  ? 'bg-vscode-menu-selection-background text-vscode-menu-selection-foreground'
                   : '',
               )}
               onClick={() => {
@@ -80,7 +80,7 @@ const SearchBarWithSelector: React.FC<{
             >
               <div className='flex flex-col'>
                 <div>{option.label ?? option.value}</div>
-                {option.content && <div className='text-xs text-vscode-descriptionForeground'>{option.content}</div>}
+                {option.content && <div className='text-xs text-vscode-description-foreground'>{option.content}</div>}
               </div>
             </div>
           ))

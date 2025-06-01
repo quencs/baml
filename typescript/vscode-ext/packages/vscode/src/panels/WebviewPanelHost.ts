@@ -167,26 +167,61 @@ export class WebviewPanelHost {
    * rendered within the webview panel
    */
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
+    const isProd = process.env.NODE_ENV === 'production'
+    const localPort = '3000'
+    const localServerUrl = `localhost:${localPort}`
+
     // The CSS file from the React dist output
-    const stylesUri = getUri(webview, extensionUri, ['web-panel', 'dist', 'assets', 'index.css'])
+    const stylesUri = isProd
+      ? getUri(webview, extensionUri, ['web-panel', 'dist', 'assets', 'index.css'])
+      : `http://${localServerUrl}/src/index.css`
+
     // The JS file from the React dist output
-    const scriptUri = getUri(webview, extensionUri, ['web-panel', 'dist', 'assets', 'index.js'])
+    const scriptUri = isProd
+      ? getUri(webview, extensionUri, ['web-panel', 'dist', 'assets', 'index.js'])
+      : `http://${localServerUrl}/src/main.tsx`
 
     const nonce = getNonce()
 
-    // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
+    const reactRefresh = /*html*/ `
+      <script type="module">
+        import RefreshRuntime from "http://localhost:3000/@react-refresh"
+        RefreshRuntime.injectIntoGlobalHook(window)
+        window.$RefreshReg$ = () => {}
+        window.$RefreshSig$ = () => (type) => type
+        window.__vite_plugin_react_preamble_installed__ = true
+      </script>`
+
+    const reactRefreshHash = 'sha256-HjGiRduPjIPUqpgYIIsmVtkcLmuf/iR80mv9eslzb4I='
+
+    const csp = [
+      `default-src 'none';`,
+      `script-src 'unsafe-eval' https://* ${
+        isProd ? `'nonce-${nonce}'` : `http://${localServerUrl} http://0.0.0.0:${localPort} '${reactRefreshHash}'`
+      }`,
+      `style-src ${webview.cspSource} 'self' 'unsafe-inline' https://*`,
+      `font-src ${webview.cspSource}`,
+      `connect-src https://* ${
+        isProd
+          ? ``
+          : `ws://${localServerUrl} ws://0.0.0.0:${localPort} http://${localServerUrl} http://0.0.0.0:${localPort}`
+      }`,
+    ]
+
     return /*html*/ `
           <!DOCTYPE html>
           <html lang="en">
             <head>
               <meta charset="UTF-8" />
+              <meta http-equiv="Content-Security-Policy" content="${csp.join('; ')}">
               <meta name="viewport" content="width=device-width, initial-scale=1.0" />
               <link rel="stylesheet" type="text/css" href="${stylesUri}">
-              <title>Hello World</title>
+              <title>BAML Playground</title>
             </head>
             <body>
               <div id="root">Waiting for react: ${scriptUri}</div>
-              <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+              ${isProd ? '' : reactRefresh}
+              <script type="module" ${isProd ? `nonce="${nonce}"` : ''} src="${scriptUri}"></script>
             </body>
           </html>`
   }

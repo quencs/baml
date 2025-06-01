@@ -406,7 +406,7 @@ export const CodeMirrorViewer = ({
         />
         {/* {modified && (
           <>
-            <div className="absolute right-0 bottom-0 left-0 h-40 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+            <div className="absolute right-0 bottom-0 left-0 h-40 bg-linear-to-t from-white to-transparent pointer-events-none" />
             <div className="flex absolute right-0 left-0 bottom-10 justify-center">
               <div className="flex gap-2 items-center px-4 py-2 bg-white rounded-full shadow-lg">
                 <AlertTriangle className="w-4 h-4 text-yellow-500" />

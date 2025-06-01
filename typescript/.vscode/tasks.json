@@ -2,12 +2,39 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Watch All",
-      "dependsOn": ["Watch Web Panel", "Watch VSCode Extension"],
+      "label": "npm: build-vscode",
+      "type": "npm",
+      "script": "build",
+      "path": "vscode-ext/packages/vscode",
+      "group": "build",
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc"
+      }
+    },
+    {
+      "label": "npm: build-language-server",
+      "type": "npm",
+      "script": "build",
+      "path": "vscode-ext/packages/language-server",
+      "group": "build",
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc"
+      }
+    },
+    {
+      "label": "Build All",
+      "dependsOn": ["npm: build-vscode", "npm: build-language-server"],
       "group": {
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "Watch All",
+      "dependsOn": ["Watch Web Panel", "Watch VSCode Extension"],
+      "group": "none"
     },
     {
       "label": "Terminate All",

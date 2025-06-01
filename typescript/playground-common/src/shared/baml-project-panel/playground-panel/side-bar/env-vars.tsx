@@ -100,7 +100,7 @@ function EnvVarStatus({ value, required }: { value?: string; required: boolean }
       <TooltipProvider delayDuration={300}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <AlertTriangle className='h-4 w-4 text-orange-500 flex-shrink-0' />
+            <AlertTriangle className='h-4 w-4 text-orange-500 shrink-0' />
           </TooltipTrigger>
           <TooltipContent side='top' className='text-xs'>
             {value ? 'Click to edit' : REQUIRED_ENV_VAR_UNSET_WARNING}
@@ -115,7 +115,7 @@ function EnvVarStatus({ value, required }: { value?: string; required: boolean }
       <TooltipProvider delayDuration={300}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Check className='h-4 w-4 text-green-500 flex-shrink-0' />
+            <Check className='h-4 w-4 text-green-500 shrink-0' />
           </TooltipTrigger>
           <TooltipContent side='top' className='text-xs'>
             Used by one of your BAML clients

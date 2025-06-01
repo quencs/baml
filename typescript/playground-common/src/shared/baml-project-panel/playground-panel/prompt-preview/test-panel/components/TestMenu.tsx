@@ -1,4 +1,4 @@
-import { FastForward, History, RefreshCw, Rocket } from 'lucide-react'
+import { FastForward, History, RefreshCw, Rocket, Split } from 'lucide-react'
 
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useAtom } from 'jotai'
@@ -197,7 +197,7 @@ const ParallelTestsToggle = () => {
             )}
             onClick={() => setIsParallelTestsEnabled(!isParallelTestsEnabled)}
           >
-            <Rocket className='w-4 h-4' />
+            <Split className='w-4 h-4' />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

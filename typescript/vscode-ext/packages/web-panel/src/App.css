@@ -1,68 +1,185 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+/* @import "@tailwindcss/typography"; */
+/* @import "@tailwindcss/forms"; */
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 210 40% 98%;
-    --ring: 215 20.2% 65.1%;
-    --radius: 0.5rem;
+@plugin "tailwindcss-animate";
+@plugin "@githubocto/tailwind-vscode";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(98.46% 0.002 247.84);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.6 0.118 184.704);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.5rem;
+
+  /* Animation durations */
+  --animation-duration-fast: 0.15s;
+  --animation-duration-normal: 0.3s;
+  --animation-duration-slow: 0.5s;
+  --animation-duration-very-slow: 0.8s;
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar-primary: hsl(240 5.9% 10%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+.dark {
+  --background: oklch(21.03% 0.006 285.89);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.6 0.118 184.704);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.556 0 0);
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+@theme inline {
+  --color-background: var(--vscode-editor-background, var(--background));
+  --color-foreground: var(--vscode-editor-foreground, var(--foreground));
+  --color-card: var(--vscode-editor-background, var(--card));
+  --color-card-foreground: var(--vscode-editor-foreground, var(--card-foreground));
+  --color-popover: var(--vscode-editor-background, var(--popover));
+  --color-popover-foreground: var(--vscode-editor-foreground, var(--popover-foreground));
+  --color-primary: var(--vscode-button-foreground, var(--primary));
+  --color-primary-foreground: var(--vscode-button-background, var(--primary-foreground));
+  --color-secondary: var(--vscode-badge-background, var(--secondary));
+  --color-secondary-foreground: var(--vscode-badge-foreground, var(--secondary-foreground));
+  --color-muted: var(--vscode-editor-inactiveSelectionBackground, var(--muted));
+  --color-muted-foreground: var(--vscode-descriptionForeground, var(--muted-foreground));
+  --color-accent: var(--vscode-list-activeSelectionBackground, var(--accent));
+  --color-accent-foreground: var(--vscode-list-activeSelectionForeground, var(--accent-foreground));
+  --color-destructive: var(--vscode-errorForeground, var(--destructive));
+  --color-destructive-foreground: var(--vscode-editor-background, var(--destructive-foreground));
+  --color-border: var(--vscode-panel-border, var(--border));
+  --color-input: var(--vscode-input-background, var(--input));
+  --color-ring: var(--vscode-focusBorder, var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-slide-down: slide-down 300ms cubic-bezier(0.87, 0, 0.13, 1);
+  --animate-slide-up: slide-up 300ms cubic-bezier(0.87, 0, 0.13, 1);
+  --scaleIn: scaleIn 200ms ease;
+  --scaleOut: scaleOut 200ms ease;
+  --fadeIn: fadeIn 200ms ease;
+  --fadeOut: fadeOut 200ms ease;
+  --color-sidebar-ring: var(--vscode-focusBorder, var(--sidebar-ring));
+  --color-sidebar-border: var(--vscode-sideBar-border, var(--sidebar-border));
+  --color-sidebar-accent-foreground: var(--vscode-list-hoverForeground, var(--sidebar-accent-foreground));
+  --color-sidebar-accent: var(--vscode-list-hoverBackground, var(--sidebar-accent));
+  --color-sidebar-primary-foreground: var(--vscode-sideBarSectionHeader-foreground, var(--sidebar-primary-foreground));
+  --color-sidebar-primary: var(--vscode-sideBarSectionHeader-background, var(--sidebar-primary));
+  --color-sidebar-foreground: var(--vscode-sideBar-foreground, var(--sidebar-foreground));
+  --color-sidebar: var(--vscode-sideBar-background, var(--sidebar));
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
   }
 
-  .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 81%;
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 215 20.2% 65.1%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --ring: 216 34% 17%;
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+
+  @keyframes slide-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+
+  @keyframes slide-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: rotateX(-30deg) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: rotateX(0deg) scale(1);
+    }
+  }
+
+  @keyframes scaleOut {
+    from {
+      opacity: 1;
+      transform: rotateX(0deg) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: rotateX(-10deg) scale(0.95);
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
   }
 }
 
-@keyframes rotate {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply p-0;
+    @apply bg-background text-foreground p-0;
   }
 }
 
@@ -72,7 +189,7 @@
 }
 
 .array-item {
-  @apply text-xs text-vscode-descriptionForeground w-full;
+  @apply text-xs text-vscode-description-foreground w-full;
 }
 
 .field-array {
@@ -84,7 +201,7 @@
 } */
 
 .array-item-list {
-  @apply divide-y divide-vscode-textSeparator-foreground w-full;
+  @apply divide-y divide-vscode-text-separator-foreground w-full;
 }
 
 /* .array-item-remove::after {
@@ -263,69 +380,46 @@
   background-color: var(--vscode-terminal-ansiWhite);
   opacity: 0.3;
 }
-.fullScreenSheet {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 9999; /* Ensure it covers other content */
-  overflow-y: auto;
-}
 
-.tree-container .node {
-  padding: 10px; /* Adds padding to each node */
-}
+/* Tree container styles */
+.tree-container {
+  @apply space-y-2;
 
-.tree-container .node-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis; /* Ensures text is truncated with ellipsis if it overflows */
-}
+  .node {
+    @apply p-2.5;
+  }
 
-/* TextComponent.css */
-.text-component {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px;
-}
+  .node-text {
+    @apply whitespace-nowrap overflow-hidden text-ellipsis;
+  }
 
-.text-blob {
-  font-size: 18px;
-  padding: 20px;
-  background-color: #f0f0f0;
-  border-radius: 8px;
-}
-
-/* Ensure arrows and icons have appropriate spacing */
-.tree-container .arrow,
-.tree-container .icon {
-  margin-right: 8px;
+  .arrow,
+  .icon {
+    @apply mr-2;
+  }
 }
 
 .node-container {
-  padding: 8px 16px;
-  font-size: 14px;
+  @apply py-2 px-4 text-sm;
 }
 
 .node-icon {
-  margin-right: 8px;
+  @apply mr-2;
 }
 
 .node-text {
-  font-size: 16px;
+  @apply text-base;
 }
 
 .file-folder-icon {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
 }
 
 .arrow {
-  margin-right: 8px;
+  @apply mr-2;
 }
 
+/* Widget positioning */
 #cw-widget-holder {
   @apply left-0 ml-0;
 }
@@ -350,4 +444,27 @@ button.woot-elements--right:nth-child(2) {
 
 .w-rjv-line {
   @apply text-xs;
+}
+
+/* Full screen sheet */
+.fullScreenSheet {
+  @apply fixed inset-0 w-full h-full z-[9999] overflow-y-auto;
+}
+
+/* Text component */
+.text-component {
+  @apply flex flex-col gap-5 p-5;
+}
+
+.text-blob {
+  @apply text-lg p-5 bg-[#f0f0f0] rounded-lg;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

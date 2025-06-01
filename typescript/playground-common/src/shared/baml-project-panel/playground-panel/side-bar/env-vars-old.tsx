@@ -242,7 +242,7 @@ export default function EnvVars() {
             placeholder='Var name'
             className='h-8 text-xs'
           />
-          <Button size='sm' variant={'outline'} onClick={handleAddNew}>
+          <Button size='sm' variant={'outline-solid'} onClick={handleAddNew}>
             <PlusCircle className='mr-2 w-4 h-4' />
             Add
           </Button>

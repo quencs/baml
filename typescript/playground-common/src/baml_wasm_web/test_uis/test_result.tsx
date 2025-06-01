@@ -53,17 +53,17 @@
 // const TestStatusMessage: React.FC<{ testStatus: DoneTestStatusType }> = ({ testStatus }) => {
 //   switch (testStatus) {
 //     case 'passed':
-//       return <div className='text-vscode-testing-iconPassed'>Passed</div>
+//       return <div className='text-vscode-testing-icon-passed'>Passed</div>
 //     case 'llm_failed':
-//       return <div className='text-vscode-testing-iconFailed'>LLM Failed</div>
+//       return <div className='text-vscode-testing-icon-failed'>LLM Failed</div>
 //     case 'parse_failed':
-//       return <div className='text-vscode-testing-iconFailed'>Parse Failed</div>
+//       return <div className='text-vscode-testing-icon-failed'>Parse Failed</div>
 //     case 'finish_reason_failed':
-//       return <div className='text-vscode-testing-iconFailed'>Finish Reason Failed</div>
+//       return <div className='text-vscode-testing-icon-failed'>Finish Reason Failed</div>
 //     case 'constraints_failed':
-//       return <div className='text-vscode-testing-iconFailed'>Constraints Failed</div>
+//       return <div className='text-vscode-testing-icon-failed'>Constraints Failed</div>
 //     case 'error':
-//       return <div className='text-vscode-testing-iconFailed'>Unable to run</div>
+//       return <div className='text-vscode-testing-icon-failed'>Unable to run</div>
 //   }
 // }
 
@@ -73,7 +73,7 @@
 //   traceUrl?: string
 // }> = ({ testRunStatus, testStatus, traceUrl }) => {
 //   const testStatusIcon = (
-//     <div className='text-vscode-descriptionForeground'>
+//     <div className='text-vscode-description-foreground'>
 //       {
 //         {
 //           queued: 'Queued',
@@ -86,7 +86,7 @@
 //           ),
 //           error: (
 //             <div className='flex flex-row gap-1 items-center'>
-//               <div className='text-vscode-testing-iconFailed'>Unable to run</div>
+//               <div className='text-vscode-testing-icon-failed'>Unable to run</div>
 //             </div>
 //           ),
 //         }[testRunStatus]
@@ -173,7 +173,7 @@
 //       <div className='flex relative flex-col'>
 //         <div className='flex flex-row'>Pre-parse Error</div>
 //         <div className='relative px-1 py-2'>
-//           {failure && <pre className='text-xs whitespace-pre-wrap text-vscode-errorForeground'>{failure}</pre>}
+//           {failure && <pre className='text-xs whitespace-pre-wrap text-vscode-error-foreground'>{failure}</pre>}
 //         </div>
 //       </div>
 //     )
@@ -242,7 +242,7 @@
 //               />
 //               <div className='flex absolute right-2 top-3 items-center'>
 //                 <button
-//                   className='text-vscode-descriptionForeground hover:text-vscode-foreground'
+//                   className='text-vscode-description-foreground hover:text-vscode-foreground'
 //                   onClick={() => copyToClipboard(JSON.stringify(sorted_parsed, null, 2), setCopiedParsed)}
 //                 >
 //                   {copiedParsed ? <Check size={16} /> : <Copy size={16} />}
@@ -253,7 +253,7 @@
 //           ) : (
 //             <>
 //               {failure && doneStatus === 'parse_failed' && (
-//                 <pre className='text-xs whitespace-pre-wrap text-vscode-errorForeground'>{failure}</pre>
+//                 <pre className='text-xs whitespace-pre-wrap text-vscode-error-foreground'>{failure}</pre>
 //               )}
 //               {parsed !== undefined && (
 //                 <>
@@ -267,7 +267,7 @@
 //                   />
 //                   <div className='flex absolute right-2 top-3 items-center'>
 //                     <button
-//                       className='text-vscode-descriptionForeground hover:text-vscode-foreground'
+//                       className='text-vscode-description-foreground hover:text-vscode-foreground'
 //                       onClick={() => copyToClipboard(JSON.stringify(sorted_parsed, null, 2), setCopiedParsed)}
 //                     >
 //                       {copiedParsed ? <Check size={16} /> : <Copy size={16} />}
@@ -326,12 +326,12 @@
 //     <div className='flex flex-col gap-1 w-full'>
 //       {failure !== undefined &&
 //         !(doneStatus === 'parse_failed' || (doneStatus === 'llm_failed' && (llm_response || llm_failure))) && (
-//           <div className='text-xs whitespace-pre-wrap text-vscode-errorForeground'>
+//           <div className='text-xs whitespace-pre-wrap text-vscode-error-foreground'>
 //             {failure || '<no failure message>'}
 //           </div>
 //         )}
 //       {(llm_response || llm_failure) && (
-//         <div className='w-full text-xs text-vscode-descriptionForeground'>
+//         <div className='w-full text-xs text-vscode-description-foreground'>
 //           <div>
 //             <b>{latencyMs?.toString()}ms</b> using <b>{client}</b>
 //             {detailsText}
@@ -358,7 +358,7 @@
 //                   </pre>
 //                 )}
 //                 {llm_failure && (
-//                   <pre className='text-xs whitespace-pre-wrap text-vscode-errorForeground'>
+//                   <pre className='text-xs whitespace-pre-wrap text-vscode-error-foreground'>
 //                     <b>{llm_failure.code}</b>
 //                     <br />
 //                     {llm_failure.message}
@@ -399,7 +399,7 @@
 //   return (
 //     <div className='flex flex-col gap-1 w-full'>
 //       {(llm_response || llm_failure) && (
-//         <div className='w-full text-xs text-vscode-descriptionForeground'>
+//         <div className='w-full text-xs text-vscode-description-foreground'>
 //           <div>
 //             <b>{latencyMs?.toString()}ms</b> using <b>{client}</b> {model && <>(model: {model})</>}{' '}
 //           </div>
@@ -413,7 +413,7 @@
 //                   </pre>
 //                 )}
 //                 {llm_failure && (
-//                   <pre className='text-xs whitespace-pre-wrap text-vscode-errorForeground'>
+//                   <pre className='text-xs whitespace-pre-wrap text-vscode-error-foreground'>
 //                     <b>{llm_failure.code}</b>
 //                     <br />
 //                     {llm_failure.message}
@@ -446,7 +446,7 @@
 //                     src={sorted_parsed}
 //                   />
 //                 ) : (
-//                   <pre className='text-xs whitespace-pre-wrap text-vscode-errorForeground'>
+//                   <pre className='text-xs whitespace-pre-wrap text-vscode-error-foreground'>
 //                     Waiting for a parsable-reply
 //                   </pre>
 //                 )}
@@ -479,14 +479,14 @@
 //             traceUrl={test.status === 'done' ? test.response.trace_url() : undefined}
 //           />
 //         </div>
-//         {test.status === 'error' && <div className='text-xs text-vscode-errorForeground'>{test.message}</div>}
+//         {test.status === 'error' && <div className='text-xs text-vscode-error-foreground'>{test.message}</div>}
 //         {test.status === 'running' && test.response && (
-//           <div className='text-xs text-vscode-descriptionForeground'>
+//           <div className='text-xs text-vscode-description-foreground'>
 //             <LLMFunctionResult test={test.response} />
 //           </div>
 //         )}
 //         {test.status === 'done' && (
-//           <div className='text-xs text-vscode-descriptionForeground'>
+//           <div className='text-xs text-vscode-description-foreground'>
 //             <LLMTestResult test={test.response} doneStatus={test.response_status} testLatency={test.latency_ms} />
 //           </div>
 //         )}
@@ -503,10 +503,10 @@
 // }) => {
 //   return (
 //     <Badge
-//       className={`flex flex-row items-center gap-1 cursor-pointer bg-vscode-list-inactiveSelectionBackground ${
+//       className={`flex flex-row items-center gap-1 cursor-pointer bg-vscode-list-inactive-selection-background ${
 //         selected
-//           ? 'text-vscode-list-activeSelectionForeground'
-//           : 'text-vscode-list-inactiveSelectionForeground bg-vscode-button-backgroundHover'
+//           ? 'text-vscode-list-active-selection-foreground'
+//           : 'text-vscode-list-inactive-selection-foreground bg-vscode-button-backgroundHover'
 //       }`}
 //       onClick={onClick}
 //     >
@@ -724,10 +724,10 @@
 //       <div className='flex flex-row gap-2 items-center'>
 //         <Badge
 //           className={clsx(
-//             'cursor-pointer hover:bg-vscode-tab-activeBackground',
+//             'cursor-pointer hover:bg-vscode-tab-active-background',
 //             showTests || showClientGraph
 //               ? 'bg-transparent text-vscode-foreground'
-//               : 'bg-vscode-tab-activeBackground text-vscode-tab-activeForeground underline',
+//               : 'bg-vscode-tab-active-background text-vscode-tab-active-foreground underline',
 //           )}
 //           onClick={() => {
 //             setShowTests(false)
@@ -738,9 +738,9 @@
 //         </Badge>
 //         <Badge
 //           className={clsx(
-//             'cursor-pointer hover:bg-vscode-tab-activeBackground',
+//             'cursor-pointer hover:bg-vscode-tab-active-background',
 //             showTests && !showClientGraph
-//               ? 'bg-vscode-tab-activeBackground text-vscode-tab-activeForeground underline'
+//               ? 'bg-vscode-tab-active-background text-vscode-tab-active-foreground underline'
 //               : 'bg-transparent text-vscode-foreground',
 //           )}
 //           onClick={() => {
@@ -754,9 +754,9 @@
 //         </Badge>
 //         <Badge
 //           className={clsx(
-//             'cursor-pointer hover:bg-vscode-tab-activeBackground',
+//             'cursor-pointer hover:bg-vscode-tab-active-background',
 //             showClientGraph
-//               ? 'underline bg-vscode-tab-activeBackground text-vscode-tab-activeForeground'
+//               ? 'underline bg-vscode-tab-active-background text-vscode-tab-active-foreground'
 //               : 'bg-transparent text-vscode-foreground',
 //           )}
 //           onClick={() => {
@@ -784,7 +784,7 @@
 //       <Button
 //         variant={'ghost'}
 //         size={'icon'}
-//         className='p-1 rounded-md w-fit h-fit bg-vscode-button-background text-vscode-button-foreground hover:bg-vscode-button-hoverBackground'
+//         className='p-1 rounded-md w-fit h-fit bg-vscode-button-background text-vscode-button-foreground hover:bg-vscode-button-hover-background'
 //         disabled={isRunning}
 //         onClick={() => {
 //           run([testName])
@@ -828,11 +828,11 @@
 //   return (
 //     <Dialog open={show} onOpenChange={setShow}>
 //       <DialogTrigger asChild={true}>
-//         <Button variant='outline' className='p-1 text-xs truncate w-fit h-fit border-vscode-textSeparator-foreground'>
+//         <Button variant='outline' className='p-1 text-xs truncate w-fit h-fit border-vscode-text-separator-foreground'>
 //           <PlusIcon size={16} /> New Test
 //         </Button>
 //       </DialogTrigger>
-//       <DialogContent className='max-h-screen min-h-[50%] overflow-y-auto bg-purple-400 bg-vscode-editorWidget-background border-vscode-textSeparator-foreground overflow-x-clip'>
+//       <DialogContent className='max-h-screen min-h-[50%] overflow-y-auto bg-purple-400 bg-vscode-editor-widget-background border-vscode-text-separator-foreground overflow-x-clip'>
 //         <div className='flex flex-col w-full h-full'>
 //           <FunctionTestSnippet />
 //         </div>
@@ -873,13 +873,13 @@
 //           )}
 //         </div>
 //         {isRunning ? (
-//           <VSCodeButton className='bg-vscode-statusBarItem-errorBackground' disabled onClick={() => {}}>
+//           <VSCodeButton className='bg-vscode-status-bar-item-error-background' disabled onClick={() => {}}>
 //             Cancel Not Supported
 //           </VSCodeButton>
 //         ) : (
 //           <>
 //             <Button
-//               className='px-1 py-1 text-xs whitespace-nowrap bg-red-500 rounded-sm h-fit bg-vscode-button-background text-vscode-button-foreground hover:bg-vscode-button-hoverBackground'
+//               className='px-1 py-1 text-xs whitespace-nowrap bg-red-500 rounded-sm h-fit bg-vscode-button-background text-vscode-button-foreground hover:bg-vscode-button-hover-background'
 //               disabled={testCases.length === 0}
 //               onClick={() => {
 //                 run(testCases.map((t) => t.name))
@@ -931,7 +931,7 @@
 
 // const TestCaseCard: React.FC<{ test_case: WasmTestCase }> = ({ test_case }) => {
 //   return (
-//     <div className='flex flex-col gap-2 max-w-full text-xs text-left truncate text-vscode-descriptionForeground'>
+//     <div className='flex flex-col gap-2 max-w-full text-xs text-left truncate text-vscode-description-foreground'>
 //       <div className='whitespace-pre-wrap break-all'>
 //         <div className='flex flex-col'>
 //           {test_case.inputs.map((input) => (
@@ -949,7 +949,7 @@
 //                 />
 //               )}
 //               {input.error && (
-//                 <pre className='break-words whitespace-pre-wrap w-full border-vscode-textSeparator-foreground rounded-md border p-0.5'>
+//                 <pre className='break-words whitespace-pre-wrap w-full border-vscode-text-separator-foreground rounded-md border p-0.5'>
 //                   {input.error}
 //                 </pre>
 //               )}

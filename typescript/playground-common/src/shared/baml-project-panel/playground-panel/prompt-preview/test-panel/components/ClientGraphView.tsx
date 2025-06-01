@@ -42,7 +42,7 @@ const ClientHeader: React.FC = () => {
         <span className='pl-2 text-xs text-muted-foreground flex flex-row flex-wrap items-center gap-0.5'>
           {clientsArray.length > 1 && `Attempt ${orchIndex} in Client Graph`}
         </span>
-        <div className='max-w-[300px] justify-start items-center flex hover:bg-vscode-button-hoverBackground h-fit rounded-md text-vscode-foreground cursor-pointer'>
+        <div className='max-w-[300px] justify-start items-center flex hover:bg-vscode-button-hover-background h-fit rounded-md text-vscode-foreground cursor-pointer'>
           <span className='px-2 py-1 w-full text-left truncate'>{currentClient}</span>
         </div>
       </div>

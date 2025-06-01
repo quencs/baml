@@ -63,7 +63,7 @@ const TestResult = ({ testId, historicalResponse }: { testId: TestId; historical
       ref={cardRef}
       className={cn(
         'flex cursor-pointer flex-col gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/70 dark:bg-muted/20',
-        isSelected && 'border-purple-500/20 shadow-sm dark:border-purple-900/30 dark:bg-muted/90',
+        isSelected && 'border-purple-500/20 shadow-xs dark:border-purple-900/30 dark:bg-muted/90',
       )}
       onClick={() => setSelectedItem(testId.functionName, testId.testName)}
     >

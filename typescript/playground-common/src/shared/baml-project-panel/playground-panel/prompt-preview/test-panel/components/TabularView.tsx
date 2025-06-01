@@ -225,7 +225,7 @@ export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
                 ref={isSelected ? selectedRowRef : null}
                 className={cn(
                   'relative cursor-pointer transition-colors hover:bg-muted/70',
-                  isSelected && 'border-purple-500/20 shadow-sm dark:border-purple-900/30 dark:bg-muted/90',
+                  isSelected && 'border-purple-500/20 shadow-xs dark:border-purple-900/30 dark:bg-muted/90',
                 )}
                 onClick={() => setSelectedItem(test.functionName, test.testName)}
               >

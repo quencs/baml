@@ -8,7 +8,7 @@ import 'jotai-devtools/styles.css'
 import { vscode } from '@/shared/baml-project-panel/vscode'
 // import { vscode } from '../../../../../playground-common/src/shared/baml-project-panel/vscode'
 
-export const atomStore = createStore()
+export const atomStore: ReturnType<typeof createStore> = createStore()
 
 function setVSCodeState(state: any) {
   vscode.setState(state)
