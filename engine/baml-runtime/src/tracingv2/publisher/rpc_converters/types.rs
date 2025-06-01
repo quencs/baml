@@ -54,7 +54,7 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, runtime_api::BamlValue<'a>> for BamlV
 impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType {
     fn into_rpc_event(&'a self, lookup: &(impl TypeLookup + ?Sized)) -> baml_rpc::TypeReference {
         let simplified = self.simplify();
-        use baml_rpc::{LiteralTypeDefinition, MediaTypeDefinition, TypeMetadata, TypeReference};
+        use baml_rpc::{LiteralType, MediaTypeDefinition, TypeMetadata, TypeReference};
         match simplified {
             baml_types::FieldType::Primitive(type_value) => match type_value {
                 baml_types::TypeValue::String => TypeReference::string(),
@@ -75,9 +75,9 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType
                 .unwrap_or(TypeReference::Unknown),
             baml_types::FieldType::Literal(literal_value) => {
                 TypeReference::literal(match literal_value {
-                    baml_types::LiteralValue::String(s) => LiteralTypeDefinition::String(s),
-                    baml_types::LiteralValue::Int(i) => LiteralTypeDefinition::Int(i),
-                    baml_types::LiteralValue::Bool(b) => LiteralTypeDefinition::Bool(b),
+                    baml_types::LiteralValue::String(s) => LiteralType::String(s),
+                    baml_types::LiteralValue::Int(i) => LiteralType::Int(i),
+                    baml_types::LiteralValue::Bool(b) => LiteralType::Bool(b),
                 })
             }
             baml_types::FieldType::Class(name) => lookup

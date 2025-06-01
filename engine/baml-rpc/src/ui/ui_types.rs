@@ -128,7 +128,7 @@ pub struct UiFunctionInput {
     // TODO: this is of type baml-rpc/src/runtime_api/baml_value.rs::BamlValue IIRC.
     // The reason why we dont yet add it in directly is because of the lifetime issues.
     #[ts(as = "BamlValue")]
-    pub value: serde_json::Value,
+    pub baml_value: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize, Serialize, TS)]
