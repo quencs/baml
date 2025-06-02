@@ -52,7 +52,7 @@ public class BamlLanguageServerInstaller extends LanguageServerInstallerBase {
         downloadFile(urlStr, TAR_GZ_PATH);
         // Step 2: Extract the archive
         extractTarGz(TAR_GZ_PATH, BAML_CACHE_DIR);
-        // TODO: make extracted files writable
+        // TODO: make extracted files executable
 //        Files.writeString(BREADCRUMB_PATH, "baml-cli installed", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
         progress("Installation complete!", 1.0, indicator);
