@@ -356,7 +356,7 @@ fn test_deserialize_list_function_calls_request_with_start_time() {
         "projectId": "proj_01jvb3fnp1f09ta2a6g016t4kz",
         "startTime": {
             "operator": "gte",
-            "value": 4294967295
+            "value": 1748895831481
         }
     }"#;
 
@@ -370,7 +370,7 @@ fn test_deserialize_list_function_calls_request_with_start_time() {
     match request.start_time {
         Some(FilterExpression::Numeric { operator, value }) => {
             assert!(matches!(operator, NumericOperator::Gte));
-            assert_eq!(value, 4294967295);
+            assert_eq!(value, 1748895831481);
         }
         _ => panic!("Expected Numeric filter expression for startTime"),
     }
