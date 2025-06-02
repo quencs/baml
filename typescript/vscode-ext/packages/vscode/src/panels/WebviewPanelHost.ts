@@ -218,7 +218,7 @@ export class WebviewPanelHost {
               <link rel="stylesheet" type="text/css" href="${stylesUri}">
               <title>BAML Playground</title>
             </head>
-            <body>
+            <body style="margin: 0; padding: 0;">
               <div id="root">Waiting for react: ${scriptUri}</div>
               ${isProd ? '' : reactRefresh}
               <script type="module" ${isProd ? `nonce="${nonce}"` : ''} src="${scriptUri}"></script>

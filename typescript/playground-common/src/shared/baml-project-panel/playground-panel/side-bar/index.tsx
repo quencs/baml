@@ -96,51 +96,49 @@ export default function CustomSidebar({ isEmbed = false }: { isEmbed?: boolean }
   const maybe_mask = functionsAreStale ? 'pointer-events-none opacity-50' : ''
 
   return (
-    <SidebarProvider defaultOpen={isOpen} onOpenChange={setIsOpen}>
-      <div className={cn('flex relative', maybe_mask)}>
-        <Sidebar variant="sidebar" collapsible="icon" className="border-l border-border bg-background/50">
-          <SidebarHeader className="h-[60px] px-4">
-            <div className="relative w-full">
-              <div className="absolute inset-0 -m-0.5 rounded-md transition-all" />
-              <div className="flex relative items-center">
-                <Search className="absolute left-2 top-1/2 w-3 h-3 text-gray-400 -translate-y-1/2" />
-                <Input
-                  placeholder="Filter Tests"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex px-8 py-2 w-full h-9 text-xs rounded-md border border-input bg-background focus:outline-hidden focus:ring-2 focus:ring-ring max-w-[140px]"
-                />
-              </div>
+    <div className={cn('flex relative', maybe_mask)}>
+      <Sidebar variant="inset" collapsible="offcanvas" className="border-r border-border bg-background/50" side="right">
+        <SidebarHeader className="h-[60px] px-4">
+          <div className="relative w-full">
+            <div className="absolute inset-0 -m-0.5 rounded-md transition-all" />
+            <div className="flex relative items-center">
+              <Search className="absolute left-2 top-1/2 w-3 h-3 text-gray-400 -translate-y-1/2" />
+              <Input
+                placeholder="Filter Tests"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex px-8 py-2 w-full h-9 text-xs rounded-md border border-input bg-background focus:outline-hidden focus:ring-2 focus:ring-ring"
+              />
             </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <ScrollArea className="flex w-full h-full" type="always">
-              <SidebarMenu>
-                {filteredFunctions.length > 0 && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={handleRunFilteredTests}
-                      className="flex justify-between items-center w-full"
-                    >
-                      <span>Run tests below</span>
-                      <Play className="ml-2 w-3 h-3" />
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-                {filteredFunctions.map((func) => (
-                  <FunctionItem
-                    key={func.name}
-                    label={func.name}
-                    tests={func.tests}
-                    searchTerm={searchTerm}
-                  />
-                ))}
-              </SidebarMenu>
-            </ScrollArea>
-          </SidebarContent>
-        </Sidebar>
-      </div>
-    </SidebarProvider>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <ScrollArea className="flex w-full h-full" type="always">
+            <SidebarMenu>
+              {filteredFunctions.length > 0 && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={handleRunFilteredTests}
+                    className="flex justify-between items-center w-full"
+                  >
+                    <span>Run tests below</span>
+                    <Play className="ml-2 w-3 h-3" />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {filteredFunctions.map((func) => (
+                <FunctionItem
+                  key={func.name}
+                  label={func.name}
+                  tests={func.tests}
+                  searchTerm={searchTerm}
+                />
+              ))}
+            </SidebarMenu>
+          </ScrollArea>
+        </SidebarContent>
+      </Sidebar>
+    </div>
   )
 }
 
@@ -199,7 +197,7 @@ function FunctionItem({ label, tests, searchTerm = '' }: FunctionItemProps) {
           >
             <ChevronRight className="w-3 h-3" />
           </motion.div>
-          <span className="ml-1 font-mono text-[11px] py-1 group-hover:max-w-[112px] w-[120px] truncate">
+          <span className="ml-1 font-mono text-xs py-1 truncate">
             {highlightText(label)}
           </span>
         </div>

@@ -5259,6 +5259,81 @@ func (*stream) LiteralUnionsTest(ctx context.Context, input string) <-chan *type
 	return channel
 }
 
+func LongQuestion(ctx context.Context, prompt string, opts ...CallOptionFunc) (*types.UniverseQuestion, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"prompt": prompt},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := bamlRuntime.CallFunction(ctx, "LongQuestion", encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	castResult := func(result any) *types.UniverseQuestion {
+		return (result).(*types.UniverseQuestion)
+	}
+
+	casted := castResult(*result.Data)
+
+	return casted, nil
+}
+
+func (*stream) LongQuestion(ctx context.Context, prompt string) <-chan *types.UniverseQuestion {
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"prompt": prompt},
+	}
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+	channel := make(chan *types.UniverseQuestion)
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "LongQuestion", encoded)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				channel <- (*result.Data).(*types.UniverseQuestion)
+			}
+		}
+	}()
+	return channel
+}
+
 func MakeBlockConstraint(ctx context.Context, opts ...CallOptionFunc) (*types.Checked[types.BlockConstraint], error) {
 
 	var callOpts callOption

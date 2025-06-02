@@ -77,22 +77,22 @@
 @theme inline {
   --color-background: var(--vscode-editor-background, var(--background));
   --color-foreground: var(--vscode-editor-foreground, var(--foreground));
-  --color-card: var(--vscode-editor-background, var(--card));
-  --color-card-foreground: var(--vscode-editor-foreground, var(--card-foreground));
-  --color-popover: var(--vscode-editor-background, var(--popover));
-  --color-popover-foreground: var(--vscode-editor-foreground, var(--popover-foreground));
+  --color-card: var(--vscode-input-background, var(--card));
+  --color-card-foreground: var(--vscode-input-foreground, var(--card-foreground));
+  --color-popover: var(--vscode-input-background, var(--popover));
+  --color-popover-foreground: var(--vscode-input-foreground, var(--popover-foreground));
   --color-primary: var(--vscode-button-foreground, var(--primary));
   --color-primary-foreground: var(--vscode-button-background, var(--primary-foreground));
   --color-secondary: var(--vscode-badge-background, var(--secondary));
   --color-secondary-foreground: var(--vscode-badge-foreground, var(--secondary-foreground));
   --color-muted: var(--vscode-editor-inactiveSelectionBackground, var(--muted));
   --color-muted-foreground: var(--vscode-descriptionForeground, var(--muted-foreground));
-  --color-accent: var(--vscode-list-activeSelectionBackground, var(--accent));
-  --color-accent-foreground: var(--vscode-list-activeSelectionForeground, var(--accent-foreground));
+  --color-accent: var(--vscode-badge-background, var(--accent));
+  --color-accent-foreground: var(--vscode-badge-foreground, var(--accent-foreground));
   --color-destructive: var(--vscode-errorForeground, var(--destructive));
   --color-destructive-foreground: var(--vscode-editor-background, var(--destructive-foreground));
   --color-border: var(--vscode-panel-border, var(--border));
-  --color-input: var(--vscode-input-background, var(--input));
+  --color-input: var(--vscode-input-foreground, var(--input));
   --color-ring: var(--vscode-focusBorder, var(--ring));
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -180,6 +180,16 @@
 
   body {
     @apply bg-background text-foreground p-0;
+  }
+
+  /* Add specific font settings for code elements */
+  code, pre {
+    font-family: var(--vscode-editor-font-family);
+    font-feature-settings: var(--vscode-editor-font-features);
+    letter-spacing: var(--vscode-editor-letter-spacing);
+    font-size: var(--vscode-editor-font-size);
+    font-weight: var(--vscode-editor-font-weight);
+    line-height: var(--vscode-editor-line-height);
   }
 }
 
@@ -390,7 +400,7 @@
   }
 
   .node-text {
-    @apply whitespace-nowrap overflow-hidden text-ellipsis;
+    @apply whitespace-nowrap overflow-hidden text-ellipsis text-base;
   }
 
   .arrow,
@@ -405,10 +415,6 @@
 
 .node-icon {
   @apply mr-2;
-}
-
-.node-text {
-  @apply text-base;
 }
 
 .file-folder-icon {
@@ -458,13 +464,4 @@ button.woot-elements--right:nth-child(2) {
 
 .text-blob {
   @apply text-lg p-5 bg-[#f0f0f0] rounded-lg;
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
 }

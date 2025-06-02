@@ -103,7 +103,7 @@ export const NoTestsContent = () => {
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        <pre className='overflow-x-auto p-4 font-mono text-sm text-balance text-foreground'>{testSnippet}</pre>
+        <pre className='overflow-x-auto p-4 text-sm text-balance text-foreground'>{testSnippet}</pre>
       </div>
     </div>
   )

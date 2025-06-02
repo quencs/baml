@@ -14,10 +14,14 @@ import { useAtom, useAtomValue } from 'jotai'
 import { areTestsRunningAtom, showEnvDialogAtom } from '../atoms'
 import { ThemeProvider } from '../../theme/ThemeProvider'
 import { EnvironmentVariablesDialog } from '../side-bar/env-vars'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { isSidebarOpenAtom } from '../side-bar'
 
 const PromptPreview = ({ isEmbed = false }: { isEmbed?: boolean }) => {
   const areTestsRunning = useAtomValue(areTestsRunningAtom)
   const ref = useRef<ImperativePanelHandle>(null)
+  const [showEnvDialog, setShowEnvDialog] = useAtom(showEnvDialogAtom)
+  const [isOpen, setIsOpen] = useAtom(isSidebarOpenAtom)
 
   const handleResize = () => {
     if (ref.current) {
@@ -37,32 +41,24 @@ const PromptPreview = ({ isEmbed = false }: { isEmbed?: boolean }) => {
   useEffect(() => {
     handleResize()
   }, [areTestsRunning])
-  const [showEnvDialog, setShowEnvDialog] = useAtom(showEnvDialogAtom)
 
   return (
-    <div className='flex relative justify-between h-full bg-background text-foreground'>
-      <div
-        className='flex overflow-x-auto flex-col justify-start items-start pr-2 w-full h-full'
-        style={{ minHeight: '530px' }}
-      >
-        <EnvironmentVariablesDialog showEnvDialog={showEnvDialog} setShowEnvDialog={setShowEnvDialog} />
-        <ResizablePanelGroup autoSaveId={'prompt-preview'} direction='vertical' className='py-2 h-full'>
-          <ResizablePanel defaultSize={areTestsRunning ? 40 : 80} className='flex flex-col gap-4 px-4'>
-            <PreviewToolbar />
-            <ScrollArea className='w-full h-full rounded-md bg-background' type='always'>
-              <div className='w-full rounded-md border h-fit border-border/50 bg-background'>
-                <PromptRenderWrapper />
-              </div>
-            </ScrollArea>
-          </ResizablePanel>
-          <ResizableHandle withHandle className='bg-border' />
-          <ResizablePanel ref={ref} defaultSize={areTestsRunning ? 60 : 20} className='flex flex-col pl-2'>
-            <TestPanel />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+    <SidebarProvider >
+        <SidebarInset>
+      <div className='flex w-full h-full bg-background text-foreground'>
+        <div
+          className='flex overflow-x-auto flex-col w-full h-full gap-2'
+        >
+
+          <EnvironmentVariablesDialog showEnvDialog={showEnvDialog} setShowEnvDialog={setShowEnvDialog} />
+          <PreviewToolbar />
+          <PromptRenderWrapper />
+          <TestPanel />
+        </div>
       </div>
-      <SideBar />
-    </div>
+          </SidebarInset>
+          <SideBar />
+    </SidebarProvider>
   )
 }
 

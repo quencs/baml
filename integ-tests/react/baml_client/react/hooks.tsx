@@ -3677,6 +3677,54 @@ export function useLiteralUnionsTest(
   return useBamlAction(action, props as HookInput)
 }
 /**
+ * A specialized hook for the LongQuestion BAML function that supports both streaming and non‑streaming responses.
+ *
+ * **Input Types:**
+ *
+ * - prompt: string
+ *
+ *
+ * **Return Type:**
+ * - **Non‑streaming:** UniverseQuestion
+ * - **Streaming Partial:** partial_types.UniverseQuestion
+ * - **Streaming Final:** UniverseQuestion
+ *
+ * **Usage Patterns:**
+ * 1. **Non‑streaming (Default)**
+ *    - Best for quick responses and simple UI updates.
+ * 2. **Streaming**
+ *    - Ideal for long‑running operations or real‑time feedback.
+ *
+ * **Edge Cases:**
+ * - Ensure robust error handling via `onError`.
+ * - Handle cases where partial data may be incomplete or missing.
+ *
+ * @example
+ * ```tsx
+ * // Basic non‑streaming usage:
+ * const { data, error, isLoading, mutate } = useLongQuestion({ stream: false});
+ *
+ * // Streaming usage:
+ * const { data, streamData, isLoading, error, mutate } = useLongQuestion({
+ *   stream: true | undefined,
+ *   onStreamData: (partial) => console.log('Partial update:', partial),
+ *   onFinalData: (final) => console.log('Final result:', final),
+ *   onError: (err) => console.error('Error:', err),
+ * });
+ * ```
+ */
+export function useLongQuestion(props: HookInput<'LongQuestion', { stream: false }>): HookOutput<'LongQuestion', { stream: false }>
+export function useLongQuestion(props?: HookInput<'LongQuestion', { stream?: true }>): HookOutput<'LongQuestion', { stream: true }>
+export function useLongQuestion(
+  props: HookInput<'LongQuestion', { stream?: boolean }> = {},
+): HookOutput<'LongQuestion', { stream: true }> | HookOutput<'LongQuestion', { stream: false }> {
+  let action: ServerAction = Actions.LongQuestion;
+  if (isStreamingProps(props)) {
+    action = StreamingActions.LongQuestion;
+  }
+  return useBamlAction(action, props as HookInput)
+}
+/**
  * A specialized hook for the MakeBlockConstraint BAML function that supports both streaming and non‑streaming responses.
  *
  * **Input Types:**

@@ -589,7 +589,7 @@ export function startServer(options?: LSOptions): void {
             if (URI.file(func.span.file_path).toString() === document.uri) {
               const range = Range.create(document.positionAt(func.span.start), document.positionAt(func.span.end))
               const command: Command = {
-                title: '▶ Open Playground ✨',
+                title: '$(split-horizontal) Open Playground',
                 command: 'baml.openBamlPanel',
                 arguments: [
                   {
@@ -620,7 +620,7 @@ export function startServer(options?: LSOptions): void {
               testcase.parent_functions.forEach((parentFunction, index) => {
                 const command: Command = {
                   title:
-                    testcase.parent_functions.length > 1 ? `▶ Run for ${parentFunction.name} 💥 ` : '▶ Run Test 💥',
+                    testcase.parent_functions.length > 1 ? `▶ Run for ${parentFunction.name}` : '▶ Run Test',
                   command: 'baml.runBamlTest',
                   arguments: [
                     {

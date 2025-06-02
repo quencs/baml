@@ -79,7 +79,7 @@ const ErrorCount: React.FC = () => {
 }
 
 // We don't use ASTContext.provider because we should the default value of the context
-export const EventListener: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const EventListener: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const updateCursor = useSetAtom(updateCursorAtom)
   const setFiles = useSetAtom(filesAtom)
   const debouncedSetFiles = useDebounceCallback(setFiles, 50, true)

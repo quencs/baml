@@ -23,13 +23,11 @@ function App() {
   useFeedbackWidget()
   return (
     <CustomErrorBoundary message='Error loading playground'>
-      <DevTools />
+      {/* <DevTools /> */}
       <Suspense fallback={<div>Loading...</div>}>
-        <EventListener>
-          <div></div>
-        </EventListener>
-        {/* <div>hi</div> */}
-        <div className='h-screen'>
+        <EventListener />
+
+        <div className='relative min-h-screen bg-background text-foreground p-2'>
           <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange={true}>
             <PromptPreview />
           </ThemeProvider>

@@ -1550,6 +1550,28 @@ export class AsyncHttpRequest {
     }
   }
   
+  async LongQuestion(
+      prompt: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return await this.runtime.buildRequest(
+        "LongQuestion",
+        {
+          "prompt": prompt
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   async MakeBlockConstraint(
       
       __baml_options__?: BamlCallOptions
@@ -5570,6 +5592,28 @@ export class AsyncHttpStreamRequest {
         "LiteralUnionsTest",
         {
           "input": input
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async LongQuestion(
+      prompt: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return await this.runtime.buildRequest(
+        "LongQuestion",
+        {
+          "prompt": prompt
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

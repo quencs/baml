@@ -961,6 +961,19 @@ paths:
                 - type: boolean
                 - type: string
       operationId: LiteralUnionsTest
+  /call/LongQuestion:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/LongQuestion'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: LongQuestionResponse
+                $ref: '#/components/schemas/UniverseQuestion'
+      operationId: LongQuestion
   /call/MakeBlockConstraint:
     post:
       requestBody:
@@ -3678,6 +3691,22 @@ components:
                 $ref: '#/components/schemas/BamlOptions'
             required:
             - input
+            additionalProperties: false
+    LongQuestion:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: LongQuestionRequest
+            type: object
+            properties:
+              prompt:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - prompt
             additionalProperties: false
     MakeBlockConstraint:
       required: true

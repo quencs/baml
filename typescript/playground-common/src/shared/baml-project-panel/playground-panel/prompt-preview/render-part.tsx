@@ -18,11 +18,15 @@ export const RenderPart: React.FC<{
             if (typeof parsed === 'object') {
               return Object.values(parsed).filter((val): val is string => typeof val === 'string')
             } else {
-              return [he.encode(parsed)]
+              // Split the string into individual phrases if it contains repeated text
+              const phrases = parsed.split(/\s{2,}/).filter(Boolean)
+              return phrases.map(phrase => he.encode(phrase.trim()))
             }
           } catch {
             // If parsing fails, treat it as a regular string
-            return [he.encode(input.value)]
+            // Split the string into individual phrases if it contains repeated text
+            const phrases = input.value.split(/\s{2,}/).filter(Boolean)
+            return phrases.map(phrase => he.encode(phrase.trim()))
           }
         }
         if (typeof input.value === 'object') {
@@ -40,6 +44,9 @@ export const RenderPart: React.FC<{
     )
 
     const allChunks = hasLargeInput ? [] : extractStringValues(testCase?.inputs ?? [])
+    console.log('Debug - Text:', text)
+    console.log('Debug - All chunks:', allChunks)
+
     const highlightChunks = allChunks.filter((chunk) => {
       if (!chunk || !text) return false
       try {
@@ -48,13 +55,17 @@ export const RenderPart: React.FC<{
         // Use unicode flag to handle emojis correctly
         const regex = new RegExp(escapedChunk, 'gu')
         const matches = text.match(regex)
-        // Only include chunks that appear at least once in the text
-        return matches && matches.length === 1
+        console.log('Debug - Chunk:', chunk)
+        console.log('Debug - Escaped chunk:', escapedChunk)
+        console.log('Debug - Matches:', matches)
+        // Include chunks that appear at least once in the text
+        return matches && matches.length > 0
       } catch (e) {
         console.error('Error highlighting text part', e)
         return false
       }
     })
+    console.log('Debug - Final highlight chunks:', highlightChunks)
 
     return text ? <RenderPromptPart text={text} highlightChunks={highlightChunks} /> : null
   }

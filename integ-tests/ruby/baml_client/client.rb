@@ -4013,6 +4013,63 @@ module Baml
     sig {
       params(
         varargs: T.untyped,
+        prompt: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
+      ).returns(Baml::Types::UniverseQuestion)
+    }
+    def LongQuestion(
+        *varargs,
+        prompt:,
+        baml_options: {}
+    )
+      if varargs.any?
+        
+        raise ArgumentError.new("LongQuestion may only be called with keyword arguments")
+      end
+      if (baml_options.keys - [:client_registry, :tb, :collector, :env]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb, :collector, :env): #{baml_options.keys - [:client_registry, :tb, :collector, :env]}")
+      end
+
+      # Merge options from initialization with those passed to the method
+      # Passed options take precedence over initialization options
+      effective_options = {}
+
+      if @baml_options
+        effective_options = @baml_options.dup
+      end
+
+      # Override with any options passed to this specific call
+      baml_options.each do |key, value|
+        effective_options[key] = value
+      end
+
+      # Use the merged options for the rest of the method
+      baml_options = effective_options
+
+      collector = if baml_options[:collector]
+        baml_options[:collector].is_a?(Array) ? baml_options[:collector] : [baml_options[:collector]]
+      else
+        []
+      end
+      env = (baml_options[:env] || {}).merge(ENV.to_h)
+
+      raw = @runtime.call_function(
+        "LongQuestion",
+        {
+          prompt: prompt,
+        },
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+        collector,
+        env,
+      )
+      (raw.parsed_using_types(Baml::Types, Baml::PartialTypes, false))
+    end
+
+    sig {
+      params(
+        varargs: T.untyped,
         
         baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
       ).returns(Baml::Checked[Baml::Types::BlockConstraint])
@@ -13764,6 +13821,53 @@ module Baml
         env,
       )
       Baml::BamlStream[T.nilable(T.any(T.nilable(Integer), T.nilable(T::Boolean), T.nilable(String))), T.any(Integer, T::Boolean, String)].new(
+        ffi_stream: raw,
+        ctx_manager: @ctx_manager
+      )
+    end
+
+    sig {
+      params(
+        varargs: T.untyped,
+        prompt: String,
+        baml_options: T::Hash[Symbol, T.any(Baml::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
+      ).returns(Baml::BamlStream[Baml::Types::UniverseQuestion])
+    }
+    def LongQuestion(
+        *varargs,
+        prompt:,
+        baml_options: {}
+    )
+      if varargs.any?
+        
+        raise ArgumentError.new("LongQuestion may only be called with keyword arguments")
+      end
+      if (baml_options.keys - [:client_registry, :tb, :collector, :env_vars]).any?
+        raise ArgumentError.new("Received unknown keys in baml_options (valid keys: :client_registry, :tb, :collector, :env_vars): #{baml_options.keys - [:client_registry, :tb, :collector, :env_vars]}")
+      end
+
+      # Merge options from initialization with those passed to the method
+      baml_options = (@baml_options || {}).merge(baml_options)
+
+      collector = if baml_options[:collector]
+        baml_options[:collector].is_a?(Array) ? baml_options[:collector] : [baml_options[:collector]]
+      else
+        []
+      end
+      env = (baml_options[:env] || {}).merge(ENV.to_h)
+
+      raw = @runtime.stream_function(
+        "LongQuestion",
+        {
+          prompt: prompt,
+        },
+        @ctx_manager,
+        baml_options[:tb]&.instance_variable_get(:@registry),
+        baml_options[:client_registry],
+        collector,
+        env,
+      )
+      Baml::BamlStream[T.nilable(Baml::PartialTypes::UniverseQuestion), Baml::Types::UniverseQuestion].new(
         ffi_stream: raw,
         ctx_manager: @ctx_manager
       )

@@ -79,7 +79,6 @@ export const TestMenu = () => {
   if (testHistory.length === 0) {
     return (
       <div className='flex justify-end items-center pr-2 mb-3 space-x-2'>
-        <ParallelTestsToggle />
         <ViewSelector />
       </div>
     )
@@ -88,7 +87,6 @@ export const TestMenu = () => {
   if (!currentRun)
     return (
       <div className='flex justify-end items-center pr-2 mb-3 space-x-2'>
-        <ParallelTestsToggle />
         <ViewSelector />
       </div>
     )
@@ -117,7 +115,6 @@ export const TestMenu = () => {
         </div>
       </div>
       <div className='flex gap-2 items-center'>
-        <ParallelTestsToggle />
         <TooltipProvider>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
@@ -141,69 +138,8 @@ export const TestMenu = () => {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='w-6 h-6'
-                onClick={() => {
-                  const failedTests = currentRun.tests
-                    .filter((test) => {
-                      const status = (test.response as any).response_status
-                      return (
-                        status &&
-                        ['parse_failed', 'llm_failed', 'assert_failed', 'error', 'constraints_failed'].includes(status)
-                      )
-                    })
-                    .map((test) => ({
-                      functionName: test.functionName,
-                      testName: test.testName,
-                    }))
-                  if (failedTests.length > 0) {
-                    runBamlTests(failedTests)
-                  }
-                }}
-              >
-                <RefreshCw className='w-4 h-4' />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Re-run failed tests</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
         <ViewSelector />
       </div>
     </div>
-  )
-}
-
-const ParallelTestsToggle = () => {
-  const [isParallelTestsEnabled, setIsParallelTestsEnabled] = useAtom(isParallelTestsEnabledAtom)
-
-  return (
-    <TooltipProvider delayDuration={0}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant='ghost'
-            size='sm'
-            className={cn(
-              isParallelTestsEnabled ? 'text-purple-500 bg-muted hover:text-purple-500' : 'hover:text-purple-500',
-            )}
-            onClick={() => setIsParallelTestsEnabled(!isParallelTestsEnabled)}
-          >
-            <Split className='w-4 h-4' />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{isParallelTestsEnabled ? 'Disable parallel testing' : 'Enable parallel testing'}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
   )
 }

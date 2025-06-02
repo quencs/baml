@@ -4,6 +4,11 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { TokenEncoderCache } from './render-tokens'
+import React from 'react'
+import { cn } from '@/lib/utils'
+import { CopyButton } from '@/components/copy-button'
+import { Button } from '@/components/ui/button'
+
 export const isDebugModeAtom = atom((get) => get(renderModeAtom) === 'tokens')
 
 export const RenderPromptPart: React.FC<{
@@ -30,67 +35,86 @@ export const RenderPromptPart: React.FC<{
     return { enc, tokens: enc.encode(text) }
   }, [text, isDebugMode, model, provider])
 
+  const HighlightedText: React.FC<{ text: string; highlightChunks: string[] }> = ({ text, highlightChunks }) => {
+    if (!highlightChunks?.length) return <>{text}</>;
+
+    console.log('Debug - HighlightedText - Text:', text)
+    console.log('Debug - HighlightedText - Highlight chunks:', highlightChunks)
+
+    // Build a regex that matches any of the highlightChunks
+    const regex = new RegExp(
+      highlightChunks
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length)
+        .map(chunk =>
+          chunk
+            .replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')
+            .replace(/ /g, '\\s+') // Replace literal spaces with \s+ for whitespace/newline tolerance
+        )
+        .join('|'),
+      'gms' // Add 's' for dotAll
+    );
+
+    console.log('Debug - HighlightedText - Regex:', regex)
+
+    const parts = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(text)) !== null) {
+      console.log('Debug - HighlightedText - Match found:', match[0], 'at index:', match.index)
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+      parts.push(
+        <mark
+          key={match.index}
+          className={cn(
+            "inline-flex items-center align-middle text-input rounded px-1 py-0.5 font-normal text-xs",
+            match[0].trim() === ""
+              ? "bg-[var(--vscode-charts-red)]/20"
+              : "bg-[var(--vscode-charts-blue)]/20"
+          )}
+          style={{ whiteSpace: 'pre', wordBreak: 'keep-all' }}
+        >
+          {match[0]}
+        </mark>
+      );
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+
+    console.log('Debug - HighlightedText - Final parts:', parts.length)
+
+    return <>{parts}</>;
+  };
+
   // Only compute highlighted text if we're not tokenizing
   const renderContent = useMemo(() => {
     if (tokenizer) {
       const tokenized = Array.from(tokenizer.tokens).map((token) => tokenizer.enc.decode([token]))
-      let result = ''
-      tokenized.forEach((token, i) => {
-        // don't uncomment this next line, it helps tailwind actually apply the classes
-        // bg-fuchsia-800 bg-emerald-700 bg-yellow-600 bg-red-700 bg-cyan-700
-        const bgClass = `bg-${['fuchsia-800', 'emerald-700', 'yellow-600', 'red-700', 'cyan-700'][i % 5]}`
-        result += `<span class="${bgClass} text-white">${token}</span>`
-      })
-      return result
+      return (
+        <>
+          {tokenized.map((token, i) => (
+            <span
+              key={i}
+              className={cn(
+                'text-white',
+                // Uncomment and use these classes if you want to color-code tokens
+                // ['bg-fuchsia-800', 'bg-emerald-700', 'bg-yellow-600', 'bg-red-700', 'bg-cyan-700'][i % 5]
+              )}
+            >
+              {token}
+            </span>
+          ))}
+        </>
+      )
     }
 
     // Only do highlighting if we're not tokenizing
-    if (!highlightChunks?.length) return text
-
-    try {
-      let result = text
-      // Store all matches and their replacements. We want to avoid replacing
-      // already replaced chunks. The regex below could match parts of the <mark>
-      // tag that we use to highlight the text, so we need to apply replacements
-      // once we know all their locations.
-      const replacements: { start: number; end: number; replacement: string }[] = []
-
-      highlightChunks.forEach((chunk) => {
-        if (!chunk) return
-        if (chunk.length > 30000) return
-        const regex = new RegExp(`(${chunk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'g')
-        let match
-        while ((match = regex.exec(text)) !== null) {
-          const start = match.index
-          const end = start + match[0].length
-          // Check if this range overlaps with any existing replacement
-          const hasOverlap = replacements.some(
-            (r) => (start >= r.start && start < r.end) || (end > r.start && end <= r.end),
-          )
-
-          if (!hasOverlap) {
-            replacements.push({
-              start,
-              end,
-              replacement: `<mark class="bg-yellow-100/70 text-yellow-900 dark:bg-yellow-800/30 dark:text-yellow-100 rounded-sm px-0.5">${match[0]}</mark>`,
-            })
-          }
-        }
-      })
-
-      // Sort replacements in reverse order to maintain correct indices
-      replacements.sort((a, b) => b.start - a.start)
-
-      // Apply all replacements
-      for (const { start, end, replacement } of replacements) {
-        result = result.slice(0, start) + replacement + result.slice(end)
-      }
-
-      return result
-    } catch (e) {
-      console.error('Error highlighting text', e)
-      return text
-    }
+    return <HighlightedText text={text} highlightChunks={highlightChunks} />
   }, [text, highlightChunks, tokenizer])
 
   return (
@@ -115,17 +139,26 @@ export const RenderPromptPart: React.FC<{
           </div>
         </div>
       )}
-      <ScrollArea className='relative flex-1 p-2 pb-6 bg-muted/50 dark:bg-slate-900' type='always'>
-        {/* This should match the ParsedResponseRenderer max-h- as well */}
-        <pre
-          className={`whitespace-pre-wrap text-xs  ${isFullTextVisible ? 'max-h-[500px]' : 'max-h-64'}`}
-          dangerouslySetInnerHTML={{ __html: renderContent }}
-        />
-
-        {isLongText && (
-          <button
+      <div className='relative flex-1'>
+        <ScrollArea className='relative p-2 rounded bg-card group' type='always'>
+          <div className='absolute right-2 top-1 opacity-0 group-hover:opacity-100 transition-opacity z-10'>
+            <CopyButton text={text} size="sm" variant="ghost" />
+          </div>
+          <pre
+            className={cn(
+              'whitespace-pre-wrap text-xs leading-relaxed transition-all',
+              isLongText && !isFullTextVisible ? 'max-h-48 overflow-hidden' : 'max-h-[600px]'
+            )}
+          >
+            {renderContent}
+          </pre>
+        </ScrollArea>
+        {/* {isLongText && (
+          <Button
+            size='xs'
+            variant='outline'
             onClick={() => setIsFullTextVisible(!isFullTextVisible)}
-            className='flex absolute right-0 bottom-0 gap-1 items-center p-2 text-xs rounded-tr-md rounded-bl-md transition-colors bg-muted/50 text-muted-foreground hover:text-foreground'
+            className='flex absolute left-1/2 -translate-x-1/2 bottom-[-12px] gap-1 items-center rounded-full z-10 px-3 text-muted-foreground border-border '
           >
             {isFullTextVisible ? (
               <>
@@ -138,9 +171,9 @@ export const RenderPromptPart: React.FC<{
                 <ChevronDown className='w-3 h-3' />
               </>
             )}
-          </button>
-        )}
-      </ScrollArea>
+          </Button>
+        )} */}
+      </div>
     </div>
   )
 }
