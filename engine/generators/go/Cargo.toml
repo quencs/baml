@@ -1,0 +1,14 @@
+[package]
+edition = "2021"
+name = "generators-go"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+license-file.workspace = true
+
+[dependencies]
+askama.workspace = true
+anyhow.workspace = true
+
+[dev-dependencies]
+prettydiff = "0.8.0"

@@ -1,5 +1,6 @@
 mod generate_types;
 mod go_language_features;
+mod types;
 
 use std::{fmt::format, path::PathBuf};
 
