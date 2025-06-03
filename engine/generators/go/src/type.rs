@@ -5,12 +5,14 @@ pub enum LiteralType {
     Bool,
 }
 
+#[derive(Clone)]
 pub enum TypeWrapper {
     None,
     Checked(Box<TypeWrapper>),
     Optional(Box<TypeWrapper>),
 }
 
+#[derive(Clone)]
 pub struct TypeMetaGo {
     type_wrapper: TypeWrapper,
     wrap_stream_state: bool,
@@ -113,11 +115,13 @@ impl std::fmt::Display for Package {
     }
 }
 
+#[derive(Clone)]
 pub enum MediaTypeGo {
     Image,
     Audio,
 }
 
+#[derive(Clone)]
 pub enum TypeGo {
     String(TypeMetaGo),
     Int(TypeMetaGo),

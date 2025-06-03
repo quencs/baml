@@ -52,7 +52,7 @@ mod class {
     /// {%- endif %}
     /// {{ name }} {{ type.serialize_type(pkg) }}
     /// ```
-    #[derive(askama::Template)]
+    #[derive(askama::Template, Clone)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
     struct FieldGo<'a> {
         docstring: Option<String>,
@@ -64,6 +64,61 @@ mod class {
     pub(super) fn render_classes(classes: &[ClassGo], _: &Package) -> Result<String, askama::Error> {
         ListTemplate {
             items: classes,
+        }.render()
+    }
+
+    /// A class in Go that is used for stream state.
+    ///
+    /// ```askama
+    /// {% if let Some(docstring) = docstring -%}
+    /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
+    /// {%- endif %}
+    /// type Generic__{{ name }} struct[{% for f in fields -%}Type__{{ f.name }}, {%- endfor %}] {
+    ///     {% for field in fields -%}
+    ///     {{ field.render_stream_field() }}
+    ///     {%- endfor %}
+    ///     {% if dynamic -%}
+    ///     DynamicProperties map[string]any
+    ///     {%- endif %}
+    /// }
+    /// ```
+    #[derive(askama::Template)]
+    #[template(in_doc = true, escape = "none", ext = "txt")]
+    struct StreamClassGo<'a> {
+        name: String,
+        docstring: Option<String>,
+        fields: Vec<FieldGo<'a>>,
+        dynamic: bool,
+        pkg: &'a Package,
+    }
+
+    impl<'a> FieldGo<'a> {
+        pub fn render_stream_field(&self) -> String {
+            let docstring = self.docstring.as_ref().map(|s| crate::utils::prefix_lines(s, "/// "));
+            if let Some(docstring) = docstring {
+                format!("{}\n{1} Type__{1}", docstring, self.name)
+            } else {
+                format!("{0} Type__{0}", self.name)
+            }
+        }
+    }
+
+    impl<'a> From<&'a ClassGo<'a>> for StreamClassGo<'a> {
+        fn from(value: &'a ClassGo) -> Self {
+            Self {
+                name: value.name.clone(),
+                docstring: value.docstring.clone(),
+                fields: value.fields.clone(),
+                dynamic: value.dynamic,
+                pkg: value.pkg,
+            }
+        }
+    }
+
+    pub(super) fn render_stream_classes(classes: &[ClassGo], _: &Package) -> Result<String, askama::Error> {
+        let stream_classes = classes.iter().map(|c| StreamClassGo::from(c)).collect::<Vec<_>>();
+        ListTemplate {
+            items: &stream_classes,
         }.render()
     }
 }
@@ -121,6 +176,41 @@ mod union {
             items: unions,
         }.render()
     }
+
+    /// A union in Go that is used for stream state.
+    ///
+    /// ```askama
+    /// {% if let Some(docstring) = docstring -%}
+    /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
+    /// {%- endif %}
+    /// type Generic__{{ name }} struct[{% for v in variants -%}Type__{{ v.0 }}, {%- endfor %}]
+    /// ```
+    #[derive(askama::Template)]
+    #[template(in_doc = true, escape = "none", ext = "txt")]
+    struct StreamUnionGo<'a> {
+        name: String,
+        docstring: Option<String>,
+        variants: Vec<(String, TypeGo)>,
+        pkg: &'a Package,
+    }
+
+    impl<'a> From<&'a UnionGo<'a>> for StreamUnionGo<'a> {
+        fn from(value: &'a UnionGo) -> Self {
+            Self {
+                name: value.name.clone(),
+                docstring: value.docstring.clone(),
+                variants: value.variants.clone(),
+                pkg: value.pkg,
+            }
+        }
+    }
+
+    pub(super) fn render_stream_unions(unions: &[UnionGo], _: &Package) -> Result<String, askama::Error> {
+        let stream_unions = unions.iter().map(|u| StreamUnionGo::from(u)).collect::<Vec<_>>();
+        ListTemplate {
+            items: &stream_unions,
+        }.render()
+    }
 }
 
 /// A list of types in Go.
@@ -150,9 +240,9 @@ mod union {
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
 pub(crate) struct GoTypes<'ir> {
-    classes: Vec<class::ClassGo<'ir>>,
-    enums: Vec<enums::EnumGo>,
-    unions: Vec<union::UnionGo<'ir>>,
+    classes: &'ir [class::ClassGo<'ir>],
+    enums: &'ir [enums::EnumGo],
+    unions: &'ir [union::UnionGo<'ir>],
     pkg: &'ir Package,
 }
 
@@ -231,16 +321,36 @@ type StreamState[T any] struct {
 ///
 /// {{ STREAM_STATE_GO }}
 ///
-/// {{ class::render_classes(&classes, pkg)? }}
+/// {{ class::render_stream_classes(&classes, pkg)? }}
 ///
-/// {{ union::render_unions(&unions, pkg)? }}
+/// {{ union::render_stream_unions(&unions, pkg)? }}
 ///
 /// ```
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
 pub(crate) struct GoStreamTypes<'ir> {
-    classes: Vec<class::ClassGo<'ir>>,
-    unions: Vec<union::UnionGo<'ir>>,
+    classes: &'ir [class::ClassGo<'ir>],
+    unions: &'ir [union::UnionGo<'ir>],
     pkg: &'ir Package,
+}
+
+
+pub(crate) fn render_go_types(classes: &[class::ClassGo], enums: &[enums::EnumGo], unions: &[union::UnionGo], pkg: &Package) -> Result<String, askama::Error> {
+    use askama::Template;
+
+    let go_types = GoTypes {
+        classes,
+        enums,
+        unions,
+        pkg,
+    }.render()?;
+
+    let go_stream_types = GoStreamTypes {
+        classes,
+        unions,
+        pkg,
+    }.render()?;
+
+    Ok(format!("{}\n\n{}", go_types, go_stream_types))
 }
