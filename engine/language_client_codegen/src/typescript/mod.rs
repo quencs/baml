@@ -554,7 +554,6 @@ impl ToTypeReferenceInClientDefinition for FieldType {
     /// Also returns whether the field is optional during streaming.
     fn to_partial_type_ref(&self, ir: &IntermediateRepr, needed: bool) -> (String, bool) {
         let metadata = self.meta();
-        // let (base_type, metadata) = ir.distribute_metadata(self);
         let is_partial_type = !metadata.streaming_behavior.done;
         let use_module_prefix = !is_partial_type;
         let with_state = metadata.streaming_behavior.state;
@@ -565,7 +564,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             "partial_types."
         };
         let (base_rep, optional) = match self {
-            FieldType::Class(name, _) => {
+            FieldType::Class { name, .. } => {
                 if needed {
                     (format!("{module_prefix}{name}"), false)
                 } else {
@@ -573,7 +572,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 }
             }
             FieldType::RecursiveTypeAlias(name, _) => (name.to_owned(), !needed),
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 let res = if ir
                     .find_enum(&name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -617,14 +616,14 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 }
             }
             FieldType::Union(inner, _) => {
-                let (nonnull_types, nullable) = inner.view_as_iter(false);
+                let nonnull_types = inner.iter_skip_null();
                 let union_contents = nonnull_types
                     .iter()
                     .map(|t| t.to_partial_type_ref(ir, false).0)
                     .collect::<Vec<_>>()
                     .join(" | ");
 
-                if nullable || !needed {
+                if inner.is_optional() || !needed {
                     (format!("({} | null)", union_contents), true)
                 } else {
                     (format!("({})", union_contents), false)
@@ -673,7 +672,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
     fn to_type_ref(&self, ir: &IntermediateRepr, use_module_prefix: bool) -> String {
         let module_prefix = if use_module_prefix { "types." } else { "" };
         let base_rep = match self {
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 if ir
                     .find_enum(name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -685,7 +684,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 }
             }
             FieldType::RecursiveTypeAlias(name, _) => name.to_owned(),
-            FieldType::Class(name, _) => format!("{module_prefix}{name}"),
+            FieldType::Class { name, .. } => format!("{module_prefix}{name}"),
             FieldType::List(inner, _) => match inner.as_ref() {
                 FieldType::Union(_, _) => {
                     format!("({})[]", inner.to_type_ref(ir, use_module_prefix))
@@ -697,7 +696,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 let v = value.to_type_ref(ir, use_module_prefix);
 
                 match key.as_ref() {
-                    FieldType::Enum(_, _)
+                    FieldType::Enum { .. }
                     | FieldType::Union(_, _)
                     | FieldType::Literal(LiteralValue::String(_), _) => {
                         format!("Partial<Record<{k}, {v}>>")
@@ -709,8 +708,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             // In typescript we can just use literal values as type defs.
             FieldType::Literal(value, _) => value.to_string(),
             FieldType::Union(inner, _) => inner
-                .view_as_iter(true)
-                .0
+                .iter_include_null()
                 .iter()
                 .map(|t| t.to_type_ref(ir, use_module_prefix))
                 .collect::<Vec<_>>()

@@ -468,7 +468,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
                 let val = BamlValueWithMeta::Class(name.clone(), spread_fields, ());
                 return Ok(ExprEvalResult::Value {
                     value: val,
-                    field_type: FieldType::Class(name, TypeMeta::default()),
+                    field_type: FieldType::class(&name.to_string()),
                 });
             }
             Expr::LLMFunction(_, _, _) => {

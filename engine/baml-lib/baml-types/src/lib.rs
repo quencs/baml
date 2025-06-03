@@ -7,15 +7,15 @@ pub mod tracing;
 
 pub mod baml_value;
 mod generator;
-mod ir_type;
+pub mod ir_type;
 mod value_expr;
 
 pub use baml_value::{BamlValue, BamlValueWithMeta, Completion, CompletionState};
 pub use constraint::*;
 pub use generator::{GeneratorDefaultClientMode, GeneratorOutputType};
 pub use ir_type::{
-    Arrow, FieldType, HasFieldType, LiteralValue, StreamingBehavior, ToUnionName, TypeMeta,
-    TypeValue, UnionType, UnionTypeView,
+    partialize, Arrow, FieldType, HasFieldType, LiteralValue, StreamingBehavior, ToUnionName,
+    TypeMeta, TypeMetaStreaming, TypeValue, UnionType, UnionTypeView, StreamingMode,
 };
 pub use map::Map as BamlMap;
 pub use media::{BamlMedia, BamlMediaContent, BamlMediaType, MediaBase64, MediaFile, MediaUrl};

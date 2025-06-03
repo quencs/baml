@@ -123,7 +123,7 @@ class ClassWithoutDone(BaseModel):
     class Config:
         arbitrary_types_allowed = True
     i_16_digits: Optional[int] = None
-    s_20_words: Optional[str] = None
+    s_20_words: StreamState[Optional[str]]
 
 class ClientDetails1559(BaseModel):
     class Config:
@@ -575,8 +575,8 @@ class SemanticContainer(BaseModel):
     sixteen_digit_number: Optional[int] = None
     string_with_twenty_words: Optional[str] = None
     class_1: Optional["ClassWithoutDone"] = None
-    class_2: Optional["types.ClassWithBlockDone"] = None
-    class_done_needed: "types.ClassWithBlockDone"
+    class_2: Optional["ClassWithBlockDone"] = None
+    class_done_needed: "ClassWithBlockDone"
     class_needed: "ClassWithoutDone"
     three_small_things: List["SmallThing"]
     final_string: Optional[str] = None

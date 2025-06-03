@@ -7924,7 +7924,7 @@ class BamlStreamClient:
         self,
         
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlStream[types.ClassWithBlockDone, types.ClassWithBlockDone]:
+    ) -> baml_py.BamlStream[partial_types.ClassWithBlockDone, types.ClassWithBlockDone]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
@@ -7947,9 +7947,9 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlStream[types.ClassWithBlockDone, types.ClassWithBlockDone](
+      return baml_py.BamlStream[partial_types.ClassWithBlockDone, types.ClassWithBlockDone](
         raw,
-        lambda x: cast(types.ClassWithBlockDone, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(partial_types.ClassWithBlockDone, x.cast_to(types, types, partial_types, True)),
         lambda x: cast(types.ClassWithBlockDone, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
@@ -7958,7 +7958,7 @@ class BamlStreamClient:
         self,
         
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlStream[partial_types.ClassWithoutDone, types.ClassWithoutDone]:
+    ) -> baml_py.BamlStream[types.ClassWithoutDone, types.ClassWithoutDone]:
       options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
@@ -7981,9 +7981,9 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlStream[partial_types.ClassWithoutDone, types.ClassWithoutDone](
+      return baml_py.BamlStream[types.ClassWithoutDone, types.ClassWithoutDone](
         raw,
-        lambda x: cast(partial_types.ClassWithoutDone, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ClassWithoutDone, x.cast_to(types, types, partial_types, True)),
         lambda x: cast(types.ClassWithoutDone, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )

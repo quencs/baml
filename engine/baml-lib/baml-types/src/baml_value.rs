@@ -389,6 +389,7 @@ impl<T> BamlValueWithMeta<T> {
         plain_value.r#type()
     }
 
+    // TODO: This will fail for type aliases?
     fn is_type(&self, field_type: &FieldType) -> bool {
         let handle_composite = |field_type: &FieldType| match field_type {
             FieldType::Union(options, _) => match options.view() {
@@ -446,11 +447,11 @@ impl<T> BamlValueWithMeta<T> {
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Enum(enum_name, _, _) => match field_type {
-                FieldType::Enum(enm, _) => enum_name == enm,
+                FieldType::Enum { name: enm, .. } => enum_name == enm,
                 _ => handle_composite(field_type),
             },
-            BamlValueWithMeta::Class(cls_name, _, _) => match field_type {
-                FieldType::Class(cls, _) => cls_name == cls,
+            BamlValueWithMeta::Class(cls_name, _cls_fields, _) => match field_type {
+                FieldType::Class { name: cls, .. } => cls_name == cls,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Null(_) => match field_type {

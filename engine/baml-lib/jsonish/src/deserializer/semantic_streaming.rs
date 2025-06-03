@@ -69,14 +69,14 @@ fn process_node(
     depth: usize,
 ) -> Result<BamlValueWithMeta<Completion>, StreamingError> {
     let (completion_state, field_type) = value.meta().clone();
-    let (base_type, (_, streaming_behavior)) = ir.distribute_metadata(field_type);
+    let metadata = field_type.meta();
 
     let must_be_done = required_done(ir, field_type, &value);
     let allow_partials_in_sub_nodes = allow_partials && !must_be_done;
 
     let new_meta = Completion {
         state: completion_state.clone(),
-        display: streaming_behavior.state,
+        display: metadata.streaming_behavior.state,
         required_done: must_be_done,
     };
 
@@ -132,7 +132,7 @@ fn process_node(
                     let field = value_fields
                         .get(null_field_name)
                         .expect("This field is guaranteed to be in the field set");
-                    let use_state = type_streaming_behavior(ir, field.meta().1).state;
+                    let use_state = field.meta().1.meta().streaming_behavior.state;
                     let field_stream_state = Completion {
                         state: CompletionState::Pending,
                         display: use_state,
@@ -153,9 +153,9 @@ fn process_node(
                     let with_state = field_value
                         .meta()
                         .1
-                        .streaming_behavior()
-                        .as_ref()
-                        .map_or(false, |b| b.state);
+                        .meta()
+                        .streaming_behavior
+                        .state;
                     let completion_state = field_value.meta().0.clone();
                     match process_node(ir, field_value, allow_partials_in_sub_nodes, depth + 1) {
                         Ok(res) => Some((field_name, res)),
@@ -234,8 +234,8 @@ fn process_node(
 /// Extract the field names from a field_type that is expected to be a `Class`.
 /// If it is not a known class, return no field names.
 fn type_field_names(ir: &impl IRHelperExtended, field_type: &FieldType) -> IndexSet<String> {
-    match ir.distribute_metadata(field_type).0 {
-        FieldType::Class(class_name, _) => ir.class_field_names(class_name).unwrap_or_default(),
+    match field_type {
+        FieldType::Class { name: class_name, .. } => ir.class_field_names(class_name).unwrap_or_default(),
         _ => IndexSet::new(),
     }
 }
@@ -282,8 +282,8 @@ fn required_done<T>(
     field_type: &FieldType,
     value: &BamlValueWithMeta<T>,
 ) -> bool {
-    let (base_type, (_, streaming_behavior)) = ir.distribute_metadata(field_type);
-    let type_implies_done = match base_type {
+    let metadata = field_type.meta();
+    let type_implies_done = match field_type {
         FieldType::Primitive(tv, _) => match tv {
             TypeValue::String => false,
             TypeValue::Int => true,
@@ -292,15 +292,15 @@ fn required_done<T>(
             TypeValue::Bool => true,
             TypeValue::Null => true,
         },
-        FieldType::Literal(_, _) => true,
+        FieldType::Literal { .. } => true,
         FieldType::List(_, _) => false,
         FieldType::Map(_, _, _) => false,
-        FieldType::Enum(_, _) => true,
+        FieldType::Enum { name: _, dynamic: _, meta: _ } => true,
         FieldType::Tuple(_, _) => false,
         FieldType::RecursiveTypeAlias(_, _) => false,
-        FieldType::Class(_, _) => false,
+        FieldType::Class { .. } => false,
         FieldType::Union(options, _) => {
-            let (view, is_optional) = options.view_as_iter(false);
+            let view = options.iter_skip_null();
             // Determining whether a union requires done is complicated.
             // If all the variants are required to be done, then the union
             // requires done.
@@ -328,7 +328,7 @@ fn required_done<T>(
         }
         FieldType::Arrow(_, _) => false, // TODO: Error? Arrow shouldn't appear here.
     };
-    let res = type_implies_done || streaming_behavior.done;
+    let res = type_implies_done || metadata.streaming_behavior.done;
     res
 }
 
@@ -344,10 +344,6 @@ fn completion_state(flags: &Vec<Flag>) -> CompletionState {
     }
 }
 
-fn type_streaming_behavior(ir: &impl IRHelperExtended, r#type: &FieldType) -> StreamingBehavior {
-    let (_base_type, (_constraints, streaming_behavior)) = ir.distribute_metadata(r#type);
-    streaming_behavior
-}
 
 #[cfg(test)]
 mod tests {
@@ -433,14 +429,14 @@ mod tests {
         let value = BamlValueWithFlags::Class(
             "Info".to_string(),
             DeserializerConditions::default(),
-            FieldType::Class("Info".into(), TypeMeta::default()),
+            FieldType::class("Info"),
             vec![
                 (
                     "name".to_string(),
                     BamlValueWithFlags::Class(
                         "Name".to_string(),
                         DeserializerConditions::default(),
-                        FieldType::Class("Name".into(), TypeMeta::default()),
+                        FieldType::class("Name"),
                         vec![
                             ("first".to_string(), mk_string("Greg")),
                             ("last".to_string(), mk_string("Hale")),

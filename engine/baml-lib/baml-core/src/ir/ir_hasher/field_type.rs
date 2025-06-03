@@ -69,9 +69,9 @@ impl<'a> InterfaceFieldType<'a> {
                     InterfaceFieldType::Media(baml_media_type)
                 }
             },
-            FieldType::Enum(name, _) => InterfaceFieldType::Enum(name.as_str()),
+            FieldType::Enum { name, .. } => InterfaceFieldType::Enum(name.as_str()),
             FieldType::Literal(literal_value, _) => InterfaceFieldType::Literal(literal_value),
-            FieldType::Class(name, _) => InterfaceFieldType::Class(name.as_str()),
+            FieldType::Class { name, .. } => InterfaceFieldType::Class(name.as_str()),
             FieldType::List(field_type, _) => {
                 InterfaceFieldType::List(Box::new(Self::from(field_type)))
             }
@@ -81,8 +81,7 @@ impl<'a> InterfaceFieldType<'a> {
             ),
             FieldType::Union(field_types, _) => InterfaceFieldType::Union(
                 field_types
-                    .view_as_iter(true)
-                    .0
+                    .iter_include_null()
                     .iter()
                     .map(|ft| Self::from(ft))
                     .collect(),
@@ -93,7 +92,7 @@ impl<'a> InterfaceFieldType<'a> {
             FieldType::RecursiveTypeAlias(name, _) => {
                 InterfaceFieldType::RecursiveTypeAlias(name.as_str())
             }
-            FieldType::Arrow(arrow, _) => InterfaceFieldType::Unknown,
+            FieldType::Arrow(_, _) => InterfaceFieldType::Unknown,
         }
     }
 }

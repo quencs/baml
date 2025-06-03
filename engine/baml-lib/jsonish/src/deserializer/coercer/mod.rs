@@ -186,8 +186,8 @@ impl ParsingContext<'_> {
             reason: format!(
                 "Expected {}, got {:?}.",
                 match target {
-                    FieldType::Enum(_, _) => format!("{} enum value", target),
-                    FieldType::Class(_, _) => format!("{}", target),
+                    FieldType::Enum { .. } => format!("{} enum value", target),
+                    FieldType::Class { .. } => format!("{}", target),
                     _ => format!("{target}"),
                 },
                 got

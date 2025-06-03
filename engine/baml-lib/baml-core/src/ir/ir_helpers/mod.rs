@@ -23,7 +23,7 @@ use crate::{
 use anyhow::Result;
 use baml_types::{
     BamlMap, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, LiteralValue,
-    StreamingBehavior, TypeMeta, TypeValue, UnionType, NULL_TYPE,
+    StreamingBehavior, TypeMeta, TypeValue, UnionType,
 };
 pub use to_baml_arg::ArgCoercer;
 
@@ -114,8 +114,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
 
         if let FieldType::Union(items, _) = other {
             if items
-                .view_as_iter(true)
-                .0
+                .iter_include_null()
                 .iter()
                 .any(|item| self.is_subtype(base, item))
             {
@@ -151,7 +150,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             ) => true,
             (FieldType::Literal(LiteralValue::Bool(_), _), _) => self.is_subtype(
                 base,
-                &FieldType::Primitive(TypeValue::Bool, TypeMeta::default()),
+                &FieldType::bool(),
             ),
             (
                 FieldType::Literal(LiteralValue::Int(_), _),
@@ -167,12 +166,11 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             ) => true,
             (FieldType::Literal(LiteralValue::String(_), _), _) => self.is_subtype(
                 base,
-                &FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+                &FieldType::string(),
             ),
 
             (FieldType::Union(items, _), _) => items
-                .view_as_iter(true)
-                .0
+                .iter_include_null()
                 .iter()
                 .all(|item| self.is_subtype(item, other)),
 
@@ -183,10 +181,6 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                         .zip(other_items)
                         .all(|(base_item, other_item)| self.is_subtype(base_item, other_item))
             }
-            (FieldType::Tuple(_, _), _) => false,
-            (FieldType::Enum(_, _), _) => false,
-            (FieldType::Class(_, _), _) => false,
-
             (FieldType::Arrow(arrow1, _), FieldType::Arrow(arrow2, _)) => {
                 let param_lengths_match = arrow1.param_types.len() == arrow2.param_types.len();
                 // N.B. Functions are covariant in their return type and contravariant in their arguments.
@@ -199,7 +193,16 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                     .all(|(a, b)| self.is_subtype(b, a));
                 param_lengths_match && return_types_match && args_match
             }
+            (FieldType::Tuple(_, _), _) => false,
             (FieldType::Arrow(_, _), _) => false,
+            (FieldType::Enum { name: base_name, .. }, FieldType::Enum { name: other_name, .. }) => {
+                base_name == other_name
+            }
+            (FieldType::Enum { .. }, _) => false,
+            (FieldType::Class { name: base_name, .. }, FieldType::Class { name: other_name, .. }) => {
+                base_name == other_name
+            }
+            (FieldType::Class { .. }, _) => false,
         }
     }
 
@@ -228,24 +231,23 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
         value: BamlValueWithMeta<T>,
         field_type: FieldType,
     ) -> anyhow::Result<BamlValueWithMeta<(T, FieldType)>> {
-        let field_base_type = self.distribute_metadata(&field_type).0;
         match value {
             BamlValueWithMeta::String(s, meta) => {
                 let literal_type =
                     FieldType::Literal(LiteralValue::String(s.clone()), TypeMeta::default());
                 let primitive_type = FieldType::Primitive(TypeValue::String, TypeMeta::default());
 
-                if self.is_subtype(&literal_type, &field_base_type)
-                    || self.is_subtype(&primitive_type, &field_base_type)
+                if self.is_subtype(&literal_type, &field_type)
+                    || self.is_subtype(&primitive_type, &field_type)
                 {
                     return Ok(BamlValueWithMeta::String(s, (meta, field_type)));
                 }
-                anyhow::bail!("Could not unify String with {:?}", field_base_type)
+                anyhow::bail!("Could not unify String with {:?}", field_type)
             }
             BamlValueWithMeta::Int(i, meta)
                 if self.is_subtype(
                     &FieldType::Literal(LiteralValue::Int(i), TypeMeta::default()),
-                    &field_base_type,
+                    &field_type,
                 ) =>
             {
                 Ok(BamlValueWithMeta::Int(i, (meta, field_type)))
@@ -259,31 +261,31 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                 Ok(BamlValueWithMeta::Int(i, (meta, field_type)))
             }
             BamlValueWithMeta::Int(_i, _meta) => {
-                anyhow::bail!("Could not unify Int with {:?}", field_base_type)
+                anyhow::bail!("Could not unify Int with {:?}", field_type)
             }
 
             BamlValueWithMeta::Float(f, meta)
                 if self.is_subtype(
                     &FieldType::Primitive(TypeValue::Float, TypeMeta::default()),
-                    &field_base_type,
+                    &field_type,
                 ) =>
             {
                 Ok(BamlValueWithMeta::Float(f, (meta, field_type)))
             }
             BamlValueWithMeta::Float(_, _) => {
-                anyhow::bail!("Could not unify Float with {:?}", field_base_type)
+                anyhow::bail!("Could not unify Float with {:?}", field_type)
             }
 
             BamlValueWithMeta::Bool(b, meta) => {
                 let literal_type = FieldType::Literal(LiteralValue::Bool(b), TypeMeta::default());
                 let primitive_type = FieldType::Primitive(TypeValue::Bool, TypeMeta::default());
 
-                if self.is_subtype(&literal_type, &field_base_type)
-                    || self.is_subtype(&primitive_type, &field_base_type)
+                if self.is_subtype(&literal_type, &field_type)
+                    || self.is_subtype(&primitive_type, &field_type)
                 {
                     Ok(BamlValueWithMeta::Bool(b, (meta, field_type)))
                 } else {
-                    anyhow::bail!("Could not unify Bool with {:?}", field_base_type)
+                    anyhow::bail!("Could not unify Bool with {:?}", field_type)
                 }
             }
 
@@ -322,32 +324,38 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             BamlValueWithMeta::Media(m, meta)
                 if self.is_subtype(
                     &FieldType::Primitive(TypeValue::Media(m.media_type), TypeMeta::default()),
-                    &field_base_type,
+                    &field_type,
                 ) =>
             {
                 Ok(BamlValueWithMeta::Media(m, (meta, field_type)))
             }
             BamlValueWithMeta::Media(_, _) => {
-                anyhow::bail!("Could not unify Media with {:?}", field_base_type)
+                anyhow::bail!("Could not unify Media with {:?}", field_type)
             }
 
             BamlValueWithMeta::Enum(name, val, meta) => {
                 if self.is_subtype(
-                    &FieldType::Enum(name.clone(), TypeMeta::default()),
-                    &field_base_type,
+                    // TODO(Rahul): how do we get the dynamic flag?
+                    &FieldType::Enum {
+                        name: name.clone(),
+                        dynamic: false,
+                        meta: TypeMeta::default(),
+                    },
+                    &field_type,
                 ) {
                     Ok(BamlValueWithMeta::Enum(name, val, (meta, field_type)))
                 } else {
-                    anyhow::bail!("Could not unify Enum {} with {:?}", name, field_base_type)
+                    anyhow::bail!("Could not unify Enum {} with {:?}", name, field_type)
                 }
             }
 
             BamlValueWithMeta::Class(name, fields, meta) => {
                 if !self.is_subtype(
-                    &FieldType::Class(name.clone(), TypeMeta::default()),
-                    &field_base_type,
+                    // TODO(Rahul): how do we get the dynamic flag?
+                    &FieldType::class(name.as_str()),
+                    &field_type,
                 ) {
-                    anyhow::bail!("Could not unify Class {} with {:?}", name, field_base_type);
+                    anyhow::bail!("Could not unify Class {} with {:?}", name, field_type);
                 } else {
                     let class_fields = self.class_fields(&name)?;
                     let mapped_fields = fields
@@ -372,45 +380,19 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
         }
     }
 
-    /// For any FieldType, check if the field type is FieldType::WithMetadata,
-    /// and if so, return the metadata alongside the base type.
-    /// All other field types will be returned as is, alongside default metadata.
-    fn distribute_metadata<'a>(
-        &'a self,
-        field_type: &'a FieldType,
-    ) -> (&'a FieldType, (Vec<Constraint>, StreamingBehavior));
-
-    /// Constraints may live in several places. A constrained base type stors its
-    /// constraints by wrapping itself in the `FieldType::WithMetadata` constructor.
-    /// Additionally, `FieldType::Class` may have constraints stored in its class node,
-    /// and `FieldType::Enum` can store constraints in its `Enum` node.
-    /// And the `FieldType::WithMetadata` constructor might wrap another
-    /// `FieldType::WithMetadata` constructor.
-    ///
-    /// This function collects constraints for a given type from all these
-    /// possible sources. Whenever querying a type for its constraints, you
-    /// should do so with this function, instead of searching manually for all
-    /// the places that Constraints can live.
-    fn distribute_constraints<'a>(
-        &'a self,
-        field_type: &'a FieldType,
-    ) -> (&'a FieldType, Vec<Constraint>) {
-        let (field_type, metadata) = self.distribute_metadata(field_type);
-        (field_type, metadata.0)
-    }
-
     fn recursive_alias_definition(&self, alias_name: &str) -> Option<&FieldType>;
 
     fn type_has_constraints(&self, field_type: &FieldType) -> bool {
-        let (_, constraints) = self.distribute_constraints(field_type);
-        !constraints.is_empty()
+        let metadata = field_type.meta();
+        !metadata.constraints.is_empty()
     }
 
     fn type_has_checks(&self, field_type: &FieldType) -> bool {
-        let (_, constraints) = self.distribute_constraints(field_type);
-        constraints
+        let metadata = field_type.meta();
+        metadata
+            .constraints
             .iter()
-            .any(|Constraint { level, .. }| *level == ConstraintLevel::Check)
+            .any(|constraint| constraint.level == ConstraintLevel::Check)
     }
 }
 
@@ -803,41 +785,6 @@ impl IRHelper for IntermediateRepr {
 }
 
 impl IRHelperExtended for IntermediateRepr {
-    fn distribute_metadata<'a>(
-        &'a self,
-        field_type: &'a FieldType,
-    ) -> (&'a FieldType, (Vec<Constraint>, StreamingBehavior)) {
-        match field_type {
-            FieldType::Class(class_name, _) => match self.find_class(class_name) {
-                Err(_) => (field_type, (Vec::new(), StreamingBehavior::default())),
-                Ok(class_node) => (
-                    field_type,
-                    (
-                        class_node.item.attributes.constraints.clone(),
-                        class_node.item.attributes.streaming_behavior(),
-                    ),
-                ),
-            },
-            FieldType::Enum(enum_name, _) => match self.find_enum(enum_name) {
-                Err(_) => (field_type, (Vec::new(), StreamingBehavior::default())),
-                Ok(enum_node) => (
-                    field_type,
-                    (
-                        enum_node.item.attributes.constraints.clone(),
-                        StreamingBehavior::default(),
-                    ),
-                ),
-            },
-            _ => (
-                field_type,
-                (
-                    field_type.meta().constraints.clone(),
-                    StreamingBehavior::default(),
-                ),
-            ),
-        }
-    }
-
     fn recursive_alias_definition(&self, alias_name: &str) -> Option<&FieldType> {
         if let Some(alias) = self
             .structural_recursive_alias_cycles()
@@ -927,9 +874,9 @@ pub fn item_type<'ir, 'a>(
     ir: &'ir (impl IRHelperExtended + ?Sized),
     field_type: &'a FieldType,
 ) -> Option<FieldType> {
-    let res = match ir.distribute_metadata(field_type).0 {
-        FieldType::Class(_, _) => None,
-        FieldType::Enum(_, _) => None,
+    let res = match field_type {
+        FieldType::Class { .. } => None,
+        FieldType::Enum { .. } => None,
         FieldType::List(inner, _) => Some(*inner.clone()),
         FieldType::Literal(_, _) => None,
         FieldType::Map(k, v, _) => Some(*v.clone()),
@@ -938,10 +885,12 @@ pub fn item_type<'ir, 'a>(
             .recursive_alias_definition(alias_name)
             .and_then(|resolved_type| item_type(ir, resolved_type)),
         FieldType::Union(variants, _) => match variants.view() {
-            baml_types::UnionTypeView::Null => None,
-            baml_types::UnionTypeView::Optional(field_type) => item_type(ir, field_type),
-            baml_types::UnionTypeView::OneOf(field_types)
-            | baml_types::UnionTypeView::OneOfOptional(field_types) => {
+            baml_types::ir_type::UnionTypeViewGeneric::Null => None,
+            baml_types::ir_type::UnionTypeViewGeneric::Optional(field_type) => {
+                item_type(ir, field_type)
+            }
+            baml_types::ir_type::UnionTypeViewGeneric::OneOf(field_types)
+            | baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(field_types) => {
                 let variant_children = field_types
                     .iter()
                     .filter_map(|variant| item_type(ir, &variant))
@@ -967,20 +916,19 @@ pub fn map_types<'ir, 'a>(
 where
     'ir: 'a,
 {
-    match ir.distribute_metadata(field_type).0 {
+    let res = match field_type {
         FieldType::Map(key, value, _) => Some((*key.clone(), *value.clone())),
         FieldType::RecursiveTypeAlias(alias_name, _) => ir
             .recursive_alias_definition(alias_name)
             .and_then(|alias_definition| map_types(ir, &alias_definition)),
         FieldType::Primitive(_, _) => None,
-        FieldType::Enum(_, _) => None,
+        FieldType::Enum { .. } => None,
         FieldType::List(_, _) => None,
         FieldType::Literal(_, _) => None,
         FieldType::Tuple(_, _) => None,
         FieldType::Union(variants, _) => {
             let variant_map_types: Vec<(FieldType, FieldType)> = variants
-                .view_as_iter(true)
-                .0
+                .iter_include_null()
                 .iter()
                 .filter_map(|variant| map_types(ir, variant))
                 .collect();
@@ -1008,9 +956,10 @@ where
                 }
             }
         }
-        FieldType::Class(_, _) => None,
+        FieldType::Class { .. } => None,
         FieldType::Arrow(_, _) => None,
-    }
+    };
+    res
 }
 
 pub static UNIT_TYPE: once_cell::sync::Lazy<FieldType> =
@@ -1085,10 +1034,21 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
             TypeMeta::default(),
         )),
         BamlValue::Enum(enum_name, _) => {
-            Some(FieldType::Enum(enum_name.clone(), TypeMeta::default()))
+            // TODO(Rahul): how do we get the dynamic flag?
+            Some(FieldType::Enum {
+                name: enum_name.clone(),
+                dynamic: false,
+                meta: TypeMeta::default(),
+            })
         }
         BamlValue::Class(class_name, _) => {
-            Some(FieldType::Class(class_name.clone(), TypeMeta::default()))
+            // TODO(Rahul): how do we get the dynamic flag?
+            Some(FieldType::Class {
+                name: class_name.clone(),
+                mode: baml_types::ir_type::StreamingMode::NonStreaming,
+                dynamic: false,
+                meta: baml_types::TypeMeta::default(),
+            })
         }
     };
     ret
@@ -1150,10 +1110,21 @@ pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType
             TypeMeta::default(),
         )),
         BamlValueWithMeta::Enum(enum_name, _, _) => {
-            Some(FieldType::Enum(enum_name.clone(), TypeMeta::default()))
+            // TODO(Rahul): how do we get the dynamic flag?
+            Some(FieldType::Enum {
+                name: enum_name.clone(),
+                dynamic: false,
+                meta: TypeMeta::default(),
+            })
         }
         BamlValueWithMeta::Class(class_name, _, _) => {
-            Some(FieldType::Class(class_name.clone(), TypeMeta::default()))
+            // TODO(Rahul): how do we get the dynamic flag?
+            Some(FieldType::Class {
+                name: class_name.clone(),
+                mode: baml_types::ir_type::StreamingMode::NonStreaming,
+                dynamic: false,
+                meta: baml_types::TypeMeta::default(),
+            })
         }
     };
     ret
@@ -1295,7 +1266,12 @@ mod tests {
         let elem_type = FieldType::union(vec![
             string_type(),
             int_type(),
-            FieldType::Class("Foo".to_string(), TypeMeta::default()),
+            FieldType::Class {
+                name: "Foo".to_string(),
+                mode: baml_types::ir_type::StreamingMode::NonStreaming,
+                dynamic: false,
+                meta: baml_types::TypeMeta::default(),
+            },
         ]);
         let map_type = FieldType::Map(
             Box::new(string_type()),
@@ -1345,15 +1321,13 @@ mod tests {
         assert_eq!(head.meta(), &list_type);
     }
 
+    
+
     #[test]
     fn distribute_map_of_lists() {
         let ir = mk_ir();
 
-        let elem_type = FieldType::union(vec![
-            string_type(),
-            int_type(),
-            FieldType::Class("Foo".to_string(), TypeMeta::default()),
-        ]);
+        let elem_type = FieldType::union(vec![string_type(), int_type(), FieldType::class("Foo")]);
 
         let list_type = FieldType::List(Box::new(elem_type), TypeMeta::default());
 
@@ -1454,7 +1428,7 @@ mod tests {
         let ir = make_test_ir(r#""#).unwrap();
 
         let res = ir
-            .distribute_type_with_meta(BamlValueWithMeta::Null(()), NULL_TYPE.clone())
+            .distribute_type_with_meta(BamlValueWithMeta::Null(()), FieldType::null())
             .expect("Distribution should succeed");
         let res2 = ir
             .distribute_type(
@@ -1492,6 +1466,56 @@ mod tests {
             )
             .expect("Distribution should succeed");
     }
+
+    #[test]
+    fn test_block_constraint_argument_class() {
+        let ir = make_test_ir(
+            r##"
+            class BlockConstraintForParam {
+              bcfp int
+              bcfp2 string
+              @@assert(hi, {{ this.bcfp2|length < this.bcfp }})
+            }
+            client<llm> GPT4 {
+              provider openai
+              options {
+                model gpt-4o
+                api_key env.OPENAI_API_KEY
+              }
+            }
+            function UseBlockConstraint(inp: BlockConstraintForParam) -> int {
+              client GPT4
+              prompt #""#
+            }
+            "##,
+        )
+        .unwrap();
+        let params = vec![
+            (
+                "inp".to_string(),
+                BamlValue::Class(
+                    "BlockConstraintForParam".to_string(),
+                    vec![
+                        ("bcfp".to_string(), BamlValue::Int(1)),
+                        ("bcfp2".to_string(), BamlValue::String("too long!".to_string())),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
+            ),
+        ]
+        .into_iter()
+        .collect();
+        let function = ir.find_function("UseBlockConstraint").unwrap();
+        let arg_coercer = ArgCoercer {
+            span_path: None,
+            allow_implicit_cast_to_string: true,
+        };
+        let res = ir.check_function_params(&function.inputs(), &params, arg_coercer);
+        let err = res.err().expect("Should fail due to block constraint");
+        let msg = format!("{err}");
+        assert!(msg.contains("Failed assert: hi"), "Error message should mention the failed block constraint: {msg}");
+    }
 }
 
 // TODO: Copy pasted from baml-lib/baml-types/src/field_type/mod.rs and poorly
@@ -1499,6 +1523,7 @@ mod tests {
 #[cfg(test)]
 mod subtype_tests {
     use baml_types::BamlMediaType;
+    use minijinja::machinery::ast::Expr;
     use repr::make_test_ir;
 
     use super::*;
@@ -1595,15 +1620,32 @@ mod subtype_tests {
     }
 
     #[test]
+    fn subtype_class_with_metadata() {
+        let x = FieldType::class("Foo");
+        let mut y = FieldType::class("Foo");
+        y.set_meta(TypeMeta {
+            constraints: vec![Constraint {
+                expression: baml_types::JinjaExpression("this is a test".to_string()),
+                label: Some("test".to_string()),
+                level: ConstraintLevel::Check,
+            }],
+            streaming_behavior: StreamingBehavior {
+                done: false,
+                state: false,
+                needed: false,
+            },
+        });
+
+        assert!(ir().is_subtype(&x, &y));
+    }
+
+    #[test]
     fn subtype_map_of_list_of_unions() {
-        let x = mk_str_map(mk_list(FieldType::Class(
-            "Foo".to_string(),
-            TypeMeta::default(),
-        )));
+        let x = mk_str_map(mk_list(FieldType::class("Foo")));
         let y = mk_str_map(mk_list(mk_union(vec![
             mk_str(),
             mk_int(),
-            FieldType::Class("Foo".to_string(), TypeMeta::default()),
+            FieldType::class("Foo"),
         ])));
         assert!(ir().is_subtype(&x, &y));
     }

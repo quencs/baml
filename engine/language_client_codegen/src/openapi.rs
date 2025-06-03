@@ -540,7 +540,7 @@ trait ToTypeReferenceInTypeDefinition<'ir> {
 impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
     fn to_type_spec(&self, _ir: &'ir IntermediateRepr) -> Result<TypeSpecWithMeta> {
         let base_rep = match self {
-            FieldType::Enum(name, _) | FieldType::Class(name, _) => TypeSpecWithMeta {
+            FieldType::Enum { name, .. } | FieldType::Class { name, .. } => TypeSpecWithMeta {
                 meta: TypeMetadata {
                     title: None,
                     r#enum: None,
@@ -590,7 +590,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                 if !matches!(
                     **key,
                     FieldType::Primitive(TypeValue::String, _)
-                        | FieldType::Enum(_, _)
+                        | FieldType::Enum { .. }
                         | FieldType::Literal(LiteralValue::String(_), _)
                         | FieldType::Union(_, _)
                 ) {
@@ -634,7 +634,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                 },
             },
             FieldType::Union(options, _) => {
-                let (nonnull_types, nullable) = options.view_as_iter(false);
+                let nonnull_types = options.iter_skip_null();
 
                 let one_of = nonnull_types
                     .into_iter()
@@ -650,7 +650,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                         title: None,
                         r#enum: None,
                         r#const: None,
-                        nullable,
+                        nullable: options.is_optional(),
                     },
                     type_spec: TypeSpec::Union { one_of },
                 }

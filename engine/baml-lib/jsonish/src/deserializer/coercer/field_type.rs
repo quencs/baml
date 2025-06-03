@@ -35,7 +35,7 @@ impl TypeCoercer for FieldType {
                 if matches!(
                     target,
                     FieldType::Primitive(TypeValue::String, _)
-                        | FieldType::Enum(_, _)
+                        | FieldType::Enum { .. }
                         | FieldType::Literal(LiteralValue::String(_), _)
                 ) {
                     self.coerce(
@@ -87,9 +87,9 @@ impl TypeCoercer for FieldType {
             }
             _ => match self {
                 FieldType::Primitive(p, _) => p.coerce(ctx, target, value),
-                FieldType::Enum(e, _) => IrRef::Enum(e).coerce(ctx, target, value),
+                FieldType::Enum{name, ..} => IrRef::Enum(name).coerce(ctx, target, value),
                 FieldType::Literal(l, _) => l.coerce(ctx, target, value),
-                FieldType::Class(c, _) => IrRef::Class(c).coerce(ctx, target, value),
+                FieldType::Class { name, .. } => IrRef::Class(name).coerce(ctx, target, value),
                 FieldType::RecursiveTypeAlias(name, _) => {
                     coerce_alias(ctx, self, value).map(|v| v.with_target(target))
                 }
@@ -183,9 +183,9 @@ impl DefaultValue for FieldType {
         };
 
         match self {
-            FieldType::Enum(e, _) => None,
+            FieldType::Enum { .. } => None,
             FieldType::Literal(_, _) => None,
-            FieldType::Class(_, _) => None,
+            FieldType::Class { .. } => None,
             FieldType::RecursiveTypeAlias(_, _) => None,
             FieldType::List(_, _) => Some(BamlValueWithFlags::List(
                 get_flags(),
@@ -193,8 +193,7 @@ impl DefaultValue for FieldType {
                 Vec::new(),
             )),
             FieldType::Union(items, _) => items
-                .view_as_iter(true)
-                .0
+                .iter_include_null()
                 .iter()
                 .find_map(|i| i.default_value(error)),
             FieldType::Primitive(TypeValue::Null, _) => {

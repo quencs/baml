@@ -4,6 +4,7 @@ mod python_language_features;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use baml_types::ir_type::UnionTypeViewGeneric;
 use generate_types::{to_python_literal, type_name_for_checks};
 use indexmap::IndexMap;
 use internal_baml_core::{
@@ -271,7 +272,7 @@ trait ToTypeReferenceInClientDefinition {
 impl ToTypeReferenceInClientDefinition for FieldType {
     fn to_type_ref(&self, ir: &IntermediateRepr) -> String {
         let base_rep = match self {
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 if ir
                     .find_enum(name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -284,18 +285,18 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             }
             FieldType::Literal(value, _) => to_python_literal(value),
             FieldType::RecursiveTypeAlias(name, _) => format!("types.{name}"),
-            FieldType::Class(name, _) => format!("types.{name}"),
+            FieldType::Class { name, .. } => format!("types.{name}"),
             FieldType::List(inner, _) => format!("List[{}]", inner.to_type_ref(ir)),
             FieldType::Map(key, value, _) => {
                 format!("Dict[{}, {}]", key.to_type_ref(ir), value.to_type_ref(ir))
             }
             FieldType::Primitive(r#type, _) => r#type.to_python(),
             FieldType::Union(inner, _) => match inner.view() {
-                baml_types::UnionTypeView::Null => "None".to_string(),
-                baml_types::UnionTypeView::Optional(field_type) => {
+                UnionTypeViewGeneric::Null => "None".to_string(),
+                UnionTypeViewGeneric::Optional(field_type) => {
                     format!("Optional[{}]", field_type.to_type_ref(ir))
                 }
-                baml_types::UnionTypeView::OneOf(field_types) => format!(
+                UnionTypeViewGeneric::OneOf(field_types) => format!(
                     "Union[{}]",
                     field_types
                         .iter()
@@ -303,7 +304,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
-                baml_types::UnionTypeView::OneOfOptional(field_types) => format!(
+                UnionTypeViewGeneric::OneOfOptional(field_types) => format!(
                     "Optional[Union[{}]]",
                     field_types
                         .iter()
@@ -335,19 +336,19 @@ impl ToTypeReferenceInClientDefinition for FieldType {
     }
 
     fn to_partial_type_ref(&self, ir: &IntermediateRepr, needed: bool) -> String {
-        let (base_type, metadata) = ir.distribute_metadata(self);
-        let is_partial_type = !metadata.1.done;
+        let metadata = self.meta();
+        let is_partial_type = !metadata.streaming_behavior.done;
         let use_module_prefix = !is_partial_type;
-        let with_state = metadata.1.state;
-        let constraints = metadata.0;
+        let with_state = metadata.streaming_behavior.state;
+        let constraints = metadata.constraints.clone();
         let module_prefix = if is_partial_type {
             "partial_types."
         } else {
             "types."
         };
 
-        let base_rep = match &base_type {
-            FieldType::Enum(name, _) => {
+        let base_rep = match &self {
+            FieldType::Enum { name, .. } => {
                 if ir
                     .find_enum(name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -374,7 +375,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     }
                 }
             }
-            FieldType::Class(name, _) => {
+            FieldType::Class { name, .. } => {
                 if needed {
                     format!("{module_prefix}{name}")
                 } else {
@@ -415,11 +416,11 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 }
             }
             FieldType::Union(inner, _) => match inner.view() {
-                baml_types::UnionTypeView::Null => "None".to_string(),
-                baml_types::UnionTypeView::Optional(field_type) => {
+                UnionTypeViewGeneric::Null => "None".to_string(),
+                UnionTypeViewGeneric::Optional(field_type) => {
                     format!("Optional[{}]", field_type.to_partial_type_ref(ir, true))
                 }
-                baml_types::UnionTypeView::OneOf(field_types) => {
+                UnionTypeViewGeneric::OneOf(field_types) => {
                     if needed {
                         format!(
                             "Union[{}]",
@@ -440,7 +441,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                         )
                     }
                 }
-                baml_types::UnionTypeView::OneOfOptional(field_types) => format!(
+                UnionTypeViewGeneric::OneOfOptional(field_types) => format!(
                     "Optional[Union[{}]]",
                     field_types
                         .iter()
@@ -491,10 +492,10 @@ fn default_value_for_parameter_type(field_type: &FieldType) -> Option<&'static s
     match field_type {
         FieldType::List(_, _) => Some("[]"),
         FieldType::Map(_, _, _) => Some("{}"),
-        FieldType::Class(_, _) => None,
+        FieldType::Class { .. } => None,
         FieldType::RecursiveTypeAlias(_, _) => None,
         FieldType::Literal(_, _) => None,
-        FieldType::Enum(_, _) => None,
+        FieldType::Enum { .. } => None,
         FieldType::Tuple(_, _) => None,
         FieldType::Primitive(_, _) => None,
         FieldType::Union(_, _) if field_type.is_optional() => Some("None"),

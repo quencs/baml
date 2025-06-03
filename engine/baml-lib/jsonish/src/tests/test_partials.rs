@@ -123,7 +123,7 @@ test_partial_deserializer!(
     }
     ```
     "#,
-    FieldType::Class("BookAnalysis".to_string(), TypeMeta::default()),
+    FieldType::class("BookAnalysis"),
     {
       "bookNames": [
         "brave new world",
@@ -214,7 +214,7 @@ test_partial_deserializer!(
         "scores": [
           {"year": 1950, "score": 70},
   "#,
-  FieldType::Class("BookAnalysis".to_string(), TypeMeta::default()),
+  FieldType::class("BookAnalysis"),
   {
     "bookNames": [
       "brave new world",
@@ -289,7 +289,7 @@ test_partial_deserializer!(
   test_partial_choppy,
   CHOPPY_BAML_FILE,
   TRIMMED_CHOPPY_RESULT,
-  FieldType::Class("GraphJson".to_string(), TypeMeta::default()),
+  FieldType::class("GraphJson"),
   {
     "vertices": [
       {
@@ -314,7 +314,7 @@ test_partial_deserializer!(
   test_partial_choppy_union,
   CHOPPY_BAML_FILE,
   TRIMMED_CHOPPY_RESULT,
-  FieldType::union(vec![FieldType::Class("GraphJson".to_string(), TypeMeta::default()), FieldType::Class("GraphJson".to_string(), TypeMeta::default()).as_list(), FieldType::Class("Error".to_string(), TypeMeta::default())]),
+  FieldType::union(vec![FieldType::class("GraphJson"), FieldType::class("GraphJson").as_list(), FieldType::class("Error")]),
   {
     "vertices": [
       {
@@ -339,7 +339,7 @@ test_partial_deserializer!(
   test_partial_choppy_union_2,
   CHOPPY_BAML_FILE,
   TRIMMED_CHOPPY_RESULT,
-  FieldType::union(vec![FieldType::Class("GraphJson".to_string(), TypeMeta::default()), FieldType::Class("ErrorBasic".to_string(), TypeMeta::default())]),
+  FieldType::union(vec![FieldType::class("GraphJson"), FieldType::class("ErrorBasic")]),
   {
     "vertices": [
       {
