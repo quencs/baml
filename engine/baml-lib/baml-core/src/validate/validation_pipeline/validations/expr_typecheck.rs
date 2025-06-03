@@ -1,5 +1,6 @@
 use anyhow::Result;
 use baml_types::expr::VarIndex;
+use baml_types::ir_type::ArrowGeneric;
 use baml_types::{TypeMeta, TypeValue};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -31,7 +32,7 @@ pub fn typecheck_exprs(ctx: &mut Context<'_>) -> Result<()> {
                 (
                     expr_fn.elem.name.clone(),
                     FieldType::Arrow(
-                        Box::new(Arrow {
+                        Box::new(ArrowGeneric {
                             param_types: expr_fn
                                 .elem
                                 .inputs
@@ -48,7 +49,7 @@ pub fn typecheck_exprs(ctx: &mut Context<'_>) -> Result<()> {
                 (
                     llm_function.elem.name.clone(),
                     FieldType::Arrow(
-                        Box::new(Arrow {
+                        Box::new(ArrowGeneric {
                             param_types: llm_function
                                 .elem
                                 .inputs

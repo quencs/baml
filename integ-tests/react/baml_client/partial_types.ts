@@ -489,10 +489,10 @@ export namespace partial_types {
     
     export interface SemanticContainer {
         sixteen_digit_number?: (number | null)
-        string_with_twenty_words?: (string | null)
+        string_with_twenty_words: string
         class_1?: (partial_types.ClassWithoutDone | null)
-        class_2: types.ClassWithBlockDone
-        class_done_needed: types.ClassWithBlockDone
+        class_2?: (partial_types.ClassWithBlockDone | null)
+        class_done_needed: partial_types.ClassWithBlockDone
         class_needed: partial_types.ClassWithoutDone
         three_small_things?: (partial_types.SmallThing | null)[]
         final_string?: (string | null)

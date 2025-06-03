@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_types::{FieldType, LiteralValue, TypeValue};
+use baml_types::{FieldType, LiteralValue, TypeValue, ir_type::UnionTypeViewGeneric};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use std::{borrow::Cow, ops::Index};
@@ -313,8 +313,8 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoUnion
             .flat_map(|set| set.into_iter())
             .filter_map(|t| match &t {
                 FieldType::Union(variants, _) => match variants.view() {
-                    baml_types::UnionTypeView::Null => None,
-                    baml_types::UnionTypeView::Optional(_) => None,
+                    UnionTypeViewGeneric::Null => None,
+                    UnionTypeViewGeneric::Optional(_) => None,
                     _ => Some(t),
                 },
                 _ => None,
@@ -329,8 +329,7 @@ impl<'ir> TryFrom<(&'ir IntermediateRepr, &'_ crate::GeneratorArgs)> for GoUnion
                 GoUnion {
                     name: union_name,
                     variants: variants
-                        .view_as_iter(false)
-                        .0
+                        .iter_skip_null()
                         .iter()
                         .map(|v| (v.to_union_name(), v.to_type_ref_2(ir, false)))
                         .collect(),
@@ -490,8 +489,8 @@ fn has_none_default(ir: &IntermediateRepr, field_type: &FieldType) -> bool {
     match field_type {
         FieldType::Primitive(TypeValue::Null, _) => true,
         FieldType::Primitive(_, _) => false,
-        FieldType::Class(_, _) => false,
-        FieldType::Enum(_, _) => false,
+        FieldType::Class { .. } => false,
+        FieldType::Enum { .. } => false,
         FieldType::List(_, _) => false,
         FieldType::Literal(_, _) => false,
         FieldType::Map(_, _, _) => false,
@@ -534,17 +533,20 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             is_slice: matches!(simplified, FieldType::List(_, _)),
             is_map: matches!(simplified, FieldType::Map(_, _, _)),
             is_primitive: self.is_primitive(),
-            is_class: matches!(simplified, FieldType::Class(_, _)),
+            is_class: matches!(simplified, FieldType::Class { .. }),
             is_integer: matches!(simplified, FieldType::Primitive(TypeValue::Int, _)),
-            is_enum: matches!(simplified, FieldType::Enum(_, _)),
+            is_enum: matches!(simplified, FieldType::Enum { .. }),
             underlying_type: match simplified {
                 FieldType::List(value, _) => Some(Box::new(value.to_type_ref_2(ir, module_prefix))),
                 FieldType::Union(inner, _) => match inner.view() {
-                    baml_types::UnionTypeView::Null => None,
-                    baml_types::UnionTypeView::Optional(field_type) => {
+                    UnionTypeViewGeneric::Null => None,
+                    UnionTypeViewGeneric::Optional(field_type) => {
                         Some(Box::new(field_type.to_type_ref_2(ir, module_prefix)))
                     }
-                    _ => None,
+                    UnionTypeViewGeneric::OneOf(field_types)
+                    | UnionTypeViewGeneric::OneOfOptional(field_types) => {
+                        None
+                    }
                 },
                 _ => None,
             },
@@ -560,13 +562,13 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
     fn to_type_ref_impl_2(&self, ir: &IntermediateRepr, use_module_prefix: bool) -> String {
         let module_prefix = if use_module_prefix { "types." } else { "" };
         let base_rep = match self {
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 // The enum owns its own dynamicism.
                 format!("{module_prefix}{name}")
             }
             FieldType::RecursiveTypeAlias(name, _) => format!("{module_prefix}{name}"),
             FieldType::Literal(value, _) => to_go_literal(value),
-            FieldType::Class(name, _) => format!("{module_prefix}{name}"),
+            FieldType::Class { name, .. } => format!("{module_prefix}{name}"),
             FieldType::List(inner, _) => {
                 format!("[]{}", inner.to_type_ref_2(ir, use_module_prefix).name)
             }
@@ -579,14 +581,14 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             }
             FieldType::Primitive(r#type, _) => r#type.to_go(),
             FieldType::Union(inner, _) => match inner.view() {
-                baml_types::UnionTypeView::Null => "any".to_string(),
-                baml_types::UnionTypeView::Optional(field_type) => {
+                UnionTypeViewGeneric::Null => "any".to_string(),
+                UnionTypeViewGeneric::Optional(field_type) => {
                     format!("*{}", field_type.to_type_ref_impl_2(ir, use_module_prefix))
                 }
-                baml_types::UnionTypeView::OneOf(field_types) => {
+                UnionTypeViewGeneric::OneOf(field_types) => {
                     format!("{module_prefix}{}", self.to_union_name())
                 }
-                baml_types::UnionTypeView::OneOfOptional(field_types) => {
+                UnionTypeViewGeneric::OneOfOptional(field_types) => {
                     format!("*{module_prefix}{}", self.to_union_name())
                 }
             },
@@ -625,14 +627,14 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
         let constraints = metadata.constraints;
         let module_prefix = if use_module_prefix { "types." } else { "" };
         let base_rep = match self {
-            FieldType::Class(name, _) => {
+            FieldType::Class { name, .. } => {
                 if wrapped || needed {
                     format!("{module_prefix}{name}")
                 } else {
                     format!("*{module_prefix}{name}")
                 }
             }
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 if needed || wrapped {
                     format!("types.{name}")
                 } else {
@@ -670,18 +672,18 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                 }
             }
             FieldType::Union(inner, _) => match inner.view() {
-                baml_types::UnionTypeView::Null => "any".to_string(),
-                baml_types::UnionTypeView::Optional(field_type) => {
+                UnionTypeViewGeneric::Null => "any".to_string(),
+                UnionTypeViewGeneric::Optional(field_type) => {
                     format!("*{}", field_type.to_type_ref_impl_2(ir, use_module_prefix))
                 }
-                baml_types::UnionTypeView::OneOf(field_types) => {
+                UnionTypeViewGeneric::OneOf(field_types) => {
                     if needed {
                         format!("{module_prefix}{}", self.to_union_name())
                     } else {
                         format!("*{module_prefix}{}", self.to_union_name())
                     }
                 }
-                baml_types::UnionTypeView::OneOfOptional(field_types) => {
+                UnionTypeViewGeneric::OneOfOptional(field_types) => {
                     format!("*{module_prefix}{}", self.to_union_name())
                 }
             },

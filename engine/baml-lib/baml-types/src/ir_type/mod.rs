@@ -6,6 +6,7 @@ use itertools::Itertools;
 use std::collections::HashSet;
 
 mod builder;
+mod union_type;
 
 /// The building block of IR types in BAML.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, Eq, Hash)]
@@ -40,6 +41,7 @@ pub enum StreamingMode {
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionTypeGeneric<T> {
     types: Vec<TypeGeneric<T>>,
+    null_type: Box<TypeGeneric<T>>,
 }
 
 /// A convenience type alias for BAML types in the IR.
@@ -203,93 +205,7 @@ impl<'a, T: Default + std::fmt::Debug + Clone> UnionTypeViewGeneric<'a, T> {
     }
 }
 
-// impl UnionType {
-//     // disallow construction so people have to use:
-//     // FieldType::union(vec![...]) which does a simplify() default
-//     pub(crate) fn new(types: Vec<FieldType>) -> Self {
-//         if types.len() <= 1 {
-//             panic!(
-//                 "FATAL, please report this bug: Union type must have at least 2 types. Got {:?}",
-//                 types
-//             );
-//         }
-//         Self { types }
-//     }
-//
-//     pub fn is_optional(&self) -> bool {
-//         self.types.iter().any(|t| t.is_optional())
-//     }
-//
-//     pub fn add_type(&mut self, t: FieldType) {
-//         self.types.push(t);
-//     }
-//
-//     pub fn view(self) -> UnionTypeView> {
-//         let non_null_types = self
-//             .types
-//             .iter()
-//             .filter(|t| !t.is_null())
-//             .collect::<Vec<_>>();
-//         match non_null_types.len() {
-//             0 => UnionTypeView::Null,
-//             1 => UnionTypeView::Optional(&non_null_types[0]),
-//             _ => {
-//                 if non_null_types.len() == self.types.len() {
-//                     UnionTypeView::OneOf(non_null_types)
-//                 } else {
-//                     UnionTypeView::OneOfOptional(non_null_types)
-//                 }
-//             }
-//         }
-//     }
-//
-//     // Hello
-//     pub fn view_as_iter(&self, include_null: bool) -> (Vec<FieldType>, bool) {
-//         match self.view() {
-//             UnionTypeView::Null => (
-//                 if include_null {
-//                     vec![TypeGeneric::null()]
-//                 } else {
-//                     vec![]
-//                 },
-//                 true,
-//             ),
-//             UnionTypeView::Optional(field_type) => {
-//                 if include_null {
-//                     (vec![field_type.clone(), TypeGeneric::null()], true)
-//                 } else {
-//                     (vec![field_type.clone()], true)
-//                 }
-//             }
-//             UnionTypeView::OneOf(items) => (items, false),
-//             UnionTypeView::OneOfOptional(items) => {
-//                 let null = TypeGeneric::null();
-//                 if include_null {
-//                     (
-//                         items.into_iter().chain(std::iter::once(&null)).collect(),
-//                         true,
-//                     )
-//                 } else {
-//                     (items, true)
-//                 }
-//             }
-//         }
-//     }
-// }
-
 impl<T: std::fmt::Debug + Default> UnionTypeGeneric<T> {
-    // disallow construction so people have to use:
-    // FieldType::union(vec![...]) which does a simplify() default
-    pub(crate) fn new(types: Vec<TypeGeneric<T>>) -> Self {
-        if types.len() <= 1 {
-            panic!(
-                "FATAL, please report this bug: Union type must have at least 2 types. Got {:?}",
-                types
-            );
-        }
-        Self { types }
-    }
-
     pub fn is_optional(&self) -> bool {
         match self.view() {
             UnionTypeViewGeneric::Null => true,
@@ -322,13 +238,21 @@ impl<T: std::fmt::Debug + Default> UnionTypeGeneric<T> {
         }
     }
 
-    pub fn view_as_iter(&self) -> (Vec<&TypeGeneric<T>>, bool) {
+    pub fn iter_skip_null(&self) -> Vec<&TypeGeneric<T>> {
         match self.view() {
-            UnionTypeViewGeneric::Null => (vec![], true),
-            UnionTypeViewGeneric::Optional(field_type) => (vec![field_type], true),
-            UnionTypeViewGeneric::OneOf(items) => (items, false),
-            UnionTypeViewGeneric::OneOfOptional(items) => (items, true),
+            UnionTypeViewGeneric::Null => vec![],
+            UnionTypeViewGeneric::Optional(field_type) => vec![field_type],
+            UnionTypeViewGeneric::OneOf(items) => items,
+            UnionTypeViewGeneric::OneOfOptional(items) => items,
         }
+    }
+
+    pub fn iter_include_null(&self) -> Vec<&TypeGeneric<T>> {
+        let mut iter = self.iter_skip_null();
+        if self.is_optional() {
+            iter.push(&self.null_type);
+        }
+        iter
     }
 }
 
@@ -532,9 +456,7 @@ impl<T> TypeGeneric<T> {
                         if has_null {
                             // Return an optional of a single variant.
                             TypeGeneric::Union(
-                                UnionTypeGeneric {
-                                    types: vec![variants[0].clone(), TypeGeneric::null()],
-                                },
+                                UnionTypeGeneric::new_unsafe(vec![variants[0].clone()]),
                                 T::default(),
                             )
                         } else {
@@ -546,7 +468,7 @@ impl<T> TypeGeneric<T> {
                         if has_null {
                             variants.push(TypeGeneric::null());
                         }
-                        TypeGeneric::Union(UnionTypeGeneric { types: variants }, T::default())
+                        TypeGeneric::Union(UnionTypeGeneric::new_unsafe(variants), T::default())
                     }
                 };
 
@@ -724,9 +646,9 @@ pub fn partialize(r#type: &Type) -> TypeStreaming {
                 meta,
             ),
             FieldType::Union(union_type, _) => {
-                let (variants, _is_optional) = union_type.view_as_iter();
-                TypeStreaming::Union(
-                    UnionTypeGeneric::new(variants.iter().map(|t| partialize(t)).collect()),
+                let variants = union_type.iter_skip_null();
+                TypeStreaming::union_with_meta(
+                    variants.into_iter().map(|t| partialize(t)).collect(),
                     meta,
                 )
             }
@@ -986,16 +908,6 @@ mod tests {
     fn simplify_optional_int() {
         let optional_int = FieldType::optional(FieldType::int());
         assert_eq!(optional_int.simplify(), optional_int);
-    }
-
-    #[test]
-    fn const_null_equals_synthetic_null() {
-        let optional_int = FieldType::optional(FieldType::int());
-        let union = FieldType::Union(
-            UnionTypeGeneric::new(vec![FieldType::int(), FieldType::null()]),
-            TypeMeta::default(),
-        );
-        assert_eq!(optional_int, union)
     }
 
     #[test]

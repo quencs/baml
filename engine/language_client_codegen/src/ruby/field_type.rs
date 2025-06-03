@@ -1,4 +1,4 @@
-use baml_types::{BamlMediaType, FieldType, LiteralValue, TypeValue};
+use baml_types::{BamlMediaType, FieldType, LiteralValue, TypeValue, ir_type::UnionTypeViewGeneric};
 
 use crate::field_type_attributes;
 
@@ -7,8 +7,8 @@ use super::ruby_language_features::ToRuby;
 impl ToRuby for FieldType {
     fn to_ruby(&self) -> String {
         let base_repr = match self {
-            FieldType::Class(name, _) => format!("Baml::Types::{}", name.clone()),
-            FieldType::Enum(name, _) => format!("T.any(Baml::Types::{}, String)", name.clone()),
+            FieldType::Class { name, .. } => format!("Baml::Types::{}", name.clone()),
+            FieldType::Enum { name, .. } => format!("T.any(Baml::Types::{}, String)", name.clone()),
             // Sorbet does not support recursive type aliases.
             // https://sorbet.org/docs/type-aliases
             FieldType::RecursiveTypeAlias(_name, _) => "T.anything".to_string(),
@@ -20,7 +20,7 @@ impl ToRuby for FieldType {
                 "T::Hash[{}, {}]",
                 match key.as_ref() {
                     // For enums just default to strings.
-                    FieldType::Enum(_, _)
+                    FieldType::Enum { .. }
                     | FieldType::Literal(LiteralValue::String(_), _)
                     | FieldType::Union(_, _) => FieldType::string().to_ruby(),
                     _ => key.to_ruby(),
@@ -40,10 +40,10 @@ impl ToRuby for FieldType {
             }),
             FieldType::Union(inner, _) => {
                 match inner.view() {
-                    baml_types::UnionTypeView::Null => "NilClass".to_string(),
-                    baml_types::UnionTypeView::Optional(field_type) => format!("T.nilable({})", field_type.to_ruby()),
-                    baml_types::UnionTypeView::OneOf(field_types) => format!("T.any({})", field_types.iter().map(|t| t.to_ruby()).collect::<Vec<_>>().join(", ")),
-                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("T.nilable(T.any({}))", field_types.iter().map(|t| t.to_ruby()).collect::<Vec<_>>().join(", ")),
+                    UnionTypeViewGeneric::Null => "NilClass".to_string(),
+                    UnionTypeViewGeneric::Optional(field_type) => format!("T.nilable({})", field_type.to_ruby()),
+                    UnionTypeViewGeneric::OneOf(field_types) => format!("T.any({})", field_types.iter().map(|t| t.to_ruby()).collect::<Vec<_>>().join(", ")),
+                    UnionTypeViewGeneric::OneOfOptional(field_types) => format!("T.nilable(T.any({}))", field_types.iter().map(|t| t.to_ruby()).collect::<Vec<_>>().join(", ")),
                 }
             }
             FieldType::Tuple(inner, _) => format!(

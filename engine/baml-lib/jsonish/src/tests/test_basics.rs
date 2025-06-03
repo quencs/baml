@@ -1004,7 +1004,7 @@ Here are the seven creative headings along with their descriptions and Python fu
   ]
 }
   "#.trim(),
-  baml_types::FieldType::Class("Headings".into(), TypeMeta::default()),
+  baml_types::FieldType::class("Headings"),
 
   {
     "headings": [
@@ -1033,7 +1033,7 @@ test_deserializer!(
   ]
 }
   "#.trim(),
-  baml_types::FieldType::Class("Headings".into(), TypeMeta::default()),
+  baml_types::FieldType::class("Headings"),
 
   {
     "headings": [

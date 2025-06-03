@@ -45,8 +45,8 @@ impl ArgCoercer {
     ) -> Result<BamlValueWithMeta<FieldType>, ()> {
         let metadata = field_type.meta();
 
-        let value = match ir.distribute_constraints(field_type) {
-            (FieldType::Primitive(t, _), _) => match (t, value) {
+        let value = match field_type {
+            FieldType::Primitive(t, _) => match (t, value) {
                 (TypeValue::String, BamlValue::String(v)) => {
                     Ok(BamlValueWithMeta::String(v.clone(), FieldType::string()))
                 }
@@ -177,7 +177,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Enum(name, _), _) => match value {
+            FieldType::Enum { name, .. } => match value {
                 BamlValue::String(s) => {
                     if let Ok(e) = ir.find_enum(name) {
                         if e.walk_values().any(|v| v.item.elem.0 == *s)
@@ -215,7 +215,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Literal(literal, _), _) => match (literal, value) {
+            FieldType::Literal(literal, _) => match (literal, value) {
                 (LiteralValue::Int(lit), BamlValue::Int(v)) if lit == v => {
                     Ok(BamlValueWithMeta::Int(*v, FieldType::literal_int(*lit)))
                 }
@@ -230,8 +230,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Class(name, _), _) => match value {
-                // BamlValue::Class(n, _) if n == name => Ok(value.clone()),
+            FieldType::Class { name, .. } => match value {
                 BamlValue::Class(_, obj) | BamlValue::Map(obj) => match ir.find_class(name) {
                     Ok(c) => {
                         let mut fields = BamlMap::new();
@@ -262,6 +261,7 @@ impl ArgCoercer {
                         Ok(BamlValueWithMeta::Class(
                             name.to_string(),
                             fields,
+                            // TODO(Rahul): how do we get the dynamic flag?
                             FieldType::class(name),
                         ))
                     }
@@ -275,7 +275,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::RecursiveTypeAlias(name, _), _) => {
+            FieldType::RecursiveTypeAlias(name, _) => {
                 let mut maybe_coerced = None;
                 // TODO: Fix this O(n)
                 for cycle in ir.structural_recursive_alias_cycles() {
@@ -293,7 +293,7 @@ impl ArgCoercer {
                     }
                 }
             }
-            (FieldType::List(item, _), _) => match value {
+            FieldType::List(item, _) => match value {
                 BamlValue::List(arr) => {
                     let mut items = Vec::new();
                     for v in arr {
@@ -308,11 +308,11 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Tuple(_, _), _) => {
+            FieldType::Tuple(_, _) => {
                 scope.push_error("Tuples are not yet supported".to_string());
                 Err(())
             }
-            (FieldType::Map(k, v, _), _) => match value {
+            FieldType::Map(k, v, _) => match value {
                 BamlValue::Map(kv) => {
                     let mut map = BamlMap::new();
                     for (key, value) in kv {
@@ -335,9 +335,9 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            (FieldType::Union(options, _), _) => {
+            FieldType::Union(options, _) => {
                 let mut first_good_result = Err(());
-                for option in options.view_as_iter(true).0 {
+                for option in options.iter_include_null() {
                     let mut scope = ScopeStack::new();
                     if first_good_result.is_err() {
                         let result = self.coerce_arg(ir, option, value, &mut scope);
@@ -353,7 +353,7 @@ impl ArgCoercer {
                     first_good_result
                 }
             }
-            (FieldType::Arrow(_, _), _) => {
+            FieldType::Arrow(_, _) => {
                 scope.push_error(format!(
                     "A json value may not be coerced into a function type"
                 ));
@@ -389,7 +389,7 @@ fn first_failing_assert_nested<'a>(
     let first_failure = value_with_types
         .iter()
         .map(|value_node| {
-            let (_, constraints) = ir.distribute_constraints(value_node.meta());
+            let constraints = value_node.meta().meta().constraints.clone();
             constraints
                 .into_iter()
                 .filter_map(|c| {

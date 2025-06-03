@@ -172,42 +172,4 @@ impl IRHelperExtended for ScopedIr<'_> {
             None => self.ir.recursive_alias_definition(alias_name),
         }
     }
-
-    fn distribute_metadata<'a>(
-        &'a self,
-        field_type: &'a FieldType,
-    ) -> (
-        &'a FieldType,
-        (Vec<baml_types::Constraint>, baml_types::StreamingBehavior),
-    ) {
-        match field_type {
-            FieldType::Class(class_name, _) => match self.find_class(class_name) {
-                Err(_) => (field_type, (Vec::new(), StreamingBehavior::default())),
-                Ok(FindResult::Overriden(class_node, _) | FindResult::OnlyIr(class_node)) => (
-                    field_type,
-                    (
-                        class_node.item.attributes.constraints.clone(),
-                        class_node.item.attributes.streaming_behavior(),
-                    ),
-                ),
-                Ok(FindResult::OnlyDynamic(_)) => {
-                    (field_type, (Vec::new(), StreamingBehavior::default()))
-                }
-            },
-            FieldType::Enum(enum_name, _) => match self.find_enum(enum_name) {
-                Err(_) => (field_type, (Vec::new(), StreamingBehavior::default())),
-                Ok(FindResult::Overriden(enum_node, _) | FindResult::OnlyIr(enum_node)) => (
-                    field_type,
-                    (
-                        enum_node.item.attributes.constraints.clone(),
-                        StreamingBehavior::default(),
-                    ),
-                ),
-                Ok(FindResult::OnlyDynamic(_)) => {
-                    (field_type, (Vec::new(), StreamingBehavior::default()))
-                }
-            },
-            _ => (field_type, (field_type.meta().constraints.clone(), field_type.meta().streaming_behavior.clone())),
-        }
-    }
 }

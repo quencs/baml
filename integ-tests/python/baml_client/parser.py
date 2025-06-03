@@ -7428,7 +7428,7 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> types.ClassWithBlockDone:
+    ) -> partial_types.ClassWithBlockDone:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7451,13 +7451,13 @@ class LlmStreamParser:
         env,
       )
 
-      return cast(types.ClassWithBlockDone, parsed)
+      return cast(partial_types.ClassWithBlockDone, parsed)
     
     def MakeClassWithExternalDone(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> partial_types.ClassWithoutDone:
+    ) -> types.ClassWithoutDone:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7480,7 +7480,7 @@ class LlmStreamParser:
         env,
       )
 
-      return cast(partial_types.ClassWithoutDone, parsed)
+      return cast(types.ClassWithoutDone, parsed)
     
     def MakeNestedBlockConstraint(
         self,

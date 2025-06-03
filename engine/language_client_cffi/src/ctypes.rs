@@ -546,13 +546,13 @@ where
     let target_type = value.field_type().simplify();
     if let baml_types::FieldType::Union(options, _) = &target_type {
         let mut options_vec = vec![];
-        for t in options.view_as_iter(true).0 {
+        for t in options.iter_include_null() {
             options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
         }
 
         // figure out which index of the options is the target_type
         let real_type = value.real_type();
-        let (options, _) = options.view_as_iter(true);
+        let options = options.iter_include_null();
         let value_type_index = options
             .iter()
             .position(|t| real_type == **t)
@@ -598,7 +598,7 @@ where
         baml_types::FieldType::Primitive(type_value, _) => {
             return type_value_to_cffi(type_value, builder)
         }
-        baml_types::FieldType::Enum(e, _) => {
+        baml_types::FieldType::Enum { name: e, ..} => {
             let enum_name = builder.create_string(e);
             let enum_type = CFFIFieldTypeEnum::create(
                 &mut builder,
@@ -619,7 +619,7 @@ where
                 literal_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Class(cls, _) => {
+        baml_types::FieldType::Class { name: cls, .. } => {
             let class_name = builder.create_string(cls);
             let class_type = CFFIFieldTypeClass::create(
                 &mut builder,
@@ -662,7 +662,7 @@ where
         }
         baml_types::FieldType::Union(field_types, _) => {
             let mut options_vec = vec![];
-            for t in field_types.view_as_iter(true).0 {
+            for t in field_types.iter_include_null() {
                 options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
             }
             let options = builder.create_vector_from_iter(options_vec.into_iter());

@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use baml_types::ir_type::ArrowGeneric;
 use baml_types::BamlMap;
 use baml_types::{
     expr::{self, Expr, ExprMetadata, Name, VarIndex},
@@ -153,7 +154,7 @@ impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
                 "Expression functions must have a return type"
             ))?;
         let lambda_type = FieldType::Arrow(
-            Box::new(Arrow {
+            Box::new(ArrowGeneric {
                 param_types: arg_types,
                 return_type: return_type.clone(),
             }),
@@ -414,10 +415,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     spread,
                     meta: (
                         span.clone(),
-                        Some(FieldType::Class(
-                            class_name.name().to_string(),
-                            TypeMeta::default(),
-                        )),
+                        Some(FieldType::class(class_name.name())),
                     ),
                 })
             }
@@ -1155,10 +1153,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ast::FieldType::Symbol(arity, idn, ..) => type_with_arity(
                 match db.find_type(idn) {
                     Some(TypeWalker::Class(class_walker)) => {
-                        let mut base_class = FieldType::Class(
-                            class_walker.name().to_string(),
-                            TypeMeta::default(),
-                        );
+                        let mut base_class = FieldType::class(class_walker.name());
                         match class_walker.get_constraints(SubType::Class) {
                             Some(constraints) if !constraints.is_empty() => {
                                 base_class.set_meta(TypeMeta {
@@ -1171,10 +1166,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                         }
                     }
                     Some(TypeWalker::Enum(enum_walker)) => {
-                        let mut base_type = FieldType::Enum(
-                            enum_walker.name().to_string(),
-                            TypeMeta::default(),
-                        );
+                        let mut base_type = FieldType::r#enum(enum_walker.name());
                         match enum_walker.get_constraints(SubType::Enum) {
                             Some(constraints) if !constraints.is_empty() => {
                                 base_type.set_meta(TypeMeta {
@@ -2257,7 +2249,7 @@ pub fn initial_context(ir: &IntermediateRepr) -> HashMap<Name, Expr<ExprMetadata
             .collect::<Vec<_>>();
         let body_type = llm_function.elem.output.clone();
         let lambda_type = FieldType::Arrow(
-            Box::new(Arrow {
+            Box::new(ArrowGeneric {
                 param_types: params_type,
                 return_type: body_type,
             }),

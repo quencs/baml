@@ -41,7 +41,7 @@ test_deserializer!(
         b string
     }"#,
     r#"[{"a": 1, "b": "hello"}, {"a": 2, "b": "world"}]"#,
-    FieldType::List(FieldType::Class("Foo".to_string(), TypeMeta::default()).into(), TypeMeta::default()),
+    FieldType::list(FieldType::class("Foo")),
     [{"a": 1, "b": "hello"}, {"a": 2, "b": "world"}]
 );
 
@@ -89,7 +89,7 @@ test_deserializer!(
     }
   ]
     "#,
-  FieldType::List(FieldType::Class("ListClass".to_string(), TypeMeta::default()).into(), TypeMeta::default()),
+  FieldType::list(FieldType::class("ListClass")),
   [
       {
         "date": "01/01",

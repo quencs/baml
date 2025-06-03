@@ -1,7 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
-use baml_types::{Constraint, FieldType, StreamingBehavior, TypeMeta, TypeValue};
+use baml_types::{Constraint, FieldType, StreamingBehavior, TypeMeta, TypeValue, ir_type::UnionTypeViewGeneric};
 use indexmap::{IndexMap, IndexSet};
 
 #[derive(Debug)]
@@ -383,8 +383,8 @@ impl OutputFormatContent {
                     article = indefinite_article_a_or_an(&p.to_string())
                 )),
                 FieldType::Literal(_, _) => Some(String::from("Answer using this specific value:\n")),
-                FieldType::Enum(_, _) => Some(String::from("Answer with any of the categories:\n")),
-                FieldType::Class(cls, _) => {
+                FieldType::Enum { .. } => Some(String::from("Answer with any of the categories:\n")),
+                FieldType::Class { name: cls, .. } => {
                     let type_prefix = match &options.hoisted_class_prefix {
                         RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
                         _ => RenderOptions::DEFAULT_TYPE_PREFIX_IN_RENDER_MESSAGE,
@@ -412,10 +412,10 @@ impl OutputFormatContent {
                 )),
                 FieldType::Union(items, _) => {
                     match items.view() {
-                        baml_types::UnionTypeView::Null => Some(String::from("Answer ONLY with null:\n")),
-                        baml_types::UnionTypeView::Optional(_) => Some(String::from("Answer in JSON using this schema:\n")),
-                        baml_types::UnionTypeView::OneOf(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
-                        baml_types::UnionTypeView::OneOfOptional(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
+                        UnionTypeViewGeneric::Null => Some(String::from("Answer ONLY with null:\n")),
+                        UnionTypeViewGeneric::Optional(_) => Some(String::from("Answer in JSON using this schema:\n")),
+                        UnionTypeViewGeneric::OneOf(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
+                        UnionTypeViewGeneric::OneOfOptional(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
                     }
                 }
                 FieldType::Map(_, _, _) => Some(String::from("Answer in JSON using this schema:\n")),
@@ -570,7 +570,7 @@ impl OutputFormatContent {
         render_ctx: &RenderCtx,
     ) -> Result<String, minijinja::Error> {
         match field_type {
-            FieldType::Class(nested_class, _) if render_ctx.hoisted_classes.contains(nested_class) => {
+            FieldType::Class { name: nested_class, .. } if render_ctx.hoisted_classes.contains(nested_class) => {
                 Ok(nested_class.to_owned())
             }
 
@@ -603,7 +603,7 @@ impl OutputFormatContent {
                 }
             },
             FieldType::Literal(v, _) => v.to_string(),
-            FieldType::Enum(e, _) => {
+            FieldType::Enum { name: e, .. } => {
                 let Some(enm) = self.enums.get(e) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -621,7 +621,7 @@ impl OutputFormatContent {
                         .join(&options.or_splitter)
                 }
             }
-            FieldType::Class(cls, _) => {
+            FieldType::Class { name: cls, .. } => {
                 let Some(class) = self.classes.get(cls) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -650,7 +650,7 @@ impl OutputFormatContent {
             FieldType::RecursiveTypeAlias(name, _) => name.to_owned(),
             FieldType::List(inner, _) => {
                 let is_hoisted = match inner.as_ref() {
-                    FieldType::Class(nested_class, _) => {
+                    FieldType::Class { name: nested_class, .. } => {
                         render_ctx.hoisted_classes.contains(nested_class)
                     }
                     FieldType::RecursiveTypeAlias(name, _) => {
@@ -664,8 +664,8 @@ impl OutputFormatContent {
                 if !is_hoisted
                     && match inner.as_ref() {
                         FieldType::Primitive(_, _) => false,
-                        FieldType::Enum(_, _) => inner_str.len() > 15,
-                        FieldType::Union(items, _) => items.view_as_iter(true).0.iter().all(|t| !t.is_primitive()),
+                        FieldType::Enum { .. } => inner_str.len() > 15,
+                        FieldType::Union(items, _) => items.iter_include_null().iter().all(|t| !t.is_primitive()),
                         _ => true,
                     }
                 {
@@ -677,8 +677,7 @@ impl OutputFormatContent {
                 }
             }
             FieldType::Union(items, _) => items
-                .view_as_iter(true)
-                .0
+                .iter_include_null()
                 .iter()
                 .map(|t| self.render_possibly_hoisted_type(options, t, render_ctx))
                 .collect::<Result<Vec<_>, minijinja::Error>>()?
@@ -778,7 +777,7 @@ impl OutputFormatContent {
 
         let mut message = match &self.target {
             FieldType::Primitive(TypeValue::String, _) if prefix.is_none() => None,
-            FieldType::Enum(e, _) => {
+            FieldType::Enum { name: e, .. } => {
                 let Some(enm) = self.enums.get(e) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -793,7 +792,7 @@ impl OutputFormatContent {
 
         // Top level recursive classes will just use their name instead of the
         // entire schema which should already be hoisted.
-        if let FieldType::Class(class, _) = &self.target {
+        if let FieldType::Class { name: class, .. } = &self.target {
             if render_ctx.hoisted_classes.contains(class) {
                 message = Some(class.to_owned());
             }
@@ -805,7 +804,7 @@ impl OutputFormatContent {
         for class_name in &render_ctx.hoisted_classes {
             let schema = self.inner_type_render(
                 &options,
-                &FieldType::Class(class_name.to_owned(), TypeMeta::default()),
+                &FieldType::class(class_name),
                 &render_ctx,
             )?;
 
@@ -951,7 +950,7 @@ mod tests {
             constraints: Vec::new(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::Enum("Color".to_string(), TypeMeta::default()))
+        let content = OutputFormatContent::target(FieldType::r#enum("Color"))
             .enums(enums)
             .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
@@ -1071,7 +1070,7 @@ Color
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string(), TypeMeta::default()),
+                FieldType::r#enum("Enm"),
                 None,
                 false,
             )],
@@ -1127,7 +1126,7 @@ Answer in JSON using this schema:
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string(), TypeMeta::default()),
+                FieldType::r#enum("Enm"),
                 None,
                 false,
             )],
@@ -1179,7 +1178,7 @@ Answer in JSON using this schema:
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::Enum("Enm".to_string(), TypeMeta::default()),
+                FieldType::r#enum("Enm"),
                 None,
                 false,
             )],
@@ -2539,7 +2538,7 @@ Answer in JSON using this schema: RecursiveMap"#
                 name: Name::new("NonRecursive".to_string()),
                 fields: vec![(
                     Name::new("rec_map".to_string()),
-                    FieldType::Class("RecursiveMap".to_string(), TypeMeta::default()),
+                    FieldType::class("RecursiveMap"),
                     None,
                     false,
                 )],

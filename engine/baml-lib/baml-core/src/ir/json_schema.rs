@@ -147,7 +147,7 @@ impl WithJsonSchema for Walker<'_, &Class> {
 impl WithJsonSchema for FieldType {
     fn json_schema(&self) -> serde_json::Value {
         match self {
-            FieldType::Class(name, _) | FieldType::Enum(name, _) => json!({
+            FieldType::Class { name, .. } | FieldType::Enum { name, .. } => json!({
                 "$ref": format!("#/definitions/{}", name),
             }),
             FieldType::Literal(v, _) => json!({
@@ -218,7 +218,7 @@ impl WithJsonSchema for FieldType {
                 schema
             }
             FieldType::Union(options, _) => json!({
-                    "anyOf": options.view_as_iter(true).0.iter().map(|t| {
+                    "anyOf": options.iter_include_null().iter().map(|t| {
                         let mut res = t.json_schema();
                         // if res is a map, add a "title" field
                         if let serde_json::Value::Object(r) = &mut res {

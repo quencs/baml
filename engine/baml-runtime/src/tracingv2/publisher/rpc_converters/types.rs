@@ -73,8 +73,8 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType
                     })
                 }
             },
-            baml_types::FieldType::Enum(e, _) => lookup
-                .type_lookup(e.as_str())
+            baml_types::FieldType::Enum{name, ..} => lookup
+                .type_lookup(name.as_str())
                 .map(|id| TypeReference::enum_type(id))
                 .unwrap_or(TypeReference::Unknown),
             baml_types::FieldType::Literal(literal_value, _) => {
@@ -84,7 +84,7 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType
                     baml_types::LiteralValue::Bool(b) => LiteralTypeDefinition::Bool(b),
                 })
             }
-            baml_types::FieldType::Class(name, _) => lookup
+            baml_types::FieldType::Class { name, .. } => lookup
                 .type_lookup(name.as_str())
                 .map(|id| TypeReference::class(id))
                 .unwrap_or(TypeReference::Unknown),
@@ -97,8 +97,7 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType
             ),
             baml_types::FieldType::Union(field_types, _) => TypeReference::union(
                 field_types
-                    .view_as_iter(true)
-                    .0
+                    .iter_include_null()
                     .into_iter()
                     .map(|t| t.into_rpc_event(lookup))
                     .collect(),

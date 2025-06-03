@@ -41,17 +41,16 @@ pub(super) fn coerce_map(
     match key_type.as_ref() {
         // String, enum or just one literal string, OK.
         FieldType::Primitive(TypeValue::String, _)
-        | FieldType::Enum(_, _)
+        | FieldType::Enum { .. }
         | FieldType::Literal(LiteralValue::String(_), _) => {}
 
         // For unions we need to check if all the items are literal strings.
         FieldType::Union(items, _) => {
-            let (items, _) = items.view_as_iter(true);
-            let mut queue = VecDeque::from_iter(items.into_iter());
+            let mut queue = VecDeque::from_iter(items.iter_include_null().into_iter());
             while let Some(item) = queue.pop_front() {
                 match item {
                     FieldType::Literal(LiteralValue::String(_), _) => continue,
-                    FieldType::Union(nested, _) => queue.extend(nested.view_as_iter(true).0),
+                    FieldType::Union(nested, _) => queue.extend(nested.iter_include_null()),
                     other => return Err(ctx.error_map_must_have_supported_key(other)),
                 }
             }

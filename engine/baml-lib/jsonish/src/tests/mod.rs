@@ -189,7 +189,7 @@ test_deserializer!(
     }
 
   "#,
-    FieldType::Class("Foo".to_string(), TypeMeta::default()),
+    FieldType::class("Foo"),
     json!({"id": null })
 );
 
@@ -207,7 +207,7 @@ test_deserializer!(
       }
 
     "#,
-    FieldType::Class("Foo".to_string(), TypeMeta::default()),
+    FieldType::class("Foo"),
     json!({"id": r#"{{hi} there"# })
 );
 
@@ -332,7 +332,7 @@ test_deserializer!(
         ]
       }
     "#,
-    FieldType::Class("BookAnalysis".to_string(), TypeMeta::default()),
+    FieldType::class("BookAnalysis"),
     json!({
       "bookNames": ["brave new world", "the lord of the rings", "three body problem", "stormlight archive"],
       "popularityOverTime": [
@@ -445,7 +445,7 @@ test_deserializer!(
       ]
     }
   "#,
-    FieldType::Class("BookAnalysis".to_string(), TypeMeta::default()),
+    FieldType::class("BookAnalysis"),
     json!({
       "bookNames": ["brave new world", "the lord of the rings"],
       "popularityOverTime": [
@@ -500,7 +500,7 @@ test_deserializer!(
     "four": "four"
   }
   "#,
-    FieldType::Class("OrderedClass".to_string(), TypeMeta::default()),
+    FieldType::class("OrderedClass"),
     json!({
       "one": "one",
       "two": "two",
@@ -520,7 +520,7 @@ test_deserializer!(
     "four": "four"
   }
     "#,
-    FieldType::Class("OrderedClass".to_string(), TypeMeta::default()),
+    FieldType::class("OrderedClass"),
     json!({
       "one": "one",
       "two": "two",

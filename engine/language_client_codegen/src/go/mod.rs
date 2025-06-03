@@ -4,7 +4,7 @@ mod go_language_features;
 use std::{fmt::format, path::PathBuf};
 
 use anyhow::Result;
-use baml_types::ToUnionName;
+use baml_types::{ir_type::UnionTypeViewGeneric, ToUnionName};
 use generate_types::{cast_value, to_go_literal, GoType, ToTypeReferenceInTypeDefinition};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::{
@@ -129,13 +129,13 @@ impl ToTypeReferenceInClientDefinition for FieldType {
     }
     fn to_type_ref_impl(&self, ir: &IntermediateRepr, _with_checked: bool) -> String {
         let base_rep = match self {
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 // enums handle the dynamic types internally
                 format!("types.{name}")
             }
             FieldType::Literal(value, _) => to_go_literal(value),
             FieldType::RecursiveTypeAlias(name, _) => format!("types.{name}"),
-            FieldType::Class(name, _) => format!("types.{name}"),
+            FieldType::Class { name, .. } => format!("types.{name}"),
             FieldType::List(inner, _) => format!("[]{}", inner.to_type_ref(ir, _with_checked)),
             FieldType::Map(key, value, _) => {
                 format!(
@@ -146,14 +146,14 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             }
             FieldType::Primitive(r#type, _) => r#type.to_go(),
             FieldType::Union(inner, _) => match inner.view() {
-                baml_types::UnionTypeView::Null => "any".to_string(),
-                baml_types::UnionTypeView::Optional(field_type) => {
+                UnionTypeViewGeneric::Null => "any".to_string(),
+                UnionTypeViewGeneric::Optional(field_type) => {
                     format!("*{}", field_type.to_type_ref(ir, _with_checked))
                 }
-                baml_types::UnionTypeView::OneOf(field_types) => {
+                UnionTypeViewGeneric::OneOf(field_types) => {
                     format!("types.{}", self.to_union_name())
                 }
-                baml_types::UnionTypeView::OneOfOptional(field_types) => {
+                UnionTypeViewGeneric::OneOfOptional(field_types) => {
                     format!("*types.{}", self.to_union_name())
                 }
             },
@@ -177,7 +177,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
 
     fn to_partial_type_ref_impl(&self, ir: &IntermediateRepr, with_checked: bool) -> String {
         let base_rep = match self {
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 if ir
                     .find_enum(name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -188,7 +188,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     format!("*types.{name}")
                 }
             }
-            FieldType::Class(name, _) => format!("partial_types.{name}"),
+            FieldType::Class { name, .. } => format!("partial_types.{name}"),
             FieldType::RecursiveTypeAlias(name, _) => format!("types.{name}"),
             FieldType::Literal(value, _) => format!("*{}", to_go_literal(value)),
             FieldType::List(inner, _) => {
@@ -203,14 +203,14 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             }
             FieldType::Primitive(r#type, _) => format!("*{}", r#type.to_go()),
             FieldType::Union(inner, _) => match inner.view() {
-                baml_types::UnionTypeView::Null => "any".to_string(),
-                baml_types::UnionTypeView::Optional(field_type) => {
+                UnionTypeViewGeneric::Null => "any".to_string(),
+                UnionTypeViewGeneric::Optional(field_type) => {
                     format!("*{}", field_type.to_partial_type_ref(ir, with_checked))
                 }
-                baml_types::UnionTypeView::OneOf(field_types) => {
+                UnionTypeViewGeneric::OneOf(field_types) => {
                     format!("types.{}", self.to_union_name())
                 }
-                baml_types::UnionTypeView::OneOfOptional(field_types) => {
+                UnionTypeViewGeneric::OneOfOptional(field_types) => {
                     format!("*types.{}", self.to_union_name())
                 }
             },

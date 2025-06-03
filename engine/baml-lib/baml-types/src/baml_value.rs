@@ -446,8 +446,8 @@ impl<T> BamlValueWithMeta<T> {
                 }
                 _ => handle_composite(field_type),
             },
-            BamlValueWithMeta::Enum(enum_name, enum_value, _) => match field_type {
-                FieldType::Enum { name: enm, .. } => enum_name == enm && enum_value == enum_value,
+            BamlValueWithMeta::Enum(enum_name, _, _) => match field_type {
+                FieldType::Enum { name: enm, .. } => enum_name == enm,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Class(cls_name, _cls_fields, _) => match field_type {

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashSet;
 
 use anyhow::Result;
-use baml_types::LiteralValue;
+use baml_types::{ir_type::UnionTypeViewGeneric, LiteralValue};
 use itertools::Itertools;
 
 use crate::{field_type_attributes, type_check_attributes, TypeCheckAttributes};
@@ -137,8 +137,8 @@ impl<'ir> From<ClassWalker<'ir>> for PartialRubyStruct<'ir> {
                 .iter()
                 .map(|f| {
                     let not_null: bool = f.attributes.get("stream.not_null").is_some();
-                    let (_, metadata) = c.ir.distribute_metadata(&f.elem.r#type.elem);
-                    let done = metadata.1.done;
+                    let metadata = f.elem.r#type.elem.meta();
+                    let done = metadata.streaming_behavior.done;
                     let field_type = f.elem.r#type.elem.clone();
                     let generated_field_type = match (done, not_null) {
                         (false, false) => {
@@ -180,16 +180,16 @@ impl ToTypeReferenceInTypeDefinition<'_> for FieldType {
     /// The `already_nilable` field indicates whether the caller will wrap
     /// the returned string with `nilable`, and this function does not need
     fn to_partial_type_ref(&self, ir: &IntermediateRepr, already_nilable: bool) -> String {
-        let (field_type, metadata) = ir.distribute_metadata(self);
-        let inner = match field_type {
-            FieldType::Class(name, _) => {
+        let metadata = self.meta();
+        let inner = match self {
+            FieldType::Class { name, .. } => {
                 if already_nilable {
                     format!("Baml::PartialTypes::{}", name.clone())
                 } else {
                     format!("T.nilable(Baml::PartialTypes::{})", name.clone())
                 }
             }
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 if already_nilable {
                     format!("T.nilable(Baml::Types::{})", name.clone())
                 } else {
@@ -208,14 +208,14 @@ impl ToTypeReferenceInTypeDefinition<'_> for FieldType {
                 "T::Hash[{}, {}]",
                 match key.as_ref() {
                     // For enums just default to strings.
-                    FieldType::Enum(_, _)
+                    FieldType::Enum { .. }
                     | FieldType::Literal(LiteralValue::String(_), _)
                     | FieldType::Union(_, _) => FieldType::string().to_type_ref(),
                     _ => key.to_type_ref(),
                 },
                 value.to_partial_type_ref(ir, false)
             ),
-            FieldType::Primitive(_, _) => {
+            FieldType::Primitive { .. } => {
                 if already_nilable {
                     self.to_type_ref()
                 } else {
@@ -224,10 +224,10 @@ impl ToTypeReferenceInTypeDefinition<'_> for FieldType {
             }
             FieldType::Union(inner, _) => {
                 match inner.view() {
-                    baml_types::UnionTypeView::Null => "NilClass".to_string(),
-                    baml_types::UnionTypeView::Optional(field_type) => format!("T.nilable({})", field_type.to_partial_type_ref(ir, false)),
-                    baml_types::UnionTypeView::OneOf(field_types) => format!("T.any({})", field_types.iter().map(|t| t.to_partial_type_ref(ir, false)).collect::<Vec<_>>().join(", ")),
-                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!("T.nilable(T.any({}))", field_types.iter().map(|t| t.to_partial_type_ref(ir, false)).collect::<Vec<_>>().join(", ")),
+                    UnionTypeViewGeneric::Null => "NilClass".to_string(),
+                    UnionTypeViewGeneric::Optional(field_type) => format!("T.nilable({})", field_type.to_partial_type_ref(ir, already_nilable)),
+                    UnionTypeViewGeneric::OneOf(field_types) => format!("T.any({})", field_types.iter().map(|t| t.to_partial_type_ref(ir, already_nilable)).collect::<Vec<_>>().join(", ")),
+                    UnionTypeViewGeneric::OneOfOptional(field_types) => format!("T.nilable(T.any({}))", field_types.iter().map(|t| t.to_partial_type_ref(ir, already_nilable)).collect::<Vec<_>>().join(", ")),
                 }
             }
             FieldType::Tuple(inner, _) => {
@@ -249,12 +249,12 @@ impl ToTypeReferenceInTypeDefinition<'_> for FieldType {
         };
         let meta_repr = match field_type_attributes(self) {
             Some(checks) => {
-                let base_type_ref = field_type.to_partial_type_ref(ir, false);
+                let base_type_ref = self.to_partial_type_ref(ir, false);
                 format!("Baml::Checked[{base_type_ref}]")
             }
-            None => field_type.to_partial_type_ref(ir, false),
+            None => self.to_partial_type_ref(ir, false),
         };
-        if metadata.1.state {
+        if metadata.streaming_behavior.state {
             format!("Baml::StreamState[{inner}]")
         } else {
             inner

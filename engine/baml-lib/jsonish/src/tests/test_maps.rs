@@ -189,7 +189,7 @@ test_deserializer!(
   }
   "#,
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::Enum("Key".to_string(), TypeMeta::default()), FieldType::string()),
+  FieldType::map(FieldType::r#enum("Key"), FieldType::string()),
   {"A": "one", "B": "two"}
 );
 
@@ -202,7 +202,7 @@ test_partial_deserializer_streaming!(
   }
   "#,
   r#"{"A": "one", "B": "two"}"#,
-    FieldType::map(FieldType::Enum("Key".to_string(), TypeMeta::default()), FieldType::string()),
+    FieldType::map(FieldType::r#enum("Key"), FieldType::string()),
   {"A": "one", "B": "two"}
 );
 

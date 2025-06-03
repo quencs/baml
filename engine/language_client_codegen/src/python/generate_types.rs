@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_types::{FieldType, LiteralValue, TypeValue};
+use baml_types::{FieldType, LiteralValue, TypeValue, ir_type::UnionTypeViewGeneric};
 use itertools::Itertools;
 use std::{borrow::Cow, env::var};
 
@@ -201,8 +201,8 @@ impl<'ir> From<ClassWalker<'ir>> for PartialPythonClass<'ir> {
                 .map(|f| {
                     // Fields with @stream.done should take their type from
                     let needed: bool = f.attributes.get("stream.not_null").is_some();
-                    let (_, metadata) = c.ir.distribute_metadata(&f.elem.r#type.elem);
-                    let done: bool = metadata.1.done;
+                    let metadata = f.elem.r#type.elem.meta();
+                    let done: bool = metadata.streaming_behavior.done;
                     let (field, optional) = match (done, needed) {
                         (false, false) => {
                             f.elem.r#type.elem.to_partial_type_ref(c.ir, false, false)
@@ -249,12 +249,11 @@ pub fn add_default_value(
 /// be given a default None value when generating a python class
 /// with that field.
 fn has_none_default(ir: &IntermediateRepr, field_type: &FieldType) -> bool {
-    let base_type = ir.distribute_metadata(field_type).0;
-    match base_type {
+    match field_type {
         FieldType::Primitive(TypeValue::Null, _) => true,
         FieldType::Primitive(_, _) => false,
-        FieldType::Class(_, _) => false,
-        FieldType::Enum(_, _) => false,
+        FieldType::Class { .. } => false,
+        FieldType::Enum { .. } => false,
         FieldType::List(_, _) => false,
         FieldType::Literal(_, _) => false,
         FieldType::Map(_, _, _) => false,
@@ -307,7 +306,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
     fn to_type_ref(&self, ir: &IntermediateRepr, use_module_prefix: bool) -> String {
         let module_prefix = if use_module_prefix { "types." } else { "" };
         let base_rep = match self {
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 if ir
                     .find_enum(name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -320,7 +319,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             }
             FieldType::RecursiveTypeAlias(name, _) => format!("\"{name}\""),
             FieldType::Literal(value, _) => to_python_literal(value),
-            FieldType::Class(name, _) => format!("\"{module_prefix}{name}\""),
+            FieldType::Class { name, .. } => format!("\"{module_prefix}{name}\""),
             FieldType::List(inner, _) => {
                 format!("List[{}]", inner.to_type_ref(ir, use_module_prefix))
             }
@@ -333,12 +332,12 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             }
             FieldType::Primitive(r#type, _) => r#type.to_python(),
             FieldType::Union(inner, _) => match inner.view() {
-                baml_types::UnionTypeView::Null => "None".to_string(),
-                baml_types::UnionTypeView::Optional(field_type) => format!(
+                UnionTypeViewGeneric::Null => "None".to_string(),
+                UnionTypeViewGeneric::Optional(field_type) => format!(
                     "Optional[{}]",
                     field_type.to_type_ref(ir, use_module_prefix)
                 ),
-                baml_types::UnionTypeView::OneOf(field_types) => format!(
+                UnionTypeViewGeneric::OneOf(field_types) => format!(
                     "Union[{}]",
                     field_types
                         .iter()
@@ -346,7 +345,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
-                baml_types::UnionTypeView::OneOfOptional(field_types) => format!(
+                UnionTypeViewGeneric::OneOfOptional(field_types) => format!(
                     "Optional[Union[{}]]",
                     field_types
                         .iter()
@@ -385,21 +384,20 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
         wrapped: bool,
         needed: bool,
     ) -> (String, bool) {
-        let (base_type, metadata) = ir.distribute_metadata(self);
-        let is_partial_type = !metadata.1.done;
+        let metadata = self.meta();
+        let is_partial_type = !metadata.streaming_behavior.done;
         let use_module_prefix = !is_partial_type;
-        let with_state = metadata.1.state;
-        let constraints = metadata.0;
+        let with_state = metadata.streaming_behavior.state;
         let module_prefix = if is_partial_type { "" } else { "types." };
-        let base_rep = match base_type {
-            FieldType::Class(name, _) => {
+        let base_rep = match self {
+            FieldType::Class { name, .. } => {
                 if wrapped || needed {
                     (format!("\"{module_prefix}{name}\""), false)
                 } else {
                     (format!("Optional[\"{module_prefix}{name}\"]"), true)
                 }
             }
-            FieldType::Enum(name, _) => {
+            FieldType::Enum { name, .. } => {
                 if ir
                     .find_enum(name)
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
@@ -454,12 +452,12 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             }
             FieldType::Union(inner, _) => {
                 let res = match inner.view() {
-                    baml_types::UnionTypeView::Null => "None".to_string(),
-                    baml_types::UnionTypeView::Optional(field_type) => format!(
+                    UnionTypeViewGeneric::Null => "None".to_string(),
+                    UnionTypeViewGeneric::Optional(field_type) => format!(
                         "Optional[{}]",
                         field_type.to_partial_type_ref(ir, true, false).0
                     ),
-                    baml_types::UnionTypeView::OneOf(field_types) => format!(
+                    UnionTypeViewGeneric::OneOf(field_types) => format!(
                         "Union[{}]",
                         field_types
                             .iter()
@@ -467,7 +465,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                             .collect::<Vec<_>>()
                             .join(", ")
                     ),
-                    baml_types::UnionTypeView::OneOfOptional(field_types) => format!(
+                    UnionTypeViewGeneric::OneOfOptional(field_types) => format!(
                         "Optional[Union[{}]]",
                         field_types
                             .iter()
@@ -498,7 +496,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
             base_rep
         } else {
             if needed {
-                (base_type.to_type_ref(ir, use_module_prefix), false)
+                (self.to_type_ref(ir, use_module_prefix), false)
             } else {
                 base_rep
             }
@@ -540,7 +538,7 @@ fn stream_state(base: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use baml_types::{StreamingBehavior, TypeMeta};
+    use baml_types::{StreamingBehavior, StreamingMode, TypeMeta};
     use internal_baml_core::ir::repr::{make_test_ir, IntermediateRepr};
 
     #[test]
@@ -574,17 +572,15 @@ mod tests {
     #[test]
     fn test_stream_done_type() {
         let ir = make_test_ir("").unwrap();
-        let base: FieldType = FieldType::Class(
-            "Foo".to_string(),
-            TypeMeta {
+        let base: FieldType = FieldType::Class{
+            name: "Foo".to_string(),
+            mode: StreamingMode::Streaming,
+            dynamic: false,
+            meta: TypeMeta {
                 constraints: vec![],
-                streaming_behavior: StreamingBehavior {
-                    done: true,
-                    state: false,
-                    needed: false,
-                },
+                streaming_behavior: StreamingBehavior::default(),
             },
-        );
+        };
         let full = base.to_type_ref(&ir, false);
         let partial = base.to_partial_type_ref(&ir, false, false);
         assert_eq!(full, "\"Foo\"");
