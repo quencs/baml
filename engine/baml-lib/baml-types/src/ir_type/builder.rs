@@ -5,6 +5,14 @@ impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
         TypeGeneric::Primitive(TypeValue::String, T::default())
     }
 
+    pub fn recursive_type_alias<U: AsRef<str>>(name: U) -> Self {
+        TypeGeneric::RecursiveTypeAlias(name.as_ref().to_string(), T::default())
+    }
+
+    pub fn literal<U: Into<super::LiteralValue>>(value: U) -> Self {
+        TypeGeneric::Literal(value.into(), T::default())
+    }
+
     pub fn literal_string(value: String) -> Self {
         TypeGeneric::Literal(super::LiteralValue::String(value), T::default())
     }
@@ -49,9 +57,9 @@ impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
         }
     }
 
-    pub fn class(name: &str) -> Self {
+    pub fn class<U: AsRef<str>>(name: U) -> Self {
         TypeGeneric::Class {
-            name: name.to_string(),
+            name: name.as_ref().to_string(),
             dynamic: false,
             mode: StreamingMode::NonStreaming,
             meta: T::default(),

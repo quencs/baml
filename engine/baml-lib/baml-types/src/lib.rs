@@ -14,7 +14,7 @@ pub use baml_value::{BamlValue, BamlValueWithMeta, Completion, CompletionState};
 pub use constraint::*;
 pub use generator::{GeneratorDefaultClientMode, GeneratorOutputType};
 pub use ir_type::{
-    partialize, Arrow, FieldType, HasFieldType, LiteralValue, StreamingBehavior, ToUnionName,
+    Arrow, FieldType, HasFieldType, LiteralValue, StreamingBehavior, ToUnionName,
     TypeMeta, TypeMetaStreaming, TypeValue, UnionType, UnionTypeView, StreamingMode,
 };
 pub use map::Map as BamlMap;

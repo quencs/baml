@@ -3,11 +3,11 @@ use askama::Template;
 use crate::r#type::{Package, TypeGo, SerializeType};
 
 pub struct FunctionGo {
-    documentation: Option<String>,
-    name: String,
-    args: Vec<(String, TypeGo)>,
-    return_type: TypeGo,
-    stream_return_type: TypeGo,
+    pub(crate) documentation: Option<String>,
+    pub(crate) name: String,
+    pub(crate) args: Vec<(String, TypeGo)>,
+    pub(crate) return_type: TypeGo,
+    pub(crate) stream_return_type: TypeGo,
 }
 
 fn render_function(function: &FunctionGo, pkg: &Package) -> Result<String, askama::Error> {
@@ -30,9 +30,14 @@ const GO_TEMPLATE: &str = include_str!("./_templates/client.go.j2");
 ///
 /// ```askama
 /// package baml_client
+///
+/// import (
+///     "{{ go_mod_name }}/baml_client/types"
+///     "{{ go_mod_name }}/baml_client/stream_types"
+/// )
 /// 
-/// import "{{ go_mod_name }}/baml_client/types"
 /// {{ GO_TEMPLATE }}
+///
 /// 
 /// {% for function in functions %}
 /// {{ crate::functions::render_function(function, pkg)? }}

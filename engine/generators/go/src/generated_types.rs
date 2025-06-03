@@ -154,7 +154,7 @@ mod union {
 
     #[derive(askama::Template)]
     #[template(path = "unions.go.j2", escape = "none")]
-    pub(super) struct UnionGo<'a> {
+    pub struct UnionGo<'a> {
         name: String,
         docstring: Option<String>,
         variants: Vec<(String, TypeGo)>,
@@ -339,18 +339,21 @@ pub(crate) struct GoStreamTypes<'ir> {
 pub(crate) fn render_go_types(classes: &[class::ClassGo], enums: &[enums::EnumGo], unions: &[union::UnionGo], pkg: &Package) -> Result<String, askama::Error> {
     use askama::Template;
 
-    let go_types = GoTypes {
+    GoTypes {
         classes,
         enums,
         unions,
         pkg,
-    }.render()?;
+    }.render()
+}
 
-    let go_stream_types = GoStreamTypes {
+
+pub(crate) fn render_go_stream_types(classes: &[class::ClassGo], unions: &[union::UnionGo], pkg: &Package) -> Result<String, askama::Error> {
+    use askama::Template;
+
+    GoStreamTypes {
         classes,
         unions,
         pkg,
-    }.render()?;
-
-    Ok(format!("{}\n\n{}", go_types, go_stream_types))
+    }.render()
 }

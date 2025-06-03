@@ -12,15 +12,31 @@ pub enum TypeWrapper {
     Optional(Box<TypeWrapper>),
 }
 
+impl TypeWrapper {
+    pub fn as_checked(self) -> TypeWrapper {
+        TypeWrapper::Checked(Box::new(self))
+    }
+
+    pub fn as_optional(self) -> TypeWrapper {
+        TypeWrapper::Optional(Box::new(self))
+    }
+}
+
 #[derive(Clone)]
 pub struct TypeMetaGo {
-    type_wrapper: TypeWrapper,
-    wrap_stream_state: bool,
+    pub type_wrapper: TypeWrapper,
+    pub wrap_stream_state: bool,
 }
 
 impl Default for TypeWrapper {
     fn default() -> Self {
         TypeWrapper::None
+    }
+}
+
+impl TypeMetaGo {
+    pub fn swap_wrapper(&mut self, wrapper: TypeWrapper) {
+        self.type_wrapper = wrapper;
     }
 }
 
@@ -132,6 +148,7 @@ pub enum TypeGo {
     Class {
         package: Package,
         name: String,
+        dynamic: bool,
         meta: TypeMetaGo,
     },
     Union {
@@ -142,12 +159,12 @@ pub enum TypeGo {
     Enum {
         package: Package,
         name: String,
+        dynamic: bool,
         meta: TypeMetaGo,
     },
     List(Box<TypeGo>, TypeMetaGo),
     Map(Box<TypeGo>, Box<TypeGo>, TypeMetaGo),
     Tuple(Vec<TypeGo>, TypeMetaGo),
-    Checked(Box<TypeGo>, TypeMetaGo),
     // For any type that we can't represent in Go, we'll use this
     Any {
         reason: String,
@@ -156,6 +173,27 @@ pub enum TypeGo {
 }
 
 impl TypeGo {
+    // for unions, we need a default name for the type when the union is not named
+    pub fn default_name_within_union(&self) -> String {
+        match self {
+            TypeGo::String(_) => "String".to_string(),
+            TypeGo::Int(_) => "Int".to_string(),
+            TypeGo::Float(_) => "Float".to_string(),
+            TypeGo::Bool(_) => "Bool".to_string(),
+            TypeGo::Media(media_type_go, _) => match media_type_go {
+                MediaTypeGo::Image => "Image".to_string(),
+                MediaTypeGo::Audio => "Audio".to_string(),
+            },
+            TypeGo::Class { name, .. } => name.clone(),
+            TypeGo::Union { name, .. } => name.clone(),
+            TypeGo::Enum { name, .. } => name.clone(),
+            TypeGo::List(type_go, _) => format!("List{}", type_go.default_name_within_union()),
+            TypeGo::Map(key, value, _) => format!("Map{}Key{}Value", key.default_name_within_union(), value.default_name_within_union()),
+            TypeGo::Tuple(type_gos, _) => format!("Tuple{}{}", type_gos.len(), type_gos.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>().join(", ")),
+            TypeGo::Any { .. } => "Any".to_string(),
+        }
+    }
+
     pub fn meta(&self) -> &TypeMetaGo {
         match self {
             TypeGo::String(meta) => meta,
@@ -169,7 +207,23 @@ impl TypeGo {
             TypeGo::List(_, meta) => meta,
             TypeGo::Map(_, _, meta) => meta,
             TypeGo::Tuple(_, meta) => meta,
-            TypeGo::Checked(_, meta) => meta,
+            TypeGo::Any { meta, .. } => meta,
+        }
+    }
+    
+    pub fn meta_mut(&mut self) -> &mut TypeMetaGo {
+        match self {
+            TypeGo::String(meta) => meta,
+            TypeGo::Int(meta) => meta,
+            TypeGo::Float(meta) => meta,
+            TypeGo::Bool(meta) => meta,
+            TypeGo::Media(_, meta) => meta,
+            TypeGo::Class { meta, .. } => meta,
+            TypeGo::Union { meta, .. } => meta,
+            TypeGo::Enum { meta, .. } => meta,
+            TypeGo::List(_, meta) => meta,
+            TypeGo::Map(_, _, meta) => meta,
+            TypeGo::Tuple(_, meta) => meta,
             TypeGo::Any { meta, .. } => meta,
         }
     }
@@ -209,13 +263,6 @@ impl SerializeType for TypeGo {
                     .collect::<Vec<String>>()
                     .join(", ")
             ),
-            TypeGo::Checked(inner, _) => {
-                format!(
-                    "{}Checked[{}]",
-                    Package::checked().relative_from(pkg),
-                    inner.serialize_type(pkg)
-                )
-            }
             TypeGo::Any { .. } => "any".to_string(),
         };
 

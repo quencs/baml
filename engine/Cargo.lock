@@ -2180,6 +2180,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dir-writer"
+version = "0.89.0"
+dependencies = [
+ "anyhow",
+ "baml-log",
+ "cfg-if",
+ "filetime",
+ "indexmap 2.8.0",
+ "internal-baml-core",
+ "walkdir",
+]
+
+[[package]]
 name = "dirs"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2685,6 +2698,9 @@ version = "0.89.0"
 dependencies = [
  "anyhow",
  "askama",
+ "baml-types",
+ "dir-writer",
+ "internal-baml-core",
  "prettydiff",
 ]
 

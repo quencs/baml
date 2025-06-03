@@ -1,18 +1,16 @@
 [package]
 edition = "2021"
-name = "generators-go"
+name = "dir-writer"
 version.workspace = true
 authors.workspace = true
 description.workspace = true
 license-file.workspace = true
 
 [dependencies]
-askama.workspace = true
 anyhow.workspace = true
-dir-writer = { path = "../dir_writer" }
-baml-types.workspace = true
+indexmap.workspace = true
+baml-log.workspace = true
+walkdir.workspace = true
+cfg-if.workspace = true
+filetime = "0.2.25"
 internal-baml-core.workspace = true
-
-
-[dev-dependencies]
-prettydiff = "0.8.0"

@@ -129,6 +129,25 @@ pub enum LiteralValue {
     Bool(bool),
 }
 
+impl From<i64> for LiteralValue {
+    fn from(value: i64) -> Self {
+        LiteralValue::Int(value)
+    }
+}
+
+impl From<bool> for LiteralValue {
+    fn from(value: bool) -> Self {
+        LiteralValue::Bool(value)
+    }
+}
+
+impl From<&str> for LiteralValue {
+    fn from(value: &str) -> Self {
+        LiteralValue::String(value.to_string())
+    }
+}
+
+
 impl LiteralValue {
     pub fn literal_base_type(&self) -> FieldType {
         match self {
@@ -553,23 +572,29 @@ impl<T> TypeGeneric<T> {
     }
 }
 
-/// Convert a `FieldType` (a type specified in BAML source code) into
-/// a `StreamingType` (a type that can be used for streaming).
-///
-/// The streaming-behavior related metadata is applied to the types, and the
-/// annotations are also recorded in the streaming metadata (because not all
-/// streaming behavior is reflected in the Base-type).
-///
-/// The types of transformations done here:
-///   - Replacing classes with their streaming-module counterparts.
-///   - Overriding nullability based on @not_null annotations
-///   - Overriding nullability based on the field's type
-///   - Preserving the original type according to the @done annotation
-///
-/// We do not explicitly represent @stream.with_state or @stream.checked.
-/// Downstream consumers of `StreamingType` must check these properties
-/// in the metadata.
-pub fn partialize(r#type: &Type) -> TypeStreaming {
+impl Type {
+    /// Convert a `FieldType` (a type specified in BAML source code) into
+    /// a `StreamingType` (a type that can be used for streaming).
+    ///
+    /// The streaming-behavior related metadata is applied to the types, and the
+    /// annotations are also recorded in the streaming metadata (because not all
+    /// streaming behavior is reflected in the Base-type).
+    ///
+    /// The types of transformations done here:
+    ///   - Replacing classes with their streaming-module counterparts.
+    ///   - Overriding nullability based on @not_null annotations
+    ///   - Overriding nullability based on the field's type
+    ///   - Preserving the original type according to the @done annotation
+    ///
+    /// We do not explicitly represent @stream.with_state or @stream.checked.
+    /// Downstream consumers of `StreamingType` must check these properties
+    /// in the metadata.
+    pub fn partialize(&self) -> TypeStreaming {
+        partialize(self)
+    }
+}
+
+fn partialize(r#type: &Type) -> TypeStreaming {
     // This inner worker function goes from `FieldType` to `FieldType` to be
     // suitable for recursive use. We only wrap the outermost `FieldType` in
     // `StreamingType`.
