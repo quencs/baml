@@ -1,4 +1,4 @@
-use super::{BamlMediaType, FieldType, TypeValue};
+use super::{Arrow, BamlMediaType, FieldType, TypeValue};
 
 impl FieldType {
     pub fn string() -> Self {
@@ -75,5 +75,9 @@ impl FieldType {
 
     pub fn as_optional(self) -> Self {
         FieldType::Optional(Box::new(self))
+    }
+
+    pub fn arrow(arrow: Arrow) -> Self {
+        FieldType::Arrow(Box::new(arrow))
     }
 }
