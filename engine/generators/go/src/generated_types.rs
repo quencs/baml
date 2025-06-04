@@ -37,11 +37,11 @@ mod class {
     #[derive(askama::Template)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
     pub struct ClassGo<'a> {
-        name: String,
-        docstring: Option<String>,
-        fields: Vec<FieldGo<'a>>,
-        dynamic: bool,
-        pkg: &'a Package,
+        pub name: String,
+        pub docstring: Option<String>,
+        pub fields: Vec<FieldGo<'a>>,
+        pub dynamic: bool,
+        pub pkg: &'a Package,
     }
 
     /// A field in a class.
@@ -54,11 +54,11 @@ mod class {
     /// ```
     #[derive(askama::Template, Clone)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
-    struct FieldGo<'a> {
-        docstring: Option<String>,
-        name: String,
-        r#type: TypeGo,
-        pkg: &'a Package,
+    pub struct FieldGo<'a> {
+        pub docstring: Option<String>,
+        pub name: String,
+        pub r#type: TypeGo,
+        pub pkg: &'a Package,
     }
 
     pub(super) fn render_classes(classes: &[ClassGo], _: &Package) -> Result<String, askama::Error> {
@@ -73,10 +73,10 @@ mod class {
     /// {% if let Some(docstring) = docstring -%}
     /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
     /// {%- endif %}
-    /// type Generic__{{ name }} struct[{% for f in fields -%}Type__{{ f.name }}, {%- endfor %}] {
+    /// type Generic__{{ name }}[{% for f in fields -%}Type__{{ f.name }} any, {%- endfor %}] struct {
     ///     {% for field in fields -%}
     ///     {{ field.render_stream_field() }}
-    ///     {%- endfor %}
+    ///     {% endfor %}
     ///     {% if dynamic -%}
     ///     DynamicProperties map[string]any
     ///     {%- endif %}
@@ -134,10 +134,10 @@ mod enums {
     #[derive(askama::Template)]
     #[template(path = "enums.go.j2", escape = "none")]
     pub struct EnumGo {
-        name: String,
-        docstring: Option<String>,
-        values: Vec<(String, Option<String>)>,
-        dynamic: bool,
+        pub name: String,
+        pub docstring: Option<String>,
+        pub values: Vec<(String, Option<String>)>,
+        pub dynamic: bool,
     }
 
     pub(super) fn render_enums(enums: &[EnumGo], _: &Package) -> Result<String, askama::Error> {
@@ -357,3 +357,7 @@ pub(crate) fn render_go_stream_types(classes: &[class::ClassGo], unions: &[union
         pkg,
     }.render()
 }
+
+pub use class::{ClassGo, FieldGo};
+pub use enums::EnumGo;
+pub use union::UnionGo;

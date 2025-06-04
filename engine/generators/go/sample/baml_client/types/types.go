@@ -18,3 +18,8 @@ import (
 )
 
 type Checked[T any] baml.Checked[T]
+
+type Example struct {
+	a int
+	b string
+}

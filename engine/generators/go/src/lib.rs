@@ -51,13 +51,22 @@ impl LanguageFeatures for GoLanguageFeatures {
             )?,
         );
 
+        let go_classes = ir
+            .walk_classes()
+            .map(|c| ir_to_go::classes::ir_class_to_go(c.item, &pkg))
+            .collect::<Vec<_>>();
+        let enums = ir
+            .walk_enums()
+            .map(|e| ir_to_go::enums::ir_enum_to_go(e.item, &pkg))
+            .collect::<Vec<_>>();
+
         let pkg = r#type::Package::new("baml_client.types");
-        collector.add_file("types/types.go", render_go_types(&[], &[], &[], &pkg)?);
+        collector.add_file("types/types.go", render_go_types(&go_classes, &enums, &[], &pkg)?);
 
         let pkg = r#type::Package::new("baml_client.stream_types");
         collector.add_file(
             "stream_types/stream_types.go",
-            render_go_stream_types(&[], &[], &pkg)?,
+            render_go_stream_types(&go_classes, &[], &pkg)?,
         );
 
         Ok(())
@@ -92,7 +101,12 @@ mod tests {
         let features = GoLanguageFeatures::default();
         let ir = make_test_ir(
             r##"
-            function Foo(x: int) -> int | string {
+            class Example {
+                a int
+                b string
+            }
+
+            function Foo(x: int) -> Example {
                 client "openai/gpt-4o"
                 prompt #"you are a helpful assistant"#
             }

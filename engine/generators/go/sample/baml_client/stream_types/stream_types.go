@@ -72,3 +72,8 @@ type StreamState[T any] struct {
 	Value T               `json:"value"`
 	State StreamStateType `json:"state"`
 }
+
+type Generic__Example[Type__a any, Type__b any] struct {
+	a Type__a
+	b Type__b
+}

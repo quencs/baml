@@ -35,8 +35,14 @@ impl Default for TypeWrapper {
 }
 
 impl TypeMetaGo {
-    pub fn swap_wrapper(&mut self, wrapper: TypeWrapper) {
-        self.type_wrapper = wrapper;
+    pub fn make_checked(&mut self) -> &mut Self {
+        self.type_wrapper = TypeWrapper::Checked(Box::new(std::mem::take(&mut self.type_wrapper)));
+        self
+    }
+
+    pub fn make_optional(&mut self) -> &mut Self {
+        self.type_wrapper = TypeWrapper::Optional(Box::new(std::mem::take(&mut self.type_wrapper)));
+        self
     }
 }
 
@@ -191,6 +197,29 @@ impl TypeGo {
             TypeGo::Map(key, value, _) => format!("Map{}Key{}Value", key.default_name_within_union(), value.default_name_within_union()),
             TypeGo::Tuple(type_gos, _) => format!("Tuple{}{}", type_gos.len(), type_gos.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>().join(", ")),
             TypeGo::Any { .. } => "Any".to_string(),
+        }
+    }
+
+    pub fn zero_value(&self, pkg: &Package) -> String {
+        if matches!(self.meta().type_wrapper, TypeWrapper::Optional(_)) {
+            return "nil".to_string();
+        }
+        match self {
+            TypeGo::String(_) => "\"\"".to_string(),
+            TypeGo::Int(_) => "0".to_string(),
+            TypeGo::Float(_) => "0.0".to_string(),
+            TypeGo::Bool(_) => "false".to_string(),
+            TypeGo::Media(media_type_go, _) => match media_type_go {
+                MediaTypeGo::Image => "Image{}".to_string(),
+                MediaTypeGo::Audio => "Audio{}".to_string(),
+            },
+            TypeGo::Class { name, package, .. } => format!("{}{}{{}}", package.relative_from(pkg), name),
+            TypeGo::Union { name, package, .. } => format!("{}{}{{}}", package.relative_from(pkg), name),
+            TypeGo::Enum { name, package, .. } => format!("{}{}{{}}", package.relative_from(pkg), name),
+            TypeGo::List(type_go, _) => "nil".to_string(),
+            TypeGo::Map(key, value, _) => "nil".to_string(),
+            TypeGo::Tuple(type_gos, _) => "nil".to_string(),
+            TypeGo::Any { .. } => "nil".to_string(),
         }
     }
 

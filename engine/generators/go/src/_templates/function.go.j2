@@ -26,11 +26,11 @@ func {{ fn.name }}(ctx context.Context{% for (name, go_type) in fn.args -%}
 
     result, err := bamlRuntime.CallFunction(ctx, "{{ fn.name }}", encoded)
     if err != nil {
-        return nil, err
+        return {{ fn.return_type.zero_value(pkg) }}, err
     }
 
     if result.Error != nil {
-        return nil, result.Error
+        return {{ fn.return_type.zero_value(pkg) }}, result.Error
     }
 
     castResult := func (result any) {{ fn.return_type.serialize_type(pkg) }} {

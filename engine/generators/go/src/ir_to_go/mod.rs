@@ -2,6 +2,8 @@ use crate::r#type::{MediaTypeGo, Package, TypeGo, TypeMetaGo, TypeWrapper};
 use baml_types::{ir_type::{Type, TypeStreaming}, BamlMediaType, ConstraintLevel, TypeMeta, TypeMetaStreaming, TypeValue};
 
 pub mod functions;
+pub mod classes;
+pub mod enums;
 
 fn stream_type_to_go(field: &TypeStreaming, type_pkg: &Package) -> TypeGo {
     use TypeStreaming as T;
@@ -73,7 +75,7 @@ fn stream_type_to_go(field: &TypeStreaming, type_pkg: &Package) -> TypeGo {
     type_go
 }
 
-fn type_to_go(field: &Type, type_pkg: &Package) -> TypeGo {
+fn type_to_go(field: &Type) -> TypeGo {
     use Type as T;
     let recursive_fn = type_to_go;
     let meta = meta_to_go(field.meta());
@@ -108,10 +110,10 @@ fn type_to_go(field: &Type, type_pkg: &Package) -> TypeGo {
             }
         },
         T::List(type_generic, _) => {
-            TypeGo::List(Box::new(recursive_fn(type_generic, type_pkg)), meta)
+            TypeGo::List(Box::new(recursive_fn(type_generic)), meta)
         },
         T::Map(type_generic, type_generic1, _) => {
-            TypeGo::Map(Box::new(recursive_fn(type_generic, type_pkg)), Box::new(recursive_fn(type_generic1, type_pkg)), meta)
+            TypeGo::Map(Box::new(recursive_fn(type_generic)), Box::new(recursive_fn(type_generic1)), meta)
         },
         T::RecursiveTypeAlias(name, _) => {
             TypeGo::Class {
@@ -123,22 +125,31 @@ fn type_to_go(field: &Type, type_pkg: &Package) -> TypeGo {
         },
         T::Tuple(..) => TypeGo::Any { reason: "tuples are not supported in Go".to_string(), meta },
         T::Arrow(..) => TypeGo::Any { reason: "arrow types are not supported in Go".to_string(), meta },
-        T::Union(union_type_generic, _) => {
-            let options: Vec<_> = union_type_generic.iter_skip_null().into_iter().map(|t| recursive_fn(t, type_pkg)).collect();
-            let meta = if union_type_generic.is_optional() {
-                let mut meta = meta;
-                meta.type_wrapper = meta.type_wrapper.as_optional();
-                meta
-            } else {
-                meta
-            };
-            let num_options = options.len();
-            let name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>().join("Or");
-            TypeGo::Union {
-                package: TYPE_PKG.clone(),
-                name: format!("Union{}{}", num_options, name),
-                meta
+        T::Union(union_type_generic, union_meta) => {         
+            match union_type_generic.view() {
+                baml_types::ir_type::UnionTypeViewGeneric::Null => TypeGo::Any { reason: "Null types are not supported in Go".to_string(), meta },
+                baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
+                    let mut type_go = recursive_fn(type_generic);
+                    type_go.meta_mut().make_optional();
+                    if union_meta.constraints.iter().any(|c| {
+                        matches!(c.level, ConstraintLevel::Check)
+                    }) {
+                        type_go.meta_mut().make_checked();
+                    }
+                    type_go
+                },
+                baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => todo!(),
+                baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => todo!(),
             }
+            // let options: Vec<_> = union_type_generic.iter_skip_null().into_iter().map(|t| recursive_fn(t)).collect();
+            
+            // let num_options = options.len();
+            // let name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>().join("Or");
+            // TypeGo::Union {
+            //     package: TYPE_PKG.clone(),
+            //     name: format!("Union{}{}", num_options, name),
+            //     meta
+            // }
         },
     };
 

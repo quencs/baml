@@ -84,7 +84,7 @@ func WithEnv(env map[string]string) CallOptionFunc {
 	}
 }
 
-func Foo(ctx context.Context, x int, opts ...CallOptionFunc) (types.Union2IntOrString, error) {
+func Foo(ctx context.Context, x int, opts ...CallOptionFunc) (types.Example, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -107,15 +107,15 @@ func Foo(ctx context.Context, x int, opts ...CallOptionFunc) (types.Union2IntOrS
 
 	result, err := bamlRuntime.CallFunction(ctx, "Foo", encoded)
 	if err != nil {
-		return nil, err
+		return types.Example{}, err
 	}
 
 	if result.Error != nil {
-		return nil, result.Error
+		return types.Example{}, result.Error
 	}
 
-	castResult := func(result any) types.Union2IntOrString {
-		return types.Union2IntOrString
+	castResult := func(result any) types.Example {
+		return types.Example
 	}
 
 	casted := castResult(*result.Data)
@@ -125,7 +125,7 @@ func Foo(ctx context.Context, x int, opts ...CallOptionFunc) (types.Union2IntOrS
 
 /// Streaming version of Foo
 
-func (*stream) Foo(ctx context.Context, x int, opts ...CallOptionFunc) <-chan StreamResult[*Union2IntOrString, types.Union2IntOrString] {
+func (*stream) Foo(ctx context.Context, x int, opts ...CallOptionFunc) <-chan baml.StreamResult[*Union1Example, types.Example] {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -146,7 +146,7 @@ func (*stream) Foo(ctx context.Context, x int, opts ...CallOptionFunc) <-chan St
 		panic(err)
 	}
 
-	channel := make(chan StreamResult[*Union2IntOrString, types.Union2IntOrString])
+	channel := make(chan baml.StreamResult[*Union1Example, types.Example])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "Foo", encoded)
 	if err != nil {
 		close(channel)
@@ -168,7 +168,7 @@ func (*stream) Foo(ctx context.Context, x int, opts ...CallOptionFunc) <-chan St
 					close(channel)
 					return
 				}
-				channel <- (*result.Data).(*Union2IntOrString)
+				channel <- (*result.Data).(*Union1Example)
 			}
 		}
 	}()
