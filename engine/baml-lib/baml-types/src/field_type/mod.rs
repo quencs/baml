@@ -6,6 +6,28 @@ use std::collections::HashSet;
 
 mod builder;
 
+/// FieldType represents the type of either a class field or a function arg.
+/// TODO: Rename to `BamlType` or `Type`.
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum FieldType {
+    Primitive(TypeValue),
+    Enum(String),
+    Literal(LiteralValue),
+    Class(String),
+    List(Box<FieldType>),
+    Map(Box<FieldType>, Box<FieldType>),
+    Union(Vec<FieldType>),
+    Tuple(Vec<FieldType>),
+    Optional(Box<FieldType>),
+    RecursiveTypeAlias(String),
+    Arrow(Box<Arrow>),
+    WithMetadata {
+        base: Box<FieldType>,
+        constraints: Vec<Constraint>,
+        streaming_behavior: StreamingBehavior,
+    },
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, Eq, Hash)]
 pub enum TypeValue {
     String,
@@ -74,27 +96,6 @@ impl std::fmt::Display for LiteralValue {
             LiteralValue::Bool(bool) => write!(f, "{bool}"),
         }
     }
-}
-
-/// FieldType represents the type of either a class field or a function arg.
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub enum FieldType {
-    Primitive(TypeValue),
-    Enum(String),
-    Literal(LiteralValue),
-    Class(String),
-    List(Box<FieldType>),
-    Map(Box<FieldType>, Box<FieldType>),
-    Union(Vec<FieldType>),
-    Tuple(Vec<FieldType>),
-    Optional(Box<FieldType>),
-    RecursiveTypeAlias(String),
-    Arrow(Box<Arrow>),
-    WithMetadata {
-        base: Box<FieldType>,
-        constraints: Vec<Constraint>,
-        streaming_behavior: StreamingBehavior,
-    },
 }
 
 pub trait HasFieldType {
@@ -297,9 +298,9 @@ impl ToUnionName for FieldType {
         match &value {
             FieldType::Union(_) => IndexSet::from_iter([value]),
             FieldType::List(inner) => inner.find_union_types(),
-            FieldType::Map(field_type, field_type1) => {
-                let mut set = field_type.find_union_types();
-                set.extend(field_type1.find_union_types());
+            FieldType::Map(key_type, value_type) => {
+                let mut set = key_type.find_union_types();
+                set.extend(value_type.find_union_types());
                 set
             }
             FieldType::Primitive(_)
@@ -317,7 +318,9 @@ impl ToUnionName for FieldType {
     fn to_union_name(&self) -> String {
         match self {
             FieldType::Primitive(type_value) => type_value.to_string(),
-            FieldType::Enum(name) => name.to_string(),
+            FieldType::Enum(name)
+            | FieldType::Class(name)
+            | FieldType::RecursiveTypeAlias(name) => name.to_string(),
             FieldType::Literal(literal_value) => match literal_value {
                 LiteralValue::String(value) => format!(
                     "string_{}",
@@ -329,7 +332,6 @@ impl ToUnionName for FieldType {
                 LiteralValue::Int(val) => format!("int_{}", val.to_string()),
                 LiteralValue::Bool(val) => format!("bool_{}", val.to_string()),
             },
-            FieldType::Class(name) => name.to_string(),
             FieldType::List(field_type) => {
                 format!("List__{}", field_type.to_union_name())
             }
@@ -361,7 +363,6 @@ impl ToUnionName for FieldType {
             FieldType::Optional(field_type) => {
                 format!("Optional__{}", field_type.to_union_name())
             }
-            FieldType::RecursiveTypeAlias(name) => name.to_string(),
             FieldType::WithMetadata { base, .. } => base.to_union_name(),
             FieldType::Arrow(_) => "function".to_string(),
         }

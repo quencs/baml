@@ -33,7 +33,12 @@ impl TypeCoercer for FieldType {
                     scope = ctx.display_scope(),
                     current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
                 );
-                if matches!(target, FieldType::Primitive(TypeValue::String) | FieldType::Enum(_) | FieldType::Literal(LiteralValue::String(_))) {
+                if matches!(
+                    target,
+                    FieldType::Primitive(TypeValue::String)
+                        | FieldType::Enum(_)
+                        | FieldType::Literal(LiteralValue::String(_))
+                ) {
                     self.coerce(
                         ctx,
                         target,

@@ -761,6 +761,7 @@ impl BamlRuntime {
                             runtime: self,
                             expr_tx: expr_tx.clone(),
                             evaluated_cache: Arc::new(std::sync::Mutex::new(HashMap::new())),
+                            env_vars: env_vars.clone(),
                         };
                         let param_baml_values = params
                             .iter()
@@ -798,11 +799,12 @@ impl BamlRuntime {
                         let params_expr: Expr<ExprMetadata> =
                             Expr::ArgsTuple(param_baml_values, (fake_syntax_span.clone(), None));
                         let result_type = expr_fn.output.clone();
-                        let fn_call_expr = Expr::App(
-                            Arc::new(fn_expr),
-                            Arc::new(params_expr),
-                            (fake_syntax_span.clone(), Some(result_type.clone())),
-                        );
+                        let fn_call_expr = Expr::App {
+                            func: Arc::new(fn_expr),
+                            args: Arc::new(params_expr),
+                            meta: (fake_syntax_span.clone(), Some(result_type.clone())),
+                            type_args: vec![],
+                        };
                         let res = eval_expr::eval_to_value(&env, &fn_call_expr)
                             .await
                             .map(|v| {
@@ -1354,12 +1356,13 @@ async fn expr_eval_result(
             let collectors = collector.as_ref().map(|c| vec![c.clone()]);
             let call = tracer.start_call(&function_name, mgr, params, true, collectors);
 
-            let ctx = mgr.create_ctx(tb, cb, env_vars, call.new_call_id_stack.clone())?;
+            let ctx = mgr.create_ctx(tb, cb, env_vars.clone(), call.new_call_id_stack.clone())?;
             let env = EvalEnv {
                 context: initial_context(ir),
                 runtime,
                 expr_tx: expr_tx.clone(),
                 evaluated_cache: Arc::new(std::sync::Mutex::new(HashMap::new())),
+                env_vars,
             };
 
             let param_baml_values = params
@@ -1391,11 +1394,12 @@ async fn expr_eval_result(
             let params_expr: Expr<ExprMetadata> =
                 Expr::ArgsTuple(param_baml_values, (fake_syntax_span.clone(), None));
             let result_type = expr_fn.elem().output.clone();
-            let fn_call_expr = Expr::App(
-                Arc::new(expr_fn.elem().expr.clone()),
-                Arc::new(params_expr),
-                (fake_syntax_span.clone(), Some(result_type.clone())),
-            );
+            let fn_call_expr = Expr::App {
+                func: Arc::new(expr_fn.elem().expr.clone()),
+                type_args: vec![],
+                args: Arc::new(params_expr),
+                meta: (fake_syntax_span.clone(), Some(result_type.clone())),
+            };
             let res = eval_expr::eval_to_value_or_llm_call(&env, &fn_call_expr).await?;
             Ok(res)
         }

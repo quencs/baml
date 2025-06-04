@@ -10,7 +10,7 @@ use internal_baml_core::{
     configuration::{GeneratorDefaultClientMode, GeneratorOutputType},
     ir::{
         repr::{IntermediateRepr, Walker},
-        ExprFnAsFunctionWalker, FieldType, IRHelper, IRHelperExtended
+        ExprFnAsFunctionWalker, FieldType, IRHelper, IRHelperExtended,
     },
 };
 
@@ -249,9 +249,7 @@ impl TryFrom<(&'_ IntermediateRepr, &'_ crate::GeneratorArgs)> for PythonClient 
                     args: f
                         .inputs()
                         .iter()
-                        .map(|(name, r#type)| {
-                            (name.to_string(), r#type.to_type_ref(ir), None)
-                        })
+                        .map(|(name, r#type)| (name.to_string(), r#type.to_type_ref(ir), None))
                         .collect(),
                 })
             })
@@ -289,11 +287,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             FieldType::Class(name) => format!("types.{name}"),
             FieldType::List(inner) => format!("List[{}]", inner.to_type_ref(ir)),
             FieldType::Map(key, value) => {
-                format!(
-                    "Dict[{}, {}]",
-                    key.to_type_ref(ir),
-                    value.to_type_ref(ir)
-                )
+                format!("Dict[{}, {}]", key.to_type_ref(ir), value.to_type_ref(ir))
             }
             FieldType::Primitive(r#type) => r#type.to_python(),
             FieldType::Union(inner) => format!(
@@ -400,11 +394,7 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             }
             FieldType::Map(key, value) => {
                 let value_type = value.to_partial_type_ref(ir, true);
-                format!(
-                    "Dict[{}, {}]",
-                    key.to_type_ref(ir),
-                    value_type
-                )
+                format!("Dict[{}, {}]", key.to_type_ref(ir), value_type)
             }
             FieldType::Primitive(r#type) => {
                 // Note: The `false` here preserves potentially bugged codegen
@@ -453,10 +443,10 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                 // After we verify that we don't need to wrap all primitives
                 // in optional, we should remove this workaround.
                 if let FieldType::Primitive(_) = inner.as_ref() {
-                  format!("Optional[{}]", inner.to_type_ref(ir))
+                    format!("Optional[{}]", inner.to_type_ref(ir))
                 } else {
-                  let inner_rep = inner.to_partial_type_ref(ir, true);
-                  format!("Optional[{}]", inner_rep)
+                    let inner_rep = inner.to_partial_type_ref(ir, true);
+                    format!("Optional[{}]", inner_rep)
                 }
             }
             FieldType::WithMetadata { base, .. } => match field_type_attributes(self) {
@@ -512,15 +502,15 @@ fn default_value_for_parameter_type(field_type: &FieldType) -> Option<&'static s
 
 #[cfg(test)]
 mod tests {
-    use internal_baml_core::ir::repr::make_test_ir;
     use baml_types::{FieldType, TypeValue};
+    use internal_baml_core::ir::repr::make_test_ir;
 
     use crate::GeneratorArgs;
 
     use super::*;
 
     #[test]
-    fn optional_str() { 
+    fn optional_str() {
         let ir = make_test_ir("").unwrap();
         let field_type = FieldType::Optional(Box::new(FieldType::Primitive(TypeValue::String)));
         let rep = field_type.to_partial_type_ref(&ir, true);
@@ -551,7 +541,7 @@ client<llm> GPT35 {
     model gpt-4
     api_key env.OPENAI_API_KEY
   }
-} 
+}
 
 // class Foo {
 //   i int @stream.not_null @stream.with_state
