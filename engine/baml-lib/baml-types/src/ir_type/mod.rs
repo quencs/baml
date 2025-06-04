@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 mod builder;
 mod union_type;
+mod display;
 
 /// The building block of IR types in BAML.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, Eq, Hash)]
@@ -90,6 +91,23 @@ impl Default for TypeMetaStreaming {
     }
 }
 
+impl TypeMetaStreaming {
+    pub fn done(mut self) -> Self {
+        self.streaming_behavior.done = true;
+        self
+    }
+
+    pub fn needed(mut self) -> Self {
+        self.streaming_behavior.needed = true;
+        self
+    }
+
+    pub fn state(mut self) -> Self {
+        self.streaming_behavior.state = true;
+        self
+    }
+}
+
 impl std::str::FromStr for TypeValue {
     type Err = ();
 
@@ -146,7 +164,6 @@ impl From<&str> for LiteralValue {
         LiteralValue::String(value.to_string())
     }
 }
-
 
 impl LiteralValue {
     pub fn literal_base_type(&self) -> FieldType {
@@ -297,99 +314,6 @@ pub struct ArrowGeneric<T> {
     pub return_type: TypeGeneric<T>,
 }
 
-impl std::fmt::Display for FieldType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut metadata_display_fmt = String::new();
-
-        for constraint in &self.meta().constraints {
-            // " @check( the_name, {{..}} )"
-            let constraint_level = match constraint.level {
-                ConstraintLevel::Assert => "assert",
-                ConstraintLevel::Check => "check",
-            };
-            let constraint_name = match &constraint.label {
-                None => "".to_string(),
-                Some(label) => format!("{}, ", label),
-            };
-            metadata_display_fmt.push_str(&format!(
-                " @{constraint_level}({constraint_name}, {{{{..}}}} )"
-            ));
-        }
-        let StreamingBehavior {
-            done,
-            needed,
-            state,
-            ..
-        } = self.streaming_behavior();
-        if *done {
-            metadata_display_fmt.push_str(" @stream.done")
-        }
-        if *needed {
-            metadata_display_fmt.push_str(" @stream.not_null")
-        }
-        if *state {
-            metadata_display_fmt.push_str(" @stream.with_state")
-        }
-
-        let _res = match self {
-            FieldType::Enum { name, .. }
-            | FieldType::Class { name, .. }
-            | FieldType::RecursiveTypeAlias(name, _) => write!(f, "{name}"),
-            FieldType::Primitive(t, _) => write!(f, "{t}"),
-            FieldType::Literal(v, _) => write!(f, "{v}"),
-            FieldType::Union(choices, _) => {
-                let view = choices.view();
-                let res = match view {
-                    UnionTypeViewGeneric::Null => "null".to_string(),
-                    UnionTypeViewGeneric::Optional(field_type) => {
-                        format!("{}?", field_type.to_string())
-                    }
-                    UnionTypeViewGeneric::OneOf(field_types) => field_types
-                        .iter()
-                        .map(|t| t.to_string())
-                        .collect::<Vec<_>>()
-                        .join(" | "),
-                    UnionTypeViewGeneric::OneOfOptional(field_types) => {
-                        let not_null_choices_str = field_types
-                            .iter()
-                            .map(|t| t.to_string())
-                            .collect::<Vec<_>>()
-                            .join(" | ");
-                        format!("({})?", not_null_choices_str)
-                    }
-                };
-                write!(f, "{res}")
-            }
-            FieldType::Tuple(choices, _) => {
-                write!(
-                    f,
-                    "({})",
-                    choices
-                        .iter()
-                        .map(|t| t.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            FieldType::Map(k, v, _) => write!(f, "map<{k}, {v}>"),
-            FieldType::List(t, _) => write!(f, "{t}[]"),
-            FieldType::Arrow(arrow, _) => write!(
-                f,
-                "({}) -> {}",
-                arrow
-                    .param_types
-                    .iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                arrow.return_type.to_string()
-            ),
-        }?;
-
-        write!(f, "{}", metadata_display_fmt)
-    }
-}
-
 impl<T> TypeGeneric<T> {
     /// Consolidate all `Null` types appear in a (potentially deeply) nested
     /// Union, and remove the tree structure of nested unions.
@@ -453,49 +377,6 @@ impl<T> TypeGeneric<T> {
 
     /// For types that are unions, replace the variants list with
     /// a simplified (flattened) variants list.
-    pub fn simplify(&self) -> TypeGeneric<T>
-    where
-        T: Clone + Default + std::fmt::Debug + Eq + std::hash::Hash,
-    {
-        match self {
-            TypeGeneric::Union(inner, _) => {
-                let view = inner.view();
-                let flattened = view.flatten();
-                let unique = flattened.into_iter().unique().collect::<Vec<_>>();
-                let has_null = unique.contains(&TypeGeneric::null());
-                // if the union contains null, we'll detect that here.
-                let mut variants: Vec<TypeGeneric<T>> = unique
-                    .into_iter()
-                    .filter(|t| t != &TypeGeneric::null())
-                    .collect::<Vec<_>>();
-
-                let simplified: TypeGeneric<T> = match variants.len() {
-                    0 => return TypeGeneric::null(),
-                    1 => {
-                        if has_null {
-                            // Return an optional of a single variant.
-                            TypeGeneric::Union(
-                                UnionTypeGeneric::new_unsafe(vec![variants[0].clone()]),
-                                T::default(),
-                            )
-                        } else {
-                            // Return the single variant.
-                            variants[0].clone()
-                        }
-                    }
-                    _ => {
-                        if has_null {
-                            variants.push(TypeGeneric::null());
-                        }
-                        TypeGeneric::Union(UnionTypeGeneric::new_unsafe(variants), T::default())
-                    }
-                };
-
-                simplified
-            }
-            _ => self.clone(),
-        }
-    }
 
     pub fn is_primitive(&self) -> bool {
         match self {
@@ -672,8 +553,19 @@ fn partialize(r#type: &Type) -> TypeStreaming {
             ),
             FieldType::Union(union_type, _) => {
                 let variants = union_type.iter_skip_null();
-                TypeStreaming::union_with_meta(
-                    variants.into_iter().map(|t| partialize(t)).collect(),
+                let variants = variants.into_iter().cloned().map(|mut t| {
+                    t.meta_mut().streaming_behavior.needed = true;
+                    partialize(&t)
+                });
+
+                let variants = if !needed {
+                    variants.chain(std::iter::once(TypeStreaming::null())).collect()
+                } else {
+                    variants.collect()
+                };
+
+                TypeStreaming::Union(
+                    unsafe { UnionTypeGeneric::new_unsafe(variants) },
                     meta,
                 )
             }
@@ -690,7 +582,10 @@ fn partialize(r#type: &Type) -> TypeStreaming {
             // its memory with that of the inner base_type.
             let meta = base_type_streaming.meta().clone();
             *base_type_streaming.meta_mut() = TypeMetaStreaming::default();
-            let mut optional_value = TypeStreaming::optional(base_type_streaming);
+            let mut optional_value = TypeStreaming::Union(
+                unsafe { UnionTypeGeneric::new_unsafe(vec![base_type_streaming, TypeStreaming::null()]) },
+                TypeMetaStreaming::default(),
+            );
             *optional_value.meta_mut() = meta;
             optional_value
         }
@@ -737,12 +632,7 @@ fn partialize(r#type: &Type) -> TypeStreaming {
             FieldType::RecursiveTypeAlias(..) => StreamingBehavior::default(),
             FieldType::Tuple(..) => StreamingBehavior::default(),
             FieldType::Arrow(..) => StreamingBehavior::default(),
-            FieldType::Union(inner, _) => inner
-                .types
-                .iter()
-                .fold(StreamingBehavior::default(), |acc, t| {
-                    acc.combine(&inherent_streaming_behavior(t))
-                }),
+            FieldType::Union(..) => StreamingBehavior::default()
         }
     }
     partialize_helper(r#type)
@@ -752,7 +642,86 @@ impl TypeGeneric<TypeMeta> {
     pub fn streaming_behavior(&self) -> &StreamingBehavior {
         &self.meta().streaming_behavior
     }
+
+    pub fn simplify(&self) -> TypeGeneric<TypeMeta> {
+        match self {
+            TypeGeneric::Union(inner, union_meta) => {
+                let view = inner.view();
+                let flattened = view.flatten();
+                let unique = flattened.into_iter().unique().collect::<Vec<_>>();
+                let has_null = unique.contains(&TypeGeneric::null());
+                // if the union contains null, we'll detect that here.
+                let mut variants: Vec<TypeGeneric<TypeMeta>> = unique
+                    .into_iter()
+                    .filter(|t| t != &TypeGeneric::null())
+                    .collect::<Vec<_>>();
+
+                // here metadata simplification of both variants and the union itself happens
+                // unions will never have checks and asserts in their own metadata, always distributed and do not keep
+                // Union(A|B)(@check(A, {..})) => Union(A@check(A, {..})|B@check(B, {..}))
+                let (to_move, to_keep): (Vec<_>, Vec<_>) =
+                    union_meta.constraints.clone().into_iter().partition(|c| {
+                        // move these
+                        matches!(c.level, ConstraintLevel::Check | ConstraintLevel::Assert)
+                    });
+
+                let StreamingBehavior {
+                    done,
+                    needed,
+                    state,
+                } = union_meta.streaming_behavior;
+
+                // Add to_move to each variant
+                for variant in variants.iter_mut() {
+                    variant.meta_mut().constraints.extend(to_move.clone());
+                    if done {
+                        variant.meta_mut().streaming_behavior.done = true;
+                    }
+                    if needed {
+                        variant.meta_mut().streaming_behavior.needed = true;
+                    }
+                }
+
+                let mut new_meta = TypeMeta::default();
+                new_meta.constraints.extend(to_keep);
+
+                if needed {
+                    new_meta.streaming_behavior.needed = true;
+                }
+                new_meta.streaming_behavior.state = state;
+
+                let simplified: TypeGeneric<TypeMeta> = match variants.len() {
+                    0 => return TypeGeneric::null(),
+                    1 => {
+                        if has_null {
+                            // Return an optional of a single variant.
+                            TypeGeneric::Union(
+                                unsafe { UnionTypeGeneric::new_unsafe(vec![variants[0].clone()]) },
+                                new_meta,
+                            )
+                        } else {
+                            // Return the single variant.
+                            variants[0].clone()
+                        }
+                    }
+                    _ => {
+                        if has_null {
+                            variants.push(TypeGeneric::null());
+                        }
+                        TypeGeneric::Union(
+                            unsafe { UnionTypeGeneric::new_unsafe(variants) },
+                            new_meta,
+                        )
+                    }
+                };
+
+                simplified
+            }
+            _ => self.clone(),
+        }
+    }
 }
+
 
 pub trait ToUnionName {
     fn to_union_name(&self) -> String;
@@ -864,7 +833,6 @@ pub struct TypeMetaIR {
     pub state: bool,
 }
 
-// TODO: Do we need this?
 impl TypeMeta {
     pub fn combine(&self, other: &TypeMeta) -> TypeMeta {
         let mut constraints = self.constraints.clone();
@@ -917,6 +885,25 @@ impl Default for StreamingBehavior {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn mk_optional(inner: TypeStreaming) -> TypeStreaming {
+        if let TypeStreaming::Union(items, meta) = inner {
+            if items.is_optional() {
+                return TypeStreaming::Union(items, meta);
+            }
+            let options = items.iter_skip_null().into_iter().cloned()
+                .chain(std::iter::once(TypeStreaming::null()))
+                .collect::<Vec<_>>();
+            return TypeStreaming::Union(
+                unsafe { UnionTypeGeneric::new_unsafe(options) },
+                meta,
+            )
+        }
+        TypeStreaming::Union(
+            unsafe { UnionTypeGeneric::new_unsafe(vec![inner, TypeStreaming::null()]) },
+            TypeMetaStreaming::default(),
+        )
+    }
 
     #[test]
     fn simplify_base_case() {
@@ -980,6 +967,36 @@ mod tests {
     }
 
     #[test]
+    fn simplify_union_constraints() {
+        let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
+        let streaming_behavior = StreamingBehavior::default();
+        let union = FieldType::union_with_meta(
+            vec![FieldType::int(), FieldType::int()],
+            TypeMeta {
+                constraints: vec![constraint.clone()],
+                streaming_behavior: streaming_behavior.clone(),
+            },
+        );
+        let expected = FieldType::union_with_meta(
+            vec![
+                FieldType::int_with_meta(TypeMeta {
+                    constraints: vec![constraint.clone()],
+                    streaming_behavior: StreamingBehavior::default(),
+                }),
+                FieldType::int_with_meta(TypeMeta {
+                    constraints: vec![constraint.clone()],
+                    streaming_behavior: StreamingBehavior::default(),
+                }),
+            ],
+            TypeMeta {
+                constraints: vec![],
+                streaming_behavior: streaming_behavior.clone(),
+            },
+        );
+        assert_eq!(union.simplify(), expected);
+    }
+
+    #[test]
     fn flatten_base_case() {
         let null = FieldType::null();
         assert_eq!(null.flatten(), vec![null])
@@ -1016,7 +1033,7 @@ mod tests {
         let class = FieldType::class("MyClass");
         assert_eq!(
             partialize(&class),
-            TypeGeneric::optional(TypeStreaming::Class {
+            mk_optional(TypeStreaming::Class {
                 name: "MyClass".to_string(),
                 dynamic: false,
                 mode: StreamingMode::Streaming,
@@ -1029,7 +1046,7 @@ mod tests {
     // Foo @stream.done => Foo
     fn partialize_class_with_done() {
         let mut class = FieldType::class("MyClass");
-        let mut expected = TypeGeneric::optional(TypeStreaming::Class {
+        let mut expected = mk_optional(TypeStreaming::Class {
             name: "MyClass".to_string(),
             mode: StreamingMode::NonStreaming,
             dynamic: false,
@@ -1043,10 +1060,20 @@ mod tests {
     #[test]
     fn partialize_simple_union() {
         let union = FieldType::union(vec![FieldType::int(), FieldType::string()]);
-        let expected = TypeStreaming::optional(TypeStreaming::union(vec![
-            TypeStreaming::int(),
-            TypeStreaming::string(),
-        ]));
-        assert_eq!(partialize(&union), expected);
+        let expected = mk_optional(TypeStreaming::Union(
+            unsafe {
+                UnionTypeGeneric::new_unsafe(vec![
+                    TypeStreaming::Primitive(TypeValue::Int, TypeMetaStreaming::default().done()),
+                    TypeStreaming::Primitive(TypeValue::String, TypeMetaStreaming::default()),
+                ])
+            },
+            TypeMetaStreaming::default(),
+        ));
+        println!("union: {}", union);
+        println!("expected: {}", expected);
+        let actual = partialize(&union);    
+        println!("actual: {}", actual);
+
+        assert_eq!(actual, expected);
     }
 }

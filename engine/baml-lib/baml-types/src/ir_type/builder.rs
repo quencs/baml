@@ -29,6 +29,10 @@ impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
         TypeGeneric::Primitive(TypeValue::Int, T::default())
     }
 
+    pub fn int_with_meta(meta: T) -> Self {
+        TypeGeneric::Primitive(TypeValue::Int, meta)
+    }
+
     pub fn float() -> Self {
         TypeGeneric::Primitive(TypeValue::Float, T::default())
     }
@@ -80,19 +84,5 @@ impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
 
     pub fn tuple(choices: Vec<TypeGeneric<T>>) -> Self {
         TypeGeneric::Tuple(choices, T::default())
-    }
-
-    pub fn optional(inner: TypeGeneric<T>) -> Self
-    where
-        T: Clone + Eq + std::hash::Hash + std::fmt::Debug + Default,
-    {
-        Self::union(vec![inner, TypeGeneric::null()])
-    }
-
-    pub fn as_optional(self) -> Self
-    where
-        T: Clone + Eq + std::hash::Hash + std::fmt::Debug + Default,
-    {
-        Self::optional(self)
     }
 }
