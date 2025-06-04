@@ -33,11 +33,7 @@ func {{ fn.name }}(ctx context.Context{% for (name, go_type) in fn.args -%}
         return {{ fn.return_type.zero_value(pkg) }}, result.Error
     }
 
-    castResult := func (result any) {{ fn.return_type.serialize_type(pkg) }} {
-        return {{ fn.return_type.serialize_type(pkg) }}
-    }
-
-    casted := castResult(*result.Data)
+    casted := {{ fn.return_type.cast_from_function("result.Data", pkg) }}
 
     return casted, nil
 }

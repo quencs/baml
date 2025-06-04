@@ -1,10 +1,11 @@
 use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeatures};
-use functions::render_functions;
+use functions::{render_functions, render_functions_stream, render_runtime_code, render_source_files, render_type_map};
 use generated_types::{render_go_stream_types, render_go_types};
 
 mod functions;
 mod generated_types;
 mod ir_to_go;
+mod package;
 mod r#type;
 mod utils;
 
@@ -37,18 +38,23 @@ impl LanguageFeatures for GoLanguageFeatures {
             anyhow::bail!("Go client package name is required");
         };
 
-        let pkg = r#type::Package::new("baml_client");
+        let pkg = package::CurrentRenderPackage::new("baml_client");
+        let file_map = args.file_map_as_json_string()?;
+        collector.add_file("baml_source_map.go", render_source_files(file_map)?);
+        collector.add_file("runtime.go", render_runtime_code(&pkg)?);
+        let functions = ir
+            .functions
+            .iter()
+            .map(|f| ir_to_go::functions::ir_function_to_go(f, &pkg))
+            .collect::<Vec<_>>();
         collector.add_file(
-            "client.go",
-            render_functions(
-                ir.functions
-                    .iter()
-                    .map(|f| ir_to_go::functions::ir_function_to_go(f, &pkg))
-                    .collect::<Vec<_>>()
-                    .as_slice(),
-                &pkg,
-                go_mod_name,
-            )?,
+            "functions.go",
+            render_functions(&functions, &pkg, go_mod_name)?,
+        );
+
+        collector.add_file(
+            "functions_stream.go",
+            render_functions_stream(&functions, &pkg, go_mod_name)?,
         );
 
         let go_classes = ir
@@ -60,10 +66,23 @@ impl LanguageFeatures for GoLanguageFeatures {
             .map(|e| ir_to_go::enums::ir_enum_to_go(e.item, &pkg))
             .collect::<Vec<_>>();
 
-        let pkg = r#type::Package::new("baml_client.types");
-        collector.add_file("types/types.go", render_go_types(&go_classes, &enums, &[], &pkg)?);
+        collector.add_file(
+            "type_map.go",
+            render_type_map(&go_classes, &enums, &[], go_mod_name)?,
+        );
 
-        let pkg = r#type::Package::new("baml_client.stream_types");
+        pkg.set("baml_client.types");
+        collector.add_file(
+            "types/types.go",
+            render_go_types(&go_classes, &enums, &[], &pkg)?,
+        );
+
+        let go_classes = ir
+            .walk_classes()
+            .map(|c| ir_to_go::classes::ir_class_to_go_stream(c.item, &pkg))
+            .collect::<Vec<_>>();
+
+        pkg.set("baml_client.stream_types");
         collector.add_file(
             "stream_types/stream_types.go",
             render_go_stream_types(&go_classes, &[], &pkg)?,
@@ -79,36 +98,56 @@ mod tests {
 
     use super::*;
     use anyhow::Result;
-    use std::{path::PathBuf, process::Command};
+    use std::{collections::BTreeMap, path::PathBuf, process::Command};
 
-    fn args() -> GeneratorArgs {
-        GeneratorArgs {
+    fn args(src_file: &str) -> Result<(GeneratorArgs, IntermediateRepr)> {
+        let args = GeneratorArgs {
             client_package_name: Some("sample".to_string()),
             output_dir_relative_to_baml_src: PathBuf::from("./sample/baml_client"),
             baml_src_dir: PathBuf::from("."),
-            inlined_file_map: Default::default(),
+            inlined_file_map: BTreeMap::from([(
+                PathBuf::from("./sample/baml_src/main.baml"),
+                src_file.to_string(),
+            )]),
             version: "0.1.0".to_string(),
             no_version_check: true,
             default_client_mode: baml_types::GeneratorDefaultClientMode::Async,
             on_generate: vec!["gofmt -w . && goimports -w .".to_string()],
             client_type: baml_types::GeneratorOutputType::Go,
             module_format: None,
-        }
+        };
+
+        let ir = make_test_ir(src_file)?;
+        Ok((args, ir))
     }
 
     #[test]
     fn test_go_language_features() -> Result<()> {
         let features = GoLanguageFeatures::default();
-        let ir = make_test_ir(
+        let (args, ir) = args(
             r##"
             class Example {
                 a int
                 b string
+
+                @@stream.with_state
             }
 
-            function Foo(x: int) -> Example {
-                client "openai/gpt-4o"
-                prompt #"you are a helpful assistant"#
+            class Example2 {
+                item Example
+                element string
+                element2 string
+            }
+
+            function Foo(x: int) -> Example2 {
+                client "ollama/phi4:latest"
+                prompt #"
+                    Fill out this data model with some examples.
+
+                    {{ ctx.output_format }}
+
+                    use {{ x }} somewhere in the data model
+                "#
             }
 
             test FooTest {
@@ -119,7 +158,6 @@ mod tests {
             }
         "##,
         )?;
-        let args = args();
         features.generate_sdk(&ir, &args)?;
 
         // print PWD
@@ -130,7 +168,6 @@ mod tests {
             let mut cmd = Command::new("sh");
             cmd.args(&["-c", &cmd_str]);
             cmd.current_dir(&sample_dir);
-            println!("Running command: {:#?}", cmd);
             let output = cmd.output().expect("failed to run command");
             assert!(
                 output.status.success(),

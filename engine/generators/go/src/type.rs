@@ -1,3 +1,5 @@
+use crate::package::{CurrentRenderPackage, Package};
+
 pub enum LiteralType {
     String,
     Int,
@@ -35,6 +37,10 @@ impl Default for TypeWrapper {
 }
 
 impl TypeMetaGo {
+    pub fn is_optional(&self) -> bool {
+        matches!(self.type_wrapper, TypeWrapper::Optional(_))
+    }
+
     pub fn make_checked(&mut self) -> &mut Self {
         self.type_wrapper = TypeWrapper::Checked(Box::new(std::mem::take(&mut self.type_wrapper)));
         self
@@ -42,6 +48,11 @@ impl TypeMetaGo {
 
     pub fn make_optional(&mut self) -> &mut Self {
         self.type_wrapper = TypeWrapper::Optional(Box::new(std::mem::take(&mut self.type_wrapper)));
+        self
+    }
+
+    pub fn set_stream_state(&mut self) -> &mut Self {
+        self.wrap_stream_state = true;
         self
     }
 }
@@ -56,11 +67,11 @@ impl Default for TypeMetaGo {
 }
 
 trait WrapType {
-    fn wrap_type(&self, params: (&Package, String)) -> String;
+    fn wrap_type(&self, params: (&CurrentRenderPackage, String)) -> String;
 }
 
 impl WrapType for TypeWrapper {
-    fn wrap_type(&self, params: (&Package, String)) -> String {
+    fn wrap_type(&self, params: (&CurrentRenderPackage, String)) -> String {
         let (pkg, orig) = &params;
         match self {
             TypeWrapper::None => orig.clone(),
@@ -75,7 +86,7 @@ impl WrapType for TypeWrapper {
 }
 
 impl WrapType for TypeMetaGo {
-    fn wrap_type(&self, params: (&Package, String)) -> String {
+    fn wrap_type(&self, params: (&CurrentRenderPackage, String)) -> String {
         let pkg = params.0.clone();
         let wrapped = self.type_wrapper.wrap_type(params);
         if self.wrap_stream_state {
@@ -87,53 +98,6 @@ impl WrapType for TypeMetaGo {
         } else {
             wrapped
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Package {
-    package_path: Vec<String>,
-}
-
-impl Package {
-    pub fn new(package: &str) -> Self {
-        let parts: Vec<_> = package.split('.').map(|s| s.to_string()).collect();
-        if parts.is_empty() {
-            panic!("Package cannot be empty");
-        }
-        // ensure the first part is baml_client
-        if parts[0] != "baml_client" && parts[0] != "baml" {
-            panic!("Package must start with baml_client");
-        }
-        Package { package_path: parts }
-    }
-
-    pub fn relative_from(&self, other: &Package) -> String {
-        // Go does wierd imports, so we return only the last part of the package
-        // unless the other package is the same as self, in which case we return empty
-        if self.package_path == other.package_path {
-            return "".to_string();
-        }
-        return format!("{}.", self.package_path.last().unwrap());
-    }
-
-    pub fn checked() -> Package {
-        Package::new("baml_client.types")
-    }
-
-    pub fn stream_state() -> Package {
-        Package::new("baml_client.stream_types")
-    }
-
-    pub fn imported_base() -> Package {
-        Package::new("baml")
-    }
-}
-
-
-impl std::fmt::Display for Package {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.package_path.join("."))
     }
 }
 
@@ -194,13 +158,25 @@ impl TypeGo {
             TypeGo::Union { name, .. } => name.clone(),
             TypeGo::Enum { name, .. } => name.clone(),
             TypeGo::List(type_go, _) => format!("List{}", type_go.default_name_within_union()),
-            TypeGo::Map(key, value, _) => format!("Map{}Key{}Value", key.default_name_within_union(), value.default_name_within_union()),
-            TypeGo::Tuple(type_gos, _) => format!("Tuple{}{}", type_gos.len(), type_gos.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>().join(", ")),
+            TypeGo::Map(key, value, _) => format!(
+                "Map{}Key{}Value",
+                key.default_name_within_union(),
+                value.default_name_within_union()
+            ),
+            TypeGo::Tuple(type_gos, _) => format!(
+                "Tuple{}{}",
+                type_gos.len(),
+                type_gos
+                    .iter()
+                    .map(|t| t.default_name_within_union())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
             TypeGo::Any { .. } => "Any".to_string(),
         }
     }
 
-    pub fn zero_value(&self, pkg: &Package) -> String {
+    pub fn zero_value(&self, pkg: &CurrentRenderPackage) -> String {
         if matches!(self.meta().type_wrapper, TypeWrapper::Optional(_)) {
             return "nil".to_string();
         }
@@ -213,14 +189,97 @@ impl TypeGo {
                 MediaTypeGo::Image => "Image{}".to_string(),
                 MediaTypeGo::Audio => "Audio{}".to_string(),
             },
-            TypeGo::Class { name, package, .. } => format!("{}{}{{}}", package.relative_from(pkg), name),
-            TypeGo::Union { name, package, .. } => format!("{}{}{{}}", package.relative_from(pkg), name),
-            TypeGo::Enum { name, package, .. } => format!("{}{}{{}}", package.relative_from(pkg), name),
-            TypeGo::List(type_go, _) => "nil".to_string(),
-            TypeGo::Map(key, value, _) => "nil".to_string(),
-            TypeGo::Tuple(type_gos, _) => "nil".to_string(),
+            TypeGo::Class { name, package, .. } => {
+                format!("{}{}{{}}", package.relative_from(pkg), name)
+            }
+            TypeGo::Union { name, package, .. } => {
+                format!("{}{}{{}}", package.relative_from(pkg), name)
+            }
+            TypeGo::Enum { name, package, .. } => {
+                format!("{}{}{{}}", package.relative_from(pkg), name)
+            }
+            TypeGo::List(..) => "nil".to_string(),
+            TypeGo::Map(..) => "nil".to_string(),
+            TypeGo::Tuple(..) => "nil".to_string(),
             TypeGo::Any { .. } => "nil".to_string(),
         }
+    }
+
+    fn cast_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
+        format!("({param}).({})", self.serialize_type(pkg))
+            .trim()
+            .to_string()
+    }
+
+    pub fn cast_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
+        if self.meta().is_optional() {
+            format!(
+                r#"
+                func(result any) {t} {{
+                    if result == nil {{
+                        return nil
+                    }}
+                    return {casted}
+                }}({param})
+            "#,
+                t = self.serialize_type(pkg),
+                casted = self.cast_from_any_skip_optional("result", pkg)
+            )
+        } else {
+            self.cast_from_any_skip_optional(param, pkg)
+        }
+        .trim()
+        .to_string()
+    }
+
+    pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
+        match self {
+            TypeGo::List(..) | TypeGo::Map(..) => self.cast_from_any_skip_optional(param, pkg),
+            _ if self.meta().is_optional() => self.cast_from_any_skip_optional(param, pkg),
+            _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
+        }
+    }
+
+    fn decode_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
+        match self {
+            TypeGo::List(inner, meta) if !meta.is_optional() => format!(
+                "baml.DecodeList(param, func(inner *cffi.CFFIValueHolder) {t} {{
+                return {casted}
+            }})",
+                t = inner.serialize_type(pkg),
+                casted = inner.decode_from_any("inner", pkg)
+            ),
+            TypeGo::Map(key, value, meta) if !meta.is_optional() => format!(
+                "baml.DecodeMap(param, func(inner *cffi.CFFIValueHolder) {t} {{
+                return {casted}
+            }})",
+                t = key.serialize_type(pkg),
+                casted = value.decode_from_any("inner", pkg)
+            ),
+            _ if !self.meta().is_optional() => format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg)),
+            _ => format!("baml.Decode({param}).({})", self.serialize_type(pkg)),
+        }
+        .trim()
+        .to_string()
+    }
+
+    pub fn decode_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
+        if self.meta().is_optional() {
+            format!(
+                r#"
+                func(param *cffi.CFFIValueHolder) {t} {{
+                    decoded := baml.Decode(param)
+                    return {casted}
+                }}({param})
+            "#,
+                t = self.serialize_type(pkg),
+                casted = self.cast_from_any("decoded", pkg)
+            )
+        } else {
+            self.decode_from_any_skip_optional(param, pkg)
+        }
+        .trim()
+        .to_string()
     }
 
     pub fn meta(&self) -> &TypeMetaGo {
@@ -239,7 +298,7 @@ impl TypeGo {
             TypeGo::Any { meta, .. } => meta,
         }
     }
-    
+
     pub fn meta_mut(&mut self) -> &mut TypeMetaGo {
         match self {
             TypeGo::String(meta) => meta,
@@ -259,30 +318,32 @@ impl TypeGo {
 }
 
 pub trait SerializeType {
-    fn serialize_type(&self, pkg: &Package) -> String;
+    fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String;
 }
 
 impl SerializeType for TypeGo {
-    fn serialize_type(&self, pkg: &Package) -> String {
+    fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         let meta = self.meta();
         let type_str = match self {
             TypeGo::String(_) => "string".to_string(),
-            TypeGo::Int(_) => "int".to_string(),
-            TypeGo::Float(_) => "float".to_string(),
+            TypeGo::Int(_) => "int64".to_string(),
+            TypeGo::Float(_) => "float64".to_string(),
             TypeGo::Bool(_) => "bool".to_string(),
             TypeGo::Media(media, _) => media.serialize_type(pkg),
-            TypeGo::Class {
-                package, name, ..
-            } => format!("{}{}", package.relative_from(pkg), name),
-            TypeGo::Union {
-                package, name, ..
-            } => format!("{}{}", package.relative_from(pkg), name),
-            TypeGo::Enum {
-                package, name, ..
-            } => format!("{}{}", package.relative_from(pkg), name),
+            TypeGo::Class { package, name, .. } => {
+                format!("{}{}", package.relative_from(pkg), name)
+            }
+            TypeGo::Union { package, name, .. } => {
+                format!("{}{}", package.relative_from(pkg), name)
+            }
+            TypeGo::Enum { package, name, .. } => format!("{}{}", package.relative_from(pkg), name),
             TypeGo::List(inner, _) => format!("[]{}", inner.serialize_type(pkg)),
             TypeGo::Map(key, value, _) => {
-                format!("map[{}]{}", key.serialize_type(pkg), value.serialize_type(pkg))
+                format!(
+                    "map[{}]{}",
+                    key.serialize_type(pkg),
+                    value.serialize_type(pkg)
+                )
             }
             TypeGo::Tuple(types, _) => format!(
                 "({})",
@@ -295,12 +356,12 @@ impl SerializeType for TypeGo {
             TypeGo::Any { .. } => "any".to_string(),
         };
 
-        meta.type_wrapper.wrap_type((pkg, type_str))
+        meta.wrap_type((pkg, type_str))
     }
 }
 
 impl SerializeType for MediaTypeGo {
-    fn serialize_type(&self, pkg: &Package) -> String {
+    fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         match self {
             MediaTypeGo::Image => format!("{}.Image", Package::imported_base().relative_from(pkg)),
             MediaTypeGo::Audio => format!("{}.Audio", Package::imported_base().relative_from(pkg)),

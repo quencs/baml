@@ -2189,6 +2189,7 @@ dependencies = [
  "filetime",
  "indexmap 2.8.0",
  "internal-baml-core",
+ "serde_json",
  "walkdir",
 ]
 

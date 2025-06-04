@@ -1,11 +1,10 @@
-use baml_types::ir_type::TypeStreaming;
 // TODO: DO NOT EXPOSE THIS
 use internal_baml_core::ir::FunctionNode;
 
-use crate::{functions::FunctionGo, r#type::Package};
+use crate::{functions::FunctionGo, package::CurrentRenderPackage};
 use super::{stream_type_to_go, type_to_go};
 
-pub fn ir_function_to_go(function: &FunctionNode, pkg: &Package) -> FunctionGo {
+pub fn ir_function_to_go(function: &FunctionNode, pkg: &CurrentRenderPackage) -> FunctionGo {
     FunctionGo {
         documentation: None,
         name: function.elem.name().to_string(),
@@ -13,9 +12,9 @@ pub fn ir_function_to_go(function: &FunctionNode, pkg: &Package) -> FunctionGo {
             .elem
             .inputs()
             .iter()
-            .map(|(name, field_type)| (name.clone(), type_to_go(field_type, pkg)))
+            .map(|(name, field_type)| (name.clone(), type_to_go(field_type)))
             .collect(),
-        return_type: type_to_go(function.elem.output(), pkg),
-        stream_return_type: stream_type_to_go(&function.elem.output().partialize(), pkg),
+        return_type: type_to_go(function.elem.output()),
+        stream_return_type: stream_type_to_go(&function.elem.output().partialize()),
     }
 }

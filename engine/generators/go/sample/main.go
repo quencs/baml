@@ -1,25 +1,26 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	b "sample/baml_client"
 )
 
 func main() {
-	fmt.Println("Hello, World!")
-}
+	result, err := b.Foo(context.Background(), 8192)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(result)
 
-type A struct {
-}
-
-func return_map(x int) map[string]int {
-	return map[string]int{
-		"x": x,
+	channel := b.Stream.Foo(context.Background(), 8192)
+	for result := range channel {
+		if result.IsFinal {
+			fmt.Println("final-----")
+			fmt.Println(result.Final())
+		} else {
+			fmt.Println("stream-----")
+			fmt.Println(result.Stream())
+		}
 	}
 }
-
-type Union3AorBorC struct {
-}
-type Checked[T any] struct {
-}
-
-type Foo = Checked[*Union3AorBorC]

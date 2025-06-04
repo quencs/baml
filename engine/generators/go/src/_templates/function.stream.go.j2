@@ -1,10 +1,10 @@
 /// Streaming version of {{ fn.name }}
 {% if let Some(doc) = fn.documentation -%}
-{{ crate::utils::prefix_lines(doc, "/// ") }}
-{%- endif %}
+{{ crate::utils::prefix_lines(doc, "// ") }}
+{% endif -%}
 func (*stream) {{ fn.name }}(ctx context.Context{% for (name, go_type) in fn.args -%}
         , {{name}} {{go_type.serialize_type(pkg)}}
-        {%- endfor %}, opts ...CallOptionFunc) <-chan baml.StreamResult[{{ fn.stream_return_type.serialize_type(pkg) }}, {{ fn.return_type.serialize_type(pkg) }}] {
+        {%- endfor %}, opts ...CallOptionFunc) <-chan StreamValue[{{ fn.stream_return_type.serialize_type(pkg) }}, {{ fn.return_type.serialize_type(pkg) }}] {
 
     var callOpts callOption
     for _, opt := range opts {
@@ -25,7 +25,7 @@ func (*stream) {{ fn.name }}(ctx context.Context{% for (name, go_type) in fn.arg
         panic(err)
     }
 
-    channel := make(chan baml.StreamResult[{{ fn.stream_return_type.serialize_type(pkg) }}, {{ fn.return_type.serialize_type(pkg) }}])
+    channel := make(chan StreamValue[{{ fn.stream_return_type.serialize_type(pkg) }}, {{ fn.return_type.serialize_type(pkg) }}])
     raw, err := bamlRuntime.CallFunctionStream(ctx, "{{ fn.name }}", encoded)
     if err != nil {
         close(channel)
@@ -47,7 +47,19 @@ func (*stream) {{ fn.name }}(ctx context.Context{% for (name, go_type) in fn.arg
                     close(channel)
                     return
                 }
-                channel <- (*result.Data).({{ fn.stream_return_type.serialize_type(pkg) }})
+                if result.HasData {
+                    data := {{ fn.return_type.cast_from_function("result.Data", pkg) }}
+                    channel <- StreamValue[{{ fn.stream_return_type.serialize_type(pkg) }}, {{ fn.return_type.serialize_type(pkg) }}]{
+                        IsFinal: true,
+                        as_final: &data,
+                    }
+                } else {
+                    data := {{ fn.stream_return_type.cast_from_function("result.StreamData", pkg) }}
+                    channel <- StreamValue[{{ fn.stream_return_type.serialize_type(pkg) }}, {{ fn.return_type.serialize_type(pkg) }}]{
+                        IsFinal: false,
+                        as_stream: &data,
+                    }
+                }
             }
         }
     }()

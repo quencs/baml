@@ -36,6 +36,26 @@ pub struct GeneratorArgs {
     pub module_format: Option<ModuleFormat>,
 }
 
+impl GeneratorArgs {
+    pub fn file_map_as_json_string(&self) -> Result<Vec<(String, String)>> {
+        self.inlined_file_map
+            .iter()
+            .map(|(k, v)| {
+                Ok((
+                    serde_json::to_string(&k.display().to_string()).map_err(|e| {
+                        anyhow::Error::from(e)
+                            .context(format!("Failed to serialize key {:#}", k.display()))
+                    })?,
+                    serde_json::to_string(v).map_err(|e| {
+                        anyhow::Error::from(e)
+                            .context(format!("Failed to serialize contents of {:#}", k.display()))
+                    })?,
+                ))
+            })
+            .collect()
+    }
+}
+
 pub enum RemoveDirBehavior {
     /// Refuse to overwrite files that BAML did not generate
     ///

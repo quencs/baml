@@ -14,11 +14,11 @@ use sugar_path::SugarPath;
 use version_check::{check_version, GeneratorType, VersionCheckMode};
 
 mod dir_writer;
-mod go;
+// mod go;
 pub mod openapi;
-mod python;
-mod ruby;
-mod typescript;
+// mod python;
+// mod ruby;
+// mod typescript;
 pub mod version_check;
 
 pub struct GeneratorArgs {
@@ -204,69 +204,70 @@ impl GenerateClient for GeneratorOutputType {
             return Err(e);
         }
 
+        todo!("WAITING");
         // Generate files
-        let files = match self {
-            GeneratorOutputType::OpenApi => openapi::generate(ir, gen),
-            GeneratorOutputType::PythonPydantic => python::generate(ir, gen, false),
-            GeneratorOutputType::PythonPydanticV1 => python::generate(ir, gen, true),
-            GeneratorOutputType::RubySorbet => ruby::generate(ir, gen),
-            GeneratorOutputType::Typescript => typescript::generate(ir, gen),
-            GeneratorOutputType::TypescriptReact => typescript::generate(ir, gen),
-            GeneratorOutputType::Go => go::generate(ir, gen),
-        }?;
+        // let files = match self {
+        //     GeneratorOutputType::OpenApi => openapi::generate(ir, gen),
+        //     GeneratorOutputType::PythonPydantic => python::generate(ir, gen, false),
+        //     GeneratorOutputType::PythonPydanticV1 => python::generate(ir, gen, true),
+        //     GeneratorOutputType::RubySorbet => ruby::generate(ir, gen),
+        //     GeneratorOutputType::Typescript => typescript::generate(ir, gen),
+        //     GeneratorOutputType::TypescriptReact => typescript::generate(ir, gen),
+        //     GeneratorOutputType::Go => go::generate(ir, gen),
+        // }?;
 
         // Run on_generate commands
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            // log::info!("Running on_generate commands");
-            for cmd in gen.on_generate.iter() {
-                baml_log::info!("Running {:?} in {}", cmd, gen.output_dir().display());
+        // #[cfg(not(target_arch = "wasm32"))]
+        // {
+        //     // log::info!("Running on_generate commands");
+        //     for cmd in gen.on_generate.iter() {
+        //         baml_log::info!("Running {:?} in {}", cmd, gen.output_dir().display());
 
-                let output_result = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(cmd)
-                    .current_dir(gen.output_dir())
-                    .output()
-                    .context(format!("Failed to run on_generate command {:?}", cmd));
+        //         let output_result = std::process::Command::new("sh")
+        //             .arg("-c")
+        //             .arg(cmd)
+        //             .current_dir(gen.output_dir())
+        //             .output()
+        //             .context(format!("Failed to run on_generate command {:?}", cmd));
 
-                let output = match output_result {
-                    Ok(output) => output,
-                    Err(e) => {
-                        log::error!("Failed to execute on_generate command: {:?}", e);
-                        return Err(e);
-                    }
-                };
+        //         let output = match output_result {
+        //             Ok(output) => output,
+        //             Err(e) => {
+        //                 log::error!("Failed to execute on_generate command: {:?}", e);
+        //                 return Err(e);
+        //             }
+        //         };
 
-                // log::info!("on_generate command finished");
-                if !output.status.success() {
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    let error_msg = format!(
-                        "on_generate command finished with {}: {:?}\nStdout:\n{}\nStderr:\n{}",
-                        match output.status.code() {
-                            Some(code) => format!("exit code {}", code),
-                            None => "no exit code".to_string(),
-                        },
-                        cmd,
-                        stdout,
-                        stderr
-                    );
-                    return Err(anyhow::anyhow!("{}", error_msg));
-                }
-            }
+        //         // log::info!("on_generate command finished");
+        //         if !output.status.success() {
+        //             let stdout = String::from_utf8_lossy(&output.stdout);
+        //             let stderr = String::from_utf8_lossy(&output.stderr);
+        //             let error_msg = format!(
+        //                 "on_generate command finished with {}: {:?}\nStdout:\n{}\nStderr:\n{}",
+        //                 match output.status.code() {
+        //                     Some(code) => format!("exit code {}", code),
+        //                     None => "no exit code".to_string(),
+        //                 },
+        //                 cmd,
+        //                 stdout,
+        //                 stderr
+        //             );
+        //             return Err(anyhow::anyhow!("{}", error_msg));
+        //         }
+        //     }
 
-            if matches!(self, GeneratorOutputType::OpenApi) && gen.on_generate.is_empty() {
-                // TODO: we should auto-suggest a command for the user to run here
-                log::warn!("No on_generate commands were provided for OpenAPI generator - skipping OpenAPI client generation");
-            }
-        }
+        //     if matches!(self, GeneratorOutputType::OpenApi) && gen.on_generate.is_empty() {
+        //         // TODO: we should auto-suggest a command for the user to run here
+        //         log::warn!("No on_generate commands were provided for OpenAPI generator - skipping OpenAPI client generation");
+        //     }
+        // }
 
-        Ok(GenerateOutput {
-            client_type: *self,
-            output_dir_shorthand: gen.output_dir_relative_to_baml_src.clone(),
-            output_dir_full: gen.output_dir(),
-            files,
-        })
+        // Ok(GenerateOutput {
+        //     client_type: *self,
+        //     output_dir_shorthand: gen.output_dir_relative_to_baml_src.clone(),
+        //     output_dir_full: gen.output_dir(),
+        //     files,
+        // })
     }
 }
 

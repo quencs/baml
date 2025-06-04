@@ -16,6 +16,10 @@ package stream_types
 import (
 	"encoding/json"
 	"fmt"
+
+	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type StreamStateType string
@@ -73,7 +77,142 @@ type StreamState[T any] struct {
 	State StreamStateType `json:"state"`
 }
 
-type Generic__Example[Type__a any, Type__b any] struct {
-	a Type__a
-	b Type__b
+type Example struct {
+	A *int64  `json:"a"`
+	B *string `json:"b"`
+}
+
+func (c *Example) Decode(holder cffi.CFFIValueClass) {
+	typeName := holder.Name(nil)
+	if string(typeName.Namespace()) != "types" {
+		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+	}
+	if string(typeName.Name()) != "Example" {
+		panic(fmt.Sprintf("expected Example, got %s", string(typeName.Name())))
+	}
+
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+
+			case "a":
+				c.A = func(param *cffi.CFFIValueHolder) *int64 {
+					decoded := baml.Decode(param)
+					return func(result any) *int64 {
+						if result == nil {
+							return nil
+						}
+						return (result).(*int64)
+					}(decoded)
+				}(valueHolder)
+
+			case "b":
+				c.B = func(param *cffi.CFFIValueHolder) *string {
+					decoded := baml.Decode(param)
+					return func(result any) *string {
+						if result == nil {
+							return nil
+						}
+						return (result).(*string)
+					}(decoded)
+				}(valueHolder)
+
+			}
+		}
+	}
+
+}
+
+func (c Example) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+	fields := map[string]any{}
+
+	fields["a"] = c.A
+
+	fields["b"] = c.B
+
+	return baml.EncodeClass(builder, "Example", fields, nil)
+}
+
+func (c Example) BamlTypeName() string {
+	return "Example"
+}
+
+type Example2 struct {
+	Item     *Example `json:"item"`
+	Element  *string  `json:"element"`
+	Element2 *string  `json:"element2"`
+}
+
+func (c *Example2) Decode(holder cffi.CFFIValueClass) {
+	typeName := holder.Name(nil)
+	if string(typeName.Namespace()) != "types" {
+		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+	}
+	if string(typeName.Name()) != "Example2" {
+		panic(fmt.Sprintf("expected Example2, got %s", string(typeName.Name())))
+	}
+
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+
+			case "item":
+				c.Item = func(param *cffi.CFFIValueHolder) *Example {
+					decoded := baml.Decode(param)
+					return func(result any) *Example {
+						if result == nil {
+							return nil
+						}
+						return (result).(*Example)
+					}(decoded)
+				}(valueHolder)
+
+			case "element":
+				c.Element = func(param *cffi.CFFIValueHolder) *string {
+					decoded := baml.Decode(param)
+					return func(result any) *string {
+						if result == nil {
+							return nil
+						}
+						return (result).(*string)
+					}(decoded)
+				}(valueHolder)
+
+			case "element2":
+				c.Element2 = func(param *cffi.CFFIValueHolder) *string {
+					decoded := baml.Decode(param)
+					return func(result any) *string {
+						if result == nil {
+							return nil
+						}
+						return (result).(*string)
+					}(decoded)
+				}(valueHolder)
+
+			}
+		}
+	}
+
+}
+
+func (c Example2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+	fields := map[string]any{}
+
+	fields["item"] = c.Item
+
+	fields["element"] = c.Element
+
+	fields["element2"] = c.Element2
+
+	return baml.EncodeClass(builder, "Example2", fields, nil)
+}
+
+func (c Example2) BamlTypeName() string {
+	return "Example2"
 }

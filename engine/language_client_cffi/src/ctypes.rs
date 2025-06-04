@@ -23,6 +23,23 @@ pub fn buffer_to_cffi_function_arguments(buffer: &[u8]) -> Result<BamlFunctionAr
         .into())
 }
 
+fn create_cffi_type_name<'a, 'b>(
+    name: &'a str,
+    mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
+    allow_partials: bool,
+) -> flatbuffers::WIPOffset<CFFITypeName<'b>> {
+    let name_offset = builder.create_string(name);
+    let namespace_offset = builder.create_string(if allow_partials { "stream_types" } else { "types" });
+    CFFITypeName::create(
+        &mut builder,
+        &CFFITypeNameArgs {
+            namespace: Some(namespace_offset),
+            name: Some(name_offset),
+        },
+    )
+}
+
+
 impl From<cffi_generated::cffi::CFFIValueHolder<'_>> for BamlValue {
     fn from(value: cffi_generated::cffi::CFFIValueHolder) -> Self {
         let value_type = value.value_type();
@@ -128,6 +145,8 @@ impl From<CFFIValueClass<'_>> for BamlValue {
             value
                 .name()
                 .expect("Failed to have CFFIValueClass name")
+                .name()
+                .expect("Failed to have CFFIValueClass name")
                 .to_string(),
             value
                 .fields()
@@ -143,6 +162,8 @@ impl From<CFFIValueEnum<'_>> for BamlValue {
     fn from(value: CFFIValueEnum) -> Self {
         BamlValue::Enum(
             value
+                .name()
+                .expect("Failed to have CFFIValueEnum name")
                 .name()
                 .expect("Failed to have CFFIValueEnum name")
                 .to_string(),
@@ -310,11 +331,12 @@ impl From<CFFIValueStreamingState<'_>> for BamlValue {
 pub fn serialize_baml_value_with_meta<'a, 'b, T>(
     value: &'b BamlValueWithMeta<T>,
     mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
+    allow_partials: bool,
 ) -> &'a [u8]
 where
     T: HasFieldType,
 {
-    let value_holder = from_baml_value_with_meta(value, &mut builder);
+    let value_holder = from_baml_value_with_meta(value, &mut builder, allow_partials);
     // println!("value_holder: {:#?}", value_holder);
     builder.finish(value_holder, None);
     builder.finished_data()
@@ -323,10 +345,12 @@ where
 fn from_baml_value_with_meta<'a, 'b, T>(
     value: &'b BamlValueWithMeta<T>,
     mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
+    allow_partials: bool,
 ) -> flatbuffers::WIPOffset<CFFIValueHolder<'b>>
 where
     T: HasFieldType,
 {
+    let allow_partials = allow_partials && !value.field_type().streaming_behavior().done;
     let (value_type, value_holder) = match value {
         BamlValueWithMeta::String(val, _) => {
             // Create a FlatBuffers string and get its offset.
@@ -364,7 +388,7 @@ where
         BamlValueWithMeta::List(val, _) => {
             let mut items = Vec::new();
             for v in val.iter() {
-                items.push(from_baml_value_with_meta(v, &mut builder));
+                items.push(from_baml_value_with_meta(v, &mut builder, allow_partials));
             }
 
             let values = builder.create_vector_from_iter(items.into_iter());
@@ -385,7 +409,7 @@ where
             let mut items = Vec::new();
             for (k, v) in val.iter() {
                 let key = builder.create_string(k);
-                let value = from_baml_value_with_meta(v, &mut builder);
+                let value = from_baml_value_with_meta(v, &mut builder, allow_partials);
 
                 items.push(CFFIMapEntry::create(
                     &mut builder,
@@ -410,11 +434,11 @@ where
 
             (CFFIValueUnion::CFFIValueMap, value_map.as_union_value())
         }
-        BamlValueWithMeta::Class(class_name, fields, _) => {
+        BamlValueWithMeta::Class(class_name, fields, meta) => {
             let mut items = Vec::new();
             for (k, v) in fields.iter() {
                 let key = builder.create_string(k);
-                let value = from_baml_value_with_meta(v, &mut builder);
+                let value = from_baml_value_with_meta(v, &mut builder, allow_partials);
                 items.push(CFFIMapEntry::create(
                     &mut builder,
                     &CFFIMapEntryArgs {
@@ -426,7 +450,9 @@ where
 
             let entries = builder.create_vector_from_iter(items.into_iter());
 
-            let class_name = builder.create_string(class_name);
+            let ft = meta.field_type();
+            
+            let class_name = create_cffi_type_name(class_name, &mut builder, allow_partials);
             let value_class = CFFIValueClass::create(
                 &mut builder,
                 &CFFIValueClassArgs {
@@ -439,7 +465,7 @@ where
             (CFFIValueUnion::CFFIValueClass, value_class.as_union_value())
         }
         BamlValueWithMeta::Enum(enum_name, enum_value, _) => {
-            let enum_name = builder.create_string(enum_name);
+            let enum_name = create_cffi_type_name(enum_name, &mut builder, allow_partials);
             let enum_value = builder.create_string(enum_value);
             let value_enum = CFFIValueEnum::create(
                 &mut builder,
@@ -560,7 +586,7 @@ where
         let variant_name = options[value_type_index].to_union_name();
         let options = builder.create_vector_from_iter(options_vec.into_iter());
 
-        let name_offset = builder.create_string(&target_type.to_union_name());
+        let name_offset = create_cffi_type_name(&target_type.to_union_name(), &mut builder, allow_partials);
         let variant_name_offset = builder.create_string(&variant_name);
 
         let value_union_variant = CFFIValueUnionVariant::create(
@@ -677,25 +703,6 @@ where
                 value_union_variant.as_union_value(),
             )
         }
-        // baml_types::FieldType::Optional(field_type) => {
-        //     let field_type = field_type_to_cffi_value_holder(field_type, &mut builder);
-        //     let null_type = field_type_to_cffi_value_holder(
-        //         &baml_types::FieldType::Primitive(baml_types::TypeValue::Null),
-        //         &mut builder,
-        //     );
-        //     let options = builder.create_vector_from_iter(vec![field_type, null_type].into_iter());
-        //     let value_union_variant = CFFIFieldTypeUnionVariant::create(
-        //         &mut builder,
-        //         &CFFIFieldTypeUnionVariantArgs {
-        //             options: Some(options),
-        //         },
-        //     );
-
-        //     (
-        //         CFFIFieldTypeUnion::CFFIFieldTypeUnionVariant,
-        //         value_union_variant.as_union_value(),
-        //     )
-        // }
         baml_types::FieldType::RecursiveTypeAlias(name, _) => {
             let name = builder.create_string(name);
             let type_alias = CFFIFieldTypeTypeAlias::create(

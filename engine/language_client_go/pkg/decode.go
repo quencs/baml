@@ -34,7 +34,8 @@ type DynamicClass struct {
 }
 
 func (d *DynamicClass) Decode(holder cffi.CFFIValueClass) {
-	d.Name = string(holder.Name())
+	typeName := holder.Name(nil)
+	d.Name = string(typeName.Name())
 	if holder.FieldsLength() > 0 {
 		panic("error decoding value")
 	}
@@ -58,7 +59,8 @@ type DynamicEnum struct {
 }
 
 func (d *DynamicEnum) Decode(holder cffi.CFFIValueEnum) {
-	d.Name = string(holder.Name())
+	val := holder.Name(nil)
+	d.Name = string(val.Name())
 	d.Value = string(holder.Value())
 }
 
@@ -176,10 +178,15 @@ func decodeClassValue(valueHolder *cffi.CFFIValueHolder) any {
 	var valueClass cffi.CFFIValueClass
 	valueClass.Init(tbl.Bytes, tbl.Pos)
 
-	found, ok := typeMap[string(valueClass.Name())]
+	typeName := valueClass.Name(nil)
+	namespace := string(typeName.Namespace())
+	className := string(typeName.Name())
+	found, ok := typeMap[namespace+"."+className]
 	if !ok {
 		// This is a fully dynamic class, so we need to decode it as a map
-		dynamicClass := DynamicClass{}
+		dynamicClass := DynamicClass{
+			Name: className,
+		}
 		dynamicClass.Decode(valueClass)
 		return &dynamicClass
 	}
@@ -198,8 +205,10 @@ func decodeEnumValue(valueHolder *cffi.CFFIValueHolder) any {
 	var valueEnum cffi.CFFIValueEnum
 	valueEnum.Init(tbl.Bytes, tbl.Pos)
 
-	enumName := string(valueEnum.Name())
-	found, ok := typeMap[enumName]
+	typeName := valueEnum.Name(nil)
+	namespace := string(typeName.Namespace())
+	enumName := string(typeName.Name())
+	found, ok := typeMap[namespace+"."+enumName]
 	if !ok {
 		return &DynamicEnum{Name: enumName, Value: string(valueEnum.Value())}
 	}
@@ -218,7 +227,10 @@ func decodeUnionValue(holder *cffi.CFFIValueHolder) any {
 	var valueUnion cffi.CFFIValueUnionVariant
 	valueUnion.Init(tbl.Bytes, tbl.Pos)
 
-	found, ok := typeMap[string(valueUnion.Name())]
+	typeName := valueUnion.Name(nil)
+	namespace := string(typeName.Namespace())
+	unionName := string(typeName.Name())
+	found, ok := typeMap[namespace+"."+unionName]
 	if !ok {
 		// This is a fully dynamic union, so we
 		// decode the value as the value and drop

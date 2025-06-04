@@ -2186,7 +2186,6 @@ impl WithRepr<Prompt> for PromptAst<'_> {
 /// This is useful for generating IR test fixtures.
 pub fn make_test_ir(source_code: &str) -> anyhow::Result<IntermediateRepr> {
     let (ir, diagnostics) = make_test_ir_and_diagnostics(source_code)?;
-    eprintln!("ir: {:?}", ir);
     if diagnostics.has_errors() {
         return Err(anyhow::anyhow!(
             "Source code was invalid: \n{:?}",
