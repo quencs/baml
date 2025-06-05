@@ -97,106 +97,23 @@ impl LanguageFeatures for GoLanguageFeatures {
     }
 }
 
+
+#[cfg(test)]
+mod generated_tests {
+    use test_harness::{create_code_gen_test_suites};
+
+    create_code_gen_test_suites!(crate::GoLanguageFeatures);
+}
+
 #[cfg(test)]
 mod tests {
-    use internal_baml_core::ir::repr::make_test_ir;
-
-    use super::*;
-    use anyhow::Result;
-    use std::{collections::BTreeMap, path::PathBuf, process::Command};
-
-
-    #[test]
+   #[test]
     fn test_name() {
         use std::str::FromStr;
+        use dir_writer::LanguageFeatures;
 
-        let gen_type = baml_types::GeneratorOutputType::from_str(GoLanguageFeatures::name())
+        let gen_type = baml_types::GeneratorOutputType::from_str(crate::GoLanguageFeatures::name())
             .expect("GoLanguageFeatures name should be a valid GeneratorOutputType");
         assert_eq!(gen_type, baml_types::GeneratorOutputType::Go);
-    }
-
-    fn args(src_file: &str) -> Result<(GeneratorArgs, IntermediateRepr)> {
-        let args = GeneratorArgs {
-            client_package_name: Some("sample".to_string()),
-            output_dir_relative_to_baml_src: PathBuf::from("./sample/baml_client"),
-            baml_src_dir: PathBuf::from("."),
-            inlined_file_map: BTreeMap::from([(
-                PathBuf::from("./sample/baml_src/main.baml"),
-                src_file.to_string(),
-            )]),
-            version: "0.1.0".to_string(),
-            no_version_check: true,
-            default_client_mode: baml_types::GeneratorDefaultClientMode::Async,
-            on_generate: vec!["gofmt -w . && goimports -w .".to_string()],
-            client_type: baml_types::GeneratorOutputType::Go,
-            module_format: None,
-        };
-
-        let ir = make_test_ir(src_file)?;
-        Ok((args, ir))
-    }
-
-    #[test]
-    fn test_foo() -> Result<()> {
-        let test_harness = test_harness::TestHarness::sample(GoLanguageFeatures::default())?;
-        test_harness.run()
-    }
-
-    #[test]
-    fn test_go_language_features() -> Result<()> {
-        let features = GoLanguageFeatures::default();
-        let (args, ir) = args(
-            r##"
-            class Example {
-                a int
-                b string
-
-                @@stream.with_state
-            }
-
-            class Example2 {
-                item Example
-                element string
-                element2 string
-            }
-
-            function Foo(x: int) -> Example2 {
-                client "ollama/phi4:latest"
-                prompt #"
-                    Fill out this data model with some examples.
-
-                    {{ ctx.output_format }}
-
-                    use {{ x }} somewhere in the data model
-                "#
-            }
-
-            test FooTest {
-                functions [Foo]
-                args {
-                    x 1
-                }
-            }
-        "##,
-        )?;
-        features.generate_sdk(&ir, &args)?;
-
-        // print PWD
-        let pwd = std::env::current_dir().unwrap();
-        let sample_dir = pwd.join("sample");
-
-        for cmd_str in args.on_generate {
-            let mut cmd = Command::new("sh");
-            cmd.args(&["-c", &cmd_str]);
-            cmd.current_dir(&sample_dir);
-            let output = cmd.output().expect("failed to run command");
-            assert!(
-                output.status.success(),
-                "{}",
-                String::from_utf8_lossy(&output.stderr)
-            );
-        }
-
-        Ok(())
     }
 }

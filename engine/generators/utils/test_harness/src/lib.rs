@@ -95,3 +95,14 @@ impl TestHarness {
         Self::load_test("sample", generator)
     }
 }
+
+#[macro_export]
+macro_rules! create_code_gen_test_suites {
+    ($generator_type:ty) => {
+        #[test]
+        fn test_sample() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::sample(<$generator_type>::default())?;
+            test_harness.run()
+        }
+    };
+}
