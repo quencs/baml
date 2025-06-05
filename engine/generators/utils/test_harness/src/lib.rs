@@ -1,0 +1,97 @@
+use std::{collections::BTreeMap, path::PathBuf, process::Command, str::FromStr};
+
+use dir_writer::{GeneratorArgs, IntermediateRepr, LanguageFeatures};
+use internal_baml_core::ir::repr::{make_test_ir, make_test_ir_and_diagnostics, make_test_ir_from_dir};
+
+
+pub struct TestStructure<L: LanguageFeatures> {
+    src_dir: PathBuf,
+    ir: IntermediateRepr,
+    generator: L,
+    project_name: String,
+}
+
+fn get_cargo_root() -> Result<PathBuf, anyhow::Error> {
+    let cargo_root = std::env::var("CARGO_MANIFEST_DIR")?;
+    Ok(PathBuf::from(cargo_root).join("../../..").canonicalize()?)
+}
+
+impl<L: LanguageFeatures> TestStructure<L> {
+    fn new(dir: PathBuf, generator: L) -> Result<Self, anyhow::Error> {
+        let project_name = dir.iter().last().expect("must have a folder name");
+        // Copy the dir to cargo_root/generators/languages/{generator::name}/tests/{dir_name}
+        let cargo_root = get_cargo_root()?;
+        let test_dir = cargo_root.join("generators/languages").join(L::name()).join("generated_tests").join(project_name);
+        
+        fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<(), anyhow::Error> {
+            std::fs::create_dir_all(dest)?;
+            for entry in std::fs::read_dir(src)? {
+                let entry = entry?;
+                let dest_path = dest.join(entry.file_name());
+                if entry.path().is_dir() {
+                    copy_dir_recursive(&entry.path(), &dest_path)?;
+                } else {
+                    std::fs::copy(entry.path(), &dest_path)?;
+                }
+            }
+            Ok(())
+        }
+
+        copy_dir_recursive(&dir.join("baml_src"), &test_dir.join("baml_src"))?;
+        copy_dir_recursive(&dir.join(L::name()), &test_dir)?;
+
+        let ir = make_test_ir_from_dir(&dir.join("baml_src"))?;
+
+        Ok(Self { src_dir: test_dir, ir, generator, project_name: project_name.to_string_lossy().to_string() })
+    }
+
+    pub fn run(&self) -> Result<(), anyhow::Error> {
+        let args = GeneratorArgs {
+            output_dir_relative_to_baml_src: self.src_dir.join("baml_client"),
+            baml_src_dir: self.src_dir.join("baml_src"),
+            inlined_file_map: BTreeMap::new(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            no_version_check: true,
+            default_client_mode: baml_types::GeneratorDefaultClientMode::Async,
+            on_generate: match L::name() {
+                "go" => vec!["gofmt -w . && goimports -w . && go build".to_string()],
+                _ => vec![],
+            },
+            client_type: baml_types::GeneratorOutputType::from_str(L::name())?,
+            client_package_name: Some(self.project_name.clone()),
+            module_format: None,
+        };
+        self.generator.generate_sdk(&self.ir, &args)?;
+
+        for cmd_str in args.on_generate {
+            let mut cmd = Command::new("sh");
+            cmd.args(&["-c", &cmd_str]);
+            cmd.current_dir(&self.src_dir);
+            let output = cmd.output().expect("failed to run command");
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+
+        Ok(())
+    }
+}
+
+pub struct TestHarness {
+}
+
+
+impl TestHarness {
+    fn load_test<L: LanguageFeatures>(name: &str, generator: L) -> Result<TestStructure<L>, anyhow::Error> {
+        let cargo_root = get_cargo_root()?;
+        let test_data_dir = cargo_root.join("generators/data").join(name);
+        let test_structure = TestStructure::new(test_data_dir, generator)?;
+        Ok(test_structure)
+    }
+
+    pub fn sample<L: LanguageFeatures>(generator: L) -> Result<TestStructure<L>, anyhow::Error> {
+        Self::load_test("sample", generator)
+    }
+}
