@@ -1058,14 +1058,14 @@ mod tests {
                         ..Default::default()
                     },
                 })], Default::default())
-            }
+            },
         ];
 
         for case in cases {
             let actual = case.input.simplify();
             assert_eq!(
                 actual, case.expected,
-                "\n\n Failed test: {}\nInput: {}\nActual: {}\nExpected: {}\n",
+                "\n\nFailed test: {}\nInput: {}\nActual: {}\nExpected: {}\n",
                 case.name, case.input, actual, case.expected
             );
         }
