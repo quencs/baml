@@ -518,6 +518,35 @@ impl IntermediateRepr {
         self.functions.iter().map(|e| Walker { ir: self, item: e })
     }
 
+    pub fn walk_all_types(&self) -> impl Iterator<Item = &FieldType> {
+        // finding types used in classes
+        let class_fields = self.classes.iter().flat_map(|c| {
+            c.elem
+                .static_fields
+                .iter()
+                .map(|f| &f.elem.r#type.elem)
+        });
+
+        // finding types used in type aliases
+        let type_alias_fields = self
+            .structural_recursive_alias_cycles
+            .iter()
+            .flat_map(|c| c.iter().map(|(_, t)| t));
+
+        // finding types used in functions
+        let function_fields = self.functions.iter().flat_map(|f| {
+            f.elem
+                .inputs
+                .iter()
+                .map(|(_, t)| t)
+                .chain(std::iter::once(&f.elem.output))
+        });
+
+        let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
+
+        all_types
+    }
+
     // TODO: This is a quick workaround in order to make expr_fns compatible
     // with LLM functions for the purpose of listing functions and test
     // cases in the playground.

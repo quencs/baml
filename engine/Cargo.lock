@@ -6185,6 +6185,7 @@ dependencies = [
  "cfg-if",
  "dir-writer",
  "filetime",
+ "glob",
  "indexmap 2.8.0",
  "internal-baml-core",
  "serde_json",

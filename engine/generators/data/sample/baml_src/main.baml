@@ -11,7 +11,18 @@ class Example2 {
     element2 string
 }
 
-function Foo(x: int) -> Example2 {
+function Foo(x: int) -> Example2 | Example {
+    client "ollama/phi4:latest"
+    prompt #"
+        Fill out this data model with some examples.
+
+        {{ ctx.output_format }}
+
+        use {{ x }} somewhere in the data model
+    "#
+}
+
+function Bar(x: int) -> Example | Example2 {
     client "ollama/phi4:latest"
     prompt #"
         Fill out this data model with some examples.

@@ -39,8 +39,8 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 	return *s.as_stream
 }
 
-// / Streaming version of Foo
-func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.Example2, types.Example2] {
+// / Streaming version of Bar
+func (*stream) Bar(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.Union2ExampleOrExample2, types.Union2ExampleOrExample2] {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -61,7 +61,70 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan 
 		panic(err)
 	}
 
-	channel := make(chan StreamValue[*stream_types.Example2, types.Example2])
+	channel := make(chan StreamValue[*stream_types.Union2ExampleOrExample2, types.Union2ExampleOrExample2])
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "Bar", encoded)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				if result.HasData {
+					data := *(result.Data).(*types.Union2ExampleOrExample2)
+					channel <- StreamValue[*stream_types.Union2ExampleOrExample2, types.Union2ExampleOrExample2]{
+						IsFinal:  true,
+						as_final: &data,
+					}
+				} else {
+					data := (result.StreamData).(*stream_types.Union2ExampleOrExample2)
+					channel <- StreamValue[*stream_types.Union2ExampleOrExample2, types.Union2ExampleOrExample2]{
+						IsFinal:   false,
+						as_stream: &data,
+					}
+				}
+			}
+		}
+	}()
+	return channel
+}
+
+// / Streaming version of Foo
+func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.Union2Example2OrExample, types.Union2ExampleOrExample2] {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"x": x},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	channel := make(chan StreamValue[*stream_types.Union2Example2OrExample, types.Union2ExampleOrExample2])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "Foo", encoded)
 	if err != nil {
 		close(channel)
@@ -84,14 +147,14 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan 
 					return
 				}
 				if result.HasData {
-					data := *(result.Data).(*types.Example2)
-					channel <- StreamValue[*stream_types.Example2, types.Example2]{
+					data := *(result.Data).(*types.Union2ExampleOrExample2)
+					channel <- StreamValue[*stream_types.Union2Example2OrExample, types.Union2ExampleOrExample2]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := (result.StreamData).(*stream_types.Example2)
-					channel <- StreamValue[*stream_types.Example2, types.Example2]{
+					data := (result.StreamData).(*stream_types.Union2Example2OrExample)
+					channel <- StreamValue[*stream_types.Union2Example2OrExample, types.Union2ExampleOrExample2]{
 						IsFinal:   false,
 						as_stream: &data,
 					}

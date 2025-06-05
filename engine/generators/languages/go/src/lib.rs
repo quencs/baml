@@ -2,6 +2,8 @@ use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeature
 use functions::{render_functions, render_functions_stream, render_runtime_code, render_source_files, render_type_map};
 use generated_types::{render_go_stream_types, render_go_types};
 
+use crate::generated_types::{render_go_stream_types_utils, render_go_types_utils};
+
 mod functions;
 mod generated_types;
 mod ir_to_go;
@@ -70,17 +72,48 @@ impl LanguageFeatures for GoLanguageFeatures {
             .walk_enums()
             .map(|e| ir_to_go::enums::ir_enum_to_go(e.item, &pkg))
             .collect::<Vec<_>>();
+        let unions = {
+            let mut unions = ir.walk_all_types()
+                        .filter_map(|t| ir_to_go::unions::ir_union_to_go(t, &pkg))
+                        .collect::<Vec<_>>();
+            // dedup by name!
+            unions.sort_by_key(|u| u.name.clone());
+            unions.dedup_by_key(|u| u.name.clone());
+            unions
+        };
 
         collector.add_file(
             "type_map.go",
-            render_type_map(&go_classes, &enums, &[], go_mod_name)?,
+            render_type_map(&go_classes, &enums, &unions, go_mod_name)?,
         );
 
         pkg.set("baml_client.types");
         collector.add_file(
-            "types/types.go",
-            render_go_types(&go_classes, &enums, &[], &pkg)?,
+            "types/utils.go",
+            render_go_types_utils(&pkg)?,
         );
+        collector.add_file(
+            "types/classes.go",
+            render_go_types(&go_classes, &pkg)?,
+        );
+        collector.add_file(
+            "types/enums.go",
+            render_go_types(&enums, &pkg)?,
+        );
+        collector.add_file(
+            "types/unions.go",
+            render_go_types(&unions, &pkg)?,
+        );
+
+        let unions = {
+            let mut unions = ir.walk_all_types()
+                        .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(t, &pkg))
+                        .collect::<Vec<_>>();
+            // dedup by name!
+            unions.sort_by_key(|u| u.name.clone());
+            unions.dedup_by_key(|u| u.name.clone());
+            unions
+        };
 
         let go_classes = ir
             .walk_classes()
@@ -89,10 +122,17 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         pkg.set("baml_client.stream_types");
         collector.add_file(
-            "stream_types/stream_types.go",
-            render_go_stream_types(&go_classes, &[], &pkg)?,
+            "stream_types/utils.go",
+            render_go_stream_types_utils(&pkg)?,
         );
-
+        collector.add_file(
+            "stream_types/classes.go",
+            render_go_stream_types(&go_classes, &pkg)?,
+        );
+        collector.add_file(
+            "stream_types/unions.go",
+            render_go_stream_types(&unions, &pkg)?,
+        );
         Ok(())
     }
 }

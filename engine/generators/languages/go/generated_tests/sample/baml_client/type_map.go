@@ -24,4 +24,7 @@ var typeMap = map[string]reflect.Type{
 	"stream_types.Example":  reflect.TypeOf(stream_types.Example{}),
 	"types.Example2":        reflect.TypeOf(types.Example2{}),
 	"stream_types.Example2": reflect.TypeOf(stream_types.Example2{}),
+
+	"types.Union2ExampleOrExample2":        reflect.TypeOf(types.Union2ExampleOrExample2{}),
+	"stream_types.Union2ExampleOrExample2": reflect.TypeOf(stream_types.Union2ExampleOrExample2{}),
 }

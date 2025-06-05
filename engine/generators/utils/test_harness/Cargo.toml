@@ -17,4 +17,5 @@ internal-baml-core.workspace = true
 serde_json.workspace = true
 dir-writer = { path = "../dir_writer" }
 baml-types.workspace = true
+glob = "0.3.2"
 

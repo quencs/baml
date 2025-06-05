@@ -21,8 +21,6 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-type Checked[T any] baml.Checked[T]
-
 type Example struct {
 	A int64  `json:"a"`
 	B string `json:"b"`

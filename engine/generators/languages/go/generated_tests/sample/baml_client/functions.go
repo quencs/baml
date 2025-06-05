@@ -20,7 +20,42 @@ import (
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 
-func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.Example2, error) {
+func Bar(ctx context.Context, x int64, opts ...CallOptionFunc) (types.Union2ExampleOrExample2, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"x": x},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := bamlRuntime.CallFunction(ctx, "Bar", encoded)
+	if err != nil {
+		return types.Union2ExampleOrExample2{}, err
+	}
+
+	if result.Error != nil {
+		return types.Union2ExampleOrExample2{}, result.Error
+	}
+
+	casted := *(result.Data).(*types.Union2ExampleOrExample2)
+
+	return casted, nil
+}
+
+func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.Union2ExampleOrExample2, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -43,14 +78,14 @@ func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.Example2, 
 
 	result, err := bamlRuntime.CallFunction(ctx, "Foo", encoded)
 	if err != nil {
-		return types.Example2{}, err
+		return types.Union2ExampleOrExample2{}, err
 	}
 
 	if result.Error != nil {
-		return types.Example2{}, result.Error
+		return types.Union2ExampleOrExample2{}, result.Error
 	}
 
-	casted := *(result.Data).(*types.Example2)
+	casted := *(result.Data).(*types.Union2ExampleOrExample2)
 
 	return casted, nil
 }

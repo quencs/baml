@@ -6,6 +6,7 @@ use crate::package::Package;
 pub mod functions;
 pub mod classes;
 pub mod enums;
+pub mod unions;
 
 fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
     use TypeStreaming as T;
@@ -170,7 +171,9 @@ fn type_to_go(field: &Type) -> TypeGo {
                 baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
                     let options: Vec<_> = type_generics.into_iter().map(|t| recursive_fn(t)).collect();
                     let num_options = options.len();
-                    let name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>().join("Or");
+                    let mut name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>();
+                    name.sort();
+                    let name = name.join("Or");
                     TypeGo::Union {
                         package: TYPE_PKG.clone(),
                         name: format!("Union{}{}", num_options, name),
@@ -180,7 +183,11 @@ fn type_to_go(field: &Type) -> TypeGo {
                 baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
                     let options: Vec<_> = type_generics.into_iter().map(|t| recursive_fn(t)).collect();
                     let num_options = options.len();
-                    let name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>().join("Or");
+                    
+                    let mut name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>();
+                    name.sort();
+                    let name = name.join("Or");
+                    
                     let mut meta = meta;
                     meta.make_optional();
                     TypeGo::Union {

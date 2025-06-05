@@ -1,20 +1,6 @@
 use crate::r#type::{SerializeType, TypeGo};
 use crate::package::CurrentRenderPackage;
 
-/// A list of classes in Go.
-///
-/// ```askama
-/// {% for item in items -%}
-/// {{ item.render()? }}
-/// {% endfor %}
-/// ```
-#[derive(askama::Template)]
-#[template(in_doc = true, escape = "none", ext = "txt")]
-struct ListTemplate<'a, T: askama::Template> {
-    items: &'a [T],
-}
-
-
 mod filters {
     // This filter does not have extra arguments
     pub fn exported_name(s: &str, _: &dyn askama::Values) -> askama::Result<String> {
@@ -26,8 +12,6 @@ mod filters {
 }
 
 mod class {
-    use askama::Template;
-
     use super::*;
 
 
@@ -56,12 +40,6 @@ mod class {
         pub name: String,
         pub r#type: TypeGo,
         pub pkg: &'a CurrentRenderPackage,
-    }
-
-    pub(super) fn render_classes(classes: &[ClassGo], _: &CurrentRenderPackage) -> Result<String, askama::Error> {
-        ListTemplate {
-            items: classes,
-        }.render()
     }
 
     mod helpers {
@@ -105,22 +83,9 @@ mod class {
             variants
         }
     }
-
-    pub(super) fn render_stream_classes(classes: &[ClassGo], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
-        ListTemplate {
-            items: classes,
-        }.render()
-    }
 }
 
 mod enums {
-    use askama::Template;
-
-    use crate::package::CurrentRenderPackage;
-
-    use super::ListTemplate;
-
-
     #[derive(askama::Template)]
     #[template(path = "enums.go.j2", escape = "none")]
     pub struct EnumGo {
@@ -129,17 +94,9 @@ mod enums {
         pub values: Vec<(String, Option<String>)>,
         pub dynamic: bool,
     }
-
-    pub(super) fn render_enums(enums: &[EnumGo], _: &CurrentRenderPackage) -> Result<String, askama::Error> {
-        ListTemplate {
-            items: enums,
-        }.render()
-    }
 }
 
 mod union {
-    use askama::Template;
-
     use super::*;
 
     #[derive(askama::Template)]
@@ -149,12 +106,6 @@ mod union {
         pub docstring: Option<String>,
         pub variants: Vec<(String, TypeGo)>,
         pub pkg: &'a CurrentRenderPackage,
-    }
-
-    pub(super) fn render_unions(unions: &[UnionGo], _: &CurrentRenderPackage) -> Result<String, askama::Error> {
-        ListTemplate {
-            items: unions,
-        }.render()
     }
 
     /// A union in Go that is used for stream state.
@@ -184,13 +135,33 @@ mod union {
             }
         }
     }
+}
 
-    pub(super) fn render_stream_unions(unions: &[UnionGo], _: &CurrentRenderPackage) -> Result<String, askama::Error> {
-        let stream_unions = unions.iter().map(|u| StreamUnionGo::from(u)).collect::<Vec<_>>();
-        ListTemplate {
-            items: &stream_unions,
-        }.render()
-    }
+
+/// A list of types in Go.
+///
+/// ```askama
+/// package types
+///
+/// import (
+/// 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+/// )
+///
+/// type Checked[T any] baml.Checked[T]
+/// ```
+///
+#[derive(askama::Template)]
+#[template(in_doc = true, escape = "none", ext = "txt")]
+pub struct GoTypesUtils<'ir> {
+    pkg: &'ir CurrentRenderPackage,
+}
+
+pub(crate) fn render_go_types_utils(pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+    use askama::Template;
+
+    GoTypesUtils {
+        pkg,
+    }.render()
 }
 
 /// A list of types in Go.
@@ -207,32 +178,24 @@ mod union {
 /// 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 /// )
 ///
-/// type Checked[T any] baml.Checked[T]
-///
-/// {{ enums::render_enums(&enums, pkg)? }}
-///
-/// {{ class::render_classes(&classes, pkg)? }}
-///
-/// {{ union::render_unions(&unions, pkg)? }}
+/// {% for item in items -%}
+/// {{ item.render()? }}
+/// {% endfor %}
 ///
 /// ```
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub(crate) struct GoTypes<'ir> {
-    classes: &'ir [class::ClassGo<'ir>],
-    enums: &'ir [enums::EnumGo],
-    unions: &'ir [union::UnionGo<'ir>],
+pub struct GoTypes<'ir, T: askama::Template> {
+    items: &'ir [T],
     pkg: &'ir CurrentRenderPackage,
 }
 
-pub(crate) fn render_go_types(classes: &[class::ClassGo], enums: &[enums::EnumGo], unions: &[union::UnionGo], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub(crate) fn render_go_types<T: askama::Template>(items: &[T], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     use askama::Template;
 
     GoTypes {
-        classes,
-        enums,
-        unions,
+        items,
         pkg,
     }.render()
 }
@@ -312,28 +275,54 @@ type StreamState[T any] struct {
 /// )
 ///
 /// {{ STREAM_STATE_GO }}
-///
-/// {{ class::render_stream_classes(&classes, pkg)? }}
-///
-/// {{ union::render_stream_unions(&unions, pkg)? }}
-///
+/// 
 /// ```
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub(crate) struct GoStreamTypes<'ir> {
-    classes: &'ir [class::ClassGo<'ir>],
-    unions: &'ir [union::UnionGo<'ir>],
+pub struct GoStreamTypesUtils<'ir> {
+    pkg: &'ir CurrentRenderPackage,
+}
+
+pub(crate) fn render_go_stream_types_utils(pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+    use askama::Template;
+
+    GoStreamTypesUtils {
+        pkg,
+    }.render()
+}
+/// A list of types in Go.
+///
+/// ```askama
+/// package stream_types
+///
+/// import (
+/// 	"encoding/json"
+/// 	"fmt"
+///
+/// 	flatbuffers "github.com/google/flatbuffers/go"
+/// 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+/// 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+/// )
+///
+/// {% for item in items -%}
+/// {{ item.render()? }}
+/// {%- endfor %}
+/// ```
+///
+#[derive(askama::Template)]
+#[template(in_doc = true, escape = "none", ext = "txt")]
+pub(crate) struct GoStreamTypes<'ir, T: askama::Template> {
+    items: &'ir [T],
     pkg: &'ir CurrentRenderPackage,
 }
 
 
-pub(crate) fn render_go_stream_types(classes: &[class::ClassGo], unions: &[union::UnionGo], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub(crate) fn render_go_stream_types<T: askama::Template>(items: &[T], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     use askama::Template;
 
     GoStreamTypes {
-        classes,
-        unions,
+        items,
         pkg,
     }.render()
 }
