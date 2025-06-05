@@ -4,11 +4,10 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use std::collections::HashSet;
 
-
 mod builder;
-mod union_type;
 mod display;
 pub mod type_meta;
+mod union_type;
 
 /// The building block of IR types in BAML.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, Eq, Hash)]
@@ -251,8 +250,12 @@ impl<T: std::fmt::Debug + Default> UnionTypeGeneric<T> {
             0 => UnionTypeViewGenericMut::Null,
             1 => {
                 let mut non_null_types = non_null_types;
-                UnionTypeViewGenericMut::Optional(non_null_types.pop().expect("Expected exactly one non-null type"))
-            },
+                UnionTypeViewGenericMut::Optional(
+                    non_null_types
+                        .pop()
+                        .expect("Expected exactly one non-null type"),
+                )
+            }
             _ => {
                 if non_null_types.len() == num_types {
                     UnionTypeViewGenericMut::OneOf(non_null_types)
@@ -481,17 +484,14 @@ fn partialize(r#type: &Type) -> TypeStreaming {
         let type_meta::base::StreamingBehavior {
             done,
             needed,
-            state
+            state,
         } = r#type
             .streaming_behavior()
             .combine(&inherent_streaming_behavior(&r#type));
 
         // A copy of the metadata to use in the new type.
         let meta = type_meta::Streaming {
-            streaming_behavior: type_meta::stream::StreamingBehavior {
-                done,
-                state,
-            },
+            streaming_behavior: type_meta::stream::StreamingBehavior { done, state },
             constraints: r#type.meta().constraints.clone(),
         };
 
@@ -555,15 +555,14 @@ fn partialize(r#type: &Type) -> TypeStreaming {
                 });
 
                 let variants = if !needed {
-                    variants.chain(std::iter::once(TypeStreaming::null())).collect()
+                    variants
+                        .chain(std::iter::once(TypeStreaming::null()))
+                        .collect()
                 } else {
                     variants.collect()
                 };
 
-                TypeStreaming::Union(
-                    unsafe { UnionTypeGeneric::new_unsafe(variants) },
-                    meta,
-                )
+                TypeStreaming::Union(unsafe { UnionTypeGeneric::new_unsafe(variants) }, meta)
             }
         };
         if needed || base_type_streaming.is_optional() {
@@ -579,7 +578,9 @@ fn partialize(r#type: &Type) -> TypeStreaming {
             let meta = base_type_streaming.meta().clone();
             *base_type_streaming.meta_mut() = Default::default();
             let mut optional_value = TypeStreaming::Union(
-                unsafe { UnionTypeGeneric::new_unsafe(vec![base_type_streaming, TypeStreaming::null()]) },
+                unsafe {
+                    UnionTypeGeneric::new_unsafe(vec![base_type_streaming, TypeStreaming::null()])
+                },
                 Default::default(),
             );
             *optional_value.meta_mut() = meta;
@@ -598,22 +599,19 @@ fn partialize(r#type: &Type) -> TypeStreaming {
                     done: true,
                     ..Default::default()
                 },
-                TypeValue::String |
-                TypeValue::Null |
-                TypeValue::Media(_) => Default::default(),
+                TypeValue::String | TypeValue::Null | TypeValue::Media(_) => Default::default(),
             },
-            FieldType::Enum { .. } |
-            FieldType::Literal(_, _) => StreamingBehavior {
+            FieldType::Enum { .. } | FieldType::Literal(_, _) => StreamingBehavior {
                 done: true,
                 ..Default::default()
             },
-            FieldType::Class { .. } |
-            FieldType::List(..) |
-            FieldType::Map(..) |
-            FieldType::RecursiveTypeAlias(..) |
-            FieldType::Tuple(..) |
-            FieldType::Arrow(..) |
-            FieldType::Union(..) => Default::default()
+            FieldType::Class { .. }
+            | FieldType::List(..)
+            | FieldType::Map(..)
+            | FieldType::RecursiveTypeAlias(..)
+            | FieldType::Tuple(..)
+            | FieldType::Arrow(..)
+            | FieldType::Union(..) => Default::default(),
         }
     }
     partialize_helper(r#type)
@@ -670,6 +668,7 @@ impl TypeGeneric<type_meta::Base> {
                     new_meta.streaming_behavior.needed = true;
                 }
                 new_meta.streaming_behavior.state = state;
+                new_meta.streaming_behavior.done = done;
 
                 let simplified: TypeGeneric<type_meta::Base> = match variants.len() {
                     0 => return TypeGeneric::null(),
@@ -702,7 +701,6 @@ impl TypeGeneric<type_meta::Base> {
         }
     }
 }
-
 
 pub trait ToUnionName {
     fn to_union_name(&self) -> String;
@@ -825,18 +823,22 @@ mod tests {
             if items.is_optional() {
                 return TypeStreaming::Union(items, meta);
             }
-            let options = items.iter_skip_null().into_iter().cloned()
+            let options = items
+                .iter_skip_null()
+                .into_iter()
+                .cloned()
                 .chain(std::iter::once(TypeStreaming::null()))
                 .collect::<Vec<_>>();
-            return TypeStreaming::Union(
-                unsafe { UnionTypeGeneric::new_unsafe(options) },
-                meta,
-            )
+            return TypeStreaming::Union(unsafe { UnionTypeGeneric::new_unsafe(options) }, meta);
         }
         TypeStreaming::Union(
             unsafe { UnionTypeGeneric::new_unsafe(vec![inner, TypeStreaming::null()]) },
             Default::default(),
         )
+    }
+
+    fn make_union(types: Vec<FieldType>, meta: type_meta::Base) -> FieldType {
+        FieldType::Union(unsafe { UnionTypeGeneric::new_unsafe(types) }, meta)
     }
 
     #[test]
@@ -902,32 +904,171 @@ mod tests {
 
     #[test]
     fn simplify_union_constraints() {
+        struct TestCase {
+            name: &'static str,
+            input: FieldType,
+            expected: FieldType,
+        }
+
         let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
         let streaming_behavior = type_meta::base::StreamingBehavior::default();
-        let union = FieldType::Union(
-            unsafe { UnionTypeGeneric::new_unsafe(vec![FieldType::int_with_meta(type_meta::Base::default()), FieldType::float_with_meta(type_meta::Base::default())]) },
-            type_meta::Base {
-                constraints: vec![constraint.clone()],
-                streaming_behavior: streaming_behavior.clone(),
+
+        let cases = vec![
+            TestCase {
+                name: "(A|B)(@check(A, {..})) => (A@check(A, {..})|B@check(B, {..}))",
+                input: make_union(
+                    vec![FieldType::int(), FieldType::float()],
+                    type_meta::Base {
+                        constraints: vec![constraint.clone()],
+                        streaming_behavior: streaming_behavior.clone(),
+                    },
+                ),
+                expected: make_union(
+                    vec![
+                        FieldType::int_with_meta(type_meta::Base {
+                            constraints: vec![constraint.clone()],
+                            streaming_behavior: Default::default(),
+                        }),
+                        FieldType::float_with_meta(type_meta::Base {
+                            constraints: vec![constraint.clone()],
+                            streaming_behavior: Default::default(),
+                        }),
+                    ],
+                    type_meta::Base {
+                        constraints: vec![],
+                        streaming_behavior: Default::default(),
+                    },
+                ),
             },
-        );
-        let expected = FieldType::Union(
-            unsafe { UnionTypeGeneric::new_unsafe(vec![
-                FieldType::int_with_meta(type_meta::Base {
-                    constraints: vec![constraint.clone()],
-                    streaming_behavior: Default::default(),
-                }),
-                FieldType::float_with_meta(type_meta::Base {
-                    constraints: vec![constraint.clone()],
-                    streaming_behavior: Default::default(),
-                }),
-            ]) },
-            type_meta::Base {
-                constraints: vec![],
-                streaming_behavior: streaming_behavior.clone(),
+            TestCase {
+                name: "(A|B)@stream.done => (A@stream.done|B@stream.done)@stream.done",
+                input: make_union(
+                    vec![FieldType::int(), FieldType::float()],
+                    type_meta::Base {
+                        constraints: vec![],
+                        streaming_behavior: type_meta::base::StreamingBehavior {
+                            done: true,
+                            ..Default::default()
+                        },
+                    },
+                ),
+                expected: make_union(
+                    vec![
+                        FieldType::int_with_meta(type_meta::Base {
+                            constraints: vec![],
+                            streaming_behavior: type_meta::base::StreamingBehavior {
+                                done: true,
+                                ..Default::default()
+                            },
+                        }),
+                        FieldType::float_with_meta(type_meta::Base {
+                            constraints: vec![],
+                            streaming_behavior: type_meta::base::StreamingBehavior {
+                                done: true,
+                                ..Default::default()
+                            },
+                        }),
+                    ],
+                    type_meta::Base {
+                        constraints: vec![],
+                        streaming_behavior: type_meta::base::StreamingBehavior {
+                            done: true,
+                            ..Default::default()
+                        },
+                    },
+                ),
             },
-        );
-        assert_eq!(union.simplify(), expected);
+            TestCase {
+                name: "(A|B)@stream.not_null => (A@stream.not_null|B@stream.not_null)@stream.not_null",
+                input: make_union(vec![FieldType::int(), FieldType::string()], type_meta::Base {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        needed: true,
+                        ..Default::default()
+                    },
+                }),
+                expected: make_union(vec![
+                    FieldType::int_with_meta(type_meta::Base {
+                        constraints: vec![],
+                        streaming_behavior: type_meta::base::StreamingBehavior {
+                            needed: true,
+                            ..Default::default()
+                        },
+                    }),
+                    FieldType::string_with_meta(type_meta::Base {
+                        constraints: vec![],
+                        streaming_behavior: type_meta::base::StreamingBehavior {
+                            needed: true,
+                            ..Default::default()
+                        },
+                    }),
+                ], type_meta::Base {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        needed: true,
+                        ..Default::default()
+                    },
+                }),
+            },
+            TestCase {
+                name: "(A|B)@stream.with_state => (A|B)@stream.with_state",
+                input: make_union(vec![FieldType::int(), FieldType::string()], type_meta::Base {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                }),
+                expected: make_union(vec![
+                    FieldType::int(),
+                    FieldType::string(),
+                ], type_meta::Base {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                }),
+            },
+            TestCase{
+                name: "(A@stream_with_state | B@stream_with_state) => (A@stream_with_state | B@stream_with_state)",
+                input: make_union(vec![FieldType::int_with_meta(type_meta::Base {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                }), FieldType::string_with_meta(type_meta::Base {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                })], Default::default()),
+                expected: make_union(vec![FieldType::int_with_meta(type_meta::Base {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                }), FieldType::string_with_meta(type_meta::Base {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                })], Default::default())
+            }
+        ];
+
+        for case in cases {
+            let actual = case.input.simplify();
+            assert_eq!(
+                actual, case.expected,
+                "\n\n Failed test: {}\nInput: {}\nActual: {}\nExpected: {}\n",
+                case.name, case.input, actual, case.expected
+            );
+        }
     }
 
     #[test]
@@ -997,13 +1138,19 @@ mod tests {
         let expected = mk_optional(TypeStreaming::Union(
             unsafe {
                 UnionTypeGeneric::new_unsafe(vec![
-                    TypeStreaming::Primitive(TypeValue::Int, type_meta::stream::TypeMetaStreaming::default().done()),
-                    TypeStreaming::Primitive(TypeValue::String, type_meta::stream::TypeMetaStreaming::default()),
+                    TypeStreaming::Primitive(
+                        TypeValue::Int,
+                        type_meta::stream::TypeMetaStreaming::default().done(),
+                    ),
+                    TypeStreaming::Primitive(
+                        TypeValue::String,
+                        type_meta::stream::TypeMetaStreaming::default(),
+                    ),
                 ])
             },
             Default::default(),
         ));
-        let actual = partialize(&union);    
+        let actual = partialize(&union);
 
         assert_eq!(actual, expected);
     }
