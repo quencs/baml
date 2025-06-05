@@ -143,8 +143,8 @@ struct FunctionStreamTemplate<'a> {
 ///     "types.{{ enum_.name }}": reflect.TypeOf(types.{{ enum_.name}}("")),
 /// {% endfor %}
 /// {% for union_ in unions -%}
-///     "types.{{ union_.name }}": reflect.TypeOf(types.{{ union_.name }}{}),
-///     "stream_types.{{ union_.name }}": reflect.TypeOf(stream_types.{{ union_.name }}{}),
+///     "types.{{ union_.cffi_name }}": reflect.TypeOf(types.{{ union_.name }}{}),
+///     "stream_types.{{ union_.cffi_name }}": reflect.TypeOf(stream_types.{{ union_.name }}{}),
 /// {% endfor %}
 /// }
 /// ```

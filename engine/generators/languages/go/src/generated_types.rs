@@ -103,6 +103,7 @@ mod union {
     #[template(path = "unions.go.j2", escape = "none")]
     pub struct UnionGo<'a> {
         pub name: String,
+        pub cffi_name: String,
         pub docstring: Option<String>,
         pub variants: Vec<(String, TypeGo)>,
         pub pkg: &'a CurrentRenderPackage,

@@ -14,17 +14,12 @@
 package baml_client
 
 import (
+	"asserts/baml_client/stream_types"
+	"asserts/baml_client/types"
 	"reflect"
-	"sample/baml_client/stream_types"
-	"sample/baml_client/types"
 )
 
 var typeMap = map[string]reflect.Type{
-	"types.Example":         reflect.TypeOf(types.Example{}),
-	"stream_types.Example":  reflect.TypeOf(stream_types.Example{}),
-	"types.Example2":        reflect.TypeOf(types.Example2{}),
-	"stream_types.Example2": reflect.TypeOf(stream_types.Example2{}),
-
-	"types.Union__Example__Example2":        reflect.TypeOf(types.Union2ExampleOrExample2{}),
-	"stream_types.Union__Example__Example2": reflect.TypeOf(stream_types.Union2ExampleOrExample2{}),
+	"types.Person":        reflect.TypeOf(types.Person{}),
+	"stream_types.Person": reflect.TypeOf(stream_types.Person{}),
 }

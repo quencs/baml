@@ -12,7 +12,7 @@ class Example2 {
 }
 
 function Foo(x: int) -> Example2 | Example {
-    client "ollama/phi4:latest"
+    client "openai/gpt-4o"
     prompt #"
         Fill out this data model with some examples.
 

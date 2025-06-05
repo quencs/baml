@@ -1,4 +1,4 @@
-use baml_types::FieldType;
+use baml_types::{FieldType, ToUnionName};
 
 use crate::{package::CurrentRenderPackage, r#type::TypeGo};
 
@@ -14,6 +14,7 @@ pub fn ir_union_to_go<'a>(union: &FieldType, pkg: &'a CurrentRenderPackage) -> O
         }).collect::<Vec<_>>();
         Some(crate::generated_types::UnionGo {
             name,
+            cffi_name: union.to_union_name(),
             docstring: Some(format!("Generated from: {}", union)),
             variants,
             pkg,
@@ -35,6 +36,7 @@ pub fn ir_union_to_go_stream<'a>(union: &FieldType, pkg: &'a CurrentRenderPackag
         }).collect::<Vec<_>>();
         Some(crate::generated_types::UnionGo {
             name,
+            cffi_name: union.to_union_name(),
             docstring: Some(format!("Generated from: {}", union)),
             variants,
             pkg,

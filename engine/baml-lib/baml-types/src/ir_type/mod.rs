@@ -765,6 +765,7 @@ impl ToUnionName for FieldType {
                         field_types
                             .iter()
                             .map(|t| t.to_union_name())
+                            .sorted()
                             .collect::<Vec<_>>()
                             .join("__")
                     )

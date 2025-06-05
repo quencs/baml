@@ -121,6 +121,10 @@ impl TestHarness {
     pub fn sample<L: LanguageFeatures>(generator: L) -> Result<TestStructure<L>, anyhow::Error> {
         Self::load_test("sample", generator)
     }
+
+    pub fn asserts<L: LanguageFeatures>(generator: L) -> Result<TestStructure<L>, anyhow::Error> {
+        Self::load_test("asserts", generator)
+    }
 }
 
 #[macro_export]
@@ -129,6 +133,12 @@ macro_rules! create_code_gen_test_suites {
         #[test]
         fn test_sample() -> anyhow::Result<()> {
             let test_harness = test_harness::TestHarness::sample(<$generator_type>::default())?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_asserts() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::asserts(<$generator_type>::default())?;
             test_harness.run()
         }
     };
