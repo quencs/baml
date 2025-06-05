@@ -2,7 +2,7 @@ pub mod common;
 use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::Result;
-use baml_types::{BamlValueWithMeta, ResponseCheck, StreamingBehavior};
+use baml_types::{BamlValueWithMeta, ResponseCheck, type_meta::base::StreamingBehavior};
 use baml_types::{EvaluationContext, JinjaExpression};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::IRHelperExtended;

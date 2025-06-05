@@ -28,7 +28,7 @@ use crate::{BamlValueWithFlags, ResponseBamlValue};
 use anyhow::Result;
 use baml_types::{
     BamlValue, BamlValueWithMeta, CompletionState, EvaluationContext, FieldType, JinjaExpression,
-    ResponseCheck, StreamingBehavior, TypeMeta,
+    ResponseCheck,
 };
 use internal_baml_core::ir::repr::IntermediateRepr;
 use internal_baml_jinja::types::{Class, Enum, Name, OutputFormatContent};
@@ -50,7 +50,7 @@ test_deserializer!(
     test_string_from_string,
     EMPTY_FILE,
     r#"hello"#,
-    FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "hello"
 );
 
@@ -58,7 +58,7 @@ test_deserializer!(
     test_string_from_string_with_quotes,
     EMPTY_FILE,
     r#""hello""#,
-    FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "\"hello\""
 );
 
@@ -66,7 +66,7 @@ test_deserializer!(
     test_string_from_object,
     EMPTY_FILE,
     r#"{"hi":    "hello"}"#,
-    FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     r#"{"hi":    "hello"}"#
 );
 
@@ -74,7 +74,7 @@ test_deserializer!(
     test_string_from_obj_and_string,
     EMPTY_FILE,
     r#"The output is: {"hello": "world"}"#,
-    FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "The output is: {\"hello\": \"world\"}"
 );
 
@@ -82,7 +82,7 @@ test_deserializer!(
     test_string_from_list,
     EMPTY_FILE,
     r#"["hello", "world"]"#,
-    FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "[\"hello\", \"world\"]"
 );
 
@@ -90,7 +90,7 @@ test_deserializer!(
     test_string_from_int,
     EMPTY_FILE,
     r#"1"#,
-    FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "1"
 );
 
@@ -112,7 +112,7 @@ test_deserializer!(
         "blah": "blah"
       }
     ]"#,
-    FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     r#"Some preview text
 
     JSON Output:
@@ -150,7 +150,7 @@ test_deserializer!(
     ]
     ```
     "#,
-    FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     r#"Hello there.
     
     JSON Output:

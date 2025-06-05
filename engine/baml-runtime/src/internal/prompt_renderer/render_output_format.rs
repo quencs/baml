@@ -462,7 +462,6 @@ mod tests {
     use std::collections::HashMap;
 
     use baml_ids::FunctionCallId;
-    use baml_types::TypeMeta;
     use internal_baml_jinja::types::RenderOptions;
 
     use super::*;

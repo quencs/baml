@@ -419,7 +419,7 @@ fn first_failing_assert_nested<'a>(
 
 #[cfg(test)]
 mod tests {
-    use baml_types::{JinjaExpression, StreamingBehavior, TypeMeta};
+    use baml_types::{JinjaExpression, type_meta::base::StreamingBehavior, type_meta::base::TypeMeta};
 
     use crate::ir::repr::make_test_ir;
 

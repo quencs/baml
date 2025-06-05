@@ -1,6 +1,6 @@
 use crate::BamlValueWithFlags;
 use baml_types::LiteralValue;
-use baml_types::TypeMeta;
+use baml_types::type_meta::base::TypeMeta;
 
 use super::*;
 

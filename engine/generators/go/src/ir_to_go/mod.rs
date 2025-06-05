@@ -1,5 +1,5 @@
 use crate::r#type::{MediaTypeGo, TypeGo, TypeMetaGo, TypeWrapper};
-use baml_types::{ir_type::{Type, TypeStreaming}, BamlMediaType, ConstraintLevel, TypeMeta, TypeMetaStreaming, TypeValue};
+use baml_types::{ir_type::{Type, TypeStreaming}, BamlMediaType, ConstraintLevel, type_meta::base::TypeMeta, type_meta::stream::TypeMetaStreaming, TypeValue};
 
 use crate::package::Package;
 

@@ -14,11 +14,9 @@
 package baml_client
 
 import (
-	"context"
+	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"sample/baml_client/stream_types"
 	"sample/baml_client/types"
-
-	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 
 type stream struct{}
@@ -84,18 +82,13 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan 
 					return
 				}
 				if result.HasData {
-					data := (result.Data).(types.Example2)
+					data := *(result.Data).(*types.Example2)
 					channel <- StreamValue[*stream_types.Example2, types.Example2]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := func(result any) *stream_types.Example2 {
-						if result == nil {
-							return nil
-						}
-						return (result).(*stream_types.Example2)
-					}(result.StreamData)
+					data := (result.StreamData).(*stream_types.Example2)
 					channel <- StreamValue[*stream_types.Example2, types.Example2]{
 						IsFinal:   false,
 						as_stream: &data,

@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{BamlRuntime, FunctionResult};
 use baml_types::expr::{Expr, ExprMetadata, Name, VarIndex};
-use baml_types::{Arrow, FieldType, TypeMeta, TypeValue};
+use baml_types::{Arrow, FieldType, type_meta::base::TypeMeta, TypeValue};
 use baml_types::{BamlMap, BamlValue, BamlValueWithMeta};
 use internal_baml_core::ir::repr::IntermediateRepr;
 

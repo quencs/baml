@@ -10,7 +10,7 @@ use internal_baml_core::ir::{Field, IRHelper, IRHelperExtended, IRSemanticStream
 
 use baml_types::{
     BamlMap, BamlValueWithMeta, Completion, CompletionState, FieldType, ResponseCheck,
-    StreamingBehavior, TypeValue,
+    TypeValue,
 };
 
 use anyhow::{Context, Error};
@@ -347,7 +347,7 @@ fn completion_state(flags: &Vec<Flag>) -> CompletionState {
 
 #[cfg(test)]
 mod tests {
-    use baml_types::TypeMeta;
+    use baml_types::type_meta::base::TypeMeta;
     use internal_baml_core::ir::repr::make_test_ir;
 
     use crate::deserializer::{deserialize_flags::DeserializerConditions, types::ValueWithFlags};

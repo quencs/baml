@@ -1,6 +1,6 @@
 use crate::ir_type::UnionTypeViewGeneric;
 
-use super::{ConstraintLevel, StreamingBehavior, TypeGeneric, TypeMeta, TypeStreaming};
+use super::{ConstraintLevel, TypeGeneric, TypeStreaming, type_meta};
 
 impl std::fmt::Display for TypeStreaming {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -20,19 +20,14 @@ impl std::fmt::Display for TypeStreaming {
                 " @{constraint_level}({constraint_name}, {{{{..}}}} )"
             ));
         }
-        let StreamingBehavior {
+        let type_meta::stream::StreamingBehavior {
             done,
-            state,
-            ..
+            state
         } = self.meta().streaming_behavior;
         if done {
             metadata_display_fmt.push_str(" @stream.done")
         }
 
-        // TODO: stream.not_null is irrelevant for type streaming since it's represented in the union with a null
-        // if needed {
-        //     metadata_display_fmt.push_str(" @stream.not_null")
-        // }
         if state {
             metadata_display_fmt.push_str(" @stream.with_state")
         }
@@ -97,7 +92,7 @@ impl std::fmt::Display for TypeStreaming {
 }
 
 
-impl std::fmt::Display for TypeGeneric<TypeMeta> {
+impl std::fmt::Display for TypeGeneric<type_meta::Base> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut metadata_display_fmt = String::new();
 
@@ -115,11 +110,10 @@ impl std::fmt::Display for TypeGeneric<TypeMeta> {
                 " @{constraint_level}({constraint_name}, {{{{..}}}} )"
             ));
         }
-        let StreamingBehavior {
+        let type_meta::base::StreamingBehavior {
             done,
             needed,
             state,
-            ..
         } = self.streaming_behavior();
         if *done {
             metadata_display_fmt.push_str(" @stream.done")

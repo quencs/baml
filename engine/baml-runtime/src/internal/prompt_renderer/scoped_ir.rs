@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::Result;
 use baml_types::{
-    BamlMap, BamlValue, BamlValueWithMeta, FieldType, LiteralValue, StreamingBehavior, TypeValue,
+    BamlMap, BamlValue, BamlValueWithMeta, FieldType, LiteralValue, TypeValue,
 };
 use internal_baml_core::ir::{
     ir_helpers::{infer_type, infer_type_with_meta, item_type, map_types},

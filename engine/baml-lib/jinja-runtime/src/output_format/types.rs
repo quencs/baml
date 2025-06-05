@@ -1,7 +1,9 @@
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
-use baml_types::{Constraint, FieldType, StreamingBehavior, TypeMeta, TypeValue, ir_type::UnionTypeViewGeneric};
+use baml_types::{
+    Constraint, FieldType, TypeValue, ir_type::UnionTypeViewGeneric, type_meta,
+};
 use indexmap::{IndexMap, IndexSet};
 
 #[derive(Debug)]
@@ -51,7 +53,8 @@ pub struct Class {
     // fields have name, type, description, and streaming_needed.
     pub fields: Vec<(Name, FieldType, Option<String>, bool)>,
     pub constraints: Vec<Constraint>,
-    pub streaming_behavior: StreamingBehavior,
+    // We use this for parsing
+    pub streaming_behavior: type_meta::base::StreamingBehavior,
 }
 
 #[derive(Debug, Clone)]
@@ -365,7 +368,7 @@ impl OutputFormatContent {
             classes: Arc::new(IndexMap::new()),
             recursive_classes: Arc::new(IndexSet::new()),
             structural_recursive_aliases: Arc::new(IndexMap::new()),
-            target: FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+            target: FieldType::Primitive(TypeValue::String, Default::default()),
         }
     }
 
@@ -873,7 +876,7 @@ impl OutputFormatContent {
 #[cfg(test)]
 impl OutputFormatContent {
     pub fn new_array() -> Self {
-        Self::target(FieldType::List(Box::new(FieldType::string()), TypeMeta::default())).build()
+        Self::target(FieldType::List(Box::new(FieldType::string()), Default::default())).build()
     }
 
     pub fn new_string() -> Self {
@@ -986,7 +989,7 @@ Color
                 ),
             ],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::class("Person"))
@@ -1027,7 +1030,7 @@ Color
                 (Name::new("year".to_string()), FieldType::int(), None, false),
             ],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::class("Education"))
@@ -1075,7 +1078,7 @@ Color
                 false,
             )],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::class("Output"))
@@ -1131,7 +1134,7 @@ Answer in JSON using this schema:
                 false,
             )],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::class("Output"))
@@ -1183,7 +1186,7 @@ Answer in JSON using this schema:
                 false,
             )],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::class("Output"))
@@ -1236,7 +1239,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Enhancement".to_string()),
@@ -1255,7 +1258,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Documentation".to_string()),
@@ -1274,7 +1277,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -1329,7 +1332,7 @@ r#"Answer in JSON using any of these schemas:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Bug".to_string()),
@@ -1348,7 +1351,7 @@ r#"Answer in JSON using any of these schemas:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Enhancement".to_string()),
@@ -1367,7 +1370,7 @@ r#"Answer in JSON using any of these schemas:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Documentation".to_string()),
@@ -1386,7 +1389,7 @@ r#"Answer in JSON using any of these schemas:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -1430,7 +1433,7 @@ r#"Answer in JSON using this schema:
                 ),
             ],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::class("Node"))
@@ -1467,7 +1470,7 @@ Answer in JSON using this schema: Node"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("LinkedList".to_string()),
@@ -1481,7 +1484,7 @@ Answer in JSON using this schema: Node"#
                     (Name::new("len".to_string()), FieldType::int(), None, false),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -1520,7 +1523,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("B".to_string()),
@@ -1531,7 +1534,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("C".to_string()),
@@ -1542,7 +1545,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -1586,7 +1589,7 @@ Answer in JSON using this schema: A"#
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("B".to_string()),
@@ -1597,7 +1600,7 @@ Answer in JSON using this schema: A"#
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("C".to_string()),
@@ -1608,7 +1611,7 @@ Answer in JSON using this schema: A"#
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -1628,7 +1631,7 @@ Answer in JSON using this schema: A"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -1685,7 +1688,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("B".to_string()),
@@ -1696,7 +1699,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("C".to_string()),
@@ -1707,7 +1710,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -1727,7 +1730,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Nested".to_string()),
@@ -1741,7 +1744,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -1797,7 +1800,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Forest".to_string()),
@@ -1808,7 +1811,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -1852,7 +1855,7 @@ Answer in JSON using this schema: Tree"#
                 false,
             )],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::class("SelfReferential"))
@@ -1890,7 +1893,7 @@ Answer in JSON using this schema: SelfReferential"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Tree".to_string()),
@@ -1904,7 +1907,7 @@ Answer in JSON using this schema: SelfReferential"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -1959,7 +1962,7 @@ Node or Tree"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Node".to_string()),
@@ -1973,7 +1976,7 @@ Node or Tree"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Tree".to_string()),
@@ -1987,7 +1990,7 @@ Node or Tree"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2037,7 +2040,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Tree".to_string()),
@@ -2051,7 +2054,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -2065,7 +2068,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2128,7 +2131,7 @@ Node or Tree or {
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Node".to_string()),
@@ -2142,7 +2145,7 @@ Node or Tree or {
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Tree".to_string()),
@@ -2156,7 +2159,7 @@ Node or Tree or {
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -2170,7 +2173,7 @@ Node or Tree or {
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2220,7 +2223,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("B".to_string()),
@@ -2231,7 +2234,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("C".to_string()),
@@ -2242,7 +2245,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -2262,7 +2265,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2316,7 +2319,7 @@ Answer in JSON using this interface:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Tree".to_string()),
@@ -2330,7 +2333,7 @@ Answer in JSON using this interface:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2379,7 +2382,7 @@ Node or int or string or Tree"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Tree".to_string()),
@@ -2393,7 +2396,7 @@ Node or int or string or Tree"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -2416,7 +2419,7 @@ Node or int or string or Tree"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2465,7 +2468,7 @@ Answer in JSON using this schema:
                 ),
             ],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::list(FieldType::class("Node")))
@@ -2499,7 +2502,7 @@ Node[]"#
                 false,
             )],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::class("RecursiveMap"))
@@ -2532,7 +2535,7 @@ Answer in JSON using this schema: RecursiveMap"#
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -2543,7 +2546,7 @@ Answer in JSON using this schema: RecursiveMap"#
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2582,7 +2585,7 @@ Answer in JSON using this schema:
                 ),
             ],
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }];
 
         let content = OutputFormatContent::target(FieldType::map(
@@ -2620,7 +2623,7 @@ map<string, Node>"#
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Node".to_string()),
@@ -2634,7 +2637,7 @@ map<string, Node>"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2675,7 +2678,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Node".to_string()),
@@ -2689,7 +2692,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2730,7 +2733,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -2744,7 +2747,7 @@ Answer in JSON using this schema:
                     (Name::new("data".to_string()), FieldType::int(), None, false),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2797,7 +2800,7 @@ map<string, Node or int or {
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Node".to_string()),
@@ -2811,7 +2814,7 @@ map<string, Node or int or {
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("NonRecursive".to_string()),
@@ -2825,7 +2828,7 @@ map<string, Node or int or {
                     (Name::new("data".to_string()), FieldType::int(), None, false),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -2858,13 +2861,13 @@ Answer in JSON using this schema:
     fn render_simple_recursive_aliases() {
         let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias(
             "RecursiveMapAlias".to_string(),
-            TypeMeta::default(),
+            Default::default(),
         ))
         .structural_recursive_aliases(IndexMap::from([(
             "RecursiveMapAlias".to_string(),
             FieldType::map(
                 FieldType::string(),
-                FieldType::RecursiveTypeAlias("RecursiveMapAlias".to_string(), TypeMeta::default()),
+                FieldType::RecursiveTypeAlias("RecursiveMapAlias".to_string(), Default::default()),
             ),
         )]))
         .build();
@@ -2882,19 +2885,19 @@ Answer in JSON using this schema: RecursiveMapAlias"#
 
     #[test]
     fn render_recursive_alias_cycle() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default()))
+        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), Default::default()))
             .structural_recursive_aliases(IndexMap::from([
                 (
                     "A".to_string(),
-                    FieldType::RecursiveTypeAlias("B".to_string(), TypeMeta::default()),
+                    FieldType::RecursiveTypeAlias("B".to_string(), Default::default()),
                 ),
                 (
                     "B".to_string(),
-                    FieldType::RecursiveTypeAlias("C".to_string(), TypeMeta::default()),
+                    FieldType::RecursiveTypeAlias("C".to_string(), Default::default()),
                 ),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default())),
+                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), Default::default())),
                 ),
             ]))
             .build();
@@ -2914,19 +2917,19 @@ Answer in JSON using this schema: A"#
 
     #[test]
     fn render_recursive_alias_cycle_with_hoist_prefix() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default()))
+        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), Default::default()))
             .structural_recursive_aliases(IndexMap::from([
                 (
                     "A".to_string(),
-                    FieldType::RecursiveTypeAlias("B".to_string(), TypeMeta::default()),
+                    FieldType::RecursiveTypeAlias("B".to_string(), Default::default()),
                 ),
                 (
                     "B".to_string(),
-                    FieldType::RecursiveTypeAlias("C".to_string(), TypeMeta::default()),
+                    FieldType::RecursiveTypeAlias("C".to_string(), Default::default()),
                 ),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default())),
+                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), Default::default())),
                 ),
             ]))
             .build();
@@ -2953,7 +2956,7 @@ Answer in JSON using this type: A"#
                 name: Name::new("A".to_string()),
                 fields: vec![(Name::new("prop".to_string()), FieldType::int(), None, false)],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("B".to_string()),
@@ -2964,7 +2967,7 @@ Answer in JSON using this type: A"#
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("C".to_string()),
@@ -2975,7 +2978,7 @@ Answer in JSON using this type: A"#
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Ret".to_string()),
@@ -3000,7 +3003,7 @@ Answer in JSON using this type: A"#
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 
@@ -3044,7 +3047,7 @@ Answer in JSON using this schema:
                 name: Name::new("A".to_string()),
                 fields: vec![(Name::new("prop".to_string()), FieldType::int(), None, false)],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("B".to_string()),
@@ -3055,7 +3058,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("C".to_string()),
@@ -3066,7 +3069,7 @@ Answer in JSON using this schema:
                     false,
                 )],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Ret".to_string()),
@@ -3091,7 +3094,7 @@ Answer in JSON using this schema:
                     ),
                 ],
                 constraints: Vec::new(),
-                streaming_behavior: StreamingBehavior::default(),
+                streaming_behavior: Default::default(),
             },
         ];
 

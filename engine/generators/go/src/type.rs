@@ -87,7 +87,7 @@ impl WrapType for TypeWrapper {
 
 impl WrapType for TypeMetaGo {
     fn wrap_type(&self, params: (&CurrentRenderPackage, String)) -> String {
-        let pkg = params.0.clone();
+        let pkg = params.0;
         let wrapped = self.type_wrapper.wrap_type(params);
         if self.wrap_stream_state {
             format!(

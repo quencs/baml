@@ -7,7 +7,7 @@ use baml_types::BamlMap;
 use baml_types::{
     expr::{self, Expr, ExprMetadata, Name, VarIndex},
     Arrow, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, JinjaExpression, Resolvable,
-    StreamingBehavior, StringOr, TypeMeta, TypeValue, UnionType, UnresolvedValue,
+    StringOr, TypeValue, UnionType, UnresolvedValue, type_meta
 };
 use either::Either;
 use indexmap::{IndexMap, IndexSet};
@@ -158,7 +158,7 @@ impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
                 param_types: arg_types,
                 return_type: return_type.clone(),
             }),
-            TypeMeta::default(),
+            Default::default(),
         );
         let expr_fn = ExprFunction {
             name: self.expr_fn().name.to_string(),
@@ -251,7 +251,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     span.clone(),
                     Some(FieldType::Primitive(
                         TypeValue::Bool,
-                        TypeMeta::default(),
+                        Default::default(),
                     )),
                 ),
             ))),
@@ -264,7 +264,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                             span.clone(),
                             Some(FieldType::Primitive(
                                 TypeValue::Int,
-                                TypeMeta::default(),
+                                Default::default(),
                             )),
                         ),
                     ))
@@ -278,7 +278,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                                     span.clone(),
                                     Some(FieldType::Primitive(
                                         TypeValue::Float,
-                                        TypeMeta::default(),
+                                        Default::default(),
                                     )),
                                 ),
                             ))
@@ -291,7 +291,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     span.clone(),
                     Some(FieldType::Primitive(
                         TypeValue::String,
-                        TypeMeta::default(),
+                        Default::default(),
                     )),
                 ),
             ))),
@@ -301,7 +301,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     val.span().clone(),
                     Some(FieldType::Primitive(
                         TypeValue::String,
-                        TypeMeta::default(),
+                        Default::default(),
                     )),
                 ),
             ))),
@@ -312,7 +312,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                         span.clone(),
                         Some(FieldType::Primitive(
                             TypeValue::String,
-                            TypeMeta::default(),
+                            Default::default(),
                         )),
                     ),
                 )))
@@ -328,8 +328,8 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .collect::<Vec<_>>();
                 let list_type = match item_types.len() {
                     0 => None,
-                    1 => Some(FieldType::List(Box::new(item_types[0].clone()), TypeMeta::default())),
-                    _ => Some(FieldType::List(Box::new(FieldType::union(item_types)), TypeMeta::default())),
+                    1 => Some(FieldType::List(Box::new(item_types[0].clone()), Default::default())),
+                    _ => Some(FieldType::List(Box::new(FieldType::union(item_types)), Default::default())),
                 };
                 Ok(Expr::List(new_items, (span.clone(), list_type)))
             }
@@ -350,9 +350,9 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                 };
 
                 // TODO: Is this correct?
-                let key_type = FieldType::Primitive(TypeValue::String, TypeMeta::default());
+                let key_type = FieldType::Primitive(TypeValue::String, Default::default());
                 let map_type = item_type.map(|t| {
-                    FieldType::Map(Box::new(key_type), Box::new(t), TypeMeta::default())
+                    FieldType::Map(Box::new(key_type), Box::new(t), Default::default())
                 });
                 Ok(Expr::Map(new_items, (span.clone(), map_type)))
             }
@@ -893,8 +893,8 @@ impl NodeAttributes {
         is_some_true(self.get("skip"))
     }
 
-    pub fn streaming_behavior(&self) -> StreamingBehavior {
-        StreamingBehavior {
+    pub fn streaming_behavior(&self) -> type_meta::base::StreamingBehavior {
+        type_meta::base::StreamingBehavior {
             needed: is_some_true(self.get("stream.not_null")),
             done: is_some_true(self.get("stream.done")),
             state: is_some_true(self.get("stream.with_state")),
@@ -1132,10 +1132,10 @@ impl WithRepr<FieldType> for ast::FieldType {
         let attributes = WithRepr::attributes(self, db);
         let has_constraints = !attributes.constraints.is_empty();
         let streaming_behavior = attributes.streaming_behavior();
-        let has_special_streaming_behavior = streaming_behavior != StreamingBehavior::default();
+        let has_special_streaming_behavior = streaming_behavior != Default::default();
         let mut base = match self {
             ast::FieldType::Primitive(arity, typeval, ..) => {
-                let repr = FieldType::Primitive(*typeval, TypeMeta::default());
+                let repr = FieldType::Primitive(*typeval, Default::default());
                 if arity.is_optional() {
                     repr.as_optional()
                 } else {
@@ -1143,7 +1143,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                 }
             }
             ast::FieldType::Literal(arity, literal_value, ..) => {
-                let repr = FieldType::Literal(literal_value.clone(), TypeMeta::default());
+                let repr = FieldType::Literal(literal_value.clone(), Default::default());
                 if arity.is_optional() {
                     repr.as_optional()
                 } else {
@@ -1156,7 +1156,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                         let mut base_class = FieldType::class(class_walker.name());
                         match class_walker.get_constraints(SubType::Class) {
                             Some(constraints) if !constraints.is_empty() => {
-                                base_class.set_meta(TypeMeta {
+                                base_class.set_meta(type_meta::base::TypeMeta {
                                     constraints,
                                     streaming_behavior: streaming_behavior.clone(),
                                 });
@@ -1169,7 +1169,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                         let mut base_type = FieldType::r#enum(enum_walker.name());
                         match enum_walker.get_constraints(SubType::Enum) {
                             Some(constraints) if !constraints.is_empty() => {
-                                base_type.set_meta(TypeMeta {
+                                base_type.set_meta(type_meta::base::TypeMeta {
                                     constraints,
                                     streaming_behavior: streaming_behavior.clone(),
                                 });
@@ -1182,7 +1182,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                         if db.is_recursive_type_alias(&alias_walker.id) {
                             FieldType::RecursiveTypeAlias(
                                 alias_walker.name().to_string(),
-                                TypeMeta::default(),
+                                Default::default(),
                             )
                         } else {
                             alias_walker.resolved().to_owned().repr(db)?
@@ -1200,7 +1200,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ),
             ast::FieldType::List(arity, ft, dims, ..) => {
                 // NB: potential bug: this hands back a 1D list when dims == 0
-                let mut repr = FieldType::List(Box::new(ft.repr(db)?), TypeMeta::default());
+                let mut repr = FieldType::List(Box::new(ft.repr(db)?), Default::default());
 
                 for _ in 1u32..*dims {
                     repr = FieldType::list(repr);
@@ -1217,7 +1217,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                 let mut repr = FieldType::Map(
                     Box::new((kv).0.repr(db)?),
                     Box::new((kv).1.repr(db)?),
-                    TypeMeta::default(),
+                    Default::default(),
                 );
 
                 if arity.is_optional() {
@@ -1233,7 +1233,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                 if arity.is_optional() {
                     types.push(FieldType::Primitive(
                         baml_types::TypeValue::Null,
-                        TypeMeta::default(),
+                        Default::default(),
                     ));
                 }
 
@@ -1242,7 +1242,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ast::FieldType::Tuple(arity, t, ..) => type_with_arity(
                 FieldType::Tuple(
                     t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?,
-                    TypeMeta::default(),
+                    Default::default(),
                 ),
                 arity,
             ),
@@ -1250,7 +1250,7 @@ impl WithRepr<FieldType> for ast::FieldType {
 
         let use_metadata = has_constraints || has_special_streaming_behavior;
         let with_constraints = if use_metadata {
-            base.set_meta(TypeMeta {
+            base.set_meta(type_meta::base::TypeMeta {
                 constraints: attributes.constraints,
                 streaming_behavior: streaming_behavior.clone(),
             });
@@ -2252,7 +2252,7 @@ pub fn initial_context(ir: &IntermediateRepr) -> HashMap<Name, Expr<ExprMetadata
                 param_types: params_type,
                 return_type: body_type,
             }),
-            TypeMeta::default(),
+            Default::default(),
         );
         ctx.insert(
             llm_function.elem.name.clone(),
@@ -2449,7 +2449,7 @@ mod tests {
 
         assert_eq!(
             *alias.r#type(),
-            FieldType::Primitive(TypeValue::Int, TypeMeta::default())
+            FieldType::Primitive(TypeValue::Int, Default::default())
         );
     }
 
@@ -2471,7 +2471,7 @@ mod tests {
         let class = ir.find_class("Test").unwrap();
         let alias = class.find_field("field").unwrap();
 
-        let TypeMeta { constraints, .. } = alias.r#type().meta();
+        let type_meta::base::TypeMeta { constraints, .. } = alias.r#type().meta();
 
         assert_eq!(constraints.len(), 3);
 

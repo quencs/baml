@@ -15,9 +15,8 @@ package baml_client
 
 import (
 	"context"
-	"sample/baml_client/types"
-
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"sample/baml_client/types"
 )
 
 func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.Example2, error) {

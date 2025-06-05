@@ -23,7 +23,7 @@ use crate::{
 use anyhow::Result;
 use baml_types::{
     BamlMap, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, LiteralValue,
-    StreamingBehavior, TypeMeta, TypeValue, UnionType,
+    TypeValue, UnionType,
 };
 pub use to_baml_arg::ArgCoercer;
 
@@ -158,7 +158,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             ) => true,
             (FieldType::Literal(LiteralValue::Int(_), _), _) => self.is_subtype(
                 base,
-                &FieldType::Primitive(TypeValue::Int, TypeMeta::default()),
+                &FieldType::Primitive(TypeValue::Int, Default::default()),
             ),
             (
                 FieldType::Literal(LiteralValue::String(_), _),
@@ -234,8 +234,8 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
         match value {
             BamlValueWithMeta::String(s, meta) => {
                 let literal_type =
-                    FieldType::Literal(LiteralValue::String(s.clone()), TypeMeta::default());
-                let primitive_type = FieldType::Primitive(TypeValue::String, TypeMeta::default());
+                    FieldType::Literal(LiteralValue::String(s.clone()), Default::default());
+                let primitive_type = FieldType::Primitive(TypeValue::String, Default::default());
 
                 if self.is_subtype(&literal_type, &field_type)
                     || self.is_subtype(&primitive_type, &field_type)
@@ -246,7 +246,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             }
             BamlValueWithMeta::Int(i, meta)
                 if self.is_subtype(
-                    &FieldType::Literal(LiteralValue::Int(i), TypeMeta::default()),
+                    &FieldType::Literal(LiteralValue::Int(i), Default::default()),
                     &field_type,
                 ) =>
             {
@@ -254,7 +254,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             }
             BamlValueWithMeta::Int(i, meta)
                 if self.is_subtype(
-                    &FieldType::Primitive(TypeValue::Int, TypeMeta::default()),
+                    &FieldType::Primitive(TypeValue::Int, Default::default()),
                     &field_type,
                 ) =>
             {
@@ -266,7 +266,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
 
             BamlValueWithMeta::Float(f, meta)
                 if self.is_subtype(
-                    &FieldType::Primitive(TypeValue::Float, TypeMeta::default()),
+                    &FieldType::Primitive(TypeValue::Float, Default::default()),
                     &field_type,
                 ) =>
             {
@@ -277,8 +277,8 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             }
 
             BamlValueWithMeta::Bool(b, meta) => {
-                let literal_type = FieldType::Literal(LiteralValue::Bool(b), TypeMeta::default());
-                let primitive_type = FieldType::Primitive(TypeValue::Bool, TypeMeta::default());
+                let literal_type = FieldType::Literal(LiteralValue::Bool(b), Default::default());
+                let primitive_type = FieldType::Primitive(TypeValue::Bool, Default::default());
 
                 if self.is_subtype(&literal_type, &field_type)
                     || self.is_subtype(&primitive_type, &field_type)
@@ -323,7 +323,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
 
             BamlValueWithMeta::Media(m, meta)
                 if self.is_subtype(
-                    &FieldType::Primitive(TypeValue::Media(m.media_type), TypeMeta::default()),
+                    &FieldType::Primitive(TypeValue::Media(m.media_type), Default::default()),
                     &field_type,
                 ) =>
             {
@@ -339,7 +339,7 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                     &FieldType::Enum {
                         name: name.clone(),
                         dynamic: false,
-                        meta: TypeMeta::default(),
+                        meta: Default::default(),
                     },
                     &field_type,
                 ) {
@@ -963,7 +963,7 @@ where
 }
 
 pub static UNIT_TYPE: once_cell::sync::Lazy<FieldType> =
-    once_cell::sync::Lazy::new(|| FieldType::Tuple(vec![], TypeMeta::default()));
+    once_cell::sync::Lazy::new(|| FieldType::Tuple(vec![], Default::default()));
 
 /// A helper function for `distribute_type_with_meta`, for cases where a class
 /// is not present in the IR. In this case, when we don't have a class
@@ -993,18 +993,18 @@ fn distribute_infer_class<T: Clone + std::fmt::Debug>(
 
 pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
     let ret = match value {
-        BamlValue::Int(_) => Some(FieldType::Primitive(TypeValue::Int, TypeMeta::default())),
-        BamlValue::Bool(_) => Some(FieldType::Primitive(TypeValue::Bool, TypeMeta::default())),
-        BamlValue::Float(_) => Some(FieldType::Primitive(TypeValue::Float, TypeMeta::default())),
-        BamlValue::String(_) => Some(FieldType::Primitive(TypeValue::String, TypeMeta::default())),
-        BamlValue::Null => Some(FieldType::Primitive(TypeValue::Null, TypeMeta::default())),
+        BamlValue::Int(_) => Some(FieldType::Primitive(TypeValue::Int, Default::default())),
+        BamlValue::Bool(_) => Some(FieldType::Primitive(TypeValue::Bool, Default::default())),
+        BamlValue::Float(_) => Some(FieldType::Primitive(TypeValue::Float, Default::default())),
+        BamlValue::String(_) => Some(FieldType::Primitive(TypeValue::String, Default::default())),
+        BamlValue::Null => Some(FieldType::Primitive(TypeValue::Null, Default::default())),
         BamlValue::Map(pairs) => {
             let v_tys = pairs
                 .iter()
                 .filter_map(|(_, v)| infer_type(v))
                 .dedup()
                 .collect::<Vec<_>>();
-            let k_ty = FieldType::Primitive(TypeValue::String, TypeMeta::default());
+            let k_ty = FieldType::Primitive(TypeValue::String, Default::default());
             let v_ty = match v_tys.len() {
                 0 => None,
                 1 => Some(v_tys[0].clone()),
@@ -1013,7 +1013,7 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
             Some(FieldType::Map(
                 Box::new(k_ty),
                 Box::new(v_ty),
-                TypeMeta::default(),
+                Default::default(),
             ))
         }
         BamlValue::List(items) => {
@@ -1027,18 +1027,18 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
                 1 => Some(item_tys[0].clone()),
                 _ => Some(FieldType::union(item_tys)),
             }?;
-            Some(FieldType::List(Box::new(item_ty), TypeMeta::default()))
+            Some(FieldType::List(Box::new(item_ty), Default::default()))
         }
         BamlValue::Media(m) => Some(FieldType::Primitive(
             TypeValue::Media(m.media_type),
-            TypeMeta::default(),
+            Default::default(),
         )),
         BamlValue::Enum(enum_name, _) => {
             // TODO(Rahul): how do we get the dynamic flag?
             Some(FieldType::Enum {
                 name: enum_name.clone(),
                 dynamic: false,
-                meta: TypeMeta::default(),
+                meta: Default::default(),
             })
         }
         BamlValue::Class(class_name, _) => {
@@ -1047,7 +1047,7 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
                 name: class_name.clone(),
                 mode: baml_types::ir_type::StreamingMode::NonStreaming,
                 dynamic: false,
-                meta: baml_types::TypeMeta::default(),
+                meta: Default::default(),
             })
         }
     };
@@ -1060,19 +1060,19 @@ pub fn infer_type(value: &BamlValue) -> Option<FieldType> {
 pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType> {
     let ret = match value {
         BamlValueWithMeta::Int(_, _) => {
-            Some(FieldType::Primitive(TypeValue::Int, TypeMeta::default()))
+            Some(FieldType::Primitive(TypeValue::Int, Default::default()))
         }
         BamlValueWithMeta::Bool(_, _) => {
-            Some(FieldType::Primitive(TypeValue::Bool, TypeMeta::default()))
+            Some(FieldType::Primitive(TypeValue::Bool, Default::default()))
         }
         BamlValueWithMeta::Float(_, _) => {
-            Some(FieldType::Primitive(TypeValue::Float, TypeMeta::default()))
+            Some(FieldType::Primitive(TypeValue::Float, Default::default()))
         }
         BamlValueWithMeta::String(_, _) => {
-            Some(FieldType::Primitive(TypeValue::String, TypeMeta::default()))
+            Some(FieldType::Primitive(TypeValue::String, Default::default()))
         }
         BamlValueWithMeta::Null(_) => {
-            Some(FieldType::Primitive(TypeValue::Null, TypeMeta::default()))
+            Some(FieldType::Primitive(TypeValue::Null, Default::default()))
         }
         BamlValueWithMeta::Map(pairs, _) => {
             let v_tys = pairs
@@ -1080,7 +1080,7 @@ pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType
                 .filter_map(|(_, v)| infer_type_with_meta(v))
                 .dedup()
                 .collect::<Vec<_>>();
-            let k_ty = FieldType::Primitive(TypeValue::String, TypeMeta::default());
+            let k_ty = FieldType::Primitive(TypeValue::String, Default::default());
             let v_ty = match v_tys.len() {
                 0 => None,
                 1 => Some(v_tys[0].clone()),
@@ -1089,7 +1089,7 @@ pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType
             Some(FieldType::Map(
                 Box::new(k_ty),
                 Box::new(v_ty),
-                TypeMeta::default(),
+                Default::default(),
             ))
         }
         BamlValueWithMeta::List(items, _) => {
@@ -1103,18 +1103,18 @@ pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType
                 1 => Some(item_tys[0].clone()),
                 _ => Some(FieldType::union(item_tys)),
             }?;
-            Some(FieldType::List(Box::new(item_ty), TypeMeta::default()))
+            Some(FieldType::List(Box::new(item_ty), Default::default()))
         }
         BamlValueWithMeta::Media(m, _) => Some(FieldType::Primitive(
             TypeValue::Media(m.media_type),
-            TypeMeta::default(),
+            Default::default(),
         )),
         BamlValueWithMeta::Enum(enum_name, _, _) => {
             // TODO(Rahul): how do we get the dynamic flag?
             Some(FieldType::Enum {
                 name: enum_name.clone(),
                 dynamic: false,
-                meta: TypeMeta::default(),
+                meta: Default::default(),
             })
         }
         BamlValueWithMeta::Class(class_name, _, _) => {
@@ -1123,7 +1123,7 @@ pub fn infer_type_with_meta<T>(value: &BamlValueWithMeta<T>) -> Option<FieldType
                 name: class_name.clone(),
                 mode: baml_types::ir_type::StreamingMode::NonStreaming,
                 dynamic: false,
-                meta: baml_types::TypeMeta::default(),
+                meta: Default::default(),
             })
         }
     };
@@ -1135,16 +1135,16 @@ mod tests {
     use super::*;
     use baml_types::{
         BamlMedia, BamlMediaContent, BamlMediaType, BamlValue, Constraint, ConstraintLevel,
-        FieldType, JinjaExpression, MediaBase64, StreamingBehavior, TypeValue,
+        FieldType, JinjaExpression, MediaBase64, TypeValue,
     };
     use repr::make_test_ir;
 
     fn int_type() -> FieldType {
-        FieldType::Primitive(TypeValue::Int, TypeMeta::default())
+        FieldType::Primitive(TypeValue::Int, Default::default())
     }
 
     fn string_type() -> FieldType {
-        FieldType::Primitive(TypeValue::String, TypeMeta::default())
+        FieldType::Primitive(TypeValue::String, Default::default())
     }
 
     fn mk_int(i: i64) -> BamlValue {
@@ -1182,7 +1182,7 @@ mod tests {
         let my_list = mk_list_1();
         assert_eq!(
             infer_type(&my_list).unwrap(),
-            FieldType::List(Box::new(int_type()), TypeMeta::default())
+            FieldType::List(Box::new(int_type()), Default::default())
         );
     }
 
@@ -1194,7 +1194,7 @@ mod tests {
             FieldType::Map(
                 Box::new(string_type()),
                 Box::new(int_type()),
-                TypeMeta::default(),
+                Default::default(),
             )
         );
     }
@@ -1213,9 +1213,9 @@ mod tests {
                 Box::new(FieldType::Map(
                     Box::new(string_type()),
                     Box::new(int_type()),
-                    TypeMeta::default(),
+                    Default::default(),
                 )),
-                TypeMeta::default(),
+                Default::default(),
             )
         )
     }
@@ -1237,7 +1237,7 @@ mod tests {
                 base64: "abcd=".to_string(),
             }),
         });
-        let t = FieldType::Primitive(TypeValue::Media(BamlMediaType::Audio), TypeMeta::default());
+        let t = FieldType::Primitive(TypeValue::Media(BamlMediaType::Audio), Default::default());
         let _value_with_meta = ir.distribute_type(v, t).unwrap();
     }
 
@@ -1246,7 +1246,7 @@ mod tests {
         let ir = mk_ir();
         let field_type = FieldType::union(vec![
             string_type(),
-            FieldType::Primitive(TypeValue::Media(BamlMediaType::Image), TypeMeta::default()),
+            FieldType::Primitive(TypeValue::Media(BamlMediaType::Image), Default::default()),
         ]);
         let baml_value = BamlValue::Media(BamlMedia {
             media_type: BamlMediaType::Image,
@@ -1270,17 +1270,17 @@ mod tests {
                 name: "Foo".to_string(),
                 mode: baml_types::ir_type::StreamingMode::NonStreaming,
                 dynamic: false,
-                meta: baml_types::TypeMeta::default(),
+                meta: Default::default(),
             },
         ]);
         let map_type = FieldType::Map(
             Box::new(string_type()),
             Box::new(elem_type.clone()),
-            TypeMeta::default(),
+            Default::default(),
         );
 
         // The compound type we want to test.
-        let list_type = FieldType::List(Box::new(map_type.clone()), TypeMeta::default());
+        let list_type = FieldType::List(Box::new(map_type.clone()), Default::default());
 
         let map_1 = BamlValue::Map(
             vec![
@@ -1329,13 +1329,13 @@ mod tests {
 
         let elem_type = FieldType::union(vec![string_type(), int_type(), FieldType::class("Foo")]);
 
-        let list_type = FieldType::List(Box::new(elem_type), TypeMeta::default());
+        let list_type = FieldType::List(Box::new(elem_type), Default::default());
 
         // The compound type we want to test.
         let map_type = FieldType::Map(
             Box::new(string_type()),
             Box::new(list_type),
-            TypeMeta::default(),
+            Default::default(),
         );
 
         let foo_1 = BamlValue::Class(
@@ -1433,7 +1433,7 @@ mod tests {
         let res2 = ir
             .distribute_type(
                 BamlValue::Null,
-                FieldType::Primitive(TypeValue::String, TypeMeta::default()).as_optional(),
+                FieldType::Primitive(TypeValue::String, Default::default()).as_optional(),
             )
             .expect("Distribution should succeed");
 
@@ -1447,8 +1447,8 @@ mod tests {
                     (),
                 ),
                 FieldType::List(
-                    Box::new(FieldType::Primitive(TypeValue::String, TypeMeta::default())),
-                    TypeMeta::default(),
+                    Box::new(FieldType::Primitive(TypeValue::String, Default::default())),
+                    Default::default(),
                 ),
             )
             .expect("Distribution should succeed");
@@ -1460,8 +1460,8 @@ mod tests {
                     BamlValue::String("bar".to_string()),
                 ]),
                 FieldType::List(
-                    Box::new(FieldType::Primitive(TypeValue::String, TypeMeta::default())),
-                    TypeMeta::default(),
+                    Box::new(FieldType::Primitive(TypeValue::String, Default::default())),
+                    Default::default(),
                 ),
             )
             .expect("Distribution should succeed");
@@ -1525,17 +1525,20 @@ mod subtype_tests {
     use baml_types::BamlMediaType;
     use minijinja::machinery::ast::Expr;
     use repr::make_test_ir;
+    use baml_types::{
+        type_meta::base::StreamingBehavior, type_meta::base::TypeMeta
+    };
 
     use super::*;
 
     fn mk_int() -> FieldType {
-        FieldType::Primitive(TypeValue::Int, TypeMeta::default())
+        FieldType::Primitive(TypeValue::Int, Default::default())
     }
     fn mk_bool() -> FieldType {
-        FieldType::Primitive(TypeValue::Bool, TypeMeta::default())
+        FieldType::Primitive(TypeValue::Bool, Default::default())
     }
     fn mk_str() -> FieldType {
-        FieldType::Primitive(TypeValue::String, TypeMeta::default())
+        FieldType::Primitive(TypeValue::String, Default::default())
     }
 
     fn mk_optional(ft: FieldType) -> FieldType {
@@ -1543,17 +1546,17 @@ mod subtype_tests {
     }
 
     fn mk_list(ft: FieldType) -> FieldType {
-        FieldType::List(Box::new(ft), TypeMeta::default())
+        FieldType::List(Box::new(ft), Default::default())
     }
 
     fn mk_tuple(ft: Vec<FieldType>) -> FieldType {
-        FieldType::Tuple(ft, TypeMeta::default())
+        FieldType::Tuple(ft, Default::default())
     }
     fn mk_union(ft: Vec<FieldType>) -> FieldType {
         FieldType::union(ft)
     }
     fn mk_str_map(ft: FieldType) -> FieldType {
-        FieldType::Map(Box::new(mk_str()), Box::new(ft), TypeMeta::default())
+        FieldType::Map(Box::new(mk_str()), Box::new(ft), Default::default())
     }
 
     fn ir() -> IntermediateRepr {
@@ -1652,7 +1655,7 @@ mod subtype_tests {
 
     #[test]
     fn subtype_media() {
-        let x = FieldType::Primitive(TypeValue::Media(BamlMediaType::Audio), TypeMeta::default());
+        let x = FieldType::Primitive(TypeValue::Media(BamlMediaType::Audio), Default::default());
         assert!(ir().is_subtype(&x, &x));
     }
 
@@ -1710,44 +1713,44 @@ mod subtype_tests {
         assert_eq!(
             item_type(
                 &ir,
-                &FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default())
+                &FieldType::RecursiveTypeAlias("A".to_string(), Default::default())
             ),
             Some(FieldType::RecursiveTypeAlias(
                 "A".to_string(),
-                TypeMeta::default()
+                Default::default()
             ))
         );
         assert_eq!(
             item_type(
                 &ir,
-                &FieldType::RecursiveTypeAlias("B".to_string(), TypeMeta::default())
+                &FieldType::RecursiveTypeAlias("B".to_string(), Default::default())
             ),
             Some(FieldType::List(
                 Box::new(FieldType::RecursiveTypeAlias(
                     "B".to_string(),
-                    TypeMeta::default()
+                    Default::default()
                 )),
-                TypeMeta::default(),
+                Default::default(),
             ))
         );
         assert_eq!(
             item_type(
                 &ir,
-                &FieldType::RecursiveTypeAlias("C".to_string(), TypeMeta::default())
+                &FieldType::RecursiveTypeAlias("C".to_string(), Default::default())
             ),
             Some(FieldType::RecursiveTypeAlias(
                 "C".to_string(),
-                TypeMeta::default()
+                Default::default()
             ))
         );
         assert_eq!(
             item_type(
                 &ir,
-                &FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMeta::default())
+                &FieldType::RecursiveTypeAlias("JsonValue".to_string(), Default::default())
             ),
             Some(FieldType::union(vec![
-                FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMeta::default()),
-                FieldType::RecursiveTypeAlias("JsonValue".to_string(), TypeMeta::default())
+                FieldType::RecursiveTypeAlias("JsonValue".to_string(), Default::default()),
+                FieldType::RecursiveTypeAlias("JsonValue".to_string(), Default::default())
             ]))
         );
     }

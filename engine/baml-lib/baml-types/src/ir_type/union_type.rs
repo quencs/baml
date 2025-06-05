@@ -1,4 +1,4 @@
-use super::{TypeGeneric, TypeMeta, UnionTypeGeneric};
+use super::{TypeGeneric, UnionTypeGeneric, type_meta};
 
 impl<T: std::fmt::Debug + Default> UnionTypeGeneric<T> {
     // disallow construction so people have to use:
@@ -21,20 +21,20 @@ impl<T: std::fmt::Debug + Default> UnionTypeGeneric<T> {
     }
 }
 
-impl TypeGeneric<TypeMeta> {
-    pub fn union(choices: Vec<TypeGeneric<TypeMeta>>) -> TypeGeneric<TypeMeta> {
-        TypeGeneric::Union(UnionTypeGeneric::new(choices), TypeMeta::default()).simplify()
+impl TypeGeneric<type_meta::Base> {
+    pub fn union(choices: Vec<TypeGeneric<type_meta::Base>>) -> TypeGeneric<type_meta::Base> {
+        TypeGeneric::Union(UnionTypeGeneric::new(choices), type_meta::Base::default()).simplify()
     }
 
-    pub fn union_with_meta(choices: Vec<TypeGeneric<TypeMeta>>, meta: TypeMeta) -> TypeGeneric<TypeMeta> {
+    pub fn union_with_meta(choices: Vec<TypeGeneric<type_meta::Base>>, meta: type_meta::Base) -> TypeGeneric<type_meta::Base> {
         TypeGeneric::Union(unsafe { UnionTypeGeneric::new_unsafe(choices) }, meta).simplify()
     }
 
-    pub fn optional(inner: TypeGeneric<TypeMeta>) -> TypeGeneric<TypeMeta> {
+    pub fn optional(inner: TypeGeneric<type_meta::Base>) -> TypeGeneric<type_meta::Base> {
         TypeGeneric::union(vec![inner, TypeGeneric::null()])
     }
 
-    pub fn as_optional(self) -> TypeGeneric<TypeMeta> {
+    pub fn as_optional(self) -> TypeGeneric<type_meta::Base> {
         TypeGeneric::optional(self)
     }
 }

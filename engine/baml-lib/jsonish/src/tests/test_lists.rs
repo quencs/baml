@@ -1,5 +1,5 @@
 use super::*;
-use baml_types::TypeMeta;
+use baml_types::type_meta::base::TypeMeta;
 
 test_deserializer!(
     test_list,

@@ -150,7 +150,7 @@ test_deserializer!(
     test_string_to_float_from_comma_separated,
     "",
     "1 cup unsalted butter, room temperature",
-    FieldType::Primitive(TypeValue::Float, TypeMeta::default()),
+    FieldType::float(),
     1.0
 );
 

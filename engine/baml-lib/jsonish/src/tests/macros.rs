@@ -134,13 +134,13 @@ macro_rules! test_partial_deserializer_streaming {
 
             // dbg!(&target);
             // dbg!(&$target_type);
-            dbg!(&parsed);
+            // dbg!(&parsed);
 
             assert!(parsed.is_ok(), "Failed to parse: {:?}", parsed);
 
             let result = crate::helpers::parsed_value_to_response(&ir, parsed.unwrap(), true).unwrap();
 
-            dbg!(&result);
+            // dbg!(&result);
 
             let value = result;
             log::trace!("Score: {}", value.score());

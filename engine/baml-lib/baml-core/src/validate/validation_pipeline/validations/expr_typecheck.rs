@@ -1,7 +1,7 @@
 use anyhow::Result;
 use baml_types::expr::VarIndex;
 use baml_types::ir_type::ArrowGeneric;
-use baml_types::{TypeMeta, TypeValue};
+use baml_types::{type_meta::base::TypeMeta, TypeValue};
 use std::collections::HashMap;
 use std::sync::Arc;
 

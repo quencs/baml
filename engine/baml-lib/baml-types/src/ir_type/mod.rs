@@ -1,13 +1,14 @@
 use crate::BamlMediaType;
-use crate::Constraint;
 use crate::ConstraintLevel;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use std::collections::HashSet;
 
+
 mod builder;
 mod union_type;
 mod display;
+pub mod type_meta;
 
 /// The building block of IR types in BAML.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, Eq, Hash)]
@@ -46,9 +47,9 @@ pub struct UnionTypeGeneric<T> {
 }
 
 /// A convenience type alias for BAML types in the IR.
-pub type Type = TypeGeneric<TypeMeta>;
+pub type Type = TypeGeneric<type_meta::Base>;
 pub type FieldType = Type;
-pub type TypeStreaming = TypeGeneric<TypeMetaStreaming>;
+pub type TypeStreaming = TypeGeneric<type_meta::Streaming>;
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, Eq, Hash)]
 pub enum TypeValue {
@@ -59,53 +60,6 @@ pub enum TypeValue {
     // Char,
     Null,
     Media(BamlMediaType),
-}
-
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeMeta {
-    pub constraints: Vec<Constraint>,
-    pub streaming_behavior: StreamingBehavior,
-}
-
-impl Default for TypeMeta {
-    fn default() -> Self {
-        TypeMeta {
-            constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
-        }
-    }
-}
-
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeMetaStreaming {
-    pub constraints: Vec<Constraint>,
-    pub streaming_behavior: StreamingBehavior,
-}
-
-impl Default for TypeMetaStreaming {
-    fn default() -> Self {
-        TypeMetaStreaming {
-            constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
-        }
-    }
-}
-
-impl TypeMetaStreaming {
-    pub fn done(mut self) -> Self {
-        self.streaming_behavior.done = true;
-        self
-    }
-
-    pub fn needed(mut self) -> Self {
-        self.streaming_behavior.needed = true;
-        self
-    }
-
-    pub fn state(mut self) -> Self {
-        self.streaming_behavior.state = true;
-        self
-    }
 }
 
 impl std::str::FromStr for TypeValue {
@@ -480,21 +434,19 @@ fn partialize(r#type: &Type) -> TypeStreaming {
     // suitable for recursive use. We only wrap the outermost `FieldType` in
     // `StreamingType`.
     fn partialize_helper(r#type: &Type) -> TypeStreaming {
-        let StreamingBehavior {
+        let type_meta::base::StreamingBehavior {
             done,
             needed,
-            state,
-            ..
+            state
         } = r#type
             .streaming_behavior()
             .combine(&inherent_streaming_behavior(&r#type));
 
         // A copy of the metadata to use in the new type.
-        let meta = TypeMetaStreaming {
-            streaming_behavior: StreamingBehavior {
+        let meta = type_meta::Streaming {
+            streaming_behavior: type_meta::stream::StreamingBehavior {
                 done,
                 state,
-                needed,
             },
             constraints: r#type.meta().constraints.clone(),
         };
@@ -581,10 +533,10 @@ fn partialize(r#type: &Type) -> TypeStreaming {
             // have the metadata. So we create a new default metadata and swap
             // its memory with that of the inner base_type.
             let meta = base_type_streaming.meta().clone();
-            *base_type_streaming.meta_mut() = TypeMetaStreaming::default();
+            *base_type_streaming.meta_mut() = Default::default();
             let mut optional_value = TypeStreaming::Union(
                 unsafe { UnionTypeGeneric::new_unsafe(vec![base_type_streaming, TypeStreaming::null()]) },
-                TypeMetaStreaming::default(),
+                Default::default(),
             );
             *optional_value.meta_mut() = meta;
             optional_value
@@ -594,56 +546,41 @@ fn partialize(r#type: &Type) -> TypeStreaming {
     // Types have inherent streaming behavior. For example literals and
     // numbers are inherently @done. These behaviors are applied even
     // without user annotations.
-    fn inherent_streaming_behavior(field_type: &FieldType) -> StreamingBehavior {
+    fn inherent_streaming_behavior(field_type: &FieldType) -> type_meta::base::StreamingBehavior {
+        type StreamingBehavior = type_meta::base::StreamingBehavior;
         match field_type {
             FieldType::Primitive(type_value, _) => match type_value {
-                TypeValue::String => StreamingBehavior::default(),
-                TypeValue::Int => StreamingBehavior {
+                TypeValue::Bool | TypeValue::Float | TypeValue::Int => StreamingBehavior {
                     done: true,
-                    needed: false,
-                    state: false,
+                    ..Default::default()
                 },
-                TypeValue::Float => StreamingBehavior {
-                    done: true,
-                    needed: false,
-                    state: false,
-                },
-                TypeValue::Bool => StreamingBehavior {
-                    done: true,
-                    needed: false,
-                    state: false,
-                },
-                TypeValue::Null => StreamingBehavior::default(),
-                TypeValue::Media(_) => StreamingBehavior::default(),
+                TypeValue::String |
+                TypeValue::Null |
+                TypeValue::Media(_) => Default::default(),
             },
-            FieldType::Enum { .. } => StreamingBehavior {
-                done: true,
-                needed: false,
-                state: false,
-            },
+            FieldType::Enum { .. } |
             FieldType::Literal(_, _) => StreamingBehavior {
                 done: true,
-                needed: false,
-                state: false,
+                ..Default::default()
             },
-            FieldType::Class { .. } => StreamingBehavior::default(),
-            FieldType::List(..) => StreamingBehavior::default(),
-            FieldType::Map(..) => StreamingBehavior::default(),
-            FieldType::RecursiveTypeAlias(..) => StreamingBehavior::default(),
-            FieldType::Tuple(..) => StreamingBehavior::default(),
-            FieldType::Arrow(..) => StreamingBehavior::default(),
-            FieldType::Union(..) => StreamingBehavior::default()
+            FieldType::Class { .. } |
+            FieldType::List(..) |
+            FieldType::Map(..) |
+            FieldType::RecursiveTypeAlias(..) |
+            FieldType::Tuple(..) |
+            FieldType::Arrow(..) |
+            FieldType::Union(..) => Default::default()
         }
     }
     partialize_helper(r#type)
 }
 
-impl TypeGeneric<TypeMeta> {
-    pub fn streaming_behavior(&self) -> &StreamingBehavior {
+impl TypeGeneric<type_meta::Base> {
+    pub fn streaming_behavior(&self) -> &type_meta::base::StreamingBehavior {
         &self.meta().streaming_behavior
     }
 
-    pub fn simplify(&self) -> TypeGeneric<TypeMeta> {
+    pub fn simplify(&self) -> Self {
         match self {
             TypeGeneric::Union(inner, union_meta) => {
                 let view = inner.view();
@@ -651,7 +588,7 @@ impl TypeGeneric<TypeMeta> {
                 let unique = flattened.into_iter().unique().collect::<Vec<_>>();
                 let has_null = unique.contains(&TypeGeneric::null());
                 // if the union contains null, we'll detect that here.
-                let mut variants: Vec<TypeGeneric<TypeMeta>> = unique
+                let mut variants: Vec<TypeGeneric<type_meta::Base>> = unique
                     .into_iter()
                     .filter(|t| t != &TypeGeneric::null())
                     .collect::<Vec<_>>();
@@ -665,7 +602,7 @@ impl TypeGeneric<TypeMeta> {
                         matches!(c.level, ConstraintLevel::Check | ConstraintLevel::Assert)
                     });
 
-                let StreamingBehavior {
+                let type_meta::base::StreamingBehavior {
                     done,
                     needed,
                     state,
@@ -682,7 +619,7 @@ impl TypeGeneric<TypeMeta> {
                     }
                 }
 
-                let mut new_meta = TypeMeta::default();
+                let mut new_meta = type_meta::Base::default();
                 new_meta.constraints.extend(to_keep);
 
                 if needed {
@@ -690,7 +627,7 @@ impl TypeGeneric<TypeMeta> {
                 }
                 new_meta.streaming_behavior.state = state;
 
-                let simplified: TypeGeneric<TypeMeta> = match variants.len() {
+                let simplified: TypeGeneric<type_meta::Base> = match variants.len() {
                     0 => return TypeGeneric::null(),
                     1 => {
                         if has_null {
@@ -833,57 +770,10 @@ pub struct TypeMetaIR {
     pub state: bool,
 }
 
-impl TypeMeta {
-    pub fn combine(&self, other: &TypeMeta) -> TypeMeta {
-        let mut constraints = self.constraints.clone();
-        constraints.extend(other.constraints.clone());
-        TypeMeta {
-            streaming_behavior: self.streaming_behavior.combine(&other.streaming_behavior),
-            constraints,
-        }
-    }
-}
-
-/// Metadata on a type that determines how it behaves under streaming conditions.
-#[derive(Clone, Debug, PartialEq, serde::Serialize, Eq, Hash)]
-pub struct StreamingBehavior {
-    /// A type with the `not_null` property will not be visible in a stream until
-    /// we are certain that it is not null (as in the value has at least begun)
-    pub needed: bool,
-
-    /// A type with the `done` property will not be visible in a stream until
-    /// we are certain that it is completely available (i.e. the parser did
-    /// not finalize it through any early termination, enough tokens were available
-    /// from the LLM response to be certain that it is done).
-    pub done: bool,
-
-    /// A type with the `state` property will be represented in client code as
-    /// a struct: `{value: T, streaming_state: "incomplete" | "complete"}`.
-    pub state: bool,
-}
-
-impl StreamingBehavior {
-    pub fn combine(&self, other: &StreamingBehavior) -> StreamingBehavior {
-        StreamingBehavior {
-            done: self.done || other.done,
-            state: self.state || other.state,
-            needed: self.needed || other.needed,
-        }
-    }
-}
-
-impl Default for StreamingBehavior {
-    fn default() -> Self {
-        StreamingBehavior {
-            done: false,
-            state: false,
-            needed: false,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::Constraint;
+
     use super::*;
 
     fn mk_optional(inner: TypeStreaming) -> TypeStreaming {
@@ -901,7 +791,7 @@ mod tests {
         }
         TypeStreaming::Union(
             unsafe { UnionTypeGeneric::new_unsafe(vec![inner, TypeStreaming::null()]) },
-            TypeMetaStreaming::default(),
+            Default::default(),
         )
     }
 
@@ -969,26 +859,26 @@ mod tests {
     #[test]
     fn simplify_union_constraints() {
         let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
-        let streaming_behavior = StreamingBehavior::default();
+        let streaming_behavior = type_meta::base::StreamingBehavior::default();
         let union = FieldType::union_with_meta(
             vec![FieldType::int(), FieldType::int()],
-            TypeMeta {
+            type_meta::Base {
                 constraints: vec![constraint.clone()],
                 streaming_behavior: streaming_behavior.clone(),
             },
         );
         let expected = FieldType::union_with_meta(
             vec![
-                FieldType::int_with_meta(TypeMeta {
+                FieldType::int_with_meta(type_meta::Base {
                     constraints: vec![constraint.clone()],
-                    streaming_behavior: StreamingBehavior::default(),
+                    streaming_behavior: Default::default(),
                 }),
-                FieldType::int_with_meta(TypeMeta {
+                FieldType::int_with_meta(type_meta::Base {
                     constraints: vec![constraint.clone()],
-                    streaming_behavior: StreamingBehavior::default(),
+                    streaming_behavior: Default::default(),
                 }),
             ],
-            TypeMeta {
+            type_meta::Base {
                 constraints: vec![],
                 streaming_behavior: streaming_behavior.clone(),
             },
@@ -1023,7 +913,7 @@ mod tests {
         let null = FieldType::null();
         assert_eq!(
             partialize(&null),
-            TypeStreaming::Primitive(TypeValue::Null, TypeMetaStreaming::default())
+            TypeStreaming::Primitive(TypeValue::Null, Default::default())
         );
     }
 
@@ -1037,7 +927,7 @@ mod tests {
                 name: "MyClass".to_string(),
                 dynamic: false,
                 mode: StreamingMode::Streaming,
-                meta: TypeMetaStreaming::default(),
+                meta: Default::default(),
             })
         );
     }
@@ -1050,7 +940,7 @@ mod tests {
             name: "MyClass".to_string(),
             mode: StreamingMode::NonStreaming,
             dynamic: false,
-            meta: TypeMetaStreaming::default(),
+            meta: Default::default(),
         });
         expected.meta_mut().streaming_behavior.done = true;
         class.meta_mut().streaming_behavior.done = true;
@@ -1063,16 +953,13 @@ mod tests {
         let expected = mk_optional(TypeStreaming::Union(
             unsafe {
                 UnionTypeGeneric::new_unsafe(vec![
-                    TypeStreaming::Primitive(TypeValue::Int, TypeMetaStreaming::default().done()),
-                    TypeStreaming::Primitive(TypeValue::String, TypeMetaStreaming::default()),
+                    TypeStreaming::Primitive(TypeValue::Int, type_meta::stream::TypeMetaStreaming::default().done()),
+                    TypeStreaming::Primitive(TypeValue::String, type_meta::stream::TypeMetaStreaming::default()),
                 ])
             },
-            TypeMetaStreaming::default(),
+            Default::default(),
         ));
-        println!("union: {}", union);
-        println!("expected: {}", expected);
         let actual = partialize(&union);    
-        println!("actual: {}", actual);
 
         assert_eq!(actual, expected);
     }

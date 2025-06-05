@@ -1,4 +1,4 @@
-use baml_types::{LiteralValue, TypeMeta};
+use baml_types::{LiteralValue, type_meta::base::TypeMeta};
 
 use super::*;
 
