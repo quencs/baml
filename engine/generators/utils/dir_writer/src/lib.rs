@@ -70,8 +70,10 @@ pub enum RemoveDirBehavior {
 }
 
 /// Controls output-type-specific behavior of codegen
-pub trait LanguageFeatures: Default {
+pub trait LanguageFeatures: Default + Sized {
     const CONTENT_PREFIX: &'static str;
+
+    fn name() -> &'static str;
 
     fn content_prefix(&self) -> &'static str {
         Self::CONTENT_PREFIX.trim()

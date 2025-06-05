@@ -2332,6 +2332,25 @@ pub fn make_test_ir(source_code: &str) -> anyhow::Result<IntermediateRepr> {
     }
 }
 
+pub fn make_test_ir_from_dir(dir: &std::path::PathBuf) -> anyhow::Result<IntermediateRepr> {
+    // load all *.baml files in the directory
+    let files = std::fs::read_dir(dir)?
+        .filter_map(|file| file.ok())
+        .filter(|file| file.path().extension().map_or(false, |ext| ext == "baml"))
+        .map(|file| file.path())
+        .map(|path| Ok((path.clone(), std::fs::read_to_string(path)?).into()))
+        .collect::<Result<Vec<_>>>()?;
+
+    let (ir, diagnostics) = make_test_ir_and_diagnostics_from_dir(dir, files)?;
+    if diagnostics.has_errors() {
+        return Err(anyhow::anyhow!(
+            "Source code was invalid: \n{:?}",
+            diagnostics.errors()
+        ));
+    }
+    Ok(ir)
+}
+
 /// Generate an IntermediateRepr from a single block of BAML source code.
 /// This is useful for generating IR test fixtures. Also return the
 /// `Diagnostics`.
@@ -2346,6 +2365,27 @@ pub fn make_test_ir_and_diagnostics(
     let path: PathBuf = "fake_file.baml".into();
     let source_file: SourceFile = (path.clone(), source_code).into();
     let validated_schema: ValidatedSchema = validate(&path, vec![source_file]);
+    let diagnostics = validated_schema.diagnostics;
+    let ir = IntermediateRepr::from_parser_database(
+        &validated_schema.db,
+        validated_schema.configuration,
+    )?;
+    Ok((ir, diagnostics))
+}
+
+/// Generate an IntermediateRepr from a single block of BAML source code.
+/// This is useful for generating IR test fixtures. Also return the
+/// `Diagnostics`.
+fn make_test_ir_and_diagnostics_from_dir(
+    root_dir: &std::path::PathBuf,
+    source_code: Vec<internal_baml_diagnostics::SourceFile>,
+) -> anyhow::Result<(IntermediateRepr, Diagnostics)> {
+    use crate::validate;
+    use crate::ValidatedSchema;
+    use internal_baml_diagnostics::SourceFile;
+    use std::path::PathBuf;
+
+    let validated_schema: ValidatedSchema = validate(&root_dir, source_code);
     let diagnostics = validated_schema.diagnostics;
     let ir = IntermediateRepr::from_parser_database(
         &validated_schema.db,

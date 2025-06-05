@@ -28,6 +28,11 @@ impl LanguageFeatures for GoLanguageFeatures {
 //  $ go install github.com/boundaryml/baml/baml-cli
         "#;
 
+    fn name() -> &'static str {
+        "go"
+    }
+
+
     fn generate_sdk_files(
         &self,
         collector: &mut FileCollector<Self>,
@@ -100,6 +105,16 @@ mod tests {
     use anyhow::Result;
     use std::{collections::BTreeMap, path::PathBuf, process::Command};
 
+
+    #[test]
+    fn test_name() {
+        use std::str::FromStr;
+
+        let gen_type = baml_types::GeneratorOutputType::from_str(GoLanguageFeatures::name())
+            .expect("GoLanguageFeatures name should be a valid GeneratorOutputType");
+        assert_eq!(gen_type, baml_types::GeneratorOutputType::Go);
+    }
+
     fn args(src_file: &str) -> Result<(GeneratorArgs, IntermediateRepr)> {
         let args = GeneratorArgs {
             client_package_name: Some("sample".to_string()),
@@ -119,6 +134,12 @@ mod tests {
 
         let ir = make_test_ir(src_file)?;
         Ok((args, ir))
+    }
+
+    #[test]
+    fn test_foo() -> Result<()> {
+        let test_harness = test_harness::TestHarness::sample(GoLanguageFeatures::default())?;
+        test_harness.run()
     }
 
     #[test]
