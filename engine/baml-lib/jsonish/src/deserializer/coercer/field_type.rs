@@ -87,7 +87,7 @@ impl TypeCoercer for FieldType {
             }
             _ => match self {
                 FieldType::Primitive(p, _) => p.coerce(ctx, target, value),
-                FieldType::Enum{name, ..} => IrRef::Enum(name).coerce(ctx, target, value),
+                FieldType::Enum { name, .. } => IrRef::Enum(name).coerce(ctx, target, value),
                 FieldType::Literal(l, _) => l.coerce(ctx, target, value),
                 FieldType::Class { name, .. } => IrRef::Class(name).coerce(ctx, target, value),
                 FieldType::RecursiveTypeAlias(name, _) => {
@@ -106,8 +106,8 @@ impl TypeCoercer for FieldType {
         };
         if target.meta().constraints.len() > 0 {
             if let Ok(coerced_value) = result.as_mut() {
-                let constrainted_results =
-                    run_user_checks(&coerced_value.clone().into(), self).map_err(|e| ParsingError {
+                let constrainted_results = run_user_checks(&coerced_value.clone().into(), self)
+                    .map_err(|e| ParsingError {
                         reason: format!("Failed to evaluate constraints: {e:?}"),
                         scope: ctx.scope.clone(),
                         causes: Vec::new(),
@@ -151,6 +151,7 @@ pub fn validate_asserts(constraints: &[(Constraint, bool)]) -> Result<(), Parsin
             },
         )
         .collect::<Vec<_>>();
+    eprintln!("failing_asserts: {:?}", failing_asserts);
     let causes = failing_asserts
         .into_iter()
         .map(|(label, expr)| ParsingError {
@@ -164,9 +165,10 @@ pub fn validate_asserts(constraints: &[(Constraint, bool)]) -> Result<(), Parsin
         })
         .collect::<Vec<_>>();
     if !causes.is_empty() {
+        eprintln!("causes: {:?}", causes);
         Err(ParsingError {
             causes: vec![],
-            reason: "Assertions failed.".to_string(),
+            reason: "Assertions failed.".to_string(), // IMPORTANT: DO NOT CHANGE THIS MESSAGE. TALK TO GREG.
             scope: vec![],
         })
     } else {
@@ -182,7 +184,7 @@ impl DefaultValue for FieldType {
             }))
         };
 
-        match self {
+        let unasserted = match self {
             FieldType::Enum { .. } => None,
             FieldType::Literal(_, _) => None,
             FieldType::Class { .. } => None,
@@ -197,7 +199,7 @@ impl DefaultValue for FieldType {
                 .iter()
                 .find_map(|i| i.default_value(error)),
             FieldType::Primitive(TypeValue::Null, _) => {
-                Some(BamlValueWithFlags::Null(self.clone(), get_flags()))
+                return Some(BamlValueWithFlags::Null(self.clone(), get_flags()))
             }
             FieldType::Map(..) => Some(BamlValueWithFlags::Map(
                 get_flags(),
@@ -218,6 +220,45 @@ impl DefaultValue for FieldType {
             }
             FieldType::Primitive(_, _) => None,
             FieldType::Arrow(_, _) => None,
+        };
+
+        // TODO (Greg): Get rid of string-matching for this.
+        fn has_assert_failure(error: &ParsingError) -> bool {
+            error.reason.contains("Assertions failed.")
+                || error.causes.iter().any(|c| has_assert_failure(c))
+        }
+
+        // If there are no constraints, we can just return the unasserted value.
+        // If there are constraints, we need to check if the unasserted value passes the constraints.
+        match (self.meta().constraints.is_empty(), unasserted) {
+            (_, None) => None,
+            (true, Some(v)) => Some(v),
+            (false, Some(v)) => {
+                let asserts = self
+                    .meta()
+                    .constraints
+                    .iter()
+                    .filter(|c| c.level == ConstraintLevel::Assert)
+                    .collect::<Vec<_>>();
+                let Ok(results) = run_user_checks(&v.clone().into(), self) else {
+                    return None;
+                };
+                let results_ok = results.iter().all(|(_, ok)| *ok);
+                if results_ok {
+                    match error {
+                        Some(e) => {
+                            if has_assert_failure(e) {
+                                None
+                            } else {
+                                Some(v)
+                            }
+                        }
+                        None => Some(v),
+                    }
+                } else {
+                    None
+                }
+            }
         }
     }
 }

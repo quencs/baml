@@ -11,11 +11,7 @@ macro_rules! test_failing_deserializer {
 
             let result = from_str(&target, &target_type, $raw_string, false);
 
-            assert!(
-                result.is_err(),
-                "Failed not to parse: {}",
-                result.unwrap()
-            );
+            assert!(result.is_err(), "Failed not to parse");
         }
     };
 }
@@ -88,7 +84,6 @@ macro_rules! test_deserializer_with_expected_score {
 
             let value = result.unwrap();
             assert_eq!(value.field_type(), &target_type);
-            dbg!(&value);
             log::trace!("Score: {}", value.score());
             assert_eq!(value.score(), $target_score);
         }

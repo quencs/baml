@@ -9,8 +9,7 @@ use internal_baml_core::ir::repr::{IntermediateRepr, Walker};
 use internal_baml_core::ir::{Field, IRHelper, IRHelperExtended, IRSemanticStreamingHelper};
 
 use baml_types::{
-    BamlMap, BamlValueWithMeta, Completion, CompletionState, FieldType, ResponseCheck,
-    TypeValue,
+    BamlMap, BamlValueWithMeta, Completion, CompletionState, FieldType, ResponseCheck, TypeValue,
 };
 
 use anyhow::{Context, Error};
@@ -74,7 +73,10 @@ fn process_node(
     let must_be_done = required_done(ir, field_type, &value);
     let allow_partials_in_sub_nodes = allow_partials && !must_be_done;
 
-    println!("Processing type: {} -> {} (must_be_done: {})", field_type, completion_state, must_be_done);
+    println!(
+        "Processing type: {} -> {} (must_be_done: {})",
+        field_type, completion_state, must_be_done
+    );
 
     let new_meta = Completion {
         state: completion_state.clone(),
@@ -152,12 +154,7 @@ fn process_node(
             let mut new_fields = value_fields
                 .into_iter()
                 .filter_map(|(field_name, field_value)| {
-                    let with_state = field_value
-                        .meta()
-                        .1
-                        .meta()
-                        .streaming_behavior
-                        .state;
+                    let with_state = field_value.meta().1.meta().streaming_behavior.state;
                     let completion_state = field_value.meta().0.clone();
                     match process_node(ir, field_value, allow_partials_in_sub_nodes, depth + 1) {
                         Ok(res) => Some((field_name, res)),
@@ -237,7 +234,9 @@ fn process_node(
 /// If it is not a known class, return no field names.
 fn type_field_names(ir: &impl IRHelperExtended, field_type: &FieldType) -> IndexSet<String> {
     match field_type {
-        FieldType::Class { name: class_name, .. } => ir.class_field_names(class_name).unwrap_or_default(),
+        FieldType::Class {
+            name: class_name, ..
+        } => ir.class_field_names(class_name).unwrap_or_default(),
         _ => IndexSet::new(),
     }
 }
@@ -297,7 +296,11 @@ fn required_done<T>(
         FieldType::Literal { .. } => true,
         FieldType::List(_, _) => false,
         FieldType::Map(_, _, _) => false,
-        FieldType::Enum { name: _, dynamic: _, meta: _ } => true,
+        FieldType::Enum {
+            name: _,
+            dynamic: _,
+            meta: _,
+        } => true,
         FieldType::Tuple(_, _) => false,
         FieldType::RecursiveTypeAlias(_, _) => false,
         FieldType::Class { .. } => false,
@@ -324,7 +327,7 @@ fn required_done<T>(
             view.iter().any(|option| {
                 let variant_required_done = required_done(ir, option, value);
                 let value_unifies_with_variant =
-                    infer_type_with_meta(value).map_or(false, |v| &v == *option);
+                    infer_type_with_meta(value).map_or(false, |v| ir.is_subtype(&v, option));
                 variant_required_done && value_unifies_with_variant
             })
         }
@@ -345,7 +348,6 @@ fn completion_state(flags: &Vec<Flag>) -> CompletionState {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
