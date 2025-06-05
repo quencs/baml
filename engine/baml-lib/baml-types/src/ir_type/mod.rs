@@ -860,24 +860,24 @@ mod tests {
     fn simplify_union_constraints() {
         let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
         let streaming_behavior = type_meta::base::StreamingBehavior::default();
-        let union = FieldType::union_with_meta(
-            vec![FieldType::int(), FieldType::int()],
+        let union = FieldType::Union(
+            unsafe { UnionTypeGeneric::new_unsafe(vec![FieldType::int_with_meta(type_meta::Base::default()), FieldType::float_with_meta(type_meta::Base::default())]) },
             type_meta::Base {
                 constraints: vec![constraint.clone()],
                 streaming_behavior: streaming_behavior.clone(),
             },
         );
-        let expected = FieldType::union_with_meta(
-            vec![
+        let expected = FieldType::Union(
+            unsafe { UnionTypeGeneric::new_unsafe(vec![
                 FieldType::int_with_meta(type_meta::Base {
                     constraints: vec![constraint.clone()],
                     streaming_behavior: Default::default(),
                 }),
-                FieldType::int_with_meta(type_meta::Base {
+                FieldType::float_with_meta(type_meta::Base {
                     constraints: vec![constraint.clone()],
                     streaming_behavior: Default::default(),
                 }),
-            ],
+            ]) },
             type_meta::Base {
                 constraints: vec![],
                 streaming_behavior: streaming_behavior.clone(),

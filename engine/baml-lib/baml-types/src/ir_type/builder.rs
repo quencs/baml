@@ -29,8 +29,14 @@ impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
         TypeGeneric::Primitive(TypeValue::Int, T::default())
     }
 
+    #[cfg(test)]
     pub fn int_with_meta(meta: T) -> Self {
         TypeGeneric::Primitive(TypeValue::Int, meta)
+    }
+
+    #[cfg(test)]
+    pub fn float_with_meta(meta: T) -> Self {
+        TypeGeneric::Primitive(TypeValue::Float, meta)
     }
 
     pub fn float() -> Self {
