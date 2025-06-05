@@ -955,7 +955,7 @@ pub struct Completion {
     pub required_done: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, strum::Display)]
 pub enum CompletionState {
     Pending,
     Incomplete,

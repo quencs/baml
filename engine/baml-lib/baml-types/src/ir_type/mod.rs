@@ -172,6 +172,18 @@ pub enum UnionTypeViewGeneric<'a, T> {
     OneOfOptional(Vec<&'a TypeGeneric<T>>),
 }
 
+#[derive(Debug)]
+enum UnionTypeViewGenericMut<'a, T> {
+    /// A union containing only the null type
+    Null,
+    /// A union containing exactly one non-null type and the null type
+    Optional(&'a mut TypeGeneric<T>),
+    /// A union containing multiple non-null types with no optional variants
+    OneOf(Vec<&'a mut TypeGeneric<T>>),
+    /// A union containing multiple types where at least one is optional
+    OneOfOptional(Vec<&'a mut TypeGeneric<T>>),
+}
+
 impl<'a, T: Default + std::fmt::Debug + Clone> UnionTypeViewGeneric<'a, T> {
     /// A helper-function for the `FieldType::flatten`.
     /// See `FieldType::flatten` for context.
@@ -225,6 +237,38 @@ impl<T: std::fmt::Debug + Default> UnionTypeGeneric<T> {
                     UnionTypeViewGeneric::OneOfOptional(non_null_types)
                 }
             }
+        }
+    }
+
+    fn view_mut<'a>(&'a mut self) -> UnionTypeViewGenericMut<'a, T> {
+        let num_types = self.types.len();
+        let non_null_types = self
+            .types
+            .iter_mut()
+            .filter(|t| !t.is_null())
+            .collect::<Vec<_>>();
+        match non_null_types.len() {
+            0 => UnionTypeViewGenericMut::Null,
+            1 => {
+                let mut non_null_types = non_null_types;
+                UnionTypeViewGenericMut::Optional(non_null_types.pop().expect("Expected exactly one non-null type"))
+            },
+            _ => {
+                if non_null_types.len() == num_types {
+                    UnionTypeViewGenericMut::OneOf(non_null_types)
+                } else {
+                    UnionTypeViewGenericMut::OneOfOptional(non_null_types)
+                }
+            }
+        }
+    }
+
+    pub fn iter_skip_null_mut(&mut self) -> Vec<&mut TypeGeneric<T>> {
+        match self.view_mut() {
+            UnionTypeViewGenericMut::Null => vec![],
+            UnionTypeViewGenericMut::Optional(field_type) => vec![field_type],
+            UnionTypeViewGenericMut::OneOf(items) => items,
+            UnionTypeViewGenericMut::OneOfOptional(items) => items,
         }
     }
 

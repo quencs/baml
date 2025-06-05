@@ -15,7 +15,8 @@ members = [
   "language_client_typescript",
   "language_server",
   "language_client_cffi",
-  "generators/*",
+  "generators/utils/*",
+  "generators/languages/*",
   "sandbox",
 ]
 default-members = [
@@ -37,7 +38,8 @@ default-members = [
   "language_client_ruby/ext/ruby_ffi",
   "language_client_typescript",
   "language_server",
-  "generators/*",
+  "generators/utils/*",
+  "generators/languages/*",
 ]
 
 [workspace.dependencies]

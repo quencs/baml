@@ -74,6 +74,8 @@ fn process_node(
     let must_be_done = required_done(ir, field_type, &value);
     let allow_partials_in_sub_nodes = allow_partials && !must_be_done;
 
+    println!("Processing type: {} -> {} (must_be_done: {})", field_type, completion_state, must_be_done);
+
     let new_meta = Completion {
         state: completion_state.clone(),
         display: metadata.streaming_behavior.state,

@@ -269,14 +269,11 @@ pub fn run_user_checks(
     baml_value: &BamlValue,
     type_: &FieldType,
 ) -> Result<Vec<(Constraint, bool)>> {
-    match type_ {
-        FieldType::Primitive(_, metadata) => metadata.constraints
+    type_.meta().constraints
             .iter()
             .map(|constraint| {
                 let result = evaluate_predicate(baml_value, &constraint.expression)?;
                 Ok((constraint.clone(), result))
             })
-            .collect::<Result<Vec<_>>>(),
-        _ => Ok(vec![]),
-    }
+            .collect::<Result<Vec<_>>>()
 }

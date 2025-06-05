@@ -6,8 +6,8 @@ use baml_types::ir_type::ArrowGeneric;
 use baml_types::BamlMap;
 use baml_types::{
     expr::{self, Expr, ExprMetadata, Name, VarIndex},
-    Arrow, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, JinjaExpression, Resolvable,
-    StringOr, TypeValue, UnionType, UnresolvedValue, type_meta
+    type_meta, Arrow, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, JinjaExpression,
+    Resolvable, StringOr, TypeValue, UnionType, UnresolvedValue,
 };
 use either::Either;
 use indexmap::{IndexMap, IndexSet};
@@ -57,6 +57,10 @@ pub struct IntermediateRepr {
     structural_recursive_alias_cycles: Vec<IndexMap<String, FieldType>>,
 
     configuration: Configuration,
+
+    // used to update types
+    classes_with_attributes: BamlMap<String, NodeAttributes>,
+    enums_with_attributes: BamlMap<String, NodeAttributes>,
 }
 
 #[derive(Debug)]
@@ -247,26 +251,14 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
         match self {
             ast::Expression::BoolValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::Bool(
                 *val,
-                (
-                    span.clone(),
-                    Some(FieldType::Primitive(
-                        TypeValue::Bool,
-                        Default::default(),
-                    )),
-                ),
+                (span.clone(), Some(FieldType::bool())),
             ))),
             ast::Expression::NumericValue(val, span) => val
                 .parse::<i64>()
                 .map(|v| {
                     Expr::Atom(BamlValueWithMeta::Int(
                         v,
-                        (
-                            span.clone(),
-                            Some(FieldType::Primitive(
-                                TypeValue::Int,
-                                Default::default(),
-                            )),
-                        ),
+                        (span.clone(), Some(FieldType::int())),
                     ))
                 })
                 .or_else(|_| {
@@ -274,47 +266,23 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                         .map(|v| {
                             Expr::Atom(BamlValueWithMeta::Float(
                                 v,
-                                (
-                                    span.clone(),
-                                    Some(FieldType::Primitive(
-                                        TypeValue::Float,
-                                        Default::default(),
-                                    )),
-                                ),
+                                (span.clone(), Some(FieldType::float())),
                             ))
                         })
                         .or_else(|_| Err(anyhow!("Invalid numeric value: {}", val)))
                 }),
             ast::Expression::StringValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::String(
                 val.to_string(),
-                (
-                    span.clone(),
-                    Some(FieldType::Primitive(
-                        TypeValue::String,
-                        Default::default(),
-                    )),
-                ),
+                (span.clone(), Some(FieldType::string())),
             ))),
             ast::Expression::RawStringValue(val) => Ok(Expr::Atom(BamlValueWithMeta::String(
                 val.value().to_string(),
-                (
-                    val.span().clone(),
-                    Some(FieldType::Primitive(
-                        TypeValue::String,
-                        Default::default(),
-                    )),
-                ),
+                (val.span().clone(), Some(FieldType::string())),
             ))),
             ast::Expression::JinjaExpressionValue(val, span) => {
                 Ok(Expr::Atom(BamlValueWithMeta::String(
                     val.to_string(),
-                    (
-                        span.clone(),
-                        Some(FieldType::Primitive(
-                            TypeValue::String,
-                            Default::default(),
-                        )),
-                    ),
+                    (span.clone(), Some(FieldType::string())),
                 )))
             }
             ast::Expression::Array(vals, span) => {
@@ -328,8 +296,8 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .collect::<Vec<_>>();
                 let list_type = match item_types.len() {
                     0 => None,
-                    1 => Some(FieldType::List(Box::new(item_types[0].clone()), Default::default())),
-                    _ => Some(FieldType::List(Box::new(FieldType::union(item_types)), Default::default())),
+                    1 => Some(item_types[0].clone().as_list()),
+                    _ => Some(FieldType::union(item_types).as_list()),
                 };
                 Ok(Expr::List(new_items, (span.clone(), list_type)))
             }
@@ -350,10 +318,8 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                 };
 
                 // TODO: Is this correct?
-                let key_type = FieldType::Primitive(TypeValue::String, Default::default());
-                let map_type = item_type.map(|t| {
-                    FieldType::Map(Box::new(key_type), Box::new(t), Default::default())
-                });
+                let key_type = FieldType::string();
+                let map_type = item_type.map(|t| FieldType::map(key_type, t));
                 Ok(Expr::Map(new_items, (span.clone(), map_type)))
             }
             ast::Expression::Identifier(id) => Ok(Expr::FreeVar(
@@ -413,10 +379,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     name: class_name.name().to_string(),
                     fields: new_fields,
                     spread,
-                    meta: (
-                        span.clone(),
-                        Some(FieldType::class(class_name.name())),
-                    ),
+                    meta: (span.clone(), Some(FieldType::class(class_name.name()))),
                 })
             }
             ast::Expression::ExprBlock(block, span) => {
@@ -479,6 +442,8 @@ impl IntermediateRepr {
             retry_policies: vec![],
             template_strings: vec![],
             configuration: Configuration::new(),
+            classes_with_attributes: BamlMap::new(),
+            enums_with_attributes: BamlMap::new(),
         }
     }
 
@@ -676,6 +641,8 @@ impl IntermediateRepr {
                 .map(|e| e.node(db))
                 .collect::<Result<Vec<_>>>()?,
             configuration,
+            classes_with_attributes: BamlMap::new(),
+            enums_with_attributes: BamlMap::new(),
         };
 
         // Sort each item by name.
@@ -694,7 +661,176 @@ impl IntermediateRepr {
             expr_fn.elem.expr = Arc::unwrap_or_clone(inferred_expr);
         }
 
+        repr.distribute_attributes();
+
         Ok(repr)
+    }
+
+    fn set_types_with_attributes(&mut self) {
+        let default_streaming_behavior = type_meta::base::StreamingBehavior::default();
+        let classes_with_attributes = self
+            .classes
+            .iter()
+            .filter_map(|c| {
+                if c.attributes.dynamic()
+                    || c.attributes.streaming_behavior() != default_streaming_behavior
+                    || c.attributes.constraints.len() > 0
+                {
+                    Some((c.elem.name.clone(), c.attributes.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect::<BamlMap<_, _>>();
+        let enums_with_attributes = self
+            .enums
+            .iter()
+            .filter_map(|e| {
+                if e.attributes.dynamic()
+                    || e.attributes.streaming_behavior() != default_streaming_behavior
+                    || e.attributes.constraints.len() > 0
+                {
+                    Some((e.elem.name.clone(), e.attributes.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect::<BamlMap<_, _>>();
+
+        self.classes_with_attributes = classes_with_attributes;
+        self.enums_with_attributes = enums_with_attributes;
+    }
+
+    /// Modifies the type to inject any block level attributes that are present on the class or enum.
+    pub fn finalize_type(&self, type_generic: &mut FieldType) {
+        Self::finalize_type_impl(
+            type_generic,
+            &self.enums_with_attributes,
+            &self.classes_with_attributes,
+        );
+    }
+
+    fn finalize_type_impl(
+        type_generic: &mut FieldType,
+        enums_with_attributes: &BamlMap<String, NodeAttributes>,
+        classes_with_attributes: &BamlMap<String, NodeAttributes>,
+    ) {
+        trait ApplyAttributes {
+            fn apply_attributes(
+                &mut self,
+                enums_with_attributes: &BamlMap<String, NodeAttributes>,
+                classes_with_attributes: &BamlMap<String, NodeAttributes>,
+            );
+        }
+
+        impl ApplyAttributes for FieldType {
+            fn apply_attributes(
+                &mut self,
+                enums_with_attributes: &BamlMap<String, NodeAttributes>,
+                classes_with_attributes: &BamlMap<String, NodeAttributes>,
+            ) {
+                use baml_types::ir_type::TypeGeneric;
+                match self {
+                    TypeGeneric::Enum {
+                        name,
+                        dynamic,
+                        meta,
+                    } => {
+                        if let Some(attributes) = enums_with_attributes.get(name) {
+                            *dynamic |= attributes.dynamic();
+                            meta.streaming_behavior = meta
+                                .streaming_behavior
+                                .combine(&attributes.streaming_behavior());
+                            meta.constraints.extend(attributes.constraints.clone());
+                        }
+                    }
+                    TypeGeneric::Class {
+                        name,
+                        mode,
+                        dynamic,
+                        meta,
+                    } => {
+                        if let Some(attributes) = classes_with_attributes.get(name) {
+                            *dynamic |= attributes.dynamic();
+                            meta.streaming_behavior = meta
+                                .streaming_behavior
+                                .combine(&attributes.streaming_behavior());
+                            meta.constraints.extend(attributes.constraints.clone());
+                        }
+                    }
+                    TypeGeneric::Primitive(..)
+                    | TypeGeneric::Literal(..)
+                    | TypeGeneric::RecursiveTypeAlias(_, _) => {}
+                    TypeGeneric::List(element, _) => {
+                        element.apply_attributes(enums_with_attributes, classes_with_attributes)
+                    }
+                    TypeGeneric::Map(key, value, _) => {
+                        key.apply_attributes(enums_with_attributes, classes_with_attributes);
+                        value.apply_attributes(enums_with_attributes, classes_with_attributes);
+                    }
+                    TypeGeneric::Tuple(type_generics, _) => {
+                        type_generics.iter_mut().for_each(|t| {
+                            t.apply_attributes(enums_with_attributes, classes_with_attributes)
+                        })
+                    }
+                    TypeGeneric::Arrow(arrow_generic, _) => arrow_generic
+                        .return_type
+                        .apply_attributes(enums_with_attributes, classes_with_attributes),
+                    TypeGeneric::Union(union_type_generic, _) => union_type_generic
+                        .iter_skip_null_mut()
+                        .iter_mut()
+                        .for_each(|t| {
+                            t.apply_attributes(enums_with_attributes, classes_with_attributes)
+                        }),
+                }
+            }
+        }
+
+        type_generic.apply_attributes(&enums_with_attributes, &classes_with_attributes);
+    }
+
+    /// Some block_types like enums and classes may have attributes on them.
+    /// Every reference to them MUST also maintain that attribute.
+    fn distribute_attributes(&mut self) {
+        // first store all types that have block level attributes
+        self.set_types_with_attributes();
+
+        // Now for every type every used in the IR, inject block level attributes
+        // from the types that have them.
+
+        // finding types used in classes
+        let class_fields = self.classes.iter_mut().flat_map(|c| {
+            c.elem
+                .static_fields
+                .iter_mut()
+                .map(|f| &mut f.elem.r#type.elem)
+        });
+
+        // finding types used in type aliases
+        let type_alias_fields = self
+            .structural_recursive_alias_cycles
+            .iter_mut()
+            .flat_map(|c| c.iter_mut().map(|(_, t)| t));
+
+        // finding types used in functions
+        let function_fields = self.functions.iter_mut().flat_map(|f| {
+            f.elem
+                .inputs
+                .iter_mut()
+                .map(|(_, t)| t)
+                .chain(std::iter::once(&mut f.elem.output))
+        });
+
+        let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
+
+        // distribute attributes to all types
+        all_types.for_each(|f| {
+            Self::finalize_type_impl(
+                f,
+                &self.enums_with_attributes,
+                &self.classes_with_attributes,
+            );
+        });
     }
 
     /// TODO: #1343 Temporary solution until we implement scoping in the AST.
@@ -2447,10 +2583,7 @@ mod tests {
         let class = ir.find_class("Test").unwrap();
         let alias = class.find_field("field").unwrap();
 
-        assert_eq!(
-            *alias.r#type(),
-            FieldType::Primitive(TypeValue::Int, Default::default())
-        );
+        assert_eq!(*alias.r#type(), FieldType::int());
     }
 
     #[test]
