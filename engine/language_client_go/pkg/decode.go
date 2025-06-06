@@ -181,7 +181,6 @@ func decodeClassValue(valueHolder *cffi.CFFIValueHolder) any {
 	typeName := valueClass.Name(nil)
 	namespace := string(typeName.Namespace())
 	className := string(typeName.Name())
-	fmt.Println("decoding class", namespace+"."+className)
 	found, ok := typeMap[namespace+"."+className]
 	if !ok {
 		// This is a fully dynamic class, so we need to decode it as a map
@@ -232,7 +231,6 @@ func decodeUnionValue(holder *cffi.CFFIValueHolder) any {
 	namespace := string(typeName.Namespace())
 	unionName := string(typeName.Name())
 	found, ok := typeMap[namespace+"."+unionName]
-	fmt.Println("decoding union", namespace+"."+unionName, ok)
 	if !ok {
 		// This is a fully dynamic union, so we
 		// decode the value as the value and drop
@@ -407,7 +405,6 @@ func convertFieldTypeToGoType(fieldType *cffi.CFFIFieldTypeHolder) reflect.Type 
 
 func Decode(holder *cffi.CFFIValueHolder) any {
 	valueType := holder.ValueType()
-	fmt.Println("valueType", valueType)
 	switch valueType {
 	case cffi.CFFIValueUnionNONE:
 		return nil
