@@ -185,18 +185,9 @@ impl TypeGo {
             TypeGo::Int(_) => "0".to_string(),
             TypeGo::Float(_) => "0.0".to_string(),
             TypeGo::Bool(_) => "false".to_string(),
-            TypeGo::Media(media_type_go, _) => match media_type_go {
-                MediaTypeGo::Image => "Image{}".to_string(),
-                MediaTypeGo::Audio => "Audio{}".to_string(),
-            },
-            TypeGo::Class { name, package, .. } => {
-                format!("{}{}{{}}", package.relative_from(pkg), name)
-            }
-            TypeGo::Union { name, package, .. } => {
-                format!("{}{}{{}}", package.relative_from(pkg), name)
-            }
-            TypeGo::Enum { name, package, .. } => {
-                format!("{}{}{{}}", package.relative_from(pkg), name)
+            TypeGo::Media(..) |
+            TypeGo::Class { .. } | TypeGo::Union { .. } | TypeGo::Enum { .. } => {
+                format!("{}{{}}", self.serialize_type(pkg))
             }
             TypeGo::List(..) => "nil".to_string(),
             TypeGo::Map(..) => "nil".to_string(),

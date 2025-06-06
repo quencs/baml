@@ -2,7 +2,8 @@ class Example {
     a int
     b string
 
-    @@stream.with_state
+    // This doesn't work :(
+    // @@stream.with_state
 }
 
 class Example2 {
@@ -22,6 +23,7 @@ function Foo(x: int) -> Example2 | Example {
     "#
 }
 
+// use flipped unions to ensure order doesn't matter for code-gen
 function Bar(x: int) -> Example | Example2 {
     client "ollama/phi4:latest"
     prompt #"
