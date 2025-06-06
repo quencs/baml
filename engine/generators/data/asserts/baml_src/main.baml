@@ -3,7 +3,7 @@ class Person {
     age int @assert(valid_age, {{ this >= 0 }})
 
     @@assert(not_minor, {{
-        this.age >= 18,
+        this.age >= 18
     }})
 }
 

@@ -256,10 +256,8 @@ impl From<CFFIFunctionArguments<'_>> for BamlFunctionArguments {
     fn from(value: CFFIFunctionArguments) -> Self {
         let kwargs = value
             .kwargs()
-            .expect("Failed to have CFFIFunctionArguments kwargs")
-            .into_iter()
-            .map(|v| v.into())
-            .collect();
+            .map(|v| v.iter().map(|v| v.into()).collect())
+            .unwrap_or_default();
         let client_registry = value.client_registry().map(|r| r.into());
         let env_vars = value
             .env()

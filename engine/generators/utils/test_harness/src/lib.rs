@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, path::PathBuf, process::Command, str::FromStr};
+use std::{collections::BTreeMap, io::Write, path::PathBuf, process::Command, str::FromStr};
 
 use dir_writer::{GeneratorArgs, IntermediateRepr, LanguageFeatures};
 use internal_baml_core::ir::repr::{
@@ -56,7 +56,9 @@ impl<L: LanguageFeatures> TestStructure<L> {
     }
 
     pub fn run(&self) -> Result<(), anyhow::Error> {
-        let also_run_tests = std::env::var("RUN_GENERATOR_TESTS").map(|v| v == "1").unwrap_or(false);
+        let also_run_tests = std::env::var("RUN_GENERATOR_TESTS")
+            .map(|v| v == "1")
+            .unwrap_or(false);
 
         // read all .baml_files in the test_dir
         let baml_files = glob::glob(&self.src_dir.join("**/*.baml").to_str().unwrap())?;
@@ -69,9 +71,10 @@ impl<L: LanguageFeatures> TestStructure<L> {
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .map(|(b, content)| match content {
-                Ok(content) => {
-                    Ok((b.strip_prefix(&self.src_dir).unwrap().to_path_buf(), content))
-                },
+                Ok(content) => Ok((
+                    b.strip_prefix(&self.src_dir).unwrap().to_path_buf(),
+                    content,
+                )),
                 Err(e) => Err(e),
             })
             .collect::<Result<BTreeMap<_, _>, _>>()?;
@@ -110,13 +113,11 @@ impl<L: LanguageFeatures> TestStructure<L> {
                 baml_types::GeneratorOutputType::Go => {
                     let mut cmd = Command::new(&format!("./{}", &self.project_name));
                     cmd.current_dir(&self.src_dir);
-                    let output = cmd.output().expect("failed to run command");
-                    assert!(
-                        output.status.success(),
-                        "{}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                },
+                    let cargo_target_dir =
+                        get_cargo_root()?.join("target/debug/libbaml_cffi.dylib");
+                    cmd.env("BAML_LIBRARY_PATH", cargo_target_dir);
+                    run_and_stream(&mut cmd)?;
+                }
                 _ => {}
             }
         } else {
@@ -126,6 +127,54 @@ impl<L: LanguageFeatures> TestStructure<L> {
         Ok(())
     }
 }
+
+
+use std::{
+    io::{BufRead, BufReader},
+    process::{Stdio},
+    thread,
+};
+
+fn run_and_stream(cmd: &mut Command) -> anyhow::Result<()> {
+    // Pipe both streams before we spawn.
+    let mut child = cmd
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    // Take ownership of the pipes.
+    let stdout = child.stdout.take().expect("stdout pipe");
+    let stderr = child.stderr.take().expect("stderr pipe");
+
+    // Spawn two threads that forward each line to your library in real time.
+    let out_handle = thread::spawn(move || {
+        let reader = BufReader::new(stdout);
+        for line in reader.lines().flatten() {
+            // Swap out the `println!` for whatever your library needs,
+            // e.g. log::info! or a channel send.
+            println!("{line}");
+            let _ = std::io::stdout().flush();
+        }
+    });
+
+    let err_handle = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().flatten() {
+            eprintln!("{line}");
+            // flush stderr
+            let _ = std::io::stderr().flush();
+        }
+    });
+
+    // Wait for the process *and* the threads.
+    let status = child.wait()?;
+    out_handle.join().unwrap();
+    err_handle.join().unwrap();
+
+    anyhow::ensure!(status.success(), "child exited with {}", status);
+    Ok(())
+}
+
 
 pub struct TestHarness {}
 
