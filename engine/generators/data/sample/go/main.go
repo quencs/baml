@@ -7,11 +7,11 @@ import (
 )
 
 func main() {
-	result, err := b.Foo(context.Background(), 8192)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(result)
+	// result, err := b.Foo(context.Background(), 8192)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(result)
 
 	channel := b.Stream.Foo(context.Background(), 8192)
 	for result := range channel {

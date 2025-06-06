@@ -28,8 +28,8 @@ type Example struct {
 
 func (c *Example) Decode(holder cffi.CFFIValueClass) {
 	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+	if string(typeName.Namespace()) != "stream_types" {
+		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
 	}
 	if string(typeName.Name()) != "Example" {
 		panic(fmt.Sprintf("expected Example, got %s", string(typeName.Name())))
@@ -92,8 +92,8 @@ type Example2 struct {
 
 func (c *Example2) Decode(holder cffi.CFFIValueClass) {
 	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+	if string(typeName.Namespace()) != "stream_types" {
+		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
 	}
 	if string(typeName.Name()) != "Example2" {
 		panic(fmt.Sprintf("expected Example2, got %s", string(typeName.Name())))

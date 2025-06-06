@@ -119,6 +119,7 @@ fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>)
     let error_callback_fn = ERROR_CALLBACK_FN
         .get()
         .expect("expected error callback function to be set. Did you call register_callbacks?");
+    baml_log::info!("allow_partials: {}", !is_done);
 
     match result {
         Ok(result) => match result.parsed() {
@@ -280,12 +281,12 @@ fn call_function_stream_from_c_inner(
         let (result, _) = stream
             .run(Some(|r| on_event(id, r)), &ctx, None, None, HashMap::new())
             .await;
-        safe_trigger_callback(id, false, result);
+        safe_trigger_callback(id, true, result);
     });
 
     Ok(())
 }
 
 fn on_event(id: u32, result: FunctionResult) {
-    safe_trigger_callback(id, true, Ok(result));
+    safe_trigger_callback(id, false, Ok(result));
 }
