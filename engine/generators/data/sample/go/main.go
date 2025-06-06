@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	b "sample/baml_client"
 )
@@ -17,10 +18,18 @@ func main() {
 	for result := range channel {
 		if result.IsFinal {
 			fmt.Println("final-----")
-			fmt.Println(result.Final())
+			str, err := json.Marshal(result.Final())
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(str))
 		} else {
 			fmt.Println("stream-----")
-			fmt.Println(result.Stream())
+			str, err := json.Marshal(result.Stream())
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(str))
 		}
 	}
 }
