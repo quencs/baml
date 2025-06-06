@@ -56,6 +56,8 @@ impl<L: LanguageFeatures> TestStructure<L> {
     }
 
     pub fn run(&self) -> Result<(), anyhow::Error> {
+        let also_run_tests = std::env::var("RUN_GENERATOR_TESTS").map(|v| v == "1").unwrap_or(false);
+
         // read all .baml_files in the test_dir
         let baml_files = glob::glob(&self.src_dir.join("**/*.baml").to_str().unwrap())?;
         let baml_files = baml_files
@@ -67,7 +69,9 @@ impl<L: LanguageFeatures> TestStructure<L> {
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .map(|(b, content)| match content {
-                Ok(content) => Ok((b, content)),
+                Ok(content) => {
+                    Ok((b.strip_prefix(&self.src_dir).unwrap().to_path_buf(), content))
+                },
                 Err(e) => Err(e),
             })
             .collect::<Result<BTreeMap<_, _>, _>>()?;
@@ -99,6 +103,24 @@ impl<L: LanguageFeatures> TestStructure<L> {
                 "{}",
                 String::from_utf8_lossy(&output.stderr)
             );
+        }
+
+        if also_run_tests {
+            match args.client_type {
+                baml_types::GeneratorOutputType::Go => {
+                    let mut cmd = Command::new(&format!("./{}", &self.project_name));
+                    cmd.current_dir(&self.src_dir);
+                    let output = cmd.output().expect("failed to run command");
+                    assert!(
+                        output.status.success(),
+                        "{}",
+                        String::from_utf8_lossy(&output.stderr)
+                    );
+                },
+                _ => {}
+            }
+        } else {
+            println!("Not running! Set RUN_GENERATOR_TESTS=1 to run tests");
         }
 
         Ok(())
