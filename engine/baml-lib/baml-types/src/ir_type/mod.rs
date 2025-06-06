@@ -530,7 +530,13 @@ fn partialize(r#type: &Type) -> TypeStreaming {
                 TypeStreaming::List(Box::new(partialize(item_type)), meta)
             }
             FieldType::Map(key_type, item_type, _) => TypeStreaming::Map(
-                Box::new(partialize(key_type)),
+                
+                {
+                    // Keys cannot be null in maps
+                    let mut clone = key_type.clone();
+                    clone.meta_mut().streaming_behavior.needed = true;
+                    Box::new(partialize(&clone))
+                },
                 Box::new(partialize(item_type)),
                 meta,
             ),

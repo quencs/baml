@@ -68,9 +68,9 @@ func (u *{{ name }}) Set{{ variant_name|exported_name }}(v {{ variant_type.seria
     u.variant = "{{ variant_name }}"
     u.variant_{{ variant_name }} = &v
     {% for (v_name, v_type) in variants -%}
-    {%- if v_name != variant_name -%}
+    {%- if v_name != variant_name %}
     u.variant_{{ v_name }} = nil
-    {%- endif -%}
+    {% endif -%}
     {%- endfor %}
 }
 

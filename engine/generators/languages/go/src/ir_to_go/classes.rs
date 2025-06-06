@@ -1,4 +1,4 @@
-use crate::generated_types::{ClassGo, EnumGo, FieldGo, UnionGo};
+use crate::generated_types::{ClassGo, FieldGo};
 use internal_baml_core::ir::{Class, Field};
 
 use crate::package::CurrentRenderPackage;

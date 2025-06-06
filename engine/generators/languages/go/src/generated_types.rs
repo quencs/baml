@@ -138,6 +138,48 @@ mod union {
     }
 }
 
+mod type_aliases {
+    use super::*;
+
+
+    /// A type alias in Go.
+    ///
+    /// ```askama
+    /// {% if let Some(docstring) = docstring -%}
+    /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
+    /// {%- endif %}
+    /// type {{ name }} = {{ type_.serialize_type(pkg) }}
+    /// 
+    /// {# DONT DO THIS FOR NOW it seems to work?
+    /// {% match type_ -%}
+    /// {% when TypeGo::Union { .. } -%}
+    /// func (u *{{ name }}) Decode(holder *cffi.CFFIValueUnionVariant) {
+    ///     decodedUnion := {{ type_.zero_value(pkg) }}
+    ///     decodedUnion.Decode(holder)
+    ///     *u = {{ name }}{decodedUnion}
+    /// }
+    /// {%- else -%}
+    /// {% endmatch %}
+    /// #}
+    /// ```
+    #[derive(askama::Template)]
+    #[template(in_doc = true, escape = "none", ext = "txt")]
+    pub struct TypeAliasGo<'a> {
+        pub name: String,
+        pub type_: TypeGo,
+        pub docstring: Option<String>,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+}
+
+pub(crate) fn render_type_aliases(aliases: &[TypeAliasGo], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+    use askama::Template;
+    GoTypes {
+        items: aliases,
+        pkg,
+    }.render()
+}
+
 
 /// A list of types in Go.
 ///
@@ -331,3 +373,4 @@ pub(crate) fn render_go_stream_types<T: askama::Template>(items: &[T], pkg: &Cur
 pub use class::{ClassGo, FieldGo};
 pub use enums::EnumGo;
 pub use union::UnionGo;
+pub use type_aliases::TypeAliasGo;

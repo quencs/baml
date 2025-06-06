@@ -472,7 +472,7 @@ func DecodeList[T any](valueHolder *cffi.CFFIValueHolder, decodeFunc func(*cffi.
 	return values
 }
 
-func DecodeMap[T any](valueHolder cffi.CFFIValueHolder, decodeFunc func(*cffi.CFFIValueHolder, TypeMap) T) map[string]T {
+func DecodeMap[T any](valueHolder *cffi.CFFIValueHolder, decodeFunc func(*cffi.CFFIValueHolder) T) map[string]T {
 	var tbl flatbuffers.Table
 	if !valueHolder.Value(&tbl) {
 		panic("error decoding value")
@@ -487,7 +487,7 @@ func DecodeMap[T any](valueHolder cffi.CFFIValueHolder, decodeFunc func(*cffi.CF
 		if valueMap.Entries(&value, i) {
 			key := string(value.Key())
 			valueHolder := value.Value(nil)
-			values[key] = decodeFunc(valueHolder, typeMap)
+			values[key] = decodeFunc(valueHolder)
 		} else {
 			panic("error decoding value")
 		}

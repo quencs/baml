@@ -7,6 +7,7 @@ pub mod functions;
 pub mod classes;
 pub mod enums;
 pub mod unions;
+pub mod type_aliases;
 
 fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
     use TypeStreaming as T;
@@ -53,7 +54,9 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
             TypeGo::Map(Box::new(recursive_fn(type_generic)), Box::new(recursive_fn(type_generic1)), meta)
         },
         T::RecursiveTypeAlias(name, _) => {
-            // TODO: we need mode here as well.
+            // TODO: hack to generate correct types for recuriviely nullable types
+            let mut meta = meta;
+            meta.make_optional();
             TypeGo::Class {
                 package: STREAM_PKG.clone(),
                 name: name.clone(),
@@ -153,6 +156,9 @@ fn type_to_go(field: &Type) -> TypeGo {
             TypeGo::Map(Box::new(recursive_fn(type_generic)), Box::new(recursive_fn(type_generic1)), meta)
         },
         T::RecursiveTypeAlias(name, _) => {
+            // TODO: hack to generate correct types for recuriviely nullable types
+            let mut meta = meta;
+            meta.make_optional();
             TypeGo::Class {
                 package: TYPE_PKG.clone(),
                 name: name.clone(),

@@ -81,10 +81,14 @@ impl LanguageFeatures for GoLanguageFeatures {
             unions.dedup_by_key(|u| u.name.clone());
             unions
         };
+        let type_aliases = ir
+            .walk_type_aliases()
+            .map(|c| ir_to_go::type_aliases::ir_type_alias_to_go(c.item, &pkg))
+            .collect::<Vec<_>>();
 
         collector.add_file(
             "type_map.go",
-            render_type_map(&go_classes, &enums, &unions, go_mod_name)?,
+            render_type_map(&go_classes, &enums, &unions, &type_aliases, go_mod_name)?,
         );
 
         pkg.set("baml_client.types");
@@ -104,6 +108,10 @@ impl LanguageFeatures for GoLanguageFeatures {
             "types/unions.go",
             render_go_types(&unions, &pkg)?,
         );
+        collector.add_file(
+            "types/type_aliases.go",
+            render_go_types(&type_aliases, &pkg)?,
+        );
 
         let unions = {
             let mut unions = ir.walk_all_types()
@@ -114,6 +122,11 @@ impl LanguageFeatures for GoLanguageFeatures {
             unions.dedup_by_key(|u| u.name.clone());
             unions
         };
+
+        let type_aliases = ir
+            .walk_type_aliases()
+            .map(|c| ir_to_go::type_aliases::ir_type_alias_to_go_stream(c.item, &pkg))
+            .collect::<Vec<_>>();
 
         let go_classes = ir
             .walk_classes()
@@ -133,6 +146,11 @@ impl LanguageFeatures for GoLanguageFeatures {
             "stream_types/unions.go",
             render_go_stream_types(&unions, &pkg)?,
         );
+        collector.add_file(
+            "stream_types/type_aliases.go",
+            render_go_stream_types(&type_aliases, &pkg)?,
+        );
+
         Ok(())
     }
 }

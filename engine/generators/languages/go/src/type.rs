@@ -234,17 +234,17 @@ impl TypeGo {
     fn decode_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
         match self {
             TypeGo::List(inner, meta) if !meta.is_optional() => format!(
-                "baml.DecodeList(param, func(inner *cffi.CFFIValueHolder) {t} {{
+                "baml.DecodeList({param}, func(inner *cffi.CFFIValueHolder) {t} {{
                 return {casted}
             }})",
                 t = inner.serialize_type(pkg),
                 casted = inner.decode_from_any("inner", pkg)
             ),
             TypeGo::Map(key, value, meta) if !meta.is_optional() => format!(
-                "baml.DecodeMap(param, func(inner *cffi.CFFIValueHolder) {t} {{
+                "baml.DecodeMap({param}, func(inner *cffi.CFFIValueHolder) {t} {{
                 return {casted}
             }})",
-                t = key.serialize_type(pkg),
+                t = value.serialize_type(pkg),
                 casted = value.decode_from_any("inner", pkg)
             ),
             _ if !self.meta().is_optional() => format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg)),

@@ -1,6 +1,6 @@
 use askama::Template;
 
-use crate::{generated_types::{ClassGo, EnumGo, UnionGo}, package::CurrentRenderPackage, r#type::{SerializeType, TypeGo}};
+use crate::{generated_types::{ClassGo, EnumGo, TypeAliasGo, UnionGo}, package::CurrentRenderPackage, r#type::{SerializeType, TypeGo}};
 
 pub struct FunctionGo {
     pub(crate) documentation: Option<String>,
@@ -154,16 +154,20 @@ struct TypeMap<'a> {
     classes: &'a [ClassGo<'a>],
     enums: &'a [EnumGo],
     unions: &'a [UnionGo<'a>],
+    type_aliases: &'a [TypeAliasGo<'a>],
     go_mod_name: &'a str,
 }
 
 
-pub fn render_type_map(classes: &[ClassGo], enums: &[EnumGo], unions: &[UnionGo], go_mod_name: &str) -> Result<String, askama::Error> {
+pub fn render_type_map(classes: &[ClassGo], enums: &[EnumGo], unions: &[UnionGo],
+    type_aliases: &[TypeAliasGo],
+    go_mod_name: &str) -> Result<String, askama::Error> {
     TypeMap {
         classes,
         enums,
         unions,
         go_mod_name,
+        type_aliases,
     }.render()
 }
 
