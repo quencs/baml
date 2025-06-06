@@ -16,7 +16,6 @@ package stream_types
 import (
 	"encoding/json"
 	"fmt"
-	"sample/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
@@ -26,9 +25,9 @@ import (
 type Union2Example2OrExample struct {
 	variant string
 
-	variant_Example2 *types.Example2
+	variant_Example2 **Example2
 
-	variant_Example *types.Example
+	variant_Example **Example
 }
 
 func (u *Union2Example2OrExample) Decode(holder *cffi.CFFIValueUnionVariant) {
@@ -37,11 +36,27 @@ func (u *Union2Example2OrExample) Decode(holder *cffi.CFFIValueUnionVariant) {
 	switch variantName {
 	case "Example2":
 		u.variant = "Example2"
-		value := *baml.Decode(valueHolder).(*types.Example2)
+		value := func(param *cffi.CFFIValueHolder) *Example2 {
+			decoded := baml.Decode(param)
+			return func(result any) *Example2 {
+				if result == nil {
+					return nil
+				}
+				return (result).(*Example2)
+			}(decoded)
+		}(valueHolder)
 		u.variant_Example2 = &value
 	case "Example":
 		u.variant = "Example"
-		value := *baml.Decode(valueHolder).(*types.Example)
+		value := func(param *cffi.CFFIValueHolder) *Example {
+			decoded := baml.Decode(param)
+			return func(result any) *Example {
+				if result == nil {
+					return nil
+				}
+				return (result).(*Example)
+			}(decoded)
+		}(valueHolder)
 		u.variant_Example = &value
 
 	default:
@@ -105,7 +120,7 @@ func (u *Union2Example2OrExample) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("invalid union variant: %s", string(data))
 }
 
-func (u *Union2Example2OrExample) SetExample2(v types.Example2) {
+func (u *Union2Example2OrExample) SetExample2(v *Example2) {
 	u.variant = "Example2"
 	u.variant_Example2 = &v
 	u.variant_Example = nil
@@ -115,14 +130,14 @@ func (u *Union2Example2OrExample) IsExample2() bool {
 	return u.variant == "Example2"
 }
 
-func (u *Union2Example2OrExample) Example2() types.Example2 {
+func (u *Union2Example2OrExample) Example2() *Example2 {
 	if u.variant != "Example2" {
-		return types.Example2{}
+		return nil
 	}
 	return *u.variant_Example2
 }
 
-func (u *Union2Example2OrExample) SetExample(v types.Example) {
+func (u *Union2Example2OrExample) SetExample(v *Example) {
 	u.variant = "Example"
 	u.variant_Example = &v
 	u.variant_Example2 = nil
@@ -132,9 +147,9 @@ func (u *Union2Example2OrExample) IsExample() bool {
 	return u.variant == "Example"
 }
 
-func (u *Union2Example2OrExample) Example() types.Example {
+func (u *Union2Example2OrExample) Example() *Example {
 	if u.variant != "Example" {
-		return types.Example{}
+		return nil
 	}
 	return *u.variant_Example
 }
@@ -142,9 +157,9 @@ func (u *Union2Example2OrExample) Example() types.Example {
 type Union2ExampleOrExample2 struct {
 	variant string
 
-	variant_Example *types.Example
+	variant_Example **Example
 
-	variant_Example2 *types.Example2
+	variant_Example2 **Example2
 }
 
 func (u *Union2ExampleOrExample2) Decode(holder *cffi.CFFIValueUnionVariant) {
@@ -153,11 +168,27 @@ func (u *Union2ExampleOrExample2) Decode(holder *cffi.CFFIValueUnionVariant) {
 	switch variantName {
 	case "Example":
 		u.variant = "Example"
-		value := *baml.Decode(valueHolder).(*types.Example)
+		value := func(param *cffi.CFFIValueHolder) *Example {
+			decoded := baml.Decode(param)
+			return func(result any) *Example {
+				if result == nil {
+					return nil
+				}
+				return (result).(*Example)
+			}(decoded)
+		}(valueHolder)
 		u.variant_Example = &value
 	case "Example2":
 		u.variant = "Example2"
-		value := *baml.Decode(valueHolder).(*types.Example2)
+		value := func(param *cffi.CFFIValueHolder) *Example2 {
+			decoded := baml.Decode(param)
+			return func(result any) *Example2 {
+				if result == nil {
+					return nil
+				}
+				return (result).(*Example2)
+			}(decoded)
+		}(valueHolder)
 		u.variant_Example2 = &value
 
 	default:
@@ -221,7 +252,7 @@ func (u *Union2ExampleOrExample2) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("invalid union variant: %s", string(data))
 }
 
-func (u *Union2ExampleOrExample2) SetExample(v types.Example) {
+func (u *Union2ExampleOrExample2) SetExample(v *Example) {
 	u.variant = "Example"
 	u.variant_Example = &v
 	u.variant_Example2 = nil
@@ -231,14 +262,14 @@ func (u *Union2ExampleOrExample2) IsExample() bool {
 	return u.variant == "Example"
 }
 
-func (u *Union2ExampleOrExample2) Example() types.Example {
+func (u *Union2ExampleOrExample2) Example() *Example {
 	if u.variant != "Example" {
-		return types.Example{}
+		return nil
 	}
 	return *u.variant_Example
 }
 
-func (u *Union2ExampleOrExample2) SetExample2(v types.Example2) {
+func (u *Union2ExampleOrExample2) SetExample2(v *Example2) {
 	u.variant = "Example2"
 	u.variant_Example2 = &v
 	u.variant_Example = nil
@@ -248,9 +279,9 @@ func (u *Union2ExampleOrExample2) IsExample2() bool {
 	return u.variant == "Example2"
 }
 
-func (u *Union2ExampleOrExample2) Example2() types.Example2 {
+func (u *Union2ExampleOrExample2) Example2() *Example2 {
 	if u.variant != "Example2" {
-		return types.Example2{}
+		return nil
 	}
 	return *u.variant_Example2
 }

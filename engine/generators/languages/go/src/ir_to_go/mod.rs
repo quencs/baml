@@ -35,11 +35,11 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
                 baml_types::LiteralValue::Bool(_) => TypeGo::Bool(meta),
             }
         },
-        T::Class { name, dynamic, mode, .. } => {
+        T::Class { name, dynamic, mode, meta: cls_meta } => {
             TypeGo::Class {
-                package: match mode {
-                    baml_types::StreamingMode::NonStreaming => TYPES_PKG.clone(),
-                    baml_types::StreamingMode::Streaming => STREAM_PKG.clone(),
+                package: match cls_meta.streaming_behavior.done {
+                    true => TYPES_PKG.clone(),
+                    false => STREAM_PKG.clone(),
                 },
                 name: name.clone(),
                 dynamic: *dynamic,
@@ -93,7 +93,10 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
                     let mut meta = meta;
                     meta.make_optional();
                     TypeGo::Union {
-                        package: STREAM_PKG.clone(),
+                        package: match union_meta.streaming_behavior.done {
+                            true => TYPES_PKG.clone(),
+                            false => STREAM_PKG.clone(),
+                        },
                         name: format!("Union{}{}", num_options, name),
                         meta,
                     }

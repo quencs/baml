@@ -31,7 +31,7 @@ pub fn ir_union_to_go_stream<'a>(union: &FieldType, pkg: &'a CurrentRenderPackag
             panic!("ir_union_to_go expects a union. Got: {}", union);
         };
         let variants = union_type_generic.iter_skip_null().iter().map(|t| {
-            let go_type = crate::ir_to_go::type_to_go(t);
+            let go_type = crate::ir_to_go::stream_type_to_go(&t.partialize());
             (go_type.default_name_within_union(), go_type)
         }).collect::<Vec<_>>();
         Some(crate::generated_types::UnionGo {
