@@ -28,8 +28,8 @@ type Person struct {
 
 func (c *Person) Decode(holder cffi.CFFIValueClass) {
 	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+	if string(typeName.Namespace()) != "stream_types" {
+		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
 	}
 	if string(typeName.Name()) != "Person" {
 		panic(fmt.Sprintf("expected Person, got %s", string(typeName.Name())))

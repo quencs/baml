@@ -10,7 +10,7 @@ class Person {
 function PersonTest() -> Person {
     client "openai/gpt-4o"
     prompt #"
-        Get me some fake information about a person.
+        Fake random information about an adult person.
 
         {{ ctx.output_format }}
     "#

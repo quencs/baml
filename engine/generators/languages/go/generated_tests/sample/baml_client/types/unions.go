@@ -107,7 +107,9 @@ func (u *Union2ExampleOrExample2) UnmarshalJSON(data []byte) error {
 func (u *Union2ExampleOrExample2) SetExample(v Example) {
 	u.variant = "Example"
 	u.variant_Example = &v
+
 	u.variant_Example2 = nil
+
 }
 
 func (u *Union2ExampleOrExample2) IsExample() bool {
@@ -124,7 +126,9 @@ func (u *Union2ExampleOrExample2) Example() Example {
 func (u *Union2ExampleOrExample2) SetExample2(v Example2) {
 	u.variant = "Example2"
 	u.variant_Example2 = &v
+
 	u.variant_Example = nil
+
 }
 
 func (u *Union2ExampleOrExample2) IsExample2() bool {
