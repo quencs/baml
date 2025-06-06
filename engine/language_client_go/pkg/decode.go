@@ -232,6 +232,7 @@ func decodeUnionValue(holder *cffi.CFFIValueHolder) any {
 	namespace := string(typeName.Namespace())
 	unionName := string(typeName.Name())
 	found, ok := typeMap[namespace+"."+unionName]
+	fmt.Println("decoding union", namespace+"."+unionName, ok)
 	if !ok {
 		// This is a fully dynamic union, so we
 		// decode the value as the value and drop
