@@ -18,7 +18,8 @@ func main() {
 			}
 			fmt.Println(string(str))
 		} else {
-			fmt.Println("stream-----")
+			fmt.Println(result.Stream().Words.State)
+			fmt.Println(result.Stream().Words.Value)
 		}
 	}
 }

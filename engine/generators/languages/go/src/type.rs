@@ -205,19 +205,28 @@ impl TypeGo {
             .to_string()
     }
 
+    fn cast_return_value(&self, pkg: &CurrentRenderPackage) -> String {
+        if self.meta().wrap_stream_state {
+            format!("{}{{Value: nil, State: StreamStatePending}}", self.serialize_type(pkg))
+        } else {
+            self.zero_value(pkg)
+        }
+    }
+
     pub fn cast_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
         if self.meta().is_optional() {
             format!(
                 r#"
                 func(result any) {t} {{
                     if result == nil {{
-                        return nil
+                        return {return_value}
                     }}
                     return {casted}
                 }}({param})
             "#,
                 t = self.serialize_type(pkg),
-                casted = self.cast_from_any_skip_optional("result", pkg)
+                casted = self.cast_from_any_skip_optional("result", pkg),
+                return_value = self.cast_return_value(pkg)
             )
         } else {
             self.cast_from_any_skip_optional(param, pkg)
@@ -225,6 +234,7 @@ impl TypeGo {
         .trim()
         .to_string()
     }
+
 
     pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
         match self {
@@ -353,7 +363,6 @@ impl SerializeType for TypeGo {
         };
 
         let serialized_string = meta.wrap_type((pkg, type_str));
-        println!("serialized_string: {:?}", serialized_string);
         serialized_string
     }
 }

@@ -86,6 +86,7 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
             },
             baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
                 let mut type_go = recursive_fn(type_generic);
+                *type_go.meta_mut() = meta;
                 if union_meta
                     .constraints
                     .iter()

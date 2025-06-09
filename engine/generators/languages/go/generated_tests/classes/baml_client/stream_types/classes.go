@@ -22,8 +22,8 @@ import (
 )
 
 type SimpleClass struct {
-	Digits *int64  `json:"digits"`
-	Words  *string `json:"words"`
+	Digits *int64               `json:"digits"`
+	Words  StreamState[*string] `json:"words"`
 }
 
 func (c *SimpleClass) Decode(holder cffi.CFFIValueClass) {
@@ -54,13 +54,13 @@ func (c *SimpleClass) Decode(holder cffi.CFFIValueClass) {
 				}(valueHolder)
 
 			case "words":
-				c.Words = func(param *cffi.CFFIValueHolder) *string {
+				c.Words = func(param *cffi.CFFIValueHolder) StreamState[*string] {
 					decoded := baml.Decode(param)
-					return func(result any) *string {
+					return func(result any) StreamState[*string] {
 						if result == nil {
-							return nil
+							return StreamState[*string]{Value: nil, State: StreamStatePending}
 						}
-						return (result).(*string)
+						return (result).(StreamState[*string])
 					}(decoded)
 				}(valueHolder)
 

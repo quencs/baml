@@ -88,17 +88,18 @@ mod tests {
     fn test_ir_class_to_go() {
         let ir = make_test_ir(
             r#"
-            class ChildClass {
-                digits int @stream.with_state
+            class SimpleClass {
+                words string @stream.with_state
             }
         "#,
         )
         .unwrap();
-        let class = ir.find_class("ChildClass").unwrap().item;
+        let class = ir.find_class("SimpleClass").unwrap().item;
         let pkg = CurrentRenderPackage::new("baml_client");
         let class_go = ir_class_to_go_stream(&class, &pkg);
-        assert_eq!(class_go.name, "ChildClass");
+        assert_eq!(class_go.name, "SimpleClass");
         assert_eq!(class_go.fields.len(), 1);
+        assert_eq!(class_go.fields[0].r#type.meta().wrap_stream_state, true);
         println!("{}", class_go.fields[0]);
     }
 
