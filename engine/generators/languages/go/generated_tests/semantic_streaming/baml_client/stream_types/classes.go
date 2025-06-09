@@ -15,6 +15,7 @@ package stream_types
 
 import (
 	"fmt"
+	"semantic_streaming/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
@@ -148,14 +149,14 @@ func (c ClassWithoutDone) BamlTypeName() string {
 }
 
 type SemanticContainer struct {
-	Sixteen_digit_number     *int64              `json:"sixteen_digit_number"`
-	String_with_twenty_words *string             `json:"string_with_twenty_words"`
-	Class_1                  *ClassWithoutDone   `json:"class_1"`
-	Class_2                  *ClassWithBlockDone `json:"class_2"`
-	Class_done_needed        *ClassWithBlockDone `json:"class_done_needed"`
-	Class_needed             *ClassWithoutDone   `json:"class_needed"`
-	Three_small_things       *[]*SmallThing      `json:"three_small_things"`
-	Final_string             *string             `json:"final_string"`
+	Sixteen_digit_number     *int64                   `json:"sixteen_digit_number"`
+	String_with_twenty_words *string                  `json:"string_with_twenty_words"`
+	Class_1                  *ClassWithoutDone        `json:"class_1"`
+	Class_2                  *ClassWithBlockDone      `json:"class_2"`
+	Class_done_needed        types.ClassWithBlockDone `json:"class_done_needed"`
+	Class_needed             ClassWithoutDone         `json:"class_needed"`
+	Three_small_things       *[]*SmallThing           `json:"three_small_things"`
+	Final_string             *string                  `json:"final_string"`
 }
 
 func (c *SemanticContainer) Decode(holder cffi.CFFIValueClass) {
@@ -219,26 +220,10 @@ func (c *SemanticContainer) Decode(holder cffi.CFFIValueClass) {
 				}(valueHolder)
 
 			case "class_done_needed":
-				c.Class_done_needed = func(param *cffi.CFFIValueHolder) *ClassWithBlockDone {
-					decoded := baml.Decode(param)
-					return func(result any) *ClassWithBlockDone {
-						if result == nil {
-							return nil
-						}
-						return (result).(*ClassWithBlockDone)
-					}(decoded)
-				}(valueHolder)
+				c.Class_done_needed = *baml.Decode(valueHolder).(*types.ClassWithBlockDone)
 
 			case "class_needed":
-				c.Class_needed = func(param *cffi.CFFIValueHolder) *ClassWithoutDone {
-					decoded := baml.Decode(param)
-					return func(result any) *ClassWithoutDone {
-						if result == nil {
-							return nil
-						}
-						return (result).(*ClassWithoutDone)
-					}(decoded)
-				}(valueHolder)
+				c.Class_needed = *baml.Decode(valueHolder).(*ClassWithoutDone)
 
 			case "three_small_things":
 				c.Three_small_things = func(param *cffi.CFFIValueHolder) *[]*SmallThing {
@@ -295,7 +280,7 @@ func (c SemanticContainer) BamlTypeName() string {
 }
 
 type SmallThing struct {
-	I_16_digits *int64 `json:"i_16_digits"`
+	I_16_digits int64  `json:"i_16_digits"`
 	I_8_digits  *int64 `json:"i_8_digits"`
 }
 
@@ -316,15 +301,7 @@ func (c *SmallThing) Decode(holder cffi.CFFIValueClass) {
 			switch key {
 
 			case "i_16_digits":
-				c.I_16_digits = func(param *cffi.CFFIValueHolder) *int64 {
-					decoded := baml.Decode(param)
-					return func(result any) *int64 {
-						if result == nil {
-							return nil
-						}
-						return (result).(*int64)
-					}(decoded)
-				}(valueHolder)
+				c.I_16_digits = *baml.Decode(valueHolder).(*int64)
 
 			case "i_8_digits":
 				c.I_8_digits = func(param *cffi.CFFIValueHolder) *int64 {

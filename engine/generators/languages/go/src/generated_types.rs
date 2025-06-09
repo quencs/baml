@@ -1,5 +1,5 @@
-use crate::r#type::{SerializeType, TypeGo};
 use crate::package::CurrentRenderPackage;
+use crate::r#type::{SerializeType, TypeGo};
 
 mod filters {
     // This filter does not have extra arguments
@@ -13,7 +13,6 @@ mod filters {
 
 mod class {
     use super::*;
-
 
     #[derive(askama::Template)]
     #[template(path = "class.go.j2", escape = "none", ext = "txt")]
@@ -41,43 +40,75 @@ mod class {
         pub r#type: TypeGo,
         pub pkg: &'a CurrentRenderPackage,
     }
+    impl std::fmt::Debug for FieldGo<'_> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "FieldGo {{docstring: {:?}, name: {}, type: {:?}, pkg: <<Mutex>> }}",
+                self.docstring, self.name, self.r#type
+            )
+        }
+    }
 
     mod helpers {
         use crate::{package::Package, r#type::TypeGo};
 
         pub fn stream_variants(t: &TypeGo) -> Vec<TypeGo> {
-            let mut variants = vec![
-                t.clone(),
-            ];
+            let mut variants = vec![t.clone()];
 
             let stream_pkg = Package::new("baml_client.stream_types");
 
             // add stream types for user defined types (classes and unions)
             // enums have no "stream" variants
             match t {
-                TypeGo::Class { name, meta, dynamic, package: _unused } => {
-                    variants.push(TypeGo::Class { name: name.clone(), package: stream_pkg.clone(), meta: meta.clone(), dynamic: *dynamic });
+                TypeGo::Class {
+                    name,
+                    meta,
+                    dynamic,
+                    package: _unused,
+                } => {
+                    variants.push(TypeGo::Class {
+                        name: name.clone(),
+                        package: stream_pkg.clone(),
+                        meta: meta.clone(),
+                        dynamic: *dynamic,
+                    });
                 }
-                TypeGo::Union { name, meta, package: _unused } => {
-                    variants.push(TypeGo::Union { name: name.clone(), package: stream_pkg.clone(), meta: meta.clone() });
+                TypeGo::Union {
+                    name,
+                    meta,
+                    package: _unused,
+                } => {
+                    variants.push(TypeGo::Union {
+                        name: name.clone(),
+                        package: stream_pkg.clone(),
+                        meta: meta.clone(),
+                    });
                 }
                 _ => {}
             }
 
             // add optional variants
-            let optional_variants = variants.iter().filter(|v| !v.meta().is_optional()).map(|v| {
-                let mut t = v.clone();
-                t.meta_mut().make_optional();
-                t
-            }).collect::<Vec<_>>();
+            let optional_variants = variants
+                .iter()
+                .filter(|v| !v.meta().is_optional())
+                .map(|v| {
+                    let mut t = v.clone();
+                    t.meta_mut().make_optional();
+                    t
+                })
+                .collect::<Vec<_>>();
             variants.extend(optional_variants);
 
             // add stream state variants for each variant
-            let stream_variants = variants.iter().map(|v| {
-                let mut t = v.clone();
-                t.meta_mut().set_stream_state();
-                t
-            }).collect::<Vec<_>>();
+            let stream_variants = variants
+                .iter()
+                .map(|v| {
+                    let mut t = v.clone();
+                    t.meta_mut().set_stream_state();
+                    t
+                })
+                .collect::<Vec<_>>();
 
             variants.extend(stream_variants);
             variants
@@ -141,7 +172,6 @@ mod union {
 mod type_aliases {
     use super::*;
 
-
     /// A type alias in Go.
     ///
     /// ```askama
@@ -149,7 +179,7 @@ mod type_aliases {
     /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
     /// {%- endif %}
     /// type {{ name }} = {{ type_.serialize_type(pkg) }}
-    /// 
+    ///
     /// {# DONT DO THIS FOR NOW it seems to work?
     /// {% match type_ -%}
     /// {% when TypeGo::Union { .. } -%}
@@ -172,14 +202,17 @@ mod type_aliases {
     }
 }
 
-pub(crate) fn render_type_aliases(aliases: &[TypeAliasGo], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub(crate) fn render_type_aliases(
+    aliases: &[TypeAliasGo],
+    pkg: &CurrentRenderPackage,
+) -> Result<String, askama::Error> {
     use askama::Template;
     GoTypes {
         items: aliases,
         pkg,
-    }.render()
+    }
+    .render()
 }
-
 
 /// A list of types in Go.
 ///
@@ -202,9 +235,7 @@ pub struct GoTypesUtils<'ir> {
 pub(crate) fn render_go_types_utils(pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoTypesUtils {
-        pkg,
-    }.render()
+    GoTypesUtils { pkg }.render()
 }
 
 /// A list of types in Go.
@@ -234,16 +265,14 @@ pub struct GoTypes<'ir, T: askama::Template> {
     pkg: &'ir CurrentRenderPackage,
 }
 
-pub(crate) fn render_go_types<T: askama::Template>(items: &[T], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub(crate) fn render_go_types<T: askama::Template>(
+    items: &[T],
+    pkg: &CurrentRenderPackage,
+) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoTypes {
-        items,
-        pkg,
-    }.render()
+    GoTypes { items, pkg }.render()
 }
-
-
 
 const STREAM_STATE_GO: &str = r#"
 type StreamStateType string
@@ -318,7 +347,7 @@ type StreamState[T any] struct {
 /// )
 ///
 /// {{ STREAM_STATE_GO }}
-/// 
+///
 /// ```
 ///
 #[derive(askama::Template)]
@@ -327,12 +356,12 @@ pub struct GoStreamTypesUtils<'ir> {
     pkg: &'ir CurrentRenderPackage,
 }
 
-pub(crate) fn render_go_stream_types_utils(pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub(crate) fn render_go_stream_types_utils(
+    pkg: &CurrentRenderPackage,
+) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoStreamTypesUtils {
-        pkg,
-    }.render()
+    GoStreamTypesUtils { pkg }.render()
 }
 /// A list of types in Go.
 ///
@@ -360,17 +389,16 @@ pub(crate) struct GoStreamTypes<'ir, T: askama::Template> {
     pkg: &'ir CurrentRenderPackage,
 }
 
-
-pub(crate) fn render_go_stream_types<T: askama::Template>(items: &[T], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub(crate) fn render_go_stream_types<T: askama::Template>(
+    items: &[T],
+    pkg: &CurrentRenderPackage,
+) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoStreamTypes {
-        items,
-        pkg,
-    }.render()
+    GoStreamTypes { items, pkg }.render()
 }
 
 pub use class::{ClassGo, FieldGo};
 pub use enums::EnumGo;
-pub use union::UnionGo;
 pub use type_aliases::TypeAliasGo;
+pub use union::UnionGo;

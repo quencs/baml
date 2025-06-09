@@ -1,5 +1,6 @@
 use crate::package::{CurrentRenderPackage, Package};
 
+#[derive(Clone, PartialEq, Debug)]
 pub enum LiteralType {
     String,
     Int,
@@ -7,7 +8,7 @@ pub enum LiteralType {
     Bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum TypeWrapper {
     None,
     Checked(Box<TypeWrapper>),
@@ -24,7 +25,7 @@ impl TypeWrapper {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct TypeMetaGo {
     pub type_wrapper: TypeWrapper,
     pub wrap_stream_state: bool,
@@ -101,13 +102,13 @@ impl WrapType for TypeMetaGo {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum MediaTypeGo {
     Image,
     Audio,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum TypeGo {
     String(TypeMetaGo),
     Int(TypeMetaGo),
@@ -185,8 +186,10 @@ impl TypeGo {
             TypeGo::Int(_) => "0".to_string(),
             TypeGo::Float(_) => "0.0".to_string(),
             TypeGo::Bool(_) => "false".to_string(),
-            TypeGo::Media(..) |
-            TypeGo::Class { .. } | TypeGo::Union { .. } | TypeGo::Enum { .. } => {
+            TypeGo::Media(..)
+            | TypeGo::Class { .. }
+            | TypeGo::Union { .. }
+            | TypeGo::Enum { .. } => {
                 format!("{}{{}}", self.serialize_type(pkg))
             }
             TypeGo::List(..) => "nil".to_string(),
@@ -247,7 +250,9 @@ impl TypeGo {
                 t = value.serialize_type(pkg),
                 casted = value.decode_from_any("inner", pkg)
             ),
-            _ if !self.meta().is_optional() => format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg)),
+            _ if !self.meta().is_optional() => {
+                format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
+            }
             _ => format!("baml.Decode({param}).({})", self.serialize_type(pkg)),
         }
         .trim()
@@ -347,7 +352,9 @@ impl SerializeType for TypeGo {
             TypeGo::Any { .. } => "any".to_string(),
         };
 
-        meta.wrap_type((pkg, type_str))
+        let serialized_string = meta.wrap_type((pkg, type_str));
+        println!("serialized_string: {:?}", serialized_string);
+        serialized_string
     }
 }
 

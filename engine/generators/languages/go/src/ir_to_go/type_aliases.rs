@@ -3,21 +3,34 @@ use crate::ir_to_go;
 use crate::package::CurrentRenderPackage;
 use internal_baml_core::ir::TypeAlias;
 
-
-pub fn ir_type_alias_to_go<'a>(alias: &TypeAlias, pkg: &'a CurrentRenderPackage) -> TypeAliasGo<'a> {
+pub fn ir_type_alias_to_go<'a>(
+    alias: &TypeAlias,
+    pkg: &'a CurrentRenderPackage,
+) -> TypeAliasGo<'a> {
     TypeAliasGo {
         name: alias.elem.name.clone(),
         type_: ir_to_go::type_to_go(&alias.elem.r#type.elem),
-        docstring: alias.elem.docstring.clone().map(|docstring| docstring.0.clone()),
+        docstring: alias
+            .elem
+            .docstring
+            .clone()
+            .map(|docstring| docstring.0.clone()),
         pkg,
     }
 }
 
-pub fn ir_type_alias_to_go_stream<'a>(alias: &TypeAlias, pkg: &'a CurrentRenderPackage) -> TypeAliasGo<'a> {
+pub fn ir_type_alias_to_go_stream<'a>(
+    alias: &TypeAlias,
+    pkg: &'a CurrentRenderPackage,
+) -> TypeAliasGo<'a> {
     TypeAliasGo {
         name: alias.elem.name.clone(),
-        type_: ir_to_go::stream_type_to_go(&alias.elem.r#type.elem.partialize()),
-        docstring: alias.elem.docstring.clone().map(|docstring| docstring.0.clone()),
+        type_: ir_to_go::stream_type_to_go(&alias.elem.r#type.elem.partialize(false)),
+        docstring: alias
+            .elem
+            .docstring
+            .clone()
+            .map(|docstring| docstring.0.clone()),
         pkg,
     }
 }

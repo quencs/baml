@@ -113,8 +113,13 @@ impl<L: LanguageFeatures> TestStructure<L> {
                 baml_types::GeneratorOutputType::Go => {
                     let mut cmd = Command::new(&format!("./{}", &self.project_name));
                     cmd.current_dir(&self.src_dir);
-                    let cargo_target_dir =
-                        get_cargo_root()?.join("target/debug/libbaml_cffi.dylib");
+                    let dylib_path = get_cargo_root()?.join("target/debug/libbaml_cffi.dylib");
+                    let so_path = get_cargo_root()?.join("target/debug/libbaml_cffi.so");
+                    let cargo_target_dir = if dylib_path.exists() {
+                        dylib_path
+                    } else {
+                        so_path
+                    };
                     cmd.env("BAML_LIBRARY_PATH", cargo_target_dir);
                     run_and_stream(&mut cmd)?;
                 }
@@ -128,19 +133,15 @@ impl<L: LanguageFeatures> TestStructure<L> {
     }
 }
 
-
 use std::{
     io::{BufRead, BufReader},
-    process::{Stdio},
+    process::Stdio,
     thread,
 };
 
 fn run_and_stream(cmd: &mut Command) -> anyhow::Result<()> {
     // Pipe both streams before we spawn.
-    let mut child = cmd
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
+    let mut child = cmd.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
 
     // Take ownership of the pipes.
     let stdout = child.stdout.take().expect("stdout pipe");
@@ -174,7 +175,6 @@ fn run_and_stream(cmd: &mut Command) -> anyhow::Result<()> {
     anyhow::ensure!(status.success(), "child exited with {}", status);
     Ok(())
 }
-
 
 pub struct TestHarness {}
 

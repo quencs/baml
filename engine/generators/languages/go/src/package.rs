@@ -13,7 +13,9 @@ impl Package {
         if parts[0] != "baml_client" && parts[0] != "baml" {
             panic!("Package must start with baml_client");
         }
-        Package { package_path: parts }
+        Package {
+            package_path: parts,
+        }
     }
 
     pub fn relative_from(&self, other: &CurrentRenderPackage) -> String {
@@ -39,14 +41,13 @@ impl Package {
     }
 }
 
-
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.package_path.join("."))
     }
 }
 
-
+#[derive(Clone)]
 pub(crate) struct CurrentRenderPackage {
     package: std::sync::Arc<std::sync::Mutex<std::sync::Arc<Package>>>,
 }
@@ -54,7 +55,9 @@ pub(crate) struct CurrentRenderPackage {
 impl CurrentRenderPackage {
     pub fn new(package: &str) -> Self {
         Self {
-            package: std::sync::Arc::new(std::sync::Mutex::new(std::sync::Arc::new(Package::new(package)))),
+            package: std::sync::Arc::new(std::sync::Mutex::new(std::sync::Arc::new(Package::new(
+                package,
+            )))),
         }
     }
 
