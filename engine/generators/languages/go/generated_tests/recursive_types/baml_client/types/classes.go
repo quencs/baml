@@ -12,3 +12,60 @@
 //
 //	$ go install github.com/boundaryml/baml/baml-cli
 package types
+
+import (
+	"fmt"
+
+	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+	flatbuffers "github.com/google/flatbuffers/go"
+)
+
+type UseMyUnion struct {
+	U *Union3IntOrListRecursive1OrString `json:"u"`
+}
+
+func (c *UseMyUnion) Decode(holder cffi.CFFIValueClass) {
+	typeName := holder.Name(nil)
+	if string(typeName.Namespace()) != "types" {
+		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+	}
+	if string(typeName.Name()) != "UseMyUnion" {
+		panic(fmt.Sprintf("expected UseMyUnion, got %s", string(typeName.Name())))
+	}
+
+	for i := range holder.FieldsLength() {
+		var field cffi.CFFIMapEntry
+		if holder.Fields(&field, i) {
+			key := string(field.Key())
+			valueHolder := field.Value(nil)
+			switch key {
+
+			case "u":
+				c.U = func(param *cffi.CFFIValueHolder) *Union3IntOrListRecursive1OrString {
+					decoded := baml.Decode(param)
+					return func(result any) *Union3IntOrListRecursive1OrString {
+						if result == nil {
+							return nil
+						}
+						return (result).(*Union3IntOrListRecursive1OrString)
+					}(decoded)
+				}(valueHolder)
+
+			}
+		}
+	}
+
+}
+
+func (c UseMyUnion) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+	fields := map[string]any{}
+
+	fields["u"] = c.U
+
+	return baml.EncodeClass(builder, "UseMyUnion", fields, nil)
+}
+
+func (c UseMyUnion) BamlTypeName() string {
+	return "UseMyUnion"
+}

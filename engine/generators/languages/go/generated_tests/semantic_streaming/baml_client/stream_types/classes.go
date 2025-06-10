@@ -86,8 +86,8 @@ func (c ClassWithBlockDone) BamlTypeName() string {
 }
 
 type ClassWithoutDone struct {
-	I_16_digits *int64  `json:"i_16_digits"`
-	S_20_words  *string `json:"s_20_words"`
+	I_16_digits *int64               `json:"i_16_digits"`
+	S_20_words  StreamState[*string] `json:"s_20_words"`
 }
 
 func (c *ClassWithoutDone) Decode(holder cffi.CFFIValueClass) {
@@ -118,13 +118,13 @@ func (c *ClassWithoutDone) Decode(holder cffi.CFFIValueClass) {
 				}(valueHolder)
 
 			case "s_20_words":
-				c.S_20_words = func(param *cffi.CFFIValueHolder) *string {
+				c.S_20_words = func(param *cffi.CFFIValueHolder) StreamState[*string] {
 					decoded := baml.Decode(param)
-					return func(result any) *string {
+					return func(result any) StreamState[*string] {
 						if result == nil {
-							return nil
+							return StreamState[*string]{Value: nil, State: StreamStatePending}
 						}
-						return (result).(*string)
+						return (result).(StreamState[*string])
 					}(decoded)
 				}(valueHolder)
 

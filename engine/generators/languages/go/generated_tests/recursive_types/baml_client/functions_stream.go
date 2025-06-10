@@ -40,7 +40,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 }
 
 // / Streaming version of Foo
-func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan StreamValue[**stream_types.JSON, *types.JSON] {
+func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.JSON, *types.JSON] {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -61,7 +61,7 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan 
 		panic(err)
 	}
 
-	channel := make(chan StreamValue[**stream_types.JSON, *types.JSON])
+	channel := make(chan StreamValue[*stream_types.JSON, *types.JSON])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "Foo", encoded)
 	if err != nil {
 		close(channel)
@@ -85,13 +85,13 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan 
 				}
 				if result.HasData {
 					data := (result.Data).(*types.JSON)
-					channel <- StreamValue[**stream_types.JSON, *types.JSON]{
+					channel <- StreamValue[*stream_types.JSON, *types.JSON]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := (result.StreamData).(**stream_types.JSON)
-					channel <- StreamValue[**stream_types.JSON, *types.JSON]{
+					data := (result.StreamData).(*stream_types.JSON)
+					channel <- StreamValue[*stream_types.JSON, *types.JSON]{
 						IsFinal:   false,
 						as_stream: &data,
 					}
