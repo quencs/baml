@@ -238,6 +238,12 @@ func decodeUnionValue(holder *cffi.CFFIValueHolder) any {
 		value := valueUnion.Value(nil)
 		return Decode(value)
 	}
+
+	// special case for null
+	if string(valueUnion.VariantName()) == "null" {
+		return nil
+	}
+
 	union := reflect.New(found)
 	as_interface := union.Interface().(BamlUnionDeserializer)
 	as_interface.Decode(&valueUnion)
@@ -405,7 +411,6 @@ func convertFieldTypeToGoType(fieldType *cffi.CFFIFieldTypeHolder) reflect.Type 
 
 func Decode(holder *cffi.CFFIValueHolder) any {
 	valueType := holder.ValueType()
-	fmt.Println("valueType", valueType)
 	switch valueType {
 	case cffi.CFFIValueUnionNONE:
 		return nil

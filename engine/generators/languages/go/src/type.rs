@@ -132,6 +132,12 @@ pub enum TypeGo {
         dynamic: bool,
         meta: TypeMetaGo,
     },
+    TypeAlias {
+        name: String,
+        package: Package,
+        evaluates_to: Option<Box<TypeGo>>,
+        meta: TypeMetaGo,
+    },
     List(Box<TypeGo>, TypeMetaGo),
     Map(Box<TypeGo>, Box<TypeGo>, TypeMetaGo),
     Tuple(Vec<TypeGo>, TypeMetaGo),
@@ -154,6 +160,7 @@ impl TypeGo {
                 MediaTypeGo::Image => "Image".to_string(),
                 MediaTypeGo::Audio => "Audio".to_string(),
             },
+            TypeGo::TypeAlias { name, .. } => name.clone(),
             TypeGo::Class { name, .. } => name.clone(),
             TypeGo::Union { name, .. } => name.clone(),
             TypeGo::Enum { name, .. } => name.clone(),
@@ -189,6 +196,10 @@ impl TypeGo {
             TypeGo::Class { .. } | TypeGo::Union { .. } | TypeGo::Enum { .. } => {
                 format!("{}{{}}", self.serialize_type(pkg))
             }
+            TypeGo::TypeAlias { evaluates_to, .. } => match evaluates_to {
+                Some(evaluates_to) => evaluates_to.zero_value(pkg),
+                None => format!("{}{{}}", self.serialize_type(pkg))
+            },
             TypeGo::List(..) => "nil".to_string(),
             TypeGo::Map(..) => "nil".to_string(),
             TypeGo::Tuple(..) => "nil".to_string(),
@@ -226,6 +237,11 @@ impl TypeGo {
     pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
         match self {
             TypeGo::List(..) | TypeGo::Map(..) => self.cast_from_any_skip_optional(param, pkg),
+            TypeGo::TypeAlias { evaluates_to, meta, .. } => match evaluates_to {
+                Some(evaluates_to) if evaluates_to.meta().is_optional() => 
+                format!("({param}).({})", self.serialize_type(pkg)),
+                _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
+            },
             _ if self.meta().is_optional() => self.cast_from_any_skip_optional(param, pkg),
             _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
         }
@@ -247,6 +263,17 @@ impl TypeGo {
                 t = value.serialize_type(pkg),
                 casted = value.decode_from_any("inner", pkg)
             ),
+            TypeGo::TypeAlias { name, package, evaluates_to, meta } if evaluates_to.as_ref().map(|e| e.meta().is_optional()).unwrap_or(false) => {
+                format!(r#"
+                func(param *cffi.CFFIValueHolder) {name} {{
+                    decoded := baml.Decode(param)
+                    if decoded == nil {{
+                        return nil
+                    }}
+                    return decoded.({name})
+                }}({param})
+                "#, name= self.serialize_type(pkg))
+            }
             _ if !self.meta().is_optional() => format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg)),
             _ => format!("baml.Decode({param}).({})", self.serialize_type(pkg)),
         }
@@ -281,6 +308,7 @@ impl TypeGo {
             TypeGo::Bool(meta) => meta,
             TypeGo::Media(_, meta) => meta,
             TypeGo::Class { meta, .. } => meta,
+            TypeGo::TypeAlias { meta, .. } => meta,
             TypeGo::Union { meta, .. } => meta,
             TypeGo::Enum { meta, .. } => meta,
             TypeGo::List(_, meta) => meta,
@@ -298,6 +326,7 @@ impl TypeGo {
             TypeGo::Bool(meta) => meta,
             TypeGo::Media(_, meta) => meta,
             TypeGo::Class { meta, .. } => meta,
+            TypeGo::TypeAlias { meta, .. } => meta,
             TypeGo::Union { meta, .. } => meta,
             TypeGo::Enum { meta, .. } => meta,
             TypeGo::List(_, meta) => meta,
@@ -322,6 +351,9 @@ impl SerializeType for TypeGo {
             TypeGo::Bool(_) => "bool".to_string(),
             TypeGo::Media(media, _) => media.serialize_type(pkg),
             TypeGo::Class { package, name, .. } => {
+                format!("{}{}", package.relative_from(pkg), name)
+            }
+            TypeGo::TypeAlias { package, name, .. } => {
                 format!("{}{}", package.relative_from(pkg), name)
             }
             TypeGo::Union { package, name, .. } => {

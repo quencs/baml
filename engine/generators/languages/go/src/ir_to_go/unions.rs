@@ -10,7 +10,11 @@ pub fn ir_union_to_go<'a>(union: &FieldType, pkg: &'a CurrentRenderPackage,looku
         };
         let variants = union_type_generic.iter_skip_null().iter().map(|t| {
             let go_type = crate::ir_to_go::type_to_go(t, lookup);
-            (go_type.default_name_within_union(), go_type)
+            crate::generated_types::VariantGo {
+                name: go_type.default_name_within_union(),
+                cffi_name: t.to_union_name(),
+                type_: go_type,
+            }
         }).collect::<Vec<_>>();
         Some(crate::generated_types::UnionGo {
             name,
@@ -33,7 +37,11 @@ pub fn ir_union_to_go_stream<'a>(union: &FieldType, pkg: &'a CurrentRenderPackag
         };
         let variants = union_type_generic.iter_skip_null().iter().map(|t| {
             let go_type = crate::ir_to_go::stream_type_to_go(t, lookup);
-            (go_type.default_name_within_union(), go_type)
+            crate::generated_types::VariantGo {
+                name: go_type.default_name_within_union(),
+                cffi_name: t.to_union_name(),
+                type_: go_type,
+            }
         }).collect::<Vec<_>>();
         Some(crate::generated_types::UnionGo {
             name,

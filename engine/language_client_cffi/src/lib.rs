@@ -119,7 +119,6 @@ fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>,
     let error_callback_fn = ERROR_CALLBACK_FN
         .get()
         .expect("expected error callback function to be set. Did you call register_callbacks?");
-    baml_log::info!("allow_partials: {}", !is_done);
 
     match result {
         Ok(result) => match result.parsed() {

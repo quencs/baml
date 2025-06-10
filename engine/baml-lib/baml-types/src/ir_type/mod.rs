@@ -209,7 +209,7 @@ impl<'a, T: Default + std::fmt::Debug + Clone> UnionTypeViewGeneric<'a, T> {
     }
 }
 
-impl<T: std::fmt::Debug + Default> UnionTypeGeneric<T> {
+impl<T> UnionTypeGeneric<T> {
     pub fn is_optional(&self) -> bool {
         match self.view() {
             UnionTypeViewGeneric::Null => true,
@@ -725,38 +725,40 @@ impl TypeGeneric<type_meta::Base> {
     }
 }
 
-pub trait ToUnionName {
+pub trait ToUnionName<T> {
     fn to_union_name(&self) -> String;
-    fn find_union_types(&self) -> IndexSet<FieldType>;
+    fn find_union_types<'a>(&'a self) -> IndexSet<&'a TypeGeneric<T>>;
 }
 
-impl ToUnionName for FieldType {
-    fn find_union_types(&self) -> IndexSet<FieldType> {
+impl<Meta: std::hash::Hash + std::cmp::Eq> ToUnionName<Meta> for TypeGeneric<Meta> {
+    fn find_union_types<'a>(&'a self) -> IndexSet<&'a TypeGeneric<Meta>> {
+        use TypeGeneric as T;
         // TODO: its pretty hard to get type aliases here
-        let value = self.simplify();
-        match &value {
-            FieldType::Union(_, _) => IndexSet::from_iter([value]),
-            FieldType::List(inner, _) => inner.find_union_types(),
-            FieldType::Map(field_type, field_type1, _) => {
+        // let value = self.simplify();
+        match self {
+            T::Union(_, _) => IndexSet::from_iter([self]),
+            T::List(inner, _) => inner.find_union_types(),
+            T::Map(field_type, field_type1, _) => {
                 let mut set = field_type.find_union_types();
                 set.extend(field_type1.find_union_types());
                 set
             }
-            FieldType::Primitive(_, _)
-            | FieldType::Enum { .. }
-            | FieldType::Literal(_, _)
-            | FieldType::Class { .. }
-            | FieldType::RecursiveTypeAlias { .. }
-            | FieldType::Arrow(_, _) => IndexSet::new(),
-            FieldType::Tuple(inner, _) => inner.iter().flat_map(|t| t.find_union_types()).collect(),
+            T::Primitive(_, _)
+            | T::Enum { .. }
+            | T::Literal(_, _)
+            | T::Class { .. }
+            | T::RecursiveTypeAlias { .. }
+            | T::Arrow(_, _) => IndexSet::new(),
+            T::Tuple(inner, _) => inner.iter().flat_map(|t| t.find_union_types()).collect(),
         }
     }
 
     fn to_union_name(&self) -> String {
+        use TypeGeneric as T;
         match self {
-            FieldType::Primitive(type_value, _) => type_value.to_string(),
-            FieldType::Enum { name, .. } => name.to_string(),
-            FieldType::Literal(literal_value, _) => match literal_value {
+            T::Primitive(type_value, _) => type_value.to_string(),
+            T::Enum { name, .. } => name.to_string(),
+            T::Literal(literal_value, _) => match literal_value {
                 LiteralValue::String(value) => format!(
                     "string_{}",
                     value
@@ -767,18 +769,18 @@ impl ToUnionName for FieldType {
                 LiteralValue::Int(val) => format!("int_{}", val.to_string()),
                 LiteralValue::Bool(val) => format!("bool_{}", val.to_string()),
             },
-            FieldType::Class { name, .. } => name.to_string(),
-            FieldType::List(field_type, _) => {
+            T::Class { name, .. } => name.to_string(),
+            T::List(field_type, _) => {
                 format!("List__{}", field_type.to_union_name())
             }
-            FieldType::Map(field_type, field_type1, _) => {
+            T::Map(field_type, field_type1, _) => {
                 format!(
                     "Map__{}_{}",
                     field_type.to_union_name(),
                     field_type1.to_union_name()
                 )
             }
-            FieldType::Union(field_types, _) => match field_types.view() {
+            T::Union(field_types, _) => match field_types.view() {
                 UnionTypeViewGeneric::Null => "null".to_string(),
                 UnionTypeViewGeneric::Optional(field_type) => field_type.to_union_name(),
                 UnionTypeViewGeneric::OneOf(field_types)
@@ -794,7 +796,7 @@ impl ToUnionName for FieldType {
                     )
                 }
             },
-            FieldType::Tuple(field_types, _) => format!(
+            T::Tuple(field_types, _) => format!(
                 "Tuple__{}",
                 field_types
                     .iter()
@@ -803,8 +805,8 @@ impl ToUnionName for FieldType {
                     .join("__")
                     .to_string()
             ),
-            FieldType::RecursiveTypeAlias { name, .. } => name.to_string(),
-            FieldType::Arrow(_, _) => "function".to_string(),
+            T::RecursiveTypeAlias { name, .. } => name.to_string(),
+            T::Arrow(_, _) => "function".to_string(),
         }
     }
 }

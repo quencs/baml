@@ -333,7 +333,7 @@ pub fn serialize_baml_value_with_meta<'a, 'b, T>(
     ir: &InternalBamlRuntime,
 ) -> &'a [u8]
 where
-    T: HasFieldType,
+    T: HasFieldType + Clone,
 {
     let value_holder = from_baml_value_with_meta(value, &mut builder, allow_partials, ir);
     // println!("value_holder: {:#?}", value_holder);
@@ -348,9 +348,8 @@ fn from_baml_value_with_meta<'a, 'b, T>(
     ir: &InternalBamlRuntime,
 ) -> flatbuffers::WIPOffset<CFFIValueHolder<'b>>
 where
-    T: HasFieldType,
+    T: HasFieldType + Clone
 {
-    println!("encoding: {}", value.field_type());
     let allow_partials = allow_partials && !value.field_type().streaming_behavior().done;
     let (value_type, value_holder) = match value {
         BamlValueWithMeta::String(val, _) => {
@@ -575,7 +574,6 @@ where
 
     let target_type= match &target_type {
         baml_types::FieldType::RecursiveTypeAlias { name, .. } => {
-            println!("-> expanding type alias: {target_type}");
             use baml_types::baml_value::TypeLookups;
             
             ir.ir().expand_recursive_type(name)
@@ -586,7 +584,6 @@ where
     
 
     if let baml_types::FieldType::Union(options, _) = target_type {
-        println!("-> As union: {target_type}");
         let mut options_vec = vec![];
         for t in options.iter_include_null() {
             options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));

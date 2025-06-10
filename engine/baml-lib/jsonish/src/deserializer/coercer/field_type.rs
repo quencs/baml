@@ -24,7 +24,6 @@ impl TypeCoercer for FieldType {
         target: &FieldType,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
-        println!("-> coercing into: {target}");
         let mut result = match value {
             Some(crate::jsonish::Value::AnyOf(candidates, primitive)) => {
                 log::debug!(
@@ -92,10 +91,7 @@ impl TypeCoercer for FieldType {
                 FieldType::Literal(l, _) => l.coerce(ctx, target, value),
                 FieldType::Class { name, .. } => IrRef::Class(name).coerce(ctx, target, value),
                 FieldType::RecursiveTypeAlias { name, .. } => {
-                    coerce_alias(ctx, self, value).map(|v| {
-                        println!("-> mapping: {} -> {}", v.field_type(), target);
-                        v.with_target(target)
-                })
+                    coerce_alias(ctx, self, value).map(|v| v.with_target(target))
                 }
                 FieldType::List(_, _) => {
                     coerce_array(ctx, self, value).map(|v| v.with_target(target))

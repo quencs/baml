@@ -105,8 +105,15 @@ mod union {
         pub name: String,
         pub cffi_name: String,
         pub docstring: Option<String>,
-        pub variants: Vec<(String, TypeGo)>,
+        pub variants: Vec<VariantGo>,
         pub pkg: &'a CurrentRenderPackage,
+    }
+
+    #[derive(Clone)]
+    pub struct VariantGo {
+        pub name: String,
+        pub cffi_name: String,
+        pub type_: TypeGo,
     }
 
     /// A union in Go that is used for stream state.
@@ -115,14 +122,14 @@ mod union {
     /// {% if let Some(docstring) = docstring -%}
     /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
     /// {%- endif %}
-    /// type Generic__{{ name }} struct[{% for v in variants -%}Type__{{ v.0 }}, {%- endfor %}]
+    /// type Generic__{{ name }} struct[{% for v in variants -%}Type__{{ v.name }}, {%- endfor %}]
     /// ```
     #[derive(askama::Template)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
     struct StreamUnionGo<'a> {
         name: String,
         docstring: Option<String>,
-        variants: Vec<(String, TypeGo)>,
+        variants: Vec<VariantGo>,
         pkg: &'a CurrentRenderPackage,
     }
 
@@ -360,5 +367,5 @@ pub(crate) fn render_go_stream_types<T: askama::Template>(items: &[T], pkg: &Cur
 
 pub use class::{ClassGo, FieldGo};
 pub use enums::EnumGo;
-pub use union::UnionGo;
+pub use union::{UnionGo, VariantGo};
 pub use type_aliases::TypeAliasGo;

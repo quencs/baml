@@ -1,7 +1,7 @@
 type {{ name }} struct {
     variant string
-    {% for (variant_name, variant_type) in variants %}
-    variant_{{ variant_name }} *{{ variant_type.serialize_type(pkg) }}
+    {% for v in variants %}
+    variant_{{ v.name }} *{{ v.type_.serialize_type(pkg) }}
     {% endfor %}
 }
 
@@ -9,11 +9,11 @@ func (u *{{ name }}) Decode(holder *cffi.CFFIValueUnionVariant) {
     valueHolder := holder.Value(nil)
     variantName := string(holder.VariantName())
 	switch variantName {
-    {% for (variant_name, variant_type) in variants -%}
-	    case "{{ variant_name }}":
-            u.variant = "{{ variant_name }}"
-            value := {{ variant_type.decode_from_any("valueHolder", pkg) }}
-            u.variant_{{ variant_name }} = &value
+    {% for v in variants -%}
+	    case "{{ v.cffi_name }}":
+            u.variant = "{{ v.name }}"
+            value := {{ v.type_.decode_from_any("valueHolder", pkg) }}
+            u.variant_{{ v.name }} = &value
     {% endfor %}
     default:
         panic(fmt.Sprintf("invalid union variant: %s", variantName))
@@ -23,9 +23,9 @@ func (u *{{ name }}) Decode(holder *cffi.CFFIValueUnionVariant) {
 
 func (u {{ name }}) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
     switch u.variant {
-    {% for (variant_name, variant_type) in variants %}
-    case "{{ variant_name }}":
-        return baml.EncodeUnion(builder, "{{ name }}", u.variant, u.variant_{{ variant_name }})
+    {% for v in variants %}
+    case "{{ v.name }}":
+        return baml.EncodeUnion(builder, "{{ name }}", "{{ v.cffi_name }}", u.variant_{{ v.name }})
     {% endfor %}
     case "":
         return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
@@ -40,9 +40,9 @@ func (u {{ name }}) BamlTypeName() string {
 
 func (u {{ name }}) MarshalJSON() ([]byte, error) {
     switch u.variant {
-    {% for (variant_name, variant_type) in variants %}
-    case "{{ variant_name }}":
-        return json.Marshal(u.variant_{{ variant_name }})
+    {% for v in variants %}
+    case "{{ v.name }}":
+        return json.Marshal(u.variant_{{ v.name }})
     {% endfor %}
     }
 
@@ -51,37 +51,37 @@ func (u {{ name }}) MarshalJSON() ([]byte, error) {
 
 func (u *{{ name }}) UnmarshalJSON(data []byte) error {
     var err error
-    {% for (variant_name, variant_type) in variants %}
-    err = json.Unmarshal(data, &u.variant_{{ variant_name }})
+    {% for v in variants %}
+    err = json.Unmarshal(data, &u.variant_{{ v.name }})
     if err == nil {
-        u.variant = "{{ variant_name }}"
+        u.variant = "{{ v.name }}"
         return nil
     } else {
-        u.variant_{{ variant_name }} = nil
+        u.variant_{{ v.name }} = nil
     }
     {% endfor %}
     return fmt.Errorf("invalid union variant: %s", string(data))
 }
 
-{% for (variant_name, variant_type) in variants %}
-func (u *{{ name }}) Set{{ variant_name|exported_name }}(v {{ variant_type.serialize_type(pkg) }}) {
-    u.variant = "{{ variant_name }}"
-    u.variant_{{ variant_name }} = &v
-    {% for (v_name, v_type) in variants -%}
-    {%- if v_name != variant_name %}
-    u.variant_{{ v_name }} = nil
+{% for v in variants %}
+func (u *{{ name }}) Set{{ v.name|exported_name }}(v {{ v.type_.serialize_type(pkg) }}) {
+    u.variant = "{{ v.name }}"
+    u.variant_{{ v.name }} = &v
+    {% for v2 in variants -%}
+    {%- if v2.name != v.name %}
+    u.variant_{{ v2.name }} = nil
     {% endif -%}
     {%- endfor %}
 }
 
-func (u *{{ name }}) Is{{ variant_name|exported_name }}() bool {
-    return u.variant == "{{ variant_name }}"
+func (u *{{ name }}) Is{{ v.name|exported_name }}() bool {
+    return u.variant == "{{ v.name }}"
 }
 
-func (u *{{ name }}) {{ variant_name|exported_name }}() {{ variant_type.serialize_type(pkg) }} {
-    if u.variant != "{{ variant_name }}" {
-        return {{ variant_type.zero_value(pkg) }}
+func (u *{{ name }}) {{ v.name|exported_name }}() {{ v.type_.serialize_type(pkg) }} {
+    if u.variant != "{{ v.name }}" {
+        return {{ v.type_.zero_value(pkg) }}
     }
-    return *u.variant_{{ variant_name }}
+    return *u.variant_{{ v.name }}
 }
 {% endfor %}
