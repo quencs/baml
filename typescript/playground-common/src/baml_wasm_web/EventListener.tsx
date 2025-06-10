@@ -59,20 +59,20 @@ const ErrorCount: React.FC = () => {
   const { errors, warnings } = useAtomValue(numErrorsAtom)
   if (errors === 0 && warnings === 0) {
     return (
-      <div className='flex flex-row gap-1 items-center text-green-600'>
+      <div className="flex flex-row gap-1 items-center text-green-600">
         <CheckCircle size={12} />
       </div>
     )
   }
   if (errors === 0) {
     return (
-      <div className='flex flex-row gap-1 items-center text-yellow-600'>
+      <div className="flex flex-row gap-1 items-center text-yellow-600">
         {warnings} <AlertTriangle size={12} />
       </div>
     )
   }
   return (
-    <div className='flex flex-row gap-1 items-center text-red-600'>
+    <div className="flex flex-row gap-1 items-center text-red-600">
       {errors} <XCircle size={12} /> {warnings} <AlertTriangle size={12} />{' '}
     </div>
   )
@@ -111,6 +111,27 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [selectedFunc])
   console.log('selectedFunc', selectedFunc)
+
+  useEffect(() => {
+    const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const ws = new WebSocket(`${scheme}://${window.location.host}/ws`)
+
+    ws.onopen = () => console.log('WebSocket connected')
+    ws.onmessage = (e) => {
+      console.log('message!')
+      try {
+        const payload = JSON.parse(e.data)
+        window.postMessage(payload, '*')
+      } catch (err) {
+        console.error('invalid WS payload', err)
+      }
+    }
+    ws.onclose = () => console.log('WebSocket disconnected')
+
+    return () => ws.close()
+  }, [])
+
+  console.log('Websocket execution finished')
 
   useEffect(() => {
     console.log('adding event listener')
@@ -254,11 +275,11 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <>
-      <div className='flex absolute right-2 bottom-2 z-50 flex-row gap-2 text-xs bg-transparent'>
-        <div className='pr-4 whitespace-nowrap'>{bamlCliVersion && 'baml-cli ' + bamlCliVersion}</div>
-        <ErrorCount /> <span className='text-muted-foreground text-[10px]'>VSCode Runtime Version: {version}</span>
+      <div className="flex absolute right-2 bottom-2 z-50 flex-row gap-2 text-xs bg-transparent">
+        <div className="pr-4 whitespace-nowrap">{bamlCliVersion && 'baml-cli ' + bamlCliVersion}</div>
+        <ErrorCount /> <span className="text-muted-foreground text-[10px]">VSCode Runtime Version: {version}</span>
       </div>
-      <CustomErrorBoundary message='Error loading project'>{children}</CustomErrorBoundary>
+      <CustomErrorBoundary message="Error loading project">{children}</CustomErrorBoundary>
     </>
   )
 }
