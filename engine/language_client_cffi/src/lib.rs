@@ -111,7 +111,7 @@ extern "C" fn register_callbacks(callback_fn: CallbackFn, error_callback_fn: Cal
     }
 }
 
-fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>) {
+fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>, runtime: &BamlRuntime) {
     let callback_fn = RESULT_CALLBACK_FN
         .get()
         .expect("expected callback function to be set. Did you call register_callbacks?");
@@ -125,7 +125,7 @@ fn safe_trigger_callback(id: u32, is_done: bool, result: Result<FunctionResult>)
         Ok(result) => match result.parsed() {
             Some(Ok(content)) => {
                 let mut builder = flatbuffers::FlatBufferBuilder::new();
-                let content = ctypes::serialize_baml_value_with_meta(&content.0, &mut builder, !is_done);
+                let content = ctypes::serialize_baml_value_with_meta(&content.0, &mut builder, !is_done, &runtime.inner);
                 let is_done_int = if is_done { 1 } else { 0 };
                 callback_fn(
                     id,
@@ -213,7 +213,7 @@ fn call_function_from_c_inner(
                 env_vars,
             )
             .await;
-        safe_trigger_callback(id, true, result);
+        safe_trigger_callback(id, true, result, runtime);
     });
 
     Ok(())
@@ -279,14 +279,14 @@ fn call_function_stream_from_c_inner(
 
     RUNTIME.spawn(async move {
         let (result, _) = stream
-            .run(Some(|r| on_event(id, r)), &ctx, None, None, HashMap::new())
+            .run(Some(|r| on_event(id, r, runtime)), &ctx, None, None, HashMap::new())
             .await;
-        safe_trigger_callback(id, true, result);
+        safe_trigger_callback(id, true, result, runtime);
     });
 
     Ok(())
 }
 
-fn on_event(id: u32, result: FunctionResult) {
-    safe_trigger_callback(id, false, Ok(result));
+fn on_event(id: u32, result: FunctionResult, runtime: &BamlRuntime) {
+    safe_trigger_callback(id, false, Ok(result), runtime);
 }

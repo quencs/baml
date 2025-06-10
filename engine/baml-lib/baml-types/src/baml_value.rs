@@ -349,9 +349,27 @@ pub enum BamlValueWithMeta<T> {
     Null(T),
 }
 
+
+pub trait TypeLookups {
+    fn expand_recursive_type(&self, type_alias: &str) -> anyhow::Result<&FieldType>;
+}
+
 impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
-    pub fn real_type(&self) -> FieldType {
+    /// Given a value and a union, picks the actual type of the value.
+    ///
+    /// For example, if the value is a union of `int` and `string`, and the value is an `int`,
+    /// this will return `int`.
+    ///
+    /// If the value is a union of `int` and `string`, and the value is a `string`,
+    /// this will return `string`.
+    pub fn real_type(&self, lookup: &impl TypeLookups) -> FieldType {
         let field_type = self.field_type();
+
+        let field_type = match field_type {
+            FieldType::RecursiveTypeAlias { name, .. } => lookup.expand_recursive_type(name).unwrap(),
+            _ => field_type
+        };
+
         if let FieldType::Union(options, _) = field_type {
             return match options.view() {
                 UnionTypeViewGeneric::Null => FieldType::null(),

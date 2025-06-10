@@ -405,6 +405,7 @@ func convertFieldTypeToGoType(fieldType *cffi.CFFIFieldTypeHolder) reflect.Type 
 
 func Decode(holder *cffi.CFFIValueHolder) any {
 	valueType := holder.ValueType()
+	fmt.Println("valueType", valueType)
 	switch valueType {
 	case cffi.CFFIValueUnionNONE:
 		return nil

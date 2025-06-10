@@ -27,7 +27,10 @@ pub enum TypeGeneric<T> {
     },
     List(Box<TypeGeneric<T>>, T),
     Map(Box<TypeGeneric<T>>, Box<TypeGeneric<T>>, T),
-    RecursiveTypeAlias(String, T),
+    RecursiveTypeAlias {
+        name: String,
+        meta: T,
+    },
     Tuple(Vec<TypeGeneric<T>>, T),
     Arrow(Box<ArrowGeneric<T>>, T),
     Union(UnionTypeGeneric<T>, T),
@@ -340,7 +343,7 @@ impl<T> TypeGeneric<T> {
             TypeGeneric::Literal(_, type_metadata_ir) => *type_metadata_ir = meta,
             TypeGeneric::List(_, type_metadata_ir) => *type_metadata_ir = meta,
             TypeGeneric::Map(_, _, type_metadata_ir) => *type_metadata_ir = meta,
-            TypeGeneric::RecursiveTypeAlias(_, type_metadata_ir) => *type_metadata_ir = meta,
+            TypeGeneric::RecursiveTypeAlias { meta: m, .. } => *m = meta,
             TypeGeneric::Tuple(_, type_metadata_ir) => *type_metadata_ir = meta,
             TypeGeneric::Union(_, type_metadata_ir) => *type_metadata_ir = meta,
         }
@@ -355,7 +358,7 @@ impl<T> TypeGeneric<T> {
             TypeGeneric::Literal(_, type_metadata_ir) => type_metadata_ir,
             TypeGeneric::List(_, type_metadata_ir) => type_metadata_ir,
             TypeGeneric::Map(_, _, type_metadata_ir) => type_metadata_ir,
-            TypeGeneric::RecursiveTypeAlias(_, type_metadata_ir) => type_metadata_ir,
+            TypeGeneric::RecursiveTypeAlias { meta, .. } => meta,
             TypeGeneric::Tuple(_, type_metadata_ir) => type_metadata_ir,
             TypeGeneric::Union(_, type_metadata_ir) => type_metadata_ir,
         }
@@ -370,7 +373,7 @@ impl<T> TypeGeneric<T> {
             TypeGeneric::Literal(_, type_metadata_ir) => type_metadata_ir,
             TypeGeneric::List(_, type_metadata_ir) => type_metadata_ir,
             TypeGeneric::Map(_, _, type_metadata_ir) => type_metadata_ir,
-            TypeGeneric::RecursiveTypeAlias(_, type_metadata_ir) => type_metadata_ir,
+            TypeGeneric::RecursiveTypeAlias { meta, .. } => meta,
             TypeGeneric::Tuple(_, type_metadata_ir) => type_metadata_ir,
             TypeGeneric::Union(_, type_metadata_ir) => type_metadata_ir,
         }
@@ -444,7 +447,7 @@ impl<T> TypeGeneric<T> {
                     queue.extend(arrow.param_types.iter());
                     queue.push(&arrow.return_type);
                 }
-                TypeGeneric::RecursiveTypeAlias(name, _) => {
+                TypeGeneric::RecursiveTypeAlias { name, .. } => {
                     deps.insert(name.clone());
                 }
                 TypeGeneric::Primitive(_, _) | TypeGeneric::Literal(_, _) => {}
@@ -540,8 +543,11 @@ fn partialize(r#type: &Type) -> TypeStreaming {
                 Box::new(partialize(item_type)),
                 meta,
             ),
-            FieldType::RecursiveTypeAlias(name, _) => {
-                TypeStreaming::RecursiveTypeAlias(name.clone(), meta)
+            FieldType::RecursiveTypeAlias { name, .. } => {
+                TypeStreaming::RecursiveTypeAlias {
+                    name: name.clone(),
+                    meta: meta.clone(),
+                }
             }
             FieldType::Tuple(field_types, _) => {
                 TypeStreaming::Tuple(field_types.iter().map(|t| partialize(t)).collect(), meta)
@@ -571,6 +577,7 @@ fn partialize(r#type: &Type) -> TypeStreaming {
                 TypeStreaming::Union(unsafe { UnionTypeGeneric::new_unsafe(variants) }, meta)
             }
         };
+
         if needed || base_type_streaming.is_optional() {
             // Needed streaming types, and streaming types that are optional, need
             // no further processing to add optionality.
@@ -611,10 +618,20 @@ fn partialize(r#type: &Type) -> TypeStreaming {
                 done: true,
                 ..Default::default()
             },
+            // FieldType::RecursiveTypeAlias { nullable, .. } => {
+            //     if *nullable {
+            //         StreamingBehavior {
+            //             needed: true,
+            //             ..Default::default()
+            //         }
+            //     } else {
+            //         Default::default()
+            //     }
+            // }
+            FieldType::RecursiveTypeAlias { .. } => Default::default(),
             FieldType::Class { .. }
             | FieldType::List(..)
             | FieldType::Map(..)
-            | FieldType::RecursiveTypeAlias(..)
             | FieldType::Tuple(..)
             | FieldType::Arrow(..)
             | FieldType::Union(..) => Default::default(),
@@ -729,7 +746,7 @@ impl ToUnionName for FieldType {
             | FieldType::Enum { .. }
             | FieldType::Literal(_, _)
             | FieldType::Class { .. }
-            | FieldType::RecursiveTypeAlias(_, _)
+            | FieldType::RecursiveTypeAlias { .. }
             | FieldType::Arrow(_, _) => IndexSet::new(),
             FieldType::Tuple(inner, _) => inner.iter().flat_map(|t| t.find_union_types()).collect(),
         }
@@ -786,7 +803,7 @@ impl ToUnionName for FieldType {
                     .join("__")
                     .to_string()
             ),
-            FieldType::RecursiveTypeAlias(name, _) => name.to_string(),
+            FieldType::RecursiveTypeAlias { name, .. } => name.to_string(),
             FieldType::Arrow(_, _) => "function".to_string(),
         }
     }

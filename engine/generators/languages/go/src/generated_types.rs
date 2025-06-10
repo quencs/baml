@@ -149,18 +149,6 @@ mod type_aliases {
     /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
     /// {%- endif %}
     /// type {{ name }} = {{ type_.serialize_type(pkg) }}
-    /// 
-    /// {# DONT DO THIS FOR NOW it seems to work?
-    /// {% match type_ -%}
-    /// {% when TypeGo::Union { .. } -%}
-    /// func (u *{{ name }}) Decode(holder *cffi.CFFIValueUnionVariant) {
-    ///     decodedUnion := {{ type_.zero_value(pkg) }}
-    ///     decodedUnion.Decode(holder)
-    ///     *u = {{ name }}{decodedUnion}
-    /// }
-    /// {%- else -%}
-    /// {% endmatch %}
-    /// #}
     /// ```
     #[derive(askama::Template)]
     #[template(in_doc = true, escape = "none", ext = "txt")]

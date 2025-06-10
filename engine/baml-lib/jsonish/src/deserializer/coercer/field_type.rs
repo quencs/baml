@@ -24,6 +24,7 @@ impl TypeCoercer for FieldType {
         target: &FieldType,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
+        println!("-> coercing into: {target}");
         let mut result = match value {
             Some(crate::jsonish::Value::AnyOf(candidates, primitive)) => {
                 log::debug!(
@@ -90,8 +91,11 @@ impl TypeCoercer for FieldType {
                 FieldType::Enum { name, .. } => IrRef::Enum(name).coerce(ctx, target, value),
                 FieldType::Literal(l, _) => l.coerce(ctx, target, value),
                 FieldType::Class { name, .. } => IrRef::Class(name).coerce(ctx, target, value),
-                FieldType::RecursiveTypeAlias(name, _) => {
-                    coerce_alias(ctx, self, value).map(|v| v.with_target(target))
+                FieldType::RecursiveTypeAlias { name, .. } => {
+                    coerce_alias(ctx, self, value).map(|v| {
+                        println!("-> mapping: {} -> {}", v.field_type(), target);
+                        v.with_target(target)
+                })
                 }
                 FieldType::List(_, _) => {
                     coerce_array(ctx, self, value).map(|v| v.with_target(target))
@@ -188,7 +192,7 @@ impl DefaultValue for FieldType {
             FieldType::Enum { .. } => None,
             FieldType::Literal(_, _) => None,
             FieldType::Class { .. } => None,
-            FieldType::RecursiveTypeAlias(_, _) => None,
+            FieldType::RecursiveTypeAlias { .. } => None,
             FieldType::List(_, _) => Some(BamlValueWithFlags::List(
                 get_flags(),
                 self.clone(),

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_runtime::client_registry::{ClientProperty, ClientProvider, ClientRegistry};
+use baml_runtime::{client_registry::{ClientProperty, ClientProvider, ClientRegistry}, runtime::InternalBamlRuntime, InternalRuntimeInterface};
 use baml_types::{BamlMedia, BamlValue, BamlValueWithMeta, HasFieldType, ToUnionName};
 
 #[allow(non_snake_case)]
@@ -330,11 +330,12 @@ pub fn serialize_baml_value_with_meta<'a, 'b, T>(
     value: &'b BamlValueWithMeta<T>,
     mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
     allow_partials: bool,
+    ir: &InternalBamlRuntime,
 ) -> &'a [u8]
 where
     T: HasFieldType,
 {
-    let value_holder = from_baml_value_with_meta(value, &mut builder, allow_partials);
+    let value_holder = from_baml_value_with_meta(value, &mut builder, allow_partials, ir);
     // println!("value_holder: {:#?}", value_holder);
     builder.finish(value_holder, None);
     builder.finished_data()
@@ -344,10 +345,12 @@ fn from_baml_value_with_meta<'a, 'b, T>(
     value: &'b BamlValueWithMeta<T>,
     mut builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
     allow_partials: bool,
+    ir: &InternalBamlRuntime,
 ) -> flatbuffers::WIPOffset<CFFIValueHolder<'b>>
 where
     T: HasFieldType,
 {
+    println!("encoding: {}", value.field_type());
     let allow_partials = allow_partials && !value.field_type().streaming_behavior().done;
     let (value_type, value_holder) = match value {
         BamlValueWithMeta::String(val, _) => {
@@ -386,7 +389,7 @@ where
         BamlValueWithMeta::List(val, _) => {
             let mut items = Vec::new();
             for v in val.iter() {
-                items.push(from_baml_value_with_meta(v, &mut builder, allow_partials));
+                items.push(from_baml_value_with_meta(v, &mut builder, allow_partials, ir));
             }
 
             let values = builder.create_vector_from_iter(items.into_iter());
@@ -407,7 +410,7 @@ where
             let mut items = Vec::new();
             for (k, v) in val.iter() {
                 let key = builder.create_string(k);
-                let value = from_baml_value_with_meta(v, &mut builder, allow_partials);
+                let value = from_baml_value_with_meta(v, &mut builder, allow_partials, ir);
 
                 items.push(CFFIMapEntry::create(
                     &mut builder,
@@ -436,7 +439,7 @@ where
             let mut items = Vec::new();
             for (k, v) in fields.iter() {
                 let key = builder.create_string(k);
-                let value = from_baml_value_with_meta(v, &mut builder, allow_partials);
+                let value = from_baml_value_with_meta(v, &mut builder, allow_partials, ir);
                 items.push(CFFIMapEntry::create(
                     &mut builder,
                     &CFFIMapEntryArgs {
@@ -568,14 +571,29 @@ where
     );
 
     let target_type = value.field_type().simplify();
-    if let baml_types::FieldType::Union(options, _) = &target_type {
+
+
+    let target_type= match &target_type {
+        baml_types::FieldType::RecursiveTypeAlias { name, .. } => {
+            println!("-> expanding type alias: {target_type}");
+            use baml_types::baml_value::TypeLookups;
+            
+            ir.ir().expand_recursive_type(name)
+                .expect("Failed to expand recursive type alias")
+        },
+        _ => &target_type
+    };
+    
+
+    if let baml_types::FieldType::Union(options, _) = target_type {
+        println!("-> As union: {target_type}");
         let mut options_vec = vec![];
         for t in options.iter_include_null() {
             options_vec.push(field_type_to_cffi_value_holder(t, &mut builder));
         }
 
         // figure out which index of the options is the target_type
-        let real_type = value.real_type();
+        let real_type = value.real_type(ir.ir());
         let options = options.iter_include_null();
         let value_type_index = options
             .iter()
@@ -701,7 +719,7 @@ where
                 value_union_variant.as_union_value(),
             )
         }
-        baml_types::FieldType::RecursiveTypeAlias(name, _) => {
+        baml_types::FieldType::RecursiveTypeAlias { name, .. } => {
             let name = builder.create_string(name);
             let type_alias = CFFIFieldTypeTypeAlias::create(
                 &mut builder,

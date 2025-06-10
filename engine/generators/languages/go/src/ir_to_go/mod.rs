@@ -1,5 +1,5 @@
-use crate::r#type::{MediaTypeGo, TypeGo, TypeMetaGo, TypeWrapper};
-use baml_types::{ir_type::{Type, TypeStreaming}, BamlMediaType, ConstraintLevel, type_meta::base::TypeMeta, type_meta::stream::TypeMetaStreaming, TypeValue};
+use crate::{r#type::{MediaTypeGo, TypeGo, TypeMetaGo, TypeWrapper}};
+use baml_types::{baml_value::TypeLookups, ir_type::{Type, TypeStreaming}, type_meta::{base::TypeMeta, stream::TypeMetaStreaming}, BamlMediaType, ConstraintLevel, TypeValue};
 
 use crate::package::Package;
 
@@ -9,9 +9,9 @@ pub mod enums;
 pub mod unions;
 pub mod type_aliases;
 
-fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
+fn stream_type_to_go(field: &TypeStreaming, lookup: &impl TypeLookups) -> TypeGo {
     use TypeStreaming as T;
-    let recursive_fn = stream_type_to_go;
+    let recursive_fn =|field| stream_type_to_go(field, lookup);
     let meta = stream_meta_to_go(field.meta());
 
     let TYPES_PKG: Package = Package::new("baml_client.types");
@@ -53,12 +53,15 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
         T::Map(type_generic, type_generic1, _) => {
             TypeGo::Map(Box::new(recursive_fn(type_generic)), Box::new(recursive_fn(type_generic1)), meta)
         },
-        T::RecursiveTypeAlias(name, _) => {
+        T::RecursiveTypeAlias { name, meta: alias_meta, .. } => {
             // TODO: hack to generate correct types for recuriviely nullable types
             let mut meta = meta;
             meta.make_optional();
             TypeGo::Class {
-                package: STREAM_PKG.clone(),
+                package: match alias_meta.streaming_behavior.done {
+                    true => TYPES_PKG.clone(),
+                    false => STREAM_PKG.clone(),
+                },
                 name: name.clone(),
                 dynamic: false,
                 meta
@@ -115,9 +118,11 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
     type_go
 }
 
-fn type_to_go(field: &Type) -> TypeGo {
+fn type_to_go(field: &Type, lookup: &impl TypeLookups) -> TypeGo {
     use Type as T;
-    let recursive_fn = type_to_go;
+    let recursive_fn = |field: &Type| {
+        type_to_go(field, lookup)
+    };
     let meta = meta_to_go(field.meta());
 
     let TYPE_PKG: Package = Package::new("baml_client.types");
@@ -155,16 +160,26 @@ fn type_to_go(field: &Type) -> TypeGo {
         T::Map(type_generic, type_generic1, _) => {
             TypeGo::Map(Box::new(recursive_fn(type_generic)), Box::new(recursive_fn(type_generic1)), meta)
         },
-        T::RecursiveTypeAlias(name, _) => {
-            // TODO: hack to generate correct types for recuriviely nullable types
-            let mut meta = meta;
-            meta.make_optional();
-            TypeGo::Class {
-                package: TYPE_PKG.clone(),
-                name: name.clone(),
-                dynamic: false,
-                meta
-            }
+        T::RecursiveTypeAlias { name, .. } => {
+            match lookup.expand_recursive_type(name) {
+                Ok(expansion) => {
+                    TypeGo::Class {
+                        package: TYPE_PKG.clone(),
+                        name: name.clone(),
+                        dynamic: false,
+                        meta: if expansion.is_optional() {
+                            let mut meta = meta;
+                            meta.make_optional();
+                            meta
+                        } else {
+                            meta
+                        }
+                    }
+                }
+                Err(e) => {
+                    TypeGo::Any { reason: format!("Unable to expand{name}: {e}"), meta }
+                }
+            }            
         },
         T::Tuple(..) => TypeGo::Any { reason: "tuples are not supported in Go".to_string(), meta },
         T::Arrow(..) => TypeGo::Any { reason: "arrow types are not supported in Go".to_string(), meta },
