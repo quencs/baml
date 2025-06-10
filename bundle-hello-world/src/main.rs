@@ -4,7 +4,6 @@ use include_dir::{Dir, include_dir};
 use mime_guess::from_path;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::fs;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -17,7 +16,34 @@ mod file_watcher;
 static STATIC_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/dist");
 static ROOT_PATH: &str = ".";
 
+fn get_baml_files() -> Vec<String> {
+    let mut files = Vec::new();
+
+    fn search_dir(dir_path: &std::path::Path, files: &mut Vec<String>) {
+        if let Ok(entries) = fs::read_dir(dir_path) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    // Recursively search subdirectories
+                    search_dir(&path, files);
+                } else if path.is_file() && path.extension().map_or(false, |ext| ext == "baml") {
+                    if let Ok(absolute) = fs::canonicalize(&path) {
+                        if let Some(path_str) = absolute.to_str() {
+                            files.push(path_str.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO: should consider the possibility of baml_src as root directory?
+    search_dir(std::path::Path::new("baml_src"), &mut files);
+    files
+}
+
 #[derive(Serialize, Deserialize, Debug)]
+
 struct Span {
     file_path: String,
     start_line: u32,
@@ -120,9 +146,21 @@ async fn client_connection(ws: warp::ws::WebSocket, state: Arc<RwLock<BamlState>
     });
 }
 
+async fn initialize_baml_files(state: Arc<RwLock<BamlState>>) {
+    let mut state = state.write().await;
+    for path in get_baml_files() {
+        if let Ok(content) = fs::read_to_string(&path) {
+            state.files.insert(path, content);
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let state = Arc::new(RwLock::new(BamlState::new()));
+
+    // Initialize all BAML files from baml_src directory
+    initialize_baml_files(state.clone()).await;
 
     // Set up a single file watcher for the baml_src directory
     if let Ok(watcher) = FileWatcher::new("baml_src") {
@@ -168,13 +206,15 @@ async fn main() {
                     Some(f) => {
                         let body = f.contents();
                         let mime = from_path(file).first_or_octet_stream();
-                        Ok::<_, Infallible>(
+                        Ok::<_, warp::Rejection>(
                             Response::builder()
                                 .header("content-type", mime.as_ref())
                                 .body(body.to_vec()),
                         )
                     }
-                    None => Ok(Response::builder().status(404).body(b"Not Found".to_vec())),
+                    None => Ok::<_, warp::Rejection>(
+                        Response::builder().status(404).body(b"Not Found".to_vec()),
+                    ),
                 }
             });
 
