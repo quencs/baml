@@ -1,74 +1,53 @@
+use notify::event::DataChange;
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use serde_json::json;
-use std::{path::Path, sync::Arc};
-use tokio::sync::broadcast;
+use std::path::Path;
+use std::sync::mpsc::channel;
+use std::time::Duration;
 
 pub struct FileWatcher {
-    tx: broadcast::Sender<String>,
+    path: String,
 }
 
 impl FileWatcher {
-    pub fn new(tx: broadcast::Sender<String>) -> Self {
-        Self { tx }
+    pub fn new(path: &str) -> Result<Self, notify::Error> {
+        Ok(Self {
+            path: path.to_string(),
+        })
     }
 
-    pub fn watch(&self, path: &Path) -> notify::Result<()> {
-        let tx = self.tx.clone();
-        let path = Arc::new(path.to_path_buf());
+    pub fn watch<F>(&self, mut callback: F) -> Result<(), notify::Error>
+    where
+        F: FnMut(&str) + Send + 'static,
+    {
+        let path = self.path.clone();
+        std::thread::spawn(move || {
+            let (tx, rx) = channel();
+            let mut watcher = RecommendedWatcher::new(
+                move |res: Result<Event, _>| {
+                    if let Ok(event) = res {
+                        tx.send(event).unwrap();
+                    }
+                },
+                Config::default()
+                    .with_poll_interval(Duration::from_secs(1))
+                    .with_compare_contents(true),
+            )
+            .unwrap();
 
-        let mut watcher = RecommendedWatcher::new(
-            move |res: Result<Event, _>| {
-                if let Ok(event) = res {
-                    for path in event.paths {
-                        if !path.extension().map_or(false, |ext| ext == "baml") {
-                            continue;
-                        }
+            watcher
+                .watch(Path::new(&path), RecursiveMode::NonRecursive)
+                .unwrap();
 
-                        match event.kind {
-                            EventKind::Create(_) | EventKind::Modify(_) => {
-                                if let Ok(content) = std::fs::read_to_string(&path) {
-                                    let parent =
-                                        path.parent().and_then(|p| p.to_str()).unwrap_or(".");
-
-                                    let filename = path
-                                        .file_name()
-                                        .and_then(|f| f.to_str())
-                                        .unwrap_or("unknown.baml");
-
-                                    let payload = json!({
-                                        "command": "add_project",
-                                        "content": {
-                                            "root_path": parent,
-                                            "files": {
-                                                filename: content
-                                            }
-                                        }
-                                    });
-
-                                    let _ = tx.send(payload.to_string());
-                                }
-                            }
-                            EventKind::Remove(_) => {
-                                let parent = path.parent().and_then(|p| p.to_str()).unwrap_or(".");
-
-                                let payload = json!({
-                                    "command": "remove_project",
-                                    "content": {
-                                        "root_path": parent
-                                    }
-                                });
-
-                                let _ = tx.send(payload.to_string());
-                            }
-                            _ => {}
-                        }
+            for event in rx {
+                // Only trigger on actual content changes, not metadata changes
+                if let EventKind::Modify(kind) = event.kind {
+                    if kind == notify::event::ModifyKind::Data(DataChange::Content) {
+                        callback(&path);
                     }
                 }
-            },
-            Config::default().with_poll_interval(std::time::Duration::from_secs(1)),
-        )?;
+            }
+        });
 
-        watcher.watch(path.as_ref(), RecursiveMode::Recursive)?;
         Ok(())
     }
 }
