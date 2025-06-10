@@ -2708,6 +2708,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "generators-python"
+version = "0.89.0"
+dependencies = [
+ "anyhow",
+ "askama",
+ "baml-types",
+ "baml_cffi",
+ "dir-writer",
+ "internal-baml-core",
+ "prettydiff",
+ "test-harness",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
