@@ -22,7 +22,7 @@ impl FileWatcher {
         let path = self.path.clone();
         std::thread::spawn(move || {
             let (tx, rx) = channel();
-            let mut watcher = RecommendedWatcher::new(
+            let mut watcher = match RecommendedWatcher::new(
                 move |res: Result<Event, _>| {
                     if let Ok(event) = res {
                         tx.send(event).unwrap();
@@ -31,18 +31,29 @@ impl FileWatcher {
                 Config::default()
                     .with_poll_interval(Duration::from_secs(1))
                     .with_compare_contents(true),
-            )
-            .unwrap();
+            ) {
+                Ok(w) => w,
+                Err(e) => {
+                    eprintln!("Failed to create watcher for {}: {}", path, e);
+                    return;
+                }
+            };
 
-            watcher
-                .watch(Path::new(&path), RecursiveMode::NonRecursive)
-                .unwrap();
+            if let Err(e) = watcher.watch(Path::new(&path), RecursiveMode::Recursive) {
+                eprintln!("Failed to watch {}: {}", path, e);
+                return;
+            }
 
             for event in rx {
                 // Only trigger on actual content changes, not metadata changes
                 if let EventKind::Modify(kind) = event.kind {
                     if kind == notify::event::ModifyKind::Data(DataChange::Content) {
-                        callback(&path);
+                        // Get the full path of the changed file
+                        if let Some(paths) = event.paths.first() {
+                            if let Some(path_str) = paths.to_str() {
+                                callback(path_str);
+                            }
+                        }
                     }
                 }
             }

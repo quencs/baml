@@ -15,6 +15,7 @@ mod file_watcher;
 
 /// Embed at compile time everything in dist/
 static STATIC_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/dist");
+static ROOT_PATH: &str = ".";
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Span {
@@ -33,29 +34,35 @@ struct CursorPosition {
     column: u32,
 }
 
+// Note: the name add_project should match exactly to the
+// EventListener.tsx command definitions due to how serde serializes these into json
+#[allow(non_camel_case_types)]
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "command", content = "content")]
 enum FrontendMessage {
-    #[serde(rename = "add_project")]
-    AddProject {
+    add_project {
         root_path: String,
         files: HashMap<String, String>,
     },
-    #[serde(rename = "remove_project")]
-    RemoveProject { root_path: String },
-    #[serde(rename = "set_flashing_regions")]
-    SetFlashingRegions { spans: Vec<Span> },
-    #[serde(rename = "select_function")]
-    SelectFunction {
+    remove_project {
+        root_path: String,
+    },
+    set_flashing_regions {
+        spans: Vec<Span>,
+    },
+    select_function {
         root_path: String,
         function_name: String,
     },
-    #[serde(rename = "update_cursor")]
-    UpdateCursor { cursor: CursorPosition },
-    #[serde(rename = "baml_settings_updated")]
-    BamlSettingsUpdated { settings: HashMap<String, String> },
-    #[serde(rename = "run_test")]
-    RunTest { test_name: String },
+    update_cursor {
+        cursor: CursorPosition,
+    },
+    baml_settings_updated {
+        settings: HashMap<String, String>,
+    },
+    run_test {
+        test_name: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -71,8 +78,6 @@ struct Diagnostic {
 
 struct BamlState {
     files: HashMap<String, String>,
-    current_function: Option<String>,
-    diagnostics: Vec<Diagnostic>,
     tx: broadcast::Sender<String>,
 }
 
@@ -81,46 +86,22 @@ impl BamlState {
         let (tx, _) = broadcast::channel(100);
         Self {
             files: HashMap::new(),
-            current_function: None,
-            diagnostics: Vec::new(),
             tx,
         }
-    }
-
-    fn load_baml_files(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        // Load receipt.baml
-        let receipt_content = fs::read_to_string("receipt.baml")?;
-        self.files
-            .insert("receipt.baml".to_string(), receipt_content);
-
-        // Load clients.baml
-        let clients_content = fs::read_to_string("clients.baml")?;
-        self.files
-            .insert("clients.baml".to_string(), clients_content);
-
-        Ok(())
     }
 }
 
 async fn client_connection(ws: warp::ws::WebSocket, state: Arc<RwLock<BamlState>>) {
-    let (mut ws_tx, mut ws_rx) = ws.split();
+    let (mut ws_tx, _ws_rx) = ws.split();
     let mut rx = {
         let state = state.read().await;
         state.tx.subscribe()
     };
 
-    // Load BAML files and send initial state
-    {
-        let mut state = state.write().await;
-        if let Err(e) = state.load_baml_files() {
-            eprintln!("Error loading BAML files: {}", e);
-        }
-    }
-
-    // Send initial project state (currently to the root folder of where the script is called)
+    // Send initial project state
     let state_read = state.read().await;
-    let add_project_msg = FrontendMessage::AddProject {
-        root_path: ".".to_string(),
+    let add_project_msg = FrontendMessage::add_project {
+        root_path: ROOT_PATH.to_string(),
         files: state_read.files.clone(),
     };
     // Send the add project message to the client
@@ -143,32 +124,28 @@ async fn client_connection(ws: warp::ws::WebSocket, state: Arc<RwLock<BamlState>
 async fn main() {
     let state = Arc::new(RwLock::new(BamlState::new()));
 
-    // Set up file watchers for .baml files
-    let baml_files = ["receipt.baml", "clients.baml"];
-    for file in baml_files {
-        if let Ok(watcher) = FileWatcher::new(file) {
-            let state_clone = state.clone();
-            watcher
-                .watch(move |path| {
-                    println!("BAML file changed: {}", path);
-                    // Reload the file and update state
-                    let rt = tokio::runtime::Runtime::new().unwrap();
-                    rt.block_on(async {
-                        let mut state = state_clone.write().await;
-                        if let Ok(content) = fs::read_to_string(path) {
-                            state.files.insert(path.to_string(), content);
+    // Set up a single file watcher for the baml_src directory
+    if let Ok(watcher) = FileWatcher::new("baml_src") {
+        let state_clone = state.clone();
+        if let Err(e) = watcher.watch(move |path| {
+            println!("BAML file changed: {}", path);
+            // Reload the file and update state
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let mut state = state_clone.write().await;
+                if let Ok(content) = fs::read_to_string(path) {
+                    state.files.insert(path.to_string(), content);
 
-                            // Notify all clients about the file change
-                            let add_project_msg = FrontendMessage::AddProject {
-                                root_path: ".".to_string(),
-                                files: state.files.clone(),
-                            };
-                            let msg_str = serde_json::to_string(&add_project_msg).unwrap();
-                            let _ = state.tx.send(msg_str);
-                        }
-                    });
-                })
-                .unwrap();
+                    let add_project_msg = FrontendMessage::add_project {
+                        root_path: ROOT_PATH.to_string(),
+                        files: state.files.clone(),
+                    };
+                    let msg_str = serde_json::to_string(&add_project_msg).unwrap();
+                    let _ = state.tx.send(msg_str);
+                }
+            });
+        }) {
+            eprintln!("Failed to watch baml_src directory: {}", e);
         }
     }
 
