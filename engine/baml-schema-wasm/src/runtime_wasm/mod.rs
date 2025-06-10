@@ -865,8 +865,8 @@ fn get_dummy_value(
             Some(dummy)
         }
         baml_runtime::FieldType::Literal(_, _) => None,
-        baml_runtime::FieldType::Enum(_, _) => None,
-        baml_runtime::FieldType::Class(_, _) => None,
+        baml_runtime::FieldType::Enum { .. } => None,
+        baml_runtime::FieldType::Class { .. } => None,
         baml_runtime::FieldType::RecursiveTypeAlias(_, _) => None,
         baml_runtime::FieldType::List(item, _) => {
             let dummy = get_dummy_value(indent + 1, allow_multiline, item);
@@ -905,7 +905,9 @@ fn get_dummy_value(
                 _ => None,
             }
         }
+
         baml_runtime::FieldType::Union(fields, _) => fields
+            .iter_include_null()
             .iter()
             .filter_map(|f| get_dummy_value(indent, allow_multiline, f))
             .next(),
@@ -917,7 +919,6 @@ fn get_dummy_value(
                 .join(", ");
             Some(format!("({},)", dummy))
         }
-        baml_runtime::FieldType::Optional(_, _) => None,
         baml_runtime::FieldType::Arrow(..) => None,
     }
 }

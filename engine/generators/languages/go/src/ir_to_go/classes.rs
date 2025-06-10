@@ -123,4 +123,21 @@ mod tests {
         assert_eq!(class_go.fields.len(), 1);
         println!("{}", class_go.fields[0]);
     }
+
+    #[test]
+    fn test_class_with_field_docstring() {
+        let ir = make_test_ir(
+            r#"
+        class Foo {
+            /// ds
+            bar string @description("d")
+        }
+        "#,
+        )
+        .expect("Valid IR");
+        let class = ir.find_class("Foo").unwrap().item;
+        let pkg = CurrentRenderPackage::new("baml_client");
+        let class_go = ir_class_to_go_stream(&class, &pkg);
+        assert_eq!(class_go.fields[0].docstring, Some("ds".to_string()));
+    }
 }

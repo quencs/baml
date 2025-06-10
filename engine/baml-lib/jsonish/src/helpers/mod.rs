@@ -2,7 +2,7 @@ pub mod common;
 use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::Result;
-use baml_types::{BamlValueWithMeta, ResponseCheck, type_meta::base::StreamingBehavior};
+use baml_types::{type_meta::base::StreamingBehavior, BamlValueWithMeta, ResponseCheck};
 use baml_types::{EvaluationContext, JinjaExpression};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::IRHelperExtended;
@@ -130,7 +130,11 @@ fn relevant_data_models<'a>(
 
     while let Some(output) = start.pop() {
         match &output {
-            FieldType::Enum { name, dynamic, meta } => {
+            FieldType::Enum {
+                name,
+                dynamic,
+                meta,
+            } => {
                 if checked_types.insert(output.to_string()) {
                     let walker = ir.find_enum(&name);
 
@@ -155,7 +159,7 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::List(inner,_) => {
+            FieldType::List(inner, _) => {
                 if !checked_types.contains(&inner.to_string()) {
                     start.push(inner.as_ref().clone());
                 }
@@ -188,7 +192,12 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Class { name, mode, dynamic, meta: metadata } => {
+            FieldType::Class {
+                name,
+                mode,
+                dynamic,
+                meta: metadata,
+            } => {
                 if checked_types.insert(output.to_string()) {
                     let walker = ir.find_class(&name);
 
@@ -234,7 +243,7 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::RecursiveTypeAlias (name,_) => {
+            FieldType::RecursiveTypeAlias(name, _) => {
                 // TODO: Same O(n) problem as above.
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if cycle.contains_key(name) {
@@ -259,6 +268,8 @@ fn relevant_data_models<'a>(
 }
 
 /// Validate a parsed value, checking asserts and checks.
+/// This is largely a duplicate of baml-runtime::internal::llm_client::parsed_value_to_response.
+/// It's used in jsonish tests.
 pub fn parsed_value_to_response(
     ir: &IntermediateRepr,
     baml_value: BamlValueWithFlags,
@@ -297,4 +308,30 @@ pub fn parsed_value_to_response(
             crate::ResponseValueMeta(z.clone(), y.clone(), x.clone(), ft.clone())
         });
     Ok(ResponseBamlValue(response_value))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_output_format_description_and_alias() {
+        let ir = load_test_ir(
+            r#"
+          class Foo {
+            bar string @description("d") @alias("a")
+          }
+        "#,
+        );
+        let output =
+            render_output_format(&ir, &FieldType::class("Foo"), &EvaluationContext::default())
+                .expect("Rendering should work");
+        let foo = output.classes.get("Foo").expect("Exists");
+        assert_eq!(foo.fields.len(), 1);
+        assert_eq!(foo.fields[0].2, Some("d".to_string()));
+        assert_eq!(
+            foo.fields[0].0,
+            Name::new_with_alias("bar".to_string(), Some("a".to_string()))
+        );
+    }
 }

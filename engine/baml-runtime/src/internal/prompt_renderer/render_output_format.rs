@@ -315,7 +315,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Class{
+            FieldType::Class {
                 name: cls,
                 mode: _,
                 dynamic: _,
@@ -691,5 +691,37 @@ Answer in JSON using this schema:
         "#
             .trim()
         )
+    }
+
+    #[test]
+    fn test_render_output_format_description_and_alias() {
+        let files = vec![(
+            "test-file.baml",
+            r#"
+            class Foo {
+                bar string @alias("a") @description("d")
+            }
+            "#,
+        )]
+        .into_iter()
+        .collect();
+        let env_vars = HashMap::new();
+        let baml_runtime = BamlRuntime::from_file_content(".", &files, env_vars.clone()).unwrap();
+        let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
+        let ctx: RuntimeContext = ctx_manager
+            .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
+            .expect("Should create context");
+
+        let field_type = FieldType::class("Foo");
+        let render_output =
+            render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
+
+        let foo = render_output.find_class("Foo").unwrap();
+        assert_eq!(
+            foo.fields[0].0,
+            Name::new_with_alias("bar".to_string(), Some("a".to_string()))
+        );
+        assert_eq!(foo.fields[0].1, FieldType::r#string());
+        assert_eq!(foo.fields[0].2, Some("d".to_string()));
     }
 }

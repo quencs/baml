@@ -113,6 +113,7 @@ impl TryFrom<(&'_ IntermediateRepr, &'_ crate::GeneratorArgs)> for GoClient {
         })
     }
 }
+}
 
 trait ToTypeReferenceInClientDefinition {
     fn to_type_ref(&self, ir: &IntermediateRepr, with_checked: bool) -> String;

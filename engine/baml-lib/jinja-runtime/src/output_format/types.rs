@@ -1,12 +1,10 @@
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
-use baml_types::{
-    Constraint, FieldType, TypeValue, ir_type::UnionTypeViewGeneric, type_meta,
-};
+use baml_types::{ir_type::UnionTypeViewGeneric, type_meta, Constraint, FieldType, TypeValue};
 use indexmap::{IndexMap, IndexSet};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Name {
     name: String,
     rendered_name: Option<String>,
@@ -36,7 +34,6 @@ impl Name {
     }
 }
 
-// TODO: (Greg) Enum needs to carry its constraints.
 #[derive(Debug)]
 pub struct Enum {
     pub name: Name,
@@ -385,8 +382,12 @@ impl OutputFormatContent {
                     "Answer as {article} ",
                     article = indefinite_article_a_or_an(&p.to_string())
                 )),
-                FieldType::Literal(_, _) => Some(String::from("Answer using this specific value:\n")),
-                FieldType::Enum { .. } => Some(String::from("Answer with any of the categories:\n")),
+                FieldType::Literal(_, _) => {
+                    Some(String::from("Answer using this specific value:\n"))
+                }
+                FieldType::Enum { .. } => {
+                    Some(String::from("Answer with any of the categories:\n"))
+                }
                 FieldType::Class { name: cls, .. } => {
                     let type_prefix = match &options.hoisted_class_prefix {
                         RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
@@ -413,15 +414,21 @@ impl OutputFormatContent {
                 FieldType::List(_, _) => Some(String::from(
                     "Answer with a JSON Array using this schema:\n",
                 )),
-                FieldType::Union(items, _) => {
-                    match items.view() {
-                        UnionTypeViewGeneric::Null => Some(String::from("Answer ONLY with null:\n")),
-                        UnionTypeViewGeneric::Optional(_) => Some(String::from("Answer in JSON using this schema:\n")),
-                        UnionTypeViewGeneric::OneOf(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
-                        UnionTypeViewGeneric::OneOfOptional(_) => Some(String::from("Answer in JSON using any of these schemas:\n")),
+                FieldType::Union(items, _) => match items.view() {
+                    UnionTypeViewGeneric::Null => Some(String::from("Answer ONLY with null:\n")),
+                    UnionTypeViewGeneric::Optional(_) => {
+                        Some(String::from("Answer in JSON using this schema:\n"))
                     }
+                    UnionTypeViewGeneric::OneOf(_) => {
+                        Some(String::from("Answer in JSON using any of these schemas:\n"))
+                    }
+                    UnionTypeViewGeneric::OneOfOptional(_) => {
+                        Some(String::from("Answer in JSON using any of these schemas:\n"))
+                    }
+                },
+                FieldType::Map(_, _, _) => {
+                    Some(String::from("Answer in JSON using this schema:\n"))
                 }
-                FieldType::Map(_, _, _) => Some(String::from("Answer in JSON using this schema:\n")),
                 FieldType::Tuple(_, _) => None,
                 FieldType::Arrow(_, _) => None, // TODO: Error? Arrow shouldn't appear here.
             }
@@ -573,9 +580,9 @@ impl OutputFormatContent {
         render_ctx: &RenderCtx,
     ) -> Result<String, minijinja::Error> {
         match field_type {
-            FieldType::Class { name: nested_class, .. } if render_ctx.hoisted_classes.contains(nested_class) => {
-                Ok(nested_class.to_owned())
-            }
+            FieldType::Class {
+                name: nested_class, ..
+            } if render_ctx.hoisted_classes.contains(nested_class) => Ok(nested_class.to_owned()),
 
             _ => self.inner_type_render(options, field_type, render_ctx),
         }
@@ -653,9 +660,9 @@ impl OutputFormatContent {
             FieldType::RecursiveTypeAlias(name, _) => name.to_owned(),
             FieldType::List(inner, _) => {
                 let is_hoisted = match inner.as_ref() {
-                    FieldType::Class { name: nested_class, .. } => {
-                        render_ctx.hoisted_classes.contains(nested_class)
-                    }
+                    FieldType::Class {
+                        name: nested_class, ..
+                    } => render_ctx.hoisted_classes.contains(nested_class),
                     FieldType::RecursiveTypeAlias(name, _) => {
                         self.structural_recursive_aliases.contains_key(name)
                     }
@@ -668,7 +675,9 @@ impl OutputFormatContent {
                     && match inner.as_ref() {
                         FieldType::Primitive(_, _) => false,
                         FieldType::Enum { .. } => inner_str.len() > 15,
-                        FieldType::Union(items, _) => items.iter_include_null().iter().all(|t| !t.is_primitive()),
+                        FieldType::Union(items, _) => {
+                            items.iter_include_null().iter().all(|t| !t.is_primitive())
+                        }
                         _ => true,
                     }
                 {
@@ -805,11 +814,8 @@ impl OutputFormatContent {
         let mut type_alias_definitions = Vec::new();
 
         for class_name in &render_ctx.hoisted_classes {
-            let schema = self.inner_type_render(
-                &options,
-                &FieldType::class(class_name),
-                &render_ctx,
-            )?;
+            let schema =
+                self.inner_type_render(&options, &FieldType::class(class_name), &render_ctx)?;
 
             class_definitions.push(match &options.hoisted_class_prefix {
                 RenderSetting::Always(prefix) if !prefix.is_empty() => {
@@ -876,7 +882,11 @@ impl OutputFormatContent {
 #[cfg(test)]
 impl OutputFormatContent {
     pub fn new_array() -> Self {
-        Self::target(FieldType::List(Box::new(FieldType::string()), Default::default())).build()
+        Self::target(FieldType::List(
+            Box::new(FieldType::string()),
+            Default::default(),
+        ))
+        .build()
     }
 
     pub fn new_string() -> Self {
@@ -2885,22 +2895,28 @@ Answer in JSON using this schema: RecursiveMapAlias"#
 
     #[test]
     fn render_recursive_alias_cycle() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), Default::default()))
-            .structural_recursive_aliases(IndexMap::from([
-                (
+        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias(
+            "A".to_string(),
+            Default::default(),
+        ))
+        .structural_recursive_aliases(IndexMap::from([
+            (
+                "A".to_string(),
+                FieldType::RecursiveTypeAlias("B".to_string(), Default::default()),
+            ),
+            (
+                "B".to_string(),
+                FieldType::RecursiveTypeAlias("C".to_string(), Default::default()),
+            ),
+            (
+                "C".to_string(),
+                FieldType::list(FieldType::RecursiveTypeAlias(
                     "A".to_string(),
-                    FieldType::RecursiveTypeAlias("B".to_string(), Default::default()),
-                ),
-                (
-                    "B".to_string(),
-                    FieldType::RecursiveTypeAlias("C".to_string(), Default::default()),
-                ),
-                (
-                    "C".to_string(),
-                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), Default::default())),
-                ),
-            ]))
-            .build();
+                    Default::default(),
+                )),
+            ),
+        ]))
+        .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
         #[rustfmt::skip]
         assert_eq!(
@@ -2917,22 +2933,28 @@ Answer in JSON using this schema: A"#
 
     #[test]
     fn render_recursive_alias_cycle_with_hoist_prefix() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias("A".to_string(), Default::default()))
-            .structural_recursive_aliases(IndexMap::from([
-                (
+        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias(
+            "A".to_string(),
+            Default::default(),
+        ))
+        .structural_recursive_aliases(IndexMap::from([
+            (
+                "A".to_string(),
+                FieldType::RecursiveTypeAlias("B".to_string(), Default::default()),
+            ),
+            (
+                "B".to_string(),
+                FieldType::RecursiveTypeAlias("C".to_string(), Default::default()),
+            ),
+            (
+                "C".to_string(),
+                FieldType::list(FieldType::RecursiveTypeAlias(
                     "A".to_string(),
-                    FieldType::RecursiveTypeAlias("B".to_string(), Default::default()),
-                ),
-                (
-                    "B".to_string(),
-                    FieldType::RecursiveTypeAlias("C".to_string(), Default::default()),
-                ),
-                (
-                    "C".to_string(),
-                    FieldType::list(FieldType::RecursiveTypeAlias("A".to_string(), Default::default())),
-                ),
-            ]))
-            .build();
+                    Default::default(),
+                )),
+            ),
+        ]))
+        .build();
         let rendered = content
             .render(RenderOptions::with_hoisted_class_prefix("type"))
             .unwrap();
