@@ -806,15 +806,6 @@ impl ToUnionName for FieldType {
     }
 }
 
-// pub struct StreamingBehaviorG<T> {
-//     pub needed: bool,
-//     pub done: T,
-//     pub state: bool,
-// }
-//
-// type StreamingBehavior = StreamingBehaviorG<bool>;
-// type StreamingBehaviorStreaming = StreamingBehaviorG<()>;
-
 /// Metadata on a type that determines how it behaves under streaming conditions.
 #[derive(Clone, Debug, PartialEq, serde::Serialize, Eq, Hash)]
 pub struct TypeMetaIR {
@@ -839,7 +830,7 @@ mod tests {
 
     use super::*;
 
-    fn mk_optional(inner: TypeStreaming) -> TypeStreaming {
+    fn make_optional(inner: TypeStreaming) -> TypeStreaming {
         if let TypeStreaming::Union(items, meta) = inner {
             if items.is_optional() {
                 return TypeStreaming::Union(items, meta);
@@ -1124,7 +1115,8 @@ mod tests {
     }
 
     #[test]
-    fn parialize_primitive_with_streaming() {
+    fn partialize_primitive_with_streaming() {
+        // int@stream.with_state => stream.int | null @stream.with_state @stream.not_null
         let int = FieldType::int_with_meta(type_meta::Base {
             streaming_behavior: type_meta::base::StreamingBehavior {
                 state: true,
@@ -1133,14 +1125,17 @@ mod tests {
             },
             ..Default::default()
         });
-        let expected = TypeStreaming::Primitive(
-            TypeValue::Int,
-            type_meta::stream::TypeMetaStreaming {
-                constraints: vec![],
+        let expected = TypeStreaming::Union(
+            unsafe { UnionTypeGeneric::new_unsafe(vec![TypeStreaming::Primitive(
+                TypeValue::Int,
+                type_meta::stream::TypeMetaStreaming::default(),
+            ), TypeStreaming::null()]) },
+            type_meta::stream::TypeMetaStreaming{
                 streaming_behavior: type_meta::stream::StreamingBehavior {
                     state: true,
                     done: true,
                 },
+                ..Default::default()
             },
         );
         assert_eq!(int.partialize(false), expected);
@@ -1175,7 +1170,7 @@ mod tests {
         let class = FieldType::class("MyClass");
         assert_eq!(
             class.partialize(false),
-            mk_optional(TypeStreaming::Class {
+            make_optional(TypeStreaming::Class {
                 name: "MyClass".to_string(),
                 dynamic: false,
                 mode: StreamingMode::Streaming,
@@ -1188,7 +1183,7 @@ mod tests {
     // Foo @stream.done => Foo
     fn partialize_class_with_done() {
         let mut class = FieldType::class("MyClass");
-        let mut expected = mk_optional(TypeStreaming::Class {
+        let mut expected = make_optional(TypeStreaming::Class {
             name: "MyClass".to_string(),
             mode: StreamingMode::NonStreaming,
             dynamic: false,
@@ -1202,7 +1197,7 @@ mod tests {
     #[test]
     fn partialize_simple_union() {
         let union = FieldType::union(vec![FieldType::int(), FieldType::string()]);
-        let expected = mk_optional(TypeStreaming::Union(
+        let expected = make_optional(TypeStreaming::Union(
             unsafe {
                 UnionTypeGeneric::new_unsafe(vec![
                     TypeStreaming::Primitive(
@@ -1221,4 +1216,103 @@ mod tests {
 
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn partialize_primitive_types() {
+        // Test Float
+        let float = FieldType::float();
+        let expected = TypeStreaming::Union(
+            unsafe { UnionTypeGeneric::new_unsafe(vec![TypeStreaming::float(), TypeStreaming::null()]) },
+            type_meta::stream::TypeMetaStreaming{
+                streaming_behavior: type_meta::stream::StreamingBehavior {
+                    done: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        assert_eq!(float.partialize(false), expected);
+
+        // Test Bool
+        let bool_type = FieldType::bool();
+        let expected = TypeStreaming::Union(
+            unsafe { UnionTypeGeneric::new_unsafe(vec![TypeStreaming::bool(), TypeStreaming::null()]) },
+            type_meta::stream::TypeMetaStreaming{
+                streaming_behavior: type_meta::stream::StreamingBehavior {
+                    done: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        assert_eq!(bool_type.partialize(false), expected);
+    }
+
+    #[test]
+    fn partialize_enum() {
+        let enum_type = FieldType::r#enum("MyEnum");
+        let expected = TypeStreaming::Union(
+            unsafe { 
+                UnionTypeGeneric::new_unsafe(vec![
+                    TypeStreaming::Enum {
+                        name: "MyEnum".to_string(),
+                        dynamic: false,
+                        meta: Default::default(),
+                    },
+                    TypeStreaming::null()
+                ]) 
+            },
+            type_meta::stream::TypeMetaStreaming{
+                streaming_behavior: type_meta::stream::StreamingBehavior {
+                    done: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        assert_eq!(enum_type.partialize(false), expected);
+    }
+
+    #[test]
+    fn partialize_literal() {
+        let literal = FieldType::literal("test");
+        let expected = TypeStreaming::Union(
+            unsafe { 
+                UnionTypeGeneric::new_unsafe(vec![
+                    TypeStreaming::Literal(
+                        LiteralValue::String("test".to_string()),
+                        Default::default(),
+                    ),
+                    TypeStreaming::null()
+                ]) 
+            },
+            type_meta::stream::TypeMetaStreaming{
+                streaming_behavior: type_meta::stream::StreamingBehavior {
+                    done: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        assert_eq!(literal.partialize(false), expected);
+    }
+
+    #[test]
+    fn partialize_recursive_type_alias() {
+        let alias = FieldType::recursive_type_alias("MyAlias");
+        let expected = TypeStreaming::Union(
+            unsafe { 
+                UnionTypeGeneric::new_unsafe(vec![
+                    TypeStreaming::RecursiveTypeAlias(
+                        "MyAlias".to_string(),
+                        Default::default(),
+                    ),
+                    TypeStreaming::null()
+                ]) 
+            },
+            Default::default(),
+        );
+        assert_eq!(alias.partialize(false), expected);
+    }
+
 }
