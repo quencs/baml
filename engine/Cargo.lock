@@ -2708,6 +2708,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "generators-openapi"
+version = "0.89.0"
+dependencies = [
+ "anyhow",
+ "askama",
+ "baml-types",
+ "baml_cffi",
+ "dir-writer",
+ "index-map",
+ "indexmap 2.8.0",
+ "internal-baml-core",
+ "prettydiff",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "test-harness",
+]
+
+[[package]]
 name = "generators-python"
 version = "0.89.0"
 dependencies = [
@@ -3336,6 +3355,12 @@ dependencies = [
  "proc-macro2",
  "quote",
 ]
+
+[[package]]
+name = "index-map"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ea06ad425513b4cac7d2a1b3fc36b518281e74a96b9739d9a34e7a4151dbb48"
 
 [[package]]
 name = "indexmap"
