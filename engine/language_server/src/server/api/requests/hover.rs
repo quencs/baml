@@ -42,10 +42,34 @@ impl SyncRequestHandler for Hover {
         {
             None => {
                 tracing::warn!("*** HOVER: Failed to find doc {:?}", url);
-                Err(anyhow::anyhow!(
-                    "File {} was not present in the project",
-                    url
-                ))
+                
+                // Try to reload the session to handle potentially moved files
+                if let Err(e) = session.reload(Some(notifier.clone())) {
+                    tracing::error!("Failed to reload session during hover: {}", e);
+                }
+                
+                // Try again after reload - get fresh project reference
+                let reloaded_project = session
+                    .get_or_create_project(&path)
+                    .expect("Ensured that a project db exists");
+                let new_document_key = {
+                    let project_guard = reloaded_project.lock().unwrap();
+                    DocumentKey::from_url(project_guard.root_path(), &url).internal_error()?
+                };
+                
+                let project_guard = reloaded_project.lock().unwrap();
+                match project_guard.baml_project.files.get(&new_document_key) {
+                    Some(text_document) => Ok(TextDocumentItem {
+                        uri: url.clone(),
+                        language_id: "BAML".to_string(),
+                        text: text_document.contents.clone(),
+                        version: 1,
+                    }),
+                    None => Err(anyhow::anyhow!(
+                        "File {} was not present in the project",
+                        url
+                    ))
+                }
             }
             Some(text_document) => Ok(TextDocumentItem {
                 uri: url.clone(),

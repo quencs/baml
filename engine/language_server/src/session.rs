@@ -142,6 +142,20 @@ impl Session {
             return Some(project.clone());
         }
 
+        // Before creating a new project, check if there are any stale entries
+        // that might be for the same logical project that was moved
+        let stale_keys: Vec<PathBuf> = projects
+            .keys()
+            .filter(|old_path| !old_path.exists() && old_path.file_name() == baml_src.file_name())
+            .cloned()
+            .collect();
+        
+        // Remove stale entries
+        for stale_key in stale_keys {
+            tracing::info!("Removing stale project entry while creating new project: {:?}", stale_key);
+            projects.remove(&stale_key);
+        }
+
         // Create a new project if needed
         tracing::info!("Creating new project for baml_src path: {:?}", baml_src);
         let new_project = Arc::new(Mutex::new(Project::new(BamlProject {
@@ -180,6 +194,10 @@ impl Session {
 
     pub fn reload(&mut self, notifier: Option<Notifier>) -> anyhow::Result<()> {
         tracing::info!("Reloading session");
+        
+        // Before reloading, check for moved baml_src directories and migrate them
+        self.migrate_moved_projects()?;
+        
         let project_updates: Vec<HashMap<_, _>> = self
             .baml_src_projects
             .lock()
@@ -236,6 +254,135 @@ impl Session {
         log::info!("Reloaded {} files", files.len());
 
         Ok(())
+    }
+
+    /// Detects and migrates projects whose baml_src directories have been moved.
+    /// This handles the case where the baml_src directory is moved to a new location
+    /// and updates all internal references to use the new paths.
+    fn migrate_moved_projects(&mut self) -> anyhow::Result<()> {
+        let mut projects_to_migrate = Vec::new();
+        let mut projects_to_remove = Vec::new();
+        
+        // First pass: identify projects that need migration
+        {
+            let projects = self.baml_src_projects.lock().unwrap();
+            for (old_path, project) in projects.iter() {
+                // Check if the old path still exists
+                if !old_path.exists() {
+                    tracing::info!("Detected moved baml_src directory: {:?} no longer exists", old_path);
+                    
+                    // Try to find files from this project in new locations
+                    let project_guard = project.lock().unwrap();
+                    let file_keys: Vec<DocumentKey> = project_guard.baml_project.files.keys().cloned().collect();
+                    
+                    // Try to find a new baml_src directory for any of the files
+                    for file_key in &file_keys {
+                        let file_path = file_key.path();
+                        if let Some(new_baml_src) = find_top_level_parent(file_path) {
+                            if new_baml_src != *old_path && new_baml_src.exists() {
+                                tracing::info!("Found new location for baml_src: {:?} -> {:?}", old_path, new_baml_src);
+                                projects_to_migrate.push((old_path.clone(), new_baml_src, project.clone()));
+                                projects_to_remove.push(old_path.clone());
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // If we couldn't find a new location, mark for removal
+                    if !projects_to_remove.contains(old_path) {
+                        tracing::warn!("Could not find new location for moved baml_src: {:?}", old_path);
+                        projects_to_remove.push(old_path.clone());
+                    }
+                }
+            }
+        }
+        
+        // Second pass: perform migrations
+        if !projects_to_migrate.is_empty() || !projects_to_remove.is_empty() {
+            let mut projects = self.baml_src_projects.lock().unwrap();
+            
+            // Remove old entries
+            for old_path in &projects_to_remove {
+                projects.remove(old_path);
+                tracing::info!("Removed stale project entry: {:?}", old_path);
+            }
+            
+            // Migrate projects to new locations
+            for (old_path, new_path, project) in projects_to_migrate {
+                let mut document_key_migrations = Vec::new();
+                
+                // Update the project's root directory and collect key migrations
+                {
+                    let mut project_guard = project.lock().unwrap();
+                    project_guard.baml_project.root_dir_name = new_path.clone();
+                    
+                    // Migrate all DocumentKeys to use the new root path
+                    let old_files: Vec<(DocumentKey, TextDocument)> = project_guard.baml_project.files.drain().collect();
+                    let old_unsaved_files: Vec<(DocumentKey, TextDocument)> = project_guard.baml_project.unsaved_files.drain().collect();
+                    
+                    // Recreate DocumentKeys with the new root path
+                    for (old_key, text_doc) in old_files {
+                        if let Ok(new_key) = Self::migrate_document_key(&old_key, &old_path, &new_path) {
+                            project_guard.baml_project.files.insert(new_key.clone(), text_doc);
+                            document_key_migrations.push((old_key, new_key));
+                        } else {
+                            tracing::warn!("Failed to migrate document key: {:?}", old_key);
+                        }
+                    }
+                    
+                    for (old_key, text_doc) in old_unsaved_files {
+                        if let Ok(new_key) = Self::migrate_document_key(&old_key, &old_path, &new_path) {
+                            project_guard.baml_project.unsaved_files.insert(new_key.clone(), text_doc);
+                            // Check if this key wasn't already added from files
+                            if !document_key_migrations.iter().any(|(old, _)| old == &old_key) {
+                                document_key_migrations.push((old_key, new_key));
+                            }
+                        } else {
+                            tracing::warn!("Failed to migrate unsaved document key: {:?}", old_key);
+                        }
+                    }
+                    
+                    // Clear cached runtime since paths have changed
+                    project_guard.baml_project.cached_runtime = None;
+                }
+                
+                // Migrate index entries for the moved files
+                {
+                    let mut index = self.index.lock().unwrap();
+                    for (old_key, new_key) in document_key_migrations {
+                        if let Some(controller) = index.documents.remove(&old_key) {
+                            index.documents.insert(new_key.clone(), controller);
+                            tracing::debug!("Migrated index entry: {:?} -> {:?}", old_key, new_key);
+                        }
+                    }
+                }
+                
+                // Add the project under the new path
+                projects.insert(new_path.clone(), project);
+                tracing::info!("Successfully migrated project from {:?} to {:?}", old_path, new_path);
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Migrates a DocumentKey from an old baml_src path to a new one.
+    fn migrate_document_key(
+        old_key: &DocumentKey, 
+        old_root: &Path, 
+        new_root: &Path
+    ) -> anyhow::Result<DocumentKey> {
+        let old_path = old_key.path();
+        
+        // Get the relative path from the old root
+        let relative_path = old_path.strip_prefix(old_root)
+            .map_err(|_| anyhow::anyhow!("Path {:?} is not under old root {:?}", old_path, old_root))?;
+        
+        // Create the new absolute path
+        let new_path = new_root.join(relative_path);
+        
+        // Create a new DocumentKey with the new path
+        DocumentKey::from_path(new_root, &new_path)
     }
 
     pub fn clear_unsaved_files(&mut self) {

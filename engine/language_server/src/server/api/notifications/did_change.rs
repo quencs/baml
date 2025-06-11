@@ -44,17 +44,52 @@ impl SyncNotificationHandler for DidChangeTextDocumentHandler {
         }
 
         let project = project.unwrap();
-        let document_key =
-            DocumentKey::from_url(&project.lock().unwrap().root_path(), &url).internal_error()?;
+        let document_key = {
+            let project_guard = project.lock().unwrap();
+            DocumentKey::from_url(&project_guard.root_path(), &url).internal_error()?
+        };
 
-        session
-            .update_text_document(
-                &document_key,
-                params.content_changes,
-                params.text_document.version,
-                Some(notifier.clone()),
-            )
-            .internal_error()?;
+        // Try to update the text document
+        let update_result = session.update_text_document(
+            &document_key,
+            params.content_changes.clone(),
+            params.text_document.version,
+            Some(notifier.clone()),
+        );
+
+        // If update failed, it might be due to moved files - try to reload and retry
+        if let Err(e) = update_result {
+            tracing::warn!("Initial text document update failed: {}. Attempting reload...", e);
+            
+            // Try to reload session to handle moved files
+            if let Err(reload_err) = session.reload(Some(notifier.clone())) {
+                tracing::error!("Failed to reload session during did_change: {}", reload_err);
+                return Err(reload_err).internal_error();
+            }
+            
+            // Get fresh project and document key after reload
+            let reloaded_project = session.get_or_create_project(&path);
+            if let Some(reloaded_project) = reloaded_project {
+                let new_document_key = {
+                    let project_guard = reloaded_project.lock().unwrap();
+                    DocumentKey::from_url(&project_guard.root_path(), &url).internal_error()?
+                };
+                
+                // Try the update again with new document key
+                session
+                    .update_text_document(
+                        &new_document_key,
+                        params.content_changes,
+                        params.text_document.version,
+                        Some(notifier.clone()),
+                    )
+                    .internal_error()?;
+                    
+                tracing::info!("Successfully updated text document after reload");
+            } else {
+                return Err(anyhow::anyhow!("Could not find or create project after reload")).internal_error();
+            }
+        }
 
         tracing::info!("publishing diagnostics");
 
