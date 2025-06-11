@@ -50,7 +50,12 @@ func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.JSON, erro
 		return nil, result.Error
 	}
 
-	casted := (result.Data).(types.JSON)
+	casted := func(result any) types.JSON {
+		if result == nil {
+			return nil
+		}
+		return (result).(types.JSON)
+	}(result.Data)
 
 	return casted, nil
 }

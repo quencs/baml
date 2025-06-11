@@ -38,21 +38,21 @@ impl LanguageFeatures for GoLanguageFeatures {
     fn generate_sdk_files(
         &self,
         collector: &mut FileCollector<Self>,
-        ir: &IntermediateRepr,
+        ir: std::sync::Arc<IntermediateRepr>,
         args: &GeneratorArgs,
     ) -> Result<(), anyhow::Error> {
         let Some(go_mod_name) = &args.client_package_name else {
             anyhow::bail!("Go client package name is required");
         };
 
-        let pkg = package::CurrentRenderPackage::new("baml_client");
+        let pkg = package::CurrentRenderPackage::new("baml_client", ir.clone());
         let file_map = args.file_map_as_json_string()?;
         collector.add_file("baml_source_map.go", render_source_files(file_map)?);
         collector.add_file("runtime.go", render_runtime_code(&pkg)?);
         let functions = ir
             .functions
             .iter()
-            .map(|f| ir_to_go::functions::ir_function_to_go(f, &pkg, ir))
+            .map(|f| ir_to_go::functions::ir_function_to_go(f, &pkg))
             .collect::<Vec<_>>();
         collector.add_file(
             "functions.go",
@@ -66,7 +66,7 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         let go_classes = ir
             .walk_classes()
-            .map(|c| ir_to_go::classes::ir_class_to_go(c.item, &pkg, ir))
+            .map(|c| ir_to_go::classes::ir_class_to_go(c.item, &pkg))
             .collect::<Vec<_>>();
         let enums = ir
             .walk_enums()
@@ -74,7 +74,7 @@ impl LanguageFeatures for GoLanguageFeatures {
             .collect::<Vec<_>>();
         let unions = {
             let mut unions = ir.walk_all_types()
-                        .filter_map(|t| ir_to_go::unions::ir_union_to_go(t, &pkg, ir))
+                        .filter_map(|t| ir_to_go::unions::ir_union_to_go(t, &pkg))
                         .collect::<Vec<_>>();
             // dedup by name!
             unions.sort_by_key(|u| u.name.clone());
@@ -83,7 +83,7 @@ impl LanguageFeatures for GoLanguageFeatures {
         };
         let type_aliases = ir
             .walk_type_aliases()
-            .map(|c| ir_to_go::type_aliases::ir_type_alias_to_go(c.item, &pkg, ir))
+            .map(|c| ir_to_go::type_aliases::ir_type_alias_to_go(c.item, &pkg))
             .collect::<Vec<_>>();
 
         collector.add_file(
@@ -115,7 +115,7 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         let unions = {
             let mut unions = ir.walk_all_types()
-                        .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(t, &pkg, ir))
+                        .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(t, &pkg))
                         .collect::<Vec<_>>();
             // dedup by name!
             unions.sort_by_key(|u| u.name.clone());
@@ -125,12 +125,12 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         let type_aliases = ir
             .walk_type_aliases()
-            .map(|c| ir_to_go::type_aliases::ir_type_alias_to_go_stream(c.item, &pkg, ir))
+            .map(|c| ir_to_go::type_aliases::ir_type_alias_to_go_stream(c.item, &pkg))
             .collect::<Vec<_>>();
 
         let go_classes = ir
             .walk_classes()
-            .map(|c| ir_to_go::classes::ir_class_to_go_stream(c.item, &pkg, ir))
+            .map(|c| ir_to_go::classes::ir_class_to_go_stream(c.item, &pkg))
             .collect::<Vec<_>>();
 
         pkg.set("baml_client.stream_types");

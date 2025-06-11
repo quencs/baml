@@ -1,10 +1,13 @@
+use baml_types::baml_value::TypeLookups;
+use dir_writer::IntermediateRepr;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Package {
     package_path: Vec<String>,
 }
 
 impl Package {
-    pub fn new(package: &str) -> Self {
+    fn new(package: &str) -> Self {
         let parts: Vec<_> = package.split('.').map(|s| s.to_string()).collect();
         if parts.is_empty() {
             panic!("Package cannot be empty");
@@ -28,12 +31,20 @@ impl Package {
         return format!("{}.", self.package_path.last().unwrap());
     }
 
-    pub fn checked() -> Package {
+    pub fn types() -> Package {
         Package::new("baml_client.types")
     }
 
-    pub fn stream_state() -> Package {
+    pub fn stream_types() -> Package {
         Package::new("baml_client.stream_types")
+    }
+
+    pub fn checked() -> Package {
+        Package::types()
+    }
+
+    pub fn stream_state() -> Package {
+        Package::stream_types()
     }
 
     pub fn imported_base() -> Package {
@@ -50,15 +61,20 @@ impl std::fmt::Display for Package {
 #[derive(Clone)]
 pub(crate) struct CurrentRenderPackage {
     package: std::sync::Arc<std::sync::Mutex<std::sync::Arc<Package>>>,
+    lookup: std::sync::Arc<IntermediateRepr>,
 }
 
 impl CurrentRenderPackage {
-    pub fn new(package: &str) -> Self {
+    pub fn new(package: &str, lookup: std::sync::Arc<IntermediateRepr>) -> Self {
         Self {
-            package: std::sync::Arc::new(std::sync::Mutex::new(std::sync::Arc::new(Package::new(
-                package,
-            )))),
+            package: std::sync::Arc::new(std::sync::Mutex::new(std::sync::Arc::new(Package::new(package)))),
+            lookup,
         }
+    }
+
+
+    pub fn lookup(&self) -> &impl TypeLookups {
+        self.lookup.as_ref()
     }
 
     pub fn get(&self) -> std::sync::Arc<Package> {

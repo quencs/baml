@@ -56,7 +56,7 @@ mod class {
         pub fn stream_variants(t: &TypeGo) -> Vec<TypeGo> {
             let mut variants = vec![t.clone()];
 
-            let stream_pkg = Package::new("baml_client.stream_types");
+            let stream_pkg = Package::stream_types();
 
             // add stream types for user defined types (classes and unions)
             // enums have no "stream" variants

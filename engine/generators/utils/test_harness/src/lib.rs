@@ -7,7 +7,7 @@ use internal_baml_core::ir::repr::{
 
 pub struct TestStructure<L: LanguageFeatures> {
     src_dir: PathBuf,
-    ir: IntermediateRepr,
+    ir: std::sync::Arc<IntermediateRepr>,
     generator: L,
     project_name: String,
 }
@@ -49,7 +49,7 @@ impl<L: LanguageFeatures> TestStructure<L> {
 
         Ok(Self {
             src_dir: test_dir,
-            ir,
+            ir: std::sync::Arc::new(ir),
             generator,
             project_name: project_name.to_string_lossy().to_string(),
         })
@@ -94,7 +94,7 @@ impl<L: LanguageFeatures> TestStructure<L> {
             client_package_name: Some(self.project_name.clone()),
             module_format: None,
         };
-        self.generator.generate_sdk(&self.ir, &args)?;
+        self.generator.generate_sdk(self.ir.clone(), &args)?;
 
         for cmd_str in args.on_generate {
             let mut cmd = Command::new("sh");

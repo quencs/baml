@@ -350,7 +350,7 @@ pub enum BamlValueWithMeta<T> {
 }
 
 
-pub trait TypeLookups {
+pub trait TypeLookups: Sized {
     fn expand_recursive_type(&self, type_alias: &str) -> anyhow::Result<&FieldType>;
 }
 

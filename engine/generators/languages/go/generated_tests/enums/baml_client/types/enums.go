@@ -81,8 +81,9 @@ func (e *TestEnum) UnmarshalJSON(data []byte) error {
 }
 
 func (e *TestEnum) Decode(holder cffi.CFFIValueEnum) {
-	if string(holder.Name()) != "TestEnum" {
-		panic(fmt.Sprintf("expected TestEnum, got %s", string(holder.Name())))
+	name := holder.Name(nil)
+	if string(name.Name()) != "TestEnum" && string(name.Namespace()) != "types" {
+		panic(fmt.Sprintf("expected types.TestEnum, got %s.%s", string(name.Namespace()), string(name.Name())))
 	}
 	value := string(holder.Value())
 	*e = TestEnum(value)

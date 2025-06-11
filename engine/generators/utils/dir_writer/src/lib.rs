@@ -87,14 +87,14 @@ pub trait LanguageFeatures: Default + Sized {
     /// backwards compat implications for the other generators
     const GITIGNORE: Option<&'static str> = None;
 
-    fn generate_sdk(&self, ir: &IntermediateRepr, args: &GeneratorArgs) -> Result<(), anyhow::Error> {
+    fn generate_sdk(&self, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<(), anyhow::Error> {
         let mut collector = FileCollector::<Self>::new();
         self.generate_sdk_files(&mut collector, ir, args)?;
         collector.commit(&args.output_dir_relative_to_baml_src)?;
         Ok(())
     }
 
-    fn generate_sdk_files(&self, collector: &mut FileCollector<Self>, ir: &IntermediateRepr, args: &GeneratorArgs) -> Result<(), anyhow::Error>;
+    fn generate_sdk_files(&self, collector: &mut FileCollector<Self>, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<(), anyhow::Error>;
 }
 
 
