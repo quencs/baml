@@ -790,6 +790,10 @@ class BamlProjectManager {
       }
       console.debug(`projects ${this.projects.size}: ${JSON.stringify(this.projects, null, 2)},`)
 
+      // Check if this is a moved directory by looking for orphaned projects
+      // that contain files that now exist at the new rootPath
+      this.cleanupOrphanedProjects(rootPath, files)
+
       if (!this.projects.has(rootPath)) {
         const project = this.add_project(rootPath, Object.fromEntries(files))
         project.update_runtime()
@@ -802,13 +806,86 @@ class BamlProjectManager {
     })
   }
 
+  // Clean up projects that may have been moved to a new location
+  private cleanupOrphanedProjects(newRootPath: string, newFiles: [string, string][]) {
+    const newFileSet = new Set(newFiles.map(([filePath]) => filePath))
+    
+    // Find projects that might be orphaned (old locations of moved directories)
+    const orphanedProjects: string[] = []
+    
+    for (const [existingRootPath, project] of this.projects.entries()) {
+      if (existingRootPath === newRootPath) {
+        continue // Skip the current project path
+      }
+      
+      try {
+        const existingFiles = project.files()
+        const existingFilePaths = Object.keys(existingFiles).map(uri => URI.parse(uri).fsPath)
+        
+        // Check if any files from the existing project now exist in the new location
+        // If so, this suggests the project was moved
+        const hasOverlappingFiles = existingFilePaths.some(oldPath => {
+          // Extract the relative path from the old baml_src and check if it exists in new location
+          const oldBamlSrcIndex = oldPath.indexOf('baml_src')
+          if (oldBamlSrcIndex === -1) return false
+          
+          const relativePath = oldPath.substring(oldBamlSrcIndex + 'baml_src'.length)
+          const expectedNewPath = newRootPath + relativePath
+          
+          return newFileSet.has(expectedNewPath)
+        })
+        
+        if (hasOverlappingFiles) {
+          orphanedProjects.push(existingRootPath)
+        }
+      } catch (e) {
+        // If we can't access the project files, it might be orphaned
+        console.debug(`Could not access files for project at ${existingRootPath}, considering for cleanup: ${e}`)
+        orphanedProjects.push(existingRootPath)
+      }
+    }
+    
+    // Remove orphaned projects
+    orphanedProjects.forEach(rootPath => {
+      console.log(`Cleaning up orphaned project at: ${rootPath}`)
+      this.remove_project(rootPath)
+    })
+  }
+
   getProjectById(id: URI): Project | undefined {
     // if the file extension is not baml, return undefined
     if (id.fsPath.split('.').pop() !== 'baml') {
       return undefined
     }
     try {
-      return this.get_project(uriToRootPath(id))
+      const rootPath = uriToRootPath(id)
+      const project = this.projects.get(rootPath)
+      
+      if (project) {
+        return project
+      }
+      
+      // If project not found at expected path, it might have been moved
+      // Try to find a project that contains this file
+      for (const [existingRootPath, existingProject] of this.projects.entries()) {
+        try {
+          const projectFiles = existingProject.files()
+          const fileUri = id.toString()
+          
+          // Check if this file exists in any of the existing projects
+          if (projectFiles[fileUri]) {
+            console.log(`Found file ${fileUri} in project ${existingRootPath}, but expected it in ${rootPath}. Project may have been moved.`)
+            // Don't return the old project as it's likely stale
+            break
+          }
+        } catch (e) {
+          // Skip projects that can't be accessed
+          continue
+        }
+      }
+      
+      // Project not found - this is expected for new files or after moves
+      return undefined
     } catch (e) {
       console.error(`Error getting project by id: ${e}`)
       return undefined

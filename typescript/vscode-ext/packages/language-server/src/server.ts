@@ -299,13 +299,28 @@ export function startServer(options?: LSOptions): void {
     // TODO: @hellovai be more efficient about this (only revalidate the files that changed)
     // If anything changes, then we need to revalidate all documents
     // let hasChanges = deleted_files.length > 0 || created_files.length > 0 || changed_files.length > 0;
-    // console.log('watched files changed', params.changes)
+    console.log('watched files changed', params.changes.map(c => `${c.type}: ${c.uri}`).join(', '))
     const hasChanges = params.changes.length > 0
     if (hasChanges) {
       // TODO: @hellovai we should technically get all possible root paths
       // (someone could delete mutliple baml_src dirs at once)
-      bamlProjectManager.reload_project_files(URI.parse(params.changes[0].uri)).catch((e) => {
-        console.error('Error reloading project files: ' + e)
+      
+      // For each changed file, try to reload its project
+      // This is more robust than just using the first change
+      const uniqueRootPaths = new Set<string>()
+      
+      params.changes.forEach(change => {
+        try {
+          const uri = URI.parse(change.uri)
+          // Only process .baml files or directory changes
+          if (uri.fsPath.endsWith('.baml') || !uri.fsPath.includes('.')) {
+            bamlProjectManager.reload_project_files(uri).catch((e) => {
+              console.error(`Error reloading project files for ${uri.toString()}: ${e}`)
+            })
+          }
+        } catch (e) {
+          console.error(`Error processing file change for ${change.uri}: ${e}`)
+        }
       })
     }
   })
@@ -369,7 +384,18 @@ export function startServer(options?: LSOptions): void {
 
   documents.onDidChangeContent(async (change: { document: TextDocument }) => {
     const textDocument = change.document
-    await bamlProjectManager.upsert_file(URI.parse(textDocument.uri), textDocument.getText())
+    try {
+      await bamlProjectManager.upsert_file(URI.parse(textDocument.uri), textDocument.getText())
+    } catch (e) {
+      // If upsert fails (e.g., because project was moved), try to touch the project first
+      console.log(`Failed to upsert file ${textDocument.uri}, attempting to reload project: ${e}`)
+      try {
+        await bamlProjectManager.touch_project(URI.parse(textDocument.uri))
+        await bamlProjectManager.upsert_file(URI.parse(textDocument.uri), textDocument.getText())
+      } catch (retryError) {
+        console.error(`Failed to upsert file after project reload: ${retryError}`)
+      }
+    }
   })
 
   documents.onDidSave(async (change: { document: TextDocument }) => {
@@ -553,6 +579,13 @@ export function startServer(options?: LSOptions): void {
 
         if (proj) {
           return proj.handleHoverRequest(doc, params.position)
+        } else {
+          // Project not found - might be because directory was moved
+          // Try to reload the project for this file
+          console.log(`Project not found for hover request: ${doc.uri}. Attempting to reload...`)
+          bamlProjectManager.touch_project(URI.parse(doc.uri)).catch((e) => {
+            console.error(`Error reloading project for hover: ${e}`)
+          })
         }
       }
       return undefined
