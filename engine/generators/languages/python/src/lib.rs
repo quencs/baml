@@ -1,16 +1,13 @@
 use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeatures};
-use functions::{
-    render_functions, render_functions_stream, render_runtime_code, render_source_files,
-    render_type_map,
-};
-use generated_types::{render_go_types, render_python_stream_types};
+use functions::{render_functions, render_functions_stream, render_runtime_code, render_source_files, render_type_map};
+use generated_types::{render_go_stream_types, render_go_types};
 
-use crate::generated_types::{render_go_types_utils, render_python_stream_types_utils};
+use crate::generated_types::{render_go_stream_types_utils, render_go_types_utils};
 
 mod functions;
 mod generated_types;
 mod ir_to_go;
-mod module;
+mod package;
 mod r#type;
 mod utils;
 
@@ -37,6 +34,7 @@ impl LanguageFeatures for GoLanguageFeatures {
         "go"
     }
 
+
     fn generate_sdk_files(
         &self,
         collector: &mut FileCollector<Self>,
@@ -47,7 +45,7 @@ impl LanguageFeatures for GoLanguageFeatures {
             anyhow::bail!("Go client package name is required");
         };
 
-        let pkg = module::CurrentRenderModule::new("baml_client");
+        let pkg = package::CurrentRenderPackage::new("baml_client", ir.clone());
         let file_map = args.file_map_as_json_string()?;
         collector.add_file("baml_source_map.go", render_source_files(file_map)?);
         collector.add_file("runtime.go", render_runtime_code(&pkg)?);
@@ -74,16 +72,6 @@ impl LanguageFeatures for GoLanguageFeatures {
             .walk_enums()
             .map(|e| ir_to_go::enums::ir_enum_to_go(e.item, &pkg))
             .collect::<Vec<_>>();
-        let unions = {
-            let mut unions = ir
-                .walk_all_types()
-                .filter_map(|t| ir_to_go::unions::ir_union_to_go(t, &pkg))
-                .collect::<Vec<_>>();
-            // dedup by name!
-            unions.sort_by_key(|u| u.name.clone());
-            unions.dedup_by_key(|u| u.name.clone());
-            unions
-        };
         let type_aliases = ir
             .walk_type_aliases()
             .map(|c| ir_to_go::type_aliases::ir_type_alias_to_go(c.item, &pkg))
@@ -91,24 +79,35 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         collector.add_file(
             "type_map.go",
-            render_type_map(&go_classes, &enums, &unions, &type_aliases, go_mod_name)?,
+            render_type_map(&go_classes, &enums, go_mod_name)?,
         );
 
         pkg.set("baml_client.types");
-        collector.add_file("types/utils.go", render_go_types_utils(&pkg)?);
-        collector.add_file("types/classes.go", render_go_types(&go_classes, &pkg)?);
-        collector.add_file("types/enums.go", render_go_types(&enums, &pkg)?);
-        collector.add_file("types/unions.go", render_go_types(&unions, &pkg)?);
+        collector.add_file(
+            "types/utils.go",
+            render_go_types_utils(&pkg)?,
+        );
+        collector.add_file(
+            "types/classes.go",
+            render_go_types(&go_classes, &pkg)?,
+        );
+        collector.add_file(
+            "types/enums.go",
+            render_go_types(&enums, &pkg)?,
+        );
+        collector.add_file(
+            "types/unions.go",
+            render_go_types(&unions, &pkg)?,
+        );
         collector.add_file(
             "types/type_aliases.go",
             render_go_types(&type_aliases, &pkg)?,
         );
 
         let unions = {
-            let mut unions = ir
-                .walk_all_types()
-                .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(t, &pkg))
-                .collect::<Vec<_>>();
+            let mut unions = ir.walk_all_types()
+                        .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(t, &pkg))
+                        .collect::<Vec<_>>();
             // dedup by name!
             unions.sort_by_key(|u| u.name.clone());
             unions.dedup_by_key(|u| u.name.clone());
@@ -126,37 +125,41 @@ impl LanguageFeatures for GoLanguageFeatures {
             .collect::<Vec<_>>();
 
         pkg.set("baml_client.stream_types");
-        collector.add_file("stream_types/utils.go", render_go_stream_types_utils(&pkg)?);
+        collector.add_file(
+            "stream_types/utils.go",
+            render_go_stream_types_utils(&pkg)?,
+        );
         collector.add_file(
             "stream_types/classes.go",
-            render_python_stream_types(&go_classes, &pkg)?,
+            render_go_stream_types(&go_classes, &pkg)?,
         );
         collector.add_file(
             "stream_types/unions.go",
-            render_python_stream_types(&unions, &pkg)?,
+            render_go_stream_types(&unions, &pkg)?,
         );
         collector.add_file(
             "stream_types/type_aliases.go",
-            render_python_stream_types(&type_aliases, &pkg)?,
+            render_go_stream_types(&type_aliases, &pkg)?,
         );
 
         Ok(())
     }
 }
 
+
 #[cfg(test)]
 mod generated_tests {
-    use test_harness::create_code_gen_test_suites;
+    use test_harness::{create_code_gen_test_suites};
 
     create_code_gen_test_suites!(crate::GoLanguageFeatures);
 }
 
 #[cfg(test)]
 mod tests {
-    #[test]
+   #[test]
     fn test_name() {
-        use dir_writer::LanguageFeatures;
         use std::str::FromStr;
+        use dir_writer::LanguageFeatures;
 
         let gen_type = baml_types::GeneratorOutputType::from_str(crate::GoLanguageFeatures::name())
             .expect("GoLanguageFeatures name should be a valid GeneratorOutputType");

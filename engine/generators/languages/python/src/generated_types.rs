@@ -1,5 +1,5 @@
-use crate::module::CurrentRenderModule;
-use crate::r#type::{SerializeType, TypePython};
+use crate::package::CurrentRenderPackage;
+use crate::r#type::{SerializeType, TypeGo};
 
 mod filters {
     // This filter does not have extra arguments
@@ -14,29 +14,14 @@ mod filters {
 mod class {
     use super::*;
 
-    /// A class in Python.
-    ///
-    /// ```askama
-    /// class {{ name }}(BaseModel):
-    ///   {%- if let Some(docstring) = docstring %}
-    ///   {{ docstring }}
-    ///   {%- endif %}
-    ///   {%- if dynamic %}
-    ///   model_config = ConfigDict(extra='allow')
-    ///   {%- endif %}
-    ///   {%- for field in fields %}
-    ///   {{ field.render()? }}
-    ///   {%- endfor %}
-    /// ```
     #[derive(askama::Template)]
-    #[template(in_doc = true, escape = "none", ext = "txt")]
-    pub struct ClassPython<'a> {
+    #[template(path = "class.go.j2", escape = "none", ext = "txt")]
+    pub struct ClassGo<'a> {
         pub name: String,
         pub docstring: Option<String>,
-        pub fields: Vec<FieldPython<'a>>,
+        pub fields: Vec<FieldGo<'a>>,
         pub dynamic: bool,
-        pub module: &'a CurrentRenderModule,
-        // pub is_pydantic_2: bool, // TODO: add this.
+        pub pkg: &'a CurrentRenderPackage,
     }
 
     /// A field in a class.
@@ -49,109 +34,52 @@ mod class {
     /// ```
     #[derive(askama::Template, Clone)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
-    pub struct FieldPython<'a> {
+    pub struct FieldGo<'a> {
         pub docstring: Option<String>,
         pub name: String,
-        pub r#type: TypePython,
-        pub module: &'a CurrentRenderModule,
+        pub r#type: TypeGo,
+        pub pkg: &'a CurrentRenderPackage,
     }
-    impl std::fmt::Debug for FieldPython<'_> {
+    impl std::fmt::Debug for FieldGo<'_> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(
                 f,
-                "FieldPython {{docstring: {:?}, name: {}, type: {:?}, module: <<Mutex>> }}",
+                "FieldGo {{docstring: {:?}, name: {}, type: {:?}, pkg: <<Mutex>> }}",
                 self.docstring, self.name, self.r#type
             )
-        }
-    }
-
-    mod helpers {
-        use crate::{module::Module, r#type::TypePython};
-
-        pub fn stream_variants(t: &TypePython) -> Vec<TypePython> {
-            let mut variants = vec![t.clone()];
-
-            let stream_module = Module::new("baml_client.stream_types");
-
-            // add stream types for user defined types (classes and unions)
-            // enums have no "stream" variants
-            match t {
-                TypePython::Class {
-                    name,
-                    meta,
-                    dynamic,
-                    package: _unused,
-                } => {
-                    variants.push(TypePython::Class {
-                        name: name.clone(),
-                        package: stream_pkg.clone(),
-                        meta: meta.clone(),
-                        dynamic: *dynamic,
-                    });
-                }
-                TypePython::Union {
-                    name,
-                    meta,
-                    package: _unused,
-                } => {
-                    variants.push(TypePython::Union {
-                        name: name.clone(),
-                        package: stream_pkg.clone(),
-                        meta: meta.clone(),
-                    });
-                }
-                _ => {}
-            }
-
-            // add optional variants
-            let optional_variants = variants
-                .iter()
-                .filter(|v| !v.meta().is_optional())
-                .map(|v| {
-                    let mut t = v.clone();
-                    t.meta_mut().make_optional();
-                    t
-                })
-                .collect::<Vec<_>>();
-            variants.extend(optional_variants);
-
-            // add stream state variants for each variant
-            let stream_variants = variants
-                .iter()
-                .map(|v| {
-                    let mut t = v.clone();
-                    t.meta_mut().set_stream_state();
-                    t
-                })
-                .collect::<Vec<_>>();
-
-            variants.extend(stream_variants);
-            variants
         }
     }
 }
 
 mod enums {
-    /// An enum in Python.
-    ///
-    /// ```askama
-    /// class {{ name }}(str, Enum):
-    ///   {%- if let Some(docstring) = docstring %}
-    ///   {{ docstring }}
-    ///   {%- endif %}
-    ///   {%- for (value, m_docstring) in values %}
-    ///   {{ value }} = "{{ value }}"
-    ///   {%- if let Some(docstring) = m_docstring %}
-    ///   {{ docstring }}
-    ///   {%- endif %}
-    ///   {%- endfor %}
     #[derive(askama::Template)]
-    #[template(in_doc = true, escape = "none", ext = "txt")]
+    #[template(path = "enums.go.j2", escape = "none")]
     pub struct EnumGo {
         pub name: String,
         pub docstring: Option<String>,
         pub values: Vec<(String, Option<String>)>,
         pub dynamic: bool,
+    }
+}
+
+mod union {
+    use super::*;
+
+    #[derive(askama::Template)]
+    #[template(path = "unions.go.j2", escape = "none")]
+    pub struct UnionGo<'a> {
+        pub name: String,
+        pub cffi_name: String,
+        pub docstring: Option<String>,
+        pub variants: Vec<VariantGo>,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+
+    #[derive(Clone)]
+    pub struct VariantGo {
+        pub name: String,
+        pub cffi_name: String,
+        pub type_: TypeGo,
     }
 }
 
@@ -164,86 +92,53 @@ mod type_aliases {
     /// {% if let Some(docstring) = docstring -%}
     /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
     /// {%- endif %}
-    /// type {{ name }} = {{ type_.serialize_type(module) }}
-    ///
-    /// {# DONT DO THIS FOR NOW it seems to work?
-    /// {% match type_ -%}
-    /// {% when TypeGo::Union { .. } -%}
-    /// func (u *{{ name }}) Decode(holder *cffi.CFFIValueUnionVariant) {
-    ///     decodedUnion := {{ type_.zero_value(module) }}
-    ///     decodedUnion.Decode(holder)
-    ///     *u = {{ name }}{decodedUnion}
-    /// }
-    /// {%- else -%}
-    /// {% endmatch %}
-    /// #}
+    /// type {{ name }} = {{ type_.serialize_type(pkg) }}
     /// ```
     #[derive(askama::Template)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
-    pub struct TypeAliasPython<'a> {
+    pub struct TypeAliasGo<'a> {
         pub name: String,
-        pub type_: TypePython,
+        pub type_: TypeGo,
         pub docstring: Option<String>,
-        pub module: &'a CurrentRenderModule,
+        pub pkg: &'a CurrentRenderPackage,
     }
 }
 
-pub(crate) fn render_type_aliases(
-    aliases: &[TypeAliasPython],
-    module: &CurrentRenderModule,
-) -> Result<String, askama::Error> {
-    use askama::Template;
-    PythonTypes {
-        items: aliases,
-        module,
-    }
-    .render()
-}
-
-/// A fragment of the types.py file.
+/// A list of types in Go.
 ///
 /// ```askama
-/// T = TypeVar('T')
-/// CheckName = TypeVar('CheckName', bound=str)
+/// package types
 ///
-/// class Check(BaseModel):
-///     name: str
-///     expression: str
-///     status: str
+/// import (
+///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+/// )
 ///
-/// class Checked(BaseModel, Generic[T,CheckName]):
-///     value: T
-///     checks: Dict[CheckName, Check]
-///
-/// def get_checks(checks: Dict[CheckName, Check]) -> List[Check]:
-///     return list(checks.values())
-/// def all_succeeded(checks: Dict[CheckName, Check]) -> bool:
-///     return all(check.status == "succeeded" for check in get_checks(checks))
+/// type Checked[T any] baml.Checked[T]
 /// ```
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub struct PythonTypesUtils<'ir> {
-    module: &'ir CurrentRenderModule,
-}
+struct GoTypesUtils {}
 
-pub(crate) fn render_python_types_utils(
-    module: &CurrentRenderModule,
-) -> Result<String, askama::Error> {
+pub(crate) fn render_go_types_utils(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     use askama::Template;
 
-    PythonTypesUtils { module }.render()
+    GoTypesUtils{}.render()
 }
 
-/// A list of types in Python.
+/// A list of types in Go.
 ///
 /// ```askama
-/// from enum import Enum
+/// package types
 ///
-/// from pydantic import BaseModel, ConfigDict
+/// import (
+///     "encoding/json"
+///     "fmt"
 ///
-/// from typing_extensions import TypeAlias, Literal
-/// from typing import Dict, Generic, List, Optional, TypeVar, Union
+///     flatbuffers "github.com/google/flatbuffers/go"
+///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+/// )
 ///
 /// {% for item in items -%}
 /// {{ item.render()? }}
@@ -253,56 +148,120 @@ pub(crate) fn render_python_types_utils(
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub struct PythonTypes<'ir, T: askama::Template> {
+struct GoTypes<'ir, T: askama::Template> {
     items: &'ir [T],
-    module: &'ir CurrentRenderModule,
 }
 
-pub(crate) fn render_python_types<T: askama::Template>(
+pub(crate) fn render_go_types<T: askama::Template>(
     items: &[T],
-    module: &CurrentRenderModule,
+    _pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    PythonTypes { items, module }.render()
+    GoTypes { items }.render()
 }
 
-/// A template fragment for the header of partial_types.py.
+const STREAM_STATE_GO: &str = r#"
+type StreamStateType string
+
+const (
+    StreamStatePending    StreamStateType = "Pending"
+    StreamStateIncomplete StreamStateType = "Incomplete"
+    StreamStateComplete   StreamStateType = "Complete"
+)
+
+// Values returns all allowed values for the AliasedEnum type.
+func (StreamStateType) Values() []StreamStateType {
+    return []StreamStateType{
+        StreamStatePending,
+        StreamStateIncomplete,
+        StreamStateComplete,
+    }
+}
+
+// IsValid checks whether the given AliasedEnum value is valid.
+func (e StreamStateType) IsValid() bool {
+
+    for _, v := range e.Values() {
+        if e == v {
+            return true
+        }
+    }
+    return false
+
+}
+
+// MarshalJSON customizes JSON marshaling for AliasedEnum.
+func (e StreamStateType) MarshalJSON() ([]byte, error) {
+    if !e.IsValid() {
+        return nil, fmt.Errorf("invalid StreamStateType: %q", e)
+    }
+    return json.Marshal(string(e))
+}
+
+// UnmarshalJSON customizes JSON unmarshaling for AliasedEnum.
+func (e *StreamStateType) UnmarshalJSON(data []byte) error {
+    var s string
+    if err := json.Unmarshal(data, &s); err != nil {
+        return err
+    }
+    *e = StreamStateType(s)
+    if !e.IsValid() {
+        return fmt.Errorf("invalid StreamStateType: %q", s)
+    }
+    return nil
+}
+
+
+type StreamState[T any] struct {
+    Value T `json:"value"`
+    State StreamStateType `json:"state"`    
+}
+"#;
+
+/// A list of types in Go.
 ///
 /// ```askama
-/// import baml_py
-/// from enum import Enum
+/// package stream_types
 ///
-/// from pydantic import BaseModel, ConfigDict
+/// import (
+///     "encoding/json"
+///     "fmt"
 ///
-/// from typing_extensions import TypeAlias, Literal
-/// from typing import Dict, Generic, List, Optional, TypeVar, Union
+///     flatbuffers "github.com/google/flatbuffers/go"
+///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+/// )
 ///
-/// from . import types
-/// from .types import Checked, Check
-/// T = TypeVar('T')
-/// class StreamState(BaseModel, Generic[T]):
-///     value: T
-///     state: Literal["Pending", "Incomplete", "Complete"]
+/// {{ STREAM_STATE_GO }}
 ///
 /// ```
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub struct PythonStreamTypesUtils<'ir> {
-    module: &'ir CurrentRenderModule,
+pub struct GoStreamTypesUtils {
 }
 
-pub(crate) fn render_python_stream_types_utils(
-    module: &CurrentRenderModule,
+pub(crate) fn render_go_stream_types_utils(
+    _pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    PythonStreamTypesUtils { module }.render()
+    GoStreamTypesUtils {  }.render()
 }
-/// A list of types in Python.
+/// A list of types in Go.
 ///
 /// ```askama
+/// package stream_types
+///
+/// import (
+///     "encoding/json"
+///     "fmt"
+///
+///     flatbuffers "github.com/google/flatbuffers/go"
+///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+/// )
 ///
 /// {% for item in items -%}
 /// {{ item.render()? }}
@@ -311,21 +270,20 @@ pub(crate) fn render_python_stream_types_utils(
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub(crate) struct PythonStreamTypes<'ir, T: askama::Template> {
+struct GoStreamTypes<'ir, T: askama::Template> {
     items: &'ir [T],
-    module: &'ir CurrentRenderModule,
 }
 
-pub(crate) fn render_python_stream_types<T: askama::Template>(
+pub(crate) fn render_go_stream_types<T: askama::Template>(
     items: &[T],
-    module: &CurrentRenderModule,
+    _pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    PythonStreamTypes { items, module }.render()
+    GoStreamTypes { items }.render()
 }
 
-pub use class::{ClassPython, FieldGo};
+pub use class::{ClassGo, FieldGo};
 pub use enums::EnumGo;
-pub use type_aliases::TypeAliasPython;
-pub use union::UnionGo;
+pub use union::{UnionGo, VariantGo};
+pub use type_aliases::TypeAliasGo;

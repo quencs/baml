@@ -1,10 +1,11 @@
-use crate::generated_types::{ClassPython, FieldGo};
+use crate::{generated_types::{ClassGo, FieldGo}};
 use internal_baml_core::ir::{Class, Field};
 
-use crate::module::CurrentRenderModule;
+use crate::package::CurrentRenderPackage;
 
-pub fn ir_class_to_go<'a>(class: &Class, pkg: &'a CurrentRenderModule) -> ClassPython<'a> {
-    ClassPython {
+
+pub fn ir_class_to_go<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -> ClassGo<'a> {
+    ClassGo {
         name: class.elem.name.clone(),
         docstring: class
             .elem
@@ -13,17 +14,12 @@ pub fn ir_class_to_go<'a>(class: &Class, pkg: &'a CurrentRenderModule) -> ClassP
             .map(|docstring| docstring.0.clone()),
         dynamic: class.attributes.dynamic(),
         pkg,
-        fields: class
-            .elem
-            .static_fields
-            .iter()
-            .map(|field| ir_field_to_go(field, pkg))
-            .collect(),
+        fields: class.elem.static_fields.iter().map(|field| ir_field_to_go(field, pkg)).collect(),
     }
 }
 
-pub fn ir_class_to_go_stream<'a>(class: &Class, pkg: &'a CurrentRenderModule) -> ClassPython<'a> {
-    ClassPython {
+pub fn ir_class_to_go_stream<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -> ClassGo<'a> {
+    ClassGo {
         name: class.elem.name.clone(),
         docstring: class
             .elem
@@ -32,43 +28,26 @@ pub fn ir_class_to_go_stream<'a>(class: &Class, pkg: &'a CurrentRenderModule) ->
             .map(|docstring| docstring.0.clone()),
         dynamic: class.attributes.dynamic(),
         pkg,
-        fields: class
-            .elem
-            .static_fields
-            .iter()
-            .map(|field| ir_field_to_go_stream(field, pkg))
-            .collect(),
+        fields: class.elem.static_fields.iter().map(|field| ir_field_to_go_stream(field, pkg)).collect(),
     }
 }
 
-fn ir_field_to_go<'a>(field: &Field, pkg: &'a CurrentRenderModule) -> FieldGo<'a> {
+
+fn ir_field_to_go<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldGo<'a> {
     FieldGo {
         name: field.elem.name.clone(),
-        r#type: super::type_to_go(&field.elem.r#type.elem),
-        docstring: field
-            .elem
-            .docstring
-            .clone()
-            .map(|docstring| docstring.0.clone()),
+        r#type: super::type_to_go(&field.elem.r#type.elem, pkg.lookup()),
+        docstring: field.elem.docstring.clone().map(|docstring| docstring.0.clone()),
         pkg,
     }
 }
 
-fn ir_field_to_go_stream<'a>(field: &Field, pkg: &'a CurrentRenderModule) -> FieldGo<'a> {
-    let partialized_type = field
-        .elem
-        .r#type
-        .elem
-        .partialize(field.attributes.streaming_behavior().needed);
-    let type_go = super::stream_type_to_go(&partialized_type);
+fn ir_field_to_go_stream<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldGo<'a> {
+    let partialized = field.elem.r#type.elem.partialize(pkg.lookup());
     FieldGo {
         name: field.elem.name.clone(),
-        r#type: type_go,
-        docstring: field
-            .elem
-            .docstring
-            .clone()
-            .map(|docstring| docstring.0.clone()),
+        r#type: super::stream_type_to_go(&partialized, pkg.lookup()),
+        docstring: field.elem.docstring.clone().map(|docstring| docstring.0.clone()),
         pkg,
     }
 }
@@ -78,15 +57,15 @@ mod tests {
     use internal_baml_core::ir::{repr::make_test_ir, IRHelper};
 
     use crate::{
-        module::Module,
-        r#type::{TypeMetaPython, TypePython},
+        package::Package,
+        r#type::{TypeGo, TypeMetaGo},
     };
 
     use super::*;
 
     #[test]
     fn test_ir_class_to_go() {
-        let ir = make_test_ir(
+        let ir: dir_writer::IntermediateRepr = make_test_ir(
             r#"
             class SimpleClass {
                 words string @stream.with_state
@@ -94,8 +73,9 @@ mod tests {
         "#,
         )
         .unwrap();
+        let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("SimpleClass").unwrap().item;
-        let pkg = CurrentRenderModule::new("baml_client");
+        let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
         let class_go = ir_class_to_go_stream(&class, &pkg);
         assert_eq!(class_go.name, "SimpleClass");
         assert_eq!(class_go.fields.len(), 1);
@@ -113,8 +93,9 @@ mod tests {
         "#,
         )
         .unwrap();
+        let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("ChildClass").unwrap().item;
-        let pkg = CurrentRenderModule::new("baml_client");
+        let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
         let class_go = ir_class_to_go_stream(&class, &pkg);
         let digits_field = class_go.fields.iter().find(|f| f.name == "digits").unwrap();
         eprintln!("{:?}", digits_field);
@@ -135,8 +116,9 @@ mod tests {
         "#,
         )
         .expect("Valid IR");
+        let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("Foo").unwrap().item;
-        let pkg = CurrentRenderModule::new("baml_client");
+        let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
         let class_go = ir_class_to_go_stream(&class, &pkg);
         assert_eq!(class_go.fields[0].docstring, Some("ds".to_string()));
     }
