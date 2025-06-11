@@ -17,13 +17,18 @@ pub mod unions;
 pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookups) -> TypeGo {
     use TypeStreaming as T;
     let recursive_fn = |field| stream_type_to_go(field, _lookup);
+    eprintln!("stream_type_to_go meta: {:?}", field.meta());
     let meta = stream_meta_to_go(field.meta());
+    eprintln!("stream_type_to_go meta 2: {:?}", meta);
 
     let types_pkg: Package = Package::types();
     let stream_pkg: Package = Package::stream_types();
 
     let type_go: TypeGo = match field {
-        T::Primitive(type_value, _) => type_value.into(),
+        T::Primitive(type_value, _) => {
+            let t: TypeGo = type_value.into();
+            t.with_meta(meta)
+        }
         T::Enum { name, dynamic, .. } => TypeGo::Enum {
             package: types_pkg.clone(),
             name: name.clone(),
@@ -35,80 +40,100 @@ pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookup
             baml_types::LiteralValue::Int(_) => TypeGo::Int(meta),
             baml_types::LiteralValue::Bool(_) => TypeGo::Bool(meta),
         },
-        T::Class { name, dynamic, meta: cls_meta, .. } => {
-            TypeGo::Class {
-                package: match cls_meta.streaming_behavior.done {
-                    true => types_pkg.clone(),
-                    false => stream_pkg.clone(),
-                },
-                name: name.clone(),
-                dynamic: *dynamic,
-                meta
+        T::Class {
+            name,
+            dynamic,
+            meta: cls_meta,
+            ..
+        } => TypeGo::Class {
+            package: match cls_meta.streaming_behavior.done {
+                true => types_pkg.clone(),
+                false => stream_pkg.clone(),
+            },
+            name: name.clone(),
+            dynamic: *dynamic,
+            meta,
+        },
+        T::List(type_generic, _) => TypeGo::List(Box::new(recursive_fn(type_generic)), meta),
+        T::Map(type_generic, type_generic1, _) => TypeGo::Map(
+            Box::new(recursive_fn(type_generic)),
+            Box::new(recursive_fn(type_generic1)),
+            meta,
+        ),
+        T::RecursiveTypeAlias {
+            name,
+            meta: alias_meta,
+            ..
+        } => TypeGo::TypeAlias {
+            package: match alias_meta.streaming_behavior.done {
+                true => types_pkg.clone(),
+                false => stream_pkg.clone(),
+            },
+            name: name.clone(),
+            meta,
+        },
+        T::Tuple(..) => TypeGo::Any {
+            reason: "tuples are not supported in Go".to_string(),
+            meta,
+        },
+        T::Arrow(..) => TypeGo::Any {
+            reason: "arrow types are not supported in Go".to_string(),
+            meta,
+        },
+        T::Union(union_type_generic, union_meta) => match union_type_generic.view() {
+            baml_types::ir_type::UnionTypeViewGeneric::Null => TypeGo::Any {
+                reason: "Null types are not supported in Go".to_string(),
+                meta,
+            },
+            baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
+                let mut type_go = recursive_fn(type_generic);
+                if union_meta
+                    .constraints
+                    .iter()
+                    .any(|c| matches!(c.level, ConstraintLevel::Check))
+                {
+                    type_go.meta_mut().make_checked();
+                }
+                type_go.meta_mut().make_optional();
+                if union_meta.streaming_behavior.state {
+                    type_go.meta_mut().set_stream_state();
+                }
+                type_go
             }
-        },
-        T::List(type_generic, _) => {
-            TypeGo::List(Box::new(recursive_fn(type_generic)), meta)
-        },
-        T::Map(type_generic, type_generic1, _) => {
-            TypeGo::Map(Box::new(recursive_fn(type_generic)), Box::new(recursive_fn(type_generic1)), meta)
-        },
-        T::RecursiveTypeAlias { name, meta: alias_meta, .. } => {
-            TypeGo::TypeAlias {
-                package: match alias_meta.streaming_behavior.done {
-                    true => types_pkg.clone(),
-                    false => stream_pkg.clone(),
-                },
-                name: name.clone(),
-                meta
+            baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
+                let options: Vec<_> = type_generics.into_iter().map(&recursive_fn).collect();
+                let num_options = options.len();
+                let mut name = options
+                    .iter()
+                    .map(|t| t.default_name_within_union())
+                    .collect::<Vec<_>>();
+                name.sort();
+                let name = name.join("Or");
+                TypeGo::Union {
+                    package: stream_pkg.clone(),
+                    name: format!("Union{}{}", num_options, name),
+                    meta,
+                }
             }
-        },
-        T::Tuple(..) => TypeGo::Any { reason: "tuples are not supported in Go".to_string(), meta },
-        T::Arrow(..) => TypeGo::Any { reason: "arrow types are not supported in Go".to_string(), meta },
-        T::Union(union_type_generic, union_meta) => {
-            match union_type_generic.view() {
-                baml_types::ir_type::UnionTypeViewGeneric::Null => TypeGo::Any { reason: "Null types are not supported in Go".to_string(), meta },
-                baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
-                    let mut type_go = recursive_fn(type_generic);
-                    if union_meta.constraints.iter().any(|c| {
-                        matches!(c.level, ConstraintLevel::Check)
-                    }) {
-                        type_go.meta_mut().make_checked();
-                    }
-                    type_go.meta_mut().make_optional();
-                    if union_meta.streaming_behavior.state {
-                        type_go.meta_mut().set_stream_state();
-                    }
-                    type_go
-                },
-                baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
-                    let options: Vec<_> = type_generics.into_iter().map(&recursive_fn).collect();
-                    let num_options = options.len();
-                    let mut name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>();
-                    name.sort();
-                    let name = name.join("Or");
-                    TypeGo::Union {
-                        package: stream_pkg.clone(),
-                        name: format!("Union{}{}", num_options, name),
-                        meta
-                    }
-                },
-                baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
-                    let options: Vec<_> = type_generics.into_iter().map(recursive_fn).collect();
-                    let num_options = options.len();
-                    let mut name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>();
-                    name.sort();
-                    let name = name.join("Or");
-                    let mut meta = meta;
-                    meta.make_optional();
-                    TypeGo::Union {
-                        package: match union_meta.streaming_behavior.done {
-                            true => types_pkg.clone(),
-                            false => stream_pkg.clone(),
-                        },
-                        name: format!("Union{}{}", num_options, name),
-                        meta,
-                    }
-                },
+            baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
+                let options: Vec<_> = type_generics.into_iter().map(recursive_fn).collect();
+                let num_options = options.len();
+                let mut name = options
+                    .iter()
+                    .map(|t| t.default_name_within_union())
+                    .collect::<Vec<_>>();
+                name.sort();
+                let name = name.join("Or");
+                let mut meta = meta;
+                meta.make_optional();
+                TypeGo::Union {
+                    package: match union_meta.streaming_behavior.done {
+                        true => types_pkg.clone(),
+                        false => stream_pkg.clone(),
+                    },
+                    name: format!("Union{}{}", num_options, name),
+                    meta,
+                }
             }
         },
     };
@@ -156,13 +181,11 @@ pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
             reason: "arrow types are not supported in Go".to_string(),
             meta,
         },
-        T::RecursiveTypeAlias { name, .. } => {
-            TypeGo::TypeAlias {
-                package: type_pkg.clone(),
-                name: name.clone(),
-                meta
-            }
-        }
+        T::RecursiveTypeAlias { name, .. } => TypeGo::TypeAlias {
+            package: type_pkg.clone(),
+            name: name.clone(),
+            meta,
+        },
         T::Union(union_type_generic, union_meta) => match union_type_generic.view() {
             baml_types::ir_type::UnionTypeViewGeneric::Null => TypeGo::Any {
                 reason: "Null types are not supported in Go".to_string(),
@@ -179,12 +202,9 @@ pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
                     type_go.meta_mut().make_checked();
                 }
                 type_go
-            },
+            }
             baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
-                let options: Vec<_> = type_generics
-                    .into_iter()
-                    .map(&recursive_fn)
-                    .collect();
+                let options: Vec<_> = type_generics.into_iter().map(&recursive_fn).collect();
                 let num_options = options.len();
                 let mut name = options
                     .iter()
@@ -199,10 +219,7 @@ pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
                 }
             }
             baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
-                let options: Vec<_> = type_generics
-                    .into_iter()
-                    .map(recursive_fn)
-                    .collect();
+                let options: Vec<_> = type_generics.into_iter().map(recursive_fn).collect();
                 let num_options = options.len();
 
                 let mut name = options

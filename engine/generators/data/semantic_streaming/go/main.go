@@ -45,8 +45,8 @@ func main() {
 		}
 
 		// Checks for @stream.with_state (simulate with s_20_words length and final_string)
-		if msgStream.Class_needed != nil {
-			words := len(splitWords(*msgStream.Class_needed.S_20_words))
+		if msgStream.Class_needed.S_20_words.Value != nil {
+			words := len(splitWords(*msgStream.Class_needed.S_20_words.Value))
 			if words < 3 && msgStream.Final_string == nil {
 				fmt.Printf("%+v\n", msg)
 				if msgStream.Class_needed.S_20_words.State != "Incomplete" {
@@ -62,7 +62,7 @@ func main() {
 
 		// Checks for @stream.not_null
 		for _, sub := range *msgStream.Three_small_things {
-			if *sub.I_16_digits == 0 {
+			if sub.I_16_digits == 0 {
 				panic("three_small_things.i_16_digits is null/zero")
 			}
 		}

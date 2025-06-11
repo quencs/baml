@@ -1,8 +1,7 @@
-use crate::{generated_types::{ClassGo, FieldGo}};
+use crate::generated_types::{ClassGo, FieldGo};
 use internal_baml_core::ir::{Class, Field};
 
 use crate::package::CurrentRenderPackage;
-
 
 pub fn ir_class_to_go<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -> ClassGo<'a> {
     ClassGo {
@@ -14,7 +13,12 @@ pub fn ir_class_to_go<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -> Class
             .map(|docstring| docstring.0.clone()),
         dynamic: class.attributes.dynamic(),
         pkg,
-        fields: class.elem.static_fields.iter().map(|field| ir_field_to_go(field, pkg)).collect(),
+        fields: class
+            .elem
+            .static_fields
+            .iter()
+            .map(|field| ir_field_to_go(field, pkg))
+            .collect(),
     }
 }
 
@@ -28,26 +32,39 @@ pub fn ir_class_to_go_stream<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -
             .map(|docstring| docstring.0.clone()),
         dynamic: class.attributes.dynamic(),
         pkg,
-        fields: class.elem.static_fields.iter().map(|field| ir_field_to_go_stream(field, pkg)).collect(),
+        fields: class
+            .elem
+            .static_fields
+            .iter()
+            .map(|field| ir_field_to_go_stream(field, pkg))
+            .collect(),
     }
 }
-
 
 fn ir_field_to_go<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldGo<'a> {
     FieldGo {
         name: field.elem.name.clone(),
         r#type: super::type_to_go(&field.elem.r#type.elem, pkg.lookup()),
-        docstring: field.elem.docstring.clone().map(|docstring| docstring.0.clone()),
+        docstring: field
+            .elem
+            .docstring
+            .clone()
+            .map(|docstring| docstring.0.clone()),
         pkg,
     }
 }
 
 fn ir_field_to_go_stream<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldGo<'a> {
     let partialized = field.elem.r#type.elem.partialize(pkg.lookup());
+
     FieldGo {
         name: field.elem.name.clone(),
         r#type: super::stream_type_to_go(&partialized, pkg.lookup()),
-        docstring: field.elem.docstring.clone().map(|docstring| docstring.0.clone()),
+        docstring: field
+            .elem
+            .docstring
+            .clone()
+            .map(|docstring| docstring.0.clone()),
         pkg,
     }
 }
@@ -99,6 +116,15 @@ mod tests {
         let class_go = ir_class_to_go_stream(&class, &pkg);
         let digits_field = class_go.fields.iter().find(|f| f.name == "digits").unwrap();
         eprintln!("{:?}", digits_field);
+        eprintln!("{}", class.elem.static_fields[0].elem.r#type.elem);
+        eprintln!(
+            "{}",
+            class.elem.static_fields[0]
+                .elem
+                .r#type
+                .elem
+                .partialize(ir.as_ref())
+        );
         assert!(digits_field.r#type.meta().wrap_stream_state);
         assert_eq!(class_go.name, "ChildClass");
         assert_eq!(class_go.fields.len(), 1);

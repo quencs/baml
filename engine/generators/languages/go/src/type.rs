@@ -1,9 +1,8 @@
 use baml_types::baml_value::TypeLookups;
 
-use crate::{package::{CurrentRenderPackage, Package}};
+use crate::package::{CurrentRenderPackage, Package};
 
-#[derive(Clone, PartialEq, Debug)]
-#[derive(Default)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub enum TypeWrapper {
     #[default]
     None,
@@ -17,13 +16,11 @@ impl TypeWrapper {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[derive(Default)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct TypeMetaGo {
     pub type_wrapper: TypeWrapper,
     pub wrap_stream_state: bool,
 }
-
 
 impl TypeMetaGo {
     pub fn is_optional(&self) -> bool {
@@ -45,7 +42,6 @@ impl TypeMetaGo {
         self
     }
 }
-
 
 trait WrapType {
     fn wrap_type(&self, params: (&CurrentRenderPackage, String)) -> String;
@@ -162,9 +158,7 @@ impl TypeGo {
             TypeGo::Int(_) => "0".to_string(),
             TypeGo::Float(_) => "0.0".to_string(),
             TypeGo::Bool(_) => "false".to_string(),
-            TypeGo::Media(..)
-            | TypeGo::Class { .. }
-            | TypeGo::Union { .. } => {
+            TypeGo::Media(..) | TypeGo::Class { .. } | TypeGo::Union { .. } => {
                 format!("{}{{}}", self.serialize_type(pkg))
             }
             TypeGo::Enum { .. } => {
@@ -177,10 +171,14 @@ impl TypeGo {
                         if package == &Package::types() {
                             crate::ir_to_go::type_to_go(expansion, lookup).zero_value(pkg)
                         } else {
-                            crate::ir_to_go::stream_type_to_go(&expansion.partialize(lookup), lookup).zero_value(pkg)
+                            crate::ir_to_go::stream_type_to_go(
+                                &expansion.partialize(lookup),
+                                lookup,
+                            )
+                            .zero_value(pkg)
                         }
-                    },
-                    Err(_) => format!("{}{{}}", self.serialize_type(pkg))
+                    }
+                    Err(_) => format!("{}{{}}", self.serialize_type(pkg)),
                 }
             }
             TypeGo::List(..) => "nil".to_string(),
@@ -197,7 +195,10 @@ impl TypeGo {
 
     fn cast_return_value(&self, pkg: &CurrentRenderPackage) -> String {
         if self.meta().wrap_stream_state {
-            format!("{}{{Value: nil, State: StreamStatePending}}", self.serialize_type(pkg))
+            format!(
+                "{}{{Value: nil, State: StreamStatePending}}",
+                self.serialize_type(pkg)
+            )
         } else {
             self.zero_value(pkg)
         }
@@ -225,16 +226,14 @@ impl TypeGo {
         .to_string()
     }
 
-
     pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
         match self {
             TypeGo::List(..) | TypeGo::Map(..) => self.cast_from_any_skip_optional(param, pkg),
-            TypeGo::TypeAlias { name, .. } =>  {
+            TypeGo::TypeAlias { name, .. } => {
                 let lookup = pkg.lookup();
                 match lookup.expand_recursive_type(name) {
-                    Ok(expansion) if expansion.is_optional() => {
-                        format!(
-                            r#"
+                    Ok(expansion) if expansion.is_optional() => format!(
+                        r#"
                             func(result any) {t} {{
                                 if result == nil {{
                                     return nil
@@ -242,10 +241,11 @@ impl TypeGo {
                                 return (result).({t})
                             }}({param})
                         "#,
-                            t = self.serialize_type(pkg),
-                        ).trim().to_string()
-                    },
-                    _ => format!("*({param}).(*{})", self.serialize_type(pkg))
+                        t = self.serialize_type(pkg),
+                    )
+                    .trim()
+                    .to_string(),
+                    _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
                 }
             }
             _ if self.meta().is_optional() => self.cast_from_any_skip_optional(param, pkg),
@@ -270,8 +270,14 @@ impl TypeGo {
                 casted = value.decode_from_any("inner", pkg)
             ),
             TypeGo::TypeAlias { name, .. } => {
-                if pkg.lookup().expand_recursive_type(name).map(|e| e.is_optional()).unwrap_or(false) {
-                    format!(r#"
+                if pkg
+                    .lookup()
+                    .expand_recursive_type(name)
+                    .map(|e| e.is_optional())
+                    .unwrap_or(false)
+                {
+                    format!(
+                        r#"
                     func(param *cffi.CFFIValueHolder) {name} {{
                         decoded := baml.Decode(param)
                         if decoded == nil {{
@@ -279,12 +285,16 @@ impl TypeGo {
                         }}
                         return decoded.({name})
                     }}({param})
-                    "#, name= self.serialize_type(pkg))
+                    "#,
+                        name = self.serialize_type(pkg)
+                    )
                 } else {
                     format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
                 }
             }
-            _ if !self.meta().is_optional() => format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg)),
+            _ if !self.meta().is_optional() => {
+                format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
+            }
             _ => format!("baml.Decode({param}).({})", self.serialize_type(pkg)),
         }
         .trim()
@@ -343,6 +353,11 @@ impl TypeGo {
             TypeGo::Any { meta, .. } => meta,
         }
     }
+
+    pub fn with_meta(mut self, meta: TypeMetaGo) -> Self {
+        *(self.meta_mut()) = meta;
+        self
+    }
 }
 
 pub trait SerializeType {
@@ -379,7 +394,6 @@ impl SerializeType for TypeGo {
             TypeGo::Any { .. } => "any".to_string(),
         };
 
-        
         meta.wrap_type((pkg, type_str))
     }
 }
