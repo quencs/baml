@@ -595,9 +595,9 @@ impl IntermediateRepr {
 
         // finding types used in type aliases
         let type_alias_fields = self
-            .structural_recursive_alias_cycles
+            .type_aliases
             .iter()
-            .flat_map(|c| c.iter().map(|(_, t)| t));
+            .map(|c| &c.elem.r#type.elem);
 
         // finding types used in functions
         let function_fields = self.functions.iter().flat_map(|f| {
