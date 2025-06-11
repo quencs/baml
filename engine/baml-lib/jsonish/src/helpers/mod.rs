@@ -243,7 +243,7 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::RecursiveTypeAlias(name, _) => {
+            FieldType::RecursiveTypeAlias { name, .. } => {
                 // TODO: Same O(n) problem as above.
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if cycle.contains_key(name) {

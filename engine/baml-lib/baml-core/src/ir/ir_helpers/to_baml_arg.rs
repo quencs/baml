@@ -275,7 +275,7 @@ impl ArgCoercer {
                     Err(())
                 }
             },
-            FieldType::RecursiveTypeAlias(name, _) => {
+            FieldType::RecursiveTypeAlias { name, .. } => {
                 let mut maybe_coerced = None;
                 // TODO: Fix this O(n)
                 for cycle in ir.structural_recursive_alias_cycles() {

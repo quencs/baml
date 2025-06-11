@@ -89,7 +89,7 @@ impl<'a> InterfaceFieldType<'a> {
             FieldType::Tuple(field_types, _) => {
                 InterfaceFieldType::Tuple(field_types.iter().map(|ft| Self::from(ft)).collect())
             }
-            FieldType::RecursiveTypeAlias(name, _) => {
+            FieldType::RecursiveTypeAlias { name, .. } => {
                 InterfaceFieldType::RecursiveTypeAlias(name.as_str())
             }
             FieldType::Arrow(_, _) => InterfaceFieldType::Unknown,

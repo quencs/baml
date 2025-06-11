@@ -35,7 +35,7 @@ impl std::fmt::Display for TypeStreaming {
         let _res = match self {
             TypeStreaming::Enum { name, .. }
             | TypeStreaming::Class { name, .. }
-            | TypeStreaming::RecursiveTypeAlias(name, _) => write!(f, "{name}"),
+            | TypeStreaming::RecursiveTypeAlias { name, .. } => write!(f, "{name}"),
             TypeStreaming::Primitive(t, _) => write!(f, "{t}"),
             TypeStreaming::Literal(v, _) => write!(f, "{v}"),
             TypeStreaming::Union(choices, _) => {
@@ -128,7 +128,7 @@ impl std::fmt::Display for TypeGeneric<type_meta::Base> {
         let _res = match self {
             TypeGeneric::Enum { name, .. }
             | TypeGeneric::Class { name, .. }
-            | TypeGeneric::RecursiveTypeAlias(name, _) => write!(f, "{name}"),
+            | TypeGeneric::RecursiveTypeAlias { name, .. } => write!(f, "{name}"),
             TypeGeneric::Primitive(t, _) => write!(f, "{t}"),
             TypeGeneric::Literal(v, _) => write!(f, "{v}"),
             TypeGeneric::Union(choices, _) => {

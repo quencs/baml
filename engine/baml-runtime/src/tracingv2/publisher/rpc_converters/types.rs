@@ -108,7 +108,7 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType
                     .map(|t| t.into_rpc_event(lookup))
                     .collect(),
             ),
-            baml_types::FieldType::RecursiveTypeAlias(alias, _) => lookup
+            baml_types::FieldType::RecursiveTypeAlias { name: alias, .. } => lookup
                 .type_lookup(alias.as_str())
                 .map(|id| TypeReference::recursive_type_alias(id))
                 .unwrap_or(TypeReference::Unknown),

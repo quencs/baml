@@ -336,51 +336,51 @@ type Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString struct {
 
 	variant_Float *float64
 
-	variant_MapStringKeyJSONValue *map[string]*JSON
+	variant_MapStringKeyJSONValue *map[string]JSON
 
-	variant_ListJSON *[]*JSON
+	variant_ListJSON *[]JSON
 }
 
 func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) Decode(holder *cffi.CFFIValueUnionVariant) {
 	valueHolder := holder.Value(nil)
 	variantName := string(holder.VariantName())
 	switch variantName {
-	case "String":
+	case "string":
 		u.variant = "String"
 		value := *baml.Decode(valueHolder).(*string)
 		u.variant_String = &value
-	case "Int":
+	case "int":
 		u.variant = "Int"
 		value := *baml.Decode(valueHolder).(*int64)
 		u.variant_Int = &value
-	case "Float":
+	case "float":
 		u.variant = "Float"
 		value := *baml.Decode(valueHolder).(*float64)
 		u.variant_Float = &value
-	case "MapStringKeyJSONValue":
+	case "Map__string_JSON":
 		u.variant = "MapStringKeyJSONValue"
-		value := baml.DecodeMap(valueHolder, func(inner *cffi.CFFIValueHolder) *JSON {
-			return func(param *cffi.CFFIValueHolder) *JSON {
+		value := baml.DecodeMap(valueHolder, func(inner *cffi.CFFIValueHolder) JSON {
+			return func(param *cffi.CFFIValueHolder) JSON {
 				decoded := baml.Decode(param)
-				return func(result any) *JSON {
+				return func(result any) JSON {
 					if result == nil {
 						return nil
 					}
-					return (result).(*JSON)
+					return (result).(JSON)
 				}(decoded)
 			}(inner)
 		})
 		u.variant_MapStringKeyJSONValue = &value
-	case "ListJSON":
+	case "List__JSON":
 		u.variant = "ListJSON"
-		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) *JSON {
-			return func(param *cffi.CFFIValueHolder) *JSON {
+		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) JSON {
+			return func(param *cffi.CFFIValueHolder) JSON {
 				decoded := baml.Decode(param)
-				return func(result any) *JSON {
+				return func(result any) JSON {
 					if result == nil {
 						return nil
 					}
-					return (result).(*JSON)
+					return (result).(JSON)
 				}(decoded)
 			}(inner)
 		})
@@ -395,19 +395,19 @@ func (u Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) Encode(builde
 	switch u.variant {
 
 	case "String":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", u.variant, u.variant_String)
+		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "string", u.variant_String)
 
 	case "Int":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", u.variant, u.variant_Int)
+		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "int", u.variant_Int)
 
 	case "Float":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", u.variant, u.variant_Float)
+		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "float", u.variant_Float)
 
 	case "MapStringKeyJSONValue":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", u.variant, u.variant_MapStringKeyJSONValue)
+		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "Map__string_JSON", u.variant_MapStringKeyJSONValue)
 
 	case "ListJSON":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", u.variant, u.variant_ListJSON)
+		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "List__JSON", u.variant_ListJSON)
 
 	case "":
 		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
@@ -564,7 +564,7 @@ func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) Float() floa
 	return *u.variant_Float
 }
 
-func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) SetMapStringKeyJSONValue(v map[string]*JSON) {
+func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) SetMapStringKeyJSONValue(v map[string]JSON) {
 	u.variant = "MapStringKeyJSONValue"
 	u.variant_MapStringKeyJSONValue = &v
 
@@ -582,14 +582,14 @@ func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) IsMapStringK
 	return u.variant == "MapStringKeyJSONValue"
 }
 
-func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) MapStringKeyJSONValue() map[string]*JSON {
+func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) MapStringKeyJSONValue() map[string]JSON {
 	if u.variant != "MapStringKeyJSONValue" {
 		return nil
 	}
 	return *u.variant_MapStringKeyJSONValue
 }
 
-func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) SetListJSON(v []*JSON) {
+func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) SetListJSON(v []JSON) {
 	u.variant = "ListJSON"
 	u.variant_ListJSON = &v
 
@@ -607,7 +607,7 @@ func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) IsListJSON()
 	return u.variant == "ListJSON"
 }
 
-func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) ListJSON() []*JSON {
+func (u *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) ListJSON() []JSON {
 	if u.variant != "ListJSON" {
 		return nil
 	}

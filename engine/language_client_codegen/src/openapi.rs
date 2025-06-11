@@ -551,7 +551,7 @@ impl<'ir> ToTypeReferenceInTypeDefinition<'ir> for FieldType {
                     r#ref: format!("#/components/schemas/{}", name),
                 },
             },
-            FieldType::RecursiveTypeAlias(name, _) => TypeSpecWithMeta {
+            FieldType::RecursiveTypeAlias { name, .. } => TypeSpecWithMeta {
                 meta: TypeMetadata {
                     title: None,
                     r#enum: None,

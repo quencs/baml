@@ -8,6 +8,9 @@ function Foo(x: int) -> JSON {
         - b: "hello"
         - c: [1, 2, 3]
         - d: { "e": ["f"] }
+        - f: null
+        - g: 1.0
+        - h: { a: 1, b: null, c: [1, 2, 3] }
     "#
 }
 

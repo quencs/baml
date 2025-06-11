@@ -1,12 +1,13 @@
+use std::collections::HashSet;
+use crate::package::Package;
 use crate::r#type::{MediaTypeGo, TypeGo, TypeMetaGo, TypeWrapper};
 use baml_types::{
+    baml_value::TypeLookups,
     ir_type::{Type, TypeStreaming},
     type_meta::base::TypeMeta,
     type_meta::stream::TypeMetaStreaming,
     BamlMediaType, ConstraintLevel, TypeValue,
 };
-
-use crate::package::Package;
 
 pub mod classes;
 pub mod enums;
@@ -14,21 +15,24 @@ pub mod functions;
 pub mod type_aliases;
 pub mod unions;
 
-fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
+fn stream_type_to_go(field: &TypeStreaming, lookup: &impl TypeLookups) -> TypeGo {
+    stream_type_to_go_impl(field, lookup, &mut HashSet::new())
+}
+
+fn stream_type_to_go_impl(
+    field: &TypeStreaming,
+    lookup: &impl TypeLookups,
+    seen: &mut HashSet<String>,
+) -> TypeGo {
     use TypeStreaming as T;
-    let recursive_fn = stream_type_to_go;
+    let recursive_fn = |field: &TypeStreaming| stream_type_to_go(field, lookup);
     let meta = stream_meta_to_go(field.meta());
 
     let TYPES_PKG: Package = Package::new("baml_client.types");
     let STREAM_PKG: Package = Package::new("baml_client.stream_types");
 
     let type_go: TypeGo = match field {
-        T::Primitive(type_value, _) => {
-            let mut primitive_type_go: TypeGo = type_value.into();
-            // println!("field metadata: {:?}, type_go: {:?}", field.meta(), primitive_type_go);
-            *primitive_type_go.meta_mut() = meta;
-            primitive_type_go
-        }
+        T::Primitive(type_value, _) => type_value.into(),
         T::Enum { name, dynamic, .. } => TypeGo::Enum {
             package: TYPES_PKG.clone(),
             name: name.clone(),
@@ -45,14 +49,26 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
             dynamic,
             mode,
             meta: cls_meta,
-        } => TypeGo::Class {
-            package: match cls_meta.streaming_behavior.done {
-                true => TYPES_PKG.clone(),
-                false => STREAM_PKG.clone(),
+        } => match lookup.expand_recursive_type(name) {
+            Ok(expansion) => TypeGo::TypeAlias {
+                package: STREAM_PKG.clone(),
+                name: name.clone(),
+                evaluates_to: if seen.contains(name) {
+                    None
+                } else {
+                    seen.insert(name.clone());
+                    // TODO(Vaibhav): compilation error
+                    todo!()
+                    // let inner = recursive_fn(expansion);
+                    // seen.remove(name);
+                    // Some(Box::new(inner))
+                },
+                meta,
             },
-            name: name.clone(),
-            dynamic: *dynamic,
-            meta,
+            Err(e) => TypeGo::Any {
+                reason: format!("Unable to expand{name}: {e}"),
+                meta,
+            },
         },
         T::List(type_generic, _) => TypeGo::List(Box::new(recursive_fn(type_generic)), meta),
         T::Map(type_generic, type_generic1, _) => TypeGo::Map(
@@ -60,17 +76,19 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
             Box::new(recursive_fn(type_generic1)),
             meta,
         ),
-        T::RecursiveTypeAlias(name, _) => {
-            // TODO: hack to generate correct types for recuriviely nullable types
-            let mut meta = meta;
-            meta.make_optional();
-            TypeGo::Class {
-                package: STREAM_PKG.clone(),
-                name: name.clone(),
-                dynamic: false,
-                meta,
-            }
-        }
+        T::RecursiveTypeAlias {
+            name,
+            meta: alias_meta,
+            ..
+        } => TypeGo::Class {
+            package: match alias_meta.streaming_behavior.done {
+                true => TYPES_PKG.clone(),
+                false => STREAM_PKG.clone(),
+            },
+            name: name.clone(),
+            dynamic: false,
+            meta,
+        },
         T::Tuple(..) => TypeGo::Any {
             reason: "tuples are not supported in Go".to_string(),
             meta,
@@ -138,19 +156,20 @@ fn stream_type_to_go(field: &TypeStreaming) -> TypeGo {
     type_go
 }
 
-fn type_to_go(field: &Type) -> TypeGo {
+fn type_to_go(field: &Type, lookup: &impl TypeLookups) -> TypeGo {
+    type_to_go_impl(field, lookup, &mut HashSet::new())
+}
+
+fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<String>) -> TypeGo {
     use Type as T;
-    let recursive_fn = type_to_go;
+    let recursive_fn =
+        |field: &Type, seen: &mut HashSet<String>| type_to_go_impl(field, lookup, seen);
     let meta = meta_to_go(field.meta());
 
     let TYPE_PKG: Package = Package::new("baml_client.types");
 
     let type_go: TypeGo = match field {
-        T::Primitive(type_value, _) => {
-            let mut primitive_type_go: TypeGo = type_value.into();
-            *primitive_type_go.meta_mut() = meta;
-            primitive_type_go
-        }
+        T::Primitive(type_value, _) => type_value.into(),
         T::Enum { name, dynamic, .. } => TypeGo::Enum {
             package: TYPE_PKG.clone(),
             name: name.clone(),
@@ -168,23 +187,31 @@ fn type_to_go(field: &Type) -> TypeGo {
             dynamic: *dynamic,
             meta,
         },
-        T::List(type_generic, _) => TypeGo::List(Box::new(recursive_fn(type_generic)), meta),
+        T::List(type_generic, _) => TypeGo::List(Box::new(recursive_fn(type_generic, seen)), meta),
         T::Map(type_generic, type_generic1, _) => TypeGo::Map(
-            Box::new(recursive_fn(type_generic)),
-            Box::new(recursive_fn(type_generic1)),
+            Box::new(recursive_fn(type_generic, seen)),
+            Box::new(recursive_fn(type_generic1, seen)),
             meta,
         ),
-        T::RecursiveTypeAlias(name, _) => {
-            // TODO: hack to generate correct types for recuriviely nullable types
-            let mut meta = meta;
-            meta.make_optional();
-            TypeGo::Class {
+        T::RecursiveTypeAlias { name, .. } => match lookup.expand_recursive_type(name) {
+            Ok(expansion) => TypeGo::TypeAlias {
                 package: TYPE_PKG.clone(),
                 name: name.clone(),
-                dynamic: false,
+                evaluates_to: if seen.contains(name) {
+                    None
+                } else {
+                    seen.insert(name.clone());
+                    let inner = recursive_fn(expansion, seen);
+                    seen.remove(name);
+                    Some(Box::new(inner))
+                },
                 meta,
-            }
-        }
+            },
+            Err(e) => TypeGo::Any {
+                reason: format!("Unable to expand{name}: {e}"),
+                meta,
+            },
+        },
         T::Tuple(..) => TypeGo::Any {
             reason: "tuples are not supported in Go".to_string(),
             meta,
@@ -199,7 +226,7 @@ fn type_to_go(field: &Type) -> TypeGo {
                 meta,
             },
             baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
-                let mut type_go = recursive_fn(type_generic);
+                let mut type_go = recursive_fn(type_generic, seen);
                 type_go.meta_mut().make_optional();
                 if union_meta
                     .constraints
@@ -211,7 +238,10 @@ fn type_to_go(field: &Type) -> TypeGo {
                 type_go
             }
             baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
-                let options: Vec<_> = type_generics.into_iter().map(|t| recursive_fn(t)).collect();
+                let options: Vec<_> = type_generics
+                    .into_iter()
+                    .map(|t| recursive_fn(t, seen))
+                    .collect();
                 let num_options = options.len();
                 let mut name = options
                     .iter()
@@ -226,7 +256,10 @@ fn type_to_go(field: &Type) -> TypeGo {
                 }
             }
             baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
-                let options: Vec<_> = type_generics.into_iter().map(|t| recursive_fn(t)).collect();
+                let options: Vec<_> = type_generics
+                    .into_iter()
+                    .map(|t| recursive_fn(t, seen))
+                    .collect();
                 let num_options = options.len();
 
                 let mut name = options

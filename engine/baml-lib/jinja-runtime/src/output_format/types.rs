@@ -403,7 +403,7 @@ impl OutputFormatContent {
 
                     Some(format!("Answer in JSON using this {type_prefix}:{end}"))
                 }
-                FieldType::RecursiveTypeAlias(_, _) => {
+                FieldType::RecursiveTypeAlias { .. } => {
                     let type_prefix = match &options.hoisted_class_prefix {
                         RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
                         _ => RenderOptions::DEFAULT_TYPE_PREFIX_IN_RENDER_MESSAGE,
@@ -657,13 +657,13 @@ impl OutputFormatContent {
                 }
                 .to_string()
             }
-            FieldType::RecursiveTypeAlias(name, _) => name.to_owned(),
+            FieldType::RecursiveTypeAlias { name, .. } => name.to_owned(),
             FieldType::List(inner, _) => {
                 let is_hoisted = match inner.as_ref() {
                     FieldType::Class {
                         name: nested_class, ..
                     } => render_ctx.hoisted_classes.contains(nested_class),
-                    FieldType::RecursiveTypeAlias(name, _) => {
+                    FieldType::RecursiveTypeAlias { name, .. } => {
                         self.structural_recursive_aliases.contains_key(name)
                     }
                     _ => false,
@@ -2869,15 +2869,12 @@ Answer in JSON using this schema:
 
     #[test]
     fn render_simple_recursive_aliases() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias(
-            "RecursiveMapAlias".to_string(),
-            Default::default(),
-        ))
+        let content = OutputFormatContent::target(FieldType::recursive_type_alias("RecursiveMapAlias"))
         .structural_recursive_aliases(IndexMap::from([(
             "RecursiveMapAlias".to_string(),
             FieldType::map(
                 FieldType::string(),
-                FieldType::RecursiveTypeAlias("RecursiveMapAlias".to_string(), Default::default()),
+                FieldType::recursive_type_alias("RecursiveMapAlias")
             ),
         )]))
         .build();
@@ -2895,28 +2892,22 @@ Answer in JSON using this schema: RecursiveMapAlias"#
 
     #[test]
     fn render_recursive_alias_cycle() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias(
-            "A".to_string(),
-            Default::default(),
-        ))
-        .structural_recursive_aliases(IndexMap::from([
-            (
-                "A".to_string(),
-                FieldType::RecursiveTypeAlias("B".to_string(), Default::default()),
-            ),
-            (
-                "B".to_string(),
-                FieldType::RecursiveTypeAlias("C".to_string(), Default::default()),
-            ),
-            (
-                "C".to_string(),
-                FieldType::list(FieldType::RecursiveTypeAlias(
+        let content = OutputFormatContent::target(FieldType::recursive_type_alias("A"))
+            .structural_recursive_aliases(IndexMap::from([
+                (
                     "A".to_string(),
-                    Default::default(),
-                )),
-            ),
-        ]))
-        .build();
+                    FieldType::recursive_type_alias("B")
+                ),
+                (
+                    "B".to_string(),
+                    FieldType::recursive_type_alias("C")
+                ),
+                (
+                    "C".to_string(),
+                    FieldType::list(FieldType::recursive_type_alias("A"))
+                ),
+            ]))
+            .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
         #[rustfmt::skip]
         assert_eq!(
@@ -2933,28 +2924,22 @@ Answer in JSON using this schema: A"#
 
     #[test]
     fn render_recursive_alias_cycle_with_hoist_prefix() {
-        let content = OutputFormatContent::target(FieldType::RecursiveTypeAlias(
-            "A".to_string(),
-            Default::default(),
-        ))
-        .structural_recursive_aliases(IndexMap::from([
-            (
-                "A".to_string(),
-                FieldType::RecursiveTypeAlias("B".to_string(), Default::default()),
-            ),
-            (
-                "B".to_string(),
-                FieldType::RecursiveTypeAlias("C".to_string(), Default::default()),
-            ),
-            (
-                "C".to_string(),
-                FieldType::list(FieldType::RecursiveTypeAlias(
+        let content = OutputFormatContent::target(FieldType::recursive_type_alias("A"))
+            .structural_recursive_aliases(IndexMap::from([
+                (
                     "A".to_string(),
-                    Default::default(),
-                )),
-            ),
-        ]))
-        .build();
+                    FieldType::recursive_type_alias("B")
+                ),
+                (
+                    "B".to_string(),
+                    FieldType::recursive_type_alias("C")
+                ),
+                (
+                    "C".to_string(),
+                    FieldType::list(FieldType::recursive_type_alias("A"))
+                ),
+            ]))
+            .build();
         let rendered = content
             .render(RenderOptions::with_hoisted_class_prefix("type"))
             .unwrap();

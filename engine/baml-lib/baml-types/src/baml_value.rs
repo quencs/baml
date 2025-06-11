@@ -349,14 +349,32 @@ pub enum BamlValueWithMeta<T> {
     Null(T),
 }
 
+
+pub trait TypeLookups {
+    fn expand_recursive_type(&self, type_alias: &str) -> anyhow::Result<&FieldType>;
+}
+
 impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
-    pub fn real_type(&self) -> FieldType {
+    /// Given a value and a union, picks the actual type of the value.
+    ///
+    /// For example, if the value is a union of `int` and `string`, and the value is an `int`,
+    /// this will return `int`.
+    ///
+    /// If the value is a union of `int` and `string`, and the value is a `string`,
+    /// this will return `string`.
+    pub fn real_type(&self, lookup: &impl TypeLookups) -> FieldType {
         let field_type = self.field_type();
+
+        let field_type = match field_type {
+            FieldType::RecursiveTypeAlias { name, .. } => lookup.expand_recursive_type(name).unwrap(),
+            _ => field_type
+        };
+
         if let FieldType::Union(options, _) = field_type {
             return match options.view() {
                 UnionTypeViewGeneric::Null => FieldType::null(),
                 UnionTypeViewGeneric::Optional(field_type) => {
-                    if self.is_type(field_type) {
+                    if self.is_type(field_type, lookup) {
                         field_type.clone()
                     } else {
                         FieldType::null()
@@ -364,12 +382,14 @@ impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
                 }
                 UnionTypeViewGeneric::OneOf(field_types) => field_types
                     .into_iter()
-                    .find(|t| self.is_type(t))
+                    .find(|t| self.is_type(t, lookup))
                     .expect("At least one type must be supported")
                     .clone(),
                 UnionTypeViewGeneric::OneOfOptional(field_types) => field_types
                     .into_iter()
-                    .find(|t| self.is_type(t))
+                    .find(|t| {
+                        self.is_type(t, lookup)
+                    })
                     .map_or_else(|| FieldType::null(), |t| t.clone()),
             };
         }
@@ -390,22 +410,29 @@ impl<T> BamlValueWithMeta<T> {
     }
 
     // TODO: This will fail for type aliases?
-    fn is_type(&self, field_type: &FieldType) -> bool {
-        let handle_composite = |field_type: &FieldType| match field_type {
+    fn is_type(&self, field_type: &FieldType, lookup: &impl TypeLookups) -> bool {
+        let field_type = match field_type {
+            FieldType::RecursiveTypeAlias { name, .. } => lookup.expand_recursive_type(name).unwrap(),
+            _ => field_type
+        };
+        
+        let handle_composite = |field_type: &FieldType| {
+            match field_type {
             FieldType::Union(options, _) => match options.view() {
-                UnionTypeViewGeneric::Null => self.is_type(&FieldType::null()),
+                UnionTypeViewGeneric::Null => self.is_type(&FieldType::null(), lookup),
                 UnionTypeViewGeneric::Optional(field_type) => {
-                    self.is_type(field_type) || self.is_type(&FieldType::null())
+                    self.is_type(field_type, lookup) || self.is_type(&FieldType::null(), lookup)
                 }
                 UnionTypeViewGeneric::OneOf(field_types) => {
-                    field_types.iter().any(|t| self.is_type(t))
+                    field_types.iter().any(|t| self.is_type(t, lookup))
                 }
                 UnionTypeViewGeneric::OneOfOptional(field_types) => {
-                    field_types.iter().any(|t| self.is_type(t)) || self.is_type(&FieldType::null())
+                    field_types.iter().any(|t| self.is_type(t, lookup)) || self.is_type(&FieldType::null(), lookup)
                 }
             },
             _ => false,
-        };
+        }
+    };
 
         match self {
             BamlValueWithMeta::String(val, _) => match field_type {
@@ -430,13 +457,13 @@ impl<T> BamlValueWithMeta<T> {
             BamlValueWithMeta::Map(index_map, _) => match field_type {
                 FieldType::Map(_, value_type, _) => {
                     // TODO: Check key type
-                    index_map.iter().all(|(_, v)| v.is_type(value_type))
+                    index_map.iter().all(|(_, v)| v.is_type(value_type, lookup))
                 }
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::List(baml_value_with_metas, _) => match field_type {
                 FieldType::List(item_type, _) => {
-                    baml_value_with_metas.iter().all(|v| v.is_type(item_type))
+                    baml_value_with_metas.iter().all(|v| v.is_type(item_type, lookup))
                 }
                 _ => handle_composite(field_type),
             },
