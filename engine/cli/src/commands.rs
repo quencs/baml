@@ -48,6 +48,9 @@ pub(crate) enum Commands {
 
     #[command(about = "Starts a language server", name = "lsp")]
     LanguageServer(crate::lsp::LanguageServerArgs),
+
+    #[command(about = "Starts a playground server", name = "playground")]
+    Playground(crate::playground::PlaygroundArgs),
 }
 
 impl RuntimeCli {
@@ -127,12 +130,17 @@ impl RuntimeCli {
                     }
                 }
             }
-            Commands::LanguageServer(args) => {
+            Commands::LanguageServer(args) => match args.run() {
+                Ok(()) => Ok(crate::ExitCode::Success),
+                Err(_) => Ok(crate::ExitCode::Other),
+            },
+            Commands::Playground(args) => {
+                args.from = BamlRuntime::parse_baml_src_path(&args.from)?;
                 match args.run() {
                     Ok(()) => Ok(crate::ExitCode::Success),
                     Err(_) => Ok(crate::ExitCode::Other),
                 }
-            },
+            }
         }
     }
 }
