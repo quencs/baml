@@ -1,43 +1,29 @@
 use baml_types::baml_value::TypeLookups;
 
-use crate::{ir_to_go, package::{CurrentRenderPackage, Package}};
+use crate::{package::{CurrentRenderPackage, Package}};
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum LiteralType {
-    String,
-    Int,
-    Float,
-    Bool,
-}
-
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Default)]
 pub enum TypeWrapper {
+    #[default]
     None,
     Checked(Box<TypeWrapper>),
     Optional(Box<TypeWrapper>),
 }
 
 impl TypeWrapper {
-    pub fn as_checked(self) -> TypeWrapper {
+    pub fn wrap_with_checked(self) -> TypeWrapper {
         TypeWrapper::Checked(Box::new(self))
-    }
-
-    pub fn as_optional(self) -> TypeWrapper {
-        TypeWrapper::Optional(Box::new(self))
     }
 }
 
 #[derive(Clone, PartialEq, Debug)]
+#[derive(Default)]
 pub struct TypeMetaGo {
     pub type_wrapper: TypeWrapper,
     pub wrap_stream_state: bool,
 }
 
-impl Default for TypeWrapper {
-    fn default() -> Self {
-        TypeWrapper::None
-    }
-}
 
 impl TypeMetaGo {
     pub fn is_optional(&self) -> bool {
@@ -60,14 +46,6 @@ impl TypeMetaGo {
     }
 }
 
-impl Default for TypeMetaGo {
-    fn default() -> Self {
-        TypeMetaGo {
-            type_wrapper: TypeWrapper::default(),
-            wrap_stream_state: false,
-        }
-    }
-}
 
 trait WrapType {
     fn wrap_type(&self, params: (&CurrentRenderPackage, String)) -> String;
@@ -95,7 +73,7 @@ impl WrapType for TypeMetaGo {
         if self.wrap_stream_state {
             format!(
                 "{}StreamState[{}]",
-                Package::stream_state().relative_from(&pkg),
+                Package::stream_state().relative_from(pkg),
                 wrapped
             )
         } else {
@@ -142,7 +120,6 @@ pub enum TypeGo {
     },
     List(Box<TypeGo>, TypeMetaGo),
     Map(Box<TypeGo>, Box<TypeGo>, TypeMetaGo),
-    Tuple(Vec<TypeGo>, TypeMetaGo),
     // For any type that we can't represent in Go, we'll use this
     Any {
         reason: String,
@@ -172,15 +149,6 @@ impl TypeGo {
                 key.default_name_within_union(),
                 value.default_name_within_union()
             ),
-            TypeGo::Tuple(type_gos, _) => format!(
-                "Tuple{}{}",
-                type_gos.len(),
-                type_gos
-                    .iter()
-                    .map(|t| t.default_name_within_union())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
             TypeGo::Any { .. } => "Any".to_string(),
         }
     }
@@ -207,7 +175,7 @@ impl TypeGo {
                 match lookup.expand_recursive_type(name) {
                     Ok(expansion) => {
                         if package == &Package::types() {
-                            crate::ir_to_go::type_to_go(&expansion, lookup).zero_value(pkg)
+                            crate::ir_to_go::type_to_go(expansion, lookup).zero_value(pkg)
                         } else {
                             crate::ir_to_go::stream_type_to_go(&expansion.partialize(lookup), lookup).zero_value(pkg)
                         }
@@ -217,7 +185,6 @@ impl TypeGo {
             }
             TypeGo::List(..) => "nil".to_string(),
             TypeGo::Map(..) => "nil".to_string(),
-            TypeGo::Tuple(..) => "nil".to_string(),
             TypeGo::Any { .. } => "nil".to_string(),
         }
     }
@@ -356,7 +323,6 @@ impl TypeGo {
             TypeGo::Enum { meta, .. } => meta,
             TypeGo::List(_, meta) => meta,
             TypeGo::Map(_, _, meta) => meta,
-            TypeGo::Tuple(_, meta) => meta,
             TypeGo::Any { meta, .. } => meta,
         }
     }
@@ -374,7 +340,6 @@ impl TypeGo {
             TypeGo::Enum { meta, .. } => meta,
             TypeGo::List(_, meta) => meta,
             TypeGo::Map(_, _, meta) => meta,
-            TypeGo::Tuple(_, meta) => meta,
             TypeGo::Any { meta, .. } => meta,
         }
     }
@@ -411,19 +376,11 @@ impl SerializeType for TypeGo {
                     value.serialize_type(pkg)
                 )
             }
-            TypeGo::Tuple(types, _) => format!(
-                "({})",
-                types
-                    .iter()
-                    .map(|t| t.serialize_type(pkg))
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            ),
             TypeGo::Any { .. } => "any".to_string(),
         };
 
-        let serialized_string = meta.wrap_type((pkg, type_str));
-        serialized_string
+        
+        meta.wrap_type((pkg, type_str))
     }
 }
 

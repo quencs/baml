@@ -88,7 +88,7 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         collector.add_file(
             "type_map.go",
-            render_type_map(&go_classes, &enums, &unions, &type_aliases, go_mod_name)?,
+            render_type_map(&go_classes, &enums, &unions, go_mod_name)?,
         );
 
         pkg.set("baml_client.types");

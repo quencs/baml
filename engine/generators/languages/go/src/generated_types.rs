@@ -49,71 +49,6 @@ mod class {
             )
         }
     }
-
-    mod helpers {
-        use crate::{package::Package, r#type::TypeGo};
-
-        pub fn stream_variants(t: &TypeGo) -> Vec<TypeGo> {
-            let mut variants = vec![t.clone()];
-
-            let stream_pkg = Package::stream_types();
-
-            // add stream types for user defined types (classes and unions)
-            // enums have no "stream" variants
-            match t {
-                TypeGo::Class {
-                    name,
-                    meta,
-                    dynamic,
-                    package: _unused,
-                } => {
-                    variants.push(TypeGo::Class {
-                        name: name.clone(),
-                        package: stream_pkg.clone(),
-                        meta: meta.clone(),
-                        dynamic: *dynamic,
-                    });
-                }
-                TypeGo::Union {
-                    name,
-                    meta,
-                    package: _unused,
-                } => {
-                    variants.push(TypeGo::Union {
-                        name: name.clone(),
-                        package: stream_pkg.clone(),
-                        meta: meta.clone(),
-                    });
-                }
-                _ => {}
-            }
-
-            // add optional variants
-            let optional_variants = variants
-                .iter()
-                .filter(|v| !v.meta().is_optional())
-                .map(|v| {
-                    let mut t = v.clone();
-                    t.meta_mut().make_optional();
-                    t
-                })
-                .collect::<Vec<_>>();
-            variants.extend(optional_variants);
-
-            // add stream state variants for each variant
-            let stream_variants = variants
-                .iter()
-                .map(|v| {
-                    let mut t = v.clone();
-                    t.meta_mut().set_stream_state();
-                    t
-                })
-                .collect::<Vec<_>>();
-
-            variants.extend(stream_variants);
-            variants
-        }
-    }
 }
 
 mod enums {
@@ -146,34 +81,6 @@ mod union {
         pub cffi_name: String,
         pub type_: TypeGo,
     }
-
-    /// A union in Go that is used for stream state.
-    ///
-    /// ```askama
-    /// {% if let Some(docstring) = docstring -%}
-    /// {{ crate::utils::prefix_lines(docstring, "/// ") }}
-    /// {%- endif %}
-    /// type Generic__{{ name }} struct[{% for v in variants -%}Type__{{ v.name }}, {%- endfor %}]
-    /// ```
-    #[derive(askama::Template)]
-    #[template(in_doc = true, escape = "none", ext = "txt")]
-    struct StreamUnionGo<'a> {
-        name: String,
-        docstring: Option<String>,
-        variants: Vec<VariantGo>,
-        pkg: &'a CurrentRenderPackage,
-    }
-
-    impl<'a> From<&'a UnionGo<'a>> for StreamUnionGo<'a> {
-        fn from(value: &'a UnionGo) -> Self {
-            Self {
-                name: value.name.clone(),
-                docstring: value.docstring.clone(),
-                variants: value.variants.clone(),
-                pkg: value.pkg,
-            }
-        }
-    }
 }
 
 mod type_aliases {
@@ -197,25 +104,13 @@ mod type_aliases {
     }
 }
 
-pub(crate) fn render_type_aliases(
-    aliases: &[TypeAliasGo],
-    pkg: &CurrentRenderPackage,
-) -> Result<String, askama::Error> {
-    use askama::Template;
-    GoTypes {
-        items: aliases,
-        pkg,
-    }
-    .render()
-}
-
 /// A list of types in Go.
 ///
 /// ```askama
 /// package types
 ///
 /// import (
-/// 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 /// )
 ///
 /// type Checked[T any] baml.Checked[T]
@@ -223,14 +118,12 @@ pub(crate) fn render_type_aliases(
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub struct GoTypesUtils<'ir> {
-    pkg: &'ir CurrentRenderPackage,
-}
+struct GoTypesUtils {}
 
-pub(crate) fn render_go_types_utils(pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub(crate) fn render_go_types_utils(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoTypesUtils { pkg }.render()
+    GoTypesUtils{}.render()
 }
 
 /// A list of types in Go.
@@ -239,12 +132,12 @@ pub(crate) fn render_go_types_utils(pkg: &CurrentRenderPackage) -> Result<String
 /// package types
 ///
 /// import (
-/// 	"encoding/json"
-/// 	"fmt"
+///     "encoding/json"
+///     "fmt"
 ///
-/// 	flatbuffers "github.com/google/flatbuffers/go"
-/// 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
-/// 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+///     flatbuffers "github.com/google/flatbuffers/go"
+///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 /// )
 ///
 /// {% for item in items -%}
@@ -255,69 +148,68 @@ pub(crate) fn render_go_types_utils(pkg: &CurrentRenderPackage) -> Result<String
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub struct GoTypes<'ir, T: askama::Template> {
+struct GoTypes<'ir, T: askama::Template> {
     items: &'ir [T],
-    pkg: &'ir CurrentRenderPackage,
 }
 
 pub(crate) fn render_go_types<T: askama::Template>(
     items: &[T],
-    pkg: &CurrentRenderPackage,
+    _pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoTypes { items, pkg }.render()
+    GoTypes { items }.render()
 }
 
 const STREAM_STATE_GO: &str = r#"
 type StreamStateType string
 
 const (
-	StreamStatePending    StreamStateType = "Pending"
-	StreamStateIncomplete StreamStateType = "Incomplete"
-	StreamStateComplete   StreamStateType = "Complete"
+    StreamStatePending    StreamStateType = "Pending"
+    StreamStateIncomplete StreamStateType = "Incomplete"
+    StreamStateComplete   StreamStateType = "Complete"
 )
 
 // Values returns all allowed values for the AliasedEnum type.
 func (StreamStateType) Values() []StreamStateType {
-	return []StreamStateType{
-		StreamStatePending,
-		StreamStateIncomplete,
-		StreamStateComplete,
-	}
+    return []StreamStateType{
+        StreamStatePending,
+        StreamStateIncomplete,
+        StreamStateComplete,
+    }
 }
 
 // IsValid checks whether the given AliasedEnum value is valid.
 func (e StreamStateType) IsValid() bool {
 
-	for _, v := range e.Values() {
-		if e == v {
-			return true
-		}
-	}
-	return false
+    for _, v := range e.Values() {
+        if e == v {
+            return true
+        }
+    }
+    return false
 
 }
 
 // MarshalJSON customizes JSON marshaling for AliasedEnum.
 func (e StreamStateType) MarshalJSON() ([]byte, error) {
-	if !e.IsValid() {
-		return nil, fmt.Errorf("invalid StreamStateType: %q", e)
-	}
-	return json.Marshal(string(e))
+    if !e.IsValid() {
+        return nil, fmt.Errorf("invalid StreamStateType: %q", e)
+    }
+    return json.Marshal(string(e))
 }
 
 // UnmarshalJSON customizes JSON unmarshaling for AliasedEnum.
 func (e *StreamStateType) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	*e = StreamStateType(s)
-	if !e.IsValid() {
-		return fmt.Errorf("invalid StreamStateType: %q", s)
-	}
-	return nil
+    var s string
+    if err := json.Unmarshal(data, &s); err != nil {
+        return err
+    }
+    *e = StreamStateType(s)
+    if !e.IsValid() {
+        return fmt.Errorf("invalid StreamStateType: %q", s)
+    }
+    return nil
 }
 
 
@@ -333,12 +225,12 @@ type StreamState[T any] struct {
 /// package stream_types
 ///
 /// import (
-/// 	"encoding/json"
-/// 	"fmt"
+///     "encoding/json"
+///     "fmt"
 ///
-/// 	flatbuffers "github.com/google/flatbuffers/go"
-/// 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
-/// 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+///     flatbuffers "github.com/google/flatbuffers/go"
+///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 /// )
 ///
 /// {{ STREAM_STATE_GO }}
@@ -347,16 +239,15 @@ type StreamState[T any] struct {
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub struct GoStreamTypesUtils<'ir> {
-    pkg: &'ir CurrentRenderPackage,
+pub struct GoStreamTypesUtils {
 }
 
 pub(crate) fn render_go_stream_types_utils(
-    pkg: &CurrentRenderPackage,
+    _pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoStreamTypesUtils { pkg }.render()
+    GoStreamTypesUtils {  }.render()
 }
 /// A list of types in Go.
 ///
@@ -364,12 +255,12 @@ pub(crate) fn render_go_stream_types_utils(
 /// package stream_types
 ///
 /// import (
-/// 	"encoding/json"
-/// 	"fmt"
+///     "encoding/json"
+///     "fmt"
 ///
-/// 	flatbuffers "github.com/google/flatbuffers/go"
-/// 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
-/// 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+///     flatbuffers "github.com/google/flatbuffers/go"
+///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 /// )
 ///
 /// {% for item in items -%}
@@ -379,18 +270,17 @@ pub(crate) fn render_go_stream_types_utils(
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub(crate) struct GoStreamTypes<'ir, T: askama::Template> {
+struct GoStreamTypes<'ir, T: askama::Template> {
     items: &'ir [T],
-    pkg: &'ir CurrentRenderPackage,
 }
 
 pub(crate) fn render_go_stream_types<T: askama::Template>(
     items: &[T],
-    pkg: &CurrentRenderPackage,
+    _pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoStreamTypes { items, pkg }.render()
+    GoStreamTypes { items }.render()
 }
 
 pub use class::{ClassGo, FieldGo};

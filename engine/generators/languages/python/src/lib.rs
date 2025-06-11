@@ -40,7 +40,7 @@ impl LanguageFeatures for GoLanguageFeatures {
     fn generate_sdk_files(
         &self,
         collector: &mut FileCollector<Self>,
-        ir: &IntermediateRepr,
+        ir: std::sync::Arc<IntermediateRepr>,
         args: &GeneratorArgs,
     ) -> Result<(), anyhow::Error> {
         let Some(go_mod_name) = &args.client_package_name else {

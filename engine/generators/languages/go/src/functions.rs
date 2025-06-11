@@ -1,6 +1,6 @@
 use askama::Template;
 
-use crate::{generated_types::{ClassGo, EnumGo, TypeAliasGo, UnionGo}, package::CurrentRenderPackage, r#type::{SerializeType, TypeGo}};
+use crate::{generated_types::{ClassGo, EnumGo, UnionGo}, package::CurrentRenderPackage, r#type::{SerializeType, TypeGo}};
 
 pub struct FunctionGo {
     pub(crate) documentation: Option<String>,
@@ -154,20 +154,17 @@ struct TypeMap<'a> {
     classes: &'a [ClassGo<'a>],
     enums: &'a [EnumGo],
     unions: &'a [UnionGo<'a>],
-    type_aliases: &'a [TypeAliasGo<'a>],
     go_mod_name: &'a str,
 }
 
 
 pub fn render_type_map(classes: &[ClassGo], enums: &[EnumGo], unions: &[UnionGo],
-    type_aliases: &[TypeAliasGo],
     go_mod_name: &str) -> Result<String, askama::Error> {
     TypeMap {
         classes,
         enums,
         unions,
         go_mod_name,
-        type_aliases,
     }.render()
 }
 
@@ -199,15 +196,12 @@ pub fn render_source_files(file_map: Vec<(String, String)>) -> Result<String, as
 }
 
 
-pub fn render_runtime_code(pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
-    RuntimeCode {
-        pkg,
-    }.render()
+pub fn render_runtime_code(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+    RuntimeCode{}.render()
 }
 
 
 #[derive(askama::Template)]
 #[template(path = "runtime.go.j2", escape = "none", ext = "txt")]
-struct RuntimeCode<'a> {
-    pkg: &'a CurrentRenderPackage,
+struct RuntimeCode {
 }

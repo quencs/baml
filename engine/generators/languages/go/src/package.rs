@@ -28,7 +28,7 @@ impl Package {
         if self.package_path == other.package_path {
             return "".to_string();
         }
-        return format!("{}.", self.package_path.last().unwrap());
+        format!("{}.", self.package_path.last().unwrap())
     }
 
     pub fn types() -> Package {

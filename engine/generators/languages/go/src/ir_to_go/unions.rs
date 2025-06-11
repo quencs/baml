@@ -1,4 +1,4 @@
-use baml_types::{baml_value::TypeLookups, ir_type::TypeStreaming, FieldType, ToUnionName};
+use baml_types::{ir_type::TypeStreaming, FieldType, ToUnionName};
 
 use crate::{package::CurrentRenderPackage, r#type::TypeGo};
 

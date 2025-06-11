@@ -1,4 +1,4 @@
-use crate::package::{CurrentRenderModule, Module};
+use crate::module::{CurrentRenderModule, Module};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum LiteralType {
@@ -73,12 +73,12 @@ trait WrapType {
 
 impl WrapType for TypeWrapper {
     fn wrap_type(&self, params: (&CurrentRenderModule, String)) -> String {
-        let (pkg, orig) = &params;
+        let (module, orig) = &params;
         match self {
             TypeWrapper::None => orig.clone(),
             TypeWrapper::Checked(inner) => format!(
                 "{}Checked[{}]",
-                Module::checked().relative_from(pkg),
+                Module::checked().relative_from(module),
                 inner.wrap_type(params)
             ),
             TypeWrapper::Optional(inner) => format!("Optional[{}]", inner.wrap_type(params)),
@@ -93,7 +93,7 @@ impl WrapType for TypeMetaPython {
         if self.wrap_stream_state {
             format!(
                 "{}StreamState[{}]",
-                Module::stream_state().relative_from(&pkg),
+                Module::stream_state().relative_from(&module),
                 wrapped
             )
         } else {
@@ -177,7 +177,7 @@ impl TypePython {
     //     }
     // }
 
-    // pub fn zero_value(&self, pkg: &CurrentRenderModule) -> String {
+    // pub fn zero_value(&self, module: &CurrentRenderModule) -> String {
     //     if matches!(self.meta().type_wrapper, TypeWrapper::Optional(_)) {
     //         return "nil".to_string();
     //     }
@@ -190,7 +190,7 @@ impl TypePython {
     //         | TypePython::Class { .. }
     //         | TypePython::Union { .. }
     //         | TypePython::Enum { .. } => {
-    //             format!("{}{{}}", self.serialize_type(pkg))
+    //             format!("{}{{}}", self.serialize_type(module))
     //         }
     //         TypePython::List(..) => "nil".to_string(),
     //         TypePython::Map(..) => "nil".to_string(),
@@ -199,24 +199,24 @@ impl TypePython {
     //     }
     // }
 
-    // fn cast_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderModule) -> String {
-    //     format!("({param}).({})", self.serialize_type(pkg))
+    // fn cast_from_any_skip_optional(&self, param: &str, module: &CurrentRenderModule) -> String {
+    //     format!("({param}).({})", self.serialize_type(module))
     //         .trim()
     //         .to_string()
     // }
 
-    // fn cast_return_value(&self, pkg: &CurrentRenderModule) -> String {
+    // fn cast_return_value(&self, module: &CurrentRenderModule) -> String {
     //     if self.meta().wrap_stream_state {
     //         format!(
     //             "{}{{Value: nil, State: StreamStatePending}}",
-    //             self.serialize_type(pkg)
+    //             self.serialize_type(module)
     //         )
     //     } else {
-    //         self.zero_value(pkg)
+    //         self.zero_value(module)
     //     }
     // }
 
-    // pub fn cast_from_any(&self, param: &str, pkg: &CurrentRenderModule) -> String {
+    // pub fn cast_from_any(&self, param: &str, module: &CurrentRenderModule) -> String {
     //     if self.meta().is_optional() {
     //         format!(
     //             r#"
@@ -227,53 +227,53 @@ impl TypePython {
     //                 return {casted}
     //             }}({param})
     //         "#,
-    //             t = self.serialize_type(pkg),
-    //             casted = self.cast_from_any_skip_optional("result", pkg),
-    //             return_value = self.cast_return_value(pkg)
+    //             t = self.serialize_type(module),
+    //             casted = self.cast_from_any_skip_optional("result", module),
+    //             return_value = self.cast_return_value(module)
     //         )
     //     } else {
-    //         self.cast_from_any_skip_optional(param, pkg)
+    //         self.cast_from_any_skip_optional(param, module)
     //     }
     //     .trim()
     //     .to_string()
     // }
 
-    // pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderModule) -> String {
+    // pub fn cast_from_function(&self, param: &str, module: &CurrentRenderModule) -> String {
     //     match self {
     //         TypePython::List(..) | TypePython::Map(..) => {
-    //             self.cast_from_any_skip_optional(param, pkg)
+    //             self.cast_from_any_skip_optional(param, module)
     //         }
-    //         _ if self.meta().is_optional() => self.cast_from_any_skip_optional(param, pkg),
-    //         _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
+    //         _ if self.meta().is_optional() => self.cast_from_any_skip_optional(param, module),
+    //         _ => format!("*({param}).(*{})", self.serialize_type(module)),
     //     }
     // }
 
-    // fn decode_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderModule) -> String {
+    // fn decode_from_any_skip_optional(&self, param: &str, module: &CurrentRenderModule) -> String {
     //     match self {
     //         TypePython::List(inner, meta) if !meta.is_optional() => format!(
     //             "baml.DecodeList({param}, func(inner *cffi.CFFIValueHolder) {t} {{
     //             return {casted}
     //         }})",
-    //             t = inner.serialize_type(pkg),
-    //             casted = inner.decode_from_any("inner", pkg)
+    //             t = inner.serialize_type(module),
+    //             casted = inner.decode_from_any("inner", module)
     //         ),
     //         TypePython::Map(key, value, meta) if !meta.is_optional() => format!(
     //             "baml.DecodeMap({param}, func(inner *cffi.CFFIValueHolder) {t} {{
     //             return {casted}
     //         }})",
-    //             t = value.serialize_type(pkg),
-    //             casted = value.decode_from_any("inner", pkg)
+    //             t = value.serialize_type(module),
+    //             casted = value.decode_from_any("inner", module)
     //         ),
     //         _ if !self.meta().is_optional() => {
-    //             format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
+    //             format!("*baml.Decode({param}).(*{})", self.serialize_type(module))
     //         }
-    //         _ => format!("baml.Decode({param}).({})", self.serialize_type(pkg)),
+    //         _ => format!("baml.Decode({param}).({})", self.serialize_type(module)),
     //     }
     //     .trim()
     //     .to_string()
     // }
 
-    // pub fn decode_from_any(&self, param: &str, pkg: &CurrentRenderModule) -> String {
+    // pub fn decode_from_any(&self, param: &str, module: &CurrentRenderModule) -> String {
     //     if self.meta().is_optional() {
     //         format!(
     //             r#"
@@ -282,11 +282,11 @@ impl TypePython {
     //                 return {casted}
     //             }}({param})
     //         "#,
-    //             t = self.serialize_type(pkg),
-    //             casted = self.cast_from_any("decoded", pkg)
+    //             t = self.serialize_type(module),
+    //             casted = self.cast_from_any("decoded", module)
     //         )
     //     } else {
-    //         self.decode_from_any_skip_optional(param, pkg)
+    //         self.decode_from_any_skip_optional(param, module)
     //     }
     //     .trim()
     //     .to_string()
@@ -328,7 +328,7 @@ impl TypePython {
 }
 
 pub trait SerializeType {
-    fn serialize_type(&self, pkg: &CurrentRenderModule) -> String;
+    fn serialize_type(&self, module: &CurrentRenderModule) -> String;
 }
 
 impl SerializeType for TypePython {
@@ -349,19 +349,19 @@ impl SerializeType for TypePython {
             TypePython::Enum { package, name, .. } => {
                 format!("{}{}", package.relative_from(module), name)
             }
-            TypePython::List(inner, _) => format!("List[{}]", inner.serialize_type(pkg)),
+            TypePython::List(inner, _) => format!("List[{}]", inner.serialize_type(module)),
             TypePython::Map(key, value, _) => {
                 format!(
                     "Dict[{}]{}",
-                    key.serialize_type(pkg),
-                    value.serialize_type(pkg)
+                    key.serialize_type(module),
+                    value.serialize_type(module)
                 )
             }
             TypePython::Tuple(types, _) => format!(
                 "Tuple[{}]",
                 types
                     .iter()
-                    .map(|t| t.serialize_type(pkg))
+                    .map(|t| t.serialize_type(module))
                     .collect::<Vec<String>>()
                     .join(", ")
             ),
@@ -380,7 +380,7 @@ impl SerializeType for MediaTypePython {
                 format!("{}.Image", Module::imported_base().relative_from(module))
             }
             MediaTypePython::Audio => {
-                format!("{}.Audio", Module::imported_base().relative_from(pkg))
+                format!("{}.Audio", Module::imported_base().relative_from(module))
             }
         }
     }

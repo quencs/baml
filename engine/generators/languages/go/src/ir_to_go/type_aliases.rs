@@ -1,7 +1,6 @@
 use crate::generated_types::TypeAliasGo;
 use crate::ir_to_go;
 use crate::package::CurrentRenderPackage;
-use baml_types::baml_value::TypeLookups;
 use internal_baml_core::ir::TypeAlias;
 
 

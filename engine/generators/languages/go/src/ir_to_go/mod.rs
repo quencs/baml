@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use crate::package::Package;
 use crate::r#type::{MediaTypeGo, TypeGo, TypeMetaGo, TypeWrapper};
 use baml_types::{
@@ -15,26 +14,18 @@ pub mod functions;
 pub mod type_aliases;
 pub mod unions;
 
-pub(crate) fn stream_type_to_go(field: &TypeStreaming, lookup: &impl TypeLookups) -> TypeGo {
-    stream_type_to_go_impl(field, lookup, &mut HashSet::new())
-}
-
-fn stream_type_to_go_impl(
-    field: &TypeStreaming,
-    lookup: &impl TypeLookups,
-    seen: &mut HashSet<String>,
-) -> TypeGo {
+pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookups) -> TypeGo {
     use TypeStreaming as T;
-    let recursive_fn = |field, seen: &mut HashSet<String>| stream_type_to_go_impl(field, lookup, seen);
+    let recursive_fn = |field| stream_type_to_go(field, _lookup);
     let meta = stream_meta_to_go(field.meta());
 
-    let TYPES_PKG: Package = Package::types();
-    let STREAM_PKG: Package = Package::stream_types();
+    let types_pkg: Package = Package::types();
+    let stream_pkg: Package = Package::stream_types();
 
     let type_go: TypeGo = match field {
         T::Primitive(type_value, _) => type_value.into(),
         T::Enum { name, dynamic, .. } => TypeGo::Enum {
-            package: TYPES_PKG.clone(),
+            package: types_pkg.clone(),
             name: name.clone(),
             dynamic: *dynamic,
             meta,
@@ -47,8 +38,8 @@ fn stream_type_to_go_impl(
         T::Class { name, dynamic, meta: cls_meta, .. } => {
             TypeGo::Class {
                 package: match cls_meta.streaming_behavior.done {
-                    true => TYPES_PKG.clone(),
-                    false => STREAM_PKG.clone(),
+                    true => types_pkg.clone(),
+                    false => stream_pkg.clone(),
                 },
                 name: name.clone(),
                 dynamic: *dynamic,
@@ -56,16 +47,16 @@ fn stream_type_to_go_impl(
             }
         },
         T::List(type_generic, _) => {
-            TypeGo::List(Box::new(recursive_fn(type_generic, seen)), meta)
+            TypeGo::List(Box::new(recursive_fn(type_generic)), meta)
         },
         T::Map(type_generic, type_generic1, _) => {
-            TypeGo::Map(Box::new(recursive_fn(type_generic, seen)), Box::new(recursive_fn(type_generic1, seen)), meta)
+            TypeGo::Map(Box::new(recursive_fn(type_generic)), Box::new(recursive_fn(type_generic1)), meta)
         },
         T::RecursiveTypeAlias { name, meta: alias_meta, .. } => {
             TypeGo::TypeAlias {
                 package: match alias_meta.streaming_behavior.done {
-                    true => TYPES_PKG.clone(),
-                    false => STREAM_PKG.clone(),
+                    true => types_pkg.clone(),
+                    false => stream_pkg.clone(),
                 },
                 name: name.clone(),
                 meta
@@ -77,7 +68,7 @@ fn stream_type_to_go_impl(
             match union_type_generic.view() {
                 baml_types::ir_type::UnionTypeViewGeneric::Null => TypeGo::Any { reason: "Null types are not supported in Go".to_string(), meta },
                 baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
-                    let mut type_go = recursive_fn(type_generic, seen);
+                    let mut type_go = recursive_fn(type_generic);
                     if union_meta.constraints.iter().any(|c| {
                         matches!(c.level, ConstraintLevel::Check)
                     }) {
@@ -90,19 +81,19 @@ fn stream_type_to_go_impl(
                     type_go
                 },
                 baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
-                    let options: Vec<_> = type_generics.into_iter().map(|t| recursive_fn(t, seen)).collect();
+                    let options: Vec<_> = type_generics.into_iter().map(&recursive_fn).collect();
                     let num_options = options.len();
                     let mut name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>();
                     name.sort();
                     let name = name.join("Or");
                     TypeGo::Union {
-                        package: STREAM_PKG.clone(),
+                        package: stream_pkg.clone(),
                         name: format!("Union{}{}", num_options, name),
                         meta
                     }
                 },
                 baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
-                    let options: Vec<_> = type_generics.into_iter().map(|t| recursive_fn(t, seen)).collect();
+                    let options: Vec<_> = type_generics.into_iter().map(recursive_fn).collect();
                     let num_options = options.len();
                     let mut name = options.iter().map(|t| t.default_name_within_union()).collect::<Vec<_>>();
                     name.sort();
@@ -111,8 +102,8 @@ fn stream_type_to_go_impl(
                     meta.make_optional();
                     TypeGo::Union {
                         package: match union_meta.streaming_behavior.done {
-                            true => TYPES_PKG.clone(),
-                            false => STREAM_PKG.clone(),
+                            true => types_pkg.clone(),
+                            false => stream_pkg.clone(),
                         },
                         name: format!("Union{}{}", num_options, name),
                         meta,
@@ -125,22 +116,17 @@ fn stream_type_to_go_impl(
     type_go
 }
 
-pub(crate) fn type_to_go(field: &Type, lookup: &impl TypeLookups) -> TypeGo {
-    type_to_go_impl(field, lookup, &mut HashSet::new())
-}
-
-fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<String>) -> TypeGo {
+pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
     use Type as T;
-    let recursive_fn =
-        |field: &Type, seen: &mut HashSet<String>| type_to_go_impl(field, lookup, seen);
+    let recursive_fn = |field| type_to_go(field, _lookup);
     let meta = meta_to_go(field.meta());
 
-    let TYPE_PKG: Package = Package::types();
+    let type_pkg = Package::types();
 
-    let type_go: TypeGo = match field {
+    let type_go = match field {
         T::Primitive(type_value, _) => type_value.into(),
         T::Enum { name, dynamic, .. } => TypeGo::Enum {
-            package: TYPE_PKG.clone(),
+            package: type_pkg.clone(),
             name: name.clone(),
             dynamic: *dynamic,
             meta,
@@ -151,15 +137,15 @@ fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<S
             baml_types::LiteralValue::Bool(_) => TypeGo::Bool(meta),
         },
         T::Class { name, dynamic, .. } => TypeGo::Class {
-            package: TYPE_PKG.clone(),
+            package: type_pkg.clone(),
             name: name.clone(),
             dynamic: *dynamic,
             meta,
         },
-        T::List(type_generic, _) => TypeGo::List(Box::new(recursive_fn(type_generic, seen)), meta),
+        T::List(type_generic, _) => TypeGo::List(Box::new(recursive_fn(type_generic)), meta),
         T::Map(type_generic, type_generic1, _) => TypeGo::Map(
-            Box::new(recursive_fn(type_generic, seen)),
-            Box::new(recursive_fn(type_generic1, seen)),
+            Box::new(recursive_fn(type_generic)),
+            Box::new(recursive_fn(type_generic1)),
             meta,
         ),
         T::Tuple(..) => TypeGo::Any {
@@ -171,18 +157,10 @@ fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<S
             meta,
         },
         T::RecursiveTypeAlias { name, .. } => {
-            match lookup.expand_recursive_type(name) {
-                Ok(_) => {
-                    TypeGo::TypeAlias {
-                        package: TYPE_PKG.clone(),
-                        name: name.clone(),
-                        meta
-                    }
-                }
-                Err(e) => TypeGo::Any {
-                    reason: format!("Unable to expand{name}: {e}"),
-                    meta,
-                },
+            TypeGo::TypeAlias {
+                package: type_pkg.clone(),
+                name: name.clone(),
+                meta
             }
         }
         T::Union(union_type_generic, union_meta) => match union_type_generic.view() {
@@ -191,7 +169,7 @@ fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<S
                 meta,
             },
             baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
-                let mut type_go = recursive_fn(type_generic, seen);
+                let mut type_go = recursive_fn(type_generic);
                 type_go.meta_mut().make_optional();
                 if union_meta
                     .constraints
@@ -205,7 +183,7 @@ fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<S
             baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
                 let options: Vec<_> = type_generics
                     .into_iter()
-                    .map(|t| recursive_fn(t, seen))
+                    .map(&recursive_fn)
                     .collect();
                 let num_options = options.len();
                 let mut name = options
@@ -215,7 +193,7 @@ fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<S
                 name.sort();
                 let name = name.join("Or");
                 TypeGo::Union {
-                    package: TYPE_PKG.clone(),
+                    package: type_pkg.clone(),
                     name: format!("Union{}{}", num_options, name),
                     meta,
                 }
@@ -223,7 +201,7 @@ fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<S
             baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
                 let options: Vec<_> = type_generics
                     .into_iter()
-                    .map(|t| recursive_fn(t, seen))
+                    .map(recursive_fn)
                     .collect();
                 let num_options = options.len();
 
@@ -237,7 +215,7 @@ fn type_to_go_impl(field: &Type, lookup: &impl TypeLookups, seen: &mut HashSet<S
                 let mut meta = meta;
                 meta.make_optional();
                 TypeGo::Union {
-                    package: TYPE_PKG.clone(),
+                    package: type_pkg.clone(),
                     name: format!("Union{}{}", num_options, name),
                     meta,
                 }
@@ -257,7 +235,7 @@ fn meta_to_go(meta: &TypeMeta) -> TypeMetaGo {
 
     let wrapper = TypeWrapper::default();
     let wrapper = if has_checks {
-        wrapper.as_checked()
+        wrapper.wrap_with_checked()
     } else {
         wrapper
     };
@@ -277,7 +255,7 @@ fn stream_meta_to_go(meta: &TypeMetaStreaming) -> TypeMetaGo {
 
     let wrapper = TypeWrapper::default();
     let wrapper = if has_checks {
-        wrapper.as_checked()
+        wrapper.wrap_with_checked()
     } else {
         wrapper
     };
