@@ -1,5 +1,6 @@
 use crate::playground::{BamlState, FileWatcher, FrontendMessage};
 use anyhow::Result;
+use baml_log::bdebug;
 use futures_util::{SinkExt, StreamExt};
 use include_dir::{include_dir, Dir};
 use mime_guess::from_path;
@@ -81,21 +82,27 @@ pub fn setup_file_watcher(state: Arc<RwLock<BamlState>>, baml_src: &Path) -> Res
     if let Ok(watcher) = FileWatcher::new(baml_src.to_str().unwrap()) {
         let state_clone = state.clone();
         if let Err(e) = watcher.watch(move |path| {
-            println!("BAML file changed: {}", path);
+            bdebug!("BAML file changed: {}", path);
             // Reload the file and update state
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let mut state = state_clone.write().await;
+                // Remove the modified file from state
+                state.files.remove(path);
+                // Re-add it if it still exists
+                // NOTE: there should be a way to determine if its a delete or move event
+                // from the file watcher instead of re-checking the entire directory
                 if let Ok(content) = fs::read_to_string(path) {
                     state.files.insert(path.to_string(), content);
-
-                    let add_project_msg = FrontendMessage::add_project {
-                        root_path: ROOT_PATH.to_string(),
-                        files: state.files.clone(),
-                    };
-                    let msg_str = serde_json::to_string(&add_project_msg).unwrap();
-                    let _ = state.tx.send(msg_str);
                 }
+                // bdebug!("files: {:?}", state.files.clone());
+
+                let add_project_msg = FrontendMessage::add_project {
+                    root_path: ROOT_PATH.to_string(),
+                    files: state.files.clone(),
+                };
+                let msg_str = serde_json::to_string(&add_project_msg).unwrap();
+                let _ = state.tx.send(msg_str);
             });
         }) {
             eprintln!("Failed to watch baml_src directory: {}", e);
