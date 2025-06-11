@@ -148,10 +148,9 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                 FieldType::Literal(LiteralValue::Bool(_), _),
                 FieldType::Primitive(TypeValue::Bool, _),
             ) => true,
-            (FieldType::Literal(LiteralValue::Bool(_), _), _) => self.is_subtype(
-                base,
-                &FieldType::bool(),
-            ),
+            (FieldType::Literal(LiteralValue::Bool(_), _), _) => {
+                self.is_subtype(base, &FieldType::bool())
+            }
             (
                 FieldType::Literal(LiteralValue::Int(_), _),
                 FieldType::Primitive(TypeValue::Int, _),
@@ -164,10 +163,9 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                 FieldType::Literal(LiteralValue::String(_), _),
                 FieldType::Primitive(TypeValue::String, _),
             ) => true,
-            (FieldType::Literal(LiteralValue::String(_), _), _) => self.is_subtype(
-                base,
-                &FieldType::string(),
-            ),
+            (FieldType::Literal(LiteralValue::String(_), _), _) => {
+                self.is_subtype(base, &FieldType::string())
+            }
 
             (FieldType::Union(items, _), _) => items
                 .iter_include_null()
@@ -195,13 +193,23 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
             }
             (FieldType::Tuple(_, _), _) => false,
             (FieldType::Arrow(_, _), _) => false,
-            (FieldType::Enum { name: base_name, .. }, FieldType::Enum { name: other_name, .. }) => {
-                base_name == other_name
-            }
+            (
+                FieldType::Enum {
+                    name: base_name, ..
+                },
+                FieldType::Enum {
+                    name: other_name, ..
+                },
+            ) => base_name == other_name,
             (FieldType::Enum { .. }, _) => false,
-            (FieldType::Class { name: base_name, .. }, FieldType::Class { name: other_name, .. }) => {
-                base_name == other_name
-            }
+            (
+                FieldType::Class {
+                    name: base_name, ..
+                },
+                FieldType::Class {
+                    name: other_name, ..
+                },
+            ) => base_name == other_name,
             (FieldType::Class { .. }, _) => false,
         }
     }
@@ -804,7 +812,7 @@ impl IRSemanticStreamingHelper for IntermediateRepr {
         Ok(class
             .walk_fields()
             .filter_map(|field: Walker<'_, &Field>| {
-                if field.streaming_behavior().needed {
+                if field.r#type().streaming_behavior().needed {
                     Some(field.name().to_string())
                 } else {
                     None
@@ -881,7 +889,9 @@ pub fn item_type<'ir, 'a>(
         FieldType::Literal(_, _) => None,
         FieldType::Map(k, v, _) => Some(*v.clone()),
         FieldType::Primitive(_, _) => None,
-        FieldType::RecursiveTypeAlias { name: alias_name, .. } => ir
+        FieldType::RecursiveTypeAlias {
+            name: alias_name, ..
+        } => ir
             .recursive_alias_definition(alias_name)
             .and_then(|resolved_type| item_type(ir, resolved_type)),
         FieldType::Union(variants, _) => match variants.view() {
@@ -918,7 +928,9 @@ where
 {
     let res = match field_type {
         FieldType::Map(key, value, _) => Some((*key.clone(), *value.clone())),
-        FieldType::RecursiveTypeAlias { name: alias_name, .. } => ir
+        FieldType::RecursiveTypeAlias {
+            name: alias_name, ..
+        } => ir
             .recursive_alias_definition(alias_name)
             .and_then(|alias_definition| map_types(ir, &alias_definition)),
         FieldType::Primitive(_, _) => None,
@@ -1321,8 +1333,6 @@ mod tests {
         assert_eq!(head.meta(), &list_type);
     }
 
-    
-
     #[test]
     fn distribute_map_of_lists() {
         let ir = mk_ir();
@@ -1490,20 +1500,21 @@ mod tests {
             "##,
         )
         .unwrap();
-        let params = vec![
-            (
-                "inp".to_string(),
-                BamlValue::Class(
-                    "BlockConstraintForParam".to_string(),
-                    vec![
-                        ("bcfp".to_string(), BamlValue::Int(1)),
-                        ("bcfp2".to_string(), BamlValue::String("too long!".to_string())),
-                    ]
-                    .into_iter()
-                    .collect(),
-                ),
+        let params = vec![(
+            "inp".to_string(),
+            BamlValue::Class(
+                "BlockConstraintForParam".to_string(),
+                vec![
+                    ("bcfp".to_string(), BamlValue::Int(1)),
+                    (
+                        "bcfp2".to_string(),
+                        BamlValue::String("too long!".to_string()),
+                    ),
+                ]
+                .into_iter()
+                .collect(),
             ),
-        ]
+        )]
         .into_iter()
         .collect();
         let function = ir.find_function("UseBlockConstraint").unwrap();
@@ -1514,7 +1525,10 @@ mod tests {
         let res = ir.check_function_params(&function.inputs(), &params, arg_coercer);
         let err = res.err().expect("Should fail due to block constraint");
         let msg = format!("{err}");
-        assert!(msg.contains("Failed assert: hi"), "Error message should mention the failed block constraint: {msg}");
+        assert!(
+            msg.contains("Failed assert: hi"),
+            "Error message should mention the failed block constraint: {msg}"
+        );
     }
 }
 
@@ -1523,11 +1537,9 @@ mod tests {
 #[cfg(test)]
 mod subtype_tests {
     use baml_types::BamlMediaType;
+    use baml_types::{type_meta::base::StreamingBehavior, type_meta::base::TypeMeta};
     use minijinja::machinery::ast::Expr;
     use repr::make_test_ir;
-    use baml_types::{
-        type_meta::base::StreamingBehavior, type_meta::base::TypeMeta
-    };
 
     use super::*;
 
@@ -1711,34 +1723,22 @@ mod subtype_tests {
             (),
         );
         assert_eq!(
-            item_type(
-                &ir,
-                &FieldType::recursive_type_alias("A")
-            ),
+            item_type(&ir, &FieldType::recursive_type_alias("A")),
             Some(FieldType::recursive_type_alias("A"))
         );
         assert_eq!(
-            item_type(
-                &ir,
-                &FieldType::recursive_type_alias("B")
-            ),
+            item_type(&ir, &FieldType::recursive_type_alias("B")),
             Some(FieldType::List(
                 Box::new(FieldType::recursive_type_alias("B")),
                 Default::default(),
             ))
         );
         assert_eq!(
-            item_type(
-                &ir,
-                &FieldType::recursive_type_alias("C")
-            ),
+            item_type(&ir, &FieldType::recursive_type_alias("C")),
             Some(FieldType::recursive_type_alias("C"))
         );
         assert_eq!(
-            item_type(
-                &ir,
-                &FieldType::recursive_type_alias("JsonValue")
-            ),
+            item_type(&ir, &FieldType::recursive_type_alias("JsonValue")),
             Some(FieldType::union(vec![
                 FieldType::recursive_type_alias("JsonValue"),
                 FieldType::recursive_type_alias("JsonValue"),

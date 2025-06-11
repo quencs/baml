@@ -111,10 +111,12 @@ impl Pass2Repr {
                 self.update_type(key);
                 self.update_type(value);
             }
-            TypeGeneric::Tuple(type_generics, _) => type_generics
-                .iter_mut()
-                .for_each(|t| self.update_type(t)),
-            TypeGeneric::Arrow(arrow_generic, _) => self.update_type(&mut arrow_generic.return_type),
+            TypeGeneric::Tuple(type_generics, _) => {
+                type_generics.iter_mut().for_each(|t| self.update_type(t))
+            }
+            TypeGeneric::Arrow(arrow_generic, _) => {
+                self.update_type(&mut arrow_generic.return_type)
+            }
             TypeGeneric::Union(union_type_generic, _) => union_type_generic
                 .iter_skip_null_mut()
                 .iter_mut()
@@ -594,10 +596,7 @@ impl IntermediateRepr {
             .flat_map(|c| c.elem.static_fields.iter().map(|f| &f.elem.r#type.elem));
 
         // finding types used in type aliases
-        let type_alias_fields = self
-            .type_aliases
-            .iter()
-            .map(|c| &c.elem.r#type.elem);
+        let type_alias_fields = self.type_aliases.iter().map(|c| &c.elem.r#type.elem);
 
         // finding types used in functions
         let function_fields = self.functions.iter().flat_map(|f| {
@@ -793,9 +792,12 @@ impl IntermediateRepr {
 
         self.pass2_repr.classes_with_attributes = classes_with_attributes;
         self.pass2_repr.enums_with_attributes = enums_with_attributes;
-        self.pass2_repr.resolved_type_aliases = self.structural_recursive_alias_cycles.iter().flat_map(
-            |i| i.iter()
-        ).map(|(name, type_)| (name.clone(), type_.clone()) ).collect();
+        self.pass2_repr.resolved_type_aliases = self
+            .structural_recursive_alias_cycles
+            .iter()
+            .flat_map(|i| i.iter())
+            .map(|(name, type_)| (name.clone(), type_.clone()))
+            .collect();
     }
 
     /// Modifies the type to inject any block level attributes that are present on the class or enum.
@@ -1230,6 +1232,15 @@ impl WithRepr<FieldType> for ast::FieldType {
         {
             let val: UnresolvedValue<()> = Resolvable::Bool(true, ());
             meta.insert("stream.with_state".to_string(), val);
+        }
+        if self
+            .attributes()
+            .iter()
+            .find(|Attribute { name, .. }| name.name() == "stream.not_null")
+            .is_some()
+        {
+            let val: UnresolvedValue<()> = Resolvable::Bool(true, ());
+            meta.insert("stream.not_null".to_string(), val);
         }
 
         let mut symbol_spans = HashMap::new();
@@ -2589,8 +2600,7 @@ mod tests {
         match foo.walk_fields().collect::<Vec<_>>().as_slice() {
             [field1, field2, field3] => {
                 let type1 = &field1.item.elem.r#type;
-                assert!(field1.streaming_behavior().needed);
-                assert!(type1.attributes.get("stream.not_null").is_none());
+                assert!(type1.attributes.streaming_behavior().needed);
                 let type2 = &field2.item.elem.r#type;
                 assert!(!field2.streaming_behavior().state);
                 assert!(type2.attributes.get("stream.with_state").is_some());
