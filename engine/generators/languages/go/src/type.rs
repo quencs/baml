@@ -1,4 +1,6 @@
-use crate::package::{CurrentRenderPackage, Package};
+use baml_types::baml_value::TypeLookups;
+
+use crate::{ir_to_go, package::{CurrentRenderPackage, Package}};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum LiteralType {
@@ -133,6 +135,11 @@ pub enum TypeGo {
         dynamic: bool,
         meta: TypeMetaGo,
     },
+    TypeAlias {
+        name: String,
+        package: Package,
+        meta: TypeMetaGo,
+    },
     List(Box<TypeGo>, TypeMetaGo),
     Map(Box<TypeGo>, Box<TypeGo>, TypeMetaGo),
     Tuple(Vec<TypeGo>, TypeMetaGo),
@@ -155,6 +162,7 @@ impl TypeGo {
                 MediaTypeGo::Image => "Image".to_string(),
                 MediaTypeGo::Audio => "Audio".to_string(),
             },
+            TypeGo::TypeAlias { name, .. } => name.clone(),
             TypeGo::Class { name, .. } => name.clone(),
             TypeGo::Union { name, .. } => name.clone(),
             TypeGo::Enum { name, .. } => name.clone(),
@@ -188,9 +196,24 @@ impl TypeGo {
             TypeGo::Bool(_) => "false".to_string(),
             TypeGo::Media(..)
             | TypeGo::Class { .. }
-            | TypeGo::Union { .. }
-            | TypeGo::Enum { .. } => {
+            | TypeGo::Union { .. } => {
                 format!("{}{{}}", self.serialize_type(pkg))
+            }
+            TypeGo::Enum { .. } => {
+                format!("{}(\"\")", self.serialize_type(pkg))
+            }
+            TypeGo::TypeAlias { name, package, .. } => {
+                let lookup = pkg.lookup();
+                match lookup.expand_recursive_type(name) {
+                    Ok(expansion) => {
+                        if package == &Package::types() {
+                            crate::ir_to_go::type_to_go(&expansion, lookup).zero_value(pkg)
+                        } else {
+                            crate::ir_to_go::stream_type_to_go(&expansion.partialize(lookup), lookup).zero_value(pkg)
+                        }
+                    },
+                    Err(_) => format!("{}{{}}", self.serialize_type(pkg))
+                }
             }
             TypeGo::List(..) => "nil".to_string(),
             TypeGo::Map(..) => "nil".to_string(),
@@ -239,6 +262,25 @@ impl TypeGo {
     pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
         match self {
             TypeGo::List(..) | TypeGo::Map(..) => self.cast_from_any_skip_optional(param, pkg),
+            TypeGo::TypeAlias { name, .. } =>  {
+                let lookup = pkg.lookup();
+                match lookup.expand_recursive_type(name) {
+                    Ok(expansion) if expansion.is_optional() => {
+                        format!(
+                            r#"
+                            func(result any) {t} {{
+                                if result == nil {{
+                                    return nil
+                                }}
+                                return (result).({t})
+                            }}({param})
+                        "#,
+                            t = self.serialize_type(pkg),
+                        ).trim().to_string()
+                    },
+                    _ => format!("*({param}).(*{})", self.serialize_type(pkg))
+                }
+            }
             _ if self.meta().is_optional() => self.cast_from_any_skip_optional(param, pkg),
             _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
         }
@@ -260,9 +302,22 @@ impl TypeGo {
                 t = value.serialize_type(pkg),
                 casted = value.decode_from_any("inner", pkg)
             ),
-            _ if !self.meta().is_optional() => {
-                format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
+            TypeGo::TypeAlias { name, .. } => {
+                if pkg.lookup().expand_recursive_type(name).map(|e| e.is_optional()).unwrap_or(false) {
+                    format!(r#"
+                    func(param *cffi.CFFIValueHolder) {name} {{
+                        decoded := baml.Decode(param)
+                        if decoded == nil {{
+                            return nil
+                        }}
+                        return decoded.({name})
+                    }}({param})
+                    "#, name= self.serialize_type(pkg))
+                } else {
+                    format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
+                }
             }
+            _ if !self.meta().is_optional() => format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg)),
             _ => format!("baml.Decode({param}).({})", self.serialize_type(pkg)),
         }
         .trim()
@@ -296,6 +351,7 @@ impl TypeGo {
             TypeGo::Bool(meta) => meta,
             TypeGo::Media(_, meta) => meta,
             TypeGo::Class { meta, .. } => meta,
+            TypeGo::TypeAlias { meta, .. } => meta,
             TypeGo::Union { meta, .. } => meta,
             TypeGo::Enum { meta, .. } => meta,
             TypeGo::List(_, meta) => meta,
@@ -313,6 +369,7 @@ impl TypeGo {
             TypeGo::Bool(meta) => meta,
             TypeGo::Media(_, meta) => meta,
             TypeGo::Class { meta, .. } => meta,
+            TypeGo::TypeAlias { meta, .. } => meta,
             TypeGo::Union { meta, .. } => meta,
             TypeGo::Enum { meta, .. } => meta,
             TypeGo::List(_, meta) => meta,
@@ -337,6 +394,9 @@ impl SerializeType for TypeGo {
             TypeGo::Bool(_) => "bool".to_string(),
             TypeGo::Media(media, _) => media.serialize_type(pkg),
             TypeGo::Class { package, name, .. } => {
+                format!("{}{}", package.relative_from(pkg), name)
+            }
+            TypeGo::TypeAlias { package, name, .. } => {
                 format!("{}{}", package.relative_from(pkg), name)
             }
             TypeGo::Union { package, name, .. } => {

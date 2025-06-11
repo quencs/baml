@@ -90,7 +90,7 @@ impl TypeCoercer for FieldType {
                 FieldType::Enum { name, .. } => IrRef::Enum(name).coerce(ctx, target, value),
                 FieldType::Literal(l, _) => l.coerce(ctx, target, value),
                 FieldType::Class { name, .. } => IrRef::Class(name).coerce(ctx, target, value),
-                FieldType::RecursiveTypeAlias(name, _) => {
+                FieldType::RecursiveTypeAlias { name, .. } => {
                     coerce_alias(ctx, self, value).map(|v| v.with_target(target))
                 }
                 FieldType::List(_, _) => {
@@ -188,7 +188,7 @@ impl DefaultValue for FieldType {
             FieldType::Enum { .. } => None,
             FieldType::Literal(_, _) => None,
             FieldType::Class { .. } => None,
-            FieldType::RecursiveTypeAlias(_, _) => None,
+            FieldType::RecursiveTypeAlias { .. } => None,
             FieldType::List(_, _) => Some(BamlValueWithFlags::List(
                 get_flags(),
                 self.clone(),

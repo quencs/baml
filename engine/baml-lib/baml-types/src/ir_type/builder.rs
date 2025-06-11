@@ -6,7 +6,10 @@ impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
     }
 
     pub fn recursive_type_alias<U: AsRef<str>>(name: U) -> Self {
-        TypeGeneric::RecursiveTypeAlias(name.as_ref().to_string(), T::default())
+        TypeGeneric::RecursiveTypeAlias {
+            name: name.as_ref().to_string(),
+            meta: T::default(),
+        }
     }
 
     pub fn literal<U: Into<super::LiteralValue>>(value: U) -> Self {

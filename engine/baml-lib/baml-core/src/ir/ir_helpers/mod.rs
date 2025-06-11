@@ -124,10 +124,10 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
 
         match (base, other) {
             // TODO: O(n)
-            (FieldType::RecursiveTypeAlias(name, _), _) => self
+            (FieldType::RecursiveTypeAlias { name, .. }, _) => self
                 .get_all_recursive_aliases(name)
                 .any(|target| self.is_subtype(target, other)),
-            (_, FieldType::RecursiveTypeAlias(name, _)) => self
+            (_, FieldType::RecursiveTypeAlias { name, .. }) => self
                 .get_all_recursive_aliases(name)
                 .any(|target| self.is_subtype(base, target)),
             (FieldType::Primitive(p1, _), FieldType::Primitive(p2, _)) => p1 == p2,
@@ -881,7 +881,7 @@ pub fn item_type<'ir, 'a>(
         FieldType::Literal(_, _) => None,
         FieldType::Map(k, v, _) => Some(*v.clone()),
         FieldType::Primitive(_, _) => None,
-        FieldType::RecursiveTypeAlias(alias_name, _) => ir
+        FieldType::RecursiveTypeAlias { name: alias_name, .. } => ir
             .recursive_alias_definition(alias_name)
             .and_then(|resolved_type| item_type(ir, resolved_type)),
         FieldType::Union(variants, _) => match variants.view() {
@@ -918,7 +918,7 @@ where
 {
     let res = match field_type {
         FieldType::Map(key, value, _) => Some((*key.clone(), *value.clone())),
-        FieldType::RecursiveTypeAlias(alias_name, _) => ir
+        FieldType::RecursiveTypeAlias { name: alias_name, .. } => ir
             .recursive_alias_definition(alias_name)
             .and_then(|alias_definition| map_types(ir, &alias_definition)),
         FieldType::Primitive(_, _) => None,
@@ -1713,44 +1713,35 @@ mod subtype_tests {
         assert_eq!(
             item_type(
                 &ir,
-                &FieldType::RecursiveTypeAlias("A".to_string(), Default::default())
+                &FieldType::recursive_type_alias("A")
             ),
-            Some(FieldType::RecursiveTypeAlias(
-                "A".to_string(),
-                Default::default()
-            ))
+            Some(FieldType::recursive_type_alias("A"))
         );
         assert_eq!(
             item_type(
                 &ir,
-                &FieldType::RecursiveTypeAlias("B".to_string(), Default::default())
+                &FieldType::recursive_type_alias("B")
             ),
             Some(FieldType::List(
-                Box::new(FieldType::RecursiveTypeAlias(
-                    "B".to_string(),
-                    Default::default()
-                )),
+                Box::new(FieldType::recursive_type_alias("B")),
                 Default::default(),
             ))
         );
         assert_eq!(
             item_type(
                 &ir,
-                &FieldType::RecursiveTypeAlias("C".to_string(), Default::default())
+                &FieldType::recursive_type_alias("C")
             ),
-            Some(FieldType::RecursiveTypeAlias(
-                "C".to_string(),
-                Default::default()
-            ))
+            Some(FieldType::recursive_type_alias("C"))
         );
         assert_eq!(
             item_type(
                 &ir,
-                &FieldType::RecursiveTypeAlias("JsonValue".to_string(), Default::default())
+                &FieldType::recursive_type_alias("JsonValue")
             ),
             Some(FieldType::union(vec![
-                FieldType::RecursiveTypeAlias("JsonValue".to_string(), Default::default()),
-                FieldType::RecursiveTypeAlias("JsonValue".to_string(), Default::default())
+                FieldType::recursive_type_alias("JsonValue"),
+                FieldType::recursive_type_alias("JsonValue"),
             ]))
         );
     }

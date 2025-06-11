@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use baml_types::baml_value::TypeLookups;
 use baml_types::ir_type::ArrowGeneric;
 use baml_types::BamlMap;
 use baml_types::{
@@ -50,17 +51,85 @@ pub struct IntermediateRepr {
     /// Strongly connected components of the dependency graph (finite cycles).
     finite_recursive_cycles: Vec<IndexSet<String>>,
 
-    /// Type alias cycles introduced by lists and maps.
+    /// Type alias cycles introduced by lists and maps and unions.
     ///
     /// These are the only allowed cycles, because lists and maps introduce a
-    /// level of indirection that makes the cycle finite.
+    /// level of indirection that can makes the cycle finite.
     structural_recursive_alias_cycles: Vec<IndexMap<String, FieldType>>,
 
     configuration: Configuration,
 
-    // used to update types
+    // only constructed after the first pass
+    pass2_repr: Pass2Repr,
+}
+
+#[derive(Default, Debug)]
+struct Pass2Repr {
     classes_with_attributes: BamlMap<String, NodeAttributes>,
     enums_with_attributes: BamlMap<String, NodeAttributes>,
+    resolved_type_aliases: BamlMap<String, FieldType>,
+}
+
+impl Pass2Repr {
+    fn update_type(&self, type_generic: &mut FieldType) {
+        use baml_types::ir_type::TypeGeneric;
+        match type_generic {
+            TypeGeneric::Enum {
+                name,
+                dynamic,
+                meta,
+            } => {
+                if let Some(attributes) = self.enums_with_attributes.get(name) {
+                    *dynamic |= attributes.dynamic();
+                    meta.streaming_behavior = meta
+                        .streaming_behavior
+                        .combine(&attributes.streaming_behavior());
+                    meta.constraints.extend(attributes.constraints.clone());
+                }
+            }
+            TypeGeneric::Class {
+                name,
+                mode,
+                dynamic,
+                meta,
+            } => {
+                if let Some(attributes) = self.classes_with_attributes.get(name) {
+                    *dynamic |= attributes.dynamic();
+                    meta.streaming_behavior = meta
+                        .streaming_behavior
+                        .combine(&attributes.streaming_behavior());
+                    meta.constraints.extend(attributes.constraints.clone());
+                }
+            }
+            TypeGeneric::Primitive(..)
+            | TypeGeneric::Literal(..)
+            | TypeGeneric::RecursiveTypeAlias { .. } => {}
+            TypeGeneric::List(element, _) => {
+                self.update_type(element);
+            }
+            TypeGeneric::Map(key, value, _) => {
+                self.update_type(key);
+                self.update_type(value);
+            }
+            TypeGeneric::Tuple(type_generics, _) => type_generics
+                .iter_mut()
+                .for_each(|t| self.update_type(t)),
+            TypeGeneric::Arrow(arrow_generic, _) => self.update_type(&mut arrow_generic.return_type),
+            TypeGeneric::Union(union_type_generic, _) => union_type_generic
+                .iter_skip_null_mut()
+                .iter_mut()
+                .for_each(|t| self.update_type(t)),
+        }
+    }
+}
+
+impl TypeLookups for IntermediateRepr {
+    fn expand_recursive_type(&self, name: &str) -> anyhow::Result<&FieldType> {
+        match self.pass2_repr.resolved_type_aliases.get(name) {
+            Some(ty) => Ok(ty),
+            None => anyhow::bail!("Type alias not found: {name}"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -442,8 +511,7 @@ impl IntermediateRepr {
             retry_policies: vec![],
             template_strings: vec![],
             configuration: Configuration::new(),
-            classes_with_attributes: BamlMap::new(),
-            enums_with_attributes: BamlMap::new(),
+            pass2_repr: Pass2Repr::default(),
         }
     }
 
@@ -520,18 +588,16 @@ impl IntermediateRepr {
 
     pub fn walk_all_types(&self) -> impl Iterator<Item = &FieldType> {
         // finding types used in classes
-        let class_fields = self.classes.iter().flat_map(|c| {
-            c.elem
-                .static_fields
-                .iter()
-                .map(|f| &f.elem.r#type.elem)
-        });
+        let class_fields = self
+            .classes
+            .iter()
+            .flat_map(|c| c.elem.static_fields.iter().map(|f| &f.elem.r#type.elem));
 
         // finding types used in type aliases
         let type_alias_fields = self
-            .structural_recursive_alias_cycles
+            .type_aliases
             .iter()
-            .flat_map(|c| c.iter().map(|(_, t)| t));
+            .map(|c| &c.elem.r#type.elem);
 
         // finding types used in functions
         let function_fields = self.functions.iter().flat_map(|f| {
@@ -670,8 +736,7 @@ impl IntermediateRepr {
                 .map(|e| e.node(db))
                 .collect::<Result<Vec<_>>>()?,
             configuration,
-            classes_with_attributes: BamlMap::new(),
-            enums_with_attributes: BamlMap::new(),
+            pass2_repr: Pass2Repr::default(),
         };
 
         // Sort each item by name.
@@ -695,7 +760,7 @@ impl IntermediateRepr {
         Ok(repr)
     }
 
-    fn set_types_with_attributes(&mut self) {
+    fn set_pass2_repr(&mut self) {
         let default_streaming_behavior = type_meta::base::StreamingBehavior::default();
         let classes_with_attributes = self
             .classes
@@ -726,103 +791,23 @@ impl IntermediateRepr {
             })
             .collect::<BamlMap<_, _>>();
 
-        self.classes_with_attributes = classes_with_attributes;
-        self.enums_with_attributes = enums_with_attributes;
+        self.pass2_repr.classes_with_attributes = classes_with_attributes;
+        self.pass2_repr.enums_with_attributes = enums_with_attributes;
+        self.pass2_repr.resolved_type_aliases = self.structural_recursive_alias_cycles.iter().flat_map(
+            |i| i.iter()
+        ).map(|(name, type_)| (name.clone(), type_.clone()) ).collect();
     }
 
     /// Modifies the type to inject any block level attributes that are present on the class or enum.
     pub fn finalize_type(&self, type_generic: &mut FieldType) {
-        Self::finalize_type_impl(
-            type_generic,
-            &self.enums_with_attributes,
-            &self.classes_with_attributes,
-        );
-    }
-
-    fn finalize_type_impl(
-        type_generic: &mut FieldType,
-        enums_with_attributes: &BamlMap<String, NodeAttributes>,
-        classes_with_attributes: &BamlMap<String, NodeAttributes>,
-    ) {
-        trait ApplyAttributes {
-            fn apply_attributes(
-                &mut self,
-                enums_with_attributes: &BamlMap<String, NodeAttributes>,
-                classes_with_attributes: &BamlMap<String, NodeAttributes>,
-            );
-        }
-
-        impl ApplyAttributes for FieldType {
-            fn apply_attributes(
-                &mut self,
-                enums_with_attributes: &BamlMap<String, NodeAttributes>,
-                classes_with_attributes: &BamlMap<String, NodeAttributes>,
-            ) {
-                use baml_types::ir_type::TypeGeneric;
-                match self {
-                    TypeGeneric::Enum {
-                        name,
-                        dynamic,
-                        meta,
-                    } => {
-                        if let Some(attributes) = enums_with_attributes.get(name) {
-                            *dynamic |= attributes.dynamic();
-                            meta.streaming_behavior = meta
-                                .streaming_behavior
-                                .combine(&attributes.streaming_behavior());
-                            meta.constraints.extend(attributes.constraints.clone());
-                        }
-                    }
-                    TypeGeneric::Class {
-                        name,
-                        mode,
-                        dynamic,
-                        meta,
-                    } => {
-                        if let Some(attributes) = classes_with_attributes.get(name) {
-                            *dynamic |= attributes.dynamic();
-                            meta.streaming_behavior = meta
-                                .streaming_behavior
-                                .combine(&attributes.streaming_behavior());
-                            meta.constraints.extend(attributes.constraints.clone());
-                        }
-                    }
-                    TypeGeneric::Primitive(..)
-                    | TypeGeneric::Literal(..)
-                    | TypeGeneric::RecursiveTypeAlias(_, _) => {}
-                    TypeGeneric::List(element, _) => {
-                        element.apply_attributes(enums_with_attributes, classes_with_attributes)
-                    }
-                    TypeGeneric::Map(key, value, _) => {
-                        key.apply_attributes(enums_with_attributes, classes_with_attributes);
-                        value.apply_attributes(enums_with_attributes, classes_with_attributes);
-                    }
-                    TypeGeneric::Tuple(type_generics, _) => {
-                        type_generics.iter_mut().for_each(|t| {
-                            t.apply_attributes(enums_with_attributes, classes_with_attributes)
-                        })
-                    }
-                    TypeGeneric::Arrow(arrow_generic, _) => arrow_generic
-                        .return_type
-                        .apply_attributes(enums_with_attributes, classes_with_attributes),
-                    TypeGeneric::Union(union_type_generic, _) => union_type_generic
-                        .iter_skip_null_mut()
-                        .iter_mut()
-                        .for_each(|t| {
-                            t.apply_attributes(enums_with_attributes, classes_with_attributes)
-                        }),
-                }
-            }
-        }
-
-        type_generic.apply_attributes(&enums_with_attributes, &classes_with_attributes);
+        self.pass2_repr.update_type(type_generic);
     }
 
     /// Some block_types like enums and classes may have attributes on them.
     /// Every reference to them MUST also maintain that attribute.
     fn distribute_attributes(&mut self) {
         // first store all types that have block level attributes
-        self.set_types_with_attributes();
+        self.set_pass2_repr();
 
         // Now for every type every used in the IR, inject block level attributes
         // from the types that have them.
@@ -853,12 +838,8 @@ impl IntermediateRepr {
         let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
 
         // distribute attributes to all types
-        all_types.for_each(|f| {
-            Self::finalize_type_impl(
-                f,
-                &self.enums_with_attributes,
-                &self.classes_with_attributes,
-            );
+        all_types.for_each(|t| {
+            self.pass2_repr.update_type(t);
         });
     }
 
@@ -1345,10 +1326,12 @@ impl WithRepr<FieldType> for ast::FieldType {
                     }
                     Some(TypeWalker::TypeAlias(alias_walker)) => {
                         if db.is_recursive_type_alias(&alias_walker.id) {
-                            FieldType::RecursiveTypeAlias(
-                                alias_walker.name().to_string(),
-                                Default::default(),
-                            )
+                            let resolved = alias_walker.resolved();
+                            // TODO: use resolved in some way
+                            FieldType::RecursiveTypeAlias {
+                                name: alias_walker.name().to_string(),
+                                meta: Default::default(),
+                            }
                         } else {
                             alias_walker.resolved().to_owned().repr(db)?
                         }

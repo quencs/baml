@@ -20,7 +20,7 @@ import (
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 
-func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (*types.JSON, error) {
+func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.JSON, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -50,7 +50,12 @@ func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (*types.JSON, err
 		return nil, result.Error
 	}
 
-	casted := (result.Data).(*types.JSON)
+	casted := func(result any) types.JSON {
+		if result == nil {
+			return nil
+		}
+		return (result).(types.JSON)
+	}(result.Data)
 
 	return casted, nil
 }

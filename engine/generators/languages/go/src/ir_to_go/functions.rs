@@ -12,9 +12,9 @@ pub fn ir_function_to_go(function: &FunctionNode, pkg: &CurrentRenderPackage) ->
             .elem
             .inputs()
             .iter()
-            .map(|(name, field_type)| (name.clone(), type_to_go(field_type)))
+            .map(|(name, field_type)| (name.clone(), type_to_go(field_type, pkg.lookup())))
             .collect(),
-        return_type: type_to_go(function.elem.output()),
-        stream_return_type: stream_type_to_go(&function.elem.output().partialize(false)),
+        return_type: type_to_go(function.elem.output(), pkg.lookup()),
+        stream_return_type: stream_type_to_go(&function.elem.output().partialize(pkg.lookup()), pkg.lookup()),
     }
 }

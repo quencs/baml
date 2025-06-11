@@ -7,7 +7,7 @@ use internal_baml_core::ir::repr::{
 
 pub struct TestStructure<L: LanguageFeatures> {
     src_dir: PathBuf,
-    ir: IntermediateRepr,
+    ir: std::sync::Arc<IntermediateRepr>,
     generator: L,
     project_name: String,
 }
@@ -28,28 +28,36 @@ impl<L: LanguageFeatures> TestStructure<L> {
             .join("generated_tests")
             .join(project_name);
 
+        fn create_symlink(src: &PathBuf, dest: &PathBuf) -> Result<(), anyhow::Error> {
+            #[cfg(unix)]
+            std::os::unix::fs::symlink(src, dest)?;
+
+            #[cfg(windows)]
+            std::os::windows::fs::symlink_dir(src, dest)?;
+
+            Ok(())
+        }
+    
         fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<(), anyhow::Error> {
             std::fs::create_dir_all(dest)?;
             for entry in std::fs::read_dir(src)? {
                 let entry = entry?;
                 let dest_path = dest.join(entry.file_name());
-                if entry.path().is_dir() {
-                    copy_dir_recursive(&entry.path(), &dest_path)?;
-                } else {
-                    std::fs::copy(entry.path(), &dest_path)?;
-                }
+                create_symlink(&entry.path(), &dest_path)?;
             }
             Ok(())
         }
 
-        copy_dir_recursive(&dir.join("baml_src"), &test_dir.join("baml_src"))?;
+        // clear test_dir
+        std::fs::remove_dir_all(&test_dir)?;
         copy_dir_recursive(&dir.join(L::name()), &test_dir)?;
+        create_symlink(&dir.join("baml_src"), &test_dir.join("baml_src"))?;
 
         let ir = make_test_ir_from_dir(&dir.join("baml_src"))?;
 
         Ok(Self {
             src_dir: test_dir,
-            ir,
+            ir: std::sync::Arc::new(ir),
             generator,
             project_name: project_name.to_string_lossy().to_string(),
         })
@@ -94,7 +102,7 @@ impl<L: LanguageFeatures> TestStructure<L> {
             client_package_name: Some(self.project_name.clone()),
             module_format: None,
         };
-        self.generator.generate_sdk(&self.ir, &args)?;
+        self.generator.generate_sdk(self.ir.clone(), &args)?;
 
         for cmd_str in args.on_generate {
             let mut cmd = Command::new("sh");

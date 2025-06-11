@@ -297,7 +297,7 @@ fn required_done<T>(
             meta: _,
         } => true,
         FieldType::Tuple(_, _) => false,
-        FieldType::RecursiveTypeAlias(_, _) => false,
+        FieldType::RecursiveTypeAlias { .. } => false,
         FieldType::Class { .. } => false,
         FieldType::Union(options, _) => {
             let view = options.iter_skip_null();
@@ -387,7 +387,7 @@ mod tests {
         fn mk_list(items: Vec<BamlValueWithFlags>) -> BamlValueWithFlags {
             BamlValueWithFlags::List(
                 DeserializerConditions::default(),
-                FieldType::RecursiveTypeAlias("A".to_string(), TypeMeta::default()).as_list(),
+                FieldType::recursive_type_alias("A").as_list(),
                 items,
             )
         }

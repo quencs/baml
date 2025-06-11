@@ -38,14 +38,14 @@ impl LanguageFeatures for GoLanguageFeatures {
     fn generate_sdk_files(
         &self,
         collector: &mut FileCollector<Self>,
-        ir: &IntermediateRepr,
+        ir: std::sync::Arc<IntermediateRepr>,
         args: &GeneratorArgs,
     ) -> Result<(), anyhow::Error> {
         let Some(go_mod_name) = &args.client_package_name else {
             anyhow::bail!("Go client package name is required");
         };
 
-        let pkg = package::CurrentRenderPackage::new("baml_client");
+        let pkg = package::CurrentRenderPackage::new("baml_client", ir.clone());
         let file_map = args.file_map_as_json_string()?;
         collector.add_file("baml_source_map.go", render_source_files(file_map)?);
         collector.add_file("runtime.go", render_runtime_code(&pkg)?);

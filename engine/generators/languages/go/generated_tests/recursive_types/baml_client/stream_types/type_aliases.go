@@ -14,11 +14,7 @@
 package stream_types
 
 type JSON = *Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString
-
 type MyUnion = *Union3IntOrRecursive1OrString
-
 type Recursive1 = *Union2IntOrListRecursive1
-
 type Nonrecursive1 = *int64
-
 type Nonrecursive2 = *string
