@@ -1244,7 +1244,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        assert_eq!(float.partialize(false), expected);
+        assert_eq!(float.partialize(&TestLookup), expected);
 
         // Test Bool
         let bool_type = FieldType::bool();
@@ -1258,7 +1258,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        assert_eq!(bool_type.partialize(false), expected);
+        assert_eq!(bool_type.partialize(&TestLookup), expected);
     }
 
     #[test]
@@ -1283,7 +1283,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        assert_eq!(enum_type.partialize(false), expected);
+        assert_eq!(enum_type.partialize(&TestLookup), expected);
     }
 
     #[test]
@@ -1307,7 +1307,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        assert_eq!(literal.partialize(false), expected);
+        assert_eq!(literal.partialize(&TestLookup), expected);
     }
 
     #[test]
@@ -1325,7 +1325,7 @@ mod tests {
             },
             Default::default(),
         );
-        assert_eq!(alias.partialize(false), expected);
+        assert_eq!(alias.partialize(&TestLookup), expected);
     }
 
 }
