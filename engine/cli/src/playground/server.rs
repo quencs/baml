@@ -1,6 +1,6 @@
 use crate::playground::{BamlState, FileWatcher, FrontendMessage};
 use anyhow::Result;
-use baml_log::bdebug;
+// use baml_log::bdebug;
 use futures_util::{SinkExt, StreamExt};
 use include_dir::{include_dir, Dir};
 use mime_guess::from_path;
@@ -12,7 +12,9 @@ use warp::{http::Response, ws::Message, Filter};
 
 /// Embed at compile time everything in dist/
 /// This embeds the entire frontend code into the binary which includes the web-view and playground-common
-static STATIC_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/dist");
+/// NOTE: requires web-panel for vscode to be built
+static STATIC_DIR: Dir<'_> =
+    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/vscode-ext/packages/web-panel/dist");
 // Does not matter what this is, it is not currently used in the playground
 static ROOT_PATH: &str = ".";
 
@@ -82,7 +84,7 @@ pub fn setup_file_watcher(state: Arc<RwLock<BamlState>>, baml_src: &Path) -> Res
     if let Ok(watcher) = FileWatcher::new(baml_src.to_str().unwrap()) {
         let state_clone = state.clone();
         if let Err(e) = watcher.watch(move |path| {
-            bdebug!("BAML file changed: {}", path);
+            // bdebug!("BAML file changed: {}", path);
             // Reload the file and update state
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
@@ -90,8 +92,6 @@ pub fn setup_file_watcher(state: Arc<RwLock<BamlState>>, baml_src: &Path) -> Res
                 // Remove the modified file from state
                 state.files.remove(path);
                 // Re-add it if it still exists
-                // NOTE: there should be a way to determine if its a delete or move event
-                // from the file watcher instead of re-checking the entire directory
                 if let Ok(content) = fs::read_to_string(path) {
                     state.files.insert(path.to_string(), content);
                 }
@@ -122,7 +122,7 @@ pub fn create_routes(
             ws.on_upgrade(move |socket| client_connection(socket, state))
         });
 
-    // Static file serving needed to serve the index.html of the frontend playground
+    // Static file serving needed to serve the frontend files
     let spa =
         warp::path::full()
             .and(warp::get())
