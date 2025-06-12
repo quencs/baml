@@ -41,7 +41,8 @@ impl PlaygroundState {
     }
 
     pub fn broadcast_update(&self, msg: String) -> anyhow::Result<()> {
-        self.tx.send(msg)?;
+        let n = self.tx.send(msg)?;
+        tracing::debug!("broadcast sent to {n} receivers");
         Ok(())
     }
 }

@@ -156,9 +156,6 @@ impl Server {
         let client = client::Client::new(connection.make_sender());
         let notifier = client.notifier();
 
-        // Reload the session with the notifier
-        session.reload(Some(notifier))?;
-
         // Initialize playground state if enabled
         // if session.baml_settings.enable_playground {
         let playground_state = Arc::new(RwLock::new(PlaygroundState::new()));
@@ -167,20 +164,12 @@ impl Server {
         // Update session_arc with the new session that has playground state
         let session_arc = Arc::new(session.clone());
 
-        // Create and start the playground server
-        let playground_server = PlaygroundServer::new(session_arc);
+        // Create and start the playground server using the shared playground_state
+        let playground_server = PlaygroundServer::new(playground_state.clone(), session_arc);
         let playground_port = session.baml_settings.playground_port.unwrap_or(3030);
 
         // Spawn the playground server on the runtime
-        rt.spawn(async move {
-            match playground_server.run(playground_port).await {
-                Ok(_) => tracing::info!(
-                    "Hosted playground at http://localhost:{}...",
-                    playground_port
-                ),
-                Err(e) => tracing::error!("Failed to start playground server: {}", e),
-            }
-        });
+        rt.spawn(playground_server.run(playground_port));
 
         tracing::info!(
             "Hosted playground at http://localhost:{}...",
@@ -190,6 +179,9 @@ impl Server {
 
         // Store the runtime in the session
         session.playground_runtime = Some(rt);
+
+        // Reload the session with the notifier
+        session.reload(Some(notifier))?;
 
         Ok(Self {
             connection,

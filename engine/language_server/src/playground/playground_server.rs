@@ -12,6 +12,38 @@ use warp::{http::Response, ws::Message, Filter};
 /// Embed at compile time everything in dist/
 static STATIC_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/dist");
 
+/// Helper to send all projects/files to a websocket client
+pub async fn send_all_projects_to_client(
+    ws_tx: &mut (impl SinkExt<Message> + Unpin),
+    session: &Arc<Session>,
+) {
+    let projects = {
+        let projects = session.baml_src_projects.lock().unwrap();
+        projects
+            .iter()
+            .map(|(root_path, project)| {
+                let project = project.lock().unwrap();
+                let files = project.baml_project.files.clone();
+                let root_path = root_path.to_string_lossy().to_string();
+                let files_map: HashMap<String, String> = files
+                    .into_iter()
+                    .map(|(path, doc)| (path.path().to_string_lossy().to_string(), doc.contents))
+                    .collect();
+                (root_path, files_map)
+            })
+            .collect::<Vec<_>>()
+    };
+    for (root_path, files_map) in projects {
+        let add_project_msg = FrontendMessage::add_project {
+            root_path,
+            files: files_map,
+        };
+        if let Ok(msg_str) = serde_json::to_string(&add_project_msg) {
+            let _ = ws_tx.send(Message::text(msg_str)).await;
+        }
+    }
+}
+
 pub async fn client_connection(
     ws: warp::ws::WebSocket,
     state: Arc<RwLock<PlaygroundState>>,
@@ -23,41 +55,8 @@ pub async fn client_connection(
         state.tx.subscribe()
     };
 
-    // Send initial project state
-    let projects = {
-        let projects = session.baml_src_projects.lock().unwrap();
-        projects
-            .iter()
-            .map(|(root_path, project)| {
-                let project = project.lock().unwrap();
-                let files = project.baml_project.files.clone();
-                let root_path = root_path.to_string_lossy().to_string();
-
-                // Convert files to the expected format
-                let files_map: HashMap<String, String> = files
-                    .into_iter()
-                    .map(|(path, doc)| (path.path().to_string_lossy().to_string(), doc.contents))
-                    .collect();
-
-                (root_path, files_map)
-            })
-            .collect::<Vec<_>>()
-    };
-
-    // Send each project's files
-    for (root_path, files_map) in projects {
-        let add_project_msg = FrontendMessage::add_project {
-            root_path,
-            files: files_map,
-        };
-
-        if let Ok(msg_str) = serde_json::to_string(&add_project_msg) {
-            if let Err(e) = ws_tx.send(Message::text(msg_str)).await {
-                tracing::error!("Failed to send initial project state: {}", e);
-                return;
-            }
-        }
-    }
+    // Send initial project state using the helper
+    send_all_projects_to_client(&mut ws_tx, &session).await;
 
     // Handle incoming messages and broadcast updates
     tokio::spawn(async move {
@@ -70,28 +69,6 @@ pub async fn client_connection(
                             if msg.is_close() {
                                 tracing::info!("Client disconnected");
                                 break;
-                            }
-
-                            // Process incoming messages
-                            if let Ok(text) = msg.to_str() {
-                                if let Ok(frontend_msg) = serde_json::from_str::<FrontendMessage>(text) {
-                                    match frontend_msg {
-                                        FrontendMessage::add_project { root_path, files } => {
-                                            // Echo back the message to confirm receipt
-                                            if let Ok(msg_str) = serde_json::to_string(&frontend_msg) {
-                                                if let Err(e) = ws_tx.send(Message::text(msg_str)).await {
-                                                    tracing::error!("Failed to echo add_project message: {}", e);
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        _ => {
-                                            tracing::info!("Received unhandled message type: {:?}", frontend_msg);
-                                        }
-                                    }
-                                } else {
-                                    tracing::warn!("Failed to parse message as FrontendMessage: {}", text);
-                                }
                             }
                         }
                         Err(e) => {
