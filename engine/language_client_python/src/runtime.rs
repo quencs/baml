@@ -108,7 +108,11 @@ impl BamlRuntime {
     }
 
     #[pyo3()]
-    fn __getnewargs__(&self, py: Python<'_>) -> PyResult<(String, HashMap<String, String>, HashMap<String, String>)> {
+    fn __reduce__(&self, py: Python<'_>) -> PyResult<(PyObject, (String, HashMap<String, String>, HashMap<String, String>))> {
+        // Get the from_files static method from the class
+        let cls = py.get_type::<Self>();
+        let from_files = cls.getattr("from_files")?;
+        
         // Get the current environment variables
         let env_vars: HashMap<String, String> = std::env::vars().collect();
         
@@ -122,23 +126,8 @@ impl BamlRuntime {
             }
         };
         
-        // Return args for from_files constructor: (root_path, files, env_vars)
-        Ok((root_path, files, env_vars))
-    }
-
-    #[pyo3()]
-    fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<pyo3::Bound<'py, pyo3::types::PyBytes>> {
-        // For now, return minimal state since BamlRuntime doesn't have simple serialization
-        // In a real implementation, you'd serialize the runtime state here
-        Ok(pyo3::types::PyBytes::new_bound(py, b"baml_runtime_state"))
-    }
-
-    #[pyo3()]
-    fn __setstate__(&mut self, state: pyo3::Bound<'_, pyo3::types::PyBytes>) -> PyResult<()> {
-        // For now, reconstruct with empty state since BamlRuntime doesn't have simple serialization
-        // In a real implementation, you'd deserialize the runtime state here
-        // This is a minimal implementation to enable pickle support
-        Ok(())
+        // Return (callable, args) tuple for pickle reconstruction
+        Ok((from_files.into(), (root_path, files, env_vars)))
     }
 
     // Helper method to get BAML files from Python
