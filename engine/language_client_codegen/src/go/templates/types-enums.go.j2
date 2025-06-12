@@ -75,6 +75,7 @@ func (e *{{ enum.name }}) UnmarshalJSON(data []byte) error {
 }
 
 func (e *{{ enum.name }}) Decode(holder cffi.CFFIValueEnum) {
+    hiiiii
     if string(holder.Name()) != "{{ enum.name }}" {
         panic(fmt.Sprintf("expected {{ enum.name }}, got %s", string(holder.Name())))
     }

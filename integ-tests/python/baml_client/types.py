@@ -237,7 +237,7 @@ class CompoundBigNumbers(BaseModel):
 
 class ContactInfo(BaseModel):
     primary: Union["PhoneNumber", "EmailAddress"]
-    secondary: Optional[Union["PhoneNumber", "EmailAddress"]] = None
+    secondary: Union["PhoneNumber", "EmailAddress", None] = None
 
 class CustomStory(BaseModel):
     title: str
@@ -245,9 +245,9 @@ class CustomStory(BaseModel):
     content: str
 
 class CustomTaskResult(BaseModel):
-    bookOrder: Optional["BookOrder"] = None
-    flightConfirmation: Optional["FlightConfirmation"] = None
-    groceryReceipt: Optional["GroceryReceipt"] = None
+    bookOrder: Union["BookOrder", Optional[None]] = None
+    flightConfirmation: Union["FlightConfirmation", Optional[None]] = None
+    groceryReceipt: Union["GroceryReceipt", Optional[None]] = None
 
 class Document1559(BaseModel):
     client_details: "ClientDetails1559"
@@ -278,7 +278,7 @@ class DynamicSchema(BaseModel):
     model_config = ConfigDict(extra='allow')
 
 class Earthling(BaseModel):
-    age: Checked[int, Literal["earth_aged", "no_infants"]]
+    age: Checked[int,Literal["earth_aged", "no_infants"]]
 
 class Education(BaseModel):
     institution: str
@@ -313,8 +313,8 @@ class FlightConfirmation(BaseModel):
 
 class FooAny(BaseModel):
     planetary_age: Union["Martian", "Earthling"]
-    certainty: Checked[int, Literal["unreasonably_certain"]]
-    species: Checked[str, Literal["regex_bad", "regex_good", "trivial"]]
+    certainty: Checked[int,Literal["unreasonably_certain"]]
+    species: Checked[str,Literal["regex_bad", "regex_good", "trivial"]]
 
 class Forest(BaseModel):
     trees: List["Tree"]
@@ -386,7 +386,7 @@ class MaintainFieldOrder(BaseModel):
     c: str
 
 class MalformedConstraints(BaseModel):
-    foo: Checked[int, Literal["foo_check"]]
+    foo: Checked[int,Literal["foo_check"]]
 
 class MalformedConstraints2(BaseModel):
     foo: int
@@ -394,7 +394,7 @@ class MalformedConstraints2(BaseModel):
 class Martian(BaseModel):
     """A Martian organism with an age.
     Such a nice type."""
-    age: Checked[int, Literal["young_enough"]]
+    age: Checked[int,Literal["young_enough"]]
     """The age of the Martian in Mars years.
     So many Mars years."""
 
@@ -404,7 +404,7 @@ class MemoryObject(BaseModel):
     description: str
 
 class MergeAttrs(BaseModel):
-    amount: Checked[int, Literal["gt_ten"]]
+    amount: Checked[int,Literal["gt_ten"]]
 
 class NamedArgsSingleClass(BaseModel):
     key: str
@@ -412,16 +412,16 @@ class NamedArgsSingleClass(BaseModel):
     key_three: int
 
 class Nested(BaseModel):
-    prop3: Optional[str] = None
-    prop4: Optional[str] = None
+    prop3: Union[str, Optional[None]] = None
+    prop4: Union[str, Optional[None]] = None
     prop20: "Nested2"
 
 class Nested2(BaseModel):
-    prop11: Optional[str] = None
-    prop12: Optional[str] = None
+    prop11: Union[str, Optional[None]] = None
+    prop12: Union[str, Optional[None]] = None
 
 class NestedBlockConstraint(BaseModel):
-    nbc: Checked["BlockConstraint", Literal["cross_field"]]
+    nbc: Checked["BlockConstraint",Literal["cross_field"]]
 
 class NestedBlockConstraintForParam(BaseModel):
     nbcfp: "BlockConstraintForParam"
@@ -507,13 +507,13 @@ class Resume(BaseModel):
     skills: List[str]
 
 class Schema(BaseModel):
-    prop1: Optional[str] = None
+    prop1: Union[str, Optional[None]] = None
     prop2: Union["Nested", str]
-    prop5: List[Optional[str]]
+    prop5: List[Union[str, Optional[None]]]
     prop6: Union[str, List["Nested"]]
-    nested_attrs: List[Optional[Union[str, "Nested"]]]
-    parens: Optional[str] = None
-    other_group: Union[str, int]
+    nested_attrs: List[Union[str, Optional[None], "Nested"]]
+    parens: Union[str, Optional[None]] = None
+    other_group: Union[str, Union[int, str]]
 
 class SearchParams(BaseModel):
     dateRange: Optional[int] = None
@@ -581,8 +581,8 @@ class TwoStoriesOneTitle(BaseModel):
 
 class TwoStoriesOneTitleCheck(BaseModel):
     title: str
-    story_a: Checked[str, Literal["too_long_story"]]
-    story_b: Checked[str, Literal["too_long_story"]]
+    story_a: Checked[str,Literal["too_long_story"]]
+    story_b: Checked[str,Literal["too_long_story"]]
 
 class UnionTest_ReturnType(BaseModel):
     prop1: Union[str, bool]

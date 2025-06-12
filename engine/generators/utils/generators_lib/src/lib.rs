@@ -11,7 +11,10 @@ pub fn generate_sdk(ir: Arc<IntermediateRepr>, gen: &GeneratorArgs) -> Result<in
             let features = GoLanguageFeatures::default();
             features.generate_sdk(ir, gen)?
         }
-        _ => todo!("ONLY GO SUPPORTED ATM"),
+        _ => {
+            println!("Generating SDK for {} not supported yet", gen.client_type);
+            return Ok(Default::default());
+        }
     };
 
     // Run on_generate commands

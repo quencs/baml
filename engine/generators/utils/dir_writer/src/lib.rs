@@ -156,7 +156,7 @@ pub trait LanguageFeatures: Default + Sized {
     fn generate_sdk(&self, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<IndexMap<PathBuf, String>, anyhow::Error> {
         let mut collector = FileCollector::<Self>::new();
         self.generate_sdk_files(&mut collector, ir, args)?;
-        collector.commit(&args.output_dir_relative_to_baml_src)
+        collector.commit(&args.output_dir())
     }
 
     fn generate_sdk_files(&self, collector: &mut FileCollector<Self>, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<(), anyhow::Error>;
@@ -370,7 +370,7 @@ impl<L: LanguageFeatures + Default> FileCollector<L> {
                     }
                 }
 
-                baml_log::debug!(
+                baml_log::info!(
                     "Wrote {} files to {}",
                     self.files.len(),
                     output_path.display()

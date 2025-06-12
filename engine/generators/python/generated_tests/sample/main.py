@@ -1,1 +1,0 @@
-/Users/vbv/repos/gloo-lang/engine/generators/data/sample/python/main.py

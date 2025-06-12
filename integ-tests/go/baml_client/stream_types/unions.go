@@ -11,7 +11,7 @@
 // You can install baml-cli with:
 //
 //	$ go install github.com/boundaryml/baml/baml-cli
-package types
+package stream_types
 
 import (
 	"encoding/json"
@@ -20,6 +20,8 @@ import (
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 	flatbuffers "github.com/google/flatbuffers/go"
+
+	"example.com/integ-tests/baml_client/types"
 )
 
 type Union2BoolOrFloat struct {
@@ -985,9 +987,9 @@ func (u *Union2JsonTemplateOrSimpleTag) JsonTemplate() JsonTemplate {
 type Union2ListBoolOrListInt struct {
 	variant string
 
-	variant_ListBool *[]bool
+	variant_ListBool *[]*bool
 
-	variant_ListInt *[]int64
+	variant_ListInt *[]*int64
 }
 
 func (u *Union2ListBoolOrListInt) Decode(holder *cffi.CFFIValueUnionVariant) {
@@ -996,14 +998,30 @@ func (u *Union2ListBoolOrListInt) Decode(holder *cffi.CFFIValueUnionVariant) {
 	switch variantName {
 	case "List__bool":
 		u.variant = "ListBool"
-		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) bool {
-			return *baml.Decode(inner).(*bool)
+		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) *bool {
+			return func(param *cffi.CFFIValueHolder) *bool {
+				decoded := baml.Decode(param)
+				return func(result any) *bool {
+					if result == nil {
+						return nil
+					}
+					return (result).(*bool)
+				}(decoded)
+			}(inner)
 		})
 		u.variant_ListBool = &value
 	case "List__int":
 		u.variant = "ListInt"
-		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) int64 {
-			return *baml.Decode(inner).(*int64)
+		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) *int64 {
+			return func(param *cffi.CFFIValueHolder) *int64 {
+				decoded := baml.Decode(param)
+				return func(result any) *int64 {
+					if result == nil {
+						return nil
+					}
+					return (result).(*int64)
+				}(decoded)
+			}(inner)
 		})
 		u.variant_ListInt = &value
 
@@ -1068,7 +1086,7 @@ func (u *Union2ListBoolOrListInt) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("invalid union variant: %s", string(data))
 }
 
-func (u *Union2ListBoolOrListInt) SetListBool(v []bool) {
+func (u *Union2ListBoolOrListInt) SetListBool(v []*bool) {
 	u.variant = "ListBool"
 	u.variant_ListBool = &v
 
@@ -1080,14 +1098,14 @@ func (u *Union2ListBoolOrListInt) IsListBool() bool {
 	return u.variant == "ListBool"
 }
 
-func (u *Union2ListBoolOrListInt) ListBool() []bool {
+func (u *Union2ListBoolOrListInt) ListBool() []*bool {
 	if u.variant != "ListBool" {
 		return nil
 	}
 	return *u.variant_ListBool
 }
 
-func (u *Union2ListBoolOrListInt) SetListInt(v []int64) {
+func (u *Union2ListBoolOrListInt) SetListInt(v []*int64) {
 	u.variant = "ListInt"
 	u.variant_ListInt = &v
 
@@ -1099,7 +1117,7 @@ func (u *Union2ListBoolOrListInt) IsListInt() bool {
 	return u.variant == "ListInt"
 }
 
-func (u *Union2ListBoolOrListInt) ListInt() []int64 {
+func (u *Union2ListBoolOrListInt) ListInt() []*int64 {
 	if u.variant != "ListInt" {
 		return nil
 	}
@@ -1111,7 +1129,7 @@ type Union2ListNestedOrString struct {
 
 	variant_String *string
 
-	variant_ListNested *[]Nested
+	variant_ListNested *[]*Nested
 }
 
 func (u *Union2ListNestedOrString) Decode(holder *cffi.CFFIValueUnionVariant) {
@@ -1124,8 +1142,16 @@ func (u *Union2ListNestedOrString) Decode(holder *cffi.CFFIValueUnionVariant) {
 		u.variant_String = &value
 	case "List__Nested":
 		u.variant = "ListNested"
-		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) Nested {
-			return *baml.Decode(inner).(*Nested)
+		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) *Nested {
+			return func(param *cffi.CFFIValueHolder) *Nested {
+				decoded := baml.Decode(param)
+				return func(result any) *Nested {
+					if result == nil {
+						return nil
+					}
+					return (result).(*Nested)
+				}(decoded)
+			}(inner)
 		})
 		u.variant_ListNested = &value
 
@@ -1209,7 +1235,7 @@ func (u *Union2ListNestedOrString) String() string {
 	return *u.variant_String
 }
 
-func (u *Union2ListNestedOrString) SetListNested(v []Nested) {
+func (u *Union2ListNestedOrString) SetListNested(v []*Nested) {
 	u.variant = "ListNested"
 	u.variant_ListNested = &v
 
@@ -1221,7 +1247,7 @@ func (u *Union2ListNestedOrString) IsListNested() bool {
 	return u.variant == "ListNested"
 }
 
-func (u *Union2ListNestedOrString) ListNested() []Nested {
+func (u *Union2ListNestedOrString) ListNested() []*Nested {
 	if u.variant != "ListNested" {
 		return nil
 	}
@@ -1353,7 +1379,7 @@ type Union2MapStringKeyRecursiveUnionValueOrString struct {
 
 	variant_String *string
 
-	variant_MapStringKeyRecursiveUnionValue *map[string]RecursiveUnion
+	variant_MapStringKeyRecursiveUnionValue *map[string]*RecursiveUnion
 }
 
 func (u *Union2MapStringKeyRecursiveUnionValueOrString) Decode(holder *cffi.CFFIValueUnionVariant) {
@@ -1366,8 +1392,16 @@ func (u *Union2MapStringKeyRecursiveUnionValueOrString) Decode(holder *cffi.CFFI
 		u.variant_String = &value
 	case "Map__string_RecursiveUnion":
 		u.variant = "MapStringKeyRecursiveUnionValue"
-		value := baml.DecodeMap(valueHolder, func(inner *cffi.CFFIValueHolder) RecursiveUnion {
-			return *baml.Decode(inner).(*RecursiveUnion)
+		value := baml.DecodeMap(valueHolder, func(inner *cffi.CFFIValueHolder) *RecursiveUnion {
+			return func(param *cffi.CFFIValueHolder) *RecursiveUnion {
+				decoded := baml.Decode(param)
+				return func(result any) *RecursiveUnion {
+					if result == nil {
+						return nil
+					}
+					return (result).(*RecursiveUnion)
+				}(decoded)
+			}(inner)
 		})
 		u.variant_MapStringKeyRecursiveUnionValue = &value
 
@@ -1451,7 +1485,7 @@ func (u *Union2MapStringKeyRecursiveUnionValueOrString) String() string {
 	return *u.variant_String
 }
 
-func (u *Union2MapStringKeyRecursiveUnionValueOrString) SetMapStringKeyRecursiveUnionValue(v map[string]RecursiveUnion) {
+func (u *Union2MapStringKeyRecursiveUnionValueOrString) SetMapStringKeyRecursiveUnionValue(v map[string]*RecursiveUnion) {
 	u.variant = "MapStringKeyRecursiveUnionValue"
 	u.variant_MapStringKeyRecursiveUnionValue = &v
 
@@ -1463,7 +1497,7 @@ func (u *Union2MapStringKeyRecursiveUnionValueOrString) IsMapStringKeyRecursiveU
 	return u.variant == "MapStringKeyRecursiveUnionValue"
 }
 
-func (u *Union2MapStringKeyRecursiveUnionValueOrString) MapStringKeyRecursiveUnionValue() map[string]RecursiveUnion {
+func (u *Union2MapStringKeyRecursiveUnionValueOrString) MapStringKeyRecursiveUnionValue() map[string]*RecursiveUnion {
 	if u.variant != "MapStringKeyRecursiveUnionValue" {
 		return nil
 	}
@@ -2073,7 +2107,7 @@ func (u *Union2StringKcuriosityOrStringKpersonal_finance) StringKpersonal_financ
 type Union2StringOrTag struct {
 	variant string
 
-	variant_Tag *Tag
+	variant_Tag *types.Tag
 
 	variant_String *string
 }
@@ -2084,7 +2118,7 @@ func (u *Union2StringOrTag) Decode(holder *cffi.CFFIValueUnionVariant) {
 	switch variantName {
 	case "Tag":
 		u.variant = "Tag"
-		value := *baml.Decode(valueHolder).(*Tag)
+		value := *baml.Decode(valueHolder).(*types.Tag)
 		u.variant_Tag = &value
 	case "string":
 		u.variant = "String"
@@ -2152,7 +2186,7 @@ func (u *Union2StringOrTag) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("invalid union variant: %s", string(data))
 }
 
-func (u *Union2StringOrTag) SetTag(v Tag) {
+func (u *Union2StringOrTag) SetTag(v types.Tag) {
 	u.variant = "Tag"
 	u.variant_Tag = &v
 
@@ -2164,9 +2198,9 @@ func (u *Union2StringOrTag) IsTag() bool {
 	return u.variant == "Tag"
 }
 
-func (u *Union2StringOrTag) Tag() Tag {
+func (u *Union2StringOrTag) Tag() types.Tag {
 	if u.variant != "Tag" {
-		return Tag("")
+		return types.Tag("")
 	}
 	return *u.variant_Tag
 }
@@ -3613,9 +3647,9 @@ type Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString str
 
 	variant_Float *float64
 
-	variant_ListString *[]string
+	variant_ListString *[]*string
 
-	variant_MapStringKeyListStringValue *map[string][]string
+	variant_MapStringKeyListStringValue *map[string]*[]*string
 }
 
 func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) Decode(holder *cffi.CFFIValueUnionVariant) {
@@ -3640,16 +3674,30 @@ func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString
 		u.variant_Float = &value
 	case "List__string":
 		u.variant = "ListString"
-		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) string {
-			return *baml.Decode(inner).(*string)
+		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) *string {
+			return func(param *cffi.CFFIValueHolder) *string {
+				decoded := baml.Decode(param)
+				return func(result any) *string {
+					if result == nil {
+						return nil
+					}
+					return (result).(*string)
+				}(decoded)
+			}(inner)
 		})
 		u.variant_ListString = &value
 	case "Map__string_List__string":
 		u.variant = "MapStringKeyListStringValue"
-		value := baml.DecodeMap(valueHolder, func(inner *cffi.CFFIValueHolder) []string {
-			return baml.DecodeList(inner, func(inner *cffi.CFFIValueHolder) string {
-				return *baml.Decode(inner).(*string)
-			})
+		value := baml.DecodeMap(valueHolder, func(inner *cffi.CFFIValueHolder) *[]*string {
+			return func(param *cffi.CFFIValueHolder) *[]*string {
+				decoded := baml.Decode(param)
+				return func(result any) *[]*string {
+					if result == nil {
+						return nil
+					}
+					return (result).(*[]*string)
+				}(decoded)
+			}(inner)
 		})
 		u.variant_MapStringKeyListStringValue = &value
 
@@ -3878,7 +3926,7 @@ func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString
 	return *u.variant_Float
 }
 
-func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) SetListString(v []string) {
+func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) SetListString(v []*string) {
 	u.variant = "ListString"
 	u.variant_ListString = &v
 
@@ -3898,14 +3946,14 @@ func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString
 	return u.variant == "ListString"
 }
 
-func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) ListString() []string {
+func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) ListString() []*string {
 	if u.variant != "ListString" {
 		return nil
 	}
 	return *u.variant_ListString
 }
 
-func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) SetMapStringKeyListStringValue(v map[string][]string) {
+func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) SetMapStringKeyListStringValue(v map[string]*[]*string) {
 	u.variant = "MapStringKeyListStringValue"
 	u.variant_MapStringKeyListStringValue = &v
 
@@ -3925,7 +3973,7 @@ func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString
 	return u.variant == "MapStringKeyListStringValue"
 }
 
-func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) MapStringKeyListStringValue() map[string][]string {
+func (u *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString) MapStringKeyListStringValue() map[string]*[]*string {
 	if u.variant != "MapStringKeyListStringValue" {
 		return nil
 	}

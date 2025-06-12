@@ -34,9 +34,9 @@ pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookup
             meta,
         },
         T::Literal(literal_value, _) => match literal_value {
-            baml_types::LiteralValue::String(_) => TypeGo::String(meta),
-            baml_types::LiteralValue::Int(_) => TypeGo::Int(meta),
-            baml_types::LiteralValue::Bool(_) => TypeGo::Bool(meta),
+            baml_types::LiteralValue::String(val) => TypeGo::String(Some(val.clone()), meta),
+            baml_types::LiteralValue::Int(val) => TypeGo::Int(Some(val.clone()), meta),
+            baml_types::LiteralValue::Bool(val) => TypeGo::Bool(Some(val.clone()), meta),
         },
         T::Class {
             name,
@@ -155,9 +155,9 @@ pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
             meta,
         },
         T::Literal(literal_value, _) => match literal_value {
-            baml_types::LiteralValue::String(_) => TypeGo::String(meta),
-            baml_types::LiteralValue::Int(_) => TypeGo::Int(meta),
-            baml_types::LiteralValue::Bool(_) => TypeGo::Bool(meta),
+            baml_types::LiteralValue::String(val) => TypeGo::String(Some(val.clone()), meta),
+            baml_types::LiteralValue::Int(val) => TypeGo::Int(Some(val.clone()), meta),
+            baml_types::LiteralValue::Bool(val) => TypeGo::Bool(Some(val.clone()), meta),
         },
         T::Class { name, dynamic, .. } => TypeGo::Class {
             package: type_pkg.clone(),
@@ -285,10 +285,10 @@ impl From<&TypeValue> for TypeGo {
     fn from(type_value: &TypeValue) -> Self {
         let meta = TypeMetaGo::default();
         match type_value {
-            TypeValue::String => TypeGo::String(meta),
-            TypeValue::Int => TypeGo::Int(meta),
+            TypeValue::String => TypeGo::String(None, meta),
+            TypeValue::Int => TypeGo::Int(None, meta),
             TypeValue::Float => TypeGo::Float(meta),
-            TypeValue::Bool => TypeGo::Bool(meta),
+            TypeValue::Bool => TypeGo::Bool(None, meta),
             TypeValue::Null => TypeGo::Any {
                 reason: "Null types are not supported in Go".to_string(),
                 meta,

@@ -73,7 +73,7 @@ impl LanguageFeatures for GoLanguageFeatures {
             .map(|e| ir_to_go::enums::ir_enum_to_go(e.item, &pkg))
             .collect::<Vec<_>>();
         let unions = {
-            let mut unions = ir.walk_all_types()
+            let mut unions = ir.walk_all_unions()
                         .filter_map(|t| ir_to_go::unions::ir_union_to_go(t, &pkg))
                         .collect::<Vec<_>>();
             // dedup by name!
@@ -114,7 +114,7 @@ impl LanguageFeatures for GoLanguageFeatures {
         );
 
         let unions = {
-            let mut unions = ir.walk_all_types()
+            let mut unions = ir.walk_all_unions()
                         .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(t, &pkg))
                         .collect::<Vec<_>>();
             // dedup by name!
@@ -140,15 +140,15 @@ impl LanguageFeatures for GoLanguageFeatures {
         );
         collector.add_file(
             "stream_types/classes.go",
-            render_go_stream_types(&go_classes, &pkg)?,
+            render_go_stream_types(&go_classes, &pkg, go_mod_name)?,
         );
         collector.add_file(
             "stream_types/unions.go",
-            render_go_stream_types(&unions, &pkg)?,
+            render_go_stream_types(&unions, &pkg, go_mod_name)?,
         );
         collector.add_file(
             "stream_types/type_aliases.go",
-            render_go_stream_types(&type_aliases, &pkg)?,
+            render_go_stream_types(&type_aliases, &pkg, go_mod_name)?,
         );
 
         Ok(())
