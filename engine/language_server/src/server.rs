@@ -9,7 +9,9 @@ use std::num::NonZeroUsize;
 #[allow(deprecated)]
 use std::panic::PanicInfo;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
 use lsp_server::Message;
 use lsp_types::{
@@ -34,6 +36,8 @@ mod schedule;
 
 use crate::message::try_show_message;
 pub(crate) use connection::ClientSender;
+
+use crate::playground::{PlaygroundServer, PlaygroundState};
 
 pub type Result<T> = std::result::Result<T, api::Error>;
 
@@ -137,11 +141,15 @@ impl Server {
         tracing::info!("Starting server with {} worker threads", worker_threads);
         tracing::info!("-------- Version: {}", env!("CARGO_PKG_VERSION"));
 
+        // Create a new tokio runtime for the playground server
+        let rt = tokio::runtime::Runtime::new()?;
+
         let mut session = Session::new(
             &client_capabilities,
             position_encoding,
             global_settings,
             &workspaces,
+            rt.handle().clone(),
         )?;
 
         // Create a client and notifier to pass to reload
@@ -150,6 +158,38 @@ impl Server {
 
         // Reload the session with the notifier
         session.reload(Some(notifier))?;
+
+        // Initialize playground state if enabled
+        // if session.baml_settings.enable_playground {
+        let playground_state = Arc::new(RwLock::new(PlaygroundState::new()));
+        session.playground_state = Some(playground_state.clone());
+
+        // Update session_arc with the new session that has playground state
+        let session_arc = Arc::new(session.clone());
+
+        // Create and start the playground server
+        let playground_server = PlaygroundServer::new(session_arc);
+        let playground_port = session.baml_settings.playground_port.unwrap_or(3030);
+
+        // Spawn the playground server on the runtime
+        rt.spawn(async move {
+            match playground_server.run(playground_port).await {
+                Ok(_) => tracing::info!(
+                    "Hosted playground at http://localhost:{}...",
+                    playground_port
+                ),
+                Err(e) => tracing::error!("Failed to start playground server: {}", e),
+            }
+        });
+
+        tracing::info!(
+            "Hosted playground at http://localhost:{}...",
+            playground_port
+        );
+        // }
+
+        // Store the runtime in the session
+        session.playground_runtime = Some(rt);
 
         Ok(Self {
             connection,

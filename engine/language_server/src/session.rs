@@ -30,8 +30,8 @@ mod capabilities;
 pub mod index;
 mod settings;
 
-// TODO(dhruvmanila): In general, the server shouldn't use any salsa queries directly and instead
-// should use methods on `ProjectDatabase`.
+use crate::playground::{broadcast_project_update, PlaygroundState};
+use tokio::sync::{broadcast, RwLock};
 
 /// The global state for the LSP
 #[derive(Debug)]
@@ -48,6 +48,20 @@ pub struct Session {
     pub resolved_client_capabilities: Arc<ResolvedClientCapabilities>,
 
     pub baml_settings: BamlSettings,
+
+    pub playground_state: Option<Arc<RwLock<PlaygroundState>>>,
+
+    /// Runtime for the playground server
+    pub playground_runtime: Option<tokio::runtime::Runtime>,
+}
+
+impl Drop for Session {
+    fn drop(&mut self) {
+        // Shutdown the playground runtime if it exists
+        if let Some(runtime) = self.playground_runtime.take() {
+            runtime.shutdown_timeout(std::time::Duration::from_secs(1));
+        }
+    }
 }
 
 impl Clone for Session {
@@ -58,6 +72,8 @@ impl Clone for Session {
             position_encoding: self.position_encoding.clone(),
             resolved_client_capabilities: self.resolved_client_capabilities.clone(),
             baml_settings: self.baml_settings.clone(),
+            playground_state: self.playground_state.clone(),
+            playground_runtime: None, // Don't clone the runtime
         }
     }
 }
@@ -68,6 +84,7 @@ impl Session {
         position_encoding: PositionEncoding,
         global_settings: ClientSettings,
         workspace_folders: &[(Url, ClientSettings)],
+        runtime_handle: tokio::runtime::Handle,
     ) -> anyhow::Result<Self> {
         let mut projects = HashMap::new();
         let index = index::Index::new(global_settings.clone());
@@ -105,6 +122,8 @@ impl Session {
                 client_capabilities,
             )),
             baml_settings: BamlSettings::default(),
+            playground_state: None,
+            playground_runtime: None,
         })
     }
 
@@ -234,6 +253,37 @@ impl Session {
             }
         });
         log::info!("Reloaded {} files", files.len());
+
+        // Broadcast the update using the playground runtime
+        if let Some(runtime) = &self.playground_runtime {
+            let state = self.playground_state.clone();
+            tracing::info!("Runtime init!!");
+            tracing::info!("state: {:?}", state);
+            if let Some(state) = state {
+                tracing::info!("Broadcasting project update to play-ground!!!");
+                let projects = self.baml_src_projects.lock().unwrap();
+                for (root_path, project) in projects.iter() {
+                    let project = project.lock().unwrap();
+                    let files = project.baml_project.files.clone();
+                    let root_path = root_path.to_string_lossy().to_string();
+                    let files_map: HashMap<String, String> = files
+                        .into_iter()
+                        .map(|(path, doc)| {
+                            (path.path().to_string_lossy().to_string(), doc.contents)
+                        })
+                        .collect();
+
+                    let state = state.clone();
+                    runtime.spawn(async move {
+                        if let Err(e) =
+                            broadcast_project_update(&state, &root_path, files_map).await
+                        {
+                            tracing::error!("Failed to broadcast project update: {}", e);
+                        }
+                    });
+                }
+            }
+        }
 
         Ok(())
     }
@@ -428,6 +478,7 @@ mod tests {
             position_encoding,
             global_settings,
             &workspace_folders,
+            tokio::runtime::Handle::current(),
         )
         .unwrap()
     }
