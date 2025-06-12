@@ -254,37 +254,6 @@ impl Session {
         });
         log::info!("Reloaded {} files", files.len());
 
-        // Broadcast the update using the playground runtime
-        // if let Some(runtime) = &self.playground_runtime {
-        //     let state = self.playground_state.clone();
-        //     tracing::info!("Runtime init!!");
-        //     tracing::info!("state: {:?}", state);
-        //     if let Some(state) = state {
-        //         tracing::info!("Broadcasting project update to play-ground!!!");
-        //         let projects = self.baml_src_projects.lock().unwrap();
-        //         for (root_path, project) in projects.iter() {
-        //             let project = project.lock().unwrap();
-        //             let files = project.baml_project.files.clone();
-        //             let root_path = root_path.to_string_lossy().to_string();
-        //             let files_map: HashMap<String, String> = files
-        //                 .into_iter()
-        //                 .map(|(path, doc)| {
-        //                     (path.path().to_string_lossy().to_string(), doc.contents)
-        //                 })
-        //                 .collect();
-
-        //             let state = state.clone();
-        //             runtime.spawn(async move {
-        //                 if let Err(e) =
-        //                     broadcast_project_update(&state, &root_path, files_map).await
-        //                 {
-        //                     tracing::error!("Failed to broadcast project update: {}", e);
-        //                 }
-        //             });
-        //         }
-        //     }
-        // }
-
         Ok(())
     }
 

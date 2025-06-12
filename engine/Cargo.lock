@@ -3815,7 +3815,9 @@ dependencies = [
  "crossbeam",
  "crossbeam-channel",
  "filetime",
+ "futures-util",
  "ignore",
+ "include_dir",
  "indexmap 2.8.0",
  "insta",
  "internal-baml-codegen",
@@ -3829,6 +3831,7 @@ dependencies = [
  "lsp-server",
  "lsp-types",
  "memchr",
+ "mime_guess",
  "path-absolutize",
  "pathdiff 0.2.2",
  "regex",
@@ -3842,10 +3845,12 @@ dependencies = [
  "similar",
  "simple-logging",
  "thiserror 2.0.12",
+ "tokio",
  "tracing",
  "tracing-log",
  "tracing-subscriber",
  "url",
+ "warp",
 ]
 
 [[package]]

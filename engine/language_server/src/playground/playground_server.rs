@@ -10,7 +10,9 @@ use tokio::sync::RwLock;
 use warp::{http::Response, ws::Message, Filter};
 
 /// Embed at compile time everything in dist/
-static STATIC_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/dist");
+// static STATIC_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/dist");
+static STATIC_DIR: Dir<'_> =
+    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/vscode-ext/packages/web-panel/dist");
 
 /// Helper to send all projects/files to a websocket client
 pub async fn send_all_projects_to_client(
