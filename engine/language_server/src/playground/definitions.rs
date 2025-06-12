@@ -30,12 +30,14 @@ pub enum FrontendMessage {
 #[derive(Debug)]
 pub struct PlaygroundState {
     pub tx: broadcast::Sender<String>,
+    // Keep a reference to the receiver to prevent the channel from being closed
+    _rx: broadcast::Receiver<String>,
 }
 
 impl PlaygroundState {
     pub fn new() -> Self {
-        let (tx, _) = broadcast::channel(100);
-        Self { tx }
+        let (tx, rx) = broadcast::channel(100);
+        Self { tx, _rx: rx }
     }
 
     pub fn broadcast_update(&self, msg: String) -> anyhow::Result<()> {

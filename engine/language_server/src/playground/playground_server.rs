@@ -71,6 +71,28 @@ pub async fn client_connection(
                                 tracing::info!("Client disconnected");
                                 break;
                             }
+
+                            // Process incoming messages
+                            if let Ok(text) = msg.to_str() {
+                                if let Ok(frontend_msg) = serde_json::from_str::<FrontendMessage>(text) {
+                                    match frontend_msg {
+                                        FrontendMessage::add_project { root_path, files } => {
+                                            // Echo back the message to confirm receipt
+                                            if let Ok(msg_str) = serde_json::to_string(&frontend_msg) {
+                                                if let Err(e) = ws_tx.send(Message::text(msg_str)).await {
+                                                    tracing::error!("Failed to echo add_project message: {}", e);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        _ => {
+                                            tracing::info!("Received unhandled message type: {:?}", frontend_msg);
+                                        }
+                                    }
+                                } else {
+                                    tracing::warn!("Failed to parse message as FrontendMessage: {}", text);
+                                }
+                            }
                         }
                         Err(e) => {
                             tracing::error!("WebSocket error: {}", e);
