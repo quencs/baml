@@ -126,6 +126,21 @@ impl BamlRuntime {
         Ok((root_path, files, env_vars))
     }
 
+    #[pyo3()]
+    fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<pyo3::Bound<'py, pyo3::types::PyBytes>> {
+        // For now, return minimal state since BamlRuntime doesn't have simple serialization
+        // In a real implementation, you'd serialize the runtime state here
+        Ok(pyo3::types::PyBytes::new_bound(py, b"baml_runtime_state"))
+    }
+
+    #[pyo3()]
+    fn __setstate__(&mut self, state: pyo3::Bound<'_, pyo3::types::PyBytes>) -> PyResult<()> {
+        // For now, reconstruct with empty state since BamlRuntime doesn't have simple serialization
+        // In a real implementation, you'd deserialize the runtime state here
+        // This is a minimal implementation to enable pickle support
+        Ok(())
+    }
+
     // Helper method to get BAML files from Python
     fn get_baml_files_from_python(&self, py: Python<'_>) -> PyResult<HashMap<String, String>> {
         // Try to import the module and call get_baml_files()
