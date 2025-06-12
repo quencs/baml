@@ -10,7 +10,7 @@ use baml_runtime::runtime_interface::ExperimentalTracingInterface;
 use baml_runtime::BamlRuntime as CoreBamlRuntime;
 use pyo3::prelude::{pymethods, PyResult};
 use pyo3::types::{PyAnyMethods, PyList};
-use pyo3::{pyclass, Bound, IntoPyObjectExt, PyObject, PyRef, Python};
+use pyo3::{pyclass, Bound, IntoPyObjectExt, PyObject, PyRef, Python, ToPyObject};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -105,6 +105,56 @@ impl BamlRuntime {
             .map_err(BamlError::from_anyhow)?
             .into();
         Ok(())
+    }
+
+    #[pyo3()]
+    fn __reduce__(&self, py: Python<'_>) -> PyResult<(PyObject, PyObject)> {
+        // Get the from_files static method
+        let cls = py.get_type::<Self>();
+        let from_files = cls.getattr("from_files")?;
+        
+        // Get the current environment variables
+        let env_vars: HashMap<String, String> = std::env::vars().collect();
+        
+        // Try to get the BAML files from the inlinedbaml module
+        let root_path = "baml_src".to_string();
+        let files = match self.get_baml_files_from_python(py) {
+            Ok(files) => files,
+            Err(_) => {
+                // Fallback to empty files if we can't get them
+                HashMap::new()
+            }
+        };
+        
+        let args = (root_path, files, env_vars);
+        Ok((from_files.unbind(), args.to_object(py)))
+    }
+
+    // Helper method to get BAML files from Python
+    fn get_baml_files_from_python(&self, py: Python<'_>) -> PyResult<HashMap<String, String>> {
+        // Try to import the module and call get_baml_files()
+        let sys = py.import("sys")?;
+        let modules = sys.getattr("modules")?;
+        
+        // Look for any module that has get_baml_files function
+        let modules_dict = modules.downcast::<pyo3::types::PyDict>()?;
+        
+        for (module_name, module) in modules_dict.iter() {
+            let module_name_str: Result<String, _> = module_name.extract();
+            if let Ok(name) = module_name_str {
+                if name.contains("inlinedbaml") || name.ends_with(".inlinedbaml") {
+                    if let Ok(get_baml_files) = module.getattr("get_baml_files") {
+                        if let Ok(files_result) = get_baml_files.call0() {
+                            let files: HashMap<String, String> = files_result.extract()?;
+                            return Ok(files);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // If we can't find the function, return empty map
+        Ok(HashMap::new())
     }
 
     #[pyo3()]
