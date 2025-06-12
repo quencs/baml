@@ -54,36 +54,33 @@ impl SyncNotificationHandler for DidChangeTextDocumentHandler {
             )
             .internal_error()?;
 
-        // Broadcast the update using the playground runtime
-        if let Some(runtime) = &session.playground_runtime {
-            let state = session.playground_state.clone();
-            tracing::info!("Runtime init!!");
-            tracing::info!("state: {:?}", state);
-            if let Some(state) = state {
-                tracing::info!("Broadcasting project update to play-ground!!!");
-                let projects = session.baml_src_projects.lock().unwrap();
-                for (root_path, project) in projects.iter() {
-                    let project = project.lock().unwrap();
-                    let files = project.baml_project.files.clone();
-                    let root_path = root_path.to_string_lossy().to_string();
-                    let files_map: HashMap<String, String> = files
-                        .into_iter()
-                        .map(|(path, doc)| {
-                            (path.path().to_string_lossy().to_string(), doc.contents)
-                        })
-                        .collect();
-
-                    tracing::info!("files_map: {:?}", files_map);
-
-                    let state = state.clone();
-                    runtime.spawn(async move {
-                        if let Err(e) =
-                            broadcast_project_update(&state, &root_path, files_map).await
-                        {
-                            tracing::error!("Failed to broadcast project update: {}", e);
-                        }
-                    });
-                }
+        // Broadcast update to playground clients
+        if let Some(state) = &session.playground_state {
+            let project = project.lock().unwrap();
+            let files_map: std::collections::HashMap<String, String> = project
+                .baml_project
+                .files
+                .iter()
+                .map(|(path, doc)| {
+                    let key = path.path().to_string_lossy().to_string();
+                    // If there's an unsaved version, use it
+                    let contents = project
+                        .baml_project
+                        .unsaved_files
+                        .get(path)
+                        .map(|unsaved| unsaved.contents.clone())
+                        .unwrap_or_else(|| doc.contents.clone());
+                    (key, contents)
+                })
+                .collect();
+            let root_path = project.root_path().to_string_lossy().to_string();
+            let state = state.clone();
+            if let Some(runtime) = &session.playground_runtime {
+                runtime.spawn(async move {
+                    let _ =
+                        crate::playground::broadcast_project_update(&state, &root_path, files_map)
+                            .await;
+                });
             }
         }
 
