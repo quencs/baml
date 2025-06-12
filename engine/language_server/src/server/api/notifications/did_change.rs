@@ -2,7 +2,9 @@ use std::time::Instant;
 
 use lsp_types::notification::DidChangeTextDocument;
 use lsp_types::{DidChangeTextDocumentParams, PublishDiagnosticsParams};
+use std::collections::HashMap;
 
+use crate::playground::broadcast_project_update;
 use crate::server::api::diagnostics::publish_diagnostics;
 use crate::server::api::traits::{NotificationHandler, SyncNotificationHandler};
 use crate::server::api::ResultExt;
@@ -51,6 +53,39 @@ impl SyncNotificationHandler for DidChangeTextDocumentHandler {
                 Some(notifier.clone()),
             )
             .internal_error()?;
+
+        // Broadcast the update using the playground runtime
+        if let Some(runtime) = &session.playground_runtime {
+            let state = session.playground_state.clone();
+            tracing::info!("Runtime init!!");
+            tracing::info!("state: {:?}", state);
+            if let Some(state) = state {
+                tracing::info!("Broadcasting project update to play-ground!!!");
+                let projects = session.baml_src_projects.lock().unwrap();
+                for (root_path, project) in projects.iter() {
+                    let project = project.lock().unwrap();
+                    let files = project.baml_project.files.clone();
+                    let root_path = root_path.to_string_lossy().to_string();
+                    let files_map: HashMap<String, String> = files
+                        .into_iter()
+                        .map(|(path, doc)| {
+                            (path.path().to_string_lossy().to_string(), doc.contents)
+                        })
+                        .collect();
+
+                    tracing::info!("files_map: {:?}", files_map);
+
+                    let state = state.clone();
+                    runtime.spawn(async move {
+                        if let Err(e) =
+                            broadcast_project_update(&state, &root_path, files_map).await
+                        {
+                            tracing::error!("Failed to broadcast project update: {}", e);
+                        }
+                    });
+                }
+            }
+        }
 
         tracing::info!("publishing diagnostics");
 
