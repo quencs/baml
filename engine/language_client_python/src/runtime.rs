@@ -127,7 +127,8 @@ impl BamlRuntime {
         };
         
         let args = (root_path, files, env_vars);
-        Ok((from_files.unbind(), args.into_py_any(py)?.into()))
+        let args_py = args.into_py_any(py)?;
+        Ok((from_files.unbind(), args_py.into()))
     }
 
     // Helper method to get BAML files from Python
@@ -139,17 +140,22 @@ impl BamlRuntime {
         // Look for any module that has get_baml_files function
         let modules_dict = modules.downcast::<pyo3::types::PyDict>()?;
         
-        for item in modules_dict.try_iter()? {
-            let item = item?;
-            let module_name = item.get_item(0)?;
-            let module = item.get_item(1)?;
-            let module_name_str: Result<String, _> = module_name.extract();
-            if let Ok(name) = module_name_str {
-                if name.contains("inlinedbaml") || name.ends_with(".inlinedbaml") {
-                    if let Ok(get_baml_files) = module.getattr("get_baml_files") {
+        // Use items() method to get an iterator over key-value pairs
+        let items = modules_dict.call_method0("items")?;
+        for item in items.try_iter()? {
+            let pair = item?;
+            let key = pair.get_item(0)?;
+            let value = pair.get_item(1)?;
+            
+            // Extract the module name safely
+            if let Ok(module_name) = key.extract::<String>() {
+                if module_name.contains("inlinedbaml") || module_name.ends_with(".inlinedbaml") {
+                    // Try to get the get_baml_files function
+                    if let Ok(get_baml_files) = value.getattr("get_baml_files") {
                         if let Ok(files_result) = get_baml_files.call0() {
-                            let files: HashMap<String, String> = files_result.extract()?;
-                            return Ok(files);
+                            if let Ok(files) = files_result.extract::<HashMap<String, String>>() {
+                                return Ok(files);
+                            }
                         }
                     }
                 }
