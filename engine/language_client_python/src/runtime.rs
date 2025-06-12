@@ -10,7 +10,7 @@ use baml_runtime::runtime_interface::ExperimentalTracingInterface;
 use baml_runtime::BamlRuntime as CoreBamlRuntime;
 use pyo3::prelude::{pymethods, PyResult};
 use pyo3::types::{PyAnyMethods, PyList};
-use pyo3::{pyclass, Bound, IntoPyObjectExt, PyObject, PyRef, Python, ToPyObject};
+use pyo3::{pyclass, Bound, IntoPyObjectExt, PyObject, PyRef, Python};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -127,7 +127,7 @@ impl BamlRuntime {
         };
         
         let args = (root_path, files, env_vars);
-        Ok((from_files.unbind(), args.to_object(py)))
+        Ok((from_files.unbind(), args.into_py_any(py)?.into()))
     }
 
     // Helper method to get BAML files from Python
@@ -139,7 +139,10 @@ impl BamlRuntime {
         // Look for any module that has get_baml_files function
         let modules_dict = modules.downcast::<pyo3::types::PyDict>()?;
         
-        for (module_name, module) in modules_dict.iter() {
+        for item in modules_dict.try_iter()? {
+            let item = item?;
+            let module_name = item.get_item(0)?;
+            let module = item.get_item(1)?;
             let module_name_str: Result<String, _> = module_name.extract();
             if let Ok(name) = module_name_str {
                 if name.contains("inlinedbaml") || name.ends_with(".inlinedbaml") {
