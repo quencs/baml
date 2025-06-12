@@ -108,11 +108,7 @@ impl BamlRuntime {
     }
 
     #[pyo3()]
-    fn __reduce__(&self, py: Python<'_>) -> PyResult<(PyObject, PyObject)> {
-        // Get the from_files static method
-        let cls = py.get_type::<Self>();
-        let from_files = cls.getattr("from_files")?;
-        
+    fn __getnewargs__(&self, py: Python<'_>) -> PyResult<(String, HashMap<String, String>, HashMap<String, String>)> {
         // Get the current environment variables
         let env_vars: HashMap<String, String> = std::env::vars().collect();
         
@@ -126,9 +122,8 @@ impl BamlRuntime {
             }
         };
         
-        let args = (root_path, files, env_vars);
-        let args_py = args.into_py_any(py)?;
-        Ok((from_files.unbind(), args_py.into()))
+        // Return args for from_files constructor: (root_path, files, env_vars)
+        Ok((root_path, files, env_vars))
     }
 
     // Helper method to get BAML files from Python
