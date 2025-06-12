@@ -100,7 +100,6 @@ mod tests {
         assert_eq!(class_go.name, "SimpleClass");
         assert_eq!(class_go.fields.len(), 1);
         assert_eq!(class_go.fields[0].r#type.meta().wrap_stream_state, true);
-        println!("{}", class_go.fields[0]);
     }
 
     #[test]
@@ -117,11 +116,9 @@ mod tests {
         let pkg = CurrentRenderModule::new("baml_client");
         let class_go = ir_class_to_go_stream(&class, &pkg);
         let digits_field = class_go.fields.iter().find(|f| f.name == "digits").unwrap();
-        eprintln!("{:?}", digits_field);
         assert!(digits_field.r#type.meta().wrap_stream_state);
         assert_eq!(class_go.name, "ChildClass");
         assert_eq!(class_go.fields.len(), 1);
-        println!("{}", class_go.fields[0]);
     }
 
     #[test]

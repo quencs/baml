@@ -36,7 +36,50 @@ pub struct GeneratorArgs {
     pub module_format: Option<ModuleFormat>,
 }
 
+fn relative_path_to_baml_src(path: &Path, baml_src: &Path) -> Result<PathBuf> {
+    pathdiff::diff_paths(path, baml_src).ok_or_else(|| {
+        anyhow::anyhow!(
+            "Failed to compute relative path from {} to {}",
+            path.display(),
+            baml_src.display()
+        )
+    })
+}
+
 impl GeneratorArgs {
+    pub fn new<'i>(
+        output_dir_relative_to_baml_src: impl Into<PathBuf>,
+        baml_src_dir: impl Into<PathBuf>,
+        input_files: impl IntoIterator<Item = (&'i PathBuf, &'i String)>,
+        version: String,
+        no_version_check: bool,
+        default_client_mode: GeneratorDefaultClientMode,
+        on_generate: Vec<String>,
+        client_type: GeneratorOutputType,
+        client_package_name: Option<String>,
+        module_format: Option<ModuleFormat>,
+    ) -> Result<Self> {
+        let baml_src = baml_src_dir.into();
+        let input_file_map: BTreeMap<PathBuf, String> = input_files
+            .into_iter()
+            .map(|(k, v)| Ok((relative_path_to_baml_src(k, &baml_src)?, v.clone())))
+            .collect::<Result<_>>()?;
+
+        Ok(Self {
+            output_dir_relative_to_baml_src: output_dir_relative_to_baml_src.into(),
+            baml_src_dir: baml_src.clone(),
+            // for the key, whhich is the name, just get the filename
+            inlined_file_map: input_file_map,
+            version,
+            no_version_check,
+            default_client_mode,
+            on_generate,
+            client_type,
+            client_package_name,
+            module_format,
+        })
+    }
+
     pub fn file_map_as_json_string(&self) -> Result<Vec<(String, String)>> {
         self.inlined_file_map
             .iter()
@@ -53,6 +96,29 @@ impl GeneratorArgs {
                 ))
             })
             .collect()
+    }
+
+
+    pub fn output_dir(&self) -> PathBuf {
+        use sugar_path::SugarPath;
+        self.baml_src_dir
+            .join(&self.output_dir_relative_to_baml_src)
+            .normalize()
+    }
+
+    /// Returns baml_src relative to the output_dir.
+    ///
+    /// We need this to be able to codegen a singleton client, so that our generated code can build
+    /// baml_src relative to the path of the file in which the singleton is defined. In Python this is
+    /// os.path.dirname(__file__) for globals.py; in TS this is __dirname for globals.ts.
+    pub fn baml_src_relative_to_output_dir(&self) -> Result<PathBuf> {
+        pathdiff::diff_paths(&self.baml_src_dir, &self.output_dir()).ok_or_else(|| {
+            anyhow::anyhow!(
+                "Failed to compute baml_src ({}) relative to output_dir ({})",
+                self.baml_src_dir.display(),
+                self.output_dir().display()
+            )
+        })
     }
 }
 
@@ -87,11 +153,10 @@ pub trait LanguageFeatures: Default + Sized {
     /// backwards compat implications for the other generators
     const GITIGNORE: Option<&'static str> = None;
 
-    fn generate_sdk(&self, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<(), anyhow::Error> {
+    fn generate_sdk(&self, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<IndexMap<PathBuf, String>, anyhow::Error> {
         let mut collector = FileCollector::<Self>::new();
         self.generate_sdk_files(&mut collector, ir, args)?;
-        collector.commit(&args.output_dir_relative_to_baml_src)?;
-        Ok(())
+        collector.commit(&args.output_dir_relative_to_baml_src)
     }
 
     fn generate_sdk_files(&self, collector: &mut FileCollector<Self>, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<(), anyhow::Error>;

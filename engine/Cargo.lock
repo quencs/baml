@@ -1170,6 +1170,7 @@ dependencies = [
  "futures",
  "futures-timer",
  "gcp_auth",
+ "generators-lib",
  "hostname",
  "http 1.1.0",
  "http-body 1.0.1",
@@ -2189,7 +2190,9 @@ dependencies = [
  "filetime",
  "indexmap 2.8.0",
  "internal-baml-core",
+ "pathdiff 0.1.0",
  "serde_json",
+ "sugar_path",
  "walkdir",
 ]
 
@@ -2708,17 +2711,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "generators-python"
+name = "generators-lib"
 version = "0.89.0"
 dependencies = [
  "anyhow",
- "askama",
- "baml-types",
- "baml_cffi",
+ "baml-log",
  "dir-writer",
+ "generators-go",
+ "indexmap 2.8.0",
  "internal-baml-core",
- "prettydiff",
- "test-harness",
+ "serde_json",
 ]
 
 [[package]]
@@ -3452,6 +3454,7 @@ dependencies = [
  "either",
  "env_logger",
  "filetime",
+ "generators-lib",
  "indexmap 2.8.0",
  "internal-baml-core",
  "itertools 0.13.0",
