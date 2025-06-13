@@ -2,7 +2,7 @@ use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeature
 use functions::{render_async_client, render_sync_client, render_runtime, render_source_files, render_type_map};
 use generated_types::{render_py_types};
 
-use crate::{functions::{render_config, render_globals, render_init, render_parser}, generated_types::{render_py_stream_types_utils, render_py_type_builder, render_py_types_utils}};
+use crate::{functions::{render_config, render_globals, render_init, render_parser, render_tracing}, generated_types::{render_py_stream_types_utils, render_py_type_builder, render_py_types_utils}};
 
 mod functions;
 mod generated_types;
@@ -45,6 +45,7 @@ impl LanguageFeatures for PyLanguageFeatures {
         collector.add_file("__init__.py", render_init(&pkg, &args.default_client_mode)?)?;
         collector.add_file("inlinedbaml.py", render_source_files(file_map)?)?;
         collector.add_file("runtime.py", render_runtime(&pkg)?)?;
+        collector.add_file("tracing.py", render_tracing(&pkg)?)?;
         collector.add_file("globals.py", render_globals(&pkg)?)?;
         collector.add_file("config.py", render_config(&pkg)?)?;
         let functions = ir

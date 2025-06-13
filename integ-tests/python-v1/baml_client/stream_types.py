@@ -12,81 +12,111 @@
 import typing
 import typing_extensions
 from enum import Enum
+from pydantic import BaseModel, Extra
+from pydantic.generics import GenericModel
 
-from pydantic import BaseModel
+import baml_py
 
 from . import types
 
-
 StreamStateValueT = typing.TypeVar('StreamStateValueT')
-class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
+class StreamState(GenericModel, typing.Generic[StreamStateValueT]):
     value: StreamStateValueT
-    state: typing.Literal["Pending", "Incomplete", "Complete"]
-
+    state: typing_extensions.Literal["Pending", "Incomplete", "Complete"]
 # #########################################################################
 # Generated classes (99)
 # #########################################################################
 
 class AnotherObject(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     id: typing.Optional[str] = None
     thingy2: typing.Optional[str] = None
     thingy3: typing.Optional[str] = None
 
 class BigNumbers(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     a: typing.Optional[int] = None
     b: typing.Optional[float] = None
 
 class BinaryNode(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     data: typing.Optional[int] = None
     left: typing.Optional["BinaryNode"] = None
     right: typing.Optional["BinaryNode"] = None
 
 class Blah(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop4: typing.Optional[str] = None
 
 class BlockConstraint(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     foo: typing.Optional[int] = None
     bar: typing.Optional[str] = None
 
 class BlockConstraintForParam(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     bcfp: typing.Optional[int] = None
     bcfp2: typing.Optional[str] = None
 
 class BookOrder(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     orderId: typing.Optional[str] = None
     title: typing.Optional[str] = None
     quantity: typing.Optional[int] = None
     price: typing.Optional[float] = None
 
 class ClassForNullLiteral(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     a: typing.Optional[str] = None
 
 class ClassOptionalOutput(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop1: typing.Optional[str] = None
     prop2: typing.Optional[str] = None
 
 class ClassOptionalOutput2(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop1: typing.Optional[str] = None
     prop2: typing.Optional[str] = None
     prop3: typing.Optional["Blah"] = None
 
 class ClassToRecAlias(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     list: typing.Optional["LinkedListAliasNode"] = None
 
 class ClassWithBlockDone(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     i_16_digits: typing.Optional[int] = None
     s_20_words: typing.Optional[str] = None
 
 class ClassWithImage(BaseModel):
-    myImage: typing.Optional[baml_py..Image] = None
+    class Config:
+        arbitrary_types_allowed = True
+    myImage: typing.Optional[baml_py.Image] = None
     param2: typing.Optional[str] = None
     fake_image: typing.Optional["FakeImage"] = None
 
 class ClassWithoutDone(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     i_16_digits: typing.Optional[int] = None
     s_20_words: StreamState[typing.Optional[str]]
 
 class ClientDetails1559(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     client_name: typing.Optional[str] = None
     client_address: typing.Optional[str] = None
     client_postal_code: typing.Optional[str] = None
@@ -96,62 +126,90 @@ class ClientDetails1559(BaseModel):
     client_email: typing.Optional[str] = None
 
 class ComplexMemoryObject(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     id: typing.Optional[str] = None
     name: typing.Optional[str] = None
     description: typing.Optional[str] = None
     metadata: typing.Optional[typing.List[typing.Optional[typing.Union[str, int, float]]]] = None
 
 class CompoundBigNumbers(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     big: typing.Optional["BigNumbers"] = None
     big_nums: typing.Optional[typing.List[typing.Optional["BigNumbers"]]] = None
     another: typing.Optional["BigNumbers"] = None
 
 class ContactInfo(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     primary: typing.Optional[typing.Union["PhoneNumber", "EmailAddress"]] = None
     secondary: typing.Optional[typing.Union["PhoneNumber", "EmailAddress"]] = None
 
 class CustomStory(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     title: typing.Optional[str] = None
     characters: typing.Optional[typing.List[typing.Optional[str]]] = None
     content: typing.Optional[str] = None
 
 class CustomTaskResult(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     bookOrder: typing.Optional["BookOrder"] = None
     flightConfirmation: typing.Optional["FlightConfirmation"] = None
     groceryReceipt: typing.Optional["GroceryReceipt"] = None
 
 class Document1559(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     client_details: typing.Optional["ClientDetails1559"] = None
     notes: typing.Optional[typing.List[typing.Optional["Note1599"]]] = None
 
 class DummyOutput(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
     nonce: typing.Optional[str] = None
     nonce2: typing.Optional[str] = None
 
 class DynInputOutput(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
     testKey: typing.Optional[str] = None
 
 class DynamicClassOne(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
 
 class DynamicClassTwo(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
     hi: typing.Optional[str] = None
     some_class: typing.Optional["SomeClassNestedDynamic"] = None
-    status: typing.Optional[types.DynEnumOne] = None
+    status: typing.Optional[typing.Union[types.DynEnumOne, str]] = None
 
 class DynamicOutput(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
 
 class DynamicSchema(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
 
 class Earthling(BaseModel):
-    age: typing.Optional[baml_py.Checked[int]] = None
+    class Config:
+        arbitrary_types_allowed = True
+    age: typing.Optional[types.Checked[int, typing_extensions.Literal['earth_aged', 'no_infants']]] = None
 
 class Education(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     institution: typing.Optional[str] = None
     location: typing.Optional[str] = None
     degree: typing.Optional[str] = None
@@ -159,23 +217,33 @@ class Education(BaseModel):
     graduation_date: typing.Optional[str] = None
 
 class Email(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     subject: typing.Optional[str] = None
     body: typing.Optional[str] = None
     from_address: typing.Optional[str] = None
 
 class EmailAddress(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     value: typing.Optional[str] = None
 
 class Event(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     title: typing.Optional[str] = None
     date: typing.Optional[str] = None
     location: typing.Optional[str] = None
     description: typing.Optional[str] = None
 
 class FakeImage(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     url: typing.Optional[str] = None
 
 class FlightConfirmation(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     confirmationNumber: typing.Optional[str] = None
     flightNumber: typing.Optional[str] = None
     departureTime: typing.Optional[str] = None
@@ -183,194 +251,286 @@ class FlightConfirmation(BaseModel):
     seatNumber: typing.Optional[str] = None
 
 class FooAny(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     planetary_age: typing.Optional[typing.Union["Martian", "Earthling"]] = None
-    certainty: typing.Optional[baml_py.Checked[int]] = None
-    species: typing.Optional[baml_py.Checked[str]] = None
+    certainty: typing.Optional[types.Checked[int, typing_extensions.Literal['unreasonably_certain']]] = None
+    species: typing.Optional[types.Checked[str, typing_extensions.Literal['trivial', 'regex_good', 'regex_bad']]] = None
 
 class Forest(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     trees: typing.Optional[typing.List[typing.Optional["Tree"]]] = None
 
 class FormatterTest0(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     lorem: typing.Optional[str] = None
     ipsum: typing.Optional[str] = None
 
 class FormatterTest1(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     lorem: typing.Optional[str] = None
     ipsum: typing.Optional[str] = None
 
 class FormatterTest2(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     lorem: typing.Optional[str] = None
     ipsum: typing.Optional[str] = None
 
 class FormatterTest3(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     lorem: typing.Optional[str] = None
     ipsum: typing.Optional[str] = None
 
 class GroceryReceipt(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     receiptId: typing.Optional[str] = None
     storeName: typing.Optional[str] = None
     items: typing.Optional[typing.List[typing.Optional[typing.Union[str, int, float]]]] = None
     totalAmount: typing.Optional[float] = None
 
 class Haiku(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     line1: typing.Optional[str] = None
     line2: typing.Optional[str] = None
     line3: typing.Optional[str] = None
 
 class InnerClass(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop1: typing.Optional[str] = None
     prop2: typing.Optional[str] = None
     inner: typing.Optional["InnerClass2"] = None
 
 class InnerClass2(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop2: typing.Optional[int] = None
     prop3: typing.Optional[float] = None
 
 class InputClass(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     key: typing.Optional[str] = None
     key2: typing.Optional[str] = None
 
 class InputClassNested(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     key: typing.Optional[str] = None
     nested: typing.Optional["InputClass"] = None
 
 class LinkedList(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     head: typing.Optional["Node"] = None
     len: typing.Optional[int] = None
 
 class LinkedListAliasNode(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     value: typing.Optional[int] = None
     next: typing.Optional["LinkedListAliasNode"] = None
 
 class LiteralClassHello(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop: typing.Optional[str] = None
 
 class LiteralClassOne(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop: typing.Optional[str] = None
 
 class LiteralClassTwo(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop: typing.Optional[str] = None
 
 class MaintainFieldOrder(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     a: typing.Optional[str] = None
     b: typing.Optional[str] = None
     c: typing.Optional[str] = None
 
 class MalformedConstraints(BaseModel):
-    foo: typing.Optional[baml_py.Checked[int]] = None
+    class Config:
+        arbitrary_types_allowed = True
+    foo: typing.Optional[types.Checked[int, typing_extensions.Literal['foo_check']]] = None
 
 class MalformedConstraints2(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     foo: typing.Optional[int] = None
 
 class Martian(BaseModel):
     # A Martian organism with an age.
 # Such a nice type.
+    class Config:
+        arbitrary_types_allowed = True
     # The age of the Martian in Mars years.
     # So many Mars years.
 
-    age: typing.Optional[baml_py.Checked[int]] = None
+    age: typing.Optional[types.Checked[int, typing_extensions.Literal['young_enough']]] = None
 
 class MemoryObject(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     id: typing.Optional[str] = None
     name: typing.Optional[str] = None
     description: typing.Optional[str] = None
 
 class MergeAttrs(BaseModel):
-    amount: typing.Optional[baml_py.Checked[int]] = None
+    class Config:
+        arbitrary_types_allowed = True
+    amount: typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]] = None
 
 class NamedArgsSingleClass(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     key: typing.Optional[str] = None
     key_two: typing.Optional[bool] = None
     key_three: typing.Optional[int] = None
 
 class Nested(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop3: typing.Optional[str] = None
     prop4: typing.Optional[str] = None
     prop20: typing.Optional["Nested2"] = None
 
 class Nested2(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop11: typing.Optional[str] = None
     prop12: typing.Optional[str] = None
 
 class NestedBlockConstraint(BaseModel):
-    nbc: typing.Optional[baml_py.Checked["BlockConstraint"]] = None
+    class Config:
+        arbitrary_types_allowed = True
+    nbc: typing.Optional[types.Checked["BlockConstraint", typing_extensions.Literal['cross_field', 'cross_field']]] = None
 
 class NestedBlockConstraintForParam(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     nbcfp: typing.Optional["BlockConstraintForParam"] = None
 
 class Node(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     data: typing.Optional[int] = None
     next: typing.Optional["Node"] = None
 
 class NodeWithAliasIndirection(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     value: typing.Optional[int] = None
     next: typing.Optional["NodeWithAliasIndirection"] = None
 
 class Note1599(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     note_title: typing.Optional[str] = None
     note_description: typing.Optional[str] = None
     note_amount: typing.Optional[str] = None
 
 class OptionalListAndMap(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     p: typing.Optional[typing.List[typing.Optional[str]]] = None
     q: typing.Optional[typing.Dict[str, typing.Optional[str]]] = None
 
 class OptionalTest_Prop1(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     omega_a: typing.Optional[str] = None
     omega_b: typing.Optional[int] = None
 
 class OptionalTest_ReturnType(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     omega_1: typing.Optional["OptionalTest_Prop1"] = None
     omega_2: typing.Optional[str] = None
     omega_3: typing.Optional[typing.List[typing.Optional[types.OptionalTest_CategoryType]]] = None
 
 class OrderInfo(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     order_status: typing.Optional[types.OrderStatus] = None
     tracking_number: typing.Optional[str] = None
     estimated_arrival_date: typing.Optional[str] = None
 
 class OriginalA(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     value: typing.Optional[int] = None
 
 class OriginalB(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
     value: typing.Optional[int] = None
 
 class Person(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
     name: typing.Optional[str] = None
-    hair_color: typing.Optional[types.Color] = None
+    hair_color: typing.Optional[typing.Union[types.Color, str]] = None
 
 class PhoneNumber(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     value: typing.Optional[str] = None
 
 class Quantity(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     amount: typing.Optional[typing.Union[int, float]] = None
     unit: typing.Optional[str] = None
 
 class RaysData(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     dataType: typing.Optional[types.DataType] = None
     value: typing.Optional[typing.Union["Resume", "Event"]] = None
 
 class ReceiptInfo(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     items: typing.Optional[typing.List[typing.Optional["ReceiptItem"]]] = None
     total_cost: typing.Optional[float] = None
     venue: typing.Optional[typing.Union[str, str]] = None
 
 class ReceiptItem(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     name: typing.Optional[str] = None
     description: typing.Optional[str] = None
     quantity: typing.Optional[int] = None
     price: typing.Optional[float] = None
 
 class Recipe(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     ingredients: typing.Optional[typing.Dict[str, typing.Optional["Quantity"]]] = None
     recipe_type: typing.Optional[typing.Union[str, str]] = None
 
 class RecursiveAliasDependency(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     value: typing.Optional["JsonValue"] = None
 
 class Resume(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     name: typing.Optional[str] = None
     email: typing.Optional[str] = None
     phone: typing.Optional[str] = None
@@ -379,6 +539,8 @@ class Resume(BaseModel):
     skills: typing.Optional[typing.List[typing.Optional[str]]] = None
 
 class Schema(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop1: typing.Optional[str] = None
     prop2: typing.Optional[typing.Union["Nested", str]] = None
     prop5: typing.Optional[typing.List[typing.Optional[str]]] = None
@@ -388,6 +550,8 @@ class Schema(BaseModel):
     other_group: typing.Optional[typing.Union[str, int]] = None
 
 class SearchParams(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     dateRange: typing.Optional[int] = None
     location: typing.Optional[typing.List[typing.Optional[str]]] = None
     jobTitle: typing.Optional["WithReasoning"] = None
@@ -396,6 +560,8 @@ class SearchParams(BaseModel):
     tags: typing.Optional[typing.List[typing.Optional[typing.Union[types.Tag, str]]]] = None
 
 class SemanticContainer(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     sixteen_digit_number: typing.Optional[int] = None
     string_with_twenty_words: typing.Optional[str] = None
     class_1: typing.Optional["ClassWithoutDone"] = None
@@ -406,20 +572,30 @@ class SemanticContainer(BaseModel):
     final_string: typing.Optional[str] = None
 
 class SimpleTag(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     field: typing.Optional[str] = None
 
 class SmallThing(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     i_16_digits: int
     i_8_digits: typing.Optional[int] = None
 
 class SomeClassNestedDynamic(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
     hi: typing.Optional[str] = None
 
 class StringToClassEntry(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     word: typing.Optional[str] = None
 
 class TestClassAlias(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     key: typing.Optional[str] = None
     key2: typing.Optional[str] = None
     key3: typing.Optional[str] = None
@@ -427,49 +603,71 @@ class TestClassAlias(BaseModel):
     key5: typing.Optional[str] = None
 
 class TestClassNested(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop1: typing.Optional[str] = None
     prop2: typing.Optional["InnerClass"] = None
 
 class TestClassWithEnum(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop1: typing.Optional[str] = None
     prop2: typing.Optional[types.EnumInClass] = None
 
 class TestMemoryOutput(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     items: typing.Optional[typing.List[typing.Optional[typing.Union["MemoryObject", "ComplexMemoryObject", "AnotherObject"]]]] = None
     more_items: typing.Optional[typing.List[typing.Optional[typing.Union["MemoryObject", "ComplexMemoryObject", "AnotherObject"]]]] = None
 
 class TestOutputClass(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop1: typing.Optional[str] = None
     prop2: typing.Optional[int] = None
 
 class Tree(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     data: typing.Optional[int] = None
     children: typing.Optional["Forest"] = None
 
 class TwoStoriesOneTitle(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     title: typing.Optional[str] = None
     story_a: typing.Optional[str] = None
     story_b: typing.Optional[str] = None
 
 class TwoStoriesOneTitleCheck(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     title: typing.Optional[str] = None
-    story_a: typing.Optional[baml_py.Checked[str]] = None
-    story_b: typing.Optional[baml_py.Checked[str]] = None
+    story_a: typing.Optional[types.Checked[str, typing_extensions.Literal['too_long_story']]] = None
+    story_b: typing.Optional[types.Checked[str, typing_extensions.Literal['too_long_story']]] = None
 
 class UnionTest_ReturnType(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     prop1: typing.Optional[typing.Union[str, bool]] = None
     prop2: typing.Optional[typing.List[typing.Optional[typing.Union[float, bool]]]] = None
     prop3: typing.Optional[typing.Union[typing.List[typing.Optional[bool]], typing.List[typing.Optional[int]]]] = None
 
 class UniverseQuestion(BaseModel):
     # my docs
+    class Config:
+        arbitrary_types_allowed = True
     question: typing.Optional[str] = None
     answer: typing.Optional[str] = None
 
 class UniverseQuestionInput(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     question: typing.Optional[str] = None
 
 class WithReasoning(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
     value: typing.Optional[str] = None
     reasoning: typing.Optional[str] = None
 
@@ -478,61 +676,61 @@ class WithReasoning(BaseModel):
 # #########################################################################
 
 
-RecursiveUnion = typing.Optional[typing.Union[str, typing.Dict[str, typing.Optional["RecursiveUnion"]]]]
+LinkedListAlias: typing_extensions.TypeAlias = typing.Optional["LinkedListAliasNode"]
 
 
-Primitive = typing.Optional[typing.Union[int, str, bool, float]]
+NodeIndirection: typing_extensions.TypeAlias = typing.Optional["NodeWithAliasIndirection"]
 
 
-List = typing.Optional[typing.List[typing.Optional[str]]]
+JsonEntry: typing_extensions.TypeAlias = typing.Optional[typing.Union["SimpleTag", "JsonTemplate"]]
 
 
-Graph = typing.Optional[typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]
+JsonTemplate: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["JsonEntry"]]]
 
 
-Combination = typing.Optional[typing.Union[int, str, bool, float, typing.List[typing.Optional[str]], typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]]
+RecursiveUnion: typing_extensions.TypeAlias = typing.Optional[typing.Union[str, typing.Dict[str, typing.Optional["RecursiveUnion"]]]]
 
 
-Currency = typing.Optional[baml_py.Checked[int]]
+Primitive: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float]]
 
 
-Amount = typing.Optional[int]
+List: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional[str]]]
 
 
-MultipleAttrs = typing.Optional[baml_py.Checked[int]]
+Graph: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]
 
 
-RecursiveMapAlias = typing.Optional[typing.Dict[str, typing.Optional["RecursiveMapAlias"]]]
+Combination: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float, typing.List[typing.Optional[str]], typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]]
 
 
-RecursiveListAlias = typing.Optional[typing.List[typing.Optional["RecursiveListAlias"]]]
+Currency: typing_extensions.TypeAlias = typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]]
 
 
-RecAliasOne = typing.Optional["RecAliasTwo"]
+Amount: typing_extensions.TypeAlias = typing.Optional[int]
 
 
-RecAliasTwo = typing.Optional["RecAliasThree"]
+MultipleAttrs: typing_extensions.TypeAlias = typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]]
 
 
-RecAliasThree = typing.Optional[typing.List[typing.Optional["RecAliasOne"]]]
+RecursiveMapAlias: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["RecursiveMapAlias"]]]
 
 
-JsonValue = typing.Optional[typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]]
+RecursiveListAlias: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["RecursiveListAlias"]]]
 
 
-JsonObject = typing.Optional[typing.Dict[str, typing.Optional["JsonValue"]]]
+RecAliasOne: typing_extensions.TypeAlias = typing.Optional["RecAliasTwo"]
 
 
-JsonArray = typing.Optional[typing.List[typing.Optional["JsonValue"]]]
+RecAliasTwo: typing_extensions.TypeAlias = typing.Optional["RecAliasThree"]
 
 
-LinkedListAlias = typing.Optional["LinkedListAliasNode"]
+RecAliasThree: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["RecAliasOne"]]]
 
 
-NodeIndirection = typing.Optional["NodeWithAliasIndirection"]
+JsonValue: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]]
 
 
-JsonEntry = typing.Optional[typing.Union["SimpleTag", "JsonTemplate"]]
+JsonObject: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["JsonValue"]]]
 
 
-JsonTemplate = typing.Optional[typing.Dict[str, typing.Optional["JsonEntry"]]]
+JsonArray: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["JsonValue"]]]

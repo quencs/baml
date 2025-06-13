@@ -13,6 +13,14 @@
 //	$ go install github.com/boundaryml/baml/baml-cli
 package types
 
+type LinkedListAlias = LinkedListAliasNode
+
+type NodeIndirection = NodeWithAliasIndirection
+
+type JsonEntry = Union2JsonTemplateOrSimpleTag
+
+type JsonTemplate = map[string]JsonEntry
+
 type RecursiveUnion = Union2MapStringKeyRecursiveUnionValueOrString
 
 type Primitive = Union4BoolOrFloatOrIntOrString
@@ -44,11 +52,3 @@ type JsonValue = Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
 type JsonObject = map[string]JsonValue
 
 type JsonArray = []JsonValue
-
-type LinkedListAlias = LinkedListAliasNode
-
-type NodeIndirection = NodeWithAliasIndirection
-
-type JsonEntry = Union2JsonTemplateOrSimpleTag
-
-type JsonTemplate = map[string]JsonEntry

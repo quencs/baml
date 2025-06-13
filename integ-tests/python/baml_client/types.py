@@ -13,7 +13,28 @@ import typing
 import typing_extensions
 from enum import Enum
 
-from pydantic import BaseModel
+
+from pydantic import BaseModel, ConfigDict
+
+
+import baml_py
+
+CheckT = typing_extensions.TypeVar('CheckT')
+CheckName = typing_extensions.TypeVar('CheckName', bound=str)
+
+class Check(BaseModel):
+    name: str
+    expression: str
+    status: str
+class Checked(BaseModel, typing.Generic[CheckT, CheckName]):
+    value: CheckT
+    checks: typing.Dict[CheckName, Check]
+
+def get_checks(checks: typing.Dict[CheckName, Check]) -> typing.List[Check]:
+    return list(checks.values())
+
+def all_succeeded(checks: typing.Dict[CheckName, Check]) -> bool:
+    return all(check.status == "succeeded" for check in get_checks(checks)) 
 # #########################################################################
 # Generated enums (18)
 # #########################################################################
@@ -152,7 +173,7 @@ class BookOrder(BaseModel):
     price: float
 
 class ClassForNullLiteral(BaseModel):
-    a: typing.Literal['hi']
+    a: typing_extensions.Literal['hi']
 
 class ClassOptionalOutput(BaseModel):
     prop1: str
@@ -171,7 +192,7 @@ class ClassWithBlockDone(BaseModel):
     s_20_words: str
 
 class ClassWithImage(BaseModel):
-    myImage: baml_py..Image
+    myImage: baml_py.Image
     param2: str
     fake_image: "FakeImage"
 
@@ -233,7 +254,7 @@ class DynamicClassTwo(BaseModel):
     model_config = ConfigDict(extra='allow')
     hi: str
     some_class: "SomeClassNestedDynamic"
-    status: DynEnumOne
+    status: typing.Union[DynEnumOne, str]
 
 class DynamicOutput(BaseModel):
     model_config = ConfigDict(extra='allow')
@@ -242,7 +263,7 @@ class DynamicSchema(BaseModel):
     model_config = ConfigDict(extra='allow')
 
 class Earthling(BaseModel):
-    age: baml_py.Checked[int]
+    age: Checked[int, typing_extensions.Literal['earth_aged', 'no_infants']]
 
 class Education(BaseModel):
     institution: str
@@ -277,8 +298,8 @@ class FlightConfirmation(BaseModel):
 
 class FooAny(BaseModel):
     planetary_age: typing.Union["Martian", "Earthling"]
-    certainty: baml_py.Checked[int]
-    species: baml_py.Checked[str]
+    certainty: Checked[int, typing_extensions.Literal['unreasonably_certain']]
+    species: Checked[str, typing_extensions.Literal['trivial', 'regex_good', 'regex_bad']]
 
 class Forest(BaseModel):
     trees: typing.List["Tree"]
@@ -336,13 +357,13 @@ class LinkedListAliasNode(BaseModel):
     next: typing.Optional["LinkedListAliasNode"] = None
 
 class LiteralClassHello(BaseModel):
-    prop: typing.Literal['hello']
+    prop: typing_extensions.Literal['hello']
 
 class LiteralClassOne(BaseModel):
-    prop: typing.Literal['one']
+    prop: typing_extensions.Literal['one']
 
 class LiteralClassTwo(BaseModel):
-    prop: typing.Literal['two']
+    prop: typing_extensions.Literal['two']
 
 class MaintainFieldOrder(BaseModel):
     a: str
@@ -350,7 +371,7 @@ class MaintainFieldOrder(BaseModel):
     c: str
 
 class MalformedConstraints(BaseModel):
-    foo: baml_py.Checked[int]
+    foo: Checked[int, typing_extensions.Literal['foo_check']]
 
 class MalformedConstraints2(BaseModel):
     foo: int
@@ -361,7 +382,7 @@ class Martian(BaseModel):
     # The age of the Martian in Mars years.
     # So many Mars years.
 
-    age: baml_py.Checked[int]
+    age: Checked[int, typing_extensions.Literal['young_enough']]
 
 class MemoryObject(BaseModel):
     id: str
@@ -369,7 +390,7 @@ class MemoryObject(BaseModel):
     description: str
 
 class MergeAttrs(BaseModel):
-    amount: baml_py.Checked[int]
+    amount: Checked[int, typing_extensions.Literal['gt_ten']]
 
 class NamedArgsSingleClass(BaseModel):
     key: str
@@ -386,7 +407,7 @@ class Nested2(BaseModel):
     prop12: typing.Optional[str] = None
 
 class NestedBlockConstraint(BaseModel):
-    nbc: baml_py.Checked["BlockConstraint"]
+    nbc: Checked["BlockConstraint", typing_extensions.Literal['cross_field', 'cross_field']]
 
 class NestedBlockConstraintForParam(BaseModel):
     nbcfp: "BlockConstraintForParam"
@@ -432,7 +453,7 @@ class OriginalB(BaseModel):
 class Person(BaseModel):
     model_config = ConfigDict(extra='allow')
     name: typing.Optional[str] = None
-    hair_color: typing.Optional[Color] = None
+    hair_color: typing.Optional[typing.Union[Color, str]] = None
 
 class PhoneNumber(BaseModel):
     value: str
@@ -448,7 +469,7 @@ class RaysData(BaseModel):
 class ReceiptInfo(BaseModel):
     items: typing.List["ReceiptItem"]
     total_cost: typing.Optional[float] = None
-    venue: typing.Union[typing.Literal['barisa'], typing.Literal['ox_burger']]
+    venue: typing.Union[typing_extensions.Literal['barisa'], typing_extensions.Literal['ox_burger']]
 
 class ReceiptItem(BaseModel):
     name: str
@@ -458,7 +479,7 @@ class ReceiptItem(BaseModel):
 
 class Recipe(BaseModel):
     ingredients: typing.Dict[str, "Quantity"]
-    recipe_type: typing.Union[typing.Literal['breakfast'], typing.Literal['dinner']]
+    recipe_type: typing.Union[typing_extensions.Literal['breakfast'], typing_extensions.Literal['dinner']]
 
 class RecursiveAliasDependency(BaseModel):
     value: "JsonValue"
@@ -546,8 +567,8 @@ class TwoStoriesOneTitle(BaseModel):
 
 class TwoStoriesOneTitleCheck(BaseModel):
     title: str
-    story_a: baml_py.Checked[str]
-    story_b: baml_py.Checked[str]
+    story_a: Checked[str, typing_extensions.Literal['too_long_story']]
+    story_b: Checked[str, typing_extensions.Literal['too_long_story']]
 
 class UnionTest_ReturnType(BaseModel):
     prop1: typing.Union[str, bool]
@@ -571,61 +592,61 @@ class WithReasoning(BaseModel):
 # #########################################################################
 
 
-RecursiveUnion = typing.Union[str, typing.Dict[str, "RecursiveUnion"]]
+LinkedListAlias: typing_extensions.TypeAlias = "LinkedListAliasNode"
 
 
-Primitive = typing.Union[int, str, bool, float]
+NodeIndirection: typing_extensions.TypeAlias = "NodeWithAliasIndirection"
 
 
-List = typing.List[str]
+JsonEntry: typing_extensions.TypeAlias = typing.Union["SimpleTag", "JsonTemplate"]
 
 
-Graph = typing.Dict[str, typing.List[str]]
+JsonTemplate: typing_extensions.TypeAlias = typing.Dict[str, "JsonEntry"]
 
 
-Combination = typing.Union[int, str, bool, float, typing.List[str], typing.Dict[str, typing.List[str]]]
+RecursiveUnion: typing_extensions.TypeAlias = typing.Union[str, typing.Dict[str, "RecursiveUnion"]]
 
 
-Currency = baml_py.Checked[int]
+Primitive: typing_extensions.TypeAlias = typing.Union[int, str, bool, float]
 
 
-Amount = int
+List: typing_extensions.TypeAlias = typing.List[str]
 
 
-MultipleAttrs = baml_py.Checked[int]
+Graph: typing_extensions.TypeAlias = typing.Dict[str, typing.List[str]]
 
 
-RecursiveMapAlias = typing.Dict[str, "RecursiveMapAlias"]
+Combination: typing_extensions.TypeAlias = typing.Union[int, str, bool, float, typing.List[str], typing.Dict[str, typing.List[str]]]
 
 
-RecursiveListAlias = typing.List["RecursiveListAlias"]
+Currency: typing_extensions.TypeAlias = Checked[int, typing_extensions.Literal['gt_ten']]
 
 
-RecAliasOne = "RecAliasTwo"
+Amount: typing_extensions.TypeAlias = int
 
 
-RecAliasTwo = "RecAliasThree"
+MultipleAttrs: typing_extensions.TypeAlias = Checked[int, typing_extensions.Literal['gt_ten']]
 
 
-RecAliasThree = typing.List["RecAliasOne"]
+RecursiveMapAlias: typing_extensions.TypeAlias = typing.Dict[str, "RecursiveMapAlias"]
 
 
-JsonValue = typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]
+RecursiveListAlias: typing_extensions.TypeAlias = typing.List["RecursiveListAlias"]
 
 
-JsonObject = typing.Dict[str, "JsonValue"]
+RecAliasOne: typing_extensions.TypeAlias = "RecAliasTwo"
 
 
-JsonArray = typing.List["JsonValue"]
+RecAliasTwo: typing_extensions.TypeAlias = "RecAliasThree"
 
 
-LinkedListAlias = "LinkedListAliasNode"
+RecAliasThree: typing_extensions.TypeAlias = typing.List["RecAliasOne"]
 
 
-NodeIndirection = "NodeWithAliasIndirection"
+JsonValue: typing_extensions.TypeAlias = typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]
 
 
-JsonEntry = typing.Union["SimpleTag", "JsonTemplate"]
+JsonObject: typing_extensions.TypeAlias = typing.Dict[str, "JsonValue"]
 
 
-JsonTemplate = typing.Dict[str, "JsonEntry"]
+JsonArray: typing_extensions.TypeAlias = typing.List["JsonValue"]

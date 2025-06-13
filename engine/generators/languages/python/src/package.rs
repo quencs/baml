@@ -55,7 +55,7 @@ impl Package {
     }
 
     pub fn checked() -> Package {
-        Package::imported_base()
+        Package::types()
     }
 
     pub fn stream_state() -> Package {

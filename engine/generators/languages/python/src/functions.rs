@@ -138,6 +138,10 @@ pub fn render_config(_pkg: &CurrentRenderPackage) -> Result<String, askama::Erro
     Ok(include_str!("./_templates/config.py").to_string())
 }
 
+pub fn render_tracing(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+    Ok(include_str!("./_templates/tracing.py").to_string())
+}
+
 #[derive(askama::Template)]
 #[template(path = "__init__.py.j2", escape = "none", ext = "txt")]
 struct Init<'a> {

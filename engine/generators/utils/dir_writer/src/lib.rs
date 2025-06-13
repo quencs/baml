@@ -80,7 +80,11 @@ impl GeneratorArgs {
             client_type,
             client_package_name,
             module_format,
-            is_pydantic_2: matches!(client_type, GeneratorOutputType::PythonPydantic).then_some(true),
+            is_pydantic_2: match client_type {
+                GeneratorOutputType::PythonPydantic => Some(true),
+                GeneratorOutputType::PythonPydanticV1 => Some(false),
+                _ => None,
+            },
         })
     }
 

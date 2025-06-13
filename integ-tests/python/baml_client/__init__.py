@@ -34,15 +34,21 @@ with EnsureBamlPyImport(__version__) as e:
 
   from . import types
   from . import tracing
-  from . import partial_types
+  from . import stream_types
   from . import config
   from .config import reset_baml_env_vars
   
   from .async_client import b
   
 
+
+# FOR LEGACY COMPATIBILITY, expose "partial_types" as an alias for "stream_types"
+# WE RECOMMEND USERS TO USE "stream_types" INSTEAD
+partial_types = stream_types
+
 __all__ = [
   "b",
+  "stream_types",
   "partial_types",
   "tracing",
   "types",

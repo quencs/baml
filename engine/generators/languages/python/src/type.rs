@@ -5,13 +5,13 @@ use crate::{package::{CurrentRenderPackage, Package}};
 pub enum TypeWrapper {
     #[default]
     None,
-    Checked(Box<TypeWrapper>),
+    Checked(Box<TypeWrapper>, Vec<EscapedPythonString>),
     Optional(Box<TypeWrapper>),
 }
 
 impl TypeWrapper {
-    pub fn wrap_with_checked(self) -> TypeWrapper {
-        TypeWrapper::Checked(Box::new(self))
+    pub fn wrap_with_checked<T: AsRef<str>>(self, names: Vec<T>) -> TypeWrapper {
+        TypeWrapper::Checked(Box::new(self), names.into_iter().map(|i| EscapedPythonString::new(i.as_ref())).collect())
     }
 }
 
@@ -28,8 +28,12 @@ impl TypeMetaPy {
         matches!(self.type_wrapper, TypeWrapper::Optional(_))
     }
 
-    pub fn make_checked(&mut self) -> &mut Self {
-        self.type_wrapper = TypeWrapper::Checked(Box::new(std::mem::take(&mut self.type_wrapper)));
+    pub fn is_checked(&self) -> bool {
+        matches!(self.type_wrapper, TypeWrapper::Checked(_, _))
+    }
+
+    pub fn make_checked<T: AsRef<str>>(&mut self, names: Vec<T>) -> &mut Self {
+        self.type_wrapper = std::mem::take(&mut self.type_wrapper).wrap_with_checked(names);
         self
     }
 
@@ -54,10 +58,11 @@ impl WrapType for TypeWrapper {
         let (pkg, orig) = &params;
         match self {
             TypeWrapper::None => orig.clone(),
-            TypeWrapper::Checked(inner) => format!(
-                "{}Checked[{}]",
+            TypeWrapper::Checked(inner, names) => format!(
+                "{}Checked[{}, typing_extensions.Literal[{}]]",
                 Package::checked().relative_from(pkg),
-                inner.wrap_type(params)
+                inner.wrap_type(params),
+                names.iter().map(|n| n.0.clone()).collect::<Vec<_>>().join(", ")
             ),
             TypeWrapper::Optional(inner) => format!(
                 "typing.Optional[{}]",
@@ -113,7 +118,6 @@ impl EscapedPythonString {
 pub enum LiteralValue {
     String(EscapedPythonString),
     Int(i64),
-    Float(f64),
     Bool(bool),
     None,
 }
@@ -123,8 +127,7 @@ impl LiteralValue {
         match self {
             LiteralValue::String(s) => s.0.clone(),
             LiteralValue::Int(i) => i.to_string(),
-            LiteralValue::Float(f) => f.to_string(),
-            LiteralValue::Bool(b) => b.to_string(),
+            LiteralValue::Bool(b) => if *b { "True" } else { "False" }.to_string(),
             LiteralValue::None => "None".to_string(),
         }
     }
@@ -170,10 +173,6 @@ pub enum TypePy {
 }
 
 impl TypePy {
-    pub fn cast_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        format!("cast({ret_ty}, {param}.cast_to(types, types, partial_types, True))", ret_ty=self.serialize_type(pkg))
-    }
-
     pub fn with_meta(mut self, meta: TypeMetaPy) -> Self {
         self.meta_mut().map(|m| *m = meta);
         self
@@ -241,8 +240,14 @@ pub trait SerializeType {
 impl SerializeType for TypePy {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         let meta = self.meta();
+        let pkg = if meta.map(|m| m.is_optional() || m.wrap_stream_state || m.is_checked()).unwrap_or(false) {
+            &pkg.in_type_definition()
+        } else {
+            pkg
+        };
+        
         let type_str = match self {
-            TypePy::Literal(items, meta) => meta.wrap_type((pkg, format!("typing.Literal[{}]", items.iter().map(|s| s.serialize_type(pkg)).collect::<Vec<_>>().join(", ")))),
+            TypePy::Literal(items, meta) => meta.wrap_type((pkg, format!("typing_extensions.Literal[{}]", items.iter().map(|s| s.serialize_type(pkg)).collect::<Vec<_>>().join(", ")))),
             TypePy::String(_) => "str".to_string(),
             TypePy::Int(_) => "int".to_string(),
             TypePy::Float(_) => "float".to_string(),
@@ -257,18 +262,27 @@ impl SerializeType for TypePy {
                 }
             }
             TypePy::Union { variants, .. } => {
-                format!("typing.Union[{}]", variants.iter().map(|v| v.serialize_type(pkg)).collect::<Vec<_>>().join(", "))
+                let pkg = pkg.in_type_definition();
+                format!("typing.Union[{}]", variants.iter().map(|v| v.serialize_type(&pkg)).collect::<Vec<_>>().join(", "))
             }
-            TypePy::Enum { package, name, .. } => format!("{}{}", package.relative_from(pkg), name),
-            TypePy::List(inner, _) => format!("typing.List[{}]", inner.serialize_type(pkg)),
+            TypePy::Enum { package, name, dynamic, .. } => {
+                let enm = format!("{}{}", package.relative_from(pkg), name);
+                if *dynamic {
+                    format!("typing.Union[{}, str]", enm)
+                } else {
+                    enm
+                }
+            },
+            TypePy::List(inner, _) => format!("typing.List[{}]", inner.serialize_type(&pkg.in_type_definition())),
             TypePy::Map(key, value, _) => {
+                let pkg = pkg.in_type_definition();
                 format!(
                     "typing.Dict[{}, {}]",
-                    key.serialize_type(pkg),
-                    value.serialize_type(pkg)
+                    key.serialize_type(&pkg),
+                    value.serialize_type(&pkg)
                 )
             }
-            TypePy::Any { .. } => "any".to_string(),
+            TypePy::Any { .. } => "typing.Any".to_string(),
         };
 
         match meta {
@@ -281,8 +295,8 @@ impl SerializeType for TypePy {
 impl SerializeType for MediaTypePy {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         match self {
-            MediaTypePy::Image => format!("{}.Image", Package::imported_base().relative_from(pkg)),
-            MediaTypePy::Audio => format!("{}.Audio", Package::imported_base().relative_from(pkg)),
+            MediaTypePy::Image => format!("{}Image", Package::imported_base().relative_from(pkg)),
+            MediaTypePy::Audio => format!("{}Audio", Package::imported_base().relative_from(pkg)),
         }
     }
 }

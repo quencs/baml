@@ -12,17 +12,16 @@
 import typing
 import typing_extensions
 from enum import Enum
+from pydantic import BaseModel, ConfigDict
 
-from pydantic import BaseModel
+import baml_py
 
 from . import types
-
 
 StreamStateValueT = typing.TypeVar('StreamStateValueT')
 class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
     value: StreamStateValueT
-    state: typing.Literal["Pending", "Incomplete", "Complete"]
-
+    state: typing_extensions.Literal["Pending", "Incomplete", "Complete"]
 # #########################################################################
 # Generated classes (99)
 # #########################################################################
@@ -78,7 +77,7 @@ class ClassWithBlockDone(BaseModel):
     s_20_words: typing.Optional[str] = None
 
 class ClassWithImage(BaseModel):
-    myImage: typing.Optional[baml_py..Image] = None
+    myImage: typing.Optional[baml_py.Image] = None
     param2: typing.Optional[str] = None
     fake_image: typing.Optional["FakeImage"] = None
 
@@ -140,7 +139,7 @@ class DynamicClassTwo(BaseModel):
     model_config = ConfigDict(extra='allow')
     hi: typing.Optional[str] = None
     some_class: typing.Optional["SomeClassNestedDynamic"] = None
-    status: typing.Optional[types.DynEnumOne] = None
+    status: typing.Optional[typing.Union[types.DynEnumOne, str]] = None
 
 class DynamicOutput(BaseModel):
     model_config = ConfigDict(extra='allow')
@@ -149,7 +148,7 @@ class DynamicSchema(BaseModel):
     model_config = ConfigDict(extra='allow')
 
 class Earthling(BaseModel):
-    age: typing.Optional[baml_py.Checked[int]] = None
+    age: typing.Optional[types.Checked[int, typing_extensions.Literal['earth_aged', 'no_infants']]] = None
 
 class Education(BaseModel):
     institution: typing.Optional[str] = None
@@ -184,8 +183,8 @@ class FlightConfirmation(BaseModel):
 
 class FooAny(BaseModel):
     planetary_age: typing.Optional[typing.Union["Martian", "Earthling"]] = None
-    certainty: typing.Optional[baml_py.Checked[int]] = None
-    species: typing.Optional[baml_py.Checked[str]] = None
+    certainty: typing.Optional[types.Checked[int, typing_extensions.Literal['unreasonably_certain']]] = None
+    species: typing.Optional[types.Checked[str, typing_extensions.Literal['trivial', 'regex_good', 'regex_bad']]] = None
 
 class Forest(BaseModel):
     trees: typing.Optional[typing.List[typing.Optional["Tree"]]] = None
@@ -257,7 +256,7 @@ class MaintainFieldOrder(BaseModel):
     c: typing.Optional[str] = None
 
 class MalformedConstraints(BaseModel):
-    foo: typing.Optional[baml_py.Checked[int]] = None
+    foo: typing.Optional[types.Checked[int, typing_extensions.Literal['foo_check']]] = None
 
 class MalformedConstraints2(BaseModel):
     foo: typing.Optional[int] = None
@@ -268,7 +267,7 @@ class Martian(BaseModel):
     # The age of the Martian in Mars years.
     # So many Mars years.
 
-    age: typing.Optional[baml_py.Checked[int]] = None
+    age: typing.Optional[types.Checked[int, typing_extensions.Literal['young_enough']]] = None
 
 class MemoryObject(BaseModel):
     id: typing.Optional[str] = None
@@ -276,7 +275,7 @@ class MemoryObject(BaseModel):
     description: typing.Optional[str] = None
 
 class MergeAttrs(BaseModel):
-    amount: typing.Optional[baml_py.Checked[int]] = None
+    amount: typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]] = None
 
 class NamedArgsSingleClass(BaseModel):
     key: typing.Optional[str] = None
@@ -293,7 +292,7 @@ class Nested2(BaseModel):
     prop12: typing.Optional[str] = None
 
 class NestedBlockConstraint(BaseModel):
-    nbc: typing.Optional[baml_py.Checked["BlockConstraint"]] = None
+    nbc: typing.Optional[types.Checked["BlockConstraint", typing_extensions.Literal['cross_field', 'cross_field']]] = None
 
 class NestedBlockConstraintForParam(BaseModel):
     nbcfp: typing.Optional["BlockConstraintForParam"] = None
@@ -339,7 +338,7 @@ class OriginalB(BaseModel):
 class Person(BaseModel):
     model_config = ConfigDict(extra='allow')
     name: typing.Optional[str] = None
-    hair_color: typing.Optional[types.Color] = None
+    hair_color: typing.Optional[typing.Union[types.Color, str]] = None
 
 class PhoneNumber(BaseModel):
     value: typing.Optional[str] = None
@@ -453,8 +452,8 @@ class TwoStoriesOneTitle(BaseModel):
 
 class TwoStoriesOneTitleCheck(BaseModel):
     title: typing.Optional[str] = None
-    story_a: typing.Optional[baml_py.Checked[str]] = None
-    story_b: typing.Optional[baml_py.Checked[str]] = None
+    story_a: typing.Optional[types.Checked[str, typing_extensions.Literal['too_long_story']]] = None
+    story_b: typing.Optional[types.Checked[str, typing_extensions.Literal['too_long_story']]] = None
 
 class UnionTest_ReturnType(BaseModel):
     prop1: typing.Optional[typing.Union[str, bool]] = None
@@ -478,61 +477,61 @@ class WithReasoning(BaseModel):
 # #########################################################################
 
 
-RecursiveUnion = typing.Optional[typing.Union[str, typing.Dict[str, typing.Optional["RecursiveUnion"]]]]
+LinkedListAlias: typing_extensions.TypeAlias = typing.Optional["LinkedListAliasNode"]
 
 
-Primitive = typing.Optional[typing.Union[int, str, bool, float]]
+NodeIndirection: typing_extensions.TypeAlias = typing.Optional["NodeWithAliasIndirection"]
 
 
-List = typing.Optional[typing.List[typing.Optional[str]]]
+JsonEntry: typing_extensions.TypeAlias = typing.Optional[typing.Union["SimpleTag", "JsonTemplate"]]
 
 
-Graph = typing.Optional[typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]
+JsonTemplate: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["JsonEntry"]]]
 
 
-Combination = typing.Optional[typing.Union[int, str, bool, float, typing.List[typing.Optional[str]], typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]]
+RecursiveUnion: typing_extensions.TypeAlias = typing.Optional[typing.Union[str, typing.Dict[str, typing.Optional["RecursiveUnion"]]]]
 
 
-Currency = typing.Optional[baml_py.Checked[int]]
+Primitive: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float]]
 
 
-Amount = typing.Optional[int]
+List: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional[str]]]
 
 
-MultipleAttrs = typing.Optional[baml_py.Checked[int]]
+Graph: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]
 
 
-RecursiveMapAlias = typing.Optional[typing.Dict[str, typing.Optional["RecursiveMapAlias"]]]
+Combination: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float, typing.List[typing.Optional[str]], typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]]
 
 
-RecursiveListAlias = typing.Optional[typing.List[typing.Optional["RecursiveListAlias"]]]
+Currency: typing_extensions.TypeAlias = typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]]
 
 
-RecAliasOne = typing.Optional["RecAliasTwo"]
+Amount: typing_extensions.TypeAlias = typing.Optional[int]
 
 
-RecAliasTwo = typing.Optional["RecAliasThree"]
+MultipleAttrs: typing_extensions.TypeAlias = typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]]
 
 
-RecAliasThree = typing.Optional[typing.List[typing.Optional["RecAliasOne"]]]
+RecursiveMapAlias: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["RecursiveMapAlias"]]]
 
 
-JsonValue = typing.Optional[typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]]
+RecursiveListAlias: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["RecursiveListAlias"]]]
 
 
-JsonObject = typing.Optional[typing.Dict[str, typing.Optional["JsonValue"]]]
+RecAliasOne: typing_extensions.TypeAlias = typing.Optional["RecAliasTwo"]
 
 
-JsonArray = typing.Optional[typing.List[typing.Optional["JsonValue"]]]
+RecAliasTwo: typing_extensions.TypeAlias = typing.Optional["RecAliasThree"]
 
 
-LinkedListAlias = typing.Optional["LinkedListAliasNode"]
+RecAliasThree: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["RecAliasOne"]]]
 
 
-NodeIndirection = typing.Optional["NodeWithAliasIndirection"]
+JsonValue: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]]
 
 
-JsonEntry = typing.Optional[typing.Union["SimpleTag", "JsonTemplate"]]
+JsonObject: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["JsonValue"]]]
 
 
-JsonTemplate = typing.Optional[typing.Dict[str, typing.Optional["JsonEntry"]]]
+JsonArray: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["JsonValue"]]]

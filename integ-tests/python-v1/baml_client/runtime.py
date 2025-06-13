@@ -28,7 +28,7 @@ class BamlCallOptions(typing.TypedDict, total=False):
     ]
 
 
-class __ResolvedBamlOptions:
+class _ResolvedBamlOptions:
     tb: typing.Optional[baml_py.baml_py.TypeBuilder]
     client_registry: typing.Optional[baml_py.baml_py.ClientRegistry]
     collectors: typing.List[baml_py.baml_py.Collector]
@@ -54,7 +54,7 @@ class DoNotUseDirectlyCallManager:
     def __init__(self, baml_options: BamlCallOptions):
         self.__baml_options = baml_options
 
-    def __resolve(self) -> __ResolvedBamlOptions:
+    def __resolve(self) -> _ResolvedBamlOptions:
         tb = self.__baml_options.get("tb")
         if tb is not None:
             baml_tb = tb._tb  # type: ignore (we know how to use this private attribute)
@@ -74,7 +74,7 @@ class DoNotUseDirectlyCallManager:
             else:
                 env_vars.pop(k, None)
 
-        return __ResolvedBamlOptions(
+        return _ResolvedBamlOptions(
             baml_tb,
             client_registry,
             collectors_as_list,
@@ -91,11 +91,16 @@ class DoNotUseDirectlyCallManager:
         return await __runtime__.call_function(
             function_name,
             args,
-            ctx=__ctx__manager__.get(),
-            tb=resolved_options.tb,
-            cr=resolved_options.client_registry,
-            collectors=resolved_options.collectors,
-            env_vars=resolved_options.env_vars,
+            # ctx
+            __ctx__manager__.get(),
+            # tb
+            resolved_options.tb,
+            # cr
+            resolved_options.client_registry,
+            # collectors
+            resolved_options.collectors,
+            # env_vars
+            resolved_options.env_vars,
         )
 
     def call_function_sync(
@@ -106,11 +111,16 @@ class DoNotUseDirectlyCallManager:
         result = __runtime__.call_function_sync(
             function_name,
             args,
-            ctx=ctx,
-            tb=resolved_options.tb,
-            cr=resolved_options.client_registry,
-            collectors=resolved_options.collectors,
-            env_vars=resolved_options.env_vars,
+            # ctx
+            ctx,
+            # tb
+            resolved_options.tb,
+            # cr
+            resolved_options.client_registry,
+            # collectors
+            resolved_options.collectors,
+            # env_vars
+            resolved_options.env_vars,
         )
         return ctx, result
 
@@ -126,12 +136,18 @@ class DoNotUseDirectlyCallManager:
             function_name,
             args,
             # this is always None, we set this later!
-            on_event=None,
-            ctx=ctx,
-            tb=resolved_options.tb,
-            cr=resolved_options.client_registry,
-            collectors=resolved_options.collectors,
-            env_vars=resolved_options.env_vars,
+            # on_event
+            None,
+            # ctx
+            ctx,
+            # tb
+            resolved_options.tb,
+            # cr
+            resolved_options.client_registry,
+            # collectors
+            resolved_options.collectors,
+            # env_vars
+            resolved_options.env_vars,
         )
         return ctx, result
 
@@ -146,12 +162,18 @@ class DoNotUseDirectlyCallManager:
             function_name,
             args,
             # this is always None, we set this later!
-            on_event=None,
-            ctx=__ctx__manager__.get(),
-            tb=resolved_options.tb,
-            cr=resolved_options.client_registry,
-            collectors=resolved_options.collectors,
-            env_vars=resolved_options.env_vars,
+            # on_event
+            None,   
+            # ctx
+            __ctx__manager__.get(),
+            # tb
+            resolved_options.tb,
+            # cr
+            resolved_options.client_registry,
+            # collectors
+            resolved_options.collectors,
+            # env_vars
+            resolved_options.env_vars,
         )
 
     async def create_http_request_async(
@@ -165,11 +187,16 @@ class DoNotUseDirectlyCallManager:
         return await __runtime__.build_request(
             function_name,
             args,
-            ctx=__ctx__manager__.get(),
-            tb=resolved_options.tb,
-            cr=resolved_options.client_registry,
-            env_vars=resolved_options.env_vars,
-            is_stream=mode == "stream",
+            # ctx
+            __ctx__manager__.get(),
+            # tb
+            resolved_options.tb,
+            # cr
+            resolved_options.client_registry,
+            # env_vars
+            resolved_options.env_vars,
+            # is_stream
+            mode == "stream",
         )
 
     def create_http_request_sync(
@@ -183,11 +210,16 @@ class DoNotUseDirectlyCallManager:
         return __runtime__.build_request_sync(
             function_name,
             args,
-            ctx=__ctx__manager__.get(),
-            tb=resolved_options.tb,
-            cr=resolved_options.client_registry,
-            env_vars=resolved_options.env_vars,
-            is_stream=mode == "stream",
+            # ctx
+            __ctx__manager__.get(),
+            # tb
+            resolved_options.tb,
+            # cr
+            resolved_options.client_registry,
+            # env_vars
+            resolved_options.env_vars,
+            # is_stream
+            mode == "stream",
         )
 
     def parse_response(self, *, function_name: str, llm_response: str, mode: typing_extensions.Literal["stream", "request"]) -> typing.Any:
@@ -195,12 +227,20 @@ class DoNotUseDirectlyCallManager:
         return __runtime__.parse_llm_response(
             function_name,
             llm_response,
-            enum_module=types,
-            cls_module=types,
-            partial_cls_module=stream_types,
-            allow_partials=mode == "stream",
-            ctx=__ctx__manager__.get(),
-            tb=resolved_options.tb,
-            cr=resolved_options.client_registry,
-            env_vars=resolved_options.env_vars,
+            # enum_module
+            types,
+            # cls_module
+            types,
+            # partial_cls_module
+            stream_types,
+            # allow_partials
+            mode == "stream",
+            # ctx
+            __ctx__manager__.get(),
+            # tb
+            resolved_options.tb,
+            # cr
+            resolved_options.client_registry,
+            # env_vars
+            resolved_options.env_vars,
         )

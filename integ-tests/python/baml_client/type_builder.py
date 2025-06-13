@@ -524,9 +524,9 @@ class AliasedEnumViewer(AliasedEnumAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class AliasedEnumValues:
@@ -534,6 +534,7 @@ class AliasedEnumValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def KEY_ONE(self) -> type_builder.EnumValueViewer:
@@ -543,7 +544,6 @@ class AliasedEnumValues:
     def KEY_TWO(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("KEY_TWO"))
     
-
     
 
 
@@ -566,9 +566,9 @@ class CategoryViewer(CategoryAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class CategoryValues:
@@ -576,6 +576,7 @@ class CategoryValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def Refund(self) -> type_builder.EnumValueViewer:
@@ -597,7 +598,6 @@ class CategoryValues:
     def Question(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("Question"))
     
-
     
 
 
@@ -620,9 +620,9 @@ class Category2Viewer(Category2Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class Category2Values:
@@ -630,6 +630,7 @@ class Category2Values:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def Refund(self) -> type_builder.EnumValueViewer:
@@ -651,7 +652,6 @@ class Category2Values:
     def Question(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("Question"))
     
-
     
 
 
@@ -674,9 +674,9 @@ class Category3Viewer(Category3Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class Category3Values:
@@ -684,6 +684,7 @@ class Category3Values:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def Refund(self) -> type_builder.EnumValueViewer:
@@ -705,7 +706,6 @@ class Category3Values:
     def Question(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("Question"))
     
-
     
 
 
@@ -728,14 +728,14 @@ class ColorBuilder(ColorAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_values(self) -> typing.List[typing.Tuple[str, baml_py.EnumValueBuilder]]:
-        return [(name, baml_py.EnumValueBuilder(self._bldr.value(name))) for name in self._values]
-
     
+    def list_values(self) -> typing.List[typing.Tuple[str, baml_py.EnumValueBuilder]]:
+        return [(name, self._bldr.value(name)) for name in self._values]
+
     def add_value(self, name: str) -> baml_py.EnumValueBuilder:
         if name in self._values:
             raise ValueError(f"Value {name} already exists.")
-        return baml_py.EnumValueBuilder(self._bldr.value(name))
+        return self._bldr.value(name)
     
 
 class ColorValues:
@@ -744,36 +744,36 @@ class ColorValues:
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-    @property
-    def RED(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("RED"))
-    
-    @property
-    def BLUE(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("BLUE"))
-    
-    @property
-    def GREEN(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("GREEN"))
-    
-    @property
-    def YELLOW(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("YELLOW"))
-    
-    @property
-    def BLACK(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("BLACK"))
-    
-    @property
-    def WHITE(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("WHITE"))
-    
-
-    
     def __getattr__(self, name: str) -> baml_py.EnumValueBuilder:
         if name not in self.__values:
             raise AttributeError(f"Value {name} not found.")
-        return baml_py.EnumValueBuilder(self.__bldr.value(name))
+        return self.__bldr.value(name)
+
+    
+    @property
+    def RED(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("RED")
+    
+    @property
+    def BLUE(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("BLUE")
+    
+    @property
+    def GREEN(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("GREEN")
+    
+    @property
+    def YELLOW(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("YELLOW")
+    
+    @property
+    def BLACK(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("BLACK")
+    
+    @property
+    def WHITE(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("WHITE")
+    
     
 
 
@@ -796,9 +796,9 @@ class DataTypeViewer(DataTypeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class DataTypeValues:
@@ -806,6 +806,7 @@ class DataTypeValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def Resume(self) -> type_builder.EnumValueViewer:
@@ -815,7 +816,6 @@ class DataTypeValues:
     def Event(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("Event"))
     
-
     
 
 
@@ -838,14 +838,14 @@ class DynEnumOneBuilder(DynEnumOneAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_values(self) -> typing.List[typing.Tuple[str, baml_py.EnumValueBuilder]]:
-        return [(name, baml_py.EnumValueBuilder(self._bldr.value(name))) for name in self._values]
-
     
+    def list_values(self) -> typing.List[typing.Tuple[str, baml_py.EnumValueBuilder]]:
+        return [(name, self._bldr.value(name)) for name in self._values]
+
     def add_value(self, name: str) -> baml_py.EnumValueBuilder:
         if name in self._values:
             raise ValueError(f"Value {name} already exists.")
-        return baml_py.EnumValueBuilder(self._bldr.value(name))
+        return self._bldr.value(name)
     
 
 class DynEnumOneValues:
@@ -854,12 +854,12 @@ class DynEnumOneValues:
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-
-    
     def __getattr__(self, name: str) -> baml_py.EnumValueBuilder:
         if name not in self.__values:
             raise AttributeError(f"Value {name} not found.")
-        return baml_py.EnumValueBuilder(self.__bldr.value(name))
+        return self.__bldr.value(name)
+
+    
     
 
 
@@ -882,14 +882,14 @@ class DynEnumTwoBuilder(DynEnumTwoAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_values(self) -> typing.List[typing.Tuple[str, baml_py.EnumValueBuilder]]:
-        return [(name, baml_py.EnumValueBuilder(self._bldr.value(name))) for name in self._values]
-
     
+    def list_values(self) -> typing.List[typing.Tuple[str, baml_py.EnumValueBuilder]]:
+        return [(name, self._bldr.value(name)) for name in self._values]
+
     def add_value(self, name: str) -> baml_py.EnumValueBuilder:
         if name in self._values:
             raise ValueError(f"Value {name} already exists.")
-        return baml_py.EnumValueBuilder(self._bldr.value(name))
+        return self._bldr.value(name)
     
 
 class DynEnumTwoValues:
@@ -898,12 +898,12 @@ class DynEnumTwoValues:
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-
-    
     def __getattr__(self, name: str) -> baml_py.EnumValueBuilder:
         if name not in self.__values:
             raise AttributeError(f"Value {name} not found.")
-        return baml_py.EnumValueBuilder(self.__bldr.value(name))
+        return self.__bldr.value(name)
+
+    
     
 
 
@@ -926,9 +926,9 @@ class EnumInClassViewer(EnumInClassAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class EnumInClassValues:
@@ -936,6 +936,7 @@ class EnumInClassValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def ONE(self) -> type_builder.EnumValueViewer:
@@ -945,7 +946,6 @@ class EnumInClassValues:
     def TWO(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("TWO"))
     
-
     
 
 
@@ -968,9 +968,9 @@ class EnumOutputViewer(EnumOutputAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class EnumOutputValues:
@@ -978,6 +978,7 @@ class EnumOutputValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def ONE(self) -> type_builder.EnumValueViewer:
@@ -991,7 +992,6 @@ class EnumOutputValues:
     def THREE(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("THREE"))
     
-
     
 
 
@@ -1014,14 +1014,14 @@ class HobbyBuilder(HobbyAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_values(self) -> typing.List[typing.Tuple[str, baml_py.EnumValueBuilder]]:
-        return [(name, baml_py.EnumValueBuilder(self._bldr.value(name))) for name in self._values]
-
     
+    def list_values(self) -> typing.List[typing.Tuple[str, baml_py.EnumValueBuilder]]:
+        return [(name, self._bldr.value(name)) for name in self._values]
+
     def add_value(self, name: str) -> baml_py.EnumValueBuilder:
         if name in self._values:
             raise ValueError(f"Value {name} already exists.")
-        return baml_py.EnumValueBuilder(self._bldr.value(name))
+        return self._bldr.value(name)
     
 
 class HobbyValues:
@@ -1030,24 +1030,24 @@ class HobbyValues:
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-    @property
-    def SPORTS(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("SPORTS"))
-    
-    @property
-    def MUSIC(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("MUSIC"))
-    
-    @property
-    def READING(self) -> baml_py.EnumValueBuilder:
-        return baml_py.EnumValueBuilder(self.__bldr.value("READING"))
-    
-
-    
     def __getattr__(self, name: str) -> baml_py.EnumValueBuilder:
         if name not in self.__values:
             raise AttributeError(f"Value {name} not found.")
-        return baml_py.EnumValueBuilder(self.__bldr.value(name))
+        return self.__bldr.value(name)
+
+    
+    @property
+    def SPORTS(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("SPORTS")
+    
+    @property
+    def MUSIC(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("MUSIC")
+    
+    @property
+    def READING(self) -> baml_py.EnumValueBuilder:
+        return self.__bldr.value("READING")
+    
     
 
 
@@ -1070,9 +1070,9 @@ class MapKeyViewer(MapKeyAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class MapKeyValues:
@@ -1080,6 +1080,7 @@ class MapKeyValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def A(self) -> type_builder.EnumValueViewer:
@@ -1093,7 +1094,6 @@ class MapKeyValues:
     def C(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("C"))
     
-
     
 
 
@@ -1116,9 +1116,9 @@ class NamedArgsSingleEnumViewer(NamedArgsSingleEnumAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class NamedArgsSingleEnumValues:
@@ -1126,6 +1126,7 @@ class NamedArgsSingleEnumValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def ONE(self) -> type_builder.EnumValueViewer:
@@ -1135,7 +1136,6 @@ class NamedArgsSingleEnumValues:
     def TWO(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("TWO"))
     
-
     
 
 
@@ -1158,9 +1158,9 @@ class NamedArgsSingleEnumListViewer(NamedArgsSingleEnumListAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class NamedArgsSingleEnumListValues:
@@ -1168,6 +1168,7 @@ class NamedArgsSingleEnumListValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def ONE(self) -> type_builder.EnumValueViewer:
@@ -1177,7 +1178,6 @@ class NamedArgsSingleEnumListValues:
     def TWO(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("TWO"))
     
-
     
 
 
@@ -1200,9 +1200,9 @@ class OptionalTest_CategoryTypeViewer(OptionalTest_CategoryTypeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class OptionalTest_CategoryTypeValues:
@@ -1210,6 +1210,7 @@ class OptionalTest_CategoryTypeValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def Aleph(self) -> type_builder.EnumValueViewer:
@@ -1223,7 +1224,6 @@ class OptionalTest_CategoryTypeValues:
     def Gamma(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("Gamma"))
     
-
     
 
 
@@ -1246,9 +1246,9 @@ class OrderStatusViewer(OrderStatusAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class OrderStatusValues:
@@ -1256,6 +1256,7 @@ class OrderStatusValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def ORDERED(self) -> type_builder.EnumValueViewer:
@@ -1273,7 +1274,6 @@ class OrderStatusValues:
     def CANCELLED(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("CANCELLED"))
     
-
     
 
 
@@ -1296,9 +1296,9 @@ class TagViewer(TagAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class TagValues:
@@ -1306,6 +1306,7 @@ class TagValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def Security(self) -> type_builder.EnumValueViewer:
@@ -1319,7 +1320,6 @@ class TagValues:
     def Blockchain(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("Blockchain"))
     
-
     
 
 
@@ -1342,9 +1342,9 @@ class TestEnumViewer(TestEnumAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
         return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
-
     
 
 class TestEnumValues:
@@ -1352,6 +1352,7 @@ class TestEnumValues:
         self.__bldr = enum_bldr
         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def A(self) -> type_builder.EnumValueViewer:
@@ -1381,7 +1382,6 @@ class TestEnumValues:
     def G(self) -> type_builder.EnumValueViewer:
         return type_builder.EnumValueViewer(self.__bldr.value("G"))
     
-
     
 
 
@@ -1409,16 +1409,18 @@ class AnotherObjectViewer(AnotherObjectAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class AnotherObjectProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def id(self) -> type_builder.ClassPropertyViewer:
@@ -1432,7 +1434,6 @@ class AnotherObjectProperties:
     def thingy3(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("thingy3"))
     
-
     
 
 
@@ -1455,16 +1456,18 @@ class BigNumbersViewer(BigNumbersAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class BigNumbersProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def a(self) -> type_builder.ClassPropertyViewer:
@@ -1474,7 +1477,6 @@ class BigNumbersProperties:
     def b(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("b"))
     
-
     
 
 
@@ -1497,16 +1499,18 @@ class BinaryNodeViewer(BinaryNodeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class BinaryNodeProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def data(self) -> type_builder.ClassPropertyViewer:
@@ -1520,7 +1524,6 @@ class BinaryNodeProperties:
     def right(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("right"))
     
-
     
 
 
@@ -1543,10 +1546,11 @@ class BlahViewer(BlahAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class BlahProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -1554,11 +1558,11 @@ class BlahProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def prop4(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop4"))
     
-
     
 
 
@@ -1581,16 +1585,18 @@ class BlockConstraintViewer(BlockConstraintAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class BlockConstraintProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def foo(self) -> type_builder.ClassPropertyViewer:
@@ -1600,7 +1606,6 @@ class BlockConstraintProperties:
     def bar(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("bar"))
     
-
     
 
 
@@ -1623,16 +1628,18 @@ class BlockConstraintForParamViewer(BlockConstraintForParamAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class BlockConstraintForParamProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def bcfp(self) -> type_builder.ClassPropertyViewer:
@@ -1642,7 +1649,6 @@ class BlockConstraintForParamProperties:
     def bcfp2(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("bcfp2"))
     
-
     
 
 
@@ -1665,16 +1671,18 @@ class BookOrderViewer(BookOrderAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class BookOrderProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def orderId(self) -> type_builder.ClassPropertyViewer:
@@ -1692,7 +1700,6 @@ class BookOrderProperties:
     def price(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("price"))
     
-
     
 
 
@@ -1715,10 +1722,11 @@ class ClassForNullLiteralViewer(ClassForNullLiteralAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ClassForNullLiteralProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -1726,11 +1734,11 @@ class ClassForNullLiteralProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def a(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("a"))
     
-
     
 
 
@@ -1753,16 +1761,18 @@ class ClassOptionalOutputViewer(ClassOptionalOutputAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ClassOptionalOutputProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop1(self) -> type_builder.ClassPropertyViewer:
@@ -1772,7 +1782,6 @@ class ClassOptionalOutputProperties:
     def prop2(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop2"))
     
-
     
 
 
@@ -1795,16 +1804,18 @@ class ClassOptionalOutput2Viewer(ClassOptionalOutput2Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ClassOptionalOutput2Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop1(self) -> type_builder.ClassPropertyViewer:
@@ -1818,7 +1829,6 @@ class ClassOptionalOutput2Properties:
     def prop3(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop3"))
     
-
     
 
 
@@ -1841,10 +1851,11 @@ class ClassToRecAliasViewer(ClassToRecAliasAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ClassToRecAliasProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -1852,11 +1863,11 @@ class ClassToRecAliasProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def list(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("list"))
     
-
     
 
 
@@ -1879,16 +1890,18 @@ class ClassWithBlockDoneViewer(ClassWithBlockDoneAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ClassWithBlockDoneProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def i_16_digits(self) -> type_builder.ClassPropertyViewer:
@@ -1898,7 +1911,6 @@ class ClassWithBlockDoneProperties:
     def s_20_words(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("s_20_words"))
     
-
     
 
 
@@ -1921,16 +1933,18 @@ class ClassWithImageViewer(ClassWithImageAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ClassWithImageProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def myImage(self) -> type_builder.ClassPropertyViewer:
@@ -1944,7 +1958,6 @@ class ClassWithImageProperties:
     def fake_image(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("fake_image"))
     
-
     
 
 
@@ -1967,16 +1980,18 @@ class ClassWithoutDoneViewer(ClassWithoutDoneAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ClassWithoutDoneProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def i_16_digits(self) -> type_builder.ClassPropertyViewer:
@@ -1986,7 +2001,6 @@ class ClassWithoutDoneProperties:
     def s_20_words(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("s_20_words"))
     
-
     
 
 
@@ -2009,16 +2023,18 @@ class ClientDetails1559Viewer(ClientDetails1559Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ClientDetails1559Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def client_name(self) -> type_builder.ClassPropertyViewer:
@@ -2048,7 +2064,6 @@ class ClientDetails1559Properties:
     def client_email(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("client_email"))
     
-
     
 
 
@@ -2071,16 +2086,18 @@ class ComplexMemoryObjectViewer(ComplexMemoryObjectAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ComplexMemoryObjectProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def id(self) -> type_builder.ClassPropertyViewer:
@@ -2098,7 +2115,6 @@ class ComplexMemoryObjectProperties:
     def metadata(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("metadata"))
     
-
     
 
 
@@ -2121,16 +2137,18 @@ class CompoundBigNumbersViewer(CompoundBigNumbersAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class CompoundBigNumbersProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def big(self) -> type_builder.ClassPropertyViewer:
@@ -2144,7 +2162,6 @@ class CompoundBigNumbersProperties:
     def another(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("another"))
     
-
     
 
 
@@ -2167,16 +2184,18 @@ class ContactInfoViewer(ContactInfoAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ContactInfoProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def primary(self) -> type_builder.ClassPropertyViewer:
@@ -2186,7 +2205,6 @@ class ContactInfoProperties:
     def secondary(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("secondary"))
     
-
     
 
 
@@ -2209,16 +2227,18 @@ class CustomStoryViewer(CustomStoryAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class CustomStoryProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def title(self) -> type_builder.ClassPropertyViewer:
@@ -2232,7 +2252,6 @@ class CustomStoryProperties:
     def content(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("content"))
     
-
     
 
 
@@ -2255,16 +2274,18 @@ class CustomTaskResultViewer(CustomTaskResultAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class CustomTaskResultProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def bookOrder(self) -> type_builder.ClassPropertyViewer:
@@ -2278,7 +2299,6 @@ class CustomTaskResultProperties:
     def groceryReceipt(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("groceryReceipt"))
     
-
     
 
 
@@ -2301,16 +2321,18 @@ class Document1559Viewer(Document1559Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class Document1559Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def client_details(self) -> type_builder.ClassPropertyViewer:
@@ -2320,7 +2342,6 @@ class Document1559Properties:
     def notes(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("notes"))
     
-
     
 
 
@@ -2343,15 +2364,17 @@ class DummyOutputBuilder(DummyOutputAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class DummyOutputProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2359,20 +2382,20 @@ class DummyOutputProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-    @property
-    def nonce(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("nonce"))
-    
-    @property
-    def nonce2(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("nonce2"))
-    
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
+    @property
+    def nonce(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("nonce")
+    
+    @property
+    def nonce2(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("nonce2")
+    
     
 
 
@@ -2395,15 +2418,17 @@ class DynInputOutputBuilder(DynInputOutputAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class DynInputOutputProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2411,16 +2436,16 @@ class DynInputOutputProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-    @property
-    def testKey(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("testKey"))
-    
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
+    @property
+    def testKey(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("testKey")
+    
     
 
 
@@ -2443,15 +2468,17 @@ class DynamicClassOneBuilder(DynamicClassOneAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class DynamicClassOneProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2459,12 +2486,12 @@ class DynamicClassOneProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
     
 
 
@@ -2487,15 +2514,17 @@ class DynamicClassTwoBuilder(DynamicClassTwoAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class DynamicClassTwoProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2503,24 +2532,24 @@ class DynamicClassTwoProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-    @property
-    def hi(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("hi"))
-    
-    @property
-    def some_class(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("some_class"))
-    
-    @property
-    def status(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("status"))
-    
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
+    @property
+    def hi(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("hi")
+    
+    @property
+    def some_class(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("some_class")
+    
+    @property
+    def status(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("status")
+    
     
 
 
@@ -2543,15 +2572,17 @@ class DynamicOutputBuilder(DynamicOutputAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class DynamicOutputProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2559,12 +2590,12 @@ class DynamicOutputProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
     
 
 
@@ -2587,15 +2618,17 @@ class DynamicSchemaBuilder(DynamicSchemaAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class DynamicSchemaProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2603,12 +2636,12 @@ class DynamicSchemaProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
     
 
 
@@ -2631,10 +2664,11 @@ class EarthlingViewer(EarthlingAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class EarthlingProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2642,11 +2676,11 @@ class EarthlingProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def age(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("age"))
     
-
     
 
 
@@ -2669,16 +2703,18 @@ class EducationViewer(EducationAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class EducationProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def institution(self) -> type_builder.ClassPropertyViewer:
@@ -2700,7 +2736,6 @@ class EducationProperties:
     def graduation_date(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("graduation_date"))
     
-
     
 
 
@@ -2723,16 +2758,18 @@ class EmailViewer(EmailAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class EmailProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def subject(self) -> type_builder.ClassPropertyViewer:
@@ -2746,7 +2783,6 @@ class EmailProperties:
     def from_address(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("from_address"))
     
-
     
 
 
@@ -2769,10 +2805,11 @@ class EmailAddressViewer(EmailAddressAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class EmailAddressProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2780,11 +2817,11 @@ class EmailAddressProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def value(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("value"))
     
-
     
 
 
@@ -2807,16 +2844,18 @@ class EventViewer(EventAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class EventProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def title(self) -> type_builder.ClassPropertyViewer:
@@ -2834,7 +2873,6 @@ class EventProperties:
     def description(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("description"))
     
-
     
 
 
@@ -2857,10 +2895,11 @@ class FakeImageViewer(FakeImageAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class FakeImageProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -2868,11 +2907,11 @@ class FakeImageProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def url(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("url"))
     
-
     
 
 
@@ -2895,16 +2934,18 @@ class FlightConfirmationViewer(FlightConfirmationAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class FlightConfirmationProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def confirmationNumber(self) -> type_builder.ClassPropertyViewer:
@@ -2926,7 +2967,6 @@ class FlightConfirmationProperties:
     def seatNumber(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("seatNumber"))
     
-
     
 
 
@@ -2949,16 +2989,18 @@ class FooAnyViewer(FooAnyAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class FooAnyProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def planetary_age(self) -> type_builder.ClassPropertyViewer:
@@ -2972,7 +3014,6 @@ class FooAnyProperties:
     def species(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("species"))
     
-
     
 
 
@@ -2995,10 +3036,11 @@ class ForestViewer(ForestAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ForestProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -3006,11 +3048,11 @@ class ForestProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def trees(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("trees"))
     
-
     
 
 
@@ -3033,16 +3075,18 @@ class FormatterTest0Viewer(FormatterTest0Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class FormatterTest0Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def lorem(self) -> type_builder.ClassPropertyViewer:
@@ -3052,7 +3096,6 @@ class FormatterTest0Properties:
     def ipsum(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("ipsum"))
     
-
     
 
 
@@ -3075,16 +3118,18 @@ class FormatterTest1Viewer(FormatterTest1Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class FormatterTest1Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def lorem(self) -> type_builder.ClassPropertyViewer:
@@ -3094,7 +3139,6 @@ class FormatterTest1Properties:
     def ipsum(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("ipsum"))
     
-
     
 
 
@@ -3117,16 +3161,18 @@ class FormatterTest2Viewer(FormatterTest2Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class FormatterTest2Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def lorem(self) -> type_builder.ClassPropertyViewer:
@@ -3136,7 +3182,6 @@ class FormatterTest2Properties:
     def ipsum(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("ipsum"))
     
-
     
 
 
@@ -3159,16 +3204,18 @@ class FormatterTest3Viewer(FormatterTest3Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class FormatterTest3Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def lorem(self) -> type_builder.ClassPropertyViewer:
@@ -3178,7 +3225,6 @@ class FormatterTest3Properties:
     def ipsum(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("ipsum"))
     
-
     
 
 
@@ -3201,16 +3247,18 @@ class GroceryReceiptViewer(GroceryReceiptAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class GroceryReceiptProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def receiptId(self) -> type_builder.ClassPropertyViewer:
@@ -3228,7 +3276,6 @@ class GroceryReceiptProperties:
     def totalAmount(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("totalAmount"))
     
-
     
 
 
@@ -3251,16 +3298,18 @@ class HaikuViewer(HaikuAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class HaikuProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def line1(self) -> type_builder.ClassPropertyViewer:
@@ -3274,7 +3323,6 @@ class HaikuProperties:
     def line3(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("line3"))
     
-
     
 
 
@@ -3297,16 +3345,18 @@ class InnerClassViewer(InnerClassAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class InnerClassProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop1(self) -> type_builder.ClassPropertyViewer:
@@ -3320,7 +3370,6 @@ class InnerClassProperties:
     def inner(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("inner"))
     
-
     
 
 
@@ -3343,16 +3392,18 @@ class InnerClass2Viewer(InnerClass2Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class InnerClass2Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop2(self) -> type_builder.ClassPropertyViewer:
@@ -3362,7 +3413,6 @@ class InnerClass2Properties:
     def prop3(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop3"))
     
-
     
 
 
@@ -3385,16 +3435,18 @@ class InputClassViewer(InputClassAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class InputClassProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def key(self) -> type_builder.ClassPropertyViewer:
@@ -3404,7 +3456,6 @@ class InputClassProperties:
     def key2(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("key2"))
     
-
     
 
 
@@ -3427,16 +3478,18 @@ class InputClassNestedViewer(InputClassNestedAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class InputClassNestedProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def key(self) -> type_builder.ClassPropertyViewer:
@@ -3446,7 +3499,6 @@ class InputClassNestedProperties:
     def nested(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("nested"))
     
-
     
 
 
@@ -3469,16 +3521,18 @@ class LinkedListViewer(LinkedListAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class LinkedListProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def head(self) -> type_builder.ClassPropertyViewer:
@@ -3488,7 +3542,6 @@ class LinkedListProperties:
     def len(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("len"))
     
-
     
 
 
@@ -3511,16 +3564,18 @@ class LinkedListAliasNodeViewer(LinkedListAliasNodeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class LinkedListAliasNodeProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def value(self) -> type_builder.ClassPropertyViewer:
@@ -3530,7 +3585,6 @@ class LinkedListAliasNodeProperties:
     def next(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("next"))
     
-
     
 
 
@@ -3553,10 +3607,11 @@ class LiteralClassHelloViewer(LiteralClassHelloAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class LiteralClassHelloProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -3564,11 +3619,11 @@ class LiteralClassHelloProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def prop(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop"))
     
-
     
 
 
@@ -3591,10 +3646,11 @@ class LiteralClassOneViewer(LiteralClassOneAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class LiteralClassOneProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -3602,11 +3658,11 @@ class LiteralClassOneProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def prop(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop"))
     
-
     
 
 
@@ -3629,10 +3685,11 @@ class LiteralClassTwoViewer(LiteralClassTwoAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class LiteralClassTwoProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -3640,11 +3697,11 @@ class LiteralClassTwoProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def prop(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop"))
     
-
     
 
 
@@ -3667,16 +3724,18 @@ class MaintainFieldOrderViewer(MaintainFieldOrderAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class MaintainFieldOrderProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def a(self) -> type_builder.ClassPropertyViewer:
@@ -3690,7 +3749,6 @@ class MaintainFieldOrderProperties:
     def c(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("c"))
     
-
     
 
 
@@ -3713,10 +3771,11 @@ class MalformedConstraintsViewer(MalformedConstraintsAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class MalformedConstraintsProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -3724,11 +3783,11 @@ class MalformedConstraintsProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def foo(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("foo"))
     
-
     
 
 
@@ -3751,10 +3810,11 @@ class MalformedConstraints2Viewer(MalformedConstraints2Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class MalformedConstraints2Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -3762,11 +3822,11 @@ class MalformedConstraints2Properties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def foo(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("foo"))
     
-
     
 
 
@@ -3789,10 +3849,11 @@ class MartianViewer(MartianAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class MartianProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -3800,11 +3861,11 @@ class MartianProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def age(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("age"))
     
-
     
 
 
@@ -3827,16 +3888,18 @@ class MemoryObjectViewer(MemoryObjectAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class MemoryObjectProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def id(self) -> type_builder.ClassPropertyViewer:
@@ -3850,7 +3913,6 @@ class MemoryObjectProperties:
     def description(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("description"))
     
-
     
 
 
@@ -3873,10 +3935,11 @@ class MergeAttrsViewer(MergeAttrsAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class MergeAttrsProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -3884,11 +3947,11 @@ class MergeAttrsProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def amount(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("amount"))
     
-
     
 
 
@@ -3911,16 +3974,18 @@ class NamedArgsSingleClassViewer(NamedArgsSingleClassAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class NamedArgsSingleClassProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def key(self) -> type_builder.ClassPropertyViewer:
@@ -3934,7 +3999,6 @@ class NamedArgsSingleClassProperties:
     def key_three(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("key_three"))
     
-
     
 
 
@@ -3957,16 +4021,18 @@ class NestedViewer(NestedAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class NestedProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop3(self) -> type_builder.ClassPropertyViewer:
@@ -3980,7 +4046,6 @@ class NestedProperties:
     def prop20(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop20"))
     
-
     
 
 
@@ -4003,16 +4068,18 @@ class Nested2Viewer(Nested2Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class Nested2Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop11(self) -> type_builder.ClassPropertyViewer:
@@ -4022,7 +4089,6 @@ class Nested2Properties:
     def prop12(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop12"))
     
-
     
 
 
@@ -4045,10 +4111,11 @@ class NestedBlockConstraintViewer(NestedBlockConstraintAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class NestedBlockConstraintProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -4056,11 +4123,11 @@ class NestedBlockConstraintProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def nbc(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("nbc"))
     
-
     
 
 
@@ -4083,10 +4150,11 @@ class NestedBlockConstraintForParamViewer(NestedBlockConstraintForParamAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class NestedBlockConstraintForParamProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -4094,11 +4162,11 @@ class NestedBlockConstraintForParamProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def nbcfp(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("nbcfp"))
     
-
     
 
 
@@ -4121,16 +4189,18 @@ class NodeViewer(NodeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class NodeProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def data(self) -> type_builder.ClassPropertyViewer:
@@ -4140,7 +4210,6 @@ class NodeProperties:
     def next(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("next"))
     
-
     
 
 
@@ -4163,16 +4232,18 @@ class NodeWithAliasIndirectionViewer(NodeWithAliasIndirectionAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class NodeWithAliasIndirectionProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def value(self) -> type_builder.ClassPropertyViewer:
@@ -4182,7 +4253,6 @@ class NodeWithAliasIndirectionProperties:
     def next(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("next"))
     
-
     
 
 
@@ -4205,16 +4275,18 @@ class Note1599Viewer(Note1599Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class Note1599Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def note_title(self) -> type_builder.ClassPropertyViewer:
@@ -4228,7 +4300,6 @@ class Note1599Properties:
     def note_amount(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("note_amount"))
     
-
     
 
 
@@ -4251,16 +4322,18 @@ class OptionalListAndMapViewer(OptionalListAndMapAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class OptionalListAndMapProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def p(self) -> type_builder.ClassPropertyViewer:
@@ -4270,7 +4343,6 @@ class OptionalListAndMapProperties:
     def q(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("q"))
     
-
     
 
 
@@ -4293,16 +4365,18 @@ class OptionalTest_Prop1Viewer(OptionalTest_Prop1Ast):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class OptionalTest_Prop1Properties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def omega_a(self) -> type_builder.ClassPropertyViewer:
@@ -4312,7 +4386,6 @@ class OptionalTest_Prop1Properties:
     def omega_b(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("omega_b"))
     
-
     
 
 
@@ -4335,16 +4408,18 @@ class OptionalTest_ReturnTypeViewer(OptionalTest_ReturnTypeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class OptionalTest_ReturnTypeProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def omega_1(self) -> type_builder.ClassPropertyViewer:
@@ -4358,7 +4433,6 @@ class OptionalTest_ReturnTypeProperties:
     def omega_3(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("omega_3"))
     
-
     
 
 
@@ -4381,16 +4455,18 @@ class OrderInfoViewer(OrderInfoAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class OrderInfoProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def order_status(self) -> type_builder.ClassPropertyViewer:
@@ -4404,7 +4480,6 @@ class OrderInfoProperties:
     def estimated_arrival_date(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("estimated_arrival_date"))
     
-
     
 
 
@@ -4427,10 +4502,11 @@ class OriginalAViewer(OriginalAAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class OriginalAProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -4438,11 +4514,11 @@ class OriginalAProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def value(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("value"))
     
-
     
 
 
@@ -4465,15 +4541,17 @@ class OriginalBBuilder(OriginalBAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class OriginalBProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -4481,16 +4559,16 @@ class OriginalBProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-    @property
-    def value(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("value"))
-    
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
+    @property
+    def value(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("value")
+    
     
 
 
@@ -4513,15 +4591,17 @@ class PersonBuilder(PersonAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class PersonProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -4529,20 +4609,20 @@ class PersonProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-    @property
-    def name(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("name"))
-    
-    @property
-    def hair_color(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("hair_color"))
-    
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
+    @property
+    def name(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("name")
+    
+    @property
+    def hair_color(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("hair_color")
+    
     
 
 
@@ -4565,10 +4645,11 @@ class PhoneNumberViewer(PhoneNumberAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class PhoneNumberProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -4576,11 +4657,11 @@ class PhoneNumberProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def value(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("value"))
     
-
     
 
 
@@ -4603,16 +4684,18 @@ class QuantityViewer(QuantityAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class QuantityProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def amount(self) -> type_builder.ClassPropertyViewer:
@@ -4622,7 +4705,6 @@ class QuantityProperties:
     def unit(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("unit"))
     
-
     
 
 
@@ -4645,16 +4727,18 @@ class RaysDataViewer(RaysDataAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class RaysDataProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def dataType(self) -> type_builder.ClassPropertyViewer:
@@ -4664,7 +4748,6 @@ class RaysDataProperties:
     def value(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("value"))
     
-
     
 
 
@@ -4687,16 +4770,18 @@ class ReceiptInfoViewer(ReceiptInfoAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ReceiptInfoProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def items(self) -> type_builder.ClassPropertyViewer:
@@ -4710,7 +4795,6 @@ class ReceiptInfoProperties:
     def venue(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("venue"))
     
-
     
 
 
@@ -4733,16 +4817,18 @@ class ReceiptItemViewer(ReceiptItemAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ReceiptItemProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def name(self) -> type_builder.ClassPropertyViewer:
@@ -4760,7 +4846,6 @@ class ReceiptItemProperties:
     def price(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("price"))
     
-
     
 
 
@@ -4783,16 +4868,18 @@ class RecipeViewer(RecipeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class RecipeProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def ingredients(self) -> type_builder.ClassPropertyViewer:
@@ -4802,7 +4889,6 @@ class RecipeProperties:
     def recipe_type(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("recipe_type"))
     
-
     
 
 
@@ -4825,10 +4911,11 @@ class RecursiveAliasDependencyViewer(RecursiveAliasDependencyAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class RecursiveAliasDependencyProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -4836,11 +4923,11 @@ class RecursiveAliasDependencyProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def value(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("value"))
     
-
     
 
 
@@ -4863,16 +4950,18 @@ class ResumeViewer(ResumeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class ResumeProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def name(self) -> type_builder.ClassPropertyViewer:
@@ -4898,7 +4987,6 @@ class ResumeProperties:
     def skills(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("skills"))
     
-
     
 
 
@@ -4921,16 +5009,18 @@ class SchemaViewer(SchemaAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class SchemaProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop1(self) -> type_builder.ClassPropertyViewer:
@@ -4960,7 +5050,6 @@ class SchemaProperties:
     def other_group(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("other_group"))
     
-
     
 
 
@@ -4983,16 +5072,18 @@ class SearchParamsViewer(SearchParamsAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class SearchParamsProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def dateRange(self) -> type_builder.ClassPropertyViewer:
@@ -5018,7 +5109,6 @@ class SearchParamsProperties:
     def tags(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("tags"))
     
-
     
 
 
@@ -5041,16 +5131,18 @@ class SemanticContainerViewer(SemanticContainerAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class SemanticContainerProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def sixteen_digit_number(self) -> type_builder.ClassPropertyViewer:
@@ -5084,7 +5176,6 @@ class SemanticContainerProperties:
     def final_string(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("final_string"))
     
-
     
 
 
@@ -5107,10 +5198,11 @@ class SimpleTagViewer(SimpleTagAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class SimpleTagProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -5118,11 +5210,11 @@ class SimpleTagProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def field(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("field"))
     
-
     
 
 
@@ -5145,16 +5237,18 @@ class SmallThingViewer(SmallThingAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class SmallThingProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def i_16_digits(self) -> type_builder.ClassPropertyViewer:
@@ -5164,7 +5258,6 @@ class SmallThingProperties:
     def i_8_digits(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("i_8_digits"))
     
-
     
 
 
@@ -5187,15 +5280,17 @@ class SomeClassNestedDynamicBuilder(SomeClassNestedDynamicAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
-        return [(name, baml_py.ClassPropertyBuilder(self._bldr.property(name))) for name in self._properties]
-
     
-    def add_property(self, name: str, type: FieldType) -> baml_py.ClassPropertyBuilder:
+    def add_property(self, name: str, type: baml_py.FieldType) -> baml_py.ClassPropertyBuilder:
         if name in self._properties:
             raise ValueError(f"Property {name} already exists.")
-        return baml_py.ClassPropertyBuilder(self._bldr.property(name).type(type))
+        return self._bldr.property(name).type(type)
+
+    def list_properties(self) -> typing.List[typing.Tuple[str, baml_py.ClassPropertyBuilder]]:
+        return [(name, self._bldr.property(name)) for name in self._properties]
+
     
+
 
 class SomeClassNestedDynamicProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -5203,16 +5298,16 @@ class SomeClassNestedDynamicProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
-    @property
-    def hi(self) -> baml_py.ClassPropertyBuilder:
-        return baml_py.ClassPropertyBuilder(self.__bldr.property("hi"))
-    
-
-    
     def __getattr__(self, name: str) -> baml_py.ClassPropertyBuilder:
         if name not in self.__properties:
             raise AttributeError(f"Property {name} not found.")
-        return baml_py.ClassPropertyBuilder(self.__bldr.property(name))
+        return self.__bldr.property(name)
+
+    
+    @property
+    def hi(self) -> baml_py.ClassPropertyBuilder:
+        return self.__bldr.property("hi")
+    
     
 
 
@@ -5235,10 +5330,11 @@ class StringToClassEntryViewer(StringToClassEntryAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class StringToClassEntryProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -5246,11 +5342,11 @@ class StringToClassEntryProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def word(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("word"))
     
-
     
 
 
@@ -5273,16 +5369,18 @@ class TestClassAliasViewer(TestClassAliasAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class TestClassAliasProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def key(self) -> type_builder.ClassPropertyViewer:
@@ -5304,7 +5402,6 @@ class TestClassAliasProperties:
     def key5(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("key5"))
     
-
     
 
 
@@ -5327,16 +5424,18 @@ class TestClassNestedViewer(TestClassNestedAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class TestClassNestedProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop1(self) -> type_builder.ClassPropertyViewer:
@@ -5346,7 +5445,6 @@ class TestClassNestedProperties:
     def prop2(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop2"))
     
-
     
 
 
@@ -5369,16 +5467,18 @@ class TestClassWithEnumViewer(TestClassWithEnumAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class TestClassWithEnumProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop1(self) -> type_builder.ClassPropertyViewer:
@@ -5388,7 +5488,6 @@ class TestClassWithEnumProperties:
     def prop2(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop2"))
     
-
     
 
 
@@ -5411,16 +5510,18 @@ class TestMemoryOutputViewer(TestMemoryOutputAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class TestMemoryOutputProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def items(self) -> type_builder.ClassPropertyViewer:
@@ -5430,7 +5531,6 @@ class TestMemoryOutputProperties:
     def more_items(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("more_items"))
     
-
     
 
 
@@ -5453,16 +5553,18 @@ class TestOutputClassViewer(TestOutputClassAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class TestOutputClassProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop1(self) -> type_builder.ClassPropertyViewer:
@@ -5472,7 +5574,6 @@ class TestOutputClassProperties:
     def prop2(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop2"))
     
-
     
 
 
@@ -5495,16 +5596,18 @@ class TreeViewer(TreeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class TreeProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def data(self) -> type_builder.ClassPropertyViewer:
@@ -5514,7 +5617,6 @@ class TreeProperties:
     def children(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("children"))
     
-
     
 
 
@@ -5537,16 +5639,18 @@ class TwoStoriesOneTitleViewer(TwoStoriesOneTitleAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class TwoStoriesOneTitleProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def title(self) -> type_builder.ClassPropertyViewer:
@@ -5560,7 +5664,6 @@ class TwoStoriesOneTitleProperties:
     def story_b(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("story_b"))
     
-
     
 
 
@@ -5583,16 +5686,18 @@ class TwoStoriesOneTitleCheckViewer(TwoStoriesOneTitleCheckAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class TwoStoriesOneTitleCheckProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def title(self) -> type_builder.ClassPropertyViewer:
@@ -5606,7 +5711,6 @@ class TwoStoriesOneTitleCheckProperties:
     def story_b(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("story_b"))
     
-
     
 
 
@@ -5629,16 +5733,18 @@ class UnionTest_ReturnTypeViewer(UnionTest_ReturnTypeAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class UnionTest_ReturnTypeProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def prop1(self) -> type_builder.ClassPropertyViewer:
@@ -5652,7 +5758,6 @@ class UnionTest_ReturnTypeProperties:
     def prop3(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("prop3"))
     
-
     
 
 
@@ -5675,16 +5780,18 @@ class UniverseQuestionViewer(UniverseQuestionAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class UniverseQuestionProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def question(self) -> type_builder.ClassPropertyViewer:
@@ -5694,7 +5801,6 @@ class UniverseQuestionProperties:
     def answer(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("answer"))
     
-
     
 
 
@@ -5717,10 +5823,11 @@ class UniverseQuestionInputViewer(UniverseQuestionInputAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class UniverseQuestionInputProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
@@ -5728,11 +5835,11 @@ class UniverseQuestionInputProperties:
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
+    
     @property
     def question(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("question"))
     
-
     
 
 
@@ -5755,16 +5862,18 @@ class WithReasoningViewer(WithReasoningAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
+    
     def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
         return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
-
     
+
 
 class WithReasoningProperties:
     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
         self.__bldr = bldr
         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
+    
     
     @property
     def value(self) -> type_builder.ClassPropertyViewer:
@@ -5774,6 +5883,5 @@ class WithReasoningProperties:
     def reasoning(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("reasoning"))
     
-
     
 

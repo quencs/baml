@@ -17,6 +17,10 @@ import (
 	"example.com/integ-tests/baml_client/types"
 )
 
+type LinkedListAlias = *LinkedListAliasNode
+type NodeIndirection = *NodeWithAliasIndirection
+type JsonEntry = *Union2JsonTemplateOrSimpleTag
+type JsonTemplate = *map[string]*JsonEntry
 type RecursiveUnion = *Union2MapStringKeyRecursiveUnionValueOrString
 type Primitive = *Union4BoolOrFloatOrIntOrString
 type List = *[]*string
@@ -33,7 +37,3 @@ type RecAliasThree = *[]*RecAliasOne
 type JsonValue = *Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
 type JsonObject = *map[string]*JsonValue
 type JsonArray = *[]*JsonValue
-type LinkedListAlias = *LinkedListAliasNode
-type NodeIndirection = *NodeWithAliasIndirection
-type JsonEntry = *Union2JsonTemplateOrSimpleTag
-type JsonTemplate = *map[string]*JsonEntry

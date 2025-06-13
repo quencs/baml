@@ -71,10 +71,16 @@ pub(crate) fn stream_type_to_py(field: &TypeStreaming, _lookup: &impl TypeLookup
                 baml_types::ir_type::UnionTypeViewGeneric::Null => TypePy::Any { reason: "Null types are not supported in Py".to_string(), meta },
                 baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
                     let mut type_py = recursive_fn(type_generic);
-                    if union_meta.constraints.iter().any(|c| {
-                        matches!(c.level, ConstraintLevel::Check)
-                    }) {
-                        type_py.meta_mut().map(|m| m.make_checked());
+                    // get all checks
+                    let checks = union_meta.constraints.iter().filter_map(|c| {
+                        if matches!(c.level, ConstraintLevel::Check) {
+                            c.label.as_ref()
+                        } else {
+                            None
+                        }
+                    }).collect::<Vec<_>>();
+                    if !checks.is_empty() {
+                        type_py.meta_mut().map(|m| m.make_checked(checks));
                     }
                     type_py.meta_mut().map(|m| m.make_optional());
                     if union_meta.streaming_behavior.state {
@@ -162,12 +168,15 @@ pub(crate) fn type_to_py(field: &Type, _lookup: &impl TypeLookups) -> TypePy {
             baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
                 let mut type_py = recursive_fn(type_generic);
                 type_py.meta_mut().map(|m| m.make_optional());
-                if union_meta
-                    .constraints
-                    .iter()
-                    .any(|c| matches!(c.level, ConstraintLevel::Check))
-                {
-                    type_py.meta_mut().map(|m| m.make_checked());
+                let checks = union_meta.constraints.iter().filter_map(|c| {
+                    if matches!(c.level, ConstraintLevel::Check) {
+                        c.label.as_ref()
+                    } else {
+                        None
+                    }
+                }).collect::<Vec<_>>();
+                if !checks.is_empty() {
+                    type_py.meta_mut().map(|m| m.make_checked(checks));
                 }
                 type_py
             },
@@ -201,14 +210,16 @@ pub(crate) fn type_to_py(field: &Type, _lookup: &impl TypeLookups) -> TypePy {
 
 // convert ir metadata to py metadata
 fn meta_to_py(meta: &TypeMeta) -> TypeMetaPy {
-    let has_checks = meta
-        .constraints
-        .iter()
-        .any(|c| matches!(c.level, ConstraintLevel::Check));
-
+    let checks = meta.constraints.iter().filter_map(|c|
+        if matches!(c.level, ConstraintLevel::Check) {
+            c.label.as_ref()
+        } else {
+            None
+        }
+    ).collect::<Vec<_>>();
     let wrapper = TypeWrapper::default();
-    let wrapper = if has_checks {
-        wrapper.wrap_with_checked()
+    let wrapper = if !checks.is_empty() {
+        wrapper.wrap_with_checked(checks)
     } else {
         wrapper
     };
@@ -221,14 +232,18 @@ fn meta_to_py(meta: &TypeMeta) -> TypeMetaPy {
 }
 
 fn stream_meta_to_py(meta: &TypeMetaStreaming) -> TypeMetaPy {
-    let has_checks = meta
-        .constraints
-        .iter()
-        .any(|c| matches!(c.level, ConstraintLevel::Check));
+    let checks = meta.constraints.iter().filter_map(|c|
+        if matches!(c.level, ConstraintLevel::Check) {
+            c.label.as_ref()
+        } else {
+            None
+        }
+    ).collect::<Vec<_>>();
+
 
     let wrapper = TypeWrapper::default();
-    let wrapper = if has_checks {
-        wrapper.wrap_with_checked()
+    let wrapper = if !checks.is_empty() {
+        wrapper.wrap_with_checked(checks)
     } else {
         wrapper
     };

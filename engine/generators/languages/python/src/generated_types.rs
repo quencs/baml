@@ -167,32 +167,43 @@ mod type_builder {
     ///     def __init__(self, tb: type_builder.TypeBuilder):
     ///         super().__init__(tb)
     /// 
-    ///     def list_properties(self) -> typing.List[typing.Tuple[str, {{ class.class_property_type() }}]]:
-    ///         return [(name, {{ class.class_property_type() }}(self._bldr.property(name))) for name in self._properties]
-    /// 
     ///     {% if class.dynamic %}
-    ///     def add_property(self, name: str, type: FieldType) -> {{ class.class_property_type() }}:
+    ///     def add_property(self, name: str, type: baml_py.FieldType) -> {{ class.class_property_type() }}:
     ///         if name in self._properties:
     ///             raise ValueError(f"Property {name} already exists.")
-    ///         return {{ class.class_property_type() }}(self._bldr.property(name).type(type))
+    ///         return self._bldr.property(name).type(type)
+    /// 
+    ///     def list_properties(self) -> typing.List[typing.Tuple[str, {{ class.class_property_type() }}]]:
+    ///         return [(name, self._bldr.property(name)) for name in self._properties]
+    /// 
+    ///     {% else %}
+    ///     def list_properties(self) -> typing.List[typing.Tuple[str, {{ class.class_property_type() }}]]:
+    ///         return [(name, {{ class.class_property_type() }}(self._bldr.property(name))) for name in self._properties]
     ///     {% endif %}
+    /// 
     /// 
     /// class {{ class.name }}Properties:
     ///     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
     ///         self.__bldr = bldr
     ///         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
     /// 
+    ///     {% if class.dynamic %}
+    ///     def __getattr__(self, name: str) -> {{ class.class_property_type() }}:
+    ///         if name not in self.__properties:
+    ///             raise AttributeError(f"Property {name} not found.")
+    ///         return self.__bldr.property(name)
+    /// 
+    ///     {% for field in class.fields %}
+    ///     @property
+    ///     def {{ field.name }}(self) -> {{ class.class_property_type() }}:
+    ///         return self.__bldr.property("{{ field.name }}")
+    ///     {% endfor %}
+    ///     {% else %}
     ///     {% for field in class.fields %}
     ///     @property
     ///     def {{ field.name }}(self) -> {{ class.class_property_type() }}:
     ///         return {{ class.class_property_type() }}(self.__bldr.property("{{ field.name }}"))
     ///     {% endfor %}
-    /// 
-    ///     {% if class.dynamic %}
-    ///     def __getattr__(self, name: str) -> {{ class.class_property_type() }}:
-    ///         if name not in self.__properties:
-    ///             raise AttributeError(f"Property {name} not found.")
-    ///         return {{ class.class_property_type() }}(self.__bldr.property(name))
     ///     {% endif %}
     /// 
     /// ```
@@ -244,14 +255,17 @@ mod type_builder {
     ///     def __init__(self, tb: type_builder.TypeBuilder):
     ///         super().__init__(tb)
     /// 
-    ///     def list_values(self) -> typing.List[typing.Tuple[str, {{ enum_.enum_value_type() }}]]:
-    ///         return [(name, {{ enum_.enum_value_type() }}(self._bldr.value(name))) for name in self._values]
-    /// 
     ///     {% if enum_.dynamic %}
+    ///     def list_values(self) -> typing.List[typing.Tuple[str, {{ enum_.enum_value_type() }}]]:
+    ///         return [(name, self._bldr.value(name)) for name in self._values]
+    ///
     ///     def add_value(self, name: str) -> {{ enum_.enum_value_type() }}:
     ///         if name in self._values:
     ///             raise ValueError(f"Value {name} already exists.")
-    ///         return {{ enum_.enum_value_type() }}(self._bldr.value(name))
+    ///         return self._bldr.value(name)
+    ///     {% else %}
+    ///     def list_values(self) -> typing.List[typing.Tuple[str, {{ enum_.enum_value_type() }}]]:
+    ///         return [(name, {{ enum_.enum_value_type() }}(self._bldr.value(name))) for name in self._values]
     ///     {% endif %}
     /// 
     /// class {{ enum_.name }}Values:
@@ -259,17 +273,23 @@ mod type_builder {
     ///         self.__bldr = enum_bldr
     ///         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
     /// 
+    ///     {% if enum_.dynamic %}
+    ///     def __getattr__(self, name: str) -> {{ enum_.enum_value_type() }}:
+    ///         if name not in self.__values:
+    ///             raise AttributeError(f"Value {name} not found.")
+    ///         return self.__bldr.value(name)
+    /// 
+    ///     {% for (value, _) in enum_.values %}
+    ///     @property
+    ///     def {{ value }}(self) -> {{ enum_.enum_value_type() }}:
+    ///         return self.__bldr.value("{{ value }}")
+    ///     {% endfor %}
+    ///     {% else %}
     ///     {% for (value, _) in enum_.values %}
     ///     @property
     ///     def {{ value }}(self) -> {{ enum_.enum_value_type() }}:
     ///         return {{ enum_.enum_value_type() }}(self.__bldr.value("{{ value }}"))
     ///     {% endfor %}
-    /// 
-    ///     {% if enum_.dynamic %}
-    ///     def __getattr__(self, name: str) -> {{ enum_.enum_value_type() }}:
-    ///         if name not in self.__values:
-    ///             raise AttributeError(f"Value {name} not found.")
-    ///         return {{ enum_.enum_value_type() }}(self.__bldr.value(name))
     ///     {% endif %}
     /// 
     /// ```
@@ -307,7 +327,7 @@ mod type_aliases {
     /// {% if let Some(docstring) = docstring -%}
     /// {{ crate::utils::prefix_lines(docstring, "# ") }}
     /// {%- endif %}
-    /// {{ name }} = {{ type_.serialize_type(&pkg.in_type_definition()) }}
+    /// {{ name }}: typing_extensions.TypeAlias = {{ type_.serialize_type(&pkg.in_type_definition()) }}
     /// ```
     #[derive(askama::Template)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
@@ -326,17 +346,48 @@ mod type_aliases {
 /// import typing_extensions
 /// from enum import Enum
 ///
-/// from pydantic import BaseModel
+/// {% if pkg.is_pydantic_2 %}
+/// from pydantic import BaseModel, ConfigDict
+/// {% else %}
+/// from pydantic import BaseModel, Extra
+/// from pydantic.generics import GenericModel
+/// {% endif %}
+/// 
+/// import baml_py
+/// 
+/// CheckT = typing_extensions.TypeVar('CheckT')
+/// CheckName = typing_extensions.TypeVar('CheckName', bound=str)
+///
+/// class Check(BaseModel):
+///     name: str
+///     expression: str
+///     status: str
+///
+/// {%- if pkg.is_pydantic_2 %}
+/// class Checked(BaseModel, typing.Generic[CheckT, CheckName]):
+/// {%- else %}
+/// class Checked(GenericModel, typing.Generic[CheckT, CheckName]):
+/// {%- endif %}
+///     value: CheckT
+///     checks: typing.Dict[CheckName, Check]
+///
+/// def get_checks(checks: typing.Dict[CheckName, Check]) -> typing.List[Check]:
+///     return list(checks.values())
+///
+/// def all_succeeded(checks: typing.Dict[CheckName, Check]) -> bool:
+///     return all(check.status == "succeeded" for check in get_checks(checks)) 
 /// ```
 ///
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-struct PyTypesUtils {}
+struct PyTypesUtils<'a> {
+    pkg: &'a CurrentRenderPackage,
+}
 
-pub(crate) fn render_py_types_utils(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub(crate) fn render_py_types_utils(pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     use askama::Template;
 
-    PyTypesUtils{}.render()
+    PyTypesUtils{pkg}.render()
 }
 
 /// A list of types in Py.
@@ -370,13 +421,6 @@ pub(crate) fn render_py_types<T: askama::Template>(
     } }.render()
 }
 
-const STREAM_STATE_PY: &str = r#"
-StreamStateValueT = typing.TypeVar('StreamStateValueT')
-class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
-    value: StreamStateValueT
-    state: typing.Literal["Pending", "Incomplete", "Complete"]
-"#;
-
 /// A list of types in Py.
 ///
 /// ```askama
@@ -384,22 +428,38 @@ class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
 /// import typing_extensions
 /// from enum import Enum
 /// 
-/// from pydantic import BaseModel
+/// {%- if pkg.is_pydantic_2 %}
+/// from pydantic import BaseModel, ConfigDict
+/// {%- else %}
+/// from pydantic import BaseModel, Extra
+/// from pydantic.generics import GenericModel
+/// {%- endif %}
+/// 
+/// import baml_py
 /// 
 /// from . import types
 ///
-/// {{ STREAM_STATE_PY }}
+/// StreamStateValueT = typing.TypeVar('StreamStateValueT')
+/// {%- if pkg.is_pydantic_2 %}
+/// class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
+/// {%- else %}
+/// class StreamState(GenericModel, typing.Generic[StreamStateValueT]):
+/// {%- endif %}
+///     value: StreamStateValueT
+///     state: typing_extensions.Literal["Pending", "Incomplete", "Complete"]
 /// ```
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-pub struct PyStreamTypesUtils {}
+pub struct PyStreamTypesUtils<'a> {
+    pkg: &'a CurrentRenderPackage,
+}
 
 pub(crate) fn render_py_stream_types_utils(
-    _pkg: &CurrentRenderPackage,
+    pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    PyStreamTypesUtils {  }.render()
+    PyStreamTypesUtils { pkg }.render()
 }
 
 

@@ -126,6 +126,8 @@ async def test_dynamic_class_nested_output_stream():
     )
     msgs: List[partial_types.DynamicOutput] = []
     async for msg in stream:
+        if msg is None:
+            continue
         print("streamed ", msg)
         print("streamed ", msg.dict())
         msgs.append(msg)
@@ -156,6 +158,8 @@ async def test_stream_dynamic_class_output():
     )
     msgs: List[partial_types.DynamicOutput] = []
     async for msg in stream:
+        if msg is None:
+            continue
         print("streamed ", msg.dict())
         msgs.append(msg)
     final = await stream.get_final_response()
@@ -260,7 +264,7 @@ async def test_dynamic_inputs_list():
     custom_class = tb.add_class("MyBlah")
     custom_class.add_property("nestedKey1", tb.string())
     tb.DynInputOutput.add_property("blah", custom_class.type())
-
+    print(tb)
     res = await b.DynamicListInputOutput(
         [
             DynInputOutput.parse_obj(
