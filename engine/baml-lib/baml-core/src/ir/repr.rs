@@ -588,7 +588,7 @@ impl IntermediateRepr {
         self.functions.iter().map(|e| Walker { ir: self, item: e })
     }
 
-    pub fn walk_all_types(&self) -> impl Iterator<Item = &FieldType> {
+    pub fn walk_all_unions(&self) -> impl Iterator<Item = &FieldType> {
         // finding types used in classes
         let class_fields = self
             .classes
@@ -609,7 +609,11 @@ impl IntermediateRepr {
 
         let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
 
-        all_types
+        // also then flatten the types so any inner types are also included
+        fn is_union(t: &FieldType) -> bool {
+            matches!(t, FieldType::Union(..))
+        }
+        all_types.flat_map(|t| t.find_if(&is_union))
     }
 
     // TODO: This is a quick workaround in order to make expr_fns compatible

@@ -15,6 +15,7 @@ package baml_client
 
 import (
 	"context"
+
 	"semantic_streaming/baml_client/stream_types"
 	"semantic_streaming/baml_client/types"
 

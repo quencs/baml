@@ -36,6 +36,7 @@ fn render_function_stream(function: &FunctionGo, pkg: &CurrentRenderPackage) -> 
 ///
 /// import (
 ///     "context"
+/// 
 ///     "{{ go_mod_name }}/baml_client/types"
 ///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 /// )
@@ -66,6 +67,8 @@ pub fn render_functions(functions: &[FunctionGo], pkg: &CurrentRenderPackage, go
 /// package baml_client
 ///
 /// import (
+///     "context"
+/// 
 ///     "{{ go_mod_name }}/baml_client/types"
 ///     "{{ go_mod_name }}/baml_client/stream_types"
 ///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"

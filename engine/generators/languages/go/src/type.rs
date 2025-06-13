@@ -86,10 +86,12 @@ pub enum MediaTypeGo {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum TypeGo {
-    String(TypeMetaGo),
-    Int(TypeMetaGo),
+    // in case a literal
+    String(Option<String>, TypeMetaGo),
+    // in case a literal
+    Int(Option<i64>, TypeMetaGo),
     Float(TypeMetaGo),
-    Bool(TypeMetaGo),
+    Bool(Option<bool>, TypeMetaGo),
     Media(MediaTypeGo, TypeMetaGo),
     // unions become classes
     Class {
@@ -123,14 +125,19 @@ pub enum TypeGo {
     },
 }
 
+fn safe_name(name: &str) -> String {
+    // replace all non-alphanumeric characters with an underscore
+    name.replace(|c: char| !c.is_alphanumeric(), "_")
+}
+
 impl TypeGo {
     // for unions, we need a default name for the type when the union is not named
     pub fn default_name_within_union(&self) -> String {
         match self {
-            TypeGo::String(_) => "String".to_string(),
-            TypeGo::Int(_) => "Int".to_string(),
+            TypeGo::String(val, _) => val.as_ref().map_or("String".to_string(), |v| format!("StringK{}", safe_name(v))),
+            TypeGo::Int(val, _) => val.map_or("Int".to_string(), |v| format!("IntK{}", v)),
             TypeGo::Float(_) => "Float".to_string(),
-            TypeGo::Bool(_) => "Bool".to_string(),
+            TypeGo::Bool(val, _) => val.map_or("Bool".to_string(), |v| format!("BoolK{}", if v { "True" } else { "False" })),
             TypeGo::Media(media_type_go, _) => match media_type_go {
                 MediaTypeGo::Image => "Image".to_string(),
                 MediaTypeGo::Audio => "Audio".to_string(),
@@ -154,10 +161,10 @@ impl TypeGo {
             return "nil".to_string();
         }
         match self {
-            TypeGo::String(_) => "\"\"".to_string(),
-            TypeGo::Int(_) => "0".to_string(),
+            TypeGo::String(val, _) => val.as_ref().map_or("\"\"".to_string(), |v| format!("\"{}\"", v.replace("\"", "\\\"")).to_string()),
+            TypeGo::Int(val, _) => val.map_or("0".to_string(), |v| format!("{}", v)),
             TypeGo::Float(_) => "0.0".to_string(),
-            TypeGo::Bool(_) => "false".to_string(),
+            TypeGo::Bool(val, _) => val.map_or("false".to_string(), |v| if v { "true" } else { "false" }.to_string()),
             TypeGo::Media(..) | TypeGo::Class { .. } | TypeGo::Union { .. } => {
                 format!("{}{{}}", self.serialize_type(pkg))
             }
@@ -322,10 +329,10 @@ impl TypeGo {
 
     pub fn meta(&self) -> &TypeMetaGo {
         match self {
-            TypeGo::String(meta) => meta,
-            TypeGo::Int(meta) => meta,
+            TypeGo::String(.., meta) => meta,
+            TypeGo::Int(.., meta) => meta,
             TypeGo::Float(meta) => meta,
-            TypeGo::Bool(meta) => meta,
+            TypeGo::Bool(.., meta) => meta,
             TypeGo::Media(_, meta) => meta,
             TypeGo::Class { meta, .. } => meta,
             TypeGo::TypeAlias { meta, .. } => meta,
@@ -339,10 +346,10 @@ impl TypeGo {
 
     pub fn meta_mut(&mut self) -> &mut TypeMetaGo {
         match self {
-            TypeGo::String(meta) => meta,
-            TypeGo::Int(meta) => meta,
+            TypeGo::String(.., meta) => meta,
+            TypeGo::Int(.., meta) => meta,
             TypeGo::Float(meta) => meta,
-            TypeGo::Bool(meta) => meta,
+            TypeGo::Bool(.., meta) => meta,
             TypeGo::Media(_, meta) => meta,
             TypeGo::Class { meta, .. } => meta,
             TypeGo::TypeAlias { meta, .. } => meta,
@@ -368,10 +375,10 @@ impl SerializeType for TypeGo {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         let meta = self.meta();
         let type_str = match self {
-            TypeGo::String(_) => "string".to_string(),
-            TypeGo::Int(_) => "int64".to_string(),
+            TypeGo::String(..) => "string".to_string(),
+            TypeGo::Int(..) => "int64".to_string(),
             TypeGo::Float(_) => "float64".to_string(),
-            TypeGo::Bool(_) => "bool".to_string(),
+            TypeGo::Bool(..) => "bool".to_string(),
             TypeGo::Media(media, _) => media.serialize_type(pkg),
             TypeGo::Class { package, name, .. } => {
                 format!("{}{}", package.relative_from(pkg), name)
@@ -401,8 +408,8 @@ impl SerializeType for TypeGo {
 impl SerializeType for MediaTypeGo {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         match self {
-            MediaTypeGo::Image => format!("{}.Image", Package::imported_base().relative_from(pkg)),
-            MediaTypeGo::Audio => format!("{}.Audio", Package::imported_base().relative_from(pkg)),
+            MediaTypeGo::Image => "any".to_string(), // format!("{}Image", Package::imported_base().relative_from(pkg)),
+            MediaTypeGo::Audio => "any".to_string(), // format!("{}Audio", Package::imported_base().relative_from(pkg)),
         }
     }
 }

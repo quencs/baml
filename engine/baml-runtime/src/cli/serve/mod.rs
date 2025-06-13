@@ -4,7 +4,7 @@ mod json_response;
 mod ping;
 use error::BamlError;
 use indexmap::IndexMap;
-use internal_baml_codegen::GeneratorArgs;
+use generators_lib::GeneratorArgs;
 use json_response::Json;
 use std::collections::HashMap;
 

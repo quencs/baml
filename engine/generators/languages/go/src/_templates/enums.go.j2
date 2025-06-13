@@ -1,5 +1,5 @@
 {%- if let Some(docstring) = docstring %}
-{{docstring}}
+{{ crate::utils::prefix_lines(docstring, "// ") }}
 {%- endif %}
 type {{ name }} string
 
@@ -9,7 +9,7 @@ const (
     {%- else %}
     {%- for (value, m_docstring) in values %}
     {%- if let Some(docstring) = m_docstring %}
-    {{ docstring }}
+    {{ crate::utils::prefix_lines(docstring, "// ") }}
     {%- endif %}
     {{ name }}{{ value }} {{ name }} = "{{ value }}"
     {%- endfor %}

@@ -15,6 +15,7 @@ package baml_client
 
 import (
 	"context"
+
 	"recursive_types/baml_client/stream_types"
 	"recursive_types/baml_client/types"
 

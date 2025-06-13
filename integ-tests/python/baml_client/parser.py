@@ -15,7 +15,6 @@
 # fmt: off
 from typing import Any, Dict, List, Optional, Union, TypedDict, Type, cast
 from typing_extensions import NotRequired, Literal
-import os
 
 import baml_py
 
@@ -27,16 +26,7 @@ from .type_builder import TypeBuilder
 class BamlCallOptions(TypedDict, total=False):
     tb: NotRequired[TypeBuilder]
     client_registry: NotRequired[baml_py.baml_py.ClientRegistry]
-    env: NotRequired[Dict[str, Optional[str]]]
 
-def env_vars_to_dict(overrides: Dict[str, Optional[str]]) -> Dict[str, str]:
-    base = os.environ.copy()
-    for k, v in overrides.items():
-        if v is not None:
-            base[k] = v
-        else:
-            base.pop(k, None)
-    return base
 
 class LlmResponseParser:
     __runtime: baml_py.BamlRuntime
@@ -59,8 +49,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AaaSamOutputFormat",
         llm_response,
@@ -71,7 +59,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Recipe, parsed)
@@ -88,8 +75,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AliasThatPointsToRecursiveType",
         llm_response,
@@ -100,7 +85,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.LinkedListAliasNode, parsed)
@@ -117,8 +101,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AliasWithMultipleAttrs",
         llm_response,
@@ -129,7 +111,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Checked[int, Literal["gt_ten"]], parsed)
@@ -146,8 +127,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputClass",
         llm_response,
@@ -158,7 +137,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -175,8 +153,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputClass2",
         llm_response,
@@ -187,7 +163,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -204,8 +179,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputClassNested",
         llm_response,
@@ -216,7 +189,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -233,8 +205,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputEnum",
         llm_response,
@@ -245,7 +215,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -262,8 +231,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputList",
         llm_response,
@@ -274,7 +241,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -291,8 +257,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AllowedOptionals",
         llm_response,
@@ -303,7 +267,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.OptionalListAndMap, parsed)
@@ -320,8 +283,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AssertFn",
         llm_response,
@@ -332,7 +293,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(int, parsed)
@@ -349,8 +309,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AudioInput",
         llm_response,
@@ -361,7 +319,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -378,8 +335,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AudioInputOpenai",
         llm_response,
@@ -390,7 +345,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -407,8 +361,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "BuildLinkedList",
         llm_response,
@@ -419,7 +371,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.LinkedList, parsed)
@@ -436,8 +387,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "BuildTree",
         llm_response,
@@ -448,7 +397,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Tree, parsed)
@@ -465,8 +413,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassThatPointsToRecursiveClassThroughAlias",
         llm_response,
@@ -477,7 +423,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.ClassToRecAlias, parsed)
@@ -494,8 +439,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassifyDynEnumTwo",
         llm_response,
@@ -506,7 +449,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Union[types.DynEnumTwo, str], parsed)
@@ -523,8 +465,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassifyMessage",
         llm_response,
@@ -535,7 +475,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Category, parsed)
@@ -552,8 +491,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassifyMessage2",
         llm_response,
@@ -564,7 +501,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Category, parsed)
@@ -581,8 +517,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassifyMessage3",
         llm_response,
@@ -593,7 +527,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Category, parsed)
@@ -610,8 +543,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "Completion",
         llm_response,
@@ -622,7 +553,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -639,8 +569,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "CustomTask",
         llm_response,
@@ -651,7 +579,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Union[types.BookOrder, types.FlightConfirmation, types.GroceryReceipt], parsed)
@@ -668,8 +595,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DescribeImage",
         llm_response,
@@ -680,7 +605,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -697,8 +621,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DescribeImage2",
         llm_response,
@@ -709,7 +631,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -726,8 +647,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DescribeImage3",
         llm_response,
@@ -738,7 +657,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -755,8 +673,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DescribeImage4",
         llm_response,
@@ -767,7 +683,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -784,8 +699,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DescribeMedia1599",
         llm_response,
@@ -796,7 +709,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -813,8 +725,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DifferentiateUnions",
         llm_response,
@@ -825,7 +735,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Union[types.OriginalA, types.OriginalB], parsed)
@@ -842,8 +751,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DummyOutputFunction",
         llm_response,
@@ -854,7 +761,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.DummyOutput, parsed)
@@ -871,8 +777,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DynamicFunc",
         llm_response,
@@ -883,7 +787,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.DynamicClassTwo, parsed)
@@ -900,8 +803,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DynamicInputOutput",
         llm_response,
@@ -912,7 +813,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.DynInputOutput, parsed)
@@ -929,8 +829,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DynamicListInputOutput",
         llm_response,
@@ -941,7 +839,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[types.DynInputOutput], parsed)
@@ -958,8 +855,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExpectFailure",
         llm_response,
@@ -970,7 +865,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -987,8 +881,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractContactInfo",
         llm_response,
@@ -999,7 +891,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.ContactInfo, parsed)
@@ -1016,8 +907,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractEntities",
         llm_response,
@@ -1028,7 +917,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.DynamicSchema, parsed)
@@ -1045,8 +933,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractHobby",
         llm_response,
@@ -1057,7 +943,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[Union[types.Hobby, str]], parsed)
@@ -1074,8 +959,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractNames",
         llm_response,
@@ -1086,7 +969,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[str], parsed)
@@ -1103,8 +985,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractPeople",
         llm_response,
@@ -1115,7 +995,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[types.Person], parsed)
@@ -1132,8 +1011,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractReceiptInfo",
         llm_response,
@@ -1144,7 +1021,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.ReceiptInfo, parsed)
@@ -1161,8 +1037,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractResume",
         llm_response,
@@ -1173,7 +1047,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Resume, parsed)
@@ -1190,8 +1063,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractResume2",
         llm_response,
@@ -1202,7 +1073,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Resume, parsed)
@@ -1219,8 +1089,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnClassOptionalOutput",
         llm_response,
@@ -1231,7 +1099,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[types.ClassOptionalOutput], parsed)
@@ -1248,8 +1115,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnClassOptionalOutput2",
         llm_response,
@@ -1260,7 +1125,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[types.ClassOptionalOutput2], parsed)
@@ -1277,8 +1141,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnEnumListOutput",
         llm_response,
@@ -1289,7 +1151,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[types.EnumOutput], parsed)
@@ -1306,8 +1167,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnEnumOutput",
         llm_response,
@@ -1318,7 +1177,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.EnumOutput, parsed)
@@ -1335,8 +1193,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnLiteralClassInputOutput",
         llm_response,
@@ -1347,7 +1203,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.LiteralClassHello, parsed)
@@ -1364,8 +1219,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnLiteralUnionClassInputOutput",
         llm_response,
@@ -1376,7 +1229,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Union[types.LiteralClassOne, types.LiteralClassTwo], parsed)
@@ -1393,8 +1245,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnNamedArgsSingleStringOptional",
         llm_response,
@@ -1405,7 +1255,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -1422,8 +1271,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputBool",
         llm_response,
@@ -1434,7 +1281,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(bool, parsed)
@@ -1451,8 +1297,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputClass",
         llm_response,
@@ -1463,7 +1307,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.TestOutputClass, parsed)
@@ -1480,8 +1323,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputClassList",
         llm_response,
@@ -1492,7 +1333,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[types.TestOutputClass], parsed)
@@ -1509,8 +1349,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputClassNested",
         llm_response,
@@ -1521,7 +1359,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.TestClassNested, parsed)
@@ -1538,8 +1375,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputClassWithEnum",
         llm_response,
@@ -1550,7 +1385,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.TestClassWithEnum, parsed)
@@ -1567,8 +1401,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputInt",
         llm_response,
@@ -1579,7 +1411,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(int, parsed)
@@ -1596,8 +1427,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputLiteralBool",
         llm_response,
@@ -1608,7 +1437,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Literal[False], parsed)
@@ -1625,8 +1453,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputLiteralInt",
         llm_response,
@@ -1637,7 +1463,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Literal[5], parsed)
@@ -1654,8 +1479,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputLiteralString",
         llm_response,
@@ -1666,7 +1489,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Literal["example output"], parsed)
@@ -1683,8 +1505,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputStringList",
         llm_response,
@@ -1695,7 +1515,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[str], parsed)
@@ -1712,8 +1531,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnTestAliasedEnumOutput",
         llm_response,
@@ -1724,7 +1541,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.TestEnum, parsed)
@@ -1741,8 +1557,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnTestClassAlias",
         llm_response,
@@ -1753,7 +1567,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.TestClassAlias, parsed)
@@ -1770,8 +1583,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnTestNamedArgsSingleEnum",
         llm_response,
@@ -1782,7 +1593,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -1799,8 +1609,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "GetDataType",
         llm_response,
@@ -1811,7 +1619,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RaysData, parsed)
@@ -1828,8 +1635,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "GetOrderInfo",
         llm_response,
@@ -1840,7 +1645,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.OrderInfo, parsed)
@@ -1857,8 +1661,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "GetQuery",
         llm_response,
@@ -1869,7 +1671,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.SearchParams, parsed)
@@ -1886,8 +1687,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "InOutEnumMapKey",
         llm_response,
@@ -1898,7 +1697,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Dict[types.MapKey, str], parsed)
@@ -1907,15 +1705,13 @@ class LlmResponseParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Dict[Union[Literal["one"], Literal["two"], Literal["three"], Literal["four"]], str]:
+    ) -> Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "InOutLiteralStringUnionMapKey",
@@ -1927,10 +1723,9 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Dict[Union[Literal["one"], Literal["two"], Literal["three"], Literal["four"]], str], parsed)
+      return cast(Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str], parsed)
     
     def InOutSingleLiteralStringMapKey(
         self,
@@ -1944,8 +1739,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "InOutSingleLiteralStringMapKey",
         llm_response,
@@ -1956,7 +1749,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Dict[Literal["key"], str], parsed)
@@ -1973,8 +1765,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "JsonTypeAliasCycle",
         llm_response,
@@ -1985,7 +1775,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.JsonValue, parsed)
@@ -2002,8 +1791,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "LLMEcho",
         llm_response,
@@ -2014,7 +1801,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2031,8 +1817,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "LiteralUnionsTest",
         llm_response,
@@ -2043,7 +1827,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Union[Literal[1], Literal[True], Literal["string output"]], parsed)
@@ -2060,8 +1843,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeBlockConstraint",
         llm_response,
@@ -2072,7 +1853,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Checked[types.BlockConstraint, Literal["cross_field"]], parsed)
@@ -2089,8 +1869,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeClassWithBlockDone",
         llm_response,
@@ -2101,7 +1879,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.ClassWithBlockDone, parsed)
@@ -2118,8 +1895,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeClassWithExternalDone",
         llm_response,
@@ -2130,7 +1905,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.ClassWithoutDone, parsed)
@@ -2147,8 +1921,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeNestedBlockConstraint",
         llm_response,
@@ -2159,7 +1931,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.NestedBlockConstraint, parsed)
@@ -2176,8 +1947,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeSemanticContainer",
         llm_response,
@@ -2188,7 +1957,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.SemanticContainer, parsed)
@@ -2205,8 +1973,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MapAlias",
         llm_response,
@@ -2217,7 +1983,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Dict[str, List[str]], parsed)
@@ -2234,8 +1999,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MergeAliasAttributes",
         llm_response,
@@ -2246,7 +2009,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.MergeAttrs, parsed)
@@ -2263,8 +2025,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MyFunc",
         llm_response,
@@ -2275,7 +2035,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.DynamicOutput, parsed)
@@ -2284,15 +2043,13 @@ class LlmResponseParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Union[int, str, bool, float, List[str], Dict[str, List[str]]]:
+    ) -> Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "NestedAlias",
@@ -2304,10 +2061,9 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Union[int, str, bool, float, List[str], Dict[str, List[str]]], parsed)
+      return cast(Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]], parsed)
     
     def NullLiteralClassHello(
         self,
@@ -2321,8 +2077,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "NullLiteralClassHello",
         llm_response,
@@ -2333,7 +2087,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.ClassForNullLiteral, parsed)
@@ -2350,8 +2103,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "OpenAIWithAnthropicResponseHello",
         llm_response,
@@ -2362,7 +2113,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2379,8 +2129,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "OptionalTest_Function",
         llm_response,
@@ -2391,7 +2139,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[Optional[types.OptionalTest_ReturnType]], parsed)
@@ -2408,8 +2155,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PredictAge",
         llm_response,
@@ -2420,7 +2165,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.FooAny, parsed)
@@ -2437,8 +2181,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PredictAgeBare",
         llm_response,
@@ -2449,7 +2191,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Checked[int, Literal["too_big"]], parsed)
@@ -2466,8 +2207,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PrimitiveAlias",
         llm_response,
@@ -2478,7 +2217,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Union[int, str, bool, float], parsed)
@@ -2495,8 +2233,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PromptTestClaude",
         llm_response,
@@ -2507,7 +2243,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2524,8 +2259,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PromptTestClaudeChat",
         llm_response,
@@ -2536,7 +2269,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2553,8 +2285,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PromptTestClaudeChatNoSystem",
         llm_response,
@@ -2565,7 +2295,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2582,8 +2311,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PromptTestOpenAI",
         llm_response,
@@ -2594,7 +2321,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2611,8 +2337,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PromptTestOpenAIChat",
         llm_response,
@@ -2623,7 +2347,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2640,8 +2363,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PromptTestOpenAIChatNoSystem",
         llm_response,
@@ -2652,7 +2373,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2669,8 +2389,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PromptTestStreaming",
         llm_response,
@@ -2681,7 +2399,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -2698,8 +2415,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "RecursiveAliasCycle",
         llm_response,
@@ -2710,7 +2425,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecAliasOne, parsed)
@@ -2727,8 +2441,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "RecursiveClassWithAliasIndirection",
         llm_response,
@@ -2739,7 +2451,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.NodeWithAliasIndirection, parsed)
@@ -2756,8 +2467,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "RecursiveUnionTest",
         llm_response,
@@ -2768,7 +2477,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecursiveUnion, parsed)
@@ -2785,8 +2493,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ReturnAliasWithMergedAttributes",
         llm_response,
@@ -2797,7 +2503,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Checked[int, Literal["gt_ten"]], parsed)
@@ -2814,8 +2519,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ReturnFailingAssert",
         llm_response,
@@ -2826,7 +2529,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(int, parsed)
@@ -2843,8 +2545,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ReturnJsonEntry",
         llm_response,
@@ -2855,7 +2555,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.JsonTemplate, parsed)
@@ -2872,8 +2571,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ReturnMalformedConstraints",
         llm_response,
@@ -2884,7 +2581,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.MalformedConstraints, parsed)
@@ -2901,8 +2597,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "SchemaDescriptions",
         llm_response,
@@ -2913,7 +2607,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Schema, parsed)
@@ -2930,8 +2623,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "SimpleRecursiveListAlias",
         llm_response,
@@ -2942,7 +2633,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecursiveListAlias, parsed)
@@ -2959,8 +2649,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "SimpleRecursiveMapAlias",
         llm_response,
@@ -2971,7 +2659,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecursiveMapAlias, parsed)
@@ -2988,8 +2675,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamBigNumbers",
         llm_response,
@@ -3000,7 +2685,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.BigNumbers, parsed)
@@ -3017,8 +2701,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamFailingAssertion",
         llm_response,
@@ -3029,7 +2711,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.TwoStoriesOneTitle, parsed)
@@ -3046,8 +2727,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamFailingCheck",
         llm_response,
@@ -3058,7 +2737,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.TwoStoriesOneTitleCheck, parsed)
@@ -3075,8 +2753,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamOneBigNumber",
         llm_response,
@@ -3087,7 +2763,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(int, parsed)
@@ -3104,8 +2779,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamUnionIntegers",
         llm_response,
@@ -3116,7 +2789,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[Union[int, str]], parsed)
@@ -3133,8 +2805,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamingCompoundNumbers",
         llm_response,
@@ -3145,7 +2815,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.CompoundBigNumbers, parsed)
@@ -3162,8 +2831,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StructureDocument1559",
         llm_response,
@@ -3174,7 +2841,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Document1559, parsed)
@@ -3191,8 +2857,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TakeRecAliasDep",
         llm_response,
@@ -3203,7 +2867,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecursiveAliasDependency, parsed)
@@ -3220,8 +2883,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TellStory",
         llm_response,
@@ -3232,7 +2893,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3249,8 +2909,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAnthropic",
         llm_response,
@@ -3261,7 +2919,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3278,8 +2935,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAnthropicShorthand",
         llm_response,
@@ -3290,7 +2945,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3307,8 +2961,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAws",
         llm_response,
@@ -3319,7 +2971,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3336,8 +2987,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAwsClaude37",
         llm_response,
@@ -3348,7 +2997,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3365,8 +3013,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInferenceProfile",
         llm_response,
@@ -3377,7 +3023,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3394,8 +3039,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInvalidAccessKey",
         llm_response,
@@ -3406,7 +3049,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3423,8 +3065,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInvalidProfile",
         llm_response,
@@ -3435,7 +3075,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3452,8 +3091,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInvalidRegion",
         llm_response,
@@ -3464,7 +3101,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3481,8 +3117,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInvalidSessionToken",
         llm_response,
@@ -3493,7 +3127,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3510,8 +3143,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAzure",
         llm_response,
@@ -3522,7 +3153,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3539,8 +3169,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAzureFailure",
         llm_response,
@@ -3551,7 +3179,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3568,8 +3195,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO1NoMaxTokens",
         llm_response,
@@ -3580,7 +3205,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3597,8 +3221,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO1WithMaxCompletionTokens",
         llm_response,
@@ -3609,7 +3231,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3626,8 +3247,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO1WithMaxTokens",
         llm_response,
@@ -3638,7 +3257,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3655,8 +3273,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO3NoMaxTokens",
         llm_response,
@@ -3667,7 +3283,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3684,8 +3299,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO3WithMaxCompletionTokens",
         llm_response,
@@ -3696,7 +3309,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3713,8 +3325,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestAzureWithMaxTokens",
         llm_response,
@@ -3725,7 +3335,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3742,8 +3351,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestCaching",
         llm_response,
@@ -3754,7 +3361,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3771,8 +3377,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFallbackClient",
         llm_response,
@@ -3783,7 +3387,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3800,8 +3403,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFallbackStrategy",
         llm_response,
@@ -3812,7 +3413,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3829,8 +3429,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFallbackToShorthand",
         llm_response,
@@ -3841,7 +3439,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3858,8 +3455,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleBool",
         llm_response,
@@ -3870,7 +3465,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3887,8 +3481,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleClass",
         llm_response,
@@ -3899,7 +3491,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3916,8 +3507,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleEnumList",
         llm_response,
@@ -3928,7 +3517,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3945,8 +3533,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleFloat",
         llm_response,
@@ -3957,7 +3543,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -3974,8 +3559,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleInt",
         llm_response,
@@ -3986,7 +3569,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4003,8 +3585,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleMapStringToClass",
         llm_response,
@@ -4015,7 +3595,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Dict[str, types.StringToClassEntry], parsed)
@@ -4032,8 +3611,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleMapStringToMap",
         llm_response,
@@ -4044,7 +3621,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Dict[str, Dict[str, str]], parsed)
@@ -4061,8 +3637,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleMapStringToString",
         llm_response,
@@ -4073,7 +3647,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Dict[str, str], parsed)
@@ -4090,8 +3663,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleString",
         llm_response,
@@ -4102,7 +3673,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4119,8 +3689,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleStringArray",
         llm_response,
@@ -4131,7 +3699,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4148,8 +3715,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleStringList",
         llm_response,
@@ -4160,7 +3725,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[str], parsed)
@@ -4177,8 +3741,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestGemini",
         llm_response,
@@ -4189,7 +3751,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4206,8 +3767,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestGeminiOpenAiGeneric",
         llm_response,
@@ -4218,7 +3777,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4235,8 +3793,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestGeminiSystem",
         llm_response,
@@ -4247,7 +3803,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4264,8 +3819,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestGeminiSystemAsChat",
         llm_response,
@@ -4276,7 +3829,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4293,8 +3845,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestGroq",
         llm_response,
@@ -4305,7 +3855,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4322,8 +3871,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestImageInput",
         llm_response,
@@ -4334,7 +3881,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4351,8 +3897,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestImageInputAnthropic",
         llm_response,
@@ -4363,7 +3907,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4380,8 +3923,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestImageListInput",
         llm_response,
@@ -4392,7 +3933,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4409,8 +3949,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestMemory",
         llm_response,
@@ -4421,7 +3959,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.TestMemoryOutput, parsed)
@@ -4438,8 +3975,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestMulticlassNamedArgs",
         llm_response,
@@ -4450,7 +3985,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4467,8 +4001,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestNamedArgsLiteralBool",
         llm_response,
@@ -4479,7 +4011,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4496,8 +4027,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestNamedArgsLiteralInt",
         llm_response,
@@ -4508,7 +4037,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4525,8 +4053,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestNamedArgsLiteralString",
         llm_response,
@@ -4537,7 +4063,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4554,8 +4079,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOllama",
         llm_response,
@@ -4566,7 +4089,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[str], parsed)
@@ -4583,8 +4105,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOllamaHaiku",
         llm_response,
@@ -4595,7 +4115,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.Haiku, parsed)
@@ -4612,8 +4131,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAI",
         llm_response,
@@ -4624,7 +4141,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4641,8 +4157,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIDummyClient",
         llm_response,
@@ -4653,7 +4167,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4670,8 +4183,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIGPT4oMini",
         llm_response,
@@ -4682,7 +4193,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4699,8 +4209,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAILegacyProvider",
         llm_response,
@@ -4711,7 +4219,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4728,8 +4235,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIO1NoMaxTokens",
         llm_response,
@@ -4740,7 +4245,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4757,8 +4261,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIO1WithMaxCompletionTokens",
         llm_response,
@@ -4769,7 +4271,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4786,8 +4287,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIO1WithMaxTokens",
         llm_response,
@@ -4798,7 +4297,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4815,8 +4313,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIShorthand",
         llm_response,
@@ -4827,7 +4323,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4844,8 +4339,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIWithFinishReasonError",
         llm_response,
@@ -4856,7 +4349,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4873,8 +4365,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIWithMaxTokens",
         llm_response,
@@ -4885,7 +4375,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4902,8 +4391,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIWithNullMaxTokens",
         llm_response,
@@ -4914,7 +4401,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4931,8 +4417,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOpenRouterMistralSmall3_1_24b",
         llm_response,
@@ -4943,7 +4427,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4960,8 +4443,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestRetryConstant",
         llm_response,
@@ -4972,7 +4453,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -4989,8 +4469,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestRetryExponential",
         llm_response,
@@ -5001,7 +4479,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -5018,8 +4495,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestRoundRobinStrategy",
         llm_response,
@@ -5030,7 +4505,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -5047,8 +4521,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestSingleFallbackClient",
         llm_response,
@@ -5059,7 +4531,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -5076,8 +4547,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestThinking",
         llm_response,
@@ -5088,7 +4557,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.CustomStory, parsed)
@@ -5105,8 +4573,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestUniverseQuestion",
         llm_response,
@@ -5117,7 +4583,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.UniverseQuestion, parsed)
@@ -5134,8 +4599,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestVertex",
         llm_response,
@@ -5146,7 +4609,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -5163,8 +4625,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestVertexClaude",
         llm_response,
@@ -5175,7 +4635,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -5192,8 +4651,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestVertexWithSystemInstructions",
         llm_response,
@@ -5204,7 +4661,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -5221,8 +4677,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "UnionTest_Function",
         llm_response,
@@ -5233,7 +4687,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.UnionTest_ReturnType, parsed)
@@ -5250,8 +4703,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "UseBlockConstraint",
         llm_response,
@@ -5262,7 +4713,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(int, parsed)
@@ -5279,8 +4729,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "UseMaintainFieldOrder",
         llm_response,
@@ -5291,7 +4739,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.MaintainFieldOrder, parsed)
@@ -5308,8 +4755,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "UseMalformedConstraints",
         llm_response,
@@ -5320,7 +4765,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(int, parsed)
@@ -5337,8 +4781,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "UseNestedBlockConstraint",
         llm_response,
@@ -5349,7 +4791,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(int, parsed)
@@ -5366,8 +4807,6 @@ class LlmResponseParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "EchoWorkflow",
         llm_response,
@@ -5378,7 +4817,6 @@ class LlmResponseParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(str, parsed)
@@ -5406,8 +4844,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AaaSamOutputFormat",
         llm_response,
@@ -5418,7 +4854,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.Recipe, parsed)
@@ -5435,8 +4870,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AliasThatPointsToRecursiveType",
         llm_response,
@@ -5447,7 +4880,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.LinkedListAliasNode, parsed)
@@ -5456,15 +4888,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Checked[int, Literal["gt_ten"]]:
+    ) -> Checked[Optional[int], Literal["gt_ten"]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AliasWithMultipleAttrs",
@@ -5476,24 +4906,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Checked[int, Literal["gt_ten"]], parsed)
+      return cast(Checked[Optional[int], Literal["gt_ten"]], parsed)
     
     def AliasedInputClass(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputClass",
@@ -5505,24 +4932,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def AliasedInputClass2(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputClass2",
@@ -5534,24 +4958,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def AliasedInputClassNested(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputClassNested",
@@ -5563,24 +4984,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def AliasedInputEnum(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputEnum",
@@ -5592,24 +5010,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def AliasedInputList(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AliasedInputList",
@@ -5621,10 +5036,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def AllowedOptionals(
         self,
@@ -5638,8 +5052,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "AllowedOptionals",
         llm_response,
@@ -5650,7 +5062,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.OptionalListAndMap, parsed)
@@ -5659,15 +5070,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> int:
+    ) -> Optional[int]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AssertFn",
@@ -5679,24 +5088,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(int, parsed)
+      return cast(Optional[int], parsed)
     
     def AudioInput(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AudioInput",
@@ -5708,24 +5114,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def AudioInputOpenai(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "AudioInputOpenai",
@@ -5737,10 +5140,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def BuildLinkedList(
         self,
@@ -5754,8 +5156,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "BuildLinkedList",
         llm_response,
@@ -5766,7 +5166,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.LinkedList, parsed)
@@ -5783,8 +5182,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "BuildTree",
         llm_response,
@@ -5795,7 +5192,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.Tree, parsed)
@@ -5812,8 +5208,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassThatPointsToRecursiveClassThroughAlias",
         llm_response,
@@ -5824,7 +5218,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.ClassToRecAlias, parsed)
@@ -5841,8 +5234,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassifyDynEnumTwo",
         llm_response,
@@ -5853,7 +5244,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[Union[types.DynEnumTwo, str]], parsed)
@@ -5870,8 +5260,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassifyMessage",
         llm_response,
@@ -5882,7 +5270,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[types.Category], parsed)
@@ -5899,8 +5286,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassifyMessage2",
         llm_response,
@@ -5911,7 +5296,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[types.Category], parsed)
@@ -5928,8 +5312,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ClassifyMessage3",
         llm_response,
@@ -5940,7 +5322,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[types.Category], parsed)
@@ -5949,15 +5330,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "Completion",
@@ -5969,24 +5348,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def CustomTask(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Union[partial_types.BookOrder, partial_types.FlightConfirmation, partial_types.GroceryReceipt]:
+    ) -> Optional[Union[partial_types.BookOrder, partial_types.FlightConfirmation, partial_types.GroceryReceipt]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "CustomTask",
@@ -5998,24 +5374,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Union[partial_types.BookOrder, partial_types.FlightConfirmation, partial_types.GroceryReceipt], parsed)
+      return cast(Optional[Union[partial_types.BookOrder, partial_types.FlightConfirmation, partial_types.GroceryReceipt]], parsed)
     
     def DescribeImage(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "DescribeImage",
@@ -6027,24 +5400,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def DescribeImage2(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "DescribeImage2",
@@ -6056,24 +5426,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def DescribeImage3(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "DescribeImage3",
@@ -6085,24 +5452,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def DescribeImage4(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "DescribeImage4",
@@ -6114,24 +5478,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def DescribeMedia1599(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "DescribeMedia1599",
@@ -6143,24 +5504,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def DifferentiateUnions(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Union[partial_types.OriginalA, partial_types.OriginalB]:
+    ) -> Optional[Union[partial_types.OriginalA, partial_types.OriginalB]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "DifferentiateUnions",
@@ -6172,10 +5530,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Union[partial_types.OriginalA, partial_types.OriginalB], parsed)
+      return cast(Optional[Union[partial_types.OriginalA, partial_types.OriginalB]], parsed)
     
     def DummyOutputFunction(
         self,
@@ -6189,8 +5546,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DummyOutputFunction",
         llm_response,
@@ -6201,7 +5556,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.DummyOutput, parsed)
@@ -6218,8 +5572,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DynamicFunc",
         llm_response,
@@ -6230,7 +5582,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.DynamicClassTwo, parsed)
@@ -6247,8 +5598,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DynamicInputOutput",
         llm_response,
@@ -6259,7 +5608,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.DynInputOutput, parsed)
@@ -6276,8 +5624,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "DynamicListInputOutput",
         llm_response,
@@ -6288,7 +5634,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[partial_types.DynInputOutput], parsed)
@@ -6297,15 +5642,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "ExpectFailure",
@@ -6317,10 +5660,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def ExtractContactInfo(
         self,
@@ -6334,8 +5676,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractContactInfo",
         llm_response,
@@ -6346,7 +5686,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.ContactInfo, parsed)
@@ -6363,8 +5702,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractEntities",
         llm_response,
@@ -6375,7 +5712,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.DynamicSchema, parsed)
@@ -6392,8 +5728,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractHobby",
         llm_response,
@@ -6404,7 +5738,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[Optional[Union[types.Hobby, str]]], parsed)
@@ -6413,15 +5746,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> List[str]:
+    ) -> List[Optional[str]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "ExtractNames",
@@ -6433,10 +5764,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(List[str], parsed)
+      return cast(List[Optional[str]], parsed)
     
     def ExtractPeople(
         self,
@@ -6450,8 +5780,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractPeople",
         llm_response,
@@ -6462,7 +5790,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[partial_types.Person], parsed)
@@ -6479,8 +5806,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractReceiptInfo",
         llm_response,
@@ -6491,7 +5816,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.ReceiptInfo, parsed)
@@ -6508,8 +5832,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractResume",
         llm_response,
@@ -6520,7 +5842,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.Resume, parsed)
@@ -6537,8 +5858,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ExtractResume2",
         llm_response,
@@ -6549,7 +5868,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.Resume, parsed)
@@ -6566,8 +5884,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnClassOptionalOutput",
         llm_response,
@@ -6578,7 +5894,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[partial_types.ClassOptionalOutput], parsed)
@@ -6595,8 +5910,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnClassOptionalOutput2",
         llm_response,
@@ -6607,7 +5920,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[partial_types.ClassOptionalOutput2], parsed)
@@ -6624,8 +5936,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnEnumListOutput",
         llm_response,
@@ -6636,7 +5946,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[Optional[types.EnumOutput]], parsed)
@@ -6653,8 +5962,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnEnumOutput",
         llm_response,
@@ -6665,7 +5972,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[types.EnumOutput], parsed)
@@ -6682,8 +5988,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnLiteralClassInputOutput",
         llm_response,
@@ -6694,7 +5998,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.LiteralClassHello, parsed)
@@ -6703,15 +6006,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Union[partial_types.LiteralClassOne, partial_types.LiteralClassTwo]:
+    ) -> Optional[Union[partial_types.LiteralClassOne, partial_types.LiteralClassTwo]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "FnLiteralUnionClassInputOutput",
@@ -6723,24 +6024,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Union[partial_types.LiteralClassOne, partial_types.LiteralClassTwo], parsed)
+      return cast(Optional[Union[partial_types.LiteralClassOne, partial_types.LiteralClassTwo]], parsed)
     
     def FnNamedArgsSingleStringOptional(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "FnNamedArgsSingleStringOptional",
@@ -6752,24 +6050,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def FnOutputBool(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> bool:
+    ) -> Optional[bool]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "FnOutputBool",
@@ -6781,10 +6076,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(bool, parsed)
+      return cast(Optional[bool], parsed)
     
     def FnOutputClass(
         self,
@@ -6798,8 +6092,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputClass",
         llm_response,
@@ -6810,7 +6102,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.TestOutputClass, parsed)
@@ -6827,8 +6118,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputClassList",
         llm_response,
@@ -6839,7 +6128,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[partial_types.TestOutputClass], parsed)
@@ -6856,8 +6144,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputClassNested",
         llm_response,
@@ -6868,7 +6154,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.TestClassNested, parsed)
@@ -6885,8 +6170,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputClassWithEnum",
         llm_response,
@@ -6897,7 +6180,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.TestClassWithEnum, parsed)
@@ -6906,15 +6188,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> int:
+    ) -> Optional[int]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "FnOutputInt",
@@ -6926,10 +6206,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(int, parsed)
+      return cast(Optional[int], parsed)
     
     def FnOutputLiteralBool(
         self,
@@ -6943,8 +6222,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputLiteralBool",
         llm_response,
@@ -6955,7 +6232,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[Literal[False]], parsed)
@@ -6972,8 +6248,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputLiteralInt",
         llm_response,
@@ -6984,7 +6258,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[Literal[5]], parsed)
@@ -7001,8 +6274,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnOutputLiteralString",
         llm_response,
@@ -7013,7 +6284,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[Literal["example output"]], parsed)
@@ -7022,15 +6292,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> List[str]:
+    ) -> List[Optional[str]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "FnOutputStringList",
@@ -7042,10 +6310,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(List[str], parsed)
+      return cast(List[Optional[str]], parsed)
     
     def FnTestAliasedEnumOutput(
         self,
@@ -7059,8 +6326,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnTestAliasedEnumOutput",
         llm_response,
@@ -7071,7 +6336,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[types.TestEnum], parsed)
@@ -7088,8 +6352,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "FnTestClassAlias",
         llm_response,
@@ -7100,7 +6362,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.TestClassAlias, parsed)
@@ -7109,15 +6370,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "FnTestNamedArgsSingleEnum",
@@ -7129,10 +6388,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def GetDataType(
         self,
@@ -7146,8 +6404,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "GetDataType",
         llm_response,
@@ -7158,7 +6414,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.RaysData, parsed)
@@ -7175,8 +6430,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "GetOrderInfo",
         llm_response,
@@ -7187,7 +6440,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.OrderInfo, parsed)
@@ -7204,8 +6456,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "GetQuery",
         llm_response,
@@ -7216,7 +6466,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.SearchParams, parsed)
@@ -7225,15 +6474,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Dict[types.MapKey, str]:
+    ) -> Dict[types.MapKey, Optional[str]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "InOutEnumMapKey",
@@ -7245,24 +6492,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Dict[types.MapKey, str], parsed)
+      return cast(Dict[types.MapKey, Optional[str]], parsed)
     
     def InOutLiteralStringUnionMapKey(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Dict[Union[Literal["one"], Literal["two"], Literal["three"], Literal["four"]], str]:
+    ) -> Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], Optional[str]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "InOutLiteralStringUnionMapKey",
@@ -7274,24 +6518,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Dict[Union[Literal["one"], Literal["two"], Literal["three"], Literal["four"]], str], parsed)
+      return cast(Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], Optional[str]], parsed)
     
     def InOutSingleLiteralStringMapKey(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Dict[Literal["key"], str]:
+    ) -> Dict[Literal["key"], Optional[str]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "InOutSingleLiteralStringMapKey",
@@ -7303,10 +6544,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Dict[Literal["key"], str], parsed)
+      return cast(Dict[Literal["key"], Optional[str]], parsed)
     
     def JsonTypeAliasCycle(
         self,
@@ -7320,8 +6560,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "JsonTypeAliasCycle",
         llm_response,
@@ -7332,7 +6570,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.JsonValue, parsed)
@@ -7341,15 +6578,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "LLMEcho",
@@ -7361,24 +6596,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def LiteralUnionsTest(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Union[Optional[Literal[1]], Optional[Literal[True]], Optional[Literal["string output"]]]:
+    ) -> Optional[Union[Optional[Literal[1]], Optional[Literal[True]], Optional[Literal["string output"]]]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "LiteralUnionsTest",
@@ -7390,10 +6622,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Union[Optional[Literal[1]], Optional[Literal[True]], Optional[Literal["string output"]]], parsed)
+      return cast(Optional[Union[Optional[Literal[1]], Optional[Literal[True]], Optional[Literal["string output"]]]], parsed)
     
     def MakeBlockConstraint(
         self,
@@ -7407,8 +6638,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeBlockConstraint",
         llm_response,
@@ -7419,7 +6648,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Checked[partial_types.BlockConstraint, Literal["cross_field"]], parsed)
@@ -7428,15 +6656,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> partial_types.ClassWithBlockDone:
+    ) -> types.ClassWithBlockDone:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "MakeClassWithBlockDone",
@@ -7448,10 +6674,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(partial_types.ClassWithBlockDone, parsed)
+      return cast(types.ClassWithBlockDone, parsed)
     
     def MakeClassWithExternalDone(
         self,
@@ -7465,8 +6690,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeClassWithExternalDone",
         llm_response,
@@ -7477,7 +6700,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.ClassWithoutDone, parsed)
@@ -7494,8 +6716,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeNestedBlockConstraint",
         llm_response,
@@ -7506,7 +6726,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.NestedBlockConstraint, parsed)
@@ -7523,8 +6742,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MakeSemanticContainer",
         llm_response,
@@ -7535,7 +6752,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.SemanticContainer, parsed)
@@ -7544,15 +6760,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Dict[str, List[str]]:
+    ) -> Dict[str, List[Optional[str]]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "MapAlias",
@@ -7564,10 +6778,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Dict[str, List[str]], parsed)
+      return cast(Dict[str, List[Optional[str]]], parsed)
     
     def MergeAliasAttributes(
         self,
@@ -7581,8 +6794,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MergeAliasAttributes",
         llm_response,
@@ -7593,7 +6804,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.MergeAttrs, parsed)
@@ -7610,8 +6820,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "MyFunc",
         llm_response,
@@ -7622,7 +6830,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.DynamicOutput, parsed)
@@ -7631,15 +6838,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Union[int, str, bool, float, List[str], Dict[str, List[str]]]:
+    ) -> Optional[Union[Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], List[Optional[str]], Dict[str, List[Optional[str]]]]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "NestedAlias",
@@ -7651,10 +6856,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Union[int, str, bool, float, List[str], Dict[str, List[str]]], parsed)
+      return cast(Optional[Union[Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], List[Optional[str]], Dict[str, List[Optional[str]]]]], parsed)
     
     def NullLiteralClassHello(
         self,
@@ -7668,8 +6872,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "NullLiteralClassHello",
         llm_response,
@@ -7680,7 +6882,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.ClassForNullLiteral, parsed)
@@ -7689,15 +6890,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "OpenAIWithAnthropicResponseHello",
@@ -7709,10 +6908,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def OptionalTest_Function(
         self,
@@ -7726,8 +6924,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "OptionalTest_Function",
         llm_response,
@@ -7738,7 +6934,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(List[Optional[partial_types.OptionalTest_ReturnType]], parsed)
@@ -7755,8 +6950,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "PredictAge",
         llm_response,
@@ -7767,7 +6960,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.FooAny, parsed)
@@ -7776,15 +6968,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Checked[int, Literal["too_big"]]:
+    ) -> Checked[Optional[int], Literal["too_big"]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PredictAgeBare",
@@ -7796,24 +6986,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Checked[int, Literal["too_big"]], parsed)
+      return cast(Checked[Optional[int], Literal["too_big"]], parsed)
     
     def PrimitiveAlias(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Union[int, str, bool, float]:
+    ) -> Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PrimitiveAlias",
@@ -7825,24 +7012,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Union[int, str, bool, float], parsed)
+      return cast(Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], parsed)
     
     def PromptTestClaude(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PromptTestClaude",
@@ -7854,24 +7038,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def PromptTestClaudeChat(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PromptTestClaudeChat",
@@ -7883,24 +7064,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def PromptTestClaudeChatNoSystem(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PromptTestClaudeChatNoSystem",
@@ -7912,24 +7090,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def PromptTestOpenAI(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PromptTestOpenAI",
@@ -7941,24 +7116,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def PromptTestOpenAIChat(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PromptTestOpenAIChat",
@@ -7970,24 +7142,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def PromptTestOpenAIChatNoSystem(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PromptTestOpenAIChatNoSystem",
@@ -7999,24 +7168,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def PromptTestStreaming(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "PromptTestStreaming",
@@ -8028,10 +7194,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def RecursiveAliasCycle(
         self,
@@ -8045,8 +7210,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "RecursiveAliasCycle",
         llm_response,
@@ -8057,7 +7220,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecAliasOne, parsed)
@@ -8074,8 +7236,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "RecursiveClassWithAliasIndirection",
         llm_response,
@@ -8086,7 +7246,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.NodeWithAliasIndirection, parsed)
@@ -8103,8 +7262,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "RecursiveUnionTest",
         llm_response,
@@ -8115,7 +7272,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecursiveUnion, parsed)
@@ -8124,15 +7280,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Checked[int, Literal["gt_ten"]]:
+    ) -> Checked[Optional[int], Literal["gt_ten"]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "ReturnAliasWithMergedAttributes",
@@ -8144,24 +7298,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Checked[int, Literal["gt_ten"]], parsed)
+      return cast(Checked[Optional[int], Literal["gt_ten"]], parsed)
     
     def ReturnFailingAssert(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> int:
+    ) -> Optional[int]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "ReturnFailingAssert",
@@ -8173,10 +7324,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(int, parsed)
+      return cast(Optional[int], parsed)
     
     def ReturnJsonEntry(
         self,
@@ -8190,8 +7340,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ReturnJsonEntry",
         llm_response,
@@ -8202,7 +7350,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.JsonTemplate, parsed)
@@ -8219,8 +7366,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "ReturnMalformedConstraints",
         llm_response,
@@ -8231,7 +7376,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.MalformedConstraints, parsed)
@@ -8248,8 +7392,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "SchemaDescriptions",
         llm_response,
@@ -8260,7 +7402,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.Schema, parsed)
@@ -8277,8 +7418,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "SimpleRecursiveListAlias",
         llm_response,
@@ -8289,7 +7428,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecursiveListAlias, parsed)
@@ -8306,8 +7444,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "SimpleRecursiveMapAlias",
         llm_response,
@@ -8318,7 +7454,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(types.RecursiveMapAlias, parsed)
@@ -8335,8 +7470,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamBigNumbers",
         llm_response,
@@ -8347,7 +7480,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.BigNumbers, parsed)
@@ -8364,8 +7496,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamFailingAssertion",
         llm_response,
@@ -8376,7 +7506,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.TwoStoriesOneTitle, parsed)
@@ -8393,8 +7522,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamFailingCheck",
         llm_response,
@@ -8405,7 +7532,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.TwoStoriesOneTitleCheck, parsed)
@@ -8414,15 +7540,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> int:
+    ) -> Optional[int]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "StreamOneBigNumber",
@@ -8434,24 +7558,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(int, parsed)
+      return cast(Optional[int], parsed)
     
     def StreamUnionIntegers(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> List[Union[int, str]]:
+    ) -> List[Optional[Union[Optional[int], Optional[str]]]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "StreamUnionIntegers",
@@ -8463,10 +7584,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(List[Union[int, str]], parsed)
+      return cast(List[Optional[Union[Optional[int], Optional[str]]]], parsed)
     
     def StreamingCompoundNumbers(
         self,
@@ -8480,8 +7600,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StreamingCompoundNumbers",
         llm_response,
@@ -8492,7 +7610,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.CompoundBigNumbers, parsed)
@@ -8509,8 +7626,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "StructureDocument1559",
         llm_response,
@@ -8521,7 +7636,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.Document1559, parsed)
@@ -8538,8 +7652,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TakeRecAliasDep",
         llm_response,
@@ -8550,7 +7662,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.RecursiveAliasDependency, parsed)
@@ -8559,15 +7670,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TellStory",
@@ -8579,24 +7688,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAnthropic(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAnthropic",
@@ -8608,24 +7714,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAnthropicShorthand(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAnthropicShorthand",
@@ -8637,24 +7740,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAws(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAws",
@@ -8666,24 +7766,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAwsClaude37(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAwsClaude37",
@@ -8695,24 +7792,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAwsInferenceProfile(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInferenceProfile",
@@ -8724,24 +7818,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAwsInvalidAccessKey(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInvalidAccessKey",
@@ -8753,24 +7844,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAwsInvalidProfile(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInvalidProfile",
@@ -8782,24 +7870,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAwsInvalidRegion(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInvalidRegion",
@@ -8811,24 +7896,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAwsInvalidSessionToken(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAwsInvalidSessionToken",
@@ -8840,24 +7922,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAzure(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAzure",
@@ -8869,24 +7948,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAzureFailure(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAzureFailure",
@@ -8898,24 +7974,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAzureO1NoMaxTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO1NoMaxTokens",
@@ -8927,24 +8000,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAzureO1WithMaxCompletionTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO1WithMaxCompletionTokens",
@@ -8956,24 +8026,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAzureO1WithMaxTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO1WithMaxTokens",
@@ -8985,24 +8052,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAzureO3NoMaxTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO3NoMaxTokens",
@@ -9014,24 +8078,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAzureO3WithMaxCompletionTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAzureO3WithMaxCompletionTokens",
@@ -9043,24 +8104,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestAzureWithMaxTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestAzureWithMaxTokens",
@@ -9072,24 +8130,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestCaching(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestCaching",
@@ -9101,24 +8156,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFallbackClient(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFallbackClient",
@@ -9130,24 +8182,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFallbackStrategy(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFallbackStrategy",
@@ -9159,24 +8208,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFallbackToShorthand(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFallbackToShorthand",
@@ -9188,24 +8234,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFnNamedArgsSingleBool(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleBool",
@@ -9217,24 +8260,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFnNamedArgsSingleClass(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleClass",
@@ -9246,24 +8286,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFnNamedArgsSingleEnumList(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleEnumList",
@@ -9275,24 +8312,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFnNamedArgsSingleFloat(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleFloat",
@@ -9304,24 +8338,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFnNamedArgsSingleInt(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleInt",
@@ -9333,10 +8364,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFnNamedArgsSingleMapStringToClass(
         self,
@@ -9350,8 +8380,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleMapStringToClass",
         llm_response,
@@ -9362,7 +8390,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Dict[str, partial_types.StringToClassEntry], parsed)
@@ -9371,15 +8398,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Dict[str, Dict[str, str]]:
+    ) -> Dict[str, Dict[str, Optional[str]]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleMapStringToMap",
@@ -9391,24 +8416,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Dict[str, Dict[str, str]], parsed)
+      return cast(Dict[str, Dict[str, Optional[str]]], parsed)
     
     def TestFnNamedArgsSingleMapStringToString(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Optional[str]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleMapStringToString",
@@ -9420,24 +8442,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(Dict[str, str], parsed)
+      return cast(Dict[str, Optional[str]], parsed)
     
     def TestFnNamedArgsSingleString(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleString",
@@ -9449,24 +8468,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFnNamedArgsSingleStringArray(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleStringArray",
@@ -9478,24 +8494,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestFnNamedArgsSingleStringList(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> List[str]:
+    ) -> List[Optional[str]]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestFnNamedArgsSingleStringList",
@@ -9507,24 +8520,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(List[str], parsed)
+      return cast(List[Optional[str]], parsed)
     
     def TestGemini(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestGemini",
@@ -9536,24 +8546,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestGeminiOpenAiGeneric(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestGeminiOpenAiGeneric",
@@ -9565,24 +8572,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestGeminiSystem(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestGeminiSystem",
@@ -9594,24 +8598,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestGeminiSystemAsChat(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestGeminiSystemAsChat",
@@ -9623,24 +8624,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestGroq(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestGroq",
@@ -9652,24 +8650,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestImageInput(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestImageInput",
@@ -9681,24 +8676,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestImageInputAnthropic(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestImageInputAnthropic",
@@ -9710,24 +8702,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestImageListInput(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestImageListInput",
@@ -9739,10 +8728,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestMemory(
         self,
@@ -9756,8 +8744,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestMemory",
         llm_response,
@@ -9768,7 +8754,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.TestMemoryOutput, parsed)
@@ -9777,15 +8762,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestMulticlassNamedArgs",
@@ -9797,24 +8780,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestNamedArgsLiteralBool(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestNamedArgsLiteralBool",
@@ -9826,24 +8806,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestNamedArgsLiteralInt(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestNamedArgsLiteralInt",
@@ -9855,24 +8832,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestNamedArgsLiteralString(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestNamedArgsLiteralString",
@@ -9884,10 +8858,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOllama(
         self,
@@ -9901,8 +8874,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOllama",
         llm_response,
@@ -9913,7 +8884,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(Optional[str], parsed)
@@ -9930,8 +8900,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestOllamaHaiku",
         llm_response,
@@ -9942,7 +8910,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.Haiku, parsed)
@@ -9951,15 +8918,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAI",
@@ -9971,24 +8936,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIDummyClient(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIDummyClient",
@@ -10000,24 +8962,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIGPT4oMini(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIGPT4oMini",
@@ -10029,24 +8988,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAILegacyProvider(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAILegacyProvider",
@@ -10058,24 +9014,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIO1NoMaxTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIO1NoMaxTokens",
@@ -10087,24 +9040,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIO1WithMaxCompletionTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIO1WithMaxCompletionTokens",
@@ -10116,24 +9066,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIO1WithMaxTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIO1WithMaxTokens",
@@ -10145,24 +9092,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIShorthand(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIShorthand",
@@ -10174,24 +9118,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIWithFinishReasonError(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIWithFinishReasonError",
@@ -10203,24 +9144,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIWithMaxTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIWithMaxTokens",
@@ -10232,24 +9170,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenAIWithNullMaxTokens(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenAIWithNullMaxTokens",
@@ -10261,24 +9196,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestOpenRouterMistralSmall3_1_24b(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestOpenRouterMistralSmall3_1_24b",
@@ -10290,24 +9222,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestRetryConstant(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestRetryConstant",
@@ -10319,24 +9248,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestRetryExponential(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestRetryExponential",
@@ -10348,24 +9274,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestRoundRobinStrategy(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestRoundRobinStrategy",
@@ -10377,24 +9300,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestSingleFallbackClient(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestSingleFallbackClient",
@@ -10406,10 +9326,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestThinking(
         self,
@@ -10423,8 +9342,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestThinking",
         llm_response,
@@ -10435,7 +9352,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.CustomStory, parsed)
@@ -10452,8 +9368,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "TestUniverseQuestion",
         llm_response,
@@ -10464,7 +9378,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.UniverseQuestion, parsed)
@@ -10473,15 +9386,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestVertex",
@@ -10493,24 +9404,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestVertexClaude(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestVertexClaude",
@@ -10522,24 +9430,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def TestVertexWithSystemInstructions(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "TestVertexWithSystemInstructions",
@@ -10551,10 +9456,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
     def UnionTest_Function(
         self,
@@ -10568,8 +9472,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "UnionTest_Function",
         llm_response,
@@ -10580,7 +9482,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.UnionTest_ReturnType, parsed)
@@ -10589,15 +9490,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> int:
+    ) -> Optional[int]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "UseBlockConstraint",
@@ -10609,10 +9508,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(int, parsed)
+      return cast(Optional[int], parsed)
     
     def UseMaintainFieldOrder(
         self,
@@ -10626,8 +9524,6 @@ class LlmStreamParser:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
       parsed = self.__runtime.parse_llm_response(
         "UseMaintainFieldOrder",
         llm_response,
@@ -10638,7 +9534,6 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
       return cast(partial_types.MaintainFieldOrder, parsed)
@@ -10647,15 +9542,13 @@ class LlmStreamParser:
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> int:
+    ) -> Optional[int]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "UseMalformedConstraints",
@@ -10667,24 +9560,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(int, parsed)
+      return cast(Optional[int], parsed)
     
     def UseNestedBlockConstraint(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> int:
+    ) -> Optional[int]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "UseNestedBlockConstraint",
@@ -10696,24 +9586,21 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(int, parsed)
+      return cast(Optional[int], parsed)
     
     def EchoWorkflow(
         self,
         llm_response: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> Optional[str]:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-
-      env = env_vars_to_dict(baml_options.get("env", {}))
 
       parsed = self.__runtime.parse_llm_response(
         "EchoWorkflow",
@@ -10725,10 +9612,9 @@ class LlmStreamParser:
         self.__ctx_manager.get(),
         tb,
         __cr__,
-        env,
       )
 
-      return cast(str, parsed)
+      return cast(Optional[str], parsed)
     
 
 

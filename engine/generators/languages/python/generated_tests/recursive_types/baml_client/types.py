@@ -21,7 +21,7 @@ from pydantic import BaseModel
 # #########################################################################
 
 class UseMyUnion(BaseModel):
-    u: typing.Optional[typing.Union["Recursive1", int, str]] = None
+    u: typing.Optional[typing.Union[int, typing.List["Recursive1"], str]] = None
 
 # #########################################################################
 # Generated type aliases (5)

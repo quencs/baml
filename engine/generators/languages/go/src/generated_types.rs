@@ -261,6 +261,8 @@ pub(crate) fn render_go_stream_types_utils(
 ///     flatbuffers "github.com/google/flatbuffers/go"
 ///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 ///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+///
+///     "{{ go_mod_name }}/baml_client/types"
 /// )
 ///
 /// {% for item in items -%}
@@ -272,15 +274,17 @@ pub(crate) fn render_go_stream_types_utils(
 #[template(in_doc = true, escape = "none", ext = "txt")]
 struct GoStreamTypes<'ir, T: askama::Template> {
     items: &'ir [T],
+    go_mod_name: &'ir str,
 }
 
 pub(crate) fn render_go_stream_types<T: askama::Template>(
     items: &[T],
     _pkg: &CurrentRenderPackage,
+    go_mod_name: &str,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    GoStreamTypes { items }.render()
+    GoStreamTypes { items, go_mod_name }.render()
 }
 
 pub use class::{ClassGo, FieldGo};

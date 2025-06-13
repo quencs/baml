@@ -14,9 +14,10 @@
 package baml_client
 
 import (
+	"context"
+
 	"classes/baml_client/stream_types"
 	"classes/baml_client/types"
-	"context"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )

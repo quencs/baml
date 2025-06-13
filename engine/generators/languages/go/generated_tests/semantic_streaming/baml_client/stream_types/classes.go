@@ -15,11 +15,12 @@ package stream_types
 
 import (
 	"fmt"
-	"semantic_streaming/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 	flatbuffers "github.com/google/flatbuffers/go"
+
+	"semantic_streaming/baml_client/types"
 )
 
 type ClassWithBlockDone struct {
