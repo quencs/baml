@@ -4,6 +4,8 @@ use dir_writer::IntermediateRepr;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Package {
     package_path: Vec<String>,
+    /// used in scenarios like class properties, or type aliases RHS
+    type_definition_scope: bool,
 }
 
 impl Package {
@@ -18,11 +20,24 @@ impl Package {
         }
         Package {
             package_path: parts,
+            type_definition_scope: false,
         }
     }
 
+    pub fn clone_as_type_definition(&self) -> Self {
+        Self {
+            package_path: self.package_path.clone(),
+            type_definition_scope: true,
+        }
+    }
+
+    pub fn in_type_definition(&self) -> bool {
+        self.type_definition_scope
+    }
+
+
     pub fn relative_from(&self, other: &CurrentRenderPackage) -> String {
-        // Go does wierd imports, so we return only the last part of the package
+        // Py does wierd imports, so we return only the last part of the package
         // unless the other package is the same as self, in which case we return empty
         let other = other.get();
         if self.package_path == other.package_path {
@@ -40,7 +55,7 @@ impl Package {
     }
 
     pub fn checked() -> Package {
-        Package::types()
+        Package::new("baml_py")
     }
 
     pub fn stream_state() -> Package {
@@ -62,13 +77,23 @@ impl std::fmt::Display for Package {
 pub(crate) struct CurrentRenderPackage {
     package: std::sync::Arc<std::sync::Mutex<std::sync::Arc<Package>>>,
     lookup: std::sync::Arc<IntermediateRepr>,
+    pub is_pydantic_2: bool,
 }
 
 impl CurrentRenderPackage {
-    pub fn new(package: &str, lookup: std::sync::Arc<IntermediateRepr>) -> Self {
+    pub fn new(package: &str, lookup: std::sync::Arc<IntermediateRepr>, is_pydantic_2: bool) -> Self {
         Self {
             package: std::sync::Arc::new(std::sync::Mutex::new(std::sync::Arc::new(Package::new(package)))),
             lookup,
+            is_pydantic_2,
+        }
+    }
+
+    pub fn in_type_definition(&self) -> Self {
+        Self {
+            package: std::sync::Arc::new(std::sync::Mutex::new(std::sync::Arc::new(self.get().clone_as_type_definition()))),
+            lookup: self.lookup.clone(),
+            is_pydantic_2: self.is_pydantic_2,
         }
     }
 

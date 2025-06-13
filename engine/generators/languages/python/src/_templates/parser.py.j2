@@ -1,106 +1,42 @@
-from typing import Any, Dict, List, Optional, Union, TypedDict, Type, cast
-from typing_extensions import NotRequired, Literal
-import os
-
+import typing
+import typing_extensions
 import baml_py
 
-from . import types, partial_types
-from .types import Checked, Check
-from .type_builder import TypeBuilder
-
-
-class BamlCallOptions(TypedDict, total=False):
-    tb: NotRequired[TypeBuilder]
-    client_registry: NotRequired[baml_py.baml_py.ClientRegistry]
-    env: NotRequired[Dict[str, Optional[str]]]
-
-def env_vars_to_dict(overrides: Dict[str, Optional[str]]) -> Dict[str, str]:
-    base = os.environ.copy()
-    for k, v in overrides.items():
-        if v is not None:
-            base[k] = v
-        else:
-            base.pop(k, None)
-    return base
+from . import stream_types, types
+from .runtime import DoNotUseDirectlyCallManager, BamlCallOptions
 
 class LlmResponseParser:
-    __runtime: baml_py.BamlRuntime
-    __ctx_manager: baml_py.BamlCtxManager
+    __options: DoNotUseDirectlyCallManager
 
-    def __init__(self, runtime: baml_py.BamlRuntime, ctx_manager: baml_py.BamlCtxManager):
-      self.__runtime = runtime
-      self.__ctx_manager = ctx_manager
+    def __init__(self, options: DoNotUseDirectlyCallManager):
+        self.__options = options
 
-    {% for fn in funcs %}
-    def {{ fn.name }}(
-        self,
-        llm_response: str,
-        baml_options: BamlCallOptions = {},
-    ) -> {{fn.return_type}}:
-      __tb__ = baml_options.get("tb", None)
-      if __tb__ is not None:
-        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
-      else:
-        tb = None
-      __cr__ = baml_options.get("client_registry", None)
+    {% for func in functions -%}
+    def {{ func.name }}(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> {{func.return_type.serialize_type(pkg)}}:
+        {% if let Some(docstring) = func.documentation -%}
+        {{crate::utils::prefix_lines(docstring, "# ")}}
+        {% endif -%}
+        result = self.__options.merge_options(baml_options).parse_response(function_name="{{ func.name }}", llm_response=llm_response, mode="request")
+        return typing.cast({{func.return_type.serialize_type(pkg)}}, result)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
-      parsed = self.__runtime.parse_llm_response(
-        "{{fn.name}}",
-        llm_response,
-        types,
-        types,
-        partial_types,
-        False,
-        self.__ctx_manager.get(),
-        tb,
-        __cr__,
-        env,
-      )
-
-      return cast({{fn.return_type}}, parsed)
     {% endfor %}
-
 
 class LlmStreamParser:
-    __runtime: baml_py.BamlRuntime
-    __ctx_manager: baml_py.BamlCtxManager
+    __options: DoNotUseDirectlyCallManager
 
-    def __init__(self, runtime: baml_py.BamlRuntime, ctx_manager: baml_py.BamlCtxManager):
-      self.__runtime = runtime
-      self.__ctx_manager = ctx_manager
+    def __init__(self, options: DoNotUseDirectlyCallManager):
+        self.__options = options
 
-    {% for fn in funcs %}
-    def {{ fn.name }}(
-        self,
-        llm_response: str,
-        baml_options: BamlCallOptions = {},
-    ) -> {{fn.partial_return_type}}:
-      __tb__ = baml_options.get("tb", None)
-      if __tb__ is not None:
-        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
-      else:
-        tb = None
-      __cr__ = baml_options.get("client_registry", None)
+    {% for func in functions -%}
+    def {{ func.name }}(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> {{func.stream_return_type.serialize_type(pkg)}}:
+        {% if let Some(docstring) = func.documentation -%}
+        {{crate::utils::prefix_lines(docstring, "# ")}}
+        {% endif -%}
+        result = self.__options.merge_options(baml_options).parse_response(function_name="{{ func.name }}", llm_response=llm_response, mode="stream")
+        return typing.cast({{func.stream_return_type.serialize_type(pkg)}}, result)
 
-      env = env_vars_to_dict(baml_options.get("env", {}))
-
-      parsed = self.__runtime.parse_llm_response(
-        "{{fn.name}}",
-        llm_response,
-        types,
-        types,
-        partial_types,
-        True,
-        self.__ctx_manager.get(),
-        tb,
-        __cr__,
-        env,
-      )
-
-      return cast({{fn.partial_return_type}}, parsed)
     {% endfor %}
-
-
-__all__ = ["LlmResponseParser", "LlmStreamParser"]

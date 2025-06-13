@@ -1,5 +1,3 @@
-use baml_types::baml_value::TypeLookups;
-
 use crate::{package::{CurrentRenderPackage, Package}};
 
 #[derive(Clone, PartialEq, Debug)]
@@ -19,13 +17,13 @@ impl TypeWrapper {
 
 #[derive(Clone, PartialEq, Debug)]
 #[derive(Default)]
-pub struct TypeMetaGo {
+pub struct TypeMetaPy {
     pub type_wrapper: TypeWrapper,
     pub wrap_stream_state: bool,
 }
 
 
-impl TypeMetaGo {
+impl TypeMetaPy {
     pub fn is_optional(&self) -> bool {
         matches!(self.type_wrapper, TypeWrapper::Optional(_))
     }
@@ -61,12 +59,15 @@ impl WrapType for TypeWrapper {
                 Package::checked().relative_from(pkg),
                 inner.wrap_type(params)
             ),
-            TypeWrapper::Optional(inner) => format!("*{}", inner.wrap_type(params)),
+            TypeWrapper::Optional(inner) => format!(
+                "typing.Optional[{}]",
+                inner.wrap_type(params)
+            ),
         }
     }
 }
 
-impl WrapType for TypeMetaGo {
+impl WrapType for TypeMetaPy {
     fn wrap_type(&self, params: (&CurrentRenderPackage, String)) -> String {
         let pkg = params.0;
         let wrapped = self.type_wrapper.wrap_type(params);
@@ -83,265 +84,153 @@ impl WrapType for TypeMetaGo {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum MediaTypeGo {
+pub enum MediaTypePy {
     Image,
     Audio,
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum TypeGo {
-    String(TypeMetaGo),
-    Int(TypeMetaGo),
-    Float(TypeMetaGo),
-    Bool(TypeMetaGo),
-    Media(MediaTypeGo, TypeMetaGo),
+pub struct EscapedPythonString(String);
+
+impl EscapedPythonString {
+    pub fn new(s: &str) -> Self {
+        let has_single_quote = s.contains('\'');
+        let has_double_quote = s.contains('"');
+        let has_newline = s.contains('\n');
+        if has_newline {
+            return Self(format!("\"\"\"{}\"\"\"", s));
+        }
+        match (has_single_quote, has_double_quote) {
+            (true, false) => Self(format!("\"{}\"", s)),
+            (true, true) => Self(format!("'{}'", s.replace('\'', "\\'"))),
+            (false, true) => Self(format!("'{}'", s)),
+            (false, false) => Self(format!("'{}'", s)),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum LiteralValue {
+    String(EscapedPythonString),
+    Int(i64),
+    Float(f64),
+    Bool(bool),
+    None,
+}
+
+impl LiteralValue {
+    pub fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
+        match self {
+            LiteralValue::String(s) => s.0.clone(),
+            LiteralValue::Int(i) => i.to_string(),
+            LiteralValue::Float(f) => f.to_string(),
+            LiteralValue::Bool(b) => b.to_string(),
+            LiteralValue::None => "None".to_string(),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum TypePy {
+    Literal(Vec<LiteralValue>, TypeMetaPy),
+    String(TypeMetaPy),
+    Int(TypeMetaPy),
+    Float(TypeMetaPy),
+    Bool(TypeMetaPy),
+    Media(MediaTypePy, TypeMetaPy),
     // unions become classes
     Class {
         package: Package,
         name: String,
         dynamic: bool,
-        meta: TypeMetaGo,
+        meta: TypeMetaPy,
     },
     Union {
-        package: Package,
-        name: String,
-        meta: TypeMetaGo,
+        variants: Vec<TypePy>,
+        meta: TypeMetaPy,
     },
     Enum {
         package: Package,
         name: String,
         dynamic: bool,
-        meta: TypeMetaGo,
+        meta: TypeMetaPy,
     },
     TypeAlias {
         name: String,
         package: Package,
-        meta: TypeMetaGo,
+        meta: TypeMetaPy,
     },
-    List(Box<TypeGo>, TypeMetaGo),
-    Map(Box<TypeGo>, Box<TypeGo>, TypeMetaGo),
-    // For any type that we can't represent in Go, we'll use this
+    List(Box<TypePy>, TypeMetaPy),
+    Map(Box<TypePy>, Box<TypePy>, TypeMetaPy),
+    // For any type that we can't represent in Py, we'll use this
     Any {
         reason: String,
-        meta: TypeMetaGo,
+        meta: TypeMetaPy,
     },
 }
 
-impl TypeGo {
-    // for unions, we need a default name for the type when the union is not named
-    pub fn default_name_within_union(&self) -> String {
-        match self {
-            TypeGo::String(_) => "String".to_string(),
-            TypeGo::Int(_) => "Int".to_string(),
-            TypeGo::Float(_) => "Float".to_string(),
-            TypeGo::Bool(_) => "Bool".to_string(),
-            TypeGo::Media(media_type_go, _) => match media_type_go {
-                MediaTypeGo::Image => "Image".to_string(),
-                MediaTypeGo::Audio => "Audio".to_string(),
-            },
-            TypeGo::TypeAlias { name, .. } => name.clone(),
-            TypeGo::Class { name, .. } => name.clone(),
-            TypeGo::Union { name, .. } => name.clone(),
-            TypeGo::Enum { name, .. } => name.clone(),
-            TypeGo::List(type_go, _) => format!("List{}", type_go.default_name_within_union()),
-            TypeGo::Map(key, value, _) => format!(
-                "Map{}Key{}Value",
-                key.default_name_within_union(),
-                value.default_name_within_union()
-            ),
-            TypeGo::Any { .. } => "Any".to_string(),
-        }
-    }
-
-    pub fn zero_value(&self, pkg: &CurrentRenderPackage) -> String {
-        if matches!(self.meta().type_wrapper, TypeWrapper::Optional(_)) {
-            return "nil".to_string();
-        }
-        match self {
-            TypeGo::String(_) => "\"\"".to_string(),
-            TypeGo::Int(_) => "0".to_string(),
-            TypeGo::Float(_) => "0.0".to_string(),
-            TypeGo::Bool(_) => "false".to_string(),
-            TypeGo::Media(..)
-            | TypeGo::Class { .. }
-            | TypeGo::Union { .. } => {
-                format!("{}{{}}", self.serialize_type(pkg))
-            }
-            TypeGo::Enum { .. } => {
-                format!("{}(\"\")", self.serialize_type(pkg))
-            }
-            TypeGo::TypeAlias { name, package, .. } => {
-                let lookup = pkg.lookup();
-                match lookup.expand_recursive_type(name) {
-                    Ok(expansion) => {
-                        if package == &Package::types() {
-                            crate::ir_to_go::type_to_go(expansion, lookup).zero_value(pkg)
-                        } else {
-                            crate::ir_to_go::stream_type_to_go(&expansion.partialize(lookup), lookup).zero_value(pkg)
-                        }
-                    },
-                    Err(_) => format!("{}{{}}", self.serialize_type(pkg))
-                }
-            }
-            TypeGo::List(..) => "nil".to_string(),
-            TypeGo::Map(..) => "nil".to_string(),
-            TypeGo::Any { .. } => "nil".to_string(),
-        }
-    }
-
-    fn cast_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        format!("({param}).({})", self.serialize_type(pkg))
-            .trim()
-            .to_string()
-    }
-
-    fn cast_return_value(&self, pkg: &CurrentRenderPackage) -> String {
-        if self.meta().wrap_stream_state {
-            format!("{}{{Value: nil, State: StreamStatePending}}", self.serialize_type(pkg))
-        } else {
-            self.zero_value(pkg)
-        }
-    }
-
+impl TypePy {
     pub fn cast_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        if self.meta().is_optional() {
-            format!(
-                r#"
-                func(result any) {t} {{
-                    if result == nil {{
-                        return {return_value}
-                    }}
-                    return {casted}
-                }}({param})
-            "#,
-                t = self.serialize_type(pkg),
-                casted = self.cast_from_any_skip_optional("result", pkg),
-                return_value = self.cast_return_value(pkg)
-            )
-        } else {
-            self.cast_from_any_skip_optional(param, pkg)
-        }
-        .trim()
-        .to_string()
+        format!("cast({ret_ty}, {param}.cast_to(types, types, partial_types, True))", ret_ty=self.serialize_type(pkg))
     }
 
-
-    pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        match self {
-            TypeGo::List(..) | TypeGo::Map(..) => self.cast_from_any_skip_optional(param, pkg),
-            TypeGo::TypeAlias { name, .. } =>  {
-                let lookup = pkg.lookup();
-                match lookup.expand_recursive_type(name) {
-                    Ok(expansion) if expansion.is_optional() => {
-                        format!(
-                            r#"
-                            func(result any) {t} {{
-                                if result == nil {{
-                                    return nil
-                                }}
-                                return (result).({t})
-                            }}({param})
-                        "#,
-                            t = self.serialize_type(pkg),
-                        ).trim().to_string()
-                    },
-                    _ => format!("*({param}).(*{})", self.serialize_type(pkg))
-                }
-            }
-            _ if self.meta().is_optional() => self.cast_from_any_skip_optional(param, pkg),
-            _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
-        }
+    pub fn with_meta(mut self, meta: TypeMetaPy) -> Self {
+        self.meta_mut().map(|m| *m = meta);
+        self
     }
 
-    fn decode_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        match self {
-            TypeGo::List(inner, meta) if !meta.is_optional() => format!(
-                "baml.DecodeList({param}, func(inner *cffi.CFFIValueHolder) {t} {{
-                return {casted}
-            }})",
-                t = inner.serialize_type(pkg),
-                casted = inner.decode_from_any("inner", pkg)
-            ),
-            TypeGo::Map(key, value, meta) if !meta.is_optional() => format!(
-                "baml.DecodeMap({param}, func(inner *cffi.CFFIValueHolder) {t} {{
-                return {casted}
-            }})",
-                t = value.serialize_type(pkg),
-                casted = value.decode_from_any("inner", pkg)
-            ),
-            TypeGo::TypeAlias { name, .. } => {
-                if pkg.lookup().expand_recursive_type(name).map(|e| e.is_optional()).unwrap_or(false) {
-                    format!(r#"
-                    func(param *cffi.CFFIValueHolder) {name} {{
-                        decoded := baml.Decode(param)
-                        if decoded == nil {{
-                            return nil
-                        }}
-                        return decoded.({name})
-                    }}({param})
-                    "#, name= self.serialize_type(pkg))
+    pub fn is_optional(&self) -> bool {
+        self.meta().map(|m| m.is_optional()).unwrap_or(false)
+    }
+
+    pub fn default_value(&self) -> Option<String> {
+        let meta = self.meta();
+        match meta {
+            Some(meta) => {
+                if meta.is_optional() && !meta.wrap_stream_state {
+                    Some("None".to_string())
                 } else {
-                    format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
+                    None
                 }
             }
-            _ if !self.meta().is_optional() => format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg)),
-            _ => format!("baml.Decode({param}).({})", self.serialize_type(pkg)),
-        }
-        .trim()
-        .to_string()
-    }
-
-    pub fn decode_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        if self.meta().is_optional() {
-            format!(
-                r#"
-                func(param *cffi.CFFIValueHolder) {t} {{
-                    decoded := baml.Decode(param)
-                    return {casted}
-                }}({param})
-            "#,
-                t = self.serialize_type(pkg),
-                casted = self.cast_from_any("decoded", pkg)
-            )
-        } else {
-            self.decode_from_any_skip_optional(param, pkg)
-        }
-        .trim()
-        .to_string()
-    }
-
-    pub fn meta(&self) -> &TypeMetaGo {
-        match self {
-            TypeGo::String(meta) => meta,
-            TypeGo::Int(meta) => meta,
-            TypeGo::Float(meta) => meta,
-            TypeGo::Bool(meta) => meta,
-            TypeGo::Media(_, meta) => meta,
-            TypeGo::Class { meta, .. } => meta,
-            TypeGo::TypeAlias { meta, .. } => meta,
-            TypeGo::Union { meta, .. } => meta,
-            TypeGo::Enum { meta, .. } => meta,
-            TypeGo::List(_, meta) => meta,
-            TypeGo::Map(_, _, meta) => meta,
-            TypeGo::Any { meta, .. } => meta,
+            None => None,
         }
     }
 
-    pub fn meta_mut(&mut self) -> &mut TypeMetaGo {
-        match self {
-            TypeGo::String(meta) => meta,
-            TypeGo::Int(meta) => meta,
-            TypeGo::Float(meta) => meta,
-            TypeGo::Bool(meta) => meta,
-            TypeGo::Media(_, meta) => meta,
-            TypeGo::Class { meta, .. } => meta,
-            TypeGo::TypeAlias { meta, .. } => meta,
-            TypeGo::Union { meta, .. } => meta,
-            TypeGo::Enum { meta, .. } => meta,
-            TypeGo::List(_, meta) => meta,
-            TypeGo::Map(_, _, meta) => meta,
-            TypeGo::Any { meta, .. } => meta,
-        }
+    pub fn meta(&self) -> Option<&TypeMetaPy> {
+        Some(match self {
+            TypePy::Literal(_, meta) => meta,
+            TypePy::String(meta) => meta,
+            TypePy::Int(meta) => meta,
+            TypePy::Float(meta) => meta,
+            TypePy::Bool(meta) => meta,
+            TypePy::Media(_, meta) => meta,
+            TypePy::Class { meta, .. } => meta,
+            TypePy::TypeAlias { meta, .. } => meta,
+            TypePy::Union { meta, .. } => meta,
+            TypePy::Enum { meta, .. } => meta,
+            TypePy::List(_, meta) => meta,
+            TypePy::Map(_, _, meta) => meta,
+            TypePy::Any { meta, .. } => meta,
+        })
+    }
+
+    pub fn meta_mut(&mut self) -> Option<&mut TypeMetaPy> {
+        Some(match self {
+            TypePy::Literal(_, meta) => meta,
+            TypePy::String(meta) => meta,
+            TypePy::Int(meta) => meta,
+            TypePy::Float(meta) => meta,
+            TypePy::Bool(meta) => meta,
+            TypePy::Media(_, meta) => meta,
+            TypePy::Class { meta, .. } => meta,
+            TypePy::TypeAlias { meta, .. } => meta,
+            TypePy::Union { meta, .. } => meta,
+            TypePy::Enum { meta, .. } => meta,
+            TypePy::List(_, meta) => meta,
+            TypePy::Map(_, _, meta) => meta,
+            TypePy::Any { meta, .. } => meta,
+        })
     }
 }
 
@@ -349,46 +238,51 @@ pub trait SerializeType {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String;
 }
 
-impl SerializeType for TypeGo {
+impl SerializeType for TypePy {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         let meta = self.meta();
         let type_str = match self {
-            TypeGo::String(_) => "string".to_string(),
-            TypeGo::Int(_) => "int64".to_string(),
-            TypeGo::Float(_) => "float64".to_string(),
-            TypeGo::Bool(_) => "bool".to_string(),
-            TypeGo::Media(media, _) => media.serialize_type(pkg),
-            TypeGo::Class { package, name, .. } => {
-                format!("{}{}", package.relative_from(pkg), name)
+            TypePy::Literal(items, meta) => meta.wrap_type((pkg, format!("typing.Literal[{}]", items.iter().map(|s| s.serialize_type(pkg)).collect::<Vec<_>>().join(", ")))),
+            TypePy::String(_) => "str".to_string(),
+            TypePy::Int(_) => "int".to_string(),
+            TypePy::Float(_) => "float".to_string(),
+            TypePy::Bool(_) => "bool".to_string(),
+            TypePy::Media(media, _) => media.serialize_type(pkg),
+            TypePy::Class { package, name, .. } |
+            TypePy::TypeAlias { package, name, .. } => {
+                if pkg.get().in_type_definition() {
+                    format!("\"{}{}\"", package.relative_from(pkg), name)
+                } else {
+                    format!("{}{}", package.relative_from(pkg), name)
+                }
             }
-            TypeGo::TypeAlias { package, name, .. } => {
-                format!("{}{}", package.relative_from(pkg), name)
+            TypePy::Union { variants, .. } => {
+                format!("typing.Union[{}]", variants.iter().map(|v| v.serialize_type(pkg)).collect::<Vec<_>>().join(", "))
             }
-            TypeGo::Union { package, name, .. } => {
-                format!("{}{}", package.relative_from(pkg), name)
-            }
-            TypeGo::Enum { package, name, .. } => format!("{}{}", package.relative_from(pkg), name),
-            TypeGo::List(inner, _) => format!("[]{}", inner.serialize_type(pkg)),
-            TypeGo::Map(key, value, _) => {
+            TypePy::Enum { package, name, .. } => format!("{}{}", package.relative_from(pkg), name),
+            TypePy::List(inner, _) => format!("typing.List[{}]", inner.serialize_type(pkg)),
+            TypePy::Map(key, value, _) => {
                 format!(
-                    "map[{}]{}",
+                    "typing.Dict[{}, {}]",
                     key.serialize_type(pkg),
                     value.serialize_type(pkg)
                 )
             }
-            TypeGo::Any { .. } => "any".to_string(),
+            TypePy::Any { .. } => "any".to_string(),
         };
 
-        
-        meta.wrap_type((pkg, type_str))
+        match meta {
+            Some(meta) => meta.wrap_type((pkg, type_str)),
+            None => type_str,
+        }
     }
 }
 
-impl SerializeType for MediaTypeGo {
+impl SerializeType for MediaTypePy {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         match self {
-            MediaTypeGo::Image => format!("{}.Image", Package::imported_base().relative_from(pkg)),
-            MediaTypeGo::Audio => format!("{}.Audio", Package::imported_base().relative_from(pkg)),
+            MediaTypePy::Image => format!("{}.Image", Package::imported_base().relative_from(pkg)),
+            MediaTypePy::Audio => format!("{}.Audio", Package::imported_base().relative_from(pkg)),
         }
     }
 }

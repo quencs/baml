@@ -158,8 +158,13 @@ impl LanguageFeatures for GoLanguageFeatures {
 
 #[cfg(test)]
 mod generated_tests {
-    use test_harness::{create_code_gen_test_suites};
-
+    use test_harness::{create_code_gen_test_suites, TestLanguageFeatures};
+    
+    impl TestLanguageFeatures for crate::GoLanguageFeatures {
+        fn test_name() -> &'static str {
+            "go"
+        }
+    }
     create_code_gen_test_suites!(crate::GoLanguageFeatures);
 }
 

@@ -34,6 +34,9 @@ pub struct GeneratorArgs {
 
     // For TS generators, we can choose between CJS and ESM module formats
     pub module_format: Option<ModuleFormat>,
+
+    // for python, we can choose between pydantic 1 and pydantic 2
+    pub is_pydantic_2: Option<bool>,
 }
 
 impl GeneratorArgs {
@@ -97,7 +100,6 @@ pub trait LanguageFeatures: Default + Sized {
     fn generate_sdk_files(&self, collector: &mut FileCollector<Self>, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<(), anyhow::Error>;
 }
 
-
 pub struct FileCollector<L: LanguageFeatures + Default> {
     // map of path to a an object that has the trail File
     files: IndexMap<PathBuf, String>,
@@ -156,11 +158,22 @@ impl<L: LanguageFeatures + Default> FileCollector<L> {
         }
     }
 
-    pub fn add_file<K: AsRef<str>, V: AsRef<str>>(&mut self, name: K, contents: V) {
+    pub fn add_file<K: AsRef<str>, V: AsRef<str>>(&mut self, name: K, contents: V) -> Result<()> {
+        if self.files.contains_key(&PathBuf::from(name.as_ref())) {
+            anyhow::bail!("File already exists: {}", name.as_ref());
+        }
         self.files.insert(
             PathBuf::from(name.as_ref()),
             format!("{}\n{}", self.lang.content_prefix(), contents.as_ref()),
         );
+        Ok(())
+    }
+
+    pub fn append_to_file<K: AsRef<str>>(&mut self, name: K, contents: &str) -> Result<()> {
+        let file = self.files.get_mut(&PathBuf::from(name.as_ref())).ok_or_else(|| anyhow::anyhow!("File not found: {}", name.as_ref()))?;
+        file.push('\n');
+        file.push_str(contents);
+        Ok(())
     }
 
     pub fn modify_files(&mut self, mut modify: impl FnMut(&mut String)) {
