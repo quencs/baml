@@ -2718,6 +2718,7 @@ dependencies = [
  "baml-log",
  "dir-writer",
  "generators-go",
+ "generators-python",
  "indexmap 2.8.0",
  "internal-baml-core",
  "serde_json",

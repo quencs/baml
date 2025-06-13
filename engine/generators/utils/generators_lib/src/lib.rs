@@ -11,6 +11,11 @@ pub fn generate_sdk(ir: Arc<IntermediateRepr>, gen: &GeneratorArgs) -> Result<in
             let features = GoLanguageFeatures::default();
             features.generate_sdk(ir, gen)?
         }
+        GeneratorOutputType::PythonPydantic | GeneratorOutputType::PythonPydanticV1 => {
+            use generators_python::PyLanguageFeatures;
+            let features = PyLanguageFeatures::default();
+            features.generate_sdk(ir, gen)?
+        }
         _ => {
             println!("Generating SDK for {} not supported yet", gen.client_type);
             return Ok(Default::default());

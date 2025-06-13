@@ -15,8 +15,8 @@ impl Package {
             panic!("Package cannot be empty");
         }
         // ensure the first part is baml_client
-        if parts[0] != "baml_client" && parts[0] != "baml" {
-            panic!("Package must start with baml_client");
+        if parts[0] != "baml_client" && parts[0] != "baml_py" {
+            panic!("Package must start with baml_client: {}", package);
         }
         Package {
             package_path: parts,
@@ -55,7 +55,7 @@ impl Package {
     }
 
     pub fn checked() -> Package {
-        Package::new("baml_py")
+        Package::imported_base()
     }
 
     pub fn stream_state() -> Package {
@@ -63,7 +63,7 @@ impl Package {
     }
 
     pub fn imported_base() -> Package {
-        Package::new("baml")
+        Package::new("baml_py")
     }
 }
 
