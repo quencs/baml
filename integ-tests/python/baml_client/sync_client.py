@@ -19,6 +19,7 @@ from typing_extensions import Literal
 import baml_py
 
 from . import _baml
+from ._baml import BamlCallOptions
 from .types import Checked, Check
 from .parser import LlmResponseParser, LlmStreamParser
 from .sync_request import HttpRequest, HttpStreamRequest
@@ -4562,6 +4563,62 @@ class BamlSyncClient:
       env = _baml.env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIGPT4oMini",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+        env,
+      )
+      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+    
+    def TestOpenAIGPT4oMini2(
+        self,
+        input: str,
+        baml_options: _baml.BamlCallOptions = {},
+    ) -> str:
+      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+      env = _baml.env_vars_to_dict(options.get("env", {}))
+      raw = self.__runtime.call_function_sync(
+        "TestOpenAIGPT4oMini2",
+        {
+          "input": input,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+        env,
+      )
+      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+    
+    def TestOpenAIGPT4oMini3(
+        self,
+        input: str,
+        baml_options: _baml.BamlCallOptions = {},
+    ) -> str:
+      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+      env = _baml.env_vars_to_dict(options.get("env", {}))
+      raw = self.__runtime.call_function_sync(
+        "TestOpenAIGPT4oMini3",
         {
           "input": input,
         },
@@ -10866,6 +10923,76 @@ class BamlStreamClient:
         self.__ctx_manager.get(),
       )
     
+    def TestOpenAIGPT4oMini2(
+        self,
+        input: str,
+        baml_options: _baml.BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[str], str]:
+      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+      env = _baml.env_vars_to_dict(options.get("env", {}))
+      raw = self.__runtime.stream_function_sync(
+        "TestOpenAIGPT4oMini2",
+        {
+          "input": input,
+        },
+        None,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+        env,
+      )
+
+      return baml_py.BamlSyncStream[Optional[str], str](
+        raw,
+        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
+        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        self.__ctx_manager.get(),
+      )
+    
+    def TestOpenAIGPT4oMini3(
+        self,
+        input: str,
+        baml_options: _baml.BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[str], str]:
+      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+      env = _baml.env_vars_to_dict(options.get("env", {}))
+      raw = self.__runtime.stream_function_sync(
+        "TestOpenAIGPT4oMini3",
+        {
+          "input": input,
+        },
+        None,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+        env,
+      )
+
+      return baml_py.BamlSyncStream[Optional[str], str](
+        raw,
+        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
+        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        self.__ctx_manager.get(),
+      )
+    
     def TestOpenAILegacyProvider(
         self,
         input: str,
@@ -11705,4 +11832,4 @@ class BamlStreamClient:
 
 b = BamlSyncClient(DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME, DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_CTX)
 
-__all__ = ["b"]
+__all__ = ["b", "BamlCallOptions"]
