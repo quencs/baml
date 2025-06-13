@@ -6,6 +6,7 @@
   "main": "./dist/baml_schema_build.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "echo 'No dev command in baml-schema-wasm-node/package.json' && exit 1",
     "clean": "rimraf ./dist",
     "build": "bash ./scripts/build.sh",
     "update-wasm": "bash ./scripts/build.sh"

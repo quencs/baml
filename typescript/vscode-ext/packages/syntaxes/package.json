@@ -5,6 +5,7 @@
   "main": "index.js",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
+    "dev": "echo 'No dev command in vscode-ext/packages/syntaxes/package.json' && exit 1",
     "test": "vscode-tmgrammar-snap --config ../package.json all.test.baml",
     "update-test": "pnpm test -- --updateSnapshot"
   },

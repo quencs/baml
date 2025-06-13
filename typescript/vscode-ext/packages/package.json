@@ -177,6 +177,7 @@
     ]
   },
   "scripts": {
+    "dev": "echo 'No dev command in vscode-ext/packages/package.json' && exit 1",
     "lint": "eslint \"src/**/*.ts\"",
     "vscode:package": "vsce package --no-dependencies",
     "vscode:publish": "vsce publish --no-dependencies",
