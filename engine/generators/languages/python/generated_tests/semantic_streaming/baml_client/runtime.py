@@ -100,7 +100,7 @@ class DoNotUseDirectlyCallManager:
 
     def call_function_sync(
         self, *, function_name: str, args: typing.Dict[str, typing.Any]
-    ) -> typing.Tuple[baml_py.baml_py.Context, baml_py.baml_py.FunctionResult]:
+    ) -> typing.Tuple[baml_py.baml_py.RuntimeContextManager, baml_py.baml_py.FunctionResult]:
         resolved_options = self.__resolve()
         ctx = __ctx__manager__.get()
         result = __runtime__.call_function_sync(
@@ -119,7 +119,7 @@ class DoNotUseDirectlyCallManager:
         *,
         function_name: str,
         args: typing.Dict[str, typing.Any],
-    ) -> typing.Tuple[baml_py.baml_py.Context, baml_py.baml_py.FunctionResultStream]:
+    ) -> typing.Tuple[baml_py.baml_py.RuntimeContextManager, baml_py.baml_py.FunctionResultStream]:
         resolved_options = self.__resolve()
         ctx = __ctx__manager__.get()
         result = __runtime__.stream_function(
