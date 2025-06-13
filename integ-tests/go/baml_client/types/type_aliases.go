@@ -13,6 +13,8 @@
 //	$ go install github.com/boundaryml/baml/baml-cli
 package types
 
+type RecursiveUnion = Union2MapStringKeyRecursiveUnionValueOrString
+
 type LinkedListAlias = LinkedListAliasNode
 
 type NodeIndirection = NodeWithAliasIndirection
@@ -20,8 +22,6 @@ type NodeIndirection = NodeWithAliasIndirection
 type JsonEntry = Union2JsonTemplateOrSimpleTag
 
 type JsonTemplate = map[string]JsonEntry
-
-type RecursiveUnion = Union2MapStringKeyRecursiveUnionValueOrString
 
 type Primitive = Union4BoolOrFloatOrIntOrString
 

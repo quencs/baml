@@ -17,11 +17,11 @@ import (
 	"example.com/integ-tests/baml_client/types"
 )
 
+type RecursiveUnion = *Union2MapStringKeyRecursiveUnionValueOrString
 type LinkedListAlias = *LinkedListAliasNode
 type NodeIndirection = *NodeWithAliasIndirection
 type JsonEntry = *Union2JsonTemplateOrSimpleTag
 type JsonTemplate = *map[string]*JsonEntry
-type RecursiveUnion = *Union2MapStringKeyRecursiveUnionValueOrString
 type Primitive = *Union4BoolOrFloatOrIntOrString
 type List = *[]*string
 type Graph = *map[string]*[]*string

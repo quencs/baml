@@ -105,10 +105,10 @@ class DoNotUseDirectlyCallManager:
 
     def call_function_sync(
         self, *, function_name: str, args: typing.Dict[str, typing.Any]
-    ) -> typing.Tuple[baml_py.baml_py.RuntimeContextManager, baml_py.baml_py.FunctionResult]:
+    ) -> baml_py.baml_py.FunctionResult:
         resolved_options = self.__resolve()
         ctx = __ctx__manager__.get()
-        result = __runtime__.call_function_sync(
+        return __runtime__.call_function_sync(
             function_name,
             args,
             # ctx
@@ -122,7 +122,6 @@ class DoNotUseDirectlyCallManager:
             # env_vars
             resolved_options.env_vars,
         )
-        return ctx, result
 
     def create_async_stream(
         self,
@@ -156,16 +155,17 @@ class DoNotUseDirectlyCallManager:
         *,
         function_name: str,
         args: typing.Dict[str, typing.Any],
-    ) -> baml_py.baml_py.SyncFunctionResultStream:
+    ) -> typing.Tuple[baml_py.baml_py.RuntimeContextManager, baml_py.baml_py.SyncFunctionResultStream]:
         resolved_options = self.__resolve()
-        return __runtime__.stream_function_sync(
+        ctx = __ctx__manager__.get()
+        result = __runtime__.stream_function_sync(
             function_name,
             args,
             # this is always None, we set this later!
             # on_event
             None,   
             # ctx
-            __ctx__manager__.get(),
+            ctx,
             # tb
             resolved_options.tb,
             # cr
@@ -175,6 +175,7 @@ class DoNotUseDirectlyCallManager:
             # env_vars
             resolved_options.env_vars,
         )
+        return ctx, result
 
     async def create_http_request_async(
         self,

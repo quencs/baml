@@ -41,7 +41,7 @@ struct SyncClient<'a> {
 }
 
 pub fn render_sync_client(functions: &[FunctionPy], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
-    AsyncClient {
+    SyncClient {
         functions,
         pkg,
     }.render()
