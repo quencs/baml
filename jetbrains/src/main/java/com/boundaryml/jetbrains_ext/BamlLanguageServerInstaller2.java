@@ -8,7 +8,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,9 +15,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 
-public class BamlLanguageServerInstaller extends LanguageServerInstallerBase {
+public class BamlLanguageServerInstaller2 extends LanguageServerInstallerBase {
 
     private static final Path BAML_CACHE_DIR = Path.of(System.getProperty("user.home"), ".baml");
     private static final Path BREADCRUMB_PATH = Path.of(System.getProperty("user.home"), ".baml", "baml-cli-0.89.0-from-github");

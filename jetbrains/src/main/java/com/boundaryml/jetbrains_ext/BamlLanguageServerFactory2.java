@@ -2,23 +2,22 @@ package com.boundaryml.jetbrains_ext;
 
 import com.intellij.openapi.project.Project;
 import com.redhat.devtools.lsp4ij.LanguageServerFactory;
-import com.redhat.devtools.lsp4ij.client.LanguageClientImpl;
 import com.redhat.devtools.lsp4ij.client.features.LSPClientFeatures;
 import com.redhat.devtools.lsp4ij.server.StreamConnectionProvider;
 import org.jetbrains.annotations.NotNull;
 
-public class BamlLanguageServerFactory implements LanguageServerFactory {
+public class BamlLanguageServerFactory2 implements LanguageServerFactory {
 
     @Override
     public @NotNull StreamConnectionProvider createConnectionProvider(@NotNull Project project) {
-        return new BamlLanguageServer();
+        return new BamlLanguageServer2();
     }
 
     @Override
     public LSPClientFeatures createClientFeatures() {
 //        return null;
         var features = new LSPClientFeatures();
-        features.setServerInstaller(new BamlLanguageServerInstaller()); // customize language server installer
+        features.setServerInstaller(new BamlLanguageServerInstaller2()); // customize language server installer
         return features;
     }
 //

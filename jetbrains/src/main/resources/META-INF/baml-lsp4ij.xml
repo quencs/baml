@@ -2,7 +2,7 @@
 
     <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
         <server id="baml-language-server"
-                name="BAML language server sam-impl"
+                name="BAML Language Server"
                 icon="com.boundaryml.jetbrains_ext.BamlIcons.FILETYPE"
                 factoryClass="com.boundaryml.jetbrains_ext.BamlLanguageServerFactory">
             <description><![CDATA[
