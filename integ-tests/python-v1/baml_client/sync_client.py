@@ -13,32 +13,50 @@
 # flake8: noqa: E501,F401
 # pylint: disable=unused-import,line-too-long
 # fmt: off
-from typing import Dict, List, Optional, TypeVar, Union, cast
-from typing_extensions import Literal
+from typing import Any, Dict, List, Optional, TypeVar, Union, TypedDict, Type, cast
+from typing_extensions import NotRequired, Literal
+import pprint
+import os
 
 import baml_py
+from pydantic import BaseModel, ValidationError, create_model
 
-from . import _baml
+from . import partial_types, types
 from .types import Checked, Check
-from .parser import LlmResponseParser, LlmStreamParser
-from .sync_request import HttpRequest, HttpStreamRequest
+from .type_builder import TypeBuilder
 from .globals import DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_CTX, DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME
-
+from .sync_request import HttpRequest, HttpStreamRequest
+from .parser import LlmResponseParser, LlmStreamParser
 
 OutputType = TypeVar('OutputType')
 
+
+# Define the TypedDict with optional parameters having default values
+class BamlCallOptions(TypedDict, total=False):
+    tb: NotRequired[TypeBuilder]
+    client_registry: NotRequired[baml_py.baml_py.ClientRegistry]
+    collector: NotRequired[Union[baml_py.baml_py.Collector, List[baml_py.baml_py.Collector]]]
+    env: NotRequired[Dict[str, Optional[str]]]
+
+def env_vars_to_dict(overrides: Dict[str, Optional[str]]) -> Dict[str, str]:
+    base = os.environ.copy()
+    for k, v in overrides.items():
+        if v is not None:
+            base[k] = v
+        else:
+            base.pop(k, None)
+    return base
 
 class BamlSyncClient:
     __runtime: baml_py.BamlRuntime
     __ctx_manager: baml_py.BamlCtxManager
     __stream_client: "BamlStreamClient"
-    __http_request: HttpRequest
-    __http_stream_request: HttpStreamRequest
+    __http_request: "HttpRequest"
+    __http_stream_request: "HttpStreamRequest"
     __llm_response_parser: LlmResponseParser
-    __llm_stream_parser: LlmStreamParser
-    __baml_options: _baml.BamlCallOptions
+    __baml_options: BamlCallOptions
 
-    def __init__(self, runtime: baml_py.BamlRuntime, ctx_manager: baml_py.BamlCtxManager, baml_options: Optional[_baml.BamlCallOptions] = None):
+    def __init__(self, runtime: baml_py.BamlRuntime, ctx_manager: baml_py.BamlCtxManager, baml_options: Optional[BamlCallOptions] = None):
       self.__runtime = runtime
       self.__ctx_manager = ctx_manager
       self.__stream_client = BamlStreamClient(self.__runtime, self.__ctx_manager, baml_options)
@@ -70,7 +88,7 @@ class BamlSyncClient:
 
     def with_options(
       self,
-      tb: Optional[_baml.type_builder.TypeBuilder] = None,
+      tb: Optional[TypeBuilder] = None,
       client_registry: Optional[baml_py.baml_py.ClientRegistry] = None,
       collector: Optional[Union[baml_py.baml_py.Collector, List[baml_py.baml_py.Collector]]] = None,
       env: Optional[Dict[str, str]] = None,
@@ -79,7 +97,7 @@ class BamlSyncClient:
       Returns a new instance of BamlSyncClient with explicitly typed baml options
       for Python 3.8 compatibility.
       """
-      new_options: _baml.BamlCallOptions = self.__baml_options.copy()
+      new_options: BamlCallOptions = self.__baml_options.copy()
 
       # Override if any keyword arguments were provided.
       if tb is not None:
@@ -96,9 +114,9 @@ class BamlSyncClient:
     def AaaSamOutputFormat(
         self,
         recipe: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Recipe:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Recipe:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -107,7 +125,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AaaSamOutputFormat",
         {
@@ -119,14 +137,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Recipe, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Recipe, raw.cast_to(types, types, partial_types, False))
     
     def AliasThatPointsToRecursiveType(
         self,
-        data: _baml.types.LinkedListAliasNode,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.LinkedListAliasNode:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        data: types.LinkedListAliasNode,
+        baml_options: BamlCallOptions = {},
+    ) -> types.LinkedListAliasNode:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -135,7 +153,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AliasThatPointsToRecursiveType",
         {
@@ -147,14 +165,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.LinkedListAliasNode, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.LinkedListAliasNode, raw.cast_to(types, types, partial_types, False))
     
     def AliasWithMultipleAttrs(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Checked[int, Literal["gt_ten"]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -163,7 +181,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AliasWithMultipleAttrs",
         {
@@ -175,14 +193,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Checked[int, Literal["gt_ten"]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Checked[int, Literal["gt_ten"]], raw.cast_to(types, types, partial_types, False))
     
     def AliasedInputClass(
         self,
-        input: _baml.types.InputClass,
-        baml_options: _baml.BamlCallOptions = {},
+        input: types.InputClass,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -191,7 +209,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AliasedInputClass",
         {
@@ -203,14 +221,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def AliasedInputClass2(
         self,
-        input: _baml.types.InputClass,
-        baml_options: _baml.BamlCallOptions = {},
+        input: types.InputClass,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -219,7 +237,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AliasedInputClass2",
         {
@@ -231,14 +249,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def AliasedInputClassNested(
         self,
-        input: _baml.types.InputClassNested,
-        baml_options: _baml.BamlCallOptions = {},
+        input: types.InputClassNested,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -247,7 +265,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AliasedInputClassNested",
         {
@@ -259,14 +277,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def AliasedInputEnum(
         self,
-        input: _baml.types.AliasedEnum,
-        baml_options: _baml.BamlCallOptions = {},
+        input: types.AliasedEnum,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -275,7 +293,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AliasedInputEnum",
         {
@@ -287,14 +305,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def AliasedInputList(
         self,
-        input: List[_baml.types.AliasedEnum],
-        baml_options: _baml.BamlCallOptions = {},
+        input: List[types.AliasedEnum],
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -303,7 +321,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AliasedInputList",
         {
@@ -315,14 +333,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def AllowedOptionals(
         self,
-        optionals: _baml.types.OptionalListAndMap,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.OptionalListAndMap:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        optionals: types.OptionalListAndMap,
+        baml_options: BamlCallOptions = {},
+    ) -> types.OptionalListAndMap:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -331,7 +349,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AllowedOptionals",
         {
@@ -343,14 +361,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.OptionalListAndMap, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.OptionalListAndMap, raw.cast_to(types, types, partial_types, False))
     
     def AssertFn(
         self,
         a: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> int:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -359,7 +377,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AssertFn",
         {
@@ -371,14 +389,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(int, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(int, raw.cast_to(types, types, partial_types, False))
     
     def AudioInput(
         self,
         aud: baml_py.Audio,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -387,7 +405,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AudioInput",
         {
@@ -399,14 +417,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def AudioInputOpenai(
         self,
         aud: baml_py.Audio,prompt: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -415,7 +433,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "AudioInputOpenai",
         {
@@ -427,14 +445,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def BuildLinkedList(
         self,
         input: List[int],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.LinkedList:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.LinkedList:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -443,7 +461,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "BuildLinkedList",
         {
@@ -455,14 +473,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.LinkedList, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.LinkedList, raw.cast_to(types, types, partial_types, False))
     
     def BuildTree(
         self,
-        input: _baml.types.BinaryNode,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Tree:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.BinaryNode,
+        baml_options: BamlCallOptions = {},
+    ) -> types.Tree:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -471,7 +489,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "BuildTree",
         {
@@ -483,14 +501,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Tree, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Tree, raw.cast_to(types, types, partial_types, False))
     
     def ClassThatPointsToRecursiveClassThroughAlias(
         self,
-        cls: _baml.types.ClassToRecAlias,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.ClassToRecAlias:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        cls: types.ClassToRecAlias,
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassToRecAlias:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -499,7 +517,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ClassThatPointsToRecursiveClassThroughAlias",
         {
@@ -511,14 +529,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.ClassToRecAlias, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.ClassToRecAlias, raw.cast_to(types, types, partial_types, False))
     
     def ClassifyDynEnumTwo(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Union[_baml.types.DynEnumTwo, str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> Union[types.DynEnumTwo, str]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -527,7 +545,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ClassifyDynEnumTwo",
         {
@@ -539,14 +557,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Union[_baml.types.DynEnumTwo, str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Union[types.DynEnumTwo, str], raw.cast_to(types, types, partial_types, False))
     
     def ClassifyMessage(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Category:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Category:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -555,7 +573,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ClassifyMessage",
         {
@@ -567,14 +585,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Category, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Category, raw.cast_to(types, types, partial_types, False))
     
     def ClassifyMessage2(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Category:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Category:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -583,7 +601,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ClassifyMessage2",
         {
@@ -595,14 +613,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Category, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Category, raw.cast_to(types, types, partial_types, False))
     
     def ClassifyMessage3(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Category:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Category:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -611,7 +629,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ClassifyMessage3",
         {
@@ -623,14 +641,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Category, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Category, raw.cast_to(types, types, partial_types, False))
     
     def Completion(
         self,
         prefix: str,suffix: str,language: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -639,7 +657,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "Completion",
         {
@@ -651,14 +669,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def CustomTask(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Union[_baml.types.BookOrder, _baml.types.FlightConfirmation, _baml.types.GroceryReceipt]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> Union[types.BookOrder, types.FlightConfirmation, types.GroceryReceipt]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -667,7 +685,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "CustomTask",
         {
@@ -679,14 +697,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Union[_baml.types.BookOrder, _baml.types.FlightConfirmation, _baml.types.GroceryReceipt], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Union[types.BookOrder, types.FlightConfirmation, types.GroceryReceipt], raw.cast_to(types, types, partial_types, False))
     
     def DescribeImage(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -695,7 +713,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DescribeImage",
         {
@@ -707,14 +725,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def DescribeImage2(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -723,7 +741,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DescribeImage2",
         {
@@ -735,14 +753,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def DescribeImage3(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -751,7 +769,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DescribeImage3",
         {
@@ -763,14 +781,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def DescribeImage4(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -779,7 +797,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DescribeImage4",
         {
@@ -791,14 +809,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def DescribeMedia1599(
         self,
         img: baml_py.Image,client_sector: str,client_name: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -807,7 +825,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DescribeMedia1599",
         {
@@ -819,14 +837,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def DifferentiateUnions(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Union[_baml.types.OriginalA, _baml.types.OriginalB]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> Union[types.OriginalA, types.OriginalB]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -835,7 +853,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DifferentiateUnions",
         {
@@ -847,14 +865,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Union[_baml.types.OriginalA, _baml.types.OriginalB], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Union[types.OriginalA, types.OriginalB], raw.cast_to(types, types, partial_types, False))
     
     def DummyOutputFunction(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.DummyOutput:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.DummyOutput:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -863,7 +881,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DummyOutputFunction",
         {
@@ -875,14 +893,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.DummyOutput, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.DummyOutput, raw.cast_to(types, types, partial_types, False))
     
     def DynamicFunc(
         self,
-        input: _baml.types.DynamicClassOne,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.DynamicClassTwo:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.DynamicClassOne,
+        baml_options: BamlCallOptions = {},
+    ) -> types.DynamicClassTwo:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -891,7 +909,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DynamicFunc",
         {
@@ -903,14 +921,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.DynamicClassTwo, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.DynamicClassTwo, raw.cast_to(types, types, partial_types, False))
     
     def DynamicInputOutput(
         self,
-        input: _baml.types.DynInputOutput,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.DynInputOutput:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.DynInputOutput,
+        baml_options: BamlCallOptions = {},
+    ) -> types.DynInputOutput:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -919,7 +937,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DynamicInputOutput",
         {
@@ -931,14 +949,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.DynInputOutput, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.DynInputOutput, raw.cast_to(types, types, partial_types, False))
     
     def DynamicListInputOutput(
         self,
-        input: List[_baml.types.DynInputOutput],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> List[_baml.types.DynInputOutput]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: List[types.DynInputOutput],
+        baml_options: BamlCallOptions = {},
+    ) -> List[types.DynInputOutput]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -947,7 +965,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "DynamicListInputOutput",
         {
@@ -959,14 +977,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[_baml.types.DynInputOutput], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[types.DynInputOutput], raw.cast_to(types, types, partial_types, False))
     
     def ExpectFailure(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -975,7 +993,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExpectFailure",
         {
@@ -987,14 +1005,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def ExtractContactInfo(
         self,
         document: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.ContactInfo:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.ContactInfo:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1003,7 +1021,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExtractContactInfo",
         {
@@ -1015,14 +1033,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.ContactInfo, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.ContactInfo, raw.cast_to(types, types, partial_types, False))
     
     def ExtractEntities(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.DynamicSchema:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.DynamicSchema:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1031,7 +1049,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExtractEntities",
         {
@@ -1043,14 +1061,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.DynamicSchema, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.DynamicSchema, raw.cast_to(types, types, partial_types, False))
     
     def ExtractHobby(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> List[Union[_baml.types.Hobby, str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> List[Union[types.Hobby, str]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1059,7 +1077,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExtractHobby",
         {
@@ -1071,14 +1089,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[Union[_baml.types.Hobby, str]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[Union[types.Hobby, str]], raw.cast_to(types, types, partial_types, False))
     
     def ExtractNames(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> List[str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1087,7 +1105,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExtractNames",
         {
@@ -1099,14 +1117,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[str], raw.cast_to(types, types, partial_types, False))
     
     def ExtractPeople(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> List[_baml.types.Person]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> List[types.Person]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1115,7 +1133,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExtractPeople",
         {
@@ -1127,14 +1145,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[_baml.types.Person], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[types.Person], raw.cast_to(types, types, partial_types, False))
     
     def ExtractReceiptInfo(
         self,
         email: str,reason: Union[Literal["curiosity"], Literal["personal_finance"]],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.ReceiptInfo:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.ReceiptInfo:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1143,7 +1161,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExtractReceiptInfo",
         {
@@ -1155,14 +1173,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.ReceiptInfo, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.ReceiptInfo, raw.cast_to(types, types, partial_types, False))
     
     def ExtractResume(
         self,
         resume: str,img: Optional[baml_py.Image],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Resume:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Resume:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1171,7 +1189,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExtractResume",
         {
@@ -1183,14 +1201,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Resume, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Resume, raw.cast_to(types, types, partial_types, False))
     
     def ExtractResume2(
         self,
         resume: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Resume:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Resume:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1199,7 +1217,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ExtractResume2",
         {
@@ -1211,14 +1229,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Resume, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Resume, raw.cast_to(types, types, partial_types, False))
     
     def FnClassOptionalOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Optional[_baml.types.ClassOptionalOutput]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> Optional[types.ClassOptionalOutput]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1227,7 +1245,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnClassOptionalOutput",
         {
@@ -1239,14 +1257,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Optional[_baml.types.ClassOptionalOutput], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Optional[types.ClassOptionalOutput], raw.cast_to(types, types, partial_types, False))
     
     def FnClassOptionalOutput2(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Optional[_baml.types.ClassOptionalOutput2]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> Optional[types.ClassOptionalOutput2]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1255,7 +1273,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnClassOptionalOutput2",
         {
@@ -1267,14 +1285,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Optional[_baml.types.ClassOptionalOutput2], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Optional[types.ClassOptionalOutput2], raw.cast_to(types, types, partial_types, False))
     
     def FnEnumListOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> List[_baml.types.EnumOutput]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> List[types.EnumOutput]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1283,7 +1301,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnEnumListOutput",
         {
@@ -1295,14 +1313,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[_baml.types.EnumOutput], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[types.EnumOutput], raw.cast_to(types, types, partial_types, False))
     
     def FnEnumOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.EnumOutput:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.EnumOutput:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1311,7 +1329,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnEnumOutput",
         {
@@ -1323,14 +1341,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.EnumOutput, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.EnumOutput, raw.cast_to(types, types, partial_types, False))
     
     def FnLiteralClassInputOutput(
         self,
-        input: _baml.types.LiteralClassHello,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.LiteralClassHello:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.LiteralClassHello,
+        baml_options: BamlCallOptions = {},
+    ) -> types.LiteralClassHello:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1339,7 +1357,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnLiteralClassInputOutput",
         {
@@ -1351,14 +1369,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.LiteralClassHello, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.LiteralClassHello, raw.cast_to(types, types, partial_types, False))
     
     def FnLiteralUnionClassInputOutput(
         self,
-        input: Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: Union[types.LiteralClassOne, types.LiteralClassTwo],
+        baml_options: BamlCallOptions = {},
+    ) -> Union[types.LiteralClassOne, types.LiteralClassTwo]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1367,7 +1385,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnLiteralUnionClassInputOutput",
         {
@@ -1379,14 +1397,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Union[types.LiteralClassOne, types.LiteralClassTwo], raw.cast_to(types, types, partial_types, False))
     
     def FnNamedArgsSingleStringOptional(
         self,
         myString: Optional[str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1395,7 +1413,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnNamedArgsSingleStringOptional",
         {
@@ -1407,14 +1425,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def FnOutputBool(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> bool:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1423,7 +1441,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputBool",
         {
@@ -1435,14 +1453,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(bool, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(bool, raw.cast_to(types, types, partial_types, False))
     
     def FnOutputClass(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.TestOutputClass:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.TestOutputClass:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1451,7 +1469,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputClass",
         {
@@ -1463,14 +1481,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.TestOutputClass, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.TestOutputClass, raw.cast_to(types, types, partial_types, False))
     
     def FnOutputClassList(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> List[_baml.types.TestOutputClass]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> List[types.TestOutputClass]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1479,7 +1497,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputClassList",
         {
@@ -1491,14 +1509,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[_baml.types.TestOutputClass], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[types.TestOutputClass], raw.cast_to(types, types, partial_types, False))
     
     def FnOutputClassNested(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.TestClassNested:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.TestClassNested:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1507,7 +1525,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputClassNested",
         {
@@ -1519,14 +1537,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.TestClassNested, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.TestClassNested, raw.cast_to(types, types, partial_types, False))
     
     def FnOutputClassWithEnum(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.TestClassWithEnum:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.TestClassWithEnum:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1535,7 +1553,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputClassWithEnum",
         {
@@ -1547,14 +1565,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.TestClassWithEnum, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.TestClassWithEnum, raw.cast_to(types, types, partial_types, False))
     
     def FnOutputInt(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> int:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1563,7 +1581,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputInt",
         {
@@ -1575,14 +1593,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(int, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(int, raw.cast_to(types, types, partial_types, False))
     
     def FnOutputLiteralBool(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Literal[False]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1591,7 +1609,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputLiteralBool",
         {
@@ -1603,14 +1621,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Literal[False], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Literal[False], raw.cast_to(types, types, partial_types, False))
     
     def FnOutputLiteralInt(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Literal[5]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1619,7 +1637,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputLiteralInt",
         {
@@ -1631,14 +1649,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Literal[5], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Literal[5], raw.cast_to(types, types, partial_types, False))
     
     def FnOutputLiteralString(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Literal["example output"]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1647,7 +1665,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputLiteralString",
         {
@@ -1659,14 +1677,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Literal["example output"], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Literal["example output"], raw.cast_to(types, types, partial_types, False))
     
     def FnOutputStringList(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> List[str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1675,7 +1693,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnOutputStringList",
         {
@@ -1687,14 +1705,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[str], raw.cast_to(types, types, partial_types, False))
     
     def FnTestAliasedEnumOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.TestEnum:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.TestEnum:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1703,7 +1721,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnTestAliasedEnumOutput",
         {
@@ -1715,14 +1733,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.TestEnum, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.TestEnum, raw.cast_to(types, types, partial_types, False))
     
     def FnTestClassAlias(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.TestClassAlias:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.TestClassAlias:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1731,7 +1749,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnTestClassAlias",
         {
@@ -1743,14 +1761,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.TestClassAlias, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.TestClassAlias, raw.cast_to(types, types, partial_types, False))
     
     def FnTestNamedArgsSingleEnum(
         self,
-        myArg: _baml.types.NamedArgsSingleEnum,
-        baml_options: _baml.BamlCallOptions = {},
+        myArg: types.NamedArgsSingleEnum,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1759,7 +1777,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "FnTestNamedArgsSingleEnum",
         {
@@ -1771,14 +1789,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def GetDataType(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.RaysData:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.RaysData:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1787,7 +1805,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "GetDataType",
         {
@@ -1799,14 +1817,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.RaysData, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.RaysData, raw.cast_to(types, types, partial_types, False))
     
     def GetOrderInfo(
         self,
-        email: _baml.types.Email,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.OrderInfo:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        email: types.Email,
+        baml_options: BamlCallOptions = {},
+    ) -> types.OrderInfo:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1815,7 +1833,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "GetOrderInfo",
         {
@@ -1827,14 +1845,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.OrderInfo, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.OrderInfo, raw.cast_to(types, types, partial_types, False))
     
     def GetQuery(
         self,
         query: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.SearchParams:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.SearchParams:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1843,7 +1861,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "GetQuery",
         {
@@ -1855,14 +1873,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.SearchParams, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.SearchParams, raw.cast_to(types, types, partial_types, False))
     
     def InOutEnumMapKey(
         self,
-        i1: Dict[_baml.types.MapKey, str],i2: Dict[_baml.types.MapKey, str],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Dict[_baml.types.MapKey, str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        i1: Dict[types.MapKey, str],i2: Dict[types.MapKey, str],
+        baml_options: BamlCallOptions = {},
+    ) -> Dict[types.MapKey, str]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1871,7 +1889,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "InOutEnumMapKey",
         {
@@ -1883,14 +1901,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Dict[_baml.types.MapKey, str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Dict[types.MapKey, str], raw.cast_to(types, types, partial_types, False))
     
     def InOutLiteralStringUnionMapKey(
         self,
         i1: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],i2: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1899,7 +1917,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "InOutLiteralStringUnionMapKey",
         {
@@ -1911,14 +1929,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str], raw.cast_to(types, types, partial_types, False))
     
     def InOutSingleLiteralStringMapKey(
         self,
         m: Dict[Literal["key"], str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Dict[Literal["key"], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1927,7 +1945,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "InOutSingleLiteralStringMapKey",
         {
@@ -1939,14 +1957,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Dict[Literal["key"], str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Dict[Literal["key"], str], raw.cast_to(types, types, partial_types, False))
     
     def JsonTypeAliasCycle(
         self,
-        input: _baml.types.JsonValue,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.JsonValue:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.JsonValue,
+        baml_options: BamlCallOptions = {},
+    ) -> types.JsonValue:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1955,7 +1973,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "JsonTypeAliasCycle",
         {
@@ -1967,14 +1985,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.JsonValue, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.JsonValue, raw.cast_to(types, types, partial_types, False))
     
     def LLMEcho(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -1983,7 +2001,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "LLMEcho",
         {
@@ -1995,14 +2013,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def LiteralUnionsTest(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Union[Literal[1], Literal[True], Literal["string output"]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2011,7 +2029,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "LiteralUnionsTest",
         {
@@ -2023,14 +2041,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Union[Literal[1], Literal[True], Literal["string output"]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Union[Literal[1], Literal[True], Literal["string output"]], raw.cast_to(types, types, partial_types, False))
     
-    def MakeBlockConstraint(
+    def LongQuestion(
         self,
-        
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Checked[_baml.types.BlockConstraint, Literal["cross_field"]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        prompt: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.UniverseQuestion:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2039,7 +2057,35 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
+      raw = self.__runtime.call_function_sync(
+        "LongQuestion",
+        {
+          "prompt": prompt,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+        env,
+      )
+      return cast(types.UniverseQuestion, raw.cast_to(types, types, partial_types, False))
+    
+    def MakeBlockConstraint(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> Checked[types.BlockConstraint, Literal["cross_field"]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "MakeBlockConstraint",
         {
@@ -2051,14 +2097,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Checked[_baml.types.BlockConstraint, Literal["cross_field"]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Checked[types.BlockConstraint, Literal["cross_field"]], raw.cast_to(types, types, partial_types, False))
     
     def MakeClassWithBlockDone(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.ClassWithBlockDone:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassWithBlockDone:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2067,7 +2113,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "MakeClassWithBlockDone",
         {
@@ -2079,14 +2125,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.ClassWithBlockDone, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.ClassWithBlockDone, raw.cast_to(types, types, partial_types, False))
     
     def MakeClassWithExternalDone(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.ClassWithoutDone:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassWithoutDone:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2095,7 +2141,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "MakeClassWithExternalDone",
         {
@@ -2107,14 +2153,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.ClassWithoutDone, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.ClassWithoutDone, raw.cast_to(types, types, partial_types, False))
     
     def MakeNestedBlockConstraint(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.NestedBlockConstraint:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.NestedBlockConstraint:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2123,7 +2169,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "MakeNestedBlockConstraint",
         {
@@ -2135,14 +2181,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.NestedBlockConstraint, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.NestedBlockConstraint, raw.cast_to(types, types, partial_types, False))
     
     def MakeSemanticContainer(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.SemanticContainer:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.SemanticContainer:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2151,7 +2197,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "MakeSemanticContainer",
         {
@@ -2163,14 +2209,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.SemanticContainer, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.SemanticContainer, raw.cast_to(types, types, partial_types, False))
     
     def MapAlias(
         self,
         m: Dict[str, List[str]],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Dict[str, List[str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2179,7 +2225,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "MapAlias",
         {
@@ -2191,14 +2237,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Dict[str, List[str]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Dict[str, List[str]], raw.cast_to(types, types, partial_types, False))
     
     def MergeAliasAttributes(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.MergeAttrs:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.MergeAttrs:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2207,7 +2253,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "MergeAliasAttributes",
         {
@@ -2219,14 +2265,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.MergeAttrs, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.MergeAttrs, raw.cast_to(types, types, partial_types, False))
     
     def MyFunc(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.DynamicOutput:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.DynamicOutput:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2235,7 +2281,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "MyFunc",
         {
@@ -2247,14 +2293,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.DynamicOutput, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.DynamicOutput, raw.cast_to(types, types, partial_types, False))
     
     def NestedAlias(
         self,
         c: Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2263,7 +2309,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "NestedAlias",
         {
@@ -2275,14 +2321,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]], raw.cast_to(types, types, partial_types, False))
     
     def NullLiteralClassHello(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.ClassForNullLiteral:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.ClassForNullLiteral:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2291,7 +2337,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "NullLiteralClassHello",
         {
@@ -2303,14 +2349,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.ClassForNullLiteral, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.ClassForNullLiteral, raw.cast_to(types, types, partial_types, False))
     
     def OpenAIWithAnthropicResponseHello(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2319,7 +2365,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "OpenAIWithAnthropicResponseHello",
         {
@@ -2331,14 +2377,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def OptionalTest_Function(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> List[Optional[_baml.types.OptionalTest_ReturnType]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> List[Optional[types.OptionalTest_ReturnType]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2347,7 +2393,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "OptionalTest_Function",
         {
@@ -2359,14 +2405,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[Optional[_baml.types.OptionalTest_ReturnType]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[Optional[types.OptionalTest_ReturnType]], raw.cast_to(types, types, partial_types, False))
     
     def PredictAge(
         self,
         name: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.FooAny:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.FooAny:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2375,7 +2421,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PredictAge",
         {
@@ -2387,14 +2433,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.FooAny, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.FooAny, raw.cast_to(types, types, partial_types, False))
     
     def PredictAgeBare(
         self,
         inp: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Checked[int, Literal["too_big"]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2403,7 +2449,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PredictAgeBare",
         {
@@ -2415,14 +2461,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Checked[int, Literal["too_big"]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Checked[int, Literal["too_big"]], raw.cast_to(types, types, partial_types, False))
     
     def PrimitiveAlias(
         self,
         p: Union[int, str, bool, float],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Union[int, str, bool, float]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2431,7 +2477,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PrimitiveAlias",
         {
@@ -2443,14 +2489,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Union[int, str, bool, float], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Union[int, str, bool, float], raw.cast_to(types, types, partial_types, False))
     
     def PromptTestClaude(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2459,7 +2505,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PromptTestClaude",
         {
@@ -2471,14 +2517,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def PromptTestClaudeChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2487,7 +2533,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PromptTestClaudeChat",
         {
@@ -2499,14 +2545,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def PromptTestClaudeChatNoSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2515,7 +2561,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PromptTestClaudeChatNoSystem",
         {
@@ -2527,14 +2573,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def PromptTestOpenAI(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2543,7 +2589,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PromptTestOpenAI",
         {
@@ -2555,14 +2601,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def PromptTestOpenAIChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2571,7 +2617,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PromptTestOpenAIChat",
         {
@@ -2583,14 +2629,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def PromptTestOpenAIChatNoSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2599,7 +2645,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PromptTestOpenAIChatNoSystem",
         {
@@ -2611,14 +2657,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def PromptTestStreaming(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2627,7 +2673,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "PromptTestStreaming",
         {
@@ -2639,14 +2685,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def RecursiveAliasCycle(
         self,
-        input: _baml.types.RecAliasOne,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.RecAliasOne:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecAliasOne,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RecAliasOne:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2655,7 +2701,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "RecursiveAliasCycle",
         {
@@ -2667,14 +2713,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.RecAliasOne, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.RecAliasOne, raw.cast_to(types, types, partial_types, False))
     
     def RecursiveClassWithAliasIndirection(
         self,
-        cls: _baml.types.NodeWithAliasIndirection,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.NodeWithAliasIndirection:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        cls: types.NodeWithAliasIndirection,
+        baml_options: BamlCallOptions = {},
+    ) -> types.NodeWithAliasIndirection:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2683,7 +2729,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "RecursiveClassWithAliasIndirection",
         {
@@ -2695,14 +2741,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.NodeWithAliasIndirection, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.NodeWithAliasIndirection, raw.cast_to(types, types, partial_types, False))
     
     def RecursiveUnionTest(
         self,
-        input: _baml.types.RecursiveUnion,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.RecursiveUnion:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecursiveUnion,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RecursiveUnion:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2711,7 +2757,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "RecursiveUnionTest",
         {
@@ -2723,14 +2769,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.RecursiveUnion, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.RecursiveUnion, raw.cast_to(types, types, partial_types, False))
     
     def ReturnAliasWithMergedAttributes(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Checked[int, Literal["gt_ten"]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2739,7 +2785,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ReturnAliasWithMergedAttributes",
         {
@@ -2751,14 +2797,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Checked[int, Literal["gt_ten"]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Checked[int, Literal["gt_ten"]], raw.cast_to(types, types, partial_types, False))
     
     def ReturnFailingAssert(
         self,
         inp: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> int:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2767,7 +2813,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ReturnFailingAssert",
         {
@@ -2779,14 +2825,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(int, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(int, raw.cast_to(types, types, partial_types, False))
     
     def ReturnJsonEntry(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.JsonTemplate:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.JsonTemplate:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2795,7 +2841,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ReturnJsonEntry",
         {
@@ -2807,14 +2853,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.JsonTemplate, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.JsonTemplate, raw.cast_to(types, types, partial_types, False))
     
     def ReturnMalformedConstraints(
         self,
         a: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.MalformedConstraints:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.MalformedConstraints:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2823,7 +2869,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "ReturnMalformedConstraints",
         {
@@ -2835,14 +2881,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.MalformedConstraints, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.MalformedConstraints, raw.cast_to(types, types, partial_types, False))
     
     def SchemaDescriptions(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Schema:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Schema:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2851,7 +2897,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "SchemaDescriptions",
         {
@@ -2863,14 +2909,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Schema, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Schema, raw.cast_to(types, types, partial_types, False))
     
     def SimpleRecursiveListAlias(
         self,
-        input: _baml.types.RecursiveListAlias,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.RecursiveListAlias:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecursiveListAlias,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RecursiveListAlias:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2879,7 +2925,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "SimpleRecursiveListAlias",
         {
@@ -2891,14 +2937,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.RecursiveListAlias, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.RecursiveListAlias, raw.cast_to(types, types, partial_types, False))
     
     def SimpleRecursiveMapAlias(
         self,
-        input: _baml.types.RecursiveMapAlias,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.RecursiveMapAlias:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecursiveMapAlias,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RecursiveMapAlias:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2907,7 +2953,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "SimpleRecursiveMapAlias",
         {
@@ -2919,14 +2965,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.RecursiveMapAlias, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.RecursiveMapAlias, raw.cast_to(types, types, partial_types, False))
     
     def StreamBigNumbers(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.BigNumbers:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.BigNumbers:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2935,7 +2981,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "StreamBigNumbers",
         {
@@ -2947,14 +2993,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.BigNumbers, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.BigNumbers, raw.cast_to(types, types, partial_types, False))
     
     def StreamFailingAssertion(
         self,
         theme: str,length: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.TwoStoriesOneTitle:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.TwoStoriesOneTitle:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2963,7 +3009,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "StreamFailingAssertion",
         {
@@ -2975,14 +3021,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.TwoStoriesOneTitle, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.TwoStoriesOneTitle, raw.cast_to(types, types, partial_types, False))
     
     def StreamFailingCheck(
         self,
         theme: str,length: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.TwoStoriesOneTitleCheck:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.TwoStoriesOneTitleCheck:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -2991,7 +3037,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "StreamFailingCheck",
         {
@@ -3003,14 +3049,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.TwoStoriesOneTitleCheck, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.TwoStoriesOneTitleCheck, raw.cast_to(types, types, partial_types, False))
     
     def StreamOneBigNumber(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> int:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3019,7 +3065,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "StreamOneBigNumber",
         {
@@ -3031,14 +3077,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(int, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(int, raw.cast_to(types, types, partial_types, False))
     
     def StreamUnionIntegers(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> List[Union[int, str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3047,7 +3093,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "StreamUnionIntegers",
         {
@@ -3059,14 +3105,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[Union[int, str]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[Union[int, str]], raw.cast_to(types, types, partial_types, False))
     
     def StreamingCompoundNumbers(
         self,
         digits: int,yapping: bool,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.CompoundBigNumbers:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.CompoundBigNumbers:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3075,7 +3121,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "StreamingCompoundNumbers",
         {
@@ -3087,14 +3133,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.CompoundBigNumbers, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.CompoundBigNumbers, raw.cast_to(types, types, partial_types, False))
     
     def StructureDocument1559(
         self,
         document_txt: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Document1559:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Document1559:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3103,7 +3149,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "StructureDocument1559",
         {
@@ -3115,14 +3161,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Document1559, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Document1559, raw.cast_to(types, types, partial_types, False))
     
     def TakeRecAliasDep(
         self,
-        input: _baml.types.RecursiveAliasDependency,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.RecursiveAliasDependency:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecursiveAliasDependency,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RecursiveAliasDependency:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3131,7 +3177,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TakeRecAliasDep",
         {
@@ -3143,14 +3189,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.RecursiveAliasDependency, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.RecursiveAliasDependency, raw.cast_to(types, types, partial_types, False))
     
     def TellStory(
         self,
         story: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3159,7 +3205,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TellStory",
         {
@@ -3171,14 +3217,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAnthropic(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3187,7 +3233,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAnthropic",
         {
@@ -3199,14 +3245,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAnthropicShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3215,7 +3261,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAnthropicShorthand",
         {
@@ -3227,14 +3273,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAws(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3243,7 +3289,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAws",
         {
@@ -3255,14 +3301,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAwsClaude37(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3271,7 +3317,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAwsClaude37",
         {
@@ -3283,14 +3329,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAwsInferenceProfile(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3299,7 +3345,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAwsInferenceProfile",
         {
@@ -3311,14 +3357,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAwsInvalidAccessKey(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3327,7 +3373,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAwsInvalidAccessKey",
         {
@@ -3339,14 +3385,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAwsInvalidProfile(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3355,7 +3401,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAwsInvalidProfile",
         {
@@ -3367,14 +3413,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAwsInvalidRegion(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3383,7 +3429,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAwsInvalidRegion",
         {
@@ -3395,14 +3441,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAwsInvalidSessionToken(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3411,7 +3457,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAwsInvalidSessionToken",
         {
@@ -3423,14 +3469,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAzure(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3439,7 +3485,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAzure",
         {
@@ -3451,14 +3497,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAzureFailure(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3467,7 +3513,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAzureFailure",
         {
@@ -3479,14 +3525,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAzureO1NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3495,7 +3541,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAzureO1NoMaxTokens",
         {
@@ -3507,14 +3553,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAzureO1WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3523,7 +3569,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAzureO1WithMaxCompletionTokens",
         {
@@ -3535,14 +3581,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAzureO1WithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3551,7 +3597,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAzureO1WithMaxTokens",
         {
@@ -3563,14 +3609,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAzureO3NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3579,7 +3625,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAzureO3NoMaxTokens",
         {
@@ -3591,14 +3637,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAzureO3WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3607,7 +3653,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAzureO3WithMaxCompletionTokens",
         {
@@ -3619,14 +3665,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestAzureWithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3635,7 +3681,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestAzureWithMaxTokens",
         {
@@ -3647,14 +3693,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestCaching(
         self,
         input: str,not_cached: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3663,7 +3709,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestCaching",
         {
@@ -3675,14 +3721,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFallbackClient(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3691,7 +3737,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFallbackClient",
         {
@@ -3703,14 +3749,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFallbackStrategy(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3719,7 +3765,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFallbackStrategy",
         {
@@ -3731,14 +3777,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFallbackToShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3747,7 +3793,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFallbackToShorthand",
         {
@@ -3759,14 +3805,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleBool(
         self,
         myBool: bool,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3775,7 +3821,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleBool",
         {
@@ -3787,14 +3833,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleClass(
         self,
-        myArg: _baml.types.NamedArgsSingleClass,
-        baml_options: _baml.BamlCallOptions = {},
+        myArg: types.NamedArgsSingleClass,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3803,7 +3849,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleClass",
         {
@@ -3815,14 +3861,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleEnumList(
         self,
-        myArg: List[_baml.types.NamedArgsSingleEnumList],
-        baml_options: _baml.BamlCallOptions = {},
+        myArg: List[types.NamedArgsSingleEnumList],
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3831,7 +3877,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleEnumList",
         {
@@ -3843,14 +3889,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleFloat(
         self,
         myFloat: float,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3859,7 +3905,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleFloat",
         {
@@ -3871,14 +3917,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleInt(
         self,
         myInt: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3887,7 +3933,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleInt",
         {
@@ -3899,14 +3945,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleMapStringToClass(
         self,
-        myMap: Dict[str, _baml.types.StringToClassEntry],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> Dict[str, _baml.types.StringToClassEntry]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        myMap: Dict[str, types.StringToClassEntry],
+        baml_options: BamlCallOptions = {},
+    ) -> Dict[str, types.StringToClassEntry]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3915,7 +3961,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleMapStringToClass",
         {
@@ -3927,14 +3973,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Dict[str, _baml.types.StringToClassEntry], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Dict[str, types.StringToClassEntry], raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleMapStringToMap(
         self,
         myMap: Dict[str, Dict[str, str]],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Dict[str, Dict[str, str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3943,7 +3989,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleMapStringToMap",
         {
@@ -3955,14 +4001,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Dict[str, Dict[str, str]], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Dict[str, Dict[str, str]], raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleMapStringToString(
         self,
         myMap: Dict[str, str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Dict[str, str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3971,7 +4017,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleMapStringToString",
         {
@@ -3983,14 +4029,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Dict[str, str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Dict[str, str], raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleString(
         self,
         myString: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -3999,7 +4045,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleString",
         {
@@ -4011,14 +4057,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleStringArray(
         self,
         myStringArray: List[str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4027,7 +4073,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleStringArray",
         {
@@ -4039,14 +4085,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestFnNamedArgsSingleStringList(
         self,
         myArg: List[str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> List[str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4055,7 +4101,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestFnNamedArgsSingleStringList",
         {
@@ -4067,14 +4113,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(List[str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(List[str], raw.cast_to(types, types, partial_types, False))
     
     def TestGemini(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4083,7 +4129,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestGemini",
         {
@@ -4095,14 +4141,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestGeminiOpenAiGeneric(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4111,7 +4157,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestGeminiOpenAiGeneric",
         {
@@ -4123,14 +4169,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestGeminiSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4139,7 +4185,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestGeminiSystem",
         {
@@ -4151,14 +4197,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestGeminiSystemAsChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4167,7 +4213,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestGeminiSystemAsChat",
         {
@@ -4179,14 +4225,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestGroq(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4195,7 +4241,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestGroq",
         {
@@ -4207,14 +4253,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestImageInput(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4223,7 +4269,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestImageInput",
         {
@@ -4235,14 +4281,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestImageInputAnthropic(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4251,7 +4297,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestImageInputAnthropic",
         {
@@ -4263,14 +4309,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestImageListInput(
         self,
         imgs: List[baml_py.Image],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4279,7 +4325,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestImageListInput",
         {
@@ -4291,14 +4337,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestMemory(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.TestMemoryOutput:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.TestMemoryOutput:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4307,7 +4353,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestMemory",
         {
@@ -4319,14 +4365,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.TestMemoryOutput, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.TestMemoryOutput, raw.cast_to(types, types, partial_types, False))
     
     def TestMulticlassNamedArgs(
         self,
-        myArg: _baml.types.NamedArgsSingleClass,myArg2: _baml.types.NamedArgsSingleClass,
-        baml_options: _baml.BamlCallOptions = {},
+        myArg: types.NamedArgsSingleClass,myArg2: types.NamedArgsSingleClass,
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4335,7 +4381,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestMulticlassNamedArgs",
         {
@@ -4347,14 +4393,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestNamedArgsLiteralBool(
         self,
         myBool: Literal[True],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4363,7 +4409,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestNamedArgsLiteralBool",
         {
@@ -4375,14 +4421,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestNamedArgsLiteralInt(
         self,
         myInt: Literal[1],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4391,7 +4437,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestNamedArgsLiteralInt",
         {
@@ -4403,14 +4449,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestNamedArgsLiteralString(
         self,
         myString: Literal["My String"],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4419,7 +4465,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestNamedArgsLiteralString",
         {
@@ -4431,14 +4477,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOllama(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> Optional[str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4447,7 +4493,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOllama",
         {
@@ -4459,14 +4505,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(Optional[str], raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(Optional[str], raw.cast_to(types, types, partial_types, False))
     
     def TestOllamaHaiku(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.Haiku:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.Haiku:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4475,7 +4521,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOllamaHaiku",
         {
@@ -4487,14 +4533,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.Haiku, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.Haiku, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAI(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4503,7 +4549,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAI",
         {
@@ -4515,14 +4561,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIDummyClient(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4531,7 +4577,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIDummyClient",
         {
@@ -4543,14 +4589,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIGPT4oMini(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4559,7 +4605,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIGPT4oMini",
         {
@@ -4571,14 +4617,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAILegacyProvider(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4587,7 +4633,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAILegacyProvider",
         {
@@ -4599,14 +4645,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIO1NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4615,7 +4661,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIO1NoMaxTokens",
         {
@@ -4627,14 +4673,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIO1WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4643,7 +4689,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIO1WithMaxCompletionTokens",
         {
@@ -4655,14 +4701,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIO1WithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4671,7 +4717,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIO1WithMaxTokens",
         {
@@ -4683,14 +4729,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4699,7 +4745,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIShorthand",
         {
@@ -4711,14 +4757,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIWithFinishReasonError(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4727,7 +4773,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIWithFinishReasonError",
         {
@@ -4739,14 +4785,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIWithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4755,7 +4801,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIWithMaxTokens",
         {
@@ -4767,14 +4813,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenAIWithNullMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4783,7 +4829,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenAIWithNullMaxTokens",
         {
@@ -4795,14 +4841,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestOpenRouterMistralSmall3_1_24b(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4811,7 +4857,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestOpenRouterMistralSmall3_1_24b",
         {
@@ -4823,14 +4869,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestRetryConstant(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4839,7 +4885,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestRetryConstant",
         {
@@ -4851,14 +4897,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestRetryExponential(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4867,7 +4913,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestRetryExponential",
         {
@@ -4879,14 +4925,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestRoundRobinStrategy(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4895,7 +4941,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestRoundRobinStrategy",
         {
@@ -4907,14 +4953,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestSingleFallbackClient(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4923,7 +4969,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestSingleFallbackClient",
         {
@@ -4935,14 +4981,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestThinking(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.CustomStory:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.CustomStory:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4951,7 +4997,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestThinking",
         {
@@ -4963,14 +5009,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.CustomStory, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.CustomStory, raw.cast_to(types, types, partial_types, False))
     
     def TestUniverseQuestion(
         self,
-        question: _baml.types.UniverseQuestionInput,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.UniverseQuestion:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        question: types.UniverseQuestionInput,
+        baml_options: BamlCallOptions = {},
+    ) -> types.UniverseQuestion:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -4979,7 +5025,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestUniverseQuestion",
         {
@@ -4991,14 +5037,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.UniverseQuestion, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.UniverseQuestion, raw.cast_to(types, types, partial_types, False))
     
     def TestVertex(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5007,7 +5053,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestVertex",
         {
@@ -5019,14 +5065,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestVertexClaude(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5035,7 +5081,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestVertexClaude",
         {
@@ -5047,14 +5093,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def TestVertexWithSystemInstructions(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5063,7 +5109,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "TestVertexWithSystemInstructions",
         {
@@ -5075,14 +5121,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
     def UnionTest_Function(
         self,
         input: Union[str, bool],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.UnionTest_ReturnType:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> types.UnionTest_ReturnType:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5091,7 +5137,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "UnionTest_Function",
         {
@@ -5103,14 +5149,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.UnionTest_ReturnType, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.UnionTest_ReturnType, raw.cast_to(types, types, partial_types, False))
     
     def UseBlockConstraint(
         self,
-        inp: _baml.types.BlockConstraintForParam,
-        baml_options: _baml.BamlCallOptions = {},
+        inp: types.BlockConstraintForParam,
+        baml_options: BamlCallOptions = {},
     ) -> int:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5119,7 +5165,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "UseBlockConstraint",
         {
@@ -5131,14 +5177,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(int, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(int, raw.cast_to(types, types, partial_types, False))
     
     def UseMaintainFieldOrder(
         self,
-        input: _baml.types.MaintainFieldOrder,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> _baml.types.MaintainFieldOrder:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.MaintainFieldOrder,
+        baml_options: BamlCallOptions = {},
+    ) -> types.MaintainFieldOrder:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5147,7 +5193,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "UseMaintainFieldOrder",
         {
@@ -5159,14 +5205,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(_baml.types.MaintainFieldOrder, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(types.MaintainFieldOrder, raw.cast_to(types, types, partial_types, False))
     
     def UseMalformedConstraints(
         self,
-        a: _baml.types.MalformedConstraints2,
-        baml_options: _baml.BamlCallOptions = {},
+        a: types.MalformedConstraints2,
+        baml_options: BamlCallOptions = {},
     ) -> int:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5175,7 +5221,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "UseMalformedConstraints",
         {
@@ -5187,14 +5233,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(int, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(int, raw.cast_to(types, types, partial_types, False))
     
     def UseNestedBlockConstraint(
         self,
-        inp: _baml.types.NestedBlockConstraintForParam,
-        baml_options: _baml.BamlCallOptions = {},
+        inp: types.NestedBlockConstraintForParam,
+        baml_options: BamlCallOptions = {},
     ) -> int:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5203,7 +5249,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "UseNestedBlockConstraint",
         {
@@ -5215,14 +5261,14 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(int, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(int, raw.cast_to(types, types, partial_types, False))
     
     def EchoWorkflow(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> str:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5231,7 +5277,7 @@ class BamlSyncClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.call_function_sync(
         "EchoWorkflow",
         {
@@ -5243,7 +5289,7 @@ class BamlSyncClient:
         collectors,
         env,
       )
-      return cast(str, raw.cast_to(_baml.types, _baml.types, _baml.partial_types, False))
+      return cast(str, raw.cast_to(types, types, partial_types, False))
     
 
 
@@ -5251,8 +5297,8 @@ class BamlSyncClient:
 class BamlStreamClient:
     __runtime: baml_py.BamlRuntime
     __ctx_manager: baml_py.BamlCtxManager
-    __baml_options: _baml.BamlCallOptions
-    def __init__(self, runtime: baml_py.BamlRuntime, ctx_manager: baml_py.BamlCtxManager, baml_options: Optional[_baml.BamlCallOptions] = None):
+    __baml_options: BamlCallOptions
+    def __init__(self, runtime: baml_py.BamlRuntime, ctx_manager: baml_py.BamlCtxManager, baml_options: Optional[BamlCallOptions] = None):
       self.__runtime = runtime
       self.__ctx_manager = ctx_manager
       self.__baml_options = baml_options or {}
@@ -5261,9 +5307,9 @@ class BamlStreamClient:
     def AaaSamOutputFormat(
         self,
         recipe: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.Recipe, _baml.types.Recipe]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.Recipe, types.Recipe]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5272,7 +5318,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AaaSamOutputFormat",
         {
@@ -5286,19 +5332,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.Recipe, _baml.types.Recipe](
+      return baml_py.BamlSyncStream[partial_types.Recipe, types.Recipe](
         raw,
-        lambda x: cast(_baml.partial_types.Recipe, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Recipe, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.Recipe, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Recipe, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AliasThatPointsToRecursiveType(
         self,
-        data: _baml.types.LinkedListAliasNode,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.LinkedListAliasNode, _baml.types.LinkedListAliasNode]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        data: types.LinkedListAliasNode,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.LinkedListAliasNode, types.LinkedListAliasNode]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5307,7 +5353,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AliasThatPointsToRecursiveType",
         {
@@ -5321,19 +5367,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.LinkedListAliasNode, _baml.types.LinkedListAliasNode](
+      return baml_py.BamlSyncStream[partial_types.LinkedListAliasNode, types.LinkedListAliasNode](
         raw,
-        lambda x: cast(_baml.partial_types.LinkedListAliasNode, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.LinkedListAliasNode, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.LinkedListAliasNode, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.LinkedListAliasNode, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AliasWithMultipleAttrs(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Checked[Optional[int], Literal["gt_ten"]], Checked[int, Literal["gt_ten"]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5342,7 +5388,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AliasWithMultipleAttrs",
         {
@@ -5358,17 +5404,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Checked[Optional[int], Literal["gt_ten"]], Checked[int, Literal["gt_ten"]]](
         raw,
-        lambda x: cast(Checked[Optional[int], Literal["gt_ten"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Checked[int, Literal["gt_ten"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Checked[Optional[int], Literal["gt_ten"]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Checked[int, Literal["gt_ten"]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AliasedInputClass(
         self,
-        input: _baml.types.InputClass,
-        baml_options: _baml.BamlCallOptions = {},
+        input: types.InputClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5377,7 +5423,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AliasedInputClass",
         {
@@ -5393,17 +5439,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AliasedInputClass2(
         self,
-        input: _baml.types.InputClass,
-        baml_options: _baml.BamlCallOptions = {},
+        input: types.InputClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5412,7 +5458,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AliasedInputClass2",
         {
@@ -5428,17 +5474,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AliasedInputClassNested(
         self,
-        input: _baml.types.InputClassNested,
-        baml_options: _baml.BamlCallOptions = {},
+        input: types.InputClassNested,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5447,7 +5493,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AliasedInputClassNested",
         {
@@ -5463,17 +5509,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AliasedInputEnum(
         self,
-        input: _baml.types.AliasedEnum,
-        baml_options: _baml.BamlCallOptions = {},
+        input: types.AliasedEnum,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5482,7 +5528,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AliasedInputEnum",
         {
@@ -5498,17 +5544,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AliasedInputList(
         self,
-        input: List[_baml.types.AliasedEnum],
-        baml_options: _baml.BamlCallOptions = {},
+        input: List[types.AliasedEnum],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5517,7 +5563,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AliasedInputList",
         {
@@ -5533,17 +5579,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AllowedOptionals(
         self,
-        optionals: _baml.types.OptionalListAndMap,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.OptionalListAndMap, _baml.types.OptionalListAndMap]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        optionals: types.OptionalListAndMap,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.OptionalListAndMap, types.OptionalListAndMap]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5552,7 +5598,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AllowedOptionals",
         {
@@ -5566,19 +5612,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.OptionalListAndMap, _baml.types.OptionalListAndMap](
+      return baml_py.BamlSyncStream[partial_types.OptionalListAndMap, types.OptionalListAndMap](
         raw,
-        lambda x: cast(_baml.partial_types.OptionalListAndMap, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.OptionalListAndMap, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.OptionalListAndMap, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.OptionalListAndMap, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AssertFn(
         self,
         a: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[int], int]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5587,7 +5633,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AssertFn",
         {
@@ -5603,17 +5649,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[int], int](
         raw,
-        lambda x: cast(Optional[int], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(int, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[int], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(int, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AudioInput(
         self,
         aud: baml_py.Audio,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5622,7 +5668,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AudioInput",
         {
@@ -5638,17 +5684,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def AudioInputOpenai(
         self,
         aud: baml_py.Audio,prompt: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5657,7 +5703,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "AudioInputOpenai",
         {
@@ -5674,17 +5720,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def BuildLinkedList(
         self,
         input: List[int],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.LinkedList, _baml.types.LinkedList]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.LinkedList, types.LinkedList]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5693,7 +5739,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "BuildLinkedList",
         {
@@ -5707,19 +5753,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.LinkedList, _baml.types.LinkedList](
+      return baml_py.BamlSyncStream[partial_types.LinkedList, types.LinkedList](
         raw,
-        lambda x: cast(_baml.partial_types.LinkedList, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.LinkedList, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.LinkedList, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.LinkedList, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def BuildTree(
         self,
-        input: _baml.types.BinaryNode,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.Tree, _baml.types.Tree]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.BinaryNode,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.Tree, types.Tree]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5728,7 +5774,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "BuildTree",
         {
@@ -5742,19 +5788,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.Tree, _baml.types.Tree](
+      return baml_py.BamlSyncStream[partial_types.Tree, types.Tree](
         raw,
-        lambda x: cast(_baml.partial_types.Tree, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Tree, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.Tree, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Tree, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ClassThatPointsToRecursiveClassThroughAlias(
         self,
-        cls: _baml.types.ClassToRecAlias,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.ClassToRecAlias, _baml.types.ClassToRecAlias]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        cls: types.ClassToRecAlias,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.ClassToRecAlias, types.ClassToRecAlias]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5763,7 +5809,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ClassThatPointsToRecursiveClassThroughAlias",
         {
@@ -5777,19 +5823,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.ClassToRecAlias, _baml.types.ClassToRecAlias](
+      return baml_py.BamlSyncStream[partial_types.ClassToRecAlias, types.ClassToRecAlias](
         raw,
-        lambda x: cast(_baml.partial_types.ClassToRecAlias, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.ClassToRecAlias, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.ClassToRecAlias, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ClassToRecAlias, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ClassifyDynEnumTwo(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[Union[_baml.types.DynEnumTwo, str]], Union[_baml.types.DynEnumTwo, str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[Union[types.DynEnumTwo, str]], Union[types.DynEnumTwo, str]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5798,7 +5844,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ClassifyDynEnumTwo",
         {
@@ -5812,19 +5858,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[Union[_baml.types.DynEnumTwo, str]], Union[_baml.types.DynEnumTwo, str]](
+      return baml_py.BamlSyncStream[Optional[Union[types.DynEnumTwo, str]], Union[types.DynEnumTwo, str]](
         raw,
-        lambda x: cast(Optional[Union[_baml.types.DynEnumTwo, str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Union[_baml.types.DynEnumTwo, str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Union[types.DynEnumTwo, str]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Union[types.DynEnumTwo, str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ClassifyMessage(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[_baml.types.Category], _baml.types.Category]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[types.Category], types.Category]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5833,7 +5879,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ClassifyMessage",
         {
@@ -5847,19 +5893,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[_baml.types.Category], _baml.types.Category](
+      return baml_py.BamlSyncStream[Optional[types.Category], types.Category](
         raw,
-        lambda x: cast(Optional[_baml.types.Category], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Category, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[types.Category], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Category, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ClassifyMessage2(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[_baml.types.Category], _baml.types.Category]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[types.Category], types.Category]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5868,7 +5914,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ClassifyMessage2",
         {
@@ -5882,19 +5928,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[_baml.types.Category], _baml.types.Category](
+      return baml_py.BamlSyncStream[Optional[types.Category], types.Category](
         raw,
-        lambda x: cast(Optional[_baml.types.Category], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Category, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[types.Category], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Category, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ClassifyMessage3(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[_baml.types.Category], _baml.types.Category]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[types.Category], types.Category]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5903,7 +5949,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ClassifyMessage3",
         {
@@ -5917,19 +5963,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[_baml.types.Category], _baml.types.Category](
+      return baml_py.BamlSyncStream[Optional[types.Category], types.Category](
         raw,
-        lambda x: cast(Optional[_baml.types.Category], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Category, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[types.Category], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Category, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def Completion(
         self,
         prefix: str,suffix: str,language: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5938,7 +5984,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "Completion",
         {
@@ -5956,17 +6002,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def CustomTask(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[Union[_baml.partial_types.BookOrder, _baml.partial_types.FlightConfirmation, _baml.partial_types.GroceryReceipt]], Union[_baml.types.BookOrder, _baml.types.FlightConfirmation, _baml.types.GroceryReceipt]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[Union[partial_types.BookOrder, partial_types.FlightConfirmation, partial_types.GroceryReceipt]], Union[types.BookOrder, types.FlightConfirmation, types.GroceryReceipt]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -5975,7 +6021,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "CustomTask",
         {
@@ -5989,19 +6035,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[Union[_baml.partial_types.BookOrder, _baml.partial_types.FlightConfirmation, _baml.partial_types.GroceryReceipt]], Union[_baml.types.BookOrder, _baml.types.FlightConfirmation, _baml.types.GroceryReceipt]](
+      return baml_py.BamlSyncStream[Optional[Union[partial_types.BookOrder, partial_types.FlightConfirmation, partial_types.GroceryReceipt]], Union[types.BookOrder, types.FlightConfirmation, types.GroceryReceipt]](
         raw,
-        lambda x: cast(Optional[Union[_baml.partial_types.BookOrder, _baml.partial_types.FlightConfirmation, _baml.partial_types.GroceryReceipt]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Union[_baml.types.BookOrder, _baml.types.FlightConfirmation, _baml.types.GroceryReceipt], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Union[partial_types.BookOrder, partial_types.FlightConfirmation, partial_types.GroceryReceipt]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Union[types.BookOrder, types.FlightConfirmation, types.GroceryReceipt], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DescribeImage(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6010,7 +6056,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DescribeImage",
         {
@@ -6026,17 +6072,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DescribeImage2(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6045,7 +6091,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DescribeImage2",
         {
@@ -6062,17 +6108,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DescribeImage3(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6081,7 +6127,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DescribeImage3",
         {
@@ -6098,17 +6144,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DescribeImage4(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6117,7 +6163,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DescribeImage4",
         {
@@ -6134,17 +6180,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DescribeMedia1599(
         self,
         img: baml_py.Image,client_sector: str,client_name: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6153,7 +6199,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DescribeMedia1599",
         {
@@ -6171,17 +6217,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DifferentiateUnions(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[Union[_baml.partial_types.OriginalA, _baml.partial_types.OriginalB]], Union[_baml.types.OriginalA, _baml.types.OriginalB]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[Union[partial_types.OriginalA, partial_types.OriginalB]], Union[types.OriginalA, types.OriginalB]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6190,7 +6236,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DifferentiateUnions",
         {
@@ -6203,19 +6249,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[Union[_baml.partial_types.OriginalA, _baml.partial_types.OriginalB]], Union[_baml.types.OriginalA, _baml.types.OriginalB]](
+      return baml_py.BamlSyncStream[Optional[Union[partial_types.OriginalA, partial_types.OriginalB]], Union[types.OriginalA, types.OriginalB]](
         raw,
-        lambda x: cast(Optional[Union[_baml.partial_types.OriginalA, _baml.partial_types.OriginalB]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Union[_baml.types.OriginalA, _baml.types.OriginalB], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Union[partial_types.OriginalA, partial_types.OriginalB]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Union[types.OriginalA, types.OriginalB], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DummyOutputFunction(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.DummyOutput, _baml.types.DummyOutput]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.DummyOutput, types.DummyOutput]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6224,7 +6270,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DummyOutputFunction",
         {
@@ -6238,19 +6284,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.DummyOutput, _baml.types.DummyOutput](
+      return baml_py.BamlSyncStream[partial_types.DummyOutput, types.DummyOutput](
         raw,
-        lambda x: cast(_baml.partial_types.DummyOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.DummyOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.DummyOutput, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.DummyOutput, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DynamicFunc(
         self,
-        input: _baml.types.DynamicClassOne,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.DynamicClassTwo, _baml.types.DynamicClassTwo]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.DynamicClassOne,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.DynamicClassTwo, types.DynamicClassTwo]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6259,7 +6305,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DynamicFunc",
         {
@@ -6273,19 +6319,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.DynamicClassTwo, _baml.types.DynamicClassTwo](
+      return baml_py.BamlSyncStream[partial_types.DynamicClassTwo, types.DynamicClassTwo](
         raw,
-        lambda x: cast(_baml.partial_types.DynamicClassTwo, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.DynamicClassTwo, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.DynamicClassTwo, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.DynamicClassTwo, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DynamicInputOutput(
         self,
-        input: _baml.types.DynInputOutput,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.DynInputOutput, _baml.types.DynInputOutput]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.DynInputOutput,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.DynInputOutput, types.DynInputOutput]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6294,7 +6340,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DynamicInputOutput",
         {
@@ -6308,19 +6354,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.DynInputOutput, _baml.types.DynInputOutput](
+      return baml_py.BamlSyncStream[partial_types.DynInputOutput, types.DynInputOutput](
         raw,
-        lambda x: cast(_baml.partial_types.DynInputOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.DynInputOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.DynInputOutput, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.DynInputOutput, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def DynamicListInputOutput(
         self,
-        input: List[_baml.types.DynInputOutput],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[List[_baml.partial_types.DynInputOutput], List[_baml.types.DynInputOutput]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: List[types.DynInputOutput],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[List[partial_types.DynInputOutput], List[types.DynInputOutput]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6329,7 +6375,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "DynamicListInputOutput",
         {
@@ -6343,19 +6389,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[List[_baml.partial_types.DynInputOutput], List[_baml.types.DynInputOutput]](
+      return baml_py.BamlSyncStream[List[partial_types.DynInputOutput], List[types.DynInputOutput]](
         raw,
-        lambda x: cast(List[_baml.partial_types.DynInputOutput], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[_baml.types.DynInputOutput], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[partial_types.DynInputOutput], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[types.DynInputOutput], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExpectFailure(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6364,7 +6410,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExpectFailure",
         {
@@ -6379,17 +6425,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExtractContactInfo(
         self,
         document: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.ContactInfo, _baml.types.ContactInfo]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.ContactInfo, types.ContactInfo]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6398,7 +6444,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExtractContactInfo",
         {
@@ -6412,19 +6458,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.ContactInfo, _baml.types.ContactInfo](
+      return baml_py.BamlSyncStream[partial_types.ContactInfo, types.ContactInfo](
         raw,
-        lambda x: cast(_baml.partial_types.ContactInfo, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.ContactInfo, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.ContactInfo, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ContactInfo, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExtractEntities(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.DynamicSchema, _baml.types.DynamicSchema]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.DynamicSchema, types.DynamicSchema]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6433,7 +6479,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExtractEntities",
         {
@@ -6447,19 +6493,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.DynamicSchema, _baml.types.DynamicSchema](
+      return baml_py.BamlSyncStream[partial_types.DynamicSchema, types.DynamicSchema](
         raw,
-        lambda x: cast(_baml.partial_types.DynamicSchema, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.DynamicSchema, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.DynamicSchema, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.DynamicSchema, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExtractHobby(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[List[Optional[Union[_baml.types.Hobby, str]]], List[Union[_baml.types.Hobby, str]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[List[Optional[Union[types.Hobby, str]]], List[Union[types.Hobby, str]]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6468,7 +6514,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExtractHobby",
         {
@@ -6482,19 +6528,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[List[Optional[Union[_baml.types.Hobby, str]]], List[Union[_baml.types.Hobby, str]]](
+      return baml_py.BamlSyncStream[List[Optional[Union[types.Hobby, str]]], List[Union[types.Hobby, str]]](
         raw,
-        lambda x: cast(List[Optional[Union[_baml.types.Hobby, str]]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[Union[_baml.types.Hobby, str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[Optional[Union[types.Hobby, str]]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[Union[types.Hobby, str]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExtractNames(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[List[Optional[str]], List[str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6503,7 +6549,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExtractNames",
         {
@@ -6519,17 +6565,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[List[Optional[str]], List[str]](
         raw,
-        lambda x: cast(List[Optional[str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[Optional[str]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExtractPeople(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[List[_baml.partial_types.Person], List[_baml.types.Person]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[List[partial_types.Person], List[types.Person]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6538,7 +6584,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExtractPeople",
         {
@@ -6552,19 +6598,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[List[_baml.partial_types.Person], List[_baml.types.Person]](
+      return baml_py.BamlSyncStream[List[partial_types.Person], List[types.Person]](
         raw,
-        lambda x: cast(List[_baml.partial_types.Person], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[_baml.types.Person], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[partial_types.Person], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[types.Person], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExtractReceiptInfo(
         self,
         email: str,reason: Union[Literal["curiosity"], Literal["personal_finance"]],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.ReceiptInfo, _baml.types.ReceiptInfo]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.ReceiptInfo, types.ReceiptInfo]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6573,7 +6619,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExtractReceiptInfo",
         {
@@ -6588,19 +6634,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.ReceiptInfo, _baml.types.ReceiptInfo](
+      return baml_py.BamlSyncStream[partial_types.ReceiptInfo, types.ReceiptInfo](
         raw,
-        lambda x: cast(_baml.partial_types.ReceiptInfo, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.ReceiptInfo, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.ReceiptInfo, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ReceiptInfo, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExtractResume(
         self,
         resume: str,img: Optional[baml_py.Image],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.Resume, _baml.types.Resume]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.Resume, types.Resume]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6609,7 +6655,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExtractResume",
         {
@@ -6624,19 +6670,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.Resume, _baml.types.Resume](
+      return baml_py.BamlSyncStream[partial_types.Resume, types.Resume](
         raw,
-        lambda x: cast(_baml.partial_types.Resume, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Resume, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.Resume, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Resume, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ExtractResume2(
         self,
         resume: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.Resume, _baml.types.Resume]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.Resume, types.Resume]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6645,7 +6691,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ExtractResume2",
         {
@@ -6659,19 +6705,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.Resume, _baml.types.Resume](
+      return baml_py.BamlSyncStream[partial_types.Resume, types.Resume](
         raw,
-        lambda x: cast(_baml.partial_types.Resume, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Resume, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.Resume, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Resume, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnClassOptionalOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[_baml.partial_types.ClassOptionalOutput], Optional[_baml.types.ClassOptionalOutput]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[partial_types.ClassOptionalOutput], Optional[types.ClassOptionalOutput]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6680,7 +6726,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnClassOptionalOutput",
         {
@@ -6694,19 +6740,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[_baml.partial_types.ClassOptionalOutput], Optional[_baml.types.ClassOptionalOutput]](
+      return baml_py.BamlSyncStream[Optional[partial_types.ClassOptionalOutput], Optional[types.ClassOptionalOutput]](
         raw,
-        lambda x: cast(Optional[_baml.partial_types.ClassOptionalOutput], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Optional[_baml.types.ClassOptionalOutput], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[partial_types.ClassOptionalOutput], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Optional[types.ClassOptionalOutput], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnClassOptionalOutput2(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[_baml.partial_types.ClassOptionalOutput2], Optional[_baml.types.ClassOptionalOutput2]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[partial_types.ClassOptionalOutput2], Optional[types.ClassOptionalOutput2]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6715,7 +6761,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnClassOptionalOutput2",
         {
@@ -6729,19 +6775,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[_baml.partial_types.ClassOptionalOutput2], Optional[_baml.types.ClassOptionalOutput2]](
+      return baml_py.BamlSyncStream[Optional[partial_types.ClassOptionalOutput2], Optional[types.ClassOptionalOutput2]](
         raw,
-        lambda x: cast(Optional[_baml.partial_types.ClassOptionalOutput2], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Optional[_baml.types.ClassOptionalOutput2], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[partial_types.ClassOptionalOutput2], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Optional[types.ClassOptionalOutput2], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnEnumListOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[List[Optional[_baml.types.EnumOutput]], List[_baml.types.EnumOutput]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[List[Optional[types.EnumOutput]], List[types.EnumOutput]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6750,7 +6796,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnEnumListOutput",
         {
@@ -6764,19 +6810,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[List[Optional[_baml.types.EnumOutput]], List[_baml.types.EnumOutput]](
+      return baml_py.BamlSyncStream[List[Optional[types.EnumOutput]], List[types.EnumOutput]](
         raw,
-        lambda x: cast(List[Optional[_baml.types.EnumOutput]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[_baml.types.EnumOutput], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[Optional[types.EnumOutput]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[types.EnumOutput], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnEnumOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[_baml.types.EnumOutput], _baml.types.EnumOutput]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[types.EnumOutput], types.EnumOutput]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6785,7 +6831,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnEnumOutput",
         {
@@ -6799,19 +6845,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[_baml.types.EnumOutput], _baml.types.EnumOutput](
+      return baml_py.BamlSyncStream[Optional[types.EnumOutput], types.EnumOutput](
         raw,
-        lambda x: cast(Optional[_baml.types.EnumOutput], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.EnumOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[types.EnumOutput], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.EnumOutput, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnLiteralClassInputOutput(
         self,
-        input: _baml.types.LiteralClassHello,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.LiteralClassHello, _baml.types.LiteralClassHello]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.LiteralClassHello,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.LiteralClassHello, types.LiteralClassHello]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6820,7 +6866,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnLiteralClassInputOutput",
         {
@@ -6834,19 +6880,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.LiteralClassHello, _baml.types.LiteralClassHello](
+      return baml_py.BamlSyncStream[partial_types.LiteralClassHello, types.LiteralClassHello](
         raw,
-        lambda x: cast(_baml.partial_types.LiteralClassHello, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.LiteralClassHello, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.LiteralClassHello, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.LiteralClassHello, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnLiteralUnionClassInputOutput(
         self,
-        input: Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[Union[_baml.partial_types.LiteralClassOne, _baml.partial_types.LiteralClassTwo]], Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: Union[types.LiteralClassOne, types.LiteralClassTwo],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[Union[partial_types.LiteralClassOne, partial_types.LiteralClassTwo]], Union[types.LiteralClassOne, types.LiteralClassTwo]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6855,7 +6901,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnLiteralUnionClassInputOutput",
         {
@@ -6869,19 +6915,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[Union[_baml.partial_types.LiteralClassOne, _baml.partial_types.LiteralClassTwo]], Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo]](
+      return baml_py.BamlSyncStream[Optional[Union[partial_types.LiteralClassOne, partial_types.LiteralClassTwo]], Union[types.LiteralClassOne, types.LiteralClassTwo]](
         raw,
-        lambda x: cast(Optional[Union[_baml.partial_types.LiteralClassOne, _baml.partial_types.LiteralClassTwo]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Union[partial_types.LiteralClassOne, partial_types.LiteralClassTwo]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Union[types.LiteralClassOne, types.LiteralClassTwo], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnNamedArgsSingleStringOptional(
         self,
         myString: Optional[str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6890,7 +6936,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnNamedArgsSingleStringOptional",
         {
@@ -6906,17 +6952,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputBool(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[bool], bool]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6925,7 +6971,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputBool",
         {
@@ -6941,17 +6987,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[bool], bool](
         raw,
-        lambda x: cast(Optional[bool], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(bool, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[bool], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(bool, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputClass(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.TestOutputClass, _baml.types.TestOutputClass]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.TestOutputClass, types.TestOutputClass]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6960,7 +7006,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputClass",
         {
@@ -6974,19 +7020,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.TestOutputClass, _baml.types.TestOutputClass](
+      return baml_py.BamlSyncStream[partial_types.TestOutputClass, types.TestOutputClass](
         raw,
-        lambda x: cast(_baml.partial_types.TestOutputClass, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.TestOutputClass, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.TestOutputClass, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TestOutputClass, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputClassList(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[List[_baml.partial_types.TestOutputClass], List[_baml.types.TestOutputClass]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[List[partial_types.TestOutputClass], List[types.TestOutputClass]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -6995,7 +7041,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputClassList",
         {
@@ -7009,19 +7055,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[List[_baml.partial_types.TestOutputClass], List[_baml.types.TestOutputClass]](
+      return baml_py.BamlSyncStream[List[partial_types.TestOutputClass], List[types.TestOutputClass]](
         raw,
-        lambda x: cast(List[_baml.partial_types.TestOutputClass], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[_baml.types.TestOutputClass], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[partial_types.TestOutputClass], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[types.TestOutputClass], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputClassNested(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.TestClassNested, _baml.types.TestClassNested]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.TestClassNested, types.TestClassNested]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7030,7 +7076,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputClassNested",
         {
@@ -7044,19 +7090,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.TestClassNested, _baml.types.TestClassNested](
+      return baml_py.BamlSyncStream[partial_types.TestClassNested, types.TestClassNested](
         raw,
-        lambda x: cast(_baml.partial_types.TestClassNested, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.TestClassNested, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.TestClassNested, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TestClassNested, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputClassWithEnum(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.TestClassWithEnum, _baml.types.TestClassWithEnum]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.TestClassWithEnum, types.TestClassWithEnum]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7065,7 +7111,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputClassWithEnum",
         {
@@ -7079,19 +7125,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.TestClassWithEnum, _baml.types.TestClassWithEnum](
+      return baml_py.BamlSyncStream[partial_types.TestClassWithEnum, types.TestClassWithEnum](
         raw,
-        lambda x: cast(_baml.partial_types.TestClassWithEnum, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.TestClassWithEnum, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.TestClassWithEnum, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TestClassWithEnum, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputInt(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[int], int]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7100,7 +7146,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputInt",
         {
@@ -7116,17 +7162,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[int], int](
         raw,
-        lambda x: cast(Optional[int], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(int, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[int], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(int, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputLiteralBool(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[Literal[False]], Literal[False]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7135,7 +7181,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputLiteralBool",
         {
@@ -7151,17 +7197,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[Literal[False]], Literal[False]](
         raw,
-        lambda x: cast(Optional[Literal[False]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Literal[False], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Literal[False]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Literal[False], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputLiteralInt(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[Literal[5]], Literal[5]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7170,7 +7216,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputLiteralInt",
         {
@@ -7186,17 +7232,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[Literal[5]], Literal[5]](
         raw,
-        lambda x: cast(Optional[Literal[5]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Literal[5], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Literal[5]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Literal[5], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputLiteralString(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[Literal["example output"]], Literal["example output"]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7205,7 +7251,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputLiteralString",
         {
@@ -7221,17 +7267,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[Literal["example output"]], Literal["example output"]](
         raw,
-        lambda x: cast(Optional[Literal["example output"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Literal["example output"], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Literal["example output"]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Literal["example output"], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnOutputStringList(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[List[Optional[str]], List[str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7240,7 +7286,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnOutputStringList",
         {
@@ -7256,17 +7302,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[List[Optional[str]], List[str]](
         raw,
-        lambda x: cast(List[Optional[str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[Optional[str]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnTestAliasedEnumOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Optional[_baml.types.TestEnum], _baml.types.TestEnum]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Optional[types.TestEnum], types.TestEnum]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7275,7 +7321,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnTestAliasedEnumOutput",
         {
@@ -7289,19 +7335,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Optional[_baml.types.TestEnum], _baml.types.TestEnum](
+      return baml_py.BamlSyncStream[Optional[types.TestEnum], types.TestEnum](
         raw,
-        lambda x: cast(Optional[_baml.types.TestEnum], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.TestEnum, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[types.TestEnum], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TestEnum, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnTestClassAlias(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.TestClassAlias, _baml.types.TestClassAlias]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.TestClassAlias, types.TestClassAlias]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7310,7 +7356,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnTestClassAlias",
         {
@@ -7324,19 +7370,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.TestClassAlias, _baml.types.TestClassAlias](
+      return baml_py.BamlSyncStream[partial_types.TestClassAlias, types.TestClassAlias](
         raw,
-        lambda x: cast(_baml.partial_types.TestClassAlias, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.TestClassAlias, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.TestClassAlias, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TestClassAlias, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def FnTestNamedArgsSingleEnum(
         self,
-        myArg: _baml.types.NamedArgsSingleEnum,
-        baml_options: _baml.BamlCallOptions = {},
+        myArg: types.NamedArgsSingleEnum,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7345,7 +7391,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "FnTestNamedArgsSingleEnum",
         {
@@ -7361,17 +7407,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def GetDataType(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.RaysData, _baml.types.RaysData]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.RaysData, types.RaysData]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7380,7 +7426,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "GetDataType",
         {
@@ -7394,19 +7440,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.RaysData, _baml.types.RaysData](
+      return baml_py.BamlSyncStream[partial_types.RaysData, types.RaysData](
         raw,
-        lambda x: cast(_baml.partial_types.RaysData, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.RaysData, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.RaysData, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.RaysData, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def GetOrderInfo(
         self,
-        email: _baml.types.Email,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.OrderInfo, _baml.types.OrderInfo]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        email: types.Email,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.OrderInfo, types.OrderInfo]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7415,7 +7461,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "GetOrderInfo",
         {
@@ -7429,19 +7475,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.OrderInfo, _baml.types.OrderInfo](
+      return baml_py.BamlSyncStream[partial_types.OrderInfo, types.OrderInfo](
         raw,
-        lambda x: cast(_baml.partial_types.OrderInfo, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.OrderInfo, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.OrderInfo, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.OrderInfo, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def GetQuery(
         self,
         query: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.SearchParams, _baml.types.SearchParams]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.SearchParams, types.SearchParams]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7450,7 +7496,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "GetQuery",
         {
@@ -7464,19 +7510,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.SearchParams, _baml.types.SearchParams](
+      return baml_py.BamlSyncStream[partial_types.SearchParams, types.SearchParams](
         raw,
-        lambda x: cast(_baml.partial_types.SearchParams, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.SearchParams, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.SearchParams, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.SearchParams, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def InOutEnumMapKey(
         self,
-        i1: Dict[_baml.types.MapKey, str],i2: Dict[_baml.types.MapKey, str],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Dict[_baml.types.MapKey, Optional[str]], Dict[_baml.types.MapKey, str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        i1: Dict[types.MapKey, str],i2: Dict[types.MapKey, str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Dict[types.MapKey, Optional[str]], Dict[types.MapKey, str]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7485,7 +7531,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "InOutEnumMapKey",
         {
@@ -7500,19 +7546,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Dict[_baml.types.MapKey, Optional[str]], Dict[_baml.types.MapKey, str]](
+      return baml_py.BamlSyncStream[Dict[types.MapKey, Optional[str]], Dict[types.MapKey, str]](
         raw,
-        lambda x: cast(Dict[_baml.types.MapKey, Optional[str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Dict[_baml.types.MapKey, str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Dict[types.MapKey, Optional[str]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Dict[types.MapKey, str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def InOutLiteralStringUnionMapKey(
         self,
         i1: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],i2: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], Optional[str]], Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7521,7 +7567,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "InOutLiteralStringUnionMapKey",
         {
@@ -7538,17 +7584,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], Optional[str]], Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str]](
         raw,
-        lambda x: cast(Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], Optional[str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], Optional[str]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def InOutSingleLiteralStringMapKey(
         self,
         m: Dict[Literal["key"], str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Dict[Literal["key"], Optional[str]], Dict[Literal["key"], str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7557,7 +7603,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "InOutSingleLiteralStringMapKey",
         {
@@ -7573,17 +7619,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Dict[Literal["key"], Optional[str]], Dict[Literal["key"], str]](
         raw,
-        lambda x: cast(Dict[Literal["key"], Optional[str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Dict[Literal["key"], str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Dict[Literal["key"], Optional[str]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Dict[Literal["key"], str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def JsonTypeAliasCycle(
         self,
-        input: _baml.types.JsonValue,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.types.JsonValue, _baml.types.JsonValue]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.JsonValue,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.JsonValue, types.JsonValue]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7592,7 +7638,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "JsonTypeAliasCycle",
         {
@@ -7606,19 +7652,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.types.JsonValue, _baml.types.JsonValue](
+      return baml_py.BamlSyncStream[types.JsonValue, types.JsonValue](
         raw,
-        lambda x: cast(_baml.types.JsonValue, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.JsonValue, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(types.JsonValue, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.JsonValue, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def LLMEcho(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7627,7 +7673,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "LLMEcho",
         {
@@ -7643,17 +7689,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def LiteralUnionsTest(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[Union[Optional[Literal[1]], Optional[Literal[True]], Optional[Literal["string output"]]]], Union[Literal[1], Literal[True], Literal["string output"]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7662,7 +7708,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "LiteralUnionsTest",
         {
@@ -7678,17 +7724,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[Union[Optional[Literal[1]], Optional[Literal[True]], Optional[Literal["string output"]]]], Union[Literal[1], Literal[True], Literal["string output"]]](
         raw,
-        lambda x: cast(Optional[Union[Optional[Literal[1]], Optional[Literal[True]], Optional[Literal["string output"]]]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Union[Literal[1], Literal[True], Literal["string output"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Union[Optional[Literal[1]], Optional[Literal[True]], Optional[Literal["string output"]]]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Union[Literal[1], Literal[True], Literal["string output"]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
-    def MakeBlockConstraint(
+    def LongQuestion(
         self,
-        
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Checked[_baml.partial_types.BlockConstraint, Literal["cross_field"]], Checked[_baml.types.BlockConstraint, Literal["cross_field"]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        prompt: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.UniverseQuestion, types.UniverseQuestion]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7697,7 +7743,42 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
+      raw = self.__runtime.stream_function_sync(
+        "LongQuestion",
+        {
+          "prompt": prompt,
+        },
+        None,
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        collectors,
+        env,
+      )
+
+      return baml_py.BamlSyncStream[partial_types.UniverseQuestion, types.UniverseQuestion](
+        raw,
+        lambda x: cast(partial_types.UniverseQuestion, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.UniverseQuestion, x.cast_to(types, types, partial_types, False)),
+        self.__ctx_manager.get(),
+      )
+    
+    def MakeBlockConstraint(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Checked[partial_types.BlockConstraint, Literal["cross_field"]], Checked[types.BlockConstraint, Literal["cross_field"]]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      __tb__ = options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = options.get("client_registry", None)
+      collector = options.get("collector", None)
+      collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "MakeBlockConstraint",
         {
@@ -7710,19 +7791,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Checked[_baml.partial_types.BlockConstraint, Literal["cross_field"]], Checked[_baml.types.BlockConstraint, Literal["cross_field"]]](
+      return baml_py.BamlSyncStream[Checked[partial_types.BlockConstraint, Literal["cross_field"]], Checked[types.BlockConstraint, Literal["cross_field"]]](
         raw,
-        lambda x: cast(Checked[_baml.partial_types.BlockConstraint, Literal["cross_field"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Checked[_baml.types.BlockConstraint, Literal["cross_field"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Checked[partial_types.BlockConstraint, Literal["cross_field"]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Checked[types.BlockConstraint, Literal["cross_field"]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def MakeClassWithBlockDone(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.types.ClassWithBlockDone, _baml.types.ClassWithBlockDone]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.ClassWithBlockDone, types.ClassWithBlockDone]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7731,7 +7812,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "MakeClassWithBlockDone",
         {
@@ -7744,19 +7825,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.types.ClassWithBlockDone, _baml.types.ClassWithBlockDone](
+      return baml_py.BamlSyncStream[types.ClassWithBlockDone, types.ClassWithBlockDone](
         raw,
-        lambda x: cast(_baml.types.ClassWithBlockDone, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.ClassWithBlockDone, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(types.ClassWithBlockDone, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ClassWithBlockDone, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def MakeClassWithExternalDone(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.types.ClassWithoutDone, _baml.types.ClassWithoutDone]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.ClassWithoutDone, types.ClassWithoutDone]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7765,7 +7846,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "MakeClassWithExternalDone",
         {
@@ -7778,19 +7859,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.types.ClassWithoutDone, _baml.types.ClassWithoutDone](
+      return baml_py.BamlSyncStream[types.ClassWithoutDone, types.ClassWithoutDone](
         raw,
-        lambda x: cast(_baml.types.ClassWithoutDone, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.ClassWithoutDone, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(types.ClassWithoutDone, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ClassWithoutDone, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def MakeNestedBlockConstraint(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.NestedBlockConstraint, _baml.types.NestedBlockConstraint]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.NestedBlockConstraint, types.NestedBlockConstraint]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7799,7 +7880,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "MakeNestedBlockConstraint",
         {
@@ -7812,19 +7893,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.NestedBlockConstraint, _baml.types.NestedBlockConstraint](
+      return baml_py.BamlSyncStream[partial_types.NestedBlockConstraint, types.NestedBlockConstraint](
         raw,
-        lambda x: cast(_baml.partial_types.NestedBlockConstraint, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.NestedBlockConstraint, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.NestedBlockConstraint, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.NestedBlockConstraint, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def MakeSemanticContainer(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.SemanticContainer, _baml.types.SemanticContainer]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.SemanticContainer, types.SemanticContainer]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7833,7 +7914,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "MakeSemanticContainer",
         {
@@ -7846,19 +7927,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.SemanticContainer, _baml.types.SemanticContainer](
+      return baml_py.BamlSyncStream[partial_types.SemanticContainer, types.SemanticContainer](
         raw,
-        lambda x: cast(_baml.partial_types.SemanticContainer, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.SemanticContainer, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.SemanticContainer, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.SemanticContainer, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def MapAlias(
         self,
         m: Dict[str, List[str]],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Dict[str, List[Optional[str]]], Dict[str, List[str]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7867,7 +7948,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "MapAlias",
         {
@@ -7883,17 +7964,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Dict[str, List[Optional[str]]], Dict[str, List[str]]](
         raw,
-        lambda x: cast(Dict[str, List[Optional[str]]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Dict[str, List[str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Dict[str, List[Optional[str]]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Dict[str, List[str]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def MergeAliasAttributes(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.MergeAttrs, _baml.types.MergeAttrs]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.MergeAttrs, types.MergeAttrs]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7902,7 +7983,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "MergeAliasAttributes",
         {
@@ -7916,19 +7997,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.MergeAttrs, _baml.types.MergeAttrs](
+      return baml_py.BamlSyncStream[partial_types.MergeAttrs, types.MergeAttrs](
         raw,
-        lambda x: cast(_baml.partial_types.MergeAttrs, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.MergeAttrs, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.MergeAttrs, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.MergeAttrs, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def MyFunc(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.DynamicOutput, _baml.types.DynamicOutput]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.DynamicOutput, types.DynamicOutput]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7937,7 +8018,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "MyFunc",
         {
@@ -7951,19 +8032,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.DynamicOutput, _baml.types.DynamicOutput](
+      return baml_py.BamlSyncStream[partial_types.DynamicOutput, types.DynamicOutput](
         raw,
-        lambda x: cast(_baml.partial_types.DynamicOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.DynamicOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.DynamicOutput, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.DynamicOutput, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def NestedAlias(
         self,
         c: Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[Union[Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], List[Optional[str]], Dict[str, List[Optional[str]]]]], Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -7972,7 +8053,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "NestedAlias",
         {
@@ -7988,17 +8069,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[Union[Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], List[Optional[str]], Dict[str, List[Optional[str]]]]], Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]]](
         raw,
-        lambda x: cast(Optional[Union[Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], List[Optional[str]], Dict[str, List[Optional[str]]]]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Union[Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], List[Optional[str]], Dict[str, List[Optional[str]]]]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def NullLiteralClassHello(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.ClassForNullLiteral, _baml.types.ClassForNullLiteral]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.ClassForNullLiteral, types.ClassForNullLiteral]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8007,7 +8088,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "NullLiteralClassHello",
         {
@@ -8021,19 +8102,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.ClassForNullLiteral, _baml.types.ClassForNullLiteral](
+      return baml_py.BamlSyncStream[partial_types.ClassForNullLiteral, types.ClassForNullLiteral](
         raw,
-        lambda x: cast(_baml.partial_types.ClassForNullLiteral, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.ClassForNullLiteral, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.ClassForNullLiteral, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.ClassForNullLiteral, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def OpenAIWithAnthropicResponseHello(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8042,7 +8123,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "OpenAIWithAnthropicResponseHello",
         {
@@ -8058,17 +8139,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def OptionalTest_Function(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[List[Optional[_baml.partial_types.OptionalTest_ReturnType]], List[Optional[_baml.types.OptionalTest_ReturnType]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[List[Optional[partial_types.OptionalTest_ReturnType]], List[Optional[types.OptionalTest_ReturnType]]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8077,7 +8158,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "OptionalTest_Function",
         {
@@ -8091,19 +8172,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[List[Optional[_baml.partial_types.OptionalTest_ReturnType]], List[Optional[_baml.types.OptionalTest_ReturnType]]](
+      return baml_py.BamlSyncStream[List[Optional[partial_types.OptionalTest_ReturnType]], List[Optional[types.OptionalTest_ReturnType]]](
         raw,
-        lambda x: cast(List[Optional[_baml.partial_types.OptionalTest_ReturnType]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[Optional[_baml.types.OptionalTest_ReturnType]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[Optional[partial_types.OptionalTest_ReturnType]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[Optional[types.OptionalTest_ReturnType]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PredictAge(
         self,
         name: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.FooAny, _baml.types.FooAny]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.FooAny, types.FooAny]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8112,7 +8193,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PredictAge",
         {
@@ -8126,19 +8207,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.FooAny, _baml.types.FooAny](
+      return baml_py.BamlSyncStream[partial_types.FooAny, types.FooAny](
         raw,
-        lambda x: cast(_baml.partial_types.FooAny, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.FooAny, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.FooAny, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.FooAny, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PredictAgeBare(
         self,
         inp: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Checked[Optional[int], Literal["too_big"]], Checked[int, Literal["too_big"]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8147,7 +8228,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PredictAgeBare",
         {
@@ -8163,17 +8244,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Checked[Optional[int], Literal["too_big"]], Checked[int, Literal["too_big"]]](
         raw,
-        lambda x: cast(Checked[Optional[int], Literal["too_big"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Checked[int, Literal["too_big"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Checked[Optional[int], Literal["too_big"]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Checked[int, Literal["too_big"]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PrimitiveAlias(
         self,
         p: Union[int, str, bool, float],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], Union[int, str, bool, float]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8182,7 +8263,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PrimitiveAlias",
         {
@@ -8198,17 +8279,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], Union[int, str, bool, float]](
         raw,
-        lambda x: cast(Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Union[int, str, bool, float], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[Union[Optional[int], Optional[str], Optional[bool], Optional[float]]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Union[int, str, bool, float], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PromptTestClaude(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8217,7 +8298,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PromptTestClaude",
         {
@@ -8233,17 +8314,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PromptTestClaudeChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8252,7 +8333,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PromptTestClaudeChat",
         {
@@ -8268,17 +8349,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PromptTestClaudeChatNoSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8287,7 +8368,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PromptTestClaudeChatNoSystem",
         {
@@ -8303,17 +8384,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PromptTestOpenAI(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8322,7 +8403,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PromptTestOpenAI",
         {
@@ -8338,17 +8419,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PromptTestOpenAIChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8357,7 +8438,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PromptTestOpenAIChat",
         {
@@ -8373,17 +8454,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PromptTestOpenAIChatNoSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8392,7 +8473,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PromptTestOpenAIChatNoSystem",
         {
@@ -8408,17 +8489,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def PromptTestStreaming(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8427,7 +8508,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "PromptTestStreaming",
         {
@@ -8443,17 +8524,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def RecursiveAliasCycle(
         self,
-        input: _baml.types.RecAliasOne,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.types.RecAliasOne, _baml.types.RecAliasOne]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecAliasOne,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.RecAliasOne, types.RecAliasOne]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8462,7 +8543,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "RecursiveAliasCycle",
         {
@@ -8476,19 +8557,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.types.RecAliasOne, _baml.types.RecAliasOne](
+      return baml_py.BamlSyncStream[types.RecAliasOne, types.RecAliasOne](
         raw,
-        lambda x: cast(_baml.types.RecAliasOne, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.RecAliasOne, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(types.RecAliasOne, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.RecAliasOne, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def RecursiveClassWithAliasIndirection(
         self,
-        cls: _baml.types.NodeWithAliasIndirection,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.NodeWithAliasIndirection, _baml.types.NodeWithAliasIndirection]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        cls: types.NodeWithAliasIndirection,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.NodeWithAliasIndirection, types.NodeWithAliasIndirection]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8497,7 +8578,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "RecursiveClassWithAliasIndirection",
         {
@@ -8511,19 +8592,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.NodeWithAliasIndirection, _baml.types.NodeWithAliasIndirection](
+      return baml_py.BamlSyncStream[partial_types.NodeWithAliasIndirection, types.NodeWithAliasIndirection](
         raw,
-        lambda x: cast(_baml.partial_types.NodeWithAliasIndirection, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.NodeWithAliasIndirection, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.NodeWithAliasIndirection, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.NodeWithAliasIndirection, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def RecursiveUnionTest(
         self,
-        input: _baml.types.RecursiveUnion,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.types.RecursiveUnion, _baml.types.RecursiveUnion]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecursiveUnion,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.RecursiveUnion, types.RecursiveUnion]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8532,7 +8613,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "RecursiveUnionTest",
         {
@@ -8546,19 +8627,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.types.RecursiveUnion, _baml.types.RecursiveUnion](
+      return baml_py.BamlSyncStream[types.RecursiveUnion, types.RecursiveUnion](
         raw,
-        lambda x: cast(_baml.types.RecursiveUnion, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.RecursiveUnion, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(types.RecursiveUnion, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.RecursiveUnion, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ReturnAliasWithMergedAttributes(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Checked[Optional[int], Literal["gt_ten"]], Checked[int, Literal["gt_ten"]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8567,7 +8648,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ReturnAliasWithMergedAttributes",
         {
@@ -8583,17 +8664,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Checked[Optional[int], Literal["gt_ten"]], Checked[int, Literal["gt_ten"]]](
         raw,
-        lambda x: cast(Checked[Optional[int], Literal["gt_ten"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Checked[int, Literal["gt_ten"]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Checked[Optional[int], Literal["gt_ten"]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Checked[int, Literal["gt_ten"]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ReturnFailingAssert(
         self,
         inp: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[int], int]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8602,7 +8683,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ReturnFailingAssert",
         {
@@ -8618,17 +8699,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[int], int](
         raw,
-        lambda x: cast(Optional[int], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(int, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[int], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(int, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ReturnJsonEntry(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.types.JsonTemplate, _baml.types.JsonTemplate]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.JsonTemplate, types.JsonTemplate]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8637,7 +8718,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ReturnJsonEntry",
         {
@@ -8651,19 +8732,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.types.JsonTemplate, _baml.types.JsonTemplate](
+      return baml_py.BamlSyncStream[types.JsonTemplate, types.JsonTemplate](
         raw,
-        lambda x: cast(_baml.types.JsonTemplate, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.JsonTemplate, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(types.JsonTemplate, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.JsonTemplate, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def ReturnMalformedConstraints(
         self,
         a: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.MalformedConstraints, _baml.types.MalformedConstraints]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.MalformedConstraints, types.MalformedConstraints]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8672,7 +8753,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "ReturnMalformedConstraints",
         {
@@ -8686,19 +8767,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.MalformedConstraints, _baml.types.MalformedConstraints](
+      return baml_py.BamlSyncStream[partial_types.MalformedConstraints, types.MalformedConstraints](
         raw,
-        lambda x: cast(_baml.partial_types.MalformedConstraints, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.MalformedConstraints, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.MalformedConstraints, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.MalformedConstraints, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def SchemaDescriptions(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.Schema, _baml.types.Schema]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.Schema, types.Schema]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8707,7 +8788,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "SchemaDescriptions",
         {
@@ -8721,19 +8802,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.Schema, _baml.types.Schema](
+      return baml_py.BamlSyncStream[partial_types.Schema, types.Schema](
         raw,
-        lambda x: cast(_baml.partial_types.Schema, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Schema, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.Schema, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Schema, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def SimpleRecursiveListAlias(
         self,
-        input: _baml.types.RecursiveListAlias,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.types.RecursiveListAlias, _baml.types.RecursiveListAlias]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecursiveListAlias,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.RecursiveListAlias, types.RecursiveListAlias]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8742,7 +8823,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "SimpleRecursiveListAlias",
         {
@@ -8756,19 +8837,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.types.RecursiveListAlias, _baml.types.RecursiveListAlias](
+      return baml_py.BamlSyncStream[types.RecursiveListAlias, types.RecursiveListAlias](
         raw,
-        lambda x: cast(_baml.types.RecursiveListAlias, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.RecursiveListAlias, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(types.RecursiveListAlias, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.RecursiveListAlias, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def SimpleRecursiveMapAlias(
         self,
-        input: _baml.types.RecursiveMapAlias,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.types.RecursiveMapAlias, _baml.types.RecursiveMapAlias]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecursiveMapAlias,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[types.RecursiveMapAlias, types.RecursiveMapAlias]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8777,7 +8858,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "SimpleRecursiveMapAlias",
         {
@@ -8791,19 +8872,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.types.RecursiveMapAlias, _baml.types.RecursiveMapAlias](
+      return baml_py.BamlSyncStream[types.RecursiveMapAlias, types.RecursiveMapAlias](
         raw,
-        lambda x: cast(_baml.types.RecursiveMapAlias, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.RecursiveMapAlias, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(types.RecursiveMapAlias, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.RecursiveMapAlias, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def StreamBigNumbers(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.BigNumbers, _baml.types.BigNumbers]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.BigNumbers, types.BigNumbers]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8812,7 +8893,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "StreamBigNumbers",
         {
@@ -8826,19 +8907,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.BigNumbers, _baml.types.BigNumbers](
+      return baml_py.BamlSyncStream[partial_types.BigNumbers, types.BigNumbers](
         raw,
-        lambda x: cast(_baml.partial_types.BigNumbers, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.BigNumbers, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.BigNumbers, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.BigNumbers, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def StreamFailingAssertion(
         self,
         theme: str,length: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.TwoStoriesOneTitle, _baml.types.TwoStoriesOneTitle]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.TwoStoriesOneTitle, types.TwoStoriesOneTitle]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8847,7 +8928,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "StreamFailingAssertion",
         {
@@ -8862,19 +8943,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.TwoStoriesOneTitle, _baml.types.TwoStoriesOneTitle](
+      return baml_py.BamlSyncStream[partial_types.TwoStoriesOneTitle, types.TwoStoriesOneTitle](
         raw,
-        lambda x: cast(_baml.partial_types.TwoStoriesOneTitle, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.TwoStoriesOneTitle, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.TwoStoriesOneTitle, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TwoStoriesOneTitle, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def StreamFailingCheck(
         self,
         theme: str,length: int,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.TwoStoriesOneTitleCheck, _baml.types.TwoStoriesOneTitleCheck]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.TwoStoriesOneTitleCheck, types.TwoStoriesOneTitleCheck]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8883,7 +8964,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "StreamFailingCheck",
         {
@@ -8898,19 +8979,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.TwoStoriesOneTitleCheck, _baml.types.TwoStoriesOneTitleCheck](
+      return baml_py.BamlSyncStream[partial_types.TwoStoriesOneTitleCheck, types.TwoStoriesOneTitleCheck](
         raw,
-        lambda x: cast(_baml.partial_types.TwoStoriesOneTitleCheck, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.TwoStoriesOneTitleCheck, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.TwoStoriesOneTitleCheck, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TwoStoriesOneTitleCheck, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def StreamOneBigNumber(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[int], int]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8919,7 +9000,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "StreamOneBigNumber",
         {
@@ -8935,17 +9016,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[int], int](
         raw,
-        lambda x: cast(Optional[int], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(int, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[int], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(int, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def StreamUnionIntegers(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[List[Optional[Union[Optional[int], Optional[str]]]], List[Union[int, str]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8954,7 +9035,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "StreamUnionIntegers",
         {
@@ -8970,17 +9051,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[List[Optional[Union[Optional[int], Optional[str]]]], List[Union[int, str]]](
         raw,
-        lambda x: cast(List[Optional[Union[Optional[int], Optional[str]]]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[Union[int, str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[Optional[Union[Optional[int], Optional[str]]]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[Union[int, str]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def StreamingCompoundNumbers(
         self,
         digits: int,yapping: bool,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.CompoundBigNumbers, _baml.types.CompoundBigNumbers]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.CompoundBigNumbers, types.CompoundBigNumbers]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -8989,7 +9070,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "StreamingCompoundNumbers",
         {
@@ -9004,19 +9085,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.CompoundBigNumbers, _baml.types.CompoundBigNumbers](
+      return baml_py.BamlSyncStream[partial_types.CompoundBigNumbers, types.CompoundBigNumbers](
         raw,
-        lambda x: cast(_baml.partial_types.CompoundBigNumbers, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.CompoundBigNumbers, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.CompoundBigNumbers, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.CompoundBigNumbers, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def StructureDocument1559(
         self,
         document_txt: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.Document1559, _baml.types.Document1559]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.Document1559, types.Document1559]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9025,7 +9106,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "StructureDocument1559",
         {
@@ -9039,19 +9120,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.Document1559, _baml.types.Document1559](
+      return baml_py.BamlSyncStream[partial_types.Document1559, types.Document1559](
         raw,
-        lambda x: cast(_baml.partial_types.Document1559, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Document1559, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.Document1559, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Document1559, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TakeRecAliasDep(
         self,
-        input: _baml.types.RecursiveAliasDependency,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.RecursiveAliasDependency, _baml.types.RecursiveAliasDependency]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.RecursiveAliasDependency,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.RecursiveAliasDependency, types.RecursiveAliasDependency]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9060,7 +9141,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TakeRecAliasDep",
         {
@@ -9074,19 +9155,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.RecursiveAliasDependency, _baml.types.RecursiveAliasDependency](
+      return baml_py.BamlSyncStream[partial_types.RecursiveAliasDependency, types.RecursiveAliasDependency](
         raw,
-        lambda x: cast(_baml.partial_types.RecursiveAliasDependency, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.RecursiveAliasDependency, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.RecursiveAliasDependency, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.RecursiveAliasDependency, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TellStory(
         self,
         story: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9095,7 +9176,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TellStory",
         {
@@ -9111,17 +9192,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAnthropic(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9130,7 +9211,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAnthropic",
         {
@@ -9146,17 +9227,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAnthropicShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9165,7 +9246,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAnthropicShorthand",
         {
@@ -9181,17 +9262,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAws(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9200,7 +9281,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAws",
         {
@@ -9216,17 +9297,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAwsClaude37(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9235,7 +9316,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAwsClaude37",
         {
@@ -9251,17 +9332,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAwsInferenceProfile(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9270,7 +9351,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAwsInferenceProfile",
         {
@@ -9286,17 +9367,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAwsInvalidAccessKey(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9305,7 +9386,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAwsInvalidAccessKey",
         {
@@ -9321,17 +9402,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAwsInvalidProfile(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9340,7 +9421,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAwsInvalidProfile",
         {
@@ -9356,17 +9437,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAwsInvalidRegion(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9375,7 +9456,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAwsInvalidRegion",
         {
@@ -9391,17 +9472,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAwsInvalidSessionToken(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9410,7 +9491,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAwsInvalidSessionToken",
         {
@@ -9426,17 +9507,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAzure(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9445,7 +9526,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAzure",
         {
@@ -9461,17 +9542,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAzureFailure(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9480,7 +9561,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAzureFailure",
         {
@@ -9496,17 +9577,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAzureO1NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9515,7 +9596,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAzureO1NoMaxTokens",
         {
@@ -9531,17 +9612,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAzureO1WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9550,7 +9631,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAzureO1WithMaxCompletionTokens",
         {
@@ -9566,17 +9647,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAzureO1WithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9585,7 +9666,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAzureO1WithMaxTokens",
         {
@@ -9601,17 +9682,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAzureO3NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9620,7 +9701,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAzureO3NoMaxTokens",
         {
@@ -9636,17 +9717,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAzureO3WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9655,7 +9736,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAzureO3WithMaxCompletionTokens",
         {
@@ -9671,17 +9752,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestAzureWithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9690,7 +9771,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestAzureWithMaxTokens",
         {
@@ -9706,17 +9787,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestCaching(
         self,
         input: str,not_cached: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9725,7 +9806,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestCaching",
         {
@@ -9742,17 +9823,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFallbackClient(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9761,7 +9842,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFallbackClient",
         {
@@ -9776,17 +9857,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFallbackStrategy(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9795,7 +9876,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFallbackStrategy",
         {
@@ -9811,17 +9892,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFallbackToShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9830,7 +9911,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFallbackToShorthand",
         {
@@ -9846,17 +9927,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleBool(
         self,
         myBool: bool,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9865,7 +9946,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleBool",
         {
@@ -9881,17 +9962,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleClass(
         self,
-        myArg: _baml.types.NamedArgsSingleClass,
-        baml_options: _baml.BamlCallOptions = {},
+        myArg: types.NamedArgsSingleClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9900,7 +9981,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleClass",
         {
@@ -9916,17 +9997,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleEnumList(
         self,
-        myArg: List[_baml.types.NamedArgsSingleEnumList],
-        baml_options: _baml.BamlCallOptions = {},
+        myArg: List[types.NamedArgsSingleEnumList],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9935,7 +10016,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleEnumList",
         {
@@ -9951,17 +10032,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleFloat(
         self,
         myFloat: float,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -9970,7 +10051,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleFloat",
         {
@@ -9986,17 +10067,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleInt(
         self,
         myInt: int,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10005,7 +10086,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleInt",
         {
@@ -10021,17 +10102,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleMapStringToClass(
         self,
-        myMap: Dict[str, _baml.types.StringToClassEntry],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[Dict[str, _baml.partial_types.StringToClassEntry], Dict[str, _baml.types.StringToClassEntry]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        myMap: Dict[str, types.StringToClassEntry],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[Dict[str, partial_types.StringToClassEntry], Dict[str, types.StringToClassEntry]]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10040,7 +10121,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleMapStringToClass",
         {
@@ -10054,19 +10135,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[Dict[str, _baml.partial_types.StringToClassEntry], Dict[str, _baml.types.StringToClassEntry]](
+      return baml_py.BamlSyncStream[Dict[str, partial_types.StringToClassEntry], Dict[str, types.StringToClassEntry]](
         raw,
-        lambda x: cast(Dict[str, _baml.partial_types.StringToClassEntry], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Dict[str, _baml.types.StringToClassEntry], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Dict[str, partial_types.StringToClassEntry], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Dict[str, types.StringToClassEntry], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleMapStringToMap(
         self,
         myMap: Dict[str, Dict[str, str]],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Dict[str, Dict[str, Optional[str]]], Dict[str, Dict[str, str]]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10075,7 +10156,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleMapStringToMap",
         {
@@ -10091,17 +10172,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Dict[str, Dict[str, Optional[str]]], Dict[str, Dict[str, str]]](
         raw,
-        lambda x: cast(Dict[str, Dict[str, Optional[str]]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Dict[str, Dict[str, str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Dict[str, Dict[str, Optional[str]]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Dict[str, Dict[str, str]], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleMapStringToString(
         self,
         myMap: Dict[str, str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Dict[str, Optional[str]], Dict[str, str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10110,7 +10191,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleMapStringToString",
         {
@@ -10126,17 +10207,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Dict[str, Optional[str]], Dict[str, str]](
         raw,
-        lambda x: cast(Dict[str, Optional[str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Dict[str, str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Dict[str, Optional[str]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Dict[str, str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleString(
         self,
         myString: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10145,7 +10226,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleString",
         {
@@ -10161,17 +10242,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleStringArray(
         self,
         myStringArray: List[str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10180,7 +10261,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleStringArray",
         {
@@ -10196,17 +10277,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestFnNamedArgsSingleStringList(
         self,
         myArg: List[str],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[List[Optional[str]], List[str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10215,7 +10296,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestFnNamedArgsSingleStringList",
         {
@@ -10231,17 +10312,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[List[Optional[str]], List[str]](
         raw,
-        lambda x: cast(List[Optional[str]], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(List[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(List[Optional[str]], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(List[str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestGemini(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10250,7 +10331,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestGemini",
         {
@@ -10266,17 +10347,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestGeminiOpenAiGeneric(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10285,7 +10366,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestGeminiOpenAiGeneric",
         {
@@ -10300,17 +10381,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestGeminiSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10319,7 +10400,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestGeminiSystem",
         {
@@ -10335,17 +10416,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestGeminiSystemAsChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10354,7 +10435,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestGeminiSystemAsChat",
         {
@@ -10370,17 +10451,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestGroq(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10389,7 +10470,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestGroq",
         {
@@ -10405,17 +10486,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestImageInput(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10424,7 +10505,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestImageInput",
         {
@@ -10440,17 +10521,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestImageInputAnthropic(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10459,7 +10540,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestImageInputAnthropic",
         {
@@ -10475,17 +10556,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestImageListInput(
         self,
         imgs: List[baml_py.Image],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10494,7 +10575,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestImageListInput",
         {
@@ -10510,17 +10591,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestMemory(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.TestMemoryOutput, _baml.types.TestMemoryOutput]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.TestMemoryOutput, types.TestMemoryOutput]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10529,7 +10610,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestMemory",
         {
@@ -10543,19 +10624,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.TestMemoryOutput, _baml.types.TestMemoryOutput](
+      return baml_py.BamlSyncStream[partial_types.TestMemoryOutput, types.TestMemoryOutput](
         raw,
-        lambda x: cast(_baml.partial_types.TestMemoryOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.TestMemoryOutput, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.TestMemoryOutput, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.TestMemoryOutput, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestMulticlassNamedArgs(
         self,
-        myArg: _baml.types.NamedArgsSingleClass,myArg2: _baml.types.NamedArgsSingleClass,
-        baml_options: _baml.BamlCallOptions = {},
+        myArg: types.NamedArgsSingleClass,myArg2: types.NamedArgsSingleClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10564,7 +10645,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestMulticlassNamedArgs",
         {
@@ -10581,17 +10662,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestNamedArgsLiteralBool(
         self,
         myBool: Literal[True],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10600,7 +10681,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestNamedArgsLiteralBool",
         {
@@ -10616,17 +10697,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestNamedArgsLiteralInt(
         self,
         myInt: Literal[1],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10635,7 +10716,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestNamedArgsLiteralInt",
         {
@@ -10651,17 +10732,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestNamedArgsLiteralString(
         self,
         myString: Literal["My String"],
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10670,7 +10751,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestNamedArgsLiteralString",
         {
@@ -10686,17 +10767,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOllama(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], Optional[str]]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10705,7 +10786,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOllama",
         {
@@ -10721,17 +10802,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], Optional[str]](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOllamaHaiku(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.Haiku, _baml.types.Haiku]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.Haiku, types.Haiku]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10740,7 +10821,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOllamaHaiku",
         {
@@ -10754,19 +10835,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.Haiku, _baml.types.Haiku](
+      return baml_py.BamlSyncStream[partial_types.Haiku, types.Haiku](
         raw,
-        lambda x: cast(_baml.partial_types.Haiku, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.Haiku, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.Haiku, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.Haiku, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAI(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10775,7 +10856,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAI",
         {
@@ -10791,17 +10872,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIDummyClient(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10810,7 +10891,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIDummyClient",
         {
@@ -10826,17 +10907,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIGPT4oMini(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10845,7 +10926,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIGPT4oMini",
         {
@@ -10861,17 +10942,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAILegacyProvider(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10880,7 +10961,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAILegacyProvider",
         {
@@ -10896,17 +10977,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIO1NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10915,7 +10996,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIO1NoMaxTokens",
         {
@@ -10931,17 +11012,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIO1WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10950,7 +11031,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIO1WithMaxCompletionTokens",
         {
@@ -10966,17 +11047,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIO1WithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -10985,7 +11066,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIO1WithMaxTokens",
         {
@@ -11001,17 +11082,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11020,7 +11101,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIShorthand",
         {
@@ -11036,17 +11117,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIWithFinishReasonError(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11055,7 +11136,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIWithFinishReasonError",
         {
@@ -11071,17 +11152,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIWithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11090,7 +11171,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIWithMaxTokens",
         {
@@ -11106,17 +11187,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenAIWithNullMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11125,7 +11206,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenAIWithNullMaxTokens",
         {
@@ -11141,17 +11222,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestOpenRouterMistralSmall3_1_24b(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11160,7 +11241,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestOpenRouterMistralSmall3_1_24b",
         {
@@ -11176,17 +11257,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestRetryConstant(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11195,7 +11276,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestRetryConstant",
         {
@@ -11210,17 +11291,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestRetryExponential(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11229,7 +11310,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestRetryExponential",
         {
@@ -11244,17 +11325,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestRoundRobinStrategy(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11263,7 +11344,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestRoundRobinStrategy",
         {
@@ -11279,17 +11360,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestSingleFallbackClient(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11298,7 +11379,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestSingleFallbackClient",
         {
@@ -11313,17 +11394,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestThinking(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.CustomStory, _baml.types.CustomStory]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.CustomStory, types.CustomStory]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11332,7 +11413,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestThinking",
         {
@@ -11346,19 +11427,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.CustomStory, _baml.types.CustomStory](
+      return baml_py.BamlSyncStream[partial_types.CustomStory, types.CustomStory](
         raw,
-        lambda x: cast(_baml.partial_types.CustomStory, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.CustomStory, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.CustomStory, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.CustomStory, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestUniverseQuestion(
         self,
-        question: _baml.types.UniverseQuestionInput,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.UniverseQuestion, _baml.types.UniverseQuestion]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        question: types.UniverseQuestionInput,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.UniverseQuestion, types.UniverseQuestion]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11367,7 +11448,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestUniverseQuestion",
         {
@@ -11381,19 +11462,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.UniverseQuestion, _baml.types.UniverseQuestion](
+      return baml_py.BamlSyncStream[partial_types.UniverseQuestion, types.UniverseQuestion](
         raw,
-        lambda x: cast(_baml.partial_types.UniverseQuestion, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.UniverseQuestion, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.UniverseQuestion, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.UniverseQuestion, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestVertex(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11402,7 +11483,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestVertex",
         {
@@ -11418,17 +11499,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestVertexClaude(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11437,7 +11518,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestVertexClaude",
         {
@@ -11453,17 +11534,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def TestVertexWithSystemInstructions(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11472,7 +11553,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "TestVertexWithSystemInstructions",
         {
@@ -11487,17 +11568,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def UnionTest_Function(
         self,
         input: Union[str, bool],
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.UnionTest_ReturnType, _baml.types.UnionTest_ReturnType]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.UnionTest_ReturnType, types.UnionTest_ReturnType]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11506,7 +11587,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "UnionTest_Function",
         {
@@ -11520,19 +11601,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.UnionTest_ReturnType, _baml.types.UnionTest_ReturnType](
+      return baml_py.BamlSyncStream[partial_types.UnionTest_ReturnType, types.UnionTest_ReturnType](
         raw,
-        lambda x: cast(_baml.partial_types.UnionTest_ReturnType, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.UnionTest_ReturnType, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.UnionTest_ReturnType, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.UnionTest_ReturnType, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def UseBlockConstraint(
         self,
-        inp: _baml.types.BlockConstraintForParam,
-        baml_options: _baml.BamlCallOptions = {},
+        inp: types.BlockConstraintForParam,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[int], int]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11541,7 +11622,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "UseBlockConstraint",
         {
@@ -11557,17 +11638,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[int], int](
         raw,
-        lambda x: cast(Optional[int], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(int, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[int], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(int, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def UseMaintainFieldOrder(
         self,
-        input: _baml.types.MaintainFieldOrder,
-        baml_options: _baml.BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[_baml.partial_types.MaintainFieldOrder, _baml.types.MaintainFieldOrder]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+        input: types.MaintainFieldOrder,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[partial_types.MaintainFieldOrder, types.MaintainFieldOrder]:
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11576,7 +11657,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "UseMaintainFieldOrder",
         {
@@ -11590,19 +11671,19 @@ class BamlStreamClient:
         env,
       )
 
-      return baml_py.BamlSyncStream[_baml.partial_types.MaintainFieldOrder, _baml.types.MaintainFieldOrder](
+      return baml_py.BamlSyncStream[partial_types.MaintainFieldOrder, types.MaintainFieldOrder](
         raw,
-        lambda x: cast(_baml.partial_types.MaintainFieldOrder, x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(_baml.types.MaintainFieldOrder, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(partial_types.MaintainFieldOrder, x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(types.MaintainFieldOrder, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def UseMalformedConstraints(
         self,
-        a: _baml.types.MalformedConstraints2,
-        baml_options: _baml.BamlCallOptions = {},
+        a: types.MalformedConstraints2,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[int], int]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11611,7 +11692,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "UseMalformedConstraints",
         {
@@ -11627,17 +11708,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[int], int](
         raw,
-        lambda x: cast(Optional[int], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(int, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[int], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(int, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def UseNestedBlockConstraint(
         self,
-        inp: _baml.types.NestedBlockConstraintForParam,
-        baml_options: _baml.BamlCallOptions = {},
+        inp: types.NestedBlockConstraintForParam,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[int], int]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11646,7 +11727,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "UseNestedBlockConstraint",
         {
@@ -11662,17 +11743,17 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[int], int](
         raw,
-        lambda x: cast(Optional[int], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(int, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[int], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(int, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     
     def EchoWorkflow(
         self,
         
-        baml_options: _baml.BamlCallOptions = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[Optional[str], str]:
-      options: _baml.BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
+      options: BamlCallOptions = {**self.__baml_options, **(baml_options or {})}
       __tb__ = options.get("tb", None)
       if __tb__ is not None:
         tb = __tb__._tb # type: ignore (we know how to use this private attribute)
@@ -11681,7 +11762,7 @@ class BamlStreamClient:
       __cr__ = options.get("client_registry", None)
       collector = options.get("collector", None)
       collectors = collector if isinstance(collector, list) else [collector] if collector is not None else []
-      env = _baml.env_vars_to_dict(options.get("env", {}))
+      env = env_vars_to_dict(options.get("env", {}))
       raw = self.__runtime.stream_function_sync(
         "EchoWorkflow",
         {
@@ -11696,8 +11777,8 @@ class BamlStreamClient:
 
       return baml_py.BamlSyncStream[Optional[str], str](
         raw,
-        lambda x: cast(Optional[str], x.cast_to(_baml.types, _baml.types, _baml.partial_types, True)),
-        lambda x: cast(str, x.cast_to(_baml.types, _baml.types, _baml.partial_types, False)),
+        lambda x: cast(Optional[str], x.cast_to(types, types, partial_types, True)),
+        lambda x: cast(str, x.cast_to(types, types, partial_types, False)),
         self.__ctx_manager.get(),
       )
     

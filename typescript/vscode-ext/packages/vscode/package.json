@@ -30,7 +30,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "watch": "esbuild --bundle --watch --sourcemap --external:vscode --format=cjs --platform=node ./src/extension.ts --outfile=out/extension.js --watch",
     "build": "pnpm run client:build",
-    "dev": "echo 'No dev command in vscode-ext/packages/vscode/package.json' && exit 1",
+    "dev": "echo 'No dev command in vscode-ext/packages/vscode/package.json' && exit 0",
     "clean": "rimraf out",
     "client:build": "npx tsc --noEmit && pnpm run esbuild-base --sourcemap"
   },

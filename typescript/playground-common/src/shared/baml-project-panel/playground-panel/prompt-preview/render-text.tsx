@@ -119,7 +119,6 @@ export const RenderPromptPart: React.FC<{
 
   return (
     <div className='flex flex-col'>
-      {isDebugMode && (
         <div className='flex flex-row gap-4 justify-start items-center px-3 py-2 text-xs border-b border-border bg-muted text-muted-foreground'>
           <div className='flex items-center gap-1.5'>
             <span className='text-muted-foreground/60'>Characters:</span>
@@ -138,7 +137,6 @@ export const RenderPromptPart: React.FC<{
             <span className='font-medium'>{Math.ceil(text.length / 4)}</span>
           </div>
         </div>
-      )}
       <div className='relative flex-1'>
         <ScrollArea className='relative p-2 rounded bg-card group' type='always'>
           <div className='absolute right-2 top-1 opacity-0 group-hover:opacity-100 transition-opacity z-10'>

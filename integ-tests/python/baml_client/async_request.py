@@ -13,13 +13,30 @@
 # flake8: noqa: E501,F401
 # pylint: disable=unused-import,line-too-long
 # fmt: off
-from typing import Dict, List, Optional, Union
-from typing_extensions import Literal
+from typing import Any, Dict, List, Optional, Union, TypedDict, Type
+from typing_extensions import NotRequired, Literal
+import os
 
 import baml_py
 
-from . import _baml
+from . import types
+from .types import Checked, Check
+from .type_builder import TypeBuilder
 
+
+class BamlCallOptions(TypedDict, total=False):
+    tb: NotRequired[TypeBuilder]
+    client_registry: NotRequired[baml_py.baml_py.ClientRegistry]
+    env: NotRequired[Dict[str, Optional[str]]]
+
+def env_vars_to_dict(overrides: Dict[str, Optional[str]]) -> Dict[str, str]:
+    base = os.environ.copy()
+    for k, v in overrides.items():
+        if v is not None:
+            base[k] = v
+        else:
+            base.pop(k, None)
+    return base
 
 class AsyncHttpRequest:
     __runtime: baml_py.BamlRuntime
@@ -33,7 +50,7 @@ class AsyncHttpRequest:
     async def AaaSamOutputFormat(
         self,
         recipe: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -41,7 +58,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AaaSamOutputFormat",
@@ -57,8 +74,8 @@ class AsyncHttpRequest:
     
     async def AliasThatPointsToRecursiveType(
         self,
-        data: _baml.types.LinkedListAliasNode,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        data: types.LinkedListAliasNode,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -66,7 +83,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasThatPointsToRecursiveType",
@@ -83,7 +100,7 @@ class AsyncHttpRequest:
     async def AliasWithMultipleAttrs(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -91,7 +108,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasWithMultipleAttrs",
@@ -107,8 +124,8 @@ class AsyncHttpRequest:
     
     async def AliasedInputClass(
         self,
-        input: _baml.types.InputClass,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.InputClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -116,7 +133,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputClass",
@@ -132,8 +149,8 @@ class AsyncHttpRequest:
     
     async def AliasedInputClass2(
         self,
-        input: _baml.types.InputClass,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.InputClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -141,7 +158,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputClass2",
@@ -157,8 +174,8 @@ class AsyncHttpRequest:
     
     async def AliasedInputClassNested(
         self,
-        input: _baml.types.InputClassNested,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.InputClassNested,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -166,7 +183,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputClassNested",
@@ -182,8 +199,8 @@ class AsyncHttpRequest:
     
     async def AliasedInputEnum(
         self,
-        input: _baml.types.AliasedEnum,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.AliasedEnum,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -191,7 +208,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputEnum",
@@ -207,8 +224,8 @@ class AsyncHttpRequest:
     
     async def AliasedInputList(
         self,
-        input: List[_baml.types.AliasedEnum],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: List[types.AliasedEnum],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -216,7 +233,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputList",
@@ -232,8 +249,8 @@ class AsyncHttpRequest:
     
     async def AllowedOptionals(
         self,
-        optionals: _baml.types.OptionalListAndMap,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        optionals: types.OptionalListAndMap,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -241,7 +258,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AllowedOptionals",
@@ -258,7 +275,7 @@ class AsyncHttpRequest:
     async def AssertFn(
         self,
         a: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -266,7 +283,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AssertFn",
@@ -283,7 +300,7 @@ class AsyncHttpRequest:
     async def AudioInput(
         self,
         aud: baml_py.Audio,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -291,7 +308,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AudioInput",
@@ -308,7 +325,7 @@ class AsyncHttpRequest:
     async def AudioInputOpenai(
         self,
         aud: baml_py.Audio,prompt: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -316,7 +333,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AudioInputOpenai",
@@ -334,7 +351,7 @@ class AsyncHttpRequest:
     async def BuildLinkedList(
         self,
         input: List[int],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -342,7 +359,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "BuildLinkedList",
@@ -358,8 +375,8 @@ class AsyncHttpRequest:
     
     async def BuildTree(
         self,
-        input: _baml.types.BinaryNode,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.BinaryNode,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -367,7 +384,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "BuildTree",
@@ -383,8 +400,8 @@ class AsyncHttpRequest:
     
     async def ClassThatPointsToRecursiveClassThroughAlias(
         self,
-        cls: _baml.types.ClassToRecAlias,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        cls: types.ClassToRecAlias,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -392,7 +409,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassThatPointsToRecursiveClassThroughAlias",
@@ -409,7 +426,7 @@ class AsyncHttpRequest:
     async def ClassifyDynEnumTwo(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -417,7 +434,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassifyDynEnumTwo",
@@ -434,7 +451,7 @@ class AsyncHttpRequest:
     async def ClassifyMessage(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -442,7 +459,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassifyMessage",
@@ -459,7 +476,7 @@ class AsyncHttpRequest:
     async def ClassifyMessage2(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -467,7 +484,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassifyMessage2",
@@ -484,7 +501,7 @@ class AsyncHttpRequest:
     async def ClassifyMessage3(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -492,7 +509,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassifyMessage3",
@@ -509,7 +526,7 @@ class AsyncHttpRequest:
     async def Completion(
         self,
         prefix: str,suffix: str,language: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -517,7 +534,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "Completion",
@@ -536,7 +553,7 @@ class AsyncHttpRequest:
     async def CustomTask(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -544,7 +561,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "CustomTask",
@@ -561,7 +578,7 @@ class AsyncHttpRequest:
     async def DescribeImage(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -569,7 +586,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeImage",
@@ -585,8 +602,8 @@ class AsyncHttpRequest:
     
     async def DescribeImage2(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -594,7 +611,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeImage2",
@@ -611,8 +628,8 @@ class AsyncHttpRequest:
     
     async def DescribeImage3(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -620,7 +637,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeImage3",
@@ -637,8 +654,8 @@ class AsyncHttpRequest:
     
     async def DescribeImage4(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -646,7 +663,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeImage4",
@@ -664,7 +681,7 @@ class AsyncHttpRequest:
     async def DescribeMedia1599(
         self,
         img: baml_py.Image,client_sector: str,client_name: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -672,7 +689,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeMedia1599",
@@ -691,7 +708,7 @@ class AsyncHttpRequest:
     async def DifferentiateUnions(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -699,7 +716,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DifferentiateUnions",
@@ -715,7 +732,7 @@ class AsyncHttpRequest:
     async def DummyOutputFunction(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -723,7 +740,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DummyOutputFunction",
@@ -739,8 +756,8 @@ class AsyncHttpRequest:
     
     async def DynamicFunc(
         self,
-        input: _baml.types.DynamicClassOne,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.DynamicClassOne,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -748,7 +765,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DynamicFunc",
@@ -764,8 +781,8 @@ class AsyncHttpRequest:
     
     async def DynamicInputOutput(
         self,
-        input: _baml.types.DynInputOutput,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.DynInputOutput,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -773,7 +790,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DynamicInputOutput",
@@ -789,8 +806,8 @@ class AsyncHttpRequest:
     
     async def DynamicListInputOutput(
         self,
-        input: List[_baml.types.DynInputOutput],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: List[types.DynInputOutput],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -798,7 +815,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DynamicListInputOutput",
@@ -815,7 +832,7 @@ class AsyncHttpRequest:
     async def ExpectFailure(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -823,7 +840,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExpectFailure",
@@ -839,7 +856,7 @@ class AsyncHttpRequest:
     async def ExtractContactInfo(
         self,
         document: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -847,7 +864,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractContactInfo",
@@ -864,7 +881,7 @@ class AsyncHttpRequest:
     async def ExtractEntities(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -872,7 +889,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractEntities",
@@ -889,7 +906,7 @@ class AsyncHttpRequest:
     async def ExtractHobby(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -897,7 +914,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractHobby",
@@ -914,7 +931,7 @@ class AsyncHttpRequest:
     async def ExtractNames(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -922,7 +939,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractNames",
@@ -939,7 +956,7 @@ class AsyncHttpRequest:
     async def ExtractPeople(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -947,7 +964,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractPeople",
@@ -964,7 +981,7 @@ class AsyncHttpRequest:
     async def ExtractReceiptInfo(
         self,
         email: str,reason: Union[Literal["curiosity"], Literal["personal_finance"]],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -972,7 +989,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractReceiptInfo",
@@ -990,7 +1007,7 @@ class AsyncHttpRequest:
     async def ExtractResume(
         self,
         resume: str,img: Optional[baml_py.Image],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -998,7 +1015,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractResume",
@@ -1016,7 +1033,7 @@ class AsyncHttpRequest:
     async def ExtractResume2(
         self,
         resume: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1024,7 +1041,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractResume2",
@@ -1041,7 +1058,7 @@ class AsyncHttpRequest:
     async def FnClassOptionalOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1049,7 +1066,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnClassOptionalOutput",
@@ -1066,7 +1083,7 @@ class AsyncHttpRequest:
     async def FnClassOptionalOutput2(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1074,7 +1091,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnClassOptionalOutput2",
@@ -1091,7 +1108,7 @@ class AsyncHttpRequest:
     async def FnEnumListOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1099,7 +1116,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnEnumListOutput",
@@ -1116,7 +1133,7 @@ class AsyncHttpRequest:
     async def FnEnumOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1124,7 +1141,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnEnumOutput",
@@ -1140,8 +1157,8 @@ class AsyncHttpRequest:
     
     async def FnLiteralClassInputOutput(
         self,
-        input: _baml.types.LiteralClassHello,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.LiteralClassHello,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1149,7 +1166,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnLiteralClassInputOutput",
@@ -1165,8 +1182,8 @@ class AsyncHttpRequest:
     
     async def FnLiteralUnionClassInputOutput(
         self,
-        input: Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: Union[types.LiteralClassOne, types.LiteralClassTwo],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1174,7 +1191,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnLiteralUnionClassInputOutput",
@@ -1191,7 +1208,7 @@ class AsyncHttpRequest:
     async def FnNamedArgsSingleStringOptional(
         self,
         myString: Optional[str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1199,7 +1216,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnNamedArgsSingleStringOptional",
@@ -1216,7 +1233,7 @@ class AsyncHttpRequest:
     async def FnOutputBool(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1224,7 +1241,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputBool",
@@ -1241,7 +1258,7 @@ class AsyncHttpRequest:
     async def FnOutputClass(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1249,7 +1266,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputClass",
@@ -1266,7 +1283,7 @@ class AsyncHttpRequest:
     async def FnOutputClassList(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1274,7 +1291,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputClassList",
@@ -1291,7 +1308,7 @@ class AsyncHttpRequest:
     async def FnOutputClassNested(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1299,7 +1316,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputClassNested",
@@ -1316,7 +1333,7 @@ class AsyncHttpRequest:
     async def FnOutputClassWithEnum(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1324,7 +1341,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputClassWithEnum",
@@ -1341,7 +1358,7 @@ class AsyncHttpRequest:
     async def FnOutputInt(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1349,7 +1366,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputInt",
@@ -1366,7 +1383,7 @@ class AsyncHttpRequest:
     async def FnOutputLiteralBool(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1374,7 +1391,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputLiteralBool",
@@ -1391,7 +1408,7 @@ class AsyncHttpRequest:
     async def FnOutputLiteralInt(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1399,7 +1416,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputLiteralInt",
@@ -1416,7 +1433,7 @@ class AsyncHttpRequest:
     async def FnOutputLiteralString(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1424,7 +1441,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputLiteralString",
@@ -1441,7 +1458,7 @@ class AsyncHttpRequest:
     async def FnOutputStringList(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1449,7 +1466,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputStringList",
@@ -1466,7 +1483,7 @@ class AsyncHttpRequest:
     async def FnTestAliasedEnumOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1474,7 +1491,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnTestAliasedEnumOutput",
@@ -1491,7 +1508,7 @@ class AsyncHttpRequest:
     async def FnTestClassAlias(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1499,7 +1516,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnTestClassAlias",
@@ -1515,8 +1532,8 @@ class AsyncHttpRequest:
     
     async def FnTestNamedArgsSingleEnum(
         self,
-        myArg: _baml.types.NamedArgsSingleEnum,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myArg: types.NamedArgsSingleEnum,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1524,7 +1541,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnTestNamedArgsSingleEnum",
@@ -1541,7 +1558,7 @@ class AsyncHttpRequest:
     async def GetDataType(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1549,7 +1566,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "GetDataType",
@@ -1565,8 +1582,8 @@ class AsyncHttpRequest:
     
     async def GetOrderInfo(
         self,
-        email: _baml.types.Email,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        email: types.Email,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1574,7 +1591,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "GetOrderInfo",
@@ -1591,7 +1608,7 @@ class AsyncHttpRequest:
     async def GetQuery(
         self,
         query: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1599,7 +1616,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "GetQuery",
@@ -1615,8 +1632,8 @@ class AsyncHttpRequest:
     
     async def InOutEnumMapKey(
         self,
-        i1: Dict[_baml.types.MapKey, str],i2: Dict[_baml.types.MapKey, str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        i1: Dict[types.MapKey, str],i2: Dict[types.MapKey, str],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1624,7 +1641,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "InOutEnumMapKey",
@@ -1642,7 +1659,7 @@ class AsyncHttpRequest:
     async def InOutLiteralStringUnionMapKey(
         self,
         i1: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],i2: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1650,7 +1667,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "InOutLiteralStringUnionMapKey",
@@ -1668,7 +1685,7 @@ class AsyncHttpRequest:
     async def InOutSingleLiteralStringMapKey(
         self,
         m: Dict[Literal["key"], str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1676,7 +1693,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "InOutSingleLiteralStringMapKey",
@@ -1692,8 +1709,8 @@ class AsyncHttpRequest:
     
     async def JsonTypeAliasCycle(
         self,
-        input: _baml.types.JsonValue,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.JsonValue,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1701,7 +1718,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "JsonTypeAliasCycle",
@@ -1718,7 +1735,7 @@ class AsyncHttpRequest:
     async def LLMEcho(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1726,7 +1743,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "LLMEcho",
@@ -1743,7 +1760,7 @@ class AsyncHttpRequest:
     async def LiteralUnionsTest(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1751,7 +1768,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "LiteralUnionsTest",
@@ -1765,10 +1782,10 @@ class AsyncHttpRequest:
         False,
       )
     
-    async def MakeBlockConstraint(
+    async def LongQuestion(
         self,
-        
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        prompt: str,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1776,7 +1793,32 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
+
+      return await self.__runtime.build_request(
+        "LongQuestion",
+        {
+          "prompt": prompt,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        env,
+        False,
+      )
+    
+    async def MakeBlockConstraint(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeBlockConstraint",
@@ -1792,7 +1834,7 @@ class AsyncHttpRequest:
     async def MakeClassWithBlockDone(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1800,7 +1842,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeClassWithBlockDone",
@@ -1816,7 +1858,7 @@ class AsyncHttpRequest:
     async def MakeClassWithExternalDone(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1824,7 +1866,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeClassWithExternalDone",
@@ -1840,7 +1882,7 @@ class AsyncHttpRequest:
     async def MakeNestedBlockConstraint(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1848,7 +1890,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeNestedBlockConstraint",
@@ -1864,7 +1906,7 @@ class AsyncHttpRequest:
     async def MakeSemanticContainer(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1872,7 +1914,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeSemanticContainer",
@@ -1888,7 +1930,7 @@ class AsyncHttpRequest:
     async def MapAlias(
         self,
         m: Dict[str, List[str]],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1896,7 +1938,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MapAlias",
@@ -1913,7 +1955,7 @@ class AsyncHttpRequest:
     async def MergeAliasAttributes(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1921,7 +1963,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MergeAliasAttributes",
@@ -1938,7 +1980,7 @@ class AsyncHttpRequest:
     async def MyFunc(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1946,7 +1988,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MyFunc",
@@ -1963,7 +2005,7 @@ class AsyncHttpRequest:
     async def NestedAlias(
         self,
         c: Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1971,7 +2013,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "NestedAlias",
@@ -1988,7 +2030,7 @@ class AsyncHttpRequest:
     async def NullLiteralClassHello(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -1996,7 +2038,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "NullLiteralClassHello",
@@ -2013,7 +2055,7 @@ class AsyncHttpRequest:
     async def OpenAIWithAnthropicResponseHello(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2021,7 +2063,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "OpenAIWithAnthropicResponseHello",
@@ -2038,7 +2080,7 @@ class AsyncHttpRequest:
     async def OptionalTest_Function(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2046,7 +2088,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "OptionalTest_Function",
@@ -2063,7 +2105,7 @@ class AsyncHttpRequest:
     async def PredictAge(
         self,
         name: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2071,7 +2113,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PredictAge",
@@ -2088,7 +2130,7 @@ class AsyncHttpRequest:
     async def PredictAgeBare(
         self,
         inp: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2096,7 +2138,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PredictAgeBare",
@@ -2113,7 +2155,7 @@ class AsyncHttpRequest:
     async def PrimitiveAlias(
         self,
         p: Union[int, str, bool, float],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2121,7 +2163,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PrimitiveAlias",
@@ -2138,7 +2180,7 @@ class AsyncHttpRequest:
     async def PromptTestClaude(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2146,7 +2188,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestClaude",
@@ -2163,7 +2205,7 @@ class AsyncHttpRequest:
     async def PromptTestClaudeChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2171,7 +2213,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestClaudeChat",
@@ -2188,7 +2230,7 @@ class AsyncHttpRequest:
     async def PromptTestClaudeChatNoSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2196,7 +2238,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestClaudeChatNoSystem",
@@ -2213,7 +2255,7 @@ class AsyncHttpRequest:
     async def PromptTestOpenAI(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2221,7 +2263,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestOpenAI",
@@ -2238,7 +2280,7 @@ class AsyncHttpRequest:
     async def PromptTestOpenAIChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2246,7 +2288,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestOpenAIChat",
@@ -2263,7 +2305,7 @@ class AsyncHttpRequest:
     async def PromptTestOpenAIChatNoSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2271,7 +2313,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestOpenAIChatNoSystem",
@@ -2288,7 +2330,7 @@ class AsyncHttpRequest:
     async def PromptTestStreaming(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2296,7 +2338,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestStreaming",
@@ -2312,8 +2354,8 @@ class AsyncHttpRequest:
     
     async def RecursiveAliasCycle(
         self,
-        input: _baml.types.RecAliasOne,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecAliasOne,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2321,7 +2363,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "RecursiveAliasCycle",
@@ -2337,8 +2379,8 @@ class AsyncHttpRequest:
     
     async def RecursiveClassWithAliasIndirection(
         self,
-        cls: _baml.types.NodeWithAliasIndirection,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        cls: types.NodeWithAliasIndirection,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2346,7 +2388,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "RecursiveClassWithAliasIndirection",
@@ -2362,8 +2404,8 @@ class AsyncHttpRequest:
     
     async def RecursiveUnionTest(
         self,
-        input: _baml.types.RecursiveUnion,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecursiveUnion,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2371,7 +2413,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "RecursiveUnionTest",
@@ -2388,7 +2430,7 @@ class AsyncHttpRequest:
     async def ReturnAliasWithMergedAttributes(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2396,7 +2438,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ReturnAliasWithMergedAttributes",
@@ -2413,7 +2455,7 @@ class AsyncHttpRequest:
     async def ReturnFailingAssert(
         self,
         inp: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2421,7 +2463,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ReturnFailingAssert",
@@ -2438,7 +2480,7 @@ class AsyncHttpRequest:
     async def ReturnJsonEntry(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2446,7 +2488,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ReturnJsonEntry",
@@ -2463,7 +2505,7 @@ class AsyncHttpRequest:
     async def ReturnMalformedConstraints(
         self,
         a: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2471,7 +2513,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ReturnMalformedConstraints",
@@ -2488,7 +2530,7 @@ class AsyncHttpRequest:
     async def SchemaDescriptions(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2496,7 +2538,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "SchemaDescriptions",
@@ -2512,8 +2554,8 @@ class AsyncHttpRequest:
     
     async def SimpleRecursiveListAlias(
         self,
-        input: _baml.types.RecursiveListAlias,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecursiveListAlias,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2521,7 +2563,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "SimpleRecursiveListAlias",
@@ -2537,8 +2579,8 @@ class AsyncHttpRequest:
     
     async def SimpleRecursiveMapAlias(
         self,
-        input: _baml.types.RecursiveMapAlias,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecursiveMapAlias,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2546,7 +2588,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "SimpleRecursiveMapAlias",
@@ -2563,7 +2605,7 @@ class AsyncHttpRequest:
     async def StreamBigNumbers(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2571,7 +2613,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamBigNumbers",
@@ -2588,7 +2630,7 @@ class AsyncHttpRequest:
     async def StreamFailingAssertion(
         self,
         theme: str,length: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2596,7 +2638,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamFailingAssertion",
@@ -2614,7 +2656,7 @@ class AsyncHttpRequest:
     async def StreamFailingCheck(
         self,
         theme: str,length: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2622,7 +2664,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamFailingCheck",
@@ -2640,7 +2682,7 @@ class AsyncHttpRequest:
     async def StreamOneBigNumber(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2648,7 +2690,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamOneBigNumber",
@@ -2665,7 +2707,7 @@ class AsyncHttpRequest:
     async def StreamUnionIntegers(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2673,7 +2715,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamUnionIntegers",
@@ -2690,7 +2732,7 @@ class AsyncHttpRequest:
     async def StreamingCompoundNumbers(
         self,
         digits: int,yapping: bool,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2698,7 +2740,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamingCompoundNumbers",
@@ -2716,7 +2758,7 @@ class AsyncHttpRequest:
     async def StructureDocument1559(
         self,
         document_txt: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2724,7 +2766,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StructureDocument1559",
@@ -2740,8 +2782,8 @@ class AsyncHttpRequest:
     
     async def TakeRecAliasDep(
         self,
-        input: _baml.types.RecursiveAliasDependency,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecursiveAliasDependency,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2749,7 +2791,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TakeRecAliasDep",
@@ -2766,7 +2808,7 @@ class AsyncHttpRequest:
     async def TellStory(
         self,
         story: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2774,7 +2816,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TellStory",
@@ -2791,7 +2833,7 @@ class AsyncHttpRequest:
     async def TestAnthropic(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2799,7 +2841,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAnthropic",
@@ -2816,7 +2858,7 @@ class AsyncHttpRequest:
     async def TestAnthropicShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2824,7 +2866,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAnthropicShorthand",
@@ -2841,7 +2883,7 @@ class AsyncHttpRequest:
     async def TestAws(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2849,7 +2891,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAws",
@@ -2866,7 +2908,7 @@ class AsyncHttpRequest:
     async def TestAwsClaude37(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2874,7 +2916,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsClaude37",
@@ -2891,7 +2933,7 @@ class AsyncHttpRequest:
     async def TestAwsInferenceProfile(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2899,7 +2941,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInferenceProfile",
@@ -2916,7 +2958,7 @@ class AsyncHttpRequest:
     async def TestAwsInvalidAccessKey(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2924,7 +2966,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInvalidAccessKey",
@@ -2941,7 +2983,7 @@ class AsyncHttpRequest:
     async def TestAwsInvalidProfile(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2949,7 +2991,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInvalidProfile",
@@ -2966,7 +3008,7 @@ class AsyncHttpRequest:
     async def TestAwsInvalidRegion(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2974,7 +3016,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInvalidRegion",
@@ -2991,7 +3033,7 @@ class AsyncHttpRequest:
     async def TestAwsInvalidSessionToken(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -2999,7 +3041,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInvalidSessionToken",
@@ -3016,7 +3058,7 @@ class AsyncHttpRequest:
     async def TestAzure(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3024,7 +3066,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzure",
@@ -3041,7 +3083,7 @@ class AsyncHttpRequest:
     async def TestAzureFailure(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3049,7 +3091,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureFailure",
@@ -3066,7 +3108,7 @@ class AsyncHttpRequest:
     async def TestAzureO1NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3074,7 +3116,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO1NoMaxTokens",
@@ -3091,7 +3133,7 @@ class AsyncHttpRequest:
     async def TestAzureO1WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3099,7 +3141,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO1WithMaxCompletionTokens",
@@ -3116,7 +3158,7 @@ class AsyncHttpRequest:
     async def TestAzureO1WithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3124,7 +3166,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO1WithMaxTokens",
@@ -3141,7 +3183,7 @@ class AsyncHttpRequest:
     async def TestAzureO3NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3149,7 +3191,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO3NoMaxTokens",
@@ -3166,7 +3208,7 @@ class AsyncHttpRequest:
     async def TestAzureO3WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3174,7 +3216,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO3WithMaxCompletionTokens",
@@ -3191,7 +3233,7 @@ class AsyncHttpRequest:
     async def TestAzureWithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3199,7 +3241,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureWithMaxTokens",
@@ -3216,7 +3258,7 @@ class AsyncHttpRequest:
     async def TestCaching(
         self,
         input: str,not_cached: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3224,7 +3266,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestCaching",
@@ -3242,7 +3284,7 @@ class AsyncHttpRequest:
     async def TestFallbackClient(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3250,7 +3292,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFallbackClient",
@@ -3266,7 +3308,7 @@ class AsyncHttpRequest:
     async def TestFallbackStrategy(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3274,7 +3316,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFallbackStrategy",
@@ -3291,7 +3333,7 @@ class AsyncHttpRequest:
     async def TestFallbackToShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3299,7 +3341,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFallbackToShorthand",
@@ -3316,7 +3358,7 @@ class AsyncHttpRequest:
     async def TestFnNamedArgsSingleBool(
         self,
         myBool: bool,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3324,7 +3366,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleBool",
@@ -3340,8 +3382,8 @@ class AsyncHttpRequest:
     
     async def TestFnNamedArgsSingleClass(
         self,
-        myArg: _baml.types.NamedArgsSingleClass,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myArg: types.NamedArgsSingleClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3349,7 +3391,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleClass",
@@ -3365,8 +3407,8 @@ class AsyncHttpRequest:
     
     async def TestFnNamedArgsSingleEnumList(
         self,
-        myArg: List[_baml.types.NamedArgsSingleEnumList],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myArg: List[types.NamedArgsSingleEnumList],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3374,7 +3416,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleEnumList",
@@ -3391,7 +3433,7 @@ class AsyncHttpRequest:
     async def TestFnNamedArgsSingleFloat(
         self,
         myFloat: float,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3399,7 +3441,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleFloat",
@@ -3416,7 +3458,7 @@ class AsyncHttpRequest:
     async def TestFnNamedArgsSingleInt(
         self,
         myInt: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3424,7 +3466,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleInt",
@@ -3440,8 +3482,8 @@ class AsyncHttpRequest:
     
     async def TestFnNamedArgsSingleMapStringToClass(
         self,
-        myMap: Dict[str, _baml.types.StringToClassEntry],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myMap: Dict[str, types.StringToClassEntry],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3449,7 +3491,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleMapStringToClass",
@@ -3466,7 +3508,7 @@ class AsyncHttpRequest:
     async def TestFnNamedArgsSingleMapStringToMap(
         self,
         myMap: Dict[str, Dict[str, str]],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3474,7 +3516,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleMapStringToMap",
@@ -3491,7 +3533,7 @@ class AsyncHttpRequest:
     async def TestFnNamedArgsSingleMapStringToString(
         self,
         myMap: Dict[str, str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3499,7 +3541,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleMapStringToString",
@@ -3516,7 +3558,7 @@ class AsyncHttpRequest:
     async def TestFnNamedArgsSingleString(
         self,
         myString: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3524,7 +3566,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleString",
@@ -3541,7 +3583,7 @@ class AsyncHttpRequest:
     async def TestFnNamedArgsSingleStringArray(
         self,
         myStringArray: List[str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3549,7 +3591,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleStringArray",
@@ -3566,7 +3608,7 @@ class AsyncHttpRequest:
     async def TestFnNamedArgsSingleStringList(
         self,
         myArg: List[str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3574,7 +3616,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleStringList",
@@ -3591,7 +3633,7 @@ class AsyncHttpRequest:
     async def TestGemini(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3599,7 +3641,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGemini",
@@ -3616,7 +3658,7 @@ class AsyncHttpRequest:
     async def TestGeminiOpenAiGeneric(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3624,7 +3666,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGeminiOpenAiGeneric",
@@ -3640,7 +3682,7 @@ class AsyncHttpRequest:
     async def TestGeminiSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3648,7 +3690,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGeminiSystem",
@@ -3665,7 +3707,7 @@ class AsyncHttpRequest:
     async def TestGeminiSystemAsChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3673,7 +3715,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGeminiSystemAsChat",
@@ -3690,7 +3732,7 @@ class AsyncHttpRequest:
     async def TestGroq(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3698,7 +3740,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGroq",
@@ -3715,7 +3757,7 @@ class AsyncHttpRequest:
     async def TestImageInput(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3723,7 +3765,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestImageInput",
@@ -3740,7 +3782,7 @@ class AsyncHttpRequest:
     async def TestImageInputAnthropic(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3748,7 +3790,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestImageInputAnthropic",
@@ -3765,7 +3807,7 @@ class AsyncHttpRequest:
     async def TestImageListInput(
         self,
         imgs: List[baml_py.Image],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3773,7 +3815,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestImageListInput",
@@ -3790,7 +3832,7 @@ class AsyncHttpRequest:
     async def TestMemory(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3798,7 +3840,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestMemory",
@@ -3814,8 +3856,8 @@ class AsyncHttpRequest:
     
     async def TestMulticlassNamedArgs(
         self,
-        myArg: _baml.types.NamedArgsSingleClass,myArg2: _baml.types.NamedArgsSingleClass,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myArg: types.NamedArgsSingleClass,myArg2: types.NamedArgsSingleClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3823,7 +3865,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestMulticlassNamedArgs",
@@ -3841,7 +3883,7 @@ class AsyncHttpRequest:
     async def TestNamedArgsLiteralBool(
         self,
         myBool: Literal[True],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3849,7 +3891,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestNamedArgsLiteralBool",
@@ -3866,7 +3908,7 @@ class AsyncHttpRequest:
     async def TestNamedArgsLiteralInt(
         self,
         myInt: Literal[1],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3874,7 +3916,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestNamedArgsLiteralInt",
@@ -3891,7 +3933,7 @@ class AsyncHttpRequest:
     async def TestNamedArgsLiteralString(
         self,
         myString: Literal["My String"],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3899,7 +3941,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestNamedArgsLiteralString",
@@ -3916,7 +3958,7 @@ class AsyncHttpRequest:
     async def TestOllama(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3924,7 +3966,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOllama",
@@ -3941,7 +3983,7 @@ class AsyncHttpRequest:
     async def TestOllamaHaiku(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3949,7 +3991,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOllamaHaiku",
@@ -3966,7 +4008,7 @@ class AsyncHttpRequest:
     async def TestOpenAI(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3974,7 +4016,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAI",
@@ -3991,7 +4033,7 @@ class AsyncHttpRequest:
     async def TestOpenAIDummyClient(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -3999,7 +4041,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIDummyClient",
@@ -4016,7 +4058,7 @@ class AsyncHttpRequest:
     async def TestOpenAIGPT4oMini(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4024,7 +4066,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIGPT4oMini",
@@ -4041,7 +4083,7 @@ class AsyncHttpRequest:
     async def TestOpenAILegacyProvider(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4049,7 +4091,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAILegacyProvider",
@@ -4066,7 +4108,7 @@ class AsyncHttpRequest:
     async def TestOpenAIO1NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4074,7 +4116,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIO1NoMaxTokens",
@@ -4091,7 +4133,7 @@ class AsyncHttpRequest:
     async def TestOpenAIO1WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4099,7 +4141,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIO1WithMaxCompletionTokens",
@@ -4116,7 +4158,7 @@ class AsyncHttpRequest:
     async def TestOpenAIO1WithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4124,7 +4166,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIO1WithMaxTokens",
@@ -4141,7 +4183,7 @@ class AsyncHttpRequest:
     async def TestOpenAIShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4149,7 +4191,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIShorthand",
@@ -4166,7 +4208,7 @@ class AsyncHttpRequest:
     async def TestOpenAIWithFinishReasonError(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4174,7 +4216,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIWithFinishReasonError",
@@ -4191,7 +4233,7 @@ class AsyncHttpRequest:
     async def TestOpenAIWithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4199,7 +4241,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIWithMaxTokens",
@@ -4216,7 +4258,7 @@ class AsyncHttpRequest:
     async def TestOpenAIWithNullMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4224,7 +4266,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIWithNullMaxTokens",
@@ -4241,7 +4283,7 @@ class AsyncHttpRequest:
     async def TestOpenRouterMistralSmall3_1_24b(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4249,7 +4291,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenRouterMistralSmall3_1_24b",
@@ -4266,7 +4308,7 @@ class AsyncHttpRequest:
     async def TestRetryConstant(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4274,7 +4316,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestRetryConstant",
@@ -4290,7 +4332,7 @@ class AsyncHttpRequest:
     async def TestRetryExponential(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4298,7 +4340,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestRetryExponential",
@@ -4314,7 +4356,7 @@ class AsyncHttpRequest:
     async def TestRoundRobinStrategy(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4322,7 +4364,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestRoundRobinStrategy",
@@ -4339,7 +4381,7 @@ class AsyncHttpRequest:
     async def TestSingleFallbackClient(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4347,7 +4389,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestSingleFallbackClient",
@@ -4363,7 +4405,7 @@ class AsyncHttpRequest:
     async def TestThinking(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4371,7 +4413,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestThinking",
@@ -4387,8 +4429,8 @@ class AsyncHttpRequest:
     
     async def TestUniverseQuestion(
         self,
-        question: _baml.types.UniverseQuestionInput,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        question: types.UniverseQuestionInput,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4396,7 +4438,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestUniverseQuestion",
@@ -4413,7 +4455,7 @@ class AsyncHttpRequest:
     async def TestVertex(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4421,7 +4463,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestVertex",
@@ -4438,7 +4480,7 @@ class AsyncHttpRequest:
     async def TestVertexClaude(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4446,7 +4488,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestVertexClaude",
@@ -4463,7 +4505,7 @@ class AsyncHttpRequest:
     async def TestVertexWithSystemInstructions(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4471,7 +4513,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestVertexWithSystemInstructions",
@@ -4487,7 +4529,7 @@ class AsyncHttpRequest:
     async def UnionTest_Function(
         self,
         input: Union[str, bool],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4495,7 +4537,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UnionTest_Function",
@@ -4511,8 +4553,8 @@ class AsyncHttpRequest:
     
     async def UseBlockConstraint(
         self,
-        inp: _baml.types.BlockConstraintForParam,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        inp: types.BlockConstraintForParam,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4520,7 +4562,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UseBlockConstraint",
@@ -4536,8 +4578,8 @@ class AsyncHttpRequest:
     
     async def UseMaintainFieldOrder(
         self,
-        input: _baml.types.MaintainFieldOrder,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.MaintainFieldOrder,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4545,7 +4587,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UseMaintainFieldOrder",
@@ -4561,8 +4603,8 @@ class AsyncHttpRequest:
     
     async def UseMalformedConstraints(
         self,
-        a: _baml.types.MalformedConstraints2,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        a: types.MalformedConstraints2,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4570,7 +4612,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UseMalformedConstraints",
@@ -4586,8 +4628,8 @@ class AsyncHttpRequest:
     
     async def UseNestedBlockConstraint(
         self,
-        inp: _baml.types.NestedBlockConstraintForParam,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        inp: types.NestedBlockConstraintForParam,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4595,7 +4637,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UseNestedBlockConstraint",
@@ -4612,7 +4654,7 @@ class AsyncHttpRequest:
     async def EchoWorkflow(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4620,7 +4662,7 @@ class AsyncHttpRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "EchoWorkflow",
@@ -4647,7 +4689,7 @@ class AsyncHttpStreamRequest:
     async def AaaSamOutputFormat(
         self,
         recipe: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4655,7 +4697,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AaaSamOutputFormat",
@@ -4671,8 +4713,8 @@ class AsyncHttpStreamRequest:
     
     async def AliasThatPointsToRecursiveType(
         self,
-        data: _baml.types.LinkedListAliasNode,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        data: types.LinkedListAliasNode,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4680,7 +4722,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasThatPointsToRecursiveType",
@@ -4697,7 +4739,7 @@ class AsyncHttpStreamRequest:
     async def AliasWithMultipleAttrs(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4705,7 +4747,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasWithMultipleAttrs",
@@ -4721,8 +4763,8 @@ class AsyncHttpStreamRequest:
     
     async def AliasedInputClass(
         self,
-        input: _baml.types.InputClass,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.InputClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4730,7 +4772,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputClass",
@@ -4746,8 +4788,8 @@ class AsyncHttpStreamRequest:
     
     async def AliasedInputClass2(
         self,
-        input: _baml.types.InputClass,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.InputClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4755,7 +4797,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputClass2",
@@ -4771,8 +4813,8 @@ class AsyncHttpStreamRequest:
     
     async def AliasedInputClassNested(
         self,
-        input: _baml.types.InputClassNested,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.InputClassNested,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4780,7 +4822,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputClassNested",
@@ -4796,8 +4838,8 @@ class AsyncHttpStreamRequest:
     
     async def AliasedInputEnum(
         self,
-        input: _baml.types.AliasedEnum,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.AliasedEnum,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4805,7 +4847,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputEnum",
@@ -4821,8 +4863,8 @@ class AsyncHttpStreamRequest:
     
     async def AliasedInputList(
         self,
-        input: List[_baml.types.AliasedEnum],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: List[types.AliasedEnum],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4830,7 +4872,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AliasedInputList",
@@ -4846,8 +4888,8 @@ class AsyncHttpStreamRequest:
     
     async def AllowedOptionals(
         self,
-        optionals: _baml.types.OptionalListAndMap,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        optionals: types.OptionalListAndMap,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4855,7 +4897,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AllowedOptionals",
@@ -4872,7 +4914,7 @@ class AsyncHttpStreamRequest:
     async def AssertFn(
         self,
         a: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4880,7 +4922,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AssertFn",
@@ -4897,7 +4939,7 @@ class AsyncHttpStreamRequest:
     async def AudioInput(
         self,
         aud: baml_py.Audio,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4905,7 +4947,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AudioInput",
@@ -4922,7 +4964,7 @@ class AsyncHttpStreamRequest:
     async def AudioInputOpenai(
         self,
         aud: baml_py.Audio,prompt: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4930,7 +4972,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "AudioInputOpenai",
@@ -4948,7 +4990,7 @@ class AsyncHttpStreamRequest:
     async def BuildLinkedList(
         self,
         input: List[int],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4956,7 +4998,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "BuildLinkedList",
@@ -4972,8 +5014,8 @@ class AsyncHttpStreamRequest:
     
     async def BuildTree(
         self,
-        input: _baml.types.BinaryNode,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.BinaryNode,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -4981,7 +5023,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "BuildTree",
@@ -4997,8 +5039,8 @@ class AsyncHttpStreamRequest:
     
     async def ClassThatPointsToRecursiveClassThroughAlias(
         self,
-        cls: _baml.types.ClassToRecAlias,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        cls: types.ClassToRecAlias,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5006,7 +5048,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassThatPointsToRecursiveClassThroughAlias",
@@ -5023,7 +5065,7 @@ class AsyncHttpStreamRequest:
     async def ClassifyDynEnumTwo(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5031,7 +5073,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassifyDynEnumTwo",
@@ -5048,7 +5090,7 @@ class AsyncHttpStreamRequest:
     async def ClassifyMessage(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5056,7 +5098,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassifyMessage",
@@ -5073,7 +5115,7 @@ class AsyncHttpStreamRequest:
     async def ClassifyMessage2(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5081,7 +5123,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassifyMessage2",
@@ -5098,7 +5140,7 @@ class AsyncHttpStreamRequest:
     async def ClassifyMessage3(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5106,7 +5148,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ClassifyMessage3",
@@ -5123,7 +5165,7 @@ class AsyncHttpStreamRequest:
     async def Completion(
         self,
         prefix: str,suffix: str,language: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5131,7 +5173,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "Completion",
@@ -5150,7 +5192,7 @@ class AsyncHttpStreamRequest:
     async def CustomTask(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5158,7 +5200,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "CustomTask",
@@ -5175,7 +5217,7 @@ class AsyncHttpStreamRequest:
     async def DescribeImage(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5183,7 +5225,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeImage",
@@ -5199,8 +5241,8 @@ class AsyncHttpStreamRequest:
     
     async def DescribeImage2(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5208,7 +5250,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeImage2",
@@ -5225,8 +5267,8 @@ class AsyncHttpStreamRequest:
     
     async def DescribeImage3(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5234,7 +5276,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeImage3",
@@ -5251,8 +5293,8 @@ class AsyncHttpStreamRequest:
     
     async def DescribeImage4(
         self,
-        classWithImage: _baml.types.ClassWithImage,img2: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        classWithImage: types.ClassWithImage,img2: baml_py.Image,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5260,7 +5302,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeImage4",
@@ -5278,7 +5320,7 @@ class AsyncHttpStreamRequest:
     async def DescribeMedia1599(
         self,
         img: baml_py.Image,client_sector: str,client_name: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5286,7 +5328,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DescribeMedia1599",
@@ -5305,7 +5347,7 @@ class AsyncHttpStreamRequest:
     async def DifferentiateUnions(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5313,7 +5355,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DifferentiateUnions",
@@ -5329,7 +5371,7 @@ class AsyncHttpStreamRequest:
     async def DummyOutputFunction(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5337,7 +5379,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DummyOutputFunction",
@@ -5353,8 +5395,8 @@ class AsyncHttpStreamRequest:
     
     async def DynamicFunc(
         self,
-        input: _baml.types.DynamicClassOne,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.DynamicClassOne,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5362,7 +5404,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DynamicFunc",
@@ -5378,8 +5420,8 @@ class AsyncHttpStreamRequest:
     
     async def DynamicInputOutput(
         self,
-        input: _baml.types.DynInputOutput,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.DynInputOutput,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5387,7 +5429,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DynamicInputOutput",
@@ -5403,8 +5445,8 @@ class AsyncHttpStreamRequest:
     
     async def DynamicListInputOutput(
         self,
-        input: List[_baml.types.DynInputOutput],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: List[types.DynInputOutput],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5412,7 +5454,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "DynamicListInputOutput",
@@ -5429,7 +5471,7 @@ class AsyncHttpStreamRequest:
     async def ExpectFailure(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5437,7 +5479,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExpectFailure",
@@ -5453,7 +5495,7 @@ class AsyncHttpStreamRequest:
     async def ExtractContactInfo(
         self,
         document: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5461,7 +5503,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractContactInfo",
@@ -5478,7 +5520,7 @@ class AsyncHttpStreamRequest:
     async def ExtractEntities(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5486,7 +5528,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractEntities",
@@ -5503,7 +5545,7 @@ class AsyncHttpStreamRequest:
     async def ExtractHobby(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5511,7 +5553,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractHobby",
@@ -5528,7 +5570,7 @@ class AsyncHttpStreamRequest:
     async def ExtractNames(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5536,7 +5578,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractNames",
@@ -5553,7 +5595,7 @@ class AsyncHttpStreamRequest:
     async def ExtractPeople(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5561,7 +5603,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractPeople",
@@ -5578,7 +5620,7 @@ class AsyncHttpStreamRequest:
     async def ExtractReceiptInfo(
         self,
         email: str,reason: Union[Literal["curiosity"], Literal["personal_finance"]],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5586,7 +5628,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractReceiptInfo",
@@ -5604,7 +5646,7 @@ class AsyncHttpStreamRequest:
     async def ExtractResume(
         self,
         resume: str,img: Optional[baml_py.Image],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5612,7 +5654,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractResume",
@@ -5630,7 +5672,7 @@ class AsyncHttpStreamRequest:
     async def ExtractResume2(
         self,
         resume: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5638,7 +5680,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ExtractResume2",
@@ -5655,7 +5697,7 @@ class AsyncHttpStreamRequest:
     async def FnClassOptionalOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5663,7 +5705,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnClassOptionalOutput",
@@ -5680,7 +5722,7 @@ class AsyncHttpStreamRequest:
     async def FnClassOptionalOutput2(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5688,7 +5730,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnClassOptionalOutput2",
@@ -5705,7 +5747,7 @@ class AsyncHttpStreamRequest:
     async def FnEnumListOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5713,7 +5755,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnEnumListOutput",
@@ -5730,7 +5772,7 @@ class AsyncHttpStreamRequest:
     async def FnEnumOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5738,7 +5780,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnEnumOutput",
@@ -5754,8 +5796,8 @@ class AsyncHttpStreamRequest:
     
     async def FnLiteralClassInputOutput(
         self,
-        input: _baml.types.LiteralClassHello,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.LiteralClassHello,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5763,7 +5805,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnLiteralClassInputOutput",
@@ -5779,8 +5821,8 @@ class AsyncHttpStreamRequest:
     
     async def FnLiteralUnionClassInputOutput(
         self,
-        input: Union[_baml.types.LiteralClassOne, _baml.types.LiteralClassTwo],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: Union[types.LiteralClassOne, types.LiteralClassTwo],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5788,7 +5830,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnLiteralUnionClassInputOutput",
@@ -5805,7 +5847,7 @@ class AsyncHttpStreamRequest:
     async def FnNamedArgsSingleStringOptional(
         self,
         myString: Optional[str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5813,7 +5855,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnNamedArgsSingleStringOptional",
@@ -5830,7 +5872,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputBool(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5838,7 +5880,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputBool",
@@ -5855,7 +5897,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputClass(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5863,7 +5905,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputClass",
@@ -5880,7 +5922,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputClassList(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5888,7 +5930,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputClassList",
@@ -5905,7 +5947,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputClassNested(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5913,7 +5955,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputClassNested",
@@ -5930,7 +5972,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputClassWithEnum(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5938,7 +5980,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputClassWithEnum",
@@ -5955,7 +5997,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputInt(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5963,7 +6005,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputInt",
@@ -5980,7 +6022,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputLiteralBool(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -5988,7 +6030,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputLiteralBool",
@@ -6005,7 +6047,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputLiteralInt(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6013,7 +6055,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputLiteralInt",
@@ -6030,7 +6072,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputLiteralString(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6038,7 +6080,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputLiteralString",
@@ -6055,7 +6097,7 @@ class AsyncHttpStreamRequest:
     async def FnOutputStringList(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6063,7 +6105,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnOutputStringList",
@@ -6080,7 +6122,7 @@ class AsyncHttpStreamRequest:
     async def FnTestAliasedEnumOutput(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6088,7 +6130,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnTestAliasedEnumOutput",
@@ -6105,7 +6147,7 @@ class AsyncHttpStreamRequest:
     async def FnTestClassAlias(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6113,7 +6155,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnTestClassAlias",
@@ -6129,8 +6171,8 @@ class AsyncHttpStreamRequest:
     
     async def FnTestNamedArgsSingleEnum(
         self,
-        myArg: _baml.types.NamedArgsSingleEnum,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myArg: types.NamedArgsSingleEnum,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6138,7 +6180,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "FnTestNamedArgsSingleEnum",
@@ -6155,7 +6197,7 @@ class AsyncHttpStreamRequest:
     async def GetDataType(
         self,
         text: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6163,7 +6205,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "GetDataType",
@@ -6179,8 +6221,8 @@ class AsyncHttpStreamRequest:
     
     async def GetOrderInfo(
         self,
-        email: _baml.types.Email,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        email: types.Email,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6188,7 +6230,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "GetOrderInfo",
@@ -6205,7 +6247,7 @@ class AsyncHttpStreamRequest:
     async def GetQuery(
         self,
         query: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6213,7 +6255,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "GetQuery",
@@ -6229,8 +6271,8 @@ class AsyncHttpStreamRequest:
     
     async def InOutEnumMapKey(
         self,
-        i1: Dict[_baml.types.MapKey, str],i2: Dict[_baml.types.MapKey, str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        i1: Dict[types.MapKey, str],i2: Dict[types.MapKey, str],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6238,7 +6280,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "InOutEnumMapKey",
@@ -6256,7 +6298,7 @@ class AsyncHttpStreamRequest:
     async def InOutLiteralStringUnionMapKey(
         self,
         i1: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],i2: Dict[Union[Literal["one"], Literal["two"], Union[Literal["three"], Literal["four"]]], str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6264,7 +6306,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "InOutLiteralStringUnionMapKey",
@@ -6282,7 +6324,7 @@ class AsyncHttpStreamRequest:
     async def InOutSingleLiteralStringMapKey(
         self,
         m: Dict[Literal["key"], str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6290,7 +6332,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "InOutSingleLiteralStringMapKey",
@@ -6306,8 +6348,8 @@ class AsyncHttpStreamRequest:
     
     async def JsonTypeAliasCycle(
         self,
-        input: _baml.types.JsonValue,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.JsonValue,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6315,7 +6357,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "JsonTypeAliasCycle",
@@ -6332,7 +6374,7 @@ class AsyncHttpStreamRequest:
     async def LLMEcho(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6340,7 +6382,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "LLMEcho",
@@ -6357,7 +6399,7 @@ class AsyncHttpStreamRequest:
     async def LiteralUnionsTest(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6365,7 +6407,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "LiteralUnionsTest",
@@ -6379,10 +6421,10 @@ class AsyncHttpStreamRequest:
         True,
       )
     
-    async def MakeBlockConstraint(
+    async def LongQuestion(
         self,
-        
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        prompt: str,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6390,7 +6432,32 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
+
+      return await self.__runtime.build_request(
+        "LongQuestion",
+        {
+          "prompt": prompt,
+        },
+        self.__ctx_manager.get(),
+        tb,
+        __cr__,
+        env,
+        True,
+      )
+    
+    async def MakeBlockConstraint(
+        self,
+        
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.HTTPRequest:
+      __tb__ = baml_options.get("tb", None)
+      if __tb__ is not None:
+        tb = __tb__._tb # type: ignore (we know how to use this private attribute)
+      else:
+        tb = None
+      __cr__ = baml_options.get("client_registry", None)
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeBlockConstraint",
@@ -6406,7 +6473,7 @@ class AsyncHttpStreamRequest:
     async def MakeClassWithBlockDone(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6414,7 +6481,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeClassWithBlockDone",
@@ -6430,7 +6497,7 @@ class AsyncHttpStreamRequest:
     async def MakeClassWithExternalDone(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6438,7 +6505,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeClassWithExternalDone",
@@ -6454,7 +6521,7 @@ class AsyncHttpStreamRequest:
     async def MakeNestedBlockConstraint(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6462,7 +6529,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeNestedBlockConstraint",
@@ -6478,7 +6545,7 @@ class AsyncHttpStreamRequest:
     async def MakeSemanticContainer(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6486,7 +6553,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MakeSemanticContainer",
@@ -6502,7 +6569,7 @@ class AsyncHttpStreamRequest:
     async def MapAlias(
         self,
         m: Dict[str, List[str]],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6510,7 +6577,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MapAlias",
@@ -6527,7 +6594,7 @@ class AsyncHttpStreamRequest:
     async def MergeAliasAttributes(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6535,7 +6602,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MergeAliasAttributes",
@@ -6552,7 +6619,7 @@ class AsyncHttpStreamRequest:
     async def MyFunc(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6560,7 +6627,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "MyFunc",
@@ -6577,7 +6644,7 @@ class AsyncHttpStreamRequest:
     async def NestedAlias(
         self,
         c: Union[Union[int, str, bool, float], List[str], Dict[str, List[str]]],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6585,7 +6652,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "NestedAlias",
@@ -6602,7 +6669,7 @@ class AsyncHttpStreamRequest:
     async def NullLiteralClassHello(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6610,7 +6677,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "NullLiteralClassHello",
@@ -6627,7 +6694,7 @@ class AsyncHttpStreamRequest:
     async def OpenAIWithAnthropicResponseHello(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6635,7 +6702,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "OpenAIWithAnthropicResponseHello",
@@ -6652,7 +6719,7 @@ class AsyncHttpStreamRequest:
     async def OptionalTest_Function(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6660,7 +6727,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "OptionalTest_Function",
@@ -6677,7 +6744,7 @@ class AsyncHttpStreamRequest:
     async def PredictAge(
         self,
         name: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6685,7 +6752,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PredictAge",
@@ -6702,7 +6769,7 @@ class AsyncHttpStreamRequest:
     async def PredictAgeBare(
         self,
         inp: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6710,7 +6777,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PredictAgeBare",
@@ -6727,7 +6794,7 @@ class AsyncHttpStreamRequest:
     async def PrimitiveAlias(
         self,
         p: Union[int, str, bool, float],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6735,7 +6802,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PrimitiveAlias",
@@ -6752,7 +6819,7 @@ class AsyncHttpStreamRequest:
     async def PromptTestClaude(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6760,7 +6827,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestClaude",
@@ -6777,7 +6844,7 @@ class AsyncHttpStreamRequest:
     async def PromptTestClaudeChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6785,7 +6852,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestClaudeChat",
@@ -6802,7 +6869,7 @@ class AsyncHttpStreamRequest:
     async def PromptTestClaudeChatNoSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6810,7 +6877,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestClaudeChatNoSystem",
@@ -6827,7 +6894,7 @@ class AsyncHttpStreamRequest:
     async def PromptTestOpenAI(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6835,7 +6902,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestOpenAI",
@@ -6852,7 +6919,7 @@ class AsyncHttpStreamRequest:
     async def PromptTestOpenAIChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6860,7 +6927,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestOpenAIChat",
@@ -6877,7 +6944,7 @@ class AsyncHttpStreamRequest:
     async def PromptTestOpenAIChatNoSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6885,7 +6952,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestOpenAIChatNoSystem",
@@ -6902,7 +6969,7 @@ class AsyncHttpStreamRequest:
     async def PromptTestStreaming(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6910,7 +6977,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "PromptTestStreaming",
@@ -6926,8 +6993,8 @@ class AsyncHttpStreamRequest:
     
     async def RecursiveAliasCycle(
         self,
-        input: _baml.types.RecAliasOne,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecAliasOne,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6935,7 +7002,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "RecursiveAliasCycle",
@@ -6951,8 +7018,8 @@ class AsyncHttpStreamRequest:
     
     async def RecursiveClassWithAliasIndirection(
         self,
-        cls: _baml.types.NodeWithAliasIndirection,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        cls: types.NodeWithAliasIndirection,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6960,7 +7027,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "RecursiveClassWithAliasIndirection",
@@ -6976,8 +7043,8 @@ class AsyncHttpStreamRequest:
     
     async def RecursiveUnionTest(
         self,
-        input: _baml.types.RecursiveUnion,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecursiveUnion,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -6985,7 +7052,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "RecursiveUnionTest",
@@ -7002,7 +7069,7 @@ class AsyncHttpStreamRequest:
     async def ReturnAliasWithMergedAttributes(
         self,
         money: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7010,7 +7077,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ReturnAliasWithMergedAttributes",
@@ -7027,7 +7094,7 @@ class AsyncHttpStreamRequest:
     async def ReturnFailingAssert(
         self,
         inp: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7035,7 +7102,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ReturnFailingAssert",
@@ -7052,7 +7119,7 @@ class AsyncHttpStreamRequest:
     async def ReturnJsonEntry(
         self,
         s: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7060,7 +7127,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ReturnJsonEntry",
@@ -7077,7 +7144,7 @@ class AsyncHttpStreamRequest:
     async def ReturnMalformedConstraints(
         self,
         a: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7085,7 +7152,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "ReturnMalformedConstraints",
@@ -7102,7 +7169,7 @@ class AsyncHttpStreamRequest:
     async def SchemaDescriptions(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7110,7 +7177,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "SchemaDescriptions",
@@ -7126,8 +7193,8 @@ class AsyncHttpStreamRequest:
     
     async def SimpleRecursiveListAlias(
         self,
-        input: _baml.types.RecursiveListAlias,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecursiveListAlias,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7135,7 +7202,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "SimpleRecursiveListAlias",
@@ -7151,8 +7218,8 @@ class AsyncHttpStreamRequest:
     
     async def SimpleRecursiveMapAlias(
         self,
-        input: _baml.types.RecursiveMapAlias,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecursiveMapAlias,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7160,7 +7227,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "SimpleRecursiveMapAlias",
@@ -7177,7 +7244,7 @@ class AsyncHttpStreamRequest:
     async def StreamBigNumbers(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7185,7 +7252,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamBigNumbers",
@@ -7202,7 +7269,7 @@ class AsyncHttpStreamRequest:
     async def StreamFailingAssertion(
         self,
         theme: str,length: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7210,7 +7277,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamFailingAssertion",
@@ -7228,7 +7295,7 @@ class AsyncHttpStreamRequest:
     async def StreamFailingCheck(
         self,
         theme: str,length: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7236,7 +7303,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamFailingCheck",
@@ -7254,7 +7321,7 @@ class AsyncHttpStreamRequest:
     async def StreamOneBigNumber(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7262,7 +7329,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamOneBigNumber",
@@ -7279,7 +7346,7 @@ class AsyncHttpStreamRequest:
     async def StreamUnionIntegers(
         self,
         digits: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7287,7 +7354,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamUnionIntegers",
@@ -7304,7 +7371,7 @@ class AsyncHttpStreamRequest:
     async def StreamingCompoundNumbers(
         self,
         digits: int,yapping: bool,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7312,7 +7379,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StreamingCompoundNumbers",
@@ -7330,7 +7397,7 @@ class AsyncHttpStreamRequest:
     async def StructureDocument1559(
         self,
         document_txt: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7338,7 +7405,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "StructureDocument1559",
@@ -7354,8 +7421,8 @@ class AsyncHttpStreamRequest:
     
     async def TakeRecAliasDep(
         self,
-        input: _baml.types.RecursiveAliasDependency,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.RecursiveAliasDependency,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7363,7 +7430,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TakeRecAliasDep",
@@ -7380,7 +7447,7 @@ class AsyncHttpStreamRequest:
     async def TellStory(
         self,
         story: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7388,7 +7455,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TellStory",
@@ -7405,7 +7472,7 @@ class AsyncHttpStreamRequest:
     async def TestAnthropic(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7413,7 +7480,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAnthropic",
@@ -7430,7 +7497,7 @@ class AsyncHttpStreamRequest:
     async def TestAnthropicShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7438,7 +7505,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAnthropicShorthand",
@@ -7455,7 +7522,7 @@ class AsyncHttpStreamRequest:
     async def TestAws(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7463,7 +7530,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAws",
@@ -7480,7 +7547,7 @@ class AsyncHttpStreamRequest:
     async def TestAwsClaude37(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7488,7 +7555,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsClaude37",
@@ -7505,7 +7572,7 @@ class AsyncHttpStreamRequest:
     async def TestAwsInferenceProfile(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7513,7 +7580,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInferenceProfile",
@@ -7530,7 +7597,7 @@ class AsyncHttpStreamRequest:
     async def TestAwsInvalidAccessKey(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7538,7 +7605,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInvalidAccessKey",
@@ -7555,7 +7622,7 @@ class AsyncHttpStreamRequest:
     async def TestAwsInvalidProfile(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7563,7 +7630,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInvalidProfile",
@@ -7580,7 +7647,7 @@ class AsyncHttpStreamRequest:
     async def TestAwsInvalidRegion(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7588,7 +7655,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInvalidRegion",
@@ -7605,7 +7672,7 @@ class AsyncHttpStreamRequest:
     async def TestAwsInvalidSessionToken(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7613,7 +7680,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAwsInvalidSessionToken",
@@ -7630,7 +7697,7 @@ class AsyncHttpStreamRequest:
     async def TestAzure(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7638,7 +7705,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzure",
@@ -7655,7 +7722,7 @@ class AsyncHttpStreamRequest:
     async def TestAzureFailure(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7663,7 +7730,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureFailure",
@@ -7680,7 +7747,7 @@ class AsyncHttpStreamRequest:
     async def TestAzureO1NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7688,7 +7755,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO1NoMaxTokens",
@@ -7705,7 +7772,7 @@ class AsyncHttpStreamRequest:
     async def TestAzureO1WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7713,7 +7780,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO1WithMaxCompletionTokens",
@@ -7730,7 +7797,7 @@ class AsyncHttpStreamRequest:
     async def TestAzureO1WithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7738,7 +7805,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO1WithMaxTokens",
@@ -7755,7 +7822,7 @@ class AsyncHttpStreamRequest:
     async def TestAzureO3NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7763,7 +7830,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO3NoMaxTokens",
@@ -7780,7 +7847,7 @@ class AsyncHttpStreamRequest:
     async def TestAzureO3WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7788,7 +7855,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureO3WithMaxCompletionTokens",
@@ -7805,7 +7872,7 @@ class AsyncHttpStreamRequest:
     async def TestAzureWithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7813,7 +7880,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestAzureWithMaxTokens",
@@ -7830,7 +7897,7 @@ class AsyncHttpStreamRequest:
     async def TestCaching(
         self,
         input: str,not_cached: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7838,7 +7905,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestCaching",
@@ -7856,7 +7923,7 @@ class AsyncHttpStreamRequest:
     async def TestFallbackClient(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7864,7 +7931,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFallbackClient",
@@ -7880,7 +7947,7 @@ class AsyncHttpStreamRequest:
     async def TestFallbackStrategy(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7888,7 +7955,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFallbackStrategy",
@@ -7905,7 +7972,7 @@ class AsyncHttpStreamRequest:
     async def TestFallbackToShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7913,7 +7980,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFallbackToShorthand",
@@ -7930,7 +7997,7 @@ class AsyncHttpStreamRequest:
     async def TestFnNamedArgsSingleBool(
         self,
         myBool: bool,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7938,7 +8005,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleBool",
@@ -7954,8 +8021,8 @@ class AsyncHttpStreamRequest:
     
     async def TestFnNamedArgsSingleClass(
         self,
-        myArg: _baml.types.NamedArgsSingleClass,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myArg: types.NamedArgsSingleClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7963,7 +8030,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleClass",
@@ -7979,8 +8046,8 @@ class AsyncHttpStreamRequest:
     
     async def TestFnNamedArgsSingleEnumList(
         self,
-        myArg: List[_baml.types.NamedArgsSingleEnumList],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myArg: List[types.NamedArgsSingleEnumList],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -7988,7 +8055,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleEnumList",
@@ -8005,7 +8072,7 @@ class AsyncHttpStreamRequest:
     async def TestFnNamedArgsSingleFloat(
         self,
         myFloat: float,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8013,7 +8080,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleFloat",
@@ -8030,7 +8097,7 @@ class AsyncHttpStreamRequest:
     async def TestFnNamedArgsSingleInt(
         self,
         myInt: int,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8038,7 +8105,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleInt",
@@ -8054,8 +8121,8 @@ class AsyncHttpStreamRequest:
     
     async def TestFnNamedArgsSingleMapStringToClass(
         self,
-        myMap: Dict[str, _baml.types.StringToClassEntry],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myMap: Dict[str, types.StringToClassEntry],
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8063,7 +8130,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleMapStringToClass",
@@ -8080,7 +8147,7 @@ class AsyncHttpStreamRequest:
     async def TestFnNamedArgsSingleMapStringToMap(
         self,
         myMap: Dict[str, Dict[str, str]],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8088,7 +8155,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleMapStringToMap",
@@ -8105,7 +8172,7 @@ class AsyncHttpStreamRequest:
     async def TestFnNamedArgsSingleMapStringToString(
         self,
         myMap: Dict[str, str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8113,7 +8180,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleMapStringToString",
@@ -8130,7 +8197,7 @@ class AsyncHttpStreamRequest:
     async def TestFnNamedArgsSingleString(
         self,
         myString: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8138,7 +8205,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleString",
@@ -8155,7 +8222,7 @@ class AsyncHttpStreamRequest:
     async def TestFnNamedArgsSingleStringArray(
         self,
         myStringArray: List[str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8163,7 +8230,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleStringArray",
@@ -8180,7 +8247,7 @@ class AsyncHttpStreamRequest:
     async def TestFnNamedArgsSingleStringList(
         self,
         myArg: List[str],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8188,7 +8255,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestFnNamedArgsSingleStringList",
@@ -8205,7 +8272,7 @@ class AsyncHttpStreamRequest:
     async def TestGemini(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8213,7 +8280,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGemini",
@@ -8230,7 +8297,7 @@ class AsyncHttpStreamRequest:
     async def TestGeminiOpenAiGeneric(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8238,7 +8305,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGeminiOpenAiGeneric",
@@ -8254,7 +8321,7 @@ class AsyncHttpStreamRequest:
     async def TestGeminiSystem(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8262,7 +8329,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGeminiSystem",
@@ -8279,7 +8346,7 @@ class AsyncHttpStreamRequest:
     async def TestGeminiSystemAsChat(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8287,7 +8354,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGeminiSystemAsChat",
@@ -8304,7 +8371,7 @@ class AsyncHttpStreamRequest:
     async def TestGroq(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8312,7 +8379,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestGroq",
@@ -8329,7 +8396,7 @@ class AsyncHttpStreamRequest:
     async def TestImageInput(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8337,7 +8404,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestImageInput",
@@ -8354,7 +8421,7 @@ class AsyncHttpStreamRequest:
     async def TestImageInputAnthropic(
         self,
         img: baml_py.Image,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8362,7 +8429,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestImageInputAnthropic",
@@ -8379,7 +8446,7 @@ class AsyncHttpStreamRequest:
     async def TestImageListInput(
         self,
         imgs: List[baml_py.Image],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8387,7 +8454,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestImageListInput",
@@ -8404,7 +8471,7 @@ class AsyncHttpStreamRequest:
     async def TestMemory(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8412,7 +8479,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestMemory",
@@ -8428,8 +8495,8 @@ class AsyncHttpStreamRequest:
     
     async def TestMulticlassNamedArgs(
         self,
-        myArg: _baml.types.NamedArgsSingleClass,myArg2: _baml.types.NamedArgsSingleClass,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        myArg: types.NamedArgsSingleClass,myArg2: types.NamedArgsSingleClass,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8437,7 +8504,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestMulticlassNamedArgs",
@@ -8455,7 +8522,7 @@ class AsyncHttpStreamRequest:
     async def TestNamedArgsLiteralBool(
         self,
         myBool: Literal[True],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8463,7 +8530,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestNamedArgsLiteralBool",
@@ -8480,7 +8547,7 @@ class AsyncHttpStreamRequest:
     async def TestNamedArgsLiteralInt(
         self,
         myInt: Literal[1],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8488,7 +8555,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestNamedArgsLiteralInt",
@@ -8505,7 +8572,7 @@ class AsyncHttpStreamRequest:
     async def TestNamedArgsLiteralString(
         self,
         myString: Literal["My String"],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8513,7 +8580,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestNamedArgsLiteralString",
@@ -8530,7 +8597,7 @@ class AsyncHttpStreamRequest:
     async def TestOllama(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8538,7 +8605,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOllama",
@@ -8555,7 +8622,7 @@ class AsyncHttpStreamRequest:
     async def TestOllamaHaiku(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8563,7 +8630,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOllamaHaiku",
@@ -8580,7 +8647,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAI(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8588,7 +8655,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAI",
@@ -8605,7 +8672,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIDummyClient(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8613,7 +8680,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIDummyClient",
@@ -8630,7 +8697,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIGPT4oMini(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8638,7 +8705,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIGPT4oMini",
@@ -8655,7 +8722,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAILegacyProvider(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8663,7 +8730,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAILegacyProvider",
@@ -8680,7 +8747,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIO1NoMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8688,7 +8755,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIO1NoMaxTokens",
@@ -8705,7 +8772,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIO1WithMaxCompletionTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8713,7 +8780,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIO1WithMaxCompletionTokens",
@@ -8730,7 +8797,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIO1WithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8738,7 +8805,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIO1WithMaxTokens",
@@ -8755,7 +8822,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIShorthand(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8763,7 +8830,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIShorthand",
@@ -8780,7 +8847,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIWithFinishReasonError(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8788,7 +8855,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIWithFinishReasonError",
@@ -8805,7 +8872,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIWithMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8813,7 +8880,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIWithMaxTokens",
@@ -8830,7 +8897,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenAIWithNullMaxTokens(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8838,7 +8905,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenAIWithNullMaxTokens",
@@ -8855,7 +8922,7 @@ class AsyncHttpStreamRequest:
     async def TestOpenRouterMistralSmall3_1_24b(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8863,7 +8930,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestOpenRouterMistralSmall3_1_24b",
@@ -8880,7 +8947,7 @@ class AsyncHttpStreamRequest:
     async def TestRetryConstant(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8888,7 +8955,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestRetryConstant",
@@ -8904,7 +8971,7 @@ class AsyncHttpStreamRequest:
     async def TestRetryExponential(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8912,7 +8979,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestRetryExponential",
@@ -8928,7 +8995,7 @@ class AsyncHttpStreamRequest:
     async def TestRoundRobinStrategy(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8936,7 +9003,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestRoundRobinStrategy",
@@ -8953,7 +9020,7 @@ class AsyncHttpStreamRequest:
     async def TestSingleFallbackClient(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8961,7 +9028,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestSingleFallbackClient",
@@ -8977,7 +9044,7 @@ class AsyncHttpStreamRequest:
     async def TestThinking(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -8985,7 +9052,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestThinking",
@@ -9001,8 +9068,8 @@ class AsyncHttpStreamRequest:
     
     async def TestUniverseQuestion(
         self,
-        question: _baml.types.UniverseQuestionInput,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        question: types.UniverseQuestionInput,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9010,7 +9077,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestUniverseQuestion",
@@ -9027,7 +9094,7 @@ class AsyncHttpStreamRequest:
     async def TestVertex(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9035,7 +9102,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestVertex",
@@ -9052,7 +9119,7 @@ class AsyncHttpStreamRequest:
     async def TestVertexClaude(
         self,
         input: str,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9060,7 +9127,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestVertexClaude",
@@ -9077,7 +9144,7 @@ class AsyncHttpStreamRequest:
     async def TestVertexWithSystemInstructions(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9085,7 +9152,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "TestVertexWithSystemInstructions",
@@ -9101,7 +9168,7 @@ class AsyncHttpStreamRequest:
     async def UnionTest_Function(
         self,
         input: Union[str, bool],
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9109,7 +9176,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UnionTest_Function",
@@ -9125,8 +9192,8 @@ class AsyncHttpStreamRequest:
     
     async def UseBlockConstraint(
         self,
-        inp: _baml.types.BlockConstraintForParam,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        inp: types.BlockConstraintForParam,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9134,7 +9201,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UseBlockConstraint",
@@ -9150,8 +9217,8 @@ class AsyncHttpStreamRequest:
     
     async def UseMaintainFieldOrder(
         self,
-        input: _baml.types.MaintainFieldOrder,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        input: types.MaintainFieldOrder,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9159,7 +9226,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UseMaintainFieldOrder",
@@ -9175,8 +9242,8 @@ class AsyncHttpStreamRequest:
     
     async def UseMalformedConstraints(
         self,
-        a: _baml.types.MalformedConstraints2,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        a: types.MalformedConstraints2,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9184,7 +9251,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UseMalformedConstraints",
@@ -9200,8 +9267,8 @@ class AsyncHttpStreamRequest:
     
     async def UseNestedBlockConstraint(
         self,
-        inp: _baml.types.NestedBlockConstraintForParam,
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        inp: types.NestedBlockConstraintForParam,
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9209,7 +9276,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "UseNestedBlockConstraint",
@@ -9226,7 +9293,7 @@ class AsyncHttpStreamRequest:
     async def EchoWorkflow(
         self,
         
-        baml_options: _baml.BamlCallOptionsModApi = {},
+        baml_options: BamlCallOptions = {},
     ) -> baml_py.HTTPRequest:
       __tb__ = baml_options.get("tb", None)
       if __tb__ is not None:
@@ -9234,7 +9301,7 @@ class AsyncHttpStreamRequest:
       else:
         tb = None
       __cr__ = baml_options.get("client_registry", None)
-      env = _baml.env_vars_to_dict(baml_options.get("env", {}))
+      env = env_vars_to_dict(baml_options.get("env", {}))
 
       return await self.__runtime.build_request(
         "EchoWorkflow",

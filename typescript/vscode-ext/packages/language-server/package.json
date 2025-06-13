@@ -23,7 +23,7 @@
     "esbuild-base": "node ./esbuild.js",
     "esbuild-build": "node ./esbuild.js --sourcemap",
     "esbuild-watch": "node ./esbuild.js --sourcemap --watch",
-    "dev": "echo 'No dev command in vscode-ext/packages/language-server/package.json' && exit 1",
+    "dev": "echo 'No dev command in vscode-ext/packages/language-server/package.json' && exit 0",
     "lint": "eslint \"src/**/*.ts\"",
     "watch": "pnpm run esbuild-watch",
     "build": "pnpm tsc --noEmit && pnpm run esbuild-base",

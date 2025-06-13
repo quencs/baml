@@ -28,7 +28,7 @@ function App() {
         <EventListener />
 
         <div className='relative min-h-screen bg-background text-foreground p-2'>
-          <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange={true}>
+          <ThemeProvider attribute='class' defaultTheme='dark' enableSystem disableTransitionOnChange={true}>
             <PromptPreview />
           </ThemeProvider>
         </div>

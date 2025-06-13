@@ -48,11 +48,10 @@ const RunButton: React.FC<{ className?: string }> = ({ className }) => {
 
 export const isClientCallGraphEnabledAtom = atom(false)
 
-export default function Component() {
+export function PreviewToolbar() {
   const [renderMode, setRenderMode] = useAtom(renderModeAtom)
   const selections = useAtomValue(selectedItemAtom)
   const setShowEnvDialog = useSetAtom(showEnvDialogAtom)
-  const [isSidebarOpen, setIsSidebarOpen] = useAtom(isSidebarOpenAtom)
 
   const options: {
     label: string
@@ -93,7 +92,18 @@ export default function Component() {
         {selections !== undefined && (
           <div className="flex flex-row items-center gap-2">
             <FunctionTestName functionName={selections[0]} testName={selections[1]} />
-            <RunButton  className='ml-1'/>
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <span>
+                    <RunButton className='ml-1'/>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{`Run ${selections[1]}`}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <TooltipProvider>
               <Tooltip delayDuration={100}>
                 <TooltipTrigger asChild>

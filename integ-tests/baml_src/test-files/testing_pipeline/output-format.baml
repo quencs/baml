@@ -14,10 +14,14 @@ function AaaSamOutputFormat(recipe: string) -> Recipe {
     Return this value back to me: {{recipe}}
 
     {{ctx.output_format(map_style='angle')}}
+
+    {{ _.role('user') }}
+
+    This is such an awesome thing!
   "#
-} 
- 
- 
+}
+
+
 
 test MyOutput {
     functions [AaaSamOutputFormat]

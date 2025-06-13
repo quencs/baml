@@ -1,9 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronUp } from 'lucide-react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import PreviewToolbar from '../preview-toolbar'
+import { PreviewToolbar } from '../preview-toolbar'
 import SideBar from '../side-bar'
 import { PromptRenderWrapper } from './prompt-render-wrapper'
 import TestPanel from './test-panel'
