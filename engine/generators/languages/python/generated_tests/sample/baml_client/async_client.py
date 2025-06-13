@@ -148,3 +148,5 @@ class BamlHttpStreamRequestClient:
         }, mode="stream")
         return result
     
+
+b = BamlAsyncClient(DoNotUseDirectlyCallManager({}))

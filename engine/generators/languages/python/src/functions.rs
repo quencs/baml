@@ -1,4 +1,5 @@
 use askama::Template;
+use baml_types::GeneratorDefaultClientMode;
 
 use crate::{generated_types::{ClassPy, EnumPy}, package::CurrentRenderPackage, r#type::{SerializeType, TypePy}};
 
@@ -131,4 +132,22 @@ struct Runtime {
 
 pub fn render_globals(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     Ok(include_str!("./_templates/globals.py").to_string())
+}
+
+pub fn render_config(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+    Ok(include_str!("./_templates/config.py").to_string())
+}
+
+#[derive(askama::Template)]
+#[template(path = "__init__.py.j2", escape = "none", ext = "txt")]
+struct Init<'a> {
+    version: &'a str,
+    default_client_mode: GeneratorDefaultClientMode,
+}
+
+pub fn render_init(pkg: &CurrentRenderPackage, client_mode: &GeneratorDefaultClientMode) -> Result<String, askama::Error> {
+    Init {
+        version: env!("CARGO_PKG_VERSION"),
+        default_client_mode: client_mode.clone(),
+    }.render()
 }
