@@ -7,17 +7,18 @@ import { atomWithStorage } from 'jotai/utils'
 import { useEffect } from 'react'
 import CustomErrorBoundary from '../utils/ErrorFallback'
 import { vscodeLocalStorageStore } from './JotaiProvider'
-import { vscode } from '@/shared/baml-project-panel/vscode'
-import { diagnosticsAtom, filesAtom, wasmAtom } from '@/shared/baml-project-panel/atoms'
+import { vscode } from '@baml/playground-common/shared/baml-project-panel/vscode'
+import { diagnosticsAtom, filesAtom, wasmAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
 import {
+  runtimeStateAtom,
   selectedFunctionAtom,
   selectedTestcaseAtom,
   updateCursorAtom,
   flashRangesAtom,
-} from '@/shared/baml-project-panel/playground-panel/atoms'
-import { useRunBamlTests } from '@/shared/baml-project-panel/playground-panel/prompt-preview/test-panel/test-runner'
-import { orchIndexAtom } from '@/shared/baml-project-panel/playground-panel/atoms-orch-graph'
-import { CodeMirrorDiagnosticsAtom } from '@/shared/baml-project-panel/codemirror-panel/atoms'
+} from '@baml/playground-common/shared/baml-project-panel/playground-panel/atoms'
+import { useRunBamlTests } from '@baml/playground-common/shared/baml-project-panel/playground-panel/prompt-preview/test-panel/test-runner'
+import { orchIndexAtom } from '@baml/playground-common/shared/baml-project-panel/playground-panel/atoms-orch-graph'
+import { CodeMirrorDiagnosticsAtom } from '@baml/playground-common/shared/baml-project-panel/codemirror-panel/atoms'
 import { AlertTriangle, XCircle } from 'lucide-react'
 import { CheckCircle } from 'lucide-react'
 import { useDebounce, useDebounceCallback } from '@react-hook/debounce'

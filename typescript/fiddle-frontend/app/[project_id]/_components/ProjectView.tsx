@@ -18,8 +18,8 @@ import {
 
 import FileViewer from './Tree/FileViewer'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { filesAtom } from '@/shared/baml-project-panel/atoms'
-import { runtimeStateAtom, selectedFunctionAtom } from '@/shared/baml-project-panel/playground-panel/atoms'
+import { filesAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
+import { runtimeStateAtom, selectedFunctionAtom } from '@baml/playground-common/shared/baml-project-panel/playground-panel/atoms'
 import { useFeedbackWidget } from '@baml/playground-common/lib/feedback_widget'
 import { TopNavbar } from './TopNavbar'
 import Image from 'next/image'

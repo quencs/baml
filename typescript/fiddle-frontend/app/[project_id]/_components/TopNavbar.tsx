@@ -19,7 +19,7 @@ import { useState } from 'react'
 import posthog from 'posthog-js'
 import { toast } from '@/hooks/use-toast'
 import { SiDiscord } from 'react-icons/si'
-import { Loader } from '@/shared/baml-project-panel/playground-panel/prompt-preview/components'
+import { Loader } from '@baml/playground-common/shared/baml-project-panel/playground-panel/prompt-preview/components'
 
 const ShareButton = ({ project, projectName }: { project: BAMLProject; projectName: string }) => {
   const [loading, setLoading] = useState(false)

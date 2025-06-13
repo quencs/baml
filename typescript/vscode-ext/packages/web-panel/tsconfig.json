@@ -19,13 +19,13 @@
     "paths": {
       "@/*": ["./src/*"],
       "~/*": ["./src/*"],
-      "@gloo-ai/baml-schema-wasm-web/*": ["../../../baml-schema-wasm-web/dist/*"]
+      "@gloo-ai/baml-schema-wasm-web/*": ["../../../baml-schema-wasm-web/dist/*"],
+      "@/shared/*": ["./node_modules/@baml/playground-common/src/shared/*"]
     }
   },
   "include": [
     "./src",
     "../../../common/src/parser_db.ts",
-    "../../../baml-schema-wasm-web/dist",
-    "../../../playground-common/src/shared/baml-project-panel/vscode.ts"
+    "../../../baml-schema-wasm-web/dist"
   ]
 }

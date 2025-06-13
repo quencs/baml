@@ -1,4 +1,4 @@
-import { diagnosticsAtom } from '@/shared/baml-project-panel/atoms'
+import { diagnosticsAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
 import clsx from 'clsx'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useAtomCallback } from 'jotai/utils'

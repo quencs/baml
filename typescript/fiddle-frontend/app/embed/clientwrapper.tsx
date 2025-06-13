@@ -2,7 +2,7 @@
 import { ResizableHandle, ResizablePanelGroup } from '@/components/ui/resizable'
 import { ResizablePanel } from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { filesAtom } from '@/shared/baml-project-panel/atoms'
+import { filesAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
 import { CustomErrorBoundary } from '@baml/playground-common'
 import { useAtom, useAtomValue } from 'jotai'
 import dynamic from 'next/dynamic'

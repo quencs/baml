@@ -5,11 +5,11 @@ import { atom, createStore, useAtomValue, useSetAtom } from 'jotai'
 import {
   EnvironmentVariablesDialog,
   EnvironmentVariablesPanel,
-} from '../shared/baml-project-panel/playground-panel/side-bar/env-vars'
+} from '@baml/playground-common/shared/baml-project-panel/playground-panel/side-bar/env-vars'
 import { Provider as JotaiProvider } from 'jotai'
 import { ThemeProvider } from 'next-themes'
 import '../App.css'
-import { envVarsAtom } from '../shared/baml-project-panel/atoms'
+import { envVarsAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
 import { useState } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 

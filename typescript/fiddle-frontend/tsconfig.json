@@ -22,9 +22,6 @@
       }
     ],
     "paths": {
-      "@/shared/*": [
-        "../playground-common/src/shared/*"
-      ],
       "@/*": [
         "./*"
       ],

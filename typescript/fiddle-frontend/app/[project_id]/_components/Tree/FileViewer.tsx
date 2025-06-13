@@ -9,7 +9,7 @@ import { FilePlus, FolderPlus } from 'lucide-react'
 import useResizeObserver from 'use-resize-observer'
 import { PROJECT_ROOT, activeFileNameAtom, currentEditorFilesAtom, emptyDirsAtom } from '../../_atoms/atoms'
 import Node from './Node'
-import { filesAtom } from '@/shared/baml-project-panel/atoms'
+import { filesAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
 
 export const data = [
   {

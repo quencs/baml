@@ -1033,6 +1033,9 @@ importers:
       '@baml/common':
         specifier: workspace:^
         version: link:../../../common
+      '@baml/playground-common':
+        specifier: workspace:*
+        version: link:../../../playground-common
       '@boundaryml/baml-lezer':
         specifier: workspace:*
         version: link:../../../codemirror-lang-baml

@@ -1,5 +1,5 @@
 import type { EditorFile } from '@/app/actions'
-import { filesAtom } from '@/shared/baml-project-panel/atoms'
+import { filesAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
 // import { ParserDBFunctionTestModel } from "@/lib/exampleProjects"
 import { TestState } from '@baml/common'
 // import { availableFunctionsAtom, selectedFunctionAtom } from '@baml/playground-common/baml_wasm_web/EventListener'

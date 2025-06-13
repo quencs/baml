@@ -18,7 +18,7 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 import { ParsedResponseRenderer } from './ParsedResponseRender'
 import { TestStatus } from './TestStatus'
 import { ScrollArea } from '~/components/ui/scroll-area'
-import { vscode } from '@/shared/baml-project-panel/vscode'
+import { vscode } from '../../../../../vscode'
 import { useMemo } from 'react'
 interface TabularViewProps {
   currentRun: TestHistoryRun

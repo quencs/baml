@@ -16,7 +16,7 @@ import 'jotai-devtools/styles.css'
 import { Dialog, DialogTrigger, DialogContent } from './components/ui/dialog'
 // import { AppStateProvider } from './shared/AppStateContext' // Import the AppStateProvider
 import { useFeedbackWidget } from './lib/feedback_widget'
-import PromptPreview from './shared/baml-project-panel/playground-panel/prompt-preview'
+import PromptPreview from '@baml/playground-common/shared/baml-project-panel/playground-panel/prompt-preview'
 import { ThemeProvider } from 'next-themes'
 
 function App() {

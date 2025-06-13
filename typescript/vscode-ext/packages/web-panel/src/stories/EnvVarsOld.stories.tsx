@@ -2,11 +2,11 @@ import { expect } from '@storybook/test'
 import { DevTools } from 'jotai-devtools'
 import 'jotai-devtools/styles.css'
 import { atom, createStore } from 'jotai'
-import { default as EnvVars } from '../shared/baml-project-panel/playground-panel/side-bar/env-vars-old'
+import { default as EnvVars } from '@baml/playground-common/shared/baml-project-panel/playground-panel/side-bar/env-vars-old'
 import { Provider as JotaiProvider } from 'jotai'
 import { ThemeProvider } from 'next-themes'
 import '../App.css'
-import { envVarsAtom } from '../shared/baml-project-panel/atoms'
+import { envVarsAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
 
 interface JotaiProviderProps {
   envVars: Record<string, string>
