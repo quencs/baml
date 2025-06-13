@@ -17,9 +17,7 @@ pub mod unions;
 pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookups) -> TypeGo {
     use TypeStreaming as T;
     let recursive_fn = |field| stream_type_to_go(field, _lookup);
-    eprintln!("stream_type_to_go meta: {:?}", field.meta());
     let meta = stream_meta_to_go(field.meta());
-    eprintln!("stream_type_to_go meta 2: {:?}", meta);
 
     let types_pkg: Package = Package::types();
     let stream_pkg: Package = Package::stream_types();
