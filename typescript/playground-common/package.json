@@ -24,7 +24,9 @@
     "./shared/*": [
       "./src/shared/*.ts",
       "./src/shared/*.tsx",
-      "./src/shared/*/index.ts"
+      "./src/shared/*/index.ts",
+      "./src/shared/**/*.ts",
+      "./src/shared/**/*.tsx"
     ],
     "./tailwind": {
       "require": "./src/tailwind.cjs"
@@ -41,7 +43,8 @@
       ],
       "shared/*": [
         "src/shared/*",
-        "src/shared/*/index"
+        "src/shared/*/index",
+        "src/shared/**/*"
       ]
     }
   },
