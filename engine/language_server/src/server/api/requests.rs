@@ -6,7 +6,7 @@ mod go_to_definition;
 mod hover;
 mod rename;
 
-pub use code_lens::CodeLens;
+pub use code_lens::{CodeLens, CodeLensResolve};
 pub(super) use completion::Completion;
 pub(super) use diagnostic::DocumentDiagnosticRequestHandler;
 pub(super) use format::DocumentFormatting;

@@ -13,52 +13,19 @@
     <actions>
         <action
                 id="baml.openBamlPanel"
-                class="com.example.impl.CollectGarbage"
-                text="Garbage Collector: Collect _Garbage"
-                description="Run garbage collector"
-                icon="icons/garbage.png">
-
-            <!--
-            The second <override-text> element uses the alternate attribute
-            "use-text-of-place" to define a location (EditorPopup) to use the
-            same text as is used in MainMenu. It is a way to specify the use
-            of an alternate menu text in multiple discrete menu groups.
-            -->
-            <override-text place="MainMenu" text="Collect _Garbage"/>
-            <override-text place="EditorPopup" use-text-of-place="MainMenu"/>
-
-            <!-- Provide alternative names for searching action by name -->
-            <synonym text="GC"/>
-
-            <add-to-group
-                    group-id="ToolsMenu"
-                    relative-to-action="GenerateJavadoc"
-                    anchor="after"/>
-
-            <!-- Add the first and second keystrokes to all keymaps... -->
-            <keyboard-shortcut
-                    keymap="$default"
-                    first-keystroke="control alt G"
-                    second-keystroke="C"/>
-
-            <!-- ...except the "Mac OS X" keymap and its children. -->
-            <keyboard-shortcut
-                    keymap="Mac OS X"
-                    first-keystroke="control alt G"
-                    second-keystroke="C"
-                    remove="true"/>
-
-            <!-- The "Mac OS X 10.5+" keymap and its children will have only
-            this keyboard shortcut for this action. -->
-            <keyboard-shortcut
-                    keymap="Mac OS X 10.5+"
-                    first-keystroke="control alt G"
-                    second-keystroke="C"
-                    replace-all="true"/>
-
-            <mouse-shortcut
-                    keymap="$default"
-                    keystroke="control button3 doubleClick"/>
+                class="com.boundaryml.jetbrains_ext.OpenBamlPlaygroundAction"
+                text="Open BAML Playground"
+                description="Opens an interactive playground for running and testing BAML code."
+                icon="/icons/baml-lamb-light-mode.svg"
+        >
+        </action>
+        <action
+                id="baml.runBamlTest"
+                class="com.boundaryml.jetbrains_ext.RunBamlTestAction"
+                text="Run BAML Test"
+                description="Opens the BAML playground and runs the specified test."
+                icon="/icons/baml-lamb-light-mode.svg"
+                >
         </action>
     </actions>
 

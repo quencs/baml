@@ -136,3 +136,20 @@ impl SyncRequestHandler for CodeLens {
         Ok(Some(function_lenses))
     }
 }
+
+pub struct CodeLensResolve;
+
+impl RequestHandler for CodeLensResolve {
+    type RequestType = request::CodeLensResolve;
+}
+
+impl SyncRequestHandler for CodeLensResolve {
+    fn run(
+        session: &mut Session,
+        notifier: Notifier,
+        _requester: &mut Requester,
+        params: lsp_types::CodeLens,
+    ) -> Result<lsp_types::CodeLens> {
+        Ok(params)
+    }
+}
