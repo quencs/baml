@@ -13,7 +13,7 @@ import typing
 import typing_extensions
 import baml_py
 
-from . import stream_types, types
+from . import stream_types, types, type_builder
 from .parser import LlmResponseParser, LlmStreamParser
 from .runtime import DoNotUseDirectlyCallManager, BamlCallOptions
 
@@ -34,8 +34,22 @@ class BamlAsyncClient:
         self.__llm_response_parser = LlmResponseParser(options)
         self.__llm_stream_parser = LlmStreamParser(options)
 
-    def with_options(self, baml_options: BamlCallOptions) -> "BamlAsyncClient":
-        return BamlAsyncClient(self.__options.merge_options(baml_options))
+    def with_options(self,
+        tb: typing.Optional[type_builder.TypeBuilder] = None,
+        client_registry: typing.Optional[baml_py.baml_py.ClientRegistry] = None,
+        collector: typing.Optional[typing.Union[baml_py.baml_py.Collector, typing.List[baml_py.baml_py.Collector]]] = None,
+        env: typing.Optional[typing.Dict[str, typing.Optional[str]]] = None,
+    ) -> "BamlAsyncClient":
+        options: BamlCallOptions = {}
+        if tb is not None:
+            options["tb"] = tb
+        if client_registry is not None:
+            options["client_registry"] = client_registry
+        if collector is not None:
+            options["collector"] = collector
+        if env is not None:
+            options["env"] = env
+        return BamlAsyncClient(self.__options.merge_options(options))
 
     @property
     def stream(self):

@@ -34,10 +34,12 @@ class BamlAsyncClient:
         self.__llm_response_parser = LlmResponseParser(options)
         self.__llm_stream_parser = LlmStreamParser(options)
 
-    def with_options(self, tb: typing.Optional[type_builder.TypeBuilder] = None,
-      client_registry: typing.Optional[baml_py.baml_py.ClientRegistry] = None,
-      collector: typing.Optional[typing.Union[baml_py.baml_py.Collector, typing.List[baml_py.baml_py.Collector]]] = None,
-      env: typing.Optional[typing.Dict[str, typing.Optional[str]]] = None,) -> "BamlAsyncClient":
+    def with_options(self,
+        tb: typing.Optional[type_builder.TypeBuilder] = None,
+        client_registry: typing.Optional[baml_py.baml_py.ClientRegistry] = None,
+        collector: typing.Optional[typing.Union[baml_py.baml_py.Collector, typing.List[baml_py.baml_py.Collector]]] = None,
+        env: typing.Optional[typing.Dict[str, typing.Optional[str]]] = None,
+    ) -> "BamlAsyncClient":
         options: BamlCallOptions = {}
         if tb is not None:
             options["tb"] = tb
