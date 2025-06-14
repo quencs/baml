@@ -49,6 +49,7 @@ cfg_if! {
 #[derive(Debug, Clone)]
 pub struct TracingCall {
     pub call_id: Uuid,
+    pub function_name: String,
     pub new_call_id_stack: Vec<baml_ids::FunctionCallId>,
     params: BamlMap<String, BamlValue>,
     start_time: web_time::SystemTime,
@@ -406,9 +407,16 @@ impl BamlTracer {
         self.trace_stats.guard().start();
         let (call_id, call_stack, last_tags, global_tags) = ctx.enter(function_name);
 
-        log::trace!(" Entering call {:#?} in {:?}", call_id, function_name);
+        log::trace!(
+            "\n{}------------------- Entering {:?}, ctx chain {:#?}",
+            "        ".repeat(ctx.context_depth()),
+            function_name,
+            ctx
+        );
+
         let call = TracingCall {
             call_id,
+            function_name: function_name.to_string(),
             new_call_id_stack: call_stack.clone(),
             params: params.clone(),
             start_time: web_time::SystemTime::now(),
@@ -416,6 +424,8 @@ impl BamlTracer {
             // more tags with set_tags(). Those are picked up via a diff event (SetTags)
             tags: last_tags.clone(),
         };
+        // println!("---- {} ctx {:#?}", function_name, ctx);
+        // baml_log::info!("---- {} ctx {:#?}", function_name, ctx);
 
         // This must happen before the first event is sent.
         if let Some(collectors) = collectors {
@@ -508,8 +518,9 @@ impl BamlTracer {
             );
         };
         log::trace!(
-            "Finishing call: {:#?} {}\nevent chain {:?}",
-            call,
+            "\n{}------------------- Finishing call: {:#?} {}\nevent chain {:#?}",
+            "        ".repeat(ctx.context_depth()),
+            call.function_name,
             call_id,
             event_chain
         );
@@ -628,8 +639,8 @@ impl BamlTracer {
         };
 
         log::trace!(
-            "Finishing baml call: {:#?} {}\nevent chain {:?}",
-            call,
+            "Finishing baml call: {:#?} {}\nevent chain {:#?}",
+            call.function_name,
             call_id,
             event_chain
         );

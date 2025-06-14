@@ -982,6 +982,18 @@ class LlmResponseParser:
         result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIGPT4oMini", llm_response=llm_response, mode="request")
         return typing.cast(str, result)
 
+    def TestOpenAIGPT4oMini2(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIGPT4oMini2", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
+    def TestOpenAIGPT4oMini3(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIGPT4oMini3", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
     def TestOpenAILegacyProvider(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> str:
@@ -2086,6 +2098,18 @@ class LlmStreamParser:
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> typing.Optional[str]:
         result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIGPT4oMini", llm_response=llm_response, mode="stream")
+        return typing.cast(typing.Optional[str], result)
+
+    def TestOpenAIGPT4oMini2(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> typing.Optional[str]:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIGPT4oMini2", llm_response=llm_response, mode="stream")
+        return typing.cast(typing.Optional[str], result)
+
+    def TestOpenAIGPT4oMini3(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> typing.Optional[str]:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIGPT4oMini3", llm_response=llm_response, mode="stream")
         return typing.cast(typing.Optional[str], result)
 
     def TestOpenAILegacyProvider(

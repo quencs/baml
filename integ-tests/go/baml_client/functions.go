@@ -5620,6 +5620,76 @@ func TestOpenAIGPT4oMini(ctx context.Context, input string, opts ...CallOptionFu
 	return casted, nil
 }
 
+func TestOpenAIGPT4oMini2(ctx context.Context, input string, opts ...CallOptionFunc) (string, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIGPT4oMini2", encoded)
+	if err != nil {
+		return "", err
+	}
+
+	if result.Error != nil {
+		return "", result.Error
+	}
+
+	casted := *(result.Data).(*string)
+
+	return casted, nil
+}
+
+func TestOpenAIGPT4oMini3(ctx context.Context, input string, opts ...CallOptionFunc) (string, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIGPT4oMini3", encoded)
+	if err != nil {
+		return "", err
+	}
+
+	if result.Error != nil {
+		return "", result.Error
+	}
+
+	casted := *(result.Data).(*string)
+
+	return casted, nil
+}
+
 func TestOpenAILegacyProvider(ctx context.Context, input string, opts ...CallOptionFunc) (string, error) {
 
 	var callOpts callOption

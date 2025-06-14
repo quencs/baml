@@ -858,7 +858,7 @@ client<llm> GPT35 {
     model gpt-4
     api_key env.OPENAI_API_KEY
   }
-} 
+}
 
 // class Foo {
 //   i int @stream.not_null @stream.with_state

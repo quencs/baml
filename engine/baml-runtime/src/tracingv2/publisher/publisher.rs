@@ -273,7 +273,7 @@ impl TracePublisher {
         let mut buffer: Vec<Arc<TraceEventWithMeta>> = Vec::new();
         let mut tick_interval = interval(Duration::from_secs(2));
 
-        tracing::info!(
+        tracing::debug!(
             message = "Starting publisher loop",
             base_url = self.lookup.base_url(),
         );
@@ -333,7 +333,7 @@ impl TracePublisher {
     async fn process_baml_src_upload(&self, lookup: &RuntimeAST) {
         let result = self.process_baml_src_upload_impl(lookup).await;
         if let Err(e) = result {
-            tracing::error!("Failed to upload baml src: {}", e);
+            tracing::debug!("Failed to upload baml src: {}", e);
         }
     }
 
@@ -424,8 +424,6 @@ impl TracePublisher {
             source_code,
         });
 
-        tracing::info!("Uploading BAML source");
-
         match lookup
             .api_request::<CreateBamlSrcUpload>(CreateBamlSrcUploadRequest { ast })
             .await
@@ -444,7 +442,7 @@ impl TracePublisher {
     async fn process_batch(&self, batch: Vec<Arc<TraceEventWithMeta>>) {
         let batch_result = self.process_batch_with_splitting(batch).await;
         if let Err(e) = batch_result {
-            baml_log::error!("Failed to upload trace events after retries: {:?}", e);
+            baml_log::debug!("Failed to upload trace events after retries: {:?}", e);
         }
     }
 
@@ -475,14 +473,14 @@ impl TracePublisher {
         // Try to upload the batch
         match self.process_batch_impl(batch.clone()).await {
             Ok(()) => {
-                tracing::info!("Successfully uploaded batch of {} events", batch.len());
+                tracing::debug!("Successfully uploaded batch of {} events", batch.len());
                 Ok(())
             }
             Err(e) => {
-                baml_log::error!("Failed to upload batch of {} events: {}", batch.len(), e);
+                log::info!("Failed to upload batch of {} events: {}", batch.len(), e);
                 // If batch size is at or below minimum, give up
                 if batch.len() <= min_batch_size {
-                    baml_log::error!(
+                    log::info!(
                         "Failed to upload single/minimum batch of {} events: {}",
                         batch.len(),
                         e
@@ -494,7 +492,7 @@ impl TracePublisher {
                 let mid = batch.len() / 2;
                 let (first_half, second_half) = batch.split_at(mid);
 
-                tracing::warn!(
+                tracing::debug!(
                     "Batch upload failed (size: {}), splitting into {} and {} events: {}",
                     batch.len(),
                     first_half.len(),
@@ -513,19 +511,19 @@ impl TracePublisher {
                 // If either half failed, propagate the error
                 match (first_result, second_result) {
                     (Ok(()), Ok(())) => {
-                        tracing::info!("Successfully uploaded split batches");
+                        tracing::debug!("Successfully uploaded split batches");
                         Ok(())
                     }
                     (Err(e1), Ok(())) => {
-                        baml_log::error!("First half failed: {}", e1);
+                        log::info!("First half failed: {}", e1);
                         Err(e1)
                     }
                     (Ok(()), Err(e2)) => {
-                        baml_log::error!("Second half failed: {}", e2);
+                        log::info!("Second half failed: {}", e2);
                         Err(e2)
                     }
                     (Err(e1), Err(e2)) => {
-                        baml_log::error!("Both halves failed - first: {}, second: {}", e1, e2);
+                        log::debug!("Both halves failed - first: {}, second: {}", e1, e2);
                         Err(e1) // Return the first error
                     }
                 }
@@ -554,25 +552,25 @@ impl TracePublisher {
         // );
 
         // Serialize to JSON.
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            use tokio::fs::OpenOptions;
-            if let Ok(mut file) = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open("/tmp/trace_events.json")
-                .await
-            {
-                for e in trace_event_batch.events.iter() {
-                    if let Ok(json) = serde_json::to_string(e) {
-                        use tokio::io::AsyncWriteExt;
-                        if let Err(e) = file.write_all(format!("{}\n", json).as_bytes()).await {
-                            log::error!("Failed to write to trace file: {}", e);
-                        }
-                    }
-                }
-            }
-        }
+        // #[cfg(not(target_arch = "wasm32"))]
+        // {
+        //     use tokio::fs::OpenOptions;
+        //     if let Ok(mut file) = OpenOptions::new()
+        //         .create(true)
+        //         .append(true)
+        //         .open("/tmp/trace_events.json")
+        //         .await
+        //     {
+        //         for e in trace_event_batch.events.iter() {
+        //             if let Ok(json) = serde_json::to_string(e) {
+        //                 use tokio::io::AsyncWriteExt;
+        //                 if let Err(e) = file.write_all(format!("{}\n", json).as_bytes()).await {
+        //                     log::error!("Failed to write to trace file: {}", e);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         // Upload via HTTP with retry logic.
         // TODO watch out with time crate
@@ -584,7 +582,7 @@ impl TracePublisher {
         {
             Ok(response) => response,
             Err(e) => {
-                baml_log::error!("Failed to upload trace events: {}", e);
+                log::debug!("Failed to upload trace events: {}", e);
                 return Err(e.into());
             }
         };
@@ -646,8 +644,6 @@ pub fn publish_trace_event(event: Arc<TraceEventWithMeta>) -> anyhow::Result<()>
 // but that's ok since noone uses our wasm build in node for logging.
 // https://github.com/whizsid/wasmtimer-rs/issues/26
 pub async fn flush() -> anyhow::Result<()> {
-    // TODO: debug
-    baml_log::debug!("Flushing trace events");
     let Some(channel) = get_publish_channel(false) else {
         return Ok(());
     };

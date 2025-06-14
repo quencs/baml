@@ -51,7 +51,3 @@ generator lang_go {
   client_package_name "example.com/integ-tests"
   on_generate "gofmt -w . && goimports -w ."
 }
-
-
-
-

@@ -924,7 +924,7 @@ dependencies = [
  "http 1.1.0",
  "http-body 1.0.1",
  "include_dir",
- "indexmap 2.8.0",
+ "indexmap",
  "indicatif",
  "indicatif-log-bridge",
  "indoc",
@@ -1027,7 +1027,7 @@ dependencies = [
  "dissimilar",
  "either",
  "expect-test",
- "indexmap 2.8.0",
+ "indexmap",
  "indoc",
  "internal-baml-codegen",
  "internal-baml-core",
@@ -1060,7 +1060,7 @@ dependencies = [
  "either",
  "env_logger",
  "futures",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-codegen",
  "jsonish",
  "libc",
@@ -1098,7 +1098,7 @@ dependencies = [
  "futures",
  "http 1.1.0",
  "http-body 1.0.1",
- "indexmap 2.8.0",
+ "indexmap",
  "indoc",
  "log",
  "num",
@@ -1175,7 +1175,7 @@ dependencies = [
  "http 1.1.0",
  "http-body 1.0.1",
  "include_dir",
- "indexmap 2.8.0",
+ "indexmap",
  "indicatif",
  "indoc",
  "infer",
@@ -1256,7 +1256,7 @@ dependencies = [
  "futures",
  "futures-timer",
  "getrandom 0.2.15",
- "indexmap 2.8.0",
+ "indexmap",
  "indoc",
  "internal-baml-codegen",
  "internal-baml-core",
@@ -1292,7 +1292,7 @@ dependencies = [
  "baml-ids",
  "clap",
  "derive_builder",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-diagnostics",
  "itertools 0.14.0",
  "log",
@@ -1321,7 +1321,7 @@ dependencies = [
  "baml-types",
  "env_logger",
  "futures",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-codegen",
  "log",
  "napi",
@@ -1466,7 +1466,7 @@ dependencies = [
  "futures",
  "http 1.1.0",
  "http-body 1.0.1",
- "indexmap 2.8.0",
+ "indexmap",
  "indoc",
  "log",
  "num",
@@ -1540,7 +1540,7 @@ checksum = "eadd868a2ce9ca38de7eeafdcec9c7065ef89b42b32f0839278d55f35c54d1ff"
 dependencies = [
  "clap",
  "heck 0.4.1",
- "indexmap 2.8.0",
+ "indexmap",
  "log",
  "proc-macro2",
  "quote",
@@ -2188,7 +2188,7 @@ dependencies = [
  "baml-log",
  "cfg-if",
  "filetime",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-core",
  "pathdiff 0.1.0",
  "serde_json",
@@ -2719,7 +2719,7 @@ dependencies = [
  "dir-writer",
  "generators-go",
  "generators-python",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-core",
  "serde_json",
 ]
@@ -2734,7 +2734,7 @@ dependencies = [
  "baml_cffi",
  "dir-writer",
  "index-map",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-core",
  "prettydiff",
  "serde",
@@ -2841,7 +2841,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http 0.2.12",
- "indexmap 2.8.0",
+ "indexmap",
  "slab",
  "tokio",
  "tokio-util",
@@ -2860,7 +2860,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "http 1.1.0",
- "indexmap 2.8.0",
+ "indexmap",
  "slab",
  "tokio",
  "tokio-util",
@@ -2876,12 +2876,6 @@ dependencies = [
  "cfg-if",
  "crunchy",
 ]
-
-[[package]]
-name = "hashbrown"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
 name = "hashbrown"
@@ -3381,16 +3375,6 @@ checksum = "3ea06ad425513b4cac7d2a1b3fc36b518281e74a96b9739d9a34e7a4151dbb48"
 
 [[package]]
 name = "indexmap"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
-dependencies = [
- "autocfg",
- "hashbrown 0.12.3",
-]
-
-[[package]]
-name = "indexmap"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3954d50fe15b02142bf25d3b8bdadb634ec3948f103d04ffe3031bc8fe9d7058"
@@ -3495,7 +3479,7 @@ dependencies = [
  "env_logger",
  "filetime",
  "generators-lib",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-core",
  "itertools 0.13.0",
  "log",
@@ -3525,7 +3509,7 @@ dependencies = [
  "either",
  "enumflags2",
  "expect-test",
- "indexmap 2.8.0",
+ "indexmap",
  "indoc",
  "internal-baml-diagnostics",
  "internal-baml-jinja-types",
@@ -3571,7 +3555,7 @@ dependencies = [
  "baml-types",
  "colored 2.1.0",
  "env_logger",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-core",
  "internal-baml-diagnostics",
  "internal-baml-jinja-types",
@@ -3592,7 +3576,7 @@ dependencies = [
  "baml-types",
  "colored 2.1.0",
  "env_logger",
- "indexmap 2.8.0",
+ "indexmap",
  "log",
  "minijinja",
  "regex",
@@ -3612,7 +3596,7 @@ dependencies = [
  "colored 2.1.0",
  "either",
  "enumflags2",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-diagnostics",
  "internal-baml-jinja-types",
  "internal-baml-prompt-parser",
@@ -3673,7 +3657,7 @@ dependencies = [
  "either",
  "enum_dispatch",
  "env_logger",
- "indexmap 2.8.0",
+ "indexmap",
  "log",
  "secrecy",
  "serde",
@@ -3811,7 +3795,7 @@ dependencies = [
  "colored 2.1.0",
  "criterion",
  "either",
- "indexmap 2.8.0",
+ "indexmap",
  "indoc",
  "internal-baml-core",
  "internal-baml-jinja",
@@ -3895,7 +3879,7 @@ dependencies = [
  "crossbeam-channel",
  "filetime",
  "ignore",
- "indexmap 2.8.0",
+ "indexmap",
  "insta",
  "internal-baml-codegen",
  "internal-baml-core",
@@ -4127,12 +4111,12 @@ dependencies = [
 
 [[package]]
 name = "minijinja"
-version = "1.0.21"
+version = "2.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55e877d961d4f96ce13615862322df7c0b6d169d40cab71a7ef3f9b9e594451e"
+checksum = "dd72e8b4e42274540edabec853f607c015c73436159b06c39c7af85a20433155"
 dependencies = [
  "aho-corasick",
- "indexmap 1.9.3",
+ "indexmap",
  "serde",
  "serde_json",
  "unicase",
@@ -5370,7 +5354,7 @@ dependencies = [
  "base64 0.22.1",
  "env_logger",
  "futures",
- "indexmap 2.8.0",
+ "indexmap",
  "jsonish",
  "log",
  "magnus",
@@ -5776,7 +5760,7 @@ version = "1.0.120"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e0d21c9a8cae1235ad58a00c11cb40d4b1e5c784f1ef2c537876ed6ffd8b7c5"
 dependencies = [
- "indexmap 2.8.0",
+ "indexmap",
  "itoa",
  "ryu",
  "serde",
@@ -5850,7 +5834,7 @@ version = "0.9.34+deprecated"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
 dependencies = [
- "indexmap 2.8.0",
+ "indexmap",
  "itoa",
  "ryu",
  "serde",
@@ -6244,7 +6228,7 @@ dependencies = [
  "dir-writer",
  "filetime",
  "glob",
- "indexmap 2.8.0",
+ "indexmap",
  "internal-baml-core",
  "serde_json",
  "walkdir",
@@ -6510,7 +6494,7 @@ version = "0.22.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "583c44c02ad26b0c3f3066fe629275e50627026c51ac2e595cca4c230ce1ce1d"
 dependencies = [
- "indexmap 2.8.0",
+ "indexmap",
  "serde",
  "serde_spanned",
  "toml_datetime",

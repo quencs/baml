@@ -99,4 +99,11 @@ impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
     pub fn tuple(choices: Vec<TypeGeneric<T>>) -> Self {
         TypeGeneric::Tuple(choices, T::default())
     }
+
+    pub fn arrow(param_types: Vec<TypeGeneric<T>>, return_type: TypeGeneric<T>) -> Self {
+        TypeGeneric::Arrow(Box::new(super::ArrowGeneric {
+            param_types,
+            return_type,
+        }), T::default())
+    }
 }

@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use baml_types::expr::Builtin;
 use baml_types::baml_value::TypeLookups;
 use baml_types::ir_type::ArrowGeneric;
 use baml_types::BamlMap;
@@ -32,39 +33,41 @@ use serde::Serialize;
 use crate::validate::validation_pipeline::validations::expr_typecheck::infer_types_in_context;
 use crate::Configuration;
 
+use super::builtin::{builtin_classes, builtin_generic_fn, builtin_ir, is_builtin_identifier};
+
 /// This class represents the intermediate representation of the BAML AST.
 /// It is a representation of the BAML AST that is easier to work with than the
 /// raw BAML AST, and should include all information necessary to generate
 /// code in any target language.
 #[derive(Debug)]
 pub struct IntermediateRepr {
-    enums: Vec<Node<Enum>>,
-    classes: Vec<Node<Class>>,
-    type_aliases: Vec<Node<TypeAlias>>,
+    pub enums: Vec<Node<Enum>>,
+    pub classes: Vec<Node<Class>>,
+    pub type_aliases: Vec<Node<TypeAlias>>,
     pub functions: Vec<Node<Function>>,
     pub expr_fns: Vec<Node<ExprFunction>>,
     pub toplevel_assignments: Vec<Node<TopLevelAssignment>>,
-    clients: Vec<Node<Client>>,
-    retry_policies: Vec<Node<RetryPolicy>>,
-    template_strings: Vec<Node<TemplateString>>,
+    pub clients: Vec<Node<Client>>,
+    pub retry_policies: Vec<Node<RetryPolicy>>,
+    pub template_strings: Vec<Node<TemplateString>>,
 
     /// Strongly connected components of the dependency graph (finite cycles).
-    finite_recursive_cycles: Vec<IndexSet<String>>,
+    pub finite_recursive_cycles: Vec<IndexSet<String>>,
 
     /// Type alias cycles introduced by lists and maps and unions.
     ///
     /// These are the only allowed cycles, because lists and maps introduce a
-    /// level of indirection that can makes the cycle finite.
-    structural_recursive_alias_cycles: Vec<IndexMap<String, FieldType>>,
+    /// level of indirection that makes the cycle finite.
+    pub structural_recursive_alias_cycles: Vec<IndexMap<String, FieldType>>,
 
-    configuration: Configuration,
+    pub configuration: Configuration,
 
     // only constructed after the first pass
-    pass2_repr: Pass2Repr,
+    pub pass2_repr: Pass2Repr,
 }
 
 #[derive(Default, Debug)]
-struct Pass2Repr {
+pub struct Pass2Repr {
     classes_with_attributes: BamlMap<String, NodeAttributes>,
     enums_with_attributes: BamlMap<String, NodeAttributes>,
     resolved_type_aliases: BamlMap<String, FieldType>,
@@ -252,19 +255,15 @@ impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
 
 impl WithRepr<Function> for ExprFnWalker<'_> {
     fn repr(&self, db: &ParserDatabase) -> Result<Function> {
-        // TODO: Drop weird default (replace by better validation).
         let body = convert_function_body(self.expr_fn().body.to_owned(), db)?;
         let args = self
             .expr_fn()
             .args
             .args
             .iter()
-            .map(|(arg_name, arg_type)| {
-                let ty = arg_type.field_type.repr(db)?;
-                Ok((arg_name.to_string(), ty))
-            })
+            .map(|(arg_name, arg_type)| Ok((arg_name.to_string(), arg_type.field_type.repr(db)?)))
             .collect::<Result<_>>()?;
-        let return_ty = self
+        let return_type = self
             .expr_fn()
             .return_type
             .as_ref()
@@ -275,7 +274,7 @@ impl WithRepr<Function> for ExprFnWalker<'_> {
         let function = Function {
             name: self.expr_fn().name.to_string(),
             inputs: args,
-            output: return_ty,
+            output: return_type,
             configs: vec![],
             default_config: "".to_string(),
             tests: vec![],
@@ -421,17 +420,43 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     (span.clone(), None),
                 ))
             }
-            ast::Expression::FnApp(func, args, span) => {
-                let func = Expr::FreeVar(func.name().to_string(), (func.span().clone(), None));
-                let args = args.iter().map(|arg| arg.repr(db)).collect::<Result<_>>()?;
-                Ok(Expr::App(
-                    Arc::new(func),
-                    Arc::new(Expr::ArgsTuple(args, (span.clone(), None))), // TODO: We don't really have a span for the ArgsTuple, so we're using the one for the whole FnApp.
-                    (span.clone(), None),
-                ))
+            ast::Expression::App(app) => {
+                // Mangle names.
+                //
+                // TODO: Should probably be a separate pass on the IR similar
+                // to fn specialize_generics, but there are some issues with
+                // Arc<> and &mut and stuff cause we need to either mutate the
+                // IR in place or build a new one, so for now this thing can
+                // live here.
+                let name = if let Some(ty) = app.type_args.first() {
+                    format!("{}<{}>", app.name, ty)
+                } else {
+                    app.name.to_string()
+                };
+
+                let func = Expr::FreeVar(name, (app.span().clone(), None));
+
+                let args = app
+                    .args
+                    .iter()
+                    .map(|arg| arg.repr(db))
+                    .collect::<Result<_>>()?;
+                Ok(Expr::App {
+                    func: Arc::new(func),
+                    // TODO: We don't really have a span for the ArgsTuple, so we're using the one for the whole FnApp.
+                    args: Arc::new(Expr::ArgsTuple(args, (app.span().clone(), None))),
+                    type_args: app
+                        .type_args
+                        .iter()
+                        .map(|t| t.repr(db))
+                        .collect::<Result<_>>()?,
+                    meta: (app.span().clone(), None),
+                })
             }
             ast::Expression::ClassConstructor(
-                ast::ClassConstructor { class_name, fields },
+                ast::ClassConstructor {
+                    class_name, fields, ..
+                },
                 span,
             ) => {
                 let mut new_fields = BamlMap::new();
@@ -531,19 +556,20 @@ impl IntermediateRepr {
             });
         }
 
-        // self.walk_functions().filter_map(
-        //     |f| f.client_name()
-        // ).map(|c| c.required_env_vars())
-
-        // // for any functions, check for shorthand env vars
-        // self.functions
-        //     .iter()
-        //     .filter_map(|f| f.elem.configs())
-        //     .into_iter()
-        //     .flatten()
-        //     .flat_map(|(expr)| expr.client.required_env_vars())
-        //     .collect()
         env_vars
+    }
+
+    /// Extend the IR with another IR.
+    pub fn extend(&mut self, other: IntermediateRepr) {
+        self.enums.extend(other.enums);
+        self.classes.extend(other.classes);
+        self.type_aliases.extend(other.type_aliases);
+        self.functions.extend(other.functions);
+        self.expr_fns.extend(other.expr_fns);
+        self.toplevel_assignments.extend(other.toplevel_assignments);
+        self.clients.extend(other.clients);
+        self.retry_policies.extend(other.retry_policies);
+        self.template_strings.extend(other.template_strings);
     }
 
     /// Returns a list of all the recursive cycles in the IR.
@@ -562,7 +588,7 @@ impl IntermediateRepr {
         self.enums.iter().map(|e| Walker { ir: self, item: e })
     }
 
-    pub fn walk_classes(&self) -> impl ExactSizeIterator<Item = Walker<'_, &Node<Class>>> {
+    pub fn walk_classes(&self) -> impl Iterator<Item = Walker<'_, &Node<Class>>> {
         self.classes.iter().map(|e| Walker { ir: self, item: e })
     }
 
@@ -687,11 +713,11 @@ impl IntermediateRepr {
                 .collect::<Result<Vec<_>>>()?,
             classes: db
                 .walk_classes()
-                .map(|e| e.node(db))
+                .map(|c| c.node(db))
                 .collect::<Result<Vec<_>>>()?,
             type_aliases: db
                 .walk_type_aliases()
-                .map(|e| e.node(db))
+                .map(|a| a.node(db))
                 .collect::<Result<Vec<_>>>()?,
             finite_recursive_cycles: db
                 .finite_recursive_cycles()
@@ -757,6 +783,10 @@ impl IntermediateRepr {
             let inferred_expr = infer_types_in_context(&mut typing_context, Arc::new(expr));
             expr_fn.elem.expr = Arc::unwrap_or_clone(inferred_expr);
         }
+
+        // Strip out builtin classes.
+        repr.classes
+            .retain(|c| !is_builtin_identifier(&c.elem.name));
 
         repr.distribute_attributes();
 
@@ -1590,6 +1620,7 @@ pub struct Class {
     pub static_fields: Vec<Node<Field>>,
 
     /// Parameters to the class definition.
+    /// Note that this is a future feature, not something we currently use.
     pub inputs: Vec<(String, FieldType)>,
 
     /// Docstring.
@@ -1846,6 +1877,7 @@ pub fn annotate_variable(
 ) -> Expr<ExprMetadata> {
     match &expr {
         Expr::FreeVar(var_name, meta) => expr,
+        Expr::Builtin(builtin, meta) => Expr::Builtin(builtin.clone(), meta.clone()),
         Expr::BoundVar(var_index, meta) => {
             if var_index == &target {
                 Expr::BoundVar(var_index.clone(), (meta.0.clone(), Some(r#type.clone())))
@@ -1861,15 +1893,25 @@ pub fn annotate_variable(
             );
             Expr::Lambda(*arity, Arc::new(new_body), meta.clone())
         }
-        Expr::App(f, args, meta) => {
+        Expr::App {
+            func,
+            args,
+            meta,
+            type_args,
+        } => {
             let new_f = annotate_variable(
                 target.clone(),
                 r#type.clone(),
-                Arc::unwrap_or_clone(f.clone()),
+                Arc::unwrap_or_clone(func.clone()),
             );
             let new_args =
                 annotate_variable(target.clone(), r#type, Arc::unwrap_or_clone(args.clone()));
-            Expr::App(Arc::new(new_f), Arc::new(new_args), meta.clone())
+            Expr::App {
+                func: Arc::new(new_f),
+                args: Arc::new(new_args),
+                meta: meta.clone(),
+                type_args: type_args.clone(),
+            }
         }
         Expr::Let(var_name, expr, body, meta) => {
             let new_binding = annotate_variable(
@@ -2421,6 +2463,85 @@ fn make_test_ir_and_diagnostics_from_dir(
     Ok((ir, diagnostics))
 }
 
+
+// Specialize generics.
+fn specialize_generics(expr: &Expr<ExprMetadata>, ctx: &mut HashMap<Name, Expr<ExprMetadata>>) {
+    match expr {
+        Expr::FreeVar(name, _) => {}
+        Expr::BoundVar(name, _) => {}
+        Expr::Builtin(_, _) => {}
+        Expr::Atom(_) => {}
+        Expr::Let(name, expr, body, _) => {
+            specialize_generics(expr, ctx);
+            specialize_generics(body, ctx);
+        }
+        Expr::Lambda(_, body, _) => {
+            specialize_generics(body, ctx);
+        }
+        Expr::ArgsTuple(exprs, _) => {
+            for expr in exprs {
+                specialize_generics(expr, ctx);
+            }
+        }
+        Expr::LLMFunction(_, _, _) => {}
+        Expr::List(exprs, _) => {
+            for expr in exprs {
+                specialize_generics(expr, ctx);
+            }
+        }
+        Expr::Map(exprs, _) => {
+            for (_, expr) in exprs {
+                specialize_generics(expr, ctx);
+            }
+        }
+        Expr::ClassConstructor {
+            fields,
+            spread,
+            meta,
+            ..
+        } => {
+            for expr in fields.values() {
+                specialize_generics(expr, ctx);
+            }
+            if let Some(expr) = spread {
+                specialize_generics(expr, ctx);
+            }
+        }
+        Expr::App {
+            func,
+            type_args,
+            args,
+            meta,
+        } => {
+            // If there's a type arg then we know it's a builtin function
+            // because as of right now users can't define their own generic
+            // functions. We also know that the name is already mangled because
+            // we do that when we build the IR from the AST. Take a look at
+            // WithRepr<Expr> for ast::Expression::App for more details.
+            if let Some(type_arg) = type_args.first() {
+                if let Expr::FreeVar(name, _) = func.as_ref() {
+                    ctx.insert(
+                        name.clone(), // Already mangled.
+                        builtin_generic_fn(Builtin::FetchValue, type_arg.clone()),
+                    );
+                }
+            }
+            specialize_generics(args, ctx);
+        }
+        Expr::If(cond, then, r#else, meta) => {
+            specialize_generics(cond, ctx);
+            specialize_generics(then, ctx);
+            if let Some(r#else) = r#else {
+                specialize_generics(r#else, ctx);
+            }
+        }
+        Expr::ForLoop { iterable, body, .. } => {
+            specialize_generics(iterable, ctx);
+            specialize_generics(body, ctx);
+        }
+    }
+}
+
 /// Create a context from the expr_functions, top_level_assignments, and
 /// functions in the IR.
 /// This context is used in evaluating expressions.
@@ -2429,6 +2550,7 @@ pub fn initial_context(ir: &IntermediateRepr) -> HashMap<Name, Expr<ExprMetadata
 
     for expr_fn in ir.expr_fns.iter() {
         ctx.insert(expr_fn.elem.name.clone(), expr_fn.elem.expr.clone());
+        specialize_generics(&expr_fn.elem.expr, &mut ctx);
     }
     for top_level_assignment in ir.toplevel_assignments.iter() {
         ctx.insert(
@@ -2474,6 +2596,7 @@ pub fn initial_context(ir: &IntermediateRepr) -> HashMap<Name, Expr<ExprMetadata
             ),
         );
     }
+
     ctx
 }
 

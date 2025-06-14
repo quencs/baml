@@ -10119,6 +10119,132 @@ func (*stream) TestOpenAIGPT4oMini(ctx context.Context, input string, opts ...Ca
 	return channel
 }
 
+// / Streaming version of TestOpenAIGPT4oMini2
+func (*stream) TestOpenAIGPT4oMini2(ctx context.Context, input string, opts ...CallOptionFunc) <-chan StreamValue[*string, string] {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	channel := make(chan StreamValue[*string, string])
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestOpenAIGPT4oMini2", encoded)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				if result.HasData {
+					data := *(result.Data).(*string)
+					channel <- StreamValue[*string, string]{
+						IsFinal:  true,
+						as_final: &data,
+					}
+				} else {
+					data := (result.StreamData).(*string)
+					channel <- StreamValue[*string, string]{
+						IsFinal:   false,
+						as_stream: &data,
+					}
+				}
+			}
+		}
+	}()
+	return channel
+}
+
+// / Streaming version of TestOpenAIGPT4oMini3
+func (*stream) TestOpenAIGPT4oMini3(ctx context.Context, input string, opts ...CallOptionFunc) <-chan StreamValue[*string, string] {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	channel := make(chan StreamValue[*string, string])
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "TestOpenAIGPT4oMini3", encoded)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				if result.HasData {
+					data := *(result.Data).(*string)
+					channel <- StreamValue[*string, string]{
+						IsFinal:  true,
+						as_final: &data,
+					}
+				} else {
+					data := (result.StreamData).(*string)
+					channel <- StreamValue[*string, string]{
+						IsFinal:   false,
+						as_stream: &data,
+					}
+				}
+			}
+		}
+	}()
+	return channel
+}
+
 // / Streaming version of TestOpenAILegacyProvider
 func (*stream) TestOpenAILegacyProvider(ctx context.Context, input string, opts ...CallOptionFunc) <-chan StreamValue[*string, string] {
 

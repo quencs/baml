@@ -179,18 +179,6 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
                         .zip(other_items)
                         .all(|(base_item, other_item)| self.is_subtype(base_item, other_item))
             }
-            (FieldType::Arrow(arrow1, _), FieldType::Arrow(arrow2, _)) => {
-                let param_lengths_match = arrow1.param_types.len() == arrow2.param_types.len();
-                // N.B. Functions are covariant in their return type and contravariant in their arguments.
-                // This is why a and b are swapped in the parameters check, and no in the return type check.
-                let return_types_match = self.is_subtype(&arrow1.return_type, &arrow2.return_type);
-                let args_match = arrow1
-                    .param_types
-                    .iter()
-                    .zip(arrow2.param_types.iter())
-                    .all(|(a, b)| self.is_subtype(b, a));
-                param_lengths_match && return_types_match && args_match
-            }
             (FieldType::Tuple(_, _), _) => false,
             (FieldType::Arrow(_, _), _) => false,
             (

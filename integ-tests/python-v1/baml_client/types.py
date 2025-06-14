@@ -794,18 +794,6 @@ class WithReasoning(BaseModel):
 RecursiveUnion: typing_extensions.TypeAlias = typing.Union[str, typing.Dict[str, "RecursiveUnion"]]
 
 
-LinkedListAlias: typing_extensions.TypeAlias = "LinkedListAliasNode"
-
-
-NodeIndirection: typing_extensions.TypeAlias = "NodeWithAliasIndirection"
-
-
-JsonEntry: typing_extensions.TypeAlias = typing.Union["SimpleTag", "JsonTemplate"]
-
-
-JsonTemplate: typing_extensions.TypeAlias = typing.Dict[str, "JsonEntry"]
-
-
 Primitive: typing_extensions.TypeAlias = typing.Union[int, str, bool, float]
 
 
@@ -849,3 +837,15 @@ JsonObject: typing_extensions.TypeAlias = typing.Dict[str, "JsonValue"]
 
 
 JsonArray: typing_extensions.TypeAlias = typing.List["JsonValue"]
+
+
+LinkedListAlias: typing_extensions.TypeAlias = "LinkedListAliasNode"
+
+
+NodeIndirection: typing_extensions.TypeAlias = "NodeWithAliasIndirection"
+
+
+JsonEntry: typing_extensions.TypeAlias = typing.Union["SimpleTag", "JsonTemplate"]
+
+
+JsonTemplate: typing_extensions.TypeAlias = typing.Dict[str, "JsonEntry"]

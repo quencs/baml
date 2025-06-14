@@ -18,10 +18,6 @@ import (
 )
 
 type RecursiveUnion = *Union2MapStringKeyRecursiveUnionValueOrString
-type LinkedListAlias = *LinkedListAliasNode
-type NodeIndirection = *NodeWithAliasIndirection
-type JsonEntry = *Union2JsonTemplateOrSimpleTag
-type JsonTemplate = *map[string]*JsonEntry
 type Primitive = *Union4BoolOrFloatOrIntOrString
 type List = *[]*string
 type Graph = *map[string]*[]*string
@@ -37,3 +33,7 @@ type RecAliasThree = *[]*RecAliasOne
 type JsonValue = *Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
 type JsonObject = *map[string]*JsonValue
 type JsonArray = *[]*JsonValue
+type LinkedListAlias = *LinkedListAliasNode
+type NodeIndirection = *NodeWithAliasIndirection
+type JsonEntry = *Union2JsonTemplateOrSimpleTag
+type JsonTemplate = *map[string]*JsonEntry

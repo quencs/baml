@@ -19,6 +19,10 @@ use self::python_language_features::{PythonLanguageFeatures, ToPython};
 use crate::{dir_writer::FileCollector, field_type_attributes};
 
 #[derive(askama::Template)]
+#[template(path = "_baml.py.j2", escape = "none")]
+struct BamlNamespace {}
+
+#[derive(askama::Template)]
 #[template(path = "config.py.j2", escape = "none")]
 struct PythonConfig {}
 
@@ -128,6 +132,7 @@ pub(crate) fn generate(
         .add_template::<generate_types::PythonStreamTypes>("partial_types.py", (ir, generator))?;
     collector.add_template::<generate_types::PythonTypes>("types.py", (ir, generator))?;
     collector.add_template::<generate_types::TypeBuilder>("type_builder.py", (ir, generator))?;
+    collector.add_template::<BamlNamespace>("_baml.py", (ir, generator))?;
     collector.add_template::<AsyncPythonClient>("async_client.py", (ir, generator))?;
     collector.add_template::<SyncPythonClient>("sync_client.py", (ir, generator))?;
     collector.add_template::<PythonGlobals>("globals.py", (ir, generator))?;
@@ -147,6 +152,14 @@ impl TryFrom<(&'_ IntermediateRepr, &'_ crate::GeneratorArgs)> for PythonConfig 
 
     fn try_from(_: (&'_ IntermediateRepr, &'_ crate::GeneratorArgs)) -> Result<Self> {
         Ok(PythonConfig {})
+    }
+}
+
+impl TryFrom<(&'_ IntermediateRepr, &'_ crate::GeneratorArgs)> for BamlNamespace {
+    type Error = anyhow::Error;
+
+    fn try_from(_: (&'_ IntermediateRepr, &'_ crate::GeneratorArgs)) -> Result<Self> {
+        Ok(BamlNamespace {})
     }
 }
 
@@ -278,9 +291,9 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     .map(|e| e.item.attributes.get("dynamic_type").is_some())
                     .unwrap_or(false)
                 {
-                    format!("Union[types.{name}, str]")
+                    format!("Union[_baml.types.{name}, str]")
                 } else {
-                    format!("types.{name}")
+                    format!("_baml.types.{name}")
                 }
             }
             FieldType::Literal(value, _) => to_python_literal(value),
@@ -342,9 +355,9 @@ impl ToTypeReferenceInClientDefinition for FieldType {
         let with_state = metadata.streaming_behavior.state;
         let constraints = metadata.constraints.clone();
         let module_prefix = if is_partial_type {
-            "partial_types."
+            "_baml.partial_types."
         } else {
-            "types."
+            "_baml.types."
         };
 
         let base_rep = match &self {
@@ -359,9 +372,9 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     // wrap primitives in `Optional` when generating partial types,
                     // although we should probably only do this when `!needed`.
                     if false {
-                        format!("Union[types.{name}, str]")
+                        format!("Union[_baml.types.{name}, str]")
                     } else {
-                        format!("Optional[Union[types.{name}, str]]")
+                        format!("Optional[Union[_baml.types.{name}, str]]")
                     }
                 } else {
                     // Note: The `false` here preserves potentially bugged codegen
@@ -369,9 +382,9 @@ impl ToTypeReferenceInClientDefinition for FieldType {
                     // wrap primitives in `Optional` when generating partial types,
                     // although we should probably only do this when `!needed`.
                     if false {
-                        format!("types.{name}")
+                        format!("_baml.types.{name}")
                     } else {
-                        format!("Optional[types.{name}]")
+                        format!("Optional[_baml.types.{name}]")
                     }
                 }
             }
@@ -384,9 +397,9 @@ impl ToTypeReferenceInClientDefinition for FieldType {
             }
             FieldType::RecursiveTypeAlias(name, _) => {
                 if needed {
-                    format!("types.{name}")
+                    format!("_baml.types.{name}")
                 } else {
-                    format!("Optional[types.{name}]")
+                    format!("Optional[_baml.types.{name}]")
                 }
             }
             FieldType::Literal(value, _) => {
@@ -545,7 +558,7 @@ client<llm> GPT35 {
     model gpt-4
     api_key env.OPENAI_API_KEY
   }
-} 
+}
 
 // class Foo {
 //   i int @stream.not_null @stream.with_state

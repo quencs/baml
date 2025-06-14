@@ -13,7 +13,7 @@ import typing
 import typing_extensions
 import baml_py
 
-from . import stream_types, types
+from . import stream_types, types, type_builder
 from .parser import LlmResponseParser, LlmStreamParser
 from .runtime import DoNotUseDirectlyCallManager, BamlCallOptions
 
@@ -34,8 +34,20 @@ class BamlAsyncClient:
         self.__llm_response_parser = LlmResponseParser(options)
         self.__llm_stream_parser = LlmStreamParser(options)
 
-    def with_options(self, baml_options: BamlCallOptions) -> "BamlAsyncClient":
-        return BamlAsyncClient(self.__options.merge_options(baml_options))
+    def with_options(self, tb: typing.Optional[type_builder.TypeBuilder] = None,
+      client_registry: typing.Optional[baml_py.baml_py.ClientRegistry] = None,
+      collector: typing.Optional[typing.Union[baml_py.baml_py.Collector, typing.List[baml_py.baml_py.Collector]]] = None,
+      env: typing.Optional[typing.Dict[str, typing.Optional[str]]] = None,) -> "BamlAsyncClient":
+        options: BamlCallOptions = {}
+        if tb is not None:
+            options["tb"] = tb
+        if client_registry is not None:
+            options["client_registry"] = client_registry
+        if collector is not None:
+            options["collector"] = collector
+        if env is not None:
+            options["env"] = env
+        return BamlAsyncClient(self.__options.merge_options(options))
 
     @property
     def stream(self):
@@ -1174,6 +1186,20 @@ class BamlAsyncClient:
         baml_options: BamlCallOptions = {},
     ) -> str:
         result = await self.__options.merge_options(baml_options).call_function_async(function_name="TestOpenAIGPT4oMini", args={
+            "input": input,
+        })
+        return typing.cast(str, result.cast_to(types, types, stream_types, False))
+    async def TestOpenAIGPT4oMini2(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = await self.__options.merge_options(baml_options).call_function_async(function_name="TestOpenAIGPT4oMini2", args={
+            "input": input,
+        })
+        return typing.cast(str, result.cast_to(types, types, stream_types, False))
+    async def TestOpenAIGPT4oMini3(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = await self.__options.merge_options(baml_options).call_function_async(function_name="TestOpenAIGPT4oMini3", args={
             "input": input,
         })
         return typing.cast(str, result.cast_to(types, types, stream_types, False))
@@ -3267,6 +3293,30 @@ class BamlStreamClient:
           lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False)),
           ctx,
         )
+    def TestOpenAIGPT4oMini2(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[typing.Optional[str], str]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="TestOpenAIGPT4oMini2", args={
+            "input": input,
+        })
+        return baml_py.BamlStream[typing.Optional[str], str](
+          result,
+          lambda x: typing.cast(typing.Optional[str], x.cast_to(types, types, stream_types, True)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False)),
+          ctx,
+        )
+    def TestOpenAIGPT4oMini3(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[typing.Optional[str], str]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="TestOpenAIGPT4oMini3", args={
+            "input": input,
+        })
+        return baml_py.BamlStream[typing.Optional[str], str](
+          result,
+          lambda x: typing.cast(typing.Optional[str], x.cast_to(types, types, stream_types, True)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False)),
+          ctx,
+        )
     def TestOpenAILegacyProvider(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlStream[typing.Optional[str], str]:
@@ -4671,6 +4721,20 @@ class BamlHttpRequestClient:
             "input": input,
         }, mode="request")
         return result
+    async def TestOpenAIGPT4oMini2(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="TestOpenAIGPT4oMini2", args={
+            "input": input,
+        }, mode="request")
+        return result
+    async def TestOpenAIGPT4oMini3(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="TestOpenAIGPT4oMini3", args={
+            "input": input,
+        }, mode="request")
+        return result
     async def TestOpenAILegacyProvider(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -5957,6 +6021,20 @@ class BamlHttpStreamRequestClient:
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="TestOpenAIGPT4oMini", args={
+            "input": input,
+        }, mode="stream")
+        return result
+    async def TestOpenAIGPT4oMini2(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="TestOpenAIGPT4oMini2", args={
+            "input": input,
+        }, mode="stream")
+        return result
+    async def TestOpenAIGPT4oMini3(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="TestOpenAIGPT4oMini3", args={
             "input": input,
         }, mode="stream")
         return result
