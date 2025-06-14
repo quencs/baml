@@ -47,9 +47,7 @@ dependencies {
         testFramework(TestFrameworkType.Platform)
     }
 
-//    implementation("com.redhat.microprofile:com.redhat.qute.ls:0.17.0") {
-//        exclude("org.eclipse.lsp4j")
-//    }
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html

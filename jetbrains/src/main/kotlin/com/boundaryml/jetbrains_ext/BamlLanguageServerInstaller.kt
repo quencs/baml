@@ -2,91 +2,209 @@ package com.boundaryml.jetbrains_ext
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
+import com.intellij.util.io.HttpRequests
 import com.redhat.devtools.lsp4ij.installation.LanguageServerInstallerBase
+import kotlinx.serialization.SerialName
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
-import org.jetbrains.annotations.NotNull
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardOpenOption
+import java.nio.file.*
+import java.nio.file.attribute.PosixFilePermission
+import java.security.MessageDigest
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNamingStrategy
+import java.util.zip.ZipInputStream
 
 class BamlLanguageServerInstaller : LanguageServerInstallerBase() {
 
-    private val BAML_CACHE_DIR: Path = Path.of(System.getProperty("user.home"), ".baml")
-    private val BREADCRUMB_PATH: Path = Path.of(System.getProperty("user.home"), ".baml", "baml-cli-0.89.0-from-github")
-    private val TAR_GZ_PATH: Path = Path.of(System.getProperty("user.home"), ".baml", "baml-cli-0.89.0-from-github.tar.gz")
+    private val REPO = "BoundaryML/baml"
+    private val GH_API_LATEST = "https://api.github.com/repos/$REPO/releases/latest"
+    private val GH_RELEASES_BASE = "https://github.com/$REPO/releases/download"
+
+    private val bamlCacheDir: Path = Path.of(System.getProperty("user.home"), ".baml/jetbrains")
+    private val breadcrumbFile: Path = bamlCacheDir.resolve("baml-cli-installed.txt")
 
     override fun checkServerInstalled(indicator: ProgressIndicator): Boolean {
-        super.progress("Checking if the language server is installed...", indicator)
+        super.progress("Checking if BAML CLI is installed...", indicator)
         ProgressManager.checkCanceled()
-        return Files.exists(BREADCRUMB_PATH)
+        return Files.exists(breadcrumbFile)
     }
 
     override fun install(indicator: ProgressIndicator) {
-        super.progress("Downloading server components...", 0.25, indicator)
-        Thread.sleep(1000)
+        super.progress("Installing BAML CLI...", indicator)
         ProgressManager.checkCanceled()
 
-        super.progress("Configuring server...", 0.5, indicator)
-        Thread.sleep(1000)
-        ProgressManager.checkCanceled()
+        val latestVersion = fetchLatestReleaseVersion(indicator)
+        val (arch, platform, extension) = getPlatformTriple()
 
-        super.progress("Finalizing installation...", 0.75, indicator)
-        Thread.sleep(1000)
-        ProgressManager.checkCanceled()
+        val artifactName = "baml-cli-$latestVersion-$arch-$platform"
+        val destDir = bamlCacheDir.resolve(artifactName)
+        val targetExecutable = if (platform == "pc-windows-msvc")
+            destDir.resolve("baml-cli.exe")
+        else
+            destDir.resolve("baml-cli")
 
-        Files.createDirectories(BREADCRUMB_PATH.parent)
-        val urlStr = "https://github.com/BoundaryML/baml/releases/download/0.89.0/baml-cli-0.89.0-aarch64-apple-darwin.tar.gz"
+        if (Files.exists(targetExecutable)) {
+            super.progress("BAML CLI already installed.", indicator)
+            return
+        }
 
-        this.downloadFile(urlStr, TAR_GZ_PATH)
-        this.extractTarGz(TAR_GZ_PATH, BAML_CACHE_DIR)
+        val archivePath = downloadFile(artifactName, extension, latestVersion, indicator)
+        verifyChecksum(artifactName, extension, latestVersion, archivePath, indicator)
+
+        super.progress("Extracting BAML CLI...", indicator)
+        extractArchive(archivePath, extension, destDir)
+
+        Files.deleteIfExists(archivePath)
+        setExecutable(targetExecutable)
+
+        Files.createDirectories(bamlCacheDir)
+        Files.writeString(breadcrumbFile, latestVersion)
 
         super.progress("Installation complete!", 1.0, indicator)
-        Thread.sleep(1000)
-        ProgressManager.checkCanceled()
     }
 
-    private fun downloadFile(urlStr: String, outputPath: Path) {
-        val url = URL(urlStr)
-        val conn = url.openConnection() as HttpURLConnection
-        conn.instanceFollowRedirects = true
-        conn.connect()
+    @Serializable
+    data class GitHubRelease(
+        @SerialName("tag_name")
+        val tagName: String
+    )
 
-        conn.inputStream.use { input ->
-            Files.newOutputStream(outputPath).use { output ->
-                input.transferTo(output)
+    private fun fetchLatestReleaseVersion(indicator: ProgressIndicator): String {
+        super.progress("Fetching latest version info...", indicator)
+        ProgressManager.checkCanceled()
+
+        return try {
+            val jsonText = HttpRequests.request(GH_API_LATEST).readString()
+            val jsonParser = Json {
+                ignoreUnknownKeys = true
+            }
+            val release = jsonParser.decodeFromString<GitHubRelease>(jsonText)
+            release.tagName.removePrefix("v")
+        } catch (e: Exception) {
+            super.progress("GitHub fetch failed, falling back to local cache...", indicator)
+            // hardcoded fallback to 0.89
+            // TODO: fallback to latest downloaded version
+            "0.89.0"
+        }
+    }
+
+    private fun getPlatformTriple(): Triple<String, String, String> {
+        val os = System.getProperty("os.name").lowercase()
+        val arch = System.getProperty("os.arch").lowercase()
+
+        val releaseArch = when {
+            arch.contains("aarch64") || arch.contains("arm64") -> "aarch64"
+            arch.contains("x86_64") || arch.contains("amd64") -> "x86_64"
+            else -> throw IllegalArgumentException("Unsupported architecture: $arch")
+        }
+
+        val releasePlatform = when {
+            os.contains("mac") -> "apple-darwin"
+            os.contains("win") -> "pc-windows-msvc"
+            os.contains("linux") -> "unknown-linux-gnu"
+            else -> throw IllegalArgumentException("Unsupported platform: $os")
+        }
+
+        val extension = when (releasePlatform) {
+            "pc-windows-msvc" -> "zip"
+            else -> "tar.gz"
+        }
+
+        return Triple(releaseArch, releasePlatform, extension)
+    }
+
+    private fun downloadFile(artifactName: String, extension: String, version: String, indicator: ProgressIndicator): Path {
+        val url = "$GH_RELEASES_BASE/$version/$artifactName.$extension"
+        val tempFile = Files.createTempFile("baml-cli", ".$extension")
+
+        super.progress("Downloading $artifactName...", indicator)
+        ProgressManager.checkCanceled()
+
+        HttpRequests.request(url).connect { request ->
+            request.saveToFile(tempFile.toFile(), indicator)
+        }
+
+        return tempFile
+    }
+
+    private fun verifyChecksum(artifactName: String, extension: String, version: String, archivePath: Path, indicator: ProgressIndicator) {
+        super.progress("Verifying checksum...", indicator)
+        ProgressManager.checkCanceled()
+
+        val checksumUrl = "$GH_RELEASES_BASE/$version/$artifactName.$extension.sha256"
+        val checksumContent = HttpRequests.request(checksumUrl).readString().trim()
+        val expectedChecksum = checksumContent.split(Regex("\\s+"))[0]
+        val actualChecksum = calculateSha256(archivePath)
+
+        if (!expectedChecksum.equals(actualChecksum, ignoreCase = true)) {
+            throw IllegalStateException("Checksum mismatch! Expected $expectedChecksum, got $actualChecksum")
+        }
+    }
+
+    private fun calculateSha256(file: Path): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        Files.newInputStream(file).use { stream ->
+            val buffer = ByteArray(8192)
+            var read: Int
+            while (stream.read(buffer).also { read = it } != -1) {
+                digest.update(buffer, 0, read)
             }
         }
-        println("Downloaded to $outputPath")
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private fun extractTarGz(tarGzPath: Path, destDir: Path) {
-        Files.newInputStream(tarGzPath).use { fileIn ->
-            GzipCompressorInputStream(fileIn).use { gzipIn ->
-                TarArchiveInputStream(gzipIn).use { tarIn ->
-                    var entry: TarArchiveEntry? = tarIn.nextTarEntry
-                    while (entry != null) {
-                        val outPath = destDir.resolve(entry.name)
-                        if (entry.isDirectory) {
-                            Files.createDirectories(outPath)
-                        } else {
-                            Files.createDirectories(outPath.parent)
-                            Files.newOutputStream(outPath).use { out ->
-                                tarIn.transferTo(out)
+    private fun extractArchive(archivePath: Path, extension: String, destDir: Path) {
+        Files.createDirectories(destDir)
+
+        if (extension == "tar.gz") {
+            Files.newInputStream(archivePath).use { fileIn ->
+                GzipCompressorInputStream(fileIn).use { gzipIn ->
+                    TarArchiveInputStream(gzipIn).use { tarIn ->
+                        var entry: TarArchiveEntry? = tarIn.nextTarEntry
+                        while (entry != null) {
+                            val outPath = destDir.resolve(entry.name)
+                            if (entry.isDirectory) {
+                                Files.createDirectories(outPath)
+                            } else {
+                                Files.createDirectories(outPath.parent)
+                                Files.copy(tarIn, outPath, StandardCopyOption.REPLACE_EXISTING)
                             }
+                            entry = tarIn.nextTarEntry
                         }
-                        entry = tarIn.nextTarEntry
                     }
                 }
             }
+        } else if (extension == "zip") {
+            ZipInputStream(Files.newInputStream(archivePath)).use { zipIn ->
+                var entry = zipIn.nextEntry
+                while (entry != null) {
+                    val outPath = destDir.resolve(entry.name)
+                    if (entry.isDirectory) {
+                        Files.createDirectories(outPath)
+                    } else {
+                        Files.createDirectories(outPath.parent)
+                        Files.copy(zipIn, outPath, StandardCopyOption.REPLACE_EXISTING)
+                    }
+                    entry = zipIn.nextEntry
+                }
+            }
+        } else {
+            throw IllegalArgumentException("Unsupported archive extension: $extension")
         }
-        println("Extraction complete.")
+    }
+
+    private fun setExecutable(file: Path) {
+        if (!Files.exists(file)) return
+        try {
+            val perms = Files.getPosixFilePermissions(file)
+            val updatedPerms = perms + setOf(
+                PosixFilePermission.OWNER_EXECUTE,
+            )
+            Files.setPosixFilePermissions(file, updatedPerms)
+        } catch (e: UnsupportedOperationException) {
+            // Windows doesn't support POSIX permissions — safely ignore
+        }
     }
 }
