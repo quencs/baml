@@ -148,36 +148,15 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, enc
 func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName string, encoded_args []byte) (<-chan ResultCallback, error) {
 	callback_id, callback := create_unique_id(ctx)
 
-	return_channel := make(chan ResultCallback)
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				close(return_channel)
-				return
-			case result, ok := <-callback:
-				if !ok {
-					close(return_channel)
-					return
-				}
-				// TODO: Handle the result
-				// error handling, type checking, etc.
-				return_channel <- result
-			}
-		}
-	}()
-
 	result, err := baml_go.CallFunctionStreamFromC(r.runtime, functionName, encoded_args, callback_id)
 	if err != nil {
-		close(return_channel)
 		return nil, err
 	}
 
 	if result != nil {
 		result_str := (*string)(result)
-		close(return_channel)
 		return nil, errors.New(*result_str)
 	}
 
-	return return_channel, nil
+	return callback, nil
 }

@@ -66,20 +66,23 @@ func (*stream) PersonTest(ctx context.Context, opts ...CallOptionFunc) (<-chan S
 		panic(wrapped_err)
 	}
 
-	channel := make(chan StreamValue[*stream_types.Person, types.Person])
-	raw, err := bamlRuntime.CallFunctionStream(ctx, "PersonTest", encoded)
+	internal_ctx := context.Background()
+	internal_channel, err := bamlRuntime.CallFunctionStream(internal_ctx, "PersonTest", encoded)
 	if err != nil {
-		close(channel)
 		return nil, err
 	}
 
+	channel := make(chan StreamValue[*stream_types.Person, types.Person])
 	go func() {
+		defer func() {
+			internal_ctx.Done()
+		}()
 		for {
 			select {
 			case <-ctx.Done():
 				close(channel)
 				return
-			case result, ok := <-raw:
+			case result, ok := <-internal_channel:
 				if !ok {
 					close(channel)
 					return

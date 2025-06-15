@@ -66,20 +66,23 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (<-chan
 		panic(wrapped_err)
 	}
 
-	channel := make(chan StreamValue[stream_types.JSON, types.JSON])
-	raw, err := bamlRuntime.CallFunctionStream(ctx, "Foo", encoded)
+	internal_ctx := context.Background()
+	internal_channel, err := bamlRuntime.CallFunctionStream(internal_ctx, "Foo", encoded)
 	if err != nil {
-		close(channel)
 		return nil, err
 	}
 
+	channel := make(chan StreamValue[stream_types.JSON, types.JSON])
 	go func() {
+		defer func() {
+			internal_ctx.Done()
+		}()
 		for {
 			select {
 			case <-ctx.Done():
 				close(channel)
 				return
-			case result, ok := <-raw:
+			case result, ok := <-internal_channel:
 				if !ok {
 					close(channel)
 					return
@@ -142,20 +145,23 @@ func (*stream) JsonInput(ctx context.Context, x types.JSON, opts ...CallOptionFu
 		panic(wrapped_err)
 	}
 
-	channel := make(chan StreamValue[stream_types.JSON, types.JSON])
-	raw, err := bamlRuntime.CallFunctionStream(ctx, "JsonInput", encoded)
+	internal_ctx := context.Background()
+	internal_channel, err := bamlRuntime.CallFunctionStream(internal_ctx, "JsonInput", encoded)
 	if err != nil {
-		close(channel)
 		return nil, err
 	}
 
+	channel := make(chan StreamValue[stream_types.JSON, types.JSON])
 	go func() {
+		defer func() {
+			internal_ctx.Done()
+		}()
 		for {
 			select {
 			case <-ctx.Done():
 				close(channel)
 				return
-			case result, ok := <-raw:
+			case result, ok := <-internal_channel:
 				if !ok {
 					close(channel)
 					return

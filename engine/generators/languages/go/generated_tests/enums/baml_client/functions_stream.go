@@ -65,20 +65,23 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts .
 		panic(wrapped_err)
 	}
 
-	channel := make(chan StreamValue[*types.TestEnum, types.TestEnum])
-	raw, err := bamlRuntime.CallFunctionStream(ctx, "FnTestAliasedEnumOutput", encoded)
+	internal_ctx := context.Background()
+	internal_channel, err := bamlRuntime.CallFunctionStream(internal_ctx, "FnTestAliasedEnumOutput", encoded)
 	if err != nil {
-		close(channel)
 		return nil, err
 	}
 
+	channel := make(chan StreamValue[*types.TestEnum, types.TestEnum])
 	go func() {
+		defer func() {
+			internal_ctx.Done()
+		}()
 		for {
 			select {
 			case <-ctx.Done():
 				close(channel)
 				return
-			case result, ok := <-raw:
+			case result, ok := <-internal_channel:
 				if !ok {
 					close(channel)
 					return
