@@ -4920,11 +4920,11 @@ impl<'a> CFFIFieldTypeClass<'a> {
 
 
   #[inline]
-  pub fn name(&self) -> Option<&'a str> {
+  pub fn name(&self) -> Option<CFFITypeName<'a>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(CFFIFieldTypeClass::VT_NAME, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<CFFITypeName>>(CFFIFieldTypeClass::VT_NAME, None)}
   }
 }
 
@@ -4935,13 +4935,13 @@ impl flatbuffers::Verifiable for CFFIFieldTypeClass<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("name", Self::VT_NAME, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<CFFITypeName>>("name", Self::VT_NAME, false)?
      .finish();
     Ok(())
   }
 }
 pub struct CFFIFieldTypeClassArgs<'a> {
-    pub name: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub name: Option<flatbuffers::WIPOffset<CFFITypeName<'a>>>,
 }
 impl<'a> Default for CFFIFieldTypeClassArgs<'a> {
   #[inline]
@@ -4958,8 +4958,8 @@ pub struct CFFIFieldTypeClassBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> CFFIFieldTypeClassBuilder<'a, 'b> {
   #[inline]
-  pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(CFFIFieldTypeClass::VT_NAME, name);
+  pub fn add_name(&mut self, name: flatbuffers::WIPOffset<CFFITypeName<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CFFITypeName>>(CFFIFieldTypeClass::VT_NAME, name);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> CFFIFieldTypeClassBuilder<'a, 'b> {

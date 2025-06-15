@@ -134,8 +134,13 @@ impl TypeGo {
     // for unions, we need a default name for the type when the union is not named
     pub fn default_name_within_union(&self) -> String {
         match self {
-            TypeGo::String(val, _) => val.as_ref().map_or("String".to_string(), |v| format!("StringK{}", safe_name(v))),
-            TypeGo::Int(val, _) => val.map_or("Int".to_string(), |v| format!("IntK{}", v)),
+            TypeGo::String(val, _) => val.as_ref().map_or("String".to_string(), |v| {
+                let safe_name = safe_name(v);
+                format!("K{}", safe_name)
+            }),
+            TypeGo::Int(val, _) => val.map_or("Int".to_string(), |v| {
+                format!("IntK{}", v)
+            }),
             TypeGo::Float(_) => "Float".to_string(),
             TypeGo::Bool(val, _) => val.map_or("Bool".to_string(), |v| format!("BoolK{}", if v { "True" } else { "False" })),
             TypeGo::Media(media_type_go, _) => match media_type_go {

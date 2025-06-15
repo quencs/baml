@@ -571,6 +571,7 @@ func EncodeRoot(value any) ([]byte, error) {
 // and returns the offset of the holder.
 func Encode(builder *flatbuffers.Builder, value any) (flatbuffers.UOffsetT, error) {
 	valueType, valueOffset, err := encodeValue(builder, value)
+	fmt.Println("valueType", valueType, value)
 	if err != nil {
 		return 0, err // Propagate error
 	}

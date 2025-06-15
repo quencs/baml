@@ -656,11 +656,12 @@ where
             )
         }
         baml_types::FieldType::Class { name: cls, .. } => {
-            let class_name = builder.create_string(cls);
+            // TODO: figure out if we need to allow partials here
+            let name = create_cffi_type_name(cls, &mut builder, false);
             let class_type = CFFIFieldTypeClass::create(
                 &mut builder,
                 &CFFIFieldTypeClassArgs {
-                    name: Some(class_name),
+                    name: Some(name),
                 },
             );
             (

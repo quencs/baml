@@ -397,10 +397,14 @@ func convertFieldTypeToGoType(fieldType *cffi.CFFIFieldTypeHolder) reflect.Type 
 
 		var classType cffi.CFFIFieldTypeClass
 		classType.Init(classTable.Bytes, classTable.Pos)
+		fullName := classType.Name(nil)
 
-		goType, ok := typeMap[string(classType.Name())]
+		namespace := string(fullName.Namespace())
+		name := string(fullName.Name())
+
+		goType, ok := typeMap[namespace+"."+name]
 		if !ok {
-			panic("error decoding value")
+			panic("error decoding value, class not found: " + namespace + "." + name)
 		}
 
 		return goType

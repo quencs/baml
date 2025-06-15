@@ -208,7 +208,7 @@ table CFFIFieldTypeEnum {
 }
 
 table CFFIFieldTypeClass {
-  name: string;
+  name: CFFITypeName;
 }
 
 table CFFIFieldTypeTypeAlias {
