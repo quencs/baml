@@ -15,6 +15,7 @@ package baml_client
 
 import (
 	"context"
+	"fmt"
 
 	"recursive_types/baml_client/stream_types"
 	"recursive_types/baml_client/types"
@@ -41,7 +42,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 }
 
 // / Streaming version of Foo
-func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan StreamValue[stream_types.JSON, types.JSON] {
+func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (<-chan StreamValue[stream_types.JSON, types.JSON], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -59,14 +60,17 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan 
 
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
-		panic(err)
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: Foo: %w", err)
+		panic(wrapped_err)
 	}
 
 	channel := make(chan StreamValue[stream_types.JSON, types.JSON])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "Foo", encoded)
 	if err != nil {
 		close(channel)
-		return channel
+		return nil, err
 	}
 
 	go func() {
@@ -110,11 +114,11 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan 
 			}
 		}
 	}()
-	return channel
+	return channel, nil
 }
 
 // / Streaming version of JsonInput
-func (*stream) JsonInput(ctx context.Context, x types.JSON, opts ...CallOptionFunc) <-chan StreamValue[stream_types.JSON, types.JSON] {
+func (*stream) JsonInput(ctx context.Context, x types.JSON, opts ...CallOptionFunc) (<-chan StreamValue[stream_types.JSON, types.JSON], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -132,14 +136,17 @@ func (*stream) JsonInput(ctx context.Context, x types.JSON, opts ...CallOptionFu
 
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
-		panic(err)
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: JsonInput: %w", err)
+		panic(wrapped_err)
 	}
 
 	channel := make(chan StreamValue[stream_types.JSON, types.JSON])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "JsonInput", encoded)
 	if err != nil {
 		close(channel)
-		return channel
+		return nil, err
 	}
 
 	go func() {
@@ -183,5 +190,5 @@ func (*stream) JsonInput(ctx context.Context, x types.JSON, opts ...CallOptionFu
 			}
 		}
 	}()
-	return channel
+	return channel, nil
 }

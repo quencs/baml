@@ -15,6 +15,7 @@ package baml_client
 
 import (
 	"context"
+	"fmt"
 
 	"asserts/baml_client/stream_types"
 	"asserts/baml_client/types"
@@ -41,7 +42,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 }
 
 // / Streaming version of PersonTest
-func (*stream) PersonTest(ctx context.Context, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.Person, types.Person] {
+func (*stream) PersonTest(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.Person, types.Person], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -59,14 +60,17 @@ func (*stream) PersonTest(ctx context.Context, opts ...CallOptionFunc) <-chan St
 
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
-		panic(err)
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: PersonTest: %w", err)
+		panic(wrapped_err)
 	}
 
 	channel := make(chan StreamValue[*stream_types.Person, types.Person])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "PersonTest", encoded)
 	if err != nil {
 		close(channel)
-		return channel
+		return nil, err
 	}
 
 	go func() {
@@ -100,5 +104,5 @@ func (*stream) PersonTest(ctx context.Context, opts ...CallOptionFunc) <-chan St
 			}
 		}
 	}()
-	return channel
+	return channel, nil
 }

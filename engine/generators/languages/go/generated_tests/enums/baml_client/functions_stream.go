@@ -15,6 +15,7 @@ package baml_client
 
 import (
 	"context"
+	"fmt"
 
 	"enums/baml_client/types"
 
@@ -40,7 +41,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 }
 
 // / Streaming version of FnTestAliasedEnumOutput
-func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) <-chan StreamValue[*types.TestEnum, types.TestEnum] {
+func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (<-chan StreamValue[*types.TestEnum, types.TestEnum], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -58,14 +59,17 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts .
 
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
-		panic(err)
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: FnTestAliasedEnumOutput: %w", err)
+		panic(wrapped_err)
 	}
 
 	channel := make(chan StreamValue[*types.TestEnum, types.TestEnum])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "FnTestAliasedEnumOutput", encoded)
 	if err != nil {
 		close(channel)
-		return channel
+		return nil, err
 	}
 
 	go func() {
@@ -99,5 +103,5 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts .
 			}
 		}
 	}()
-	return channel
+	return channel, nil
 }

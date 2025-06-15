@@ -15,6 +15,7 @@ package baml_client
 
 import (
 	"context"
+	"fmt"
 
 	"semantic_streaming/baml_client/stream_types"
 	"semantic_streaming/baml_client/types"
@@ -41,7 +42,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 }
 
 // / Streaming version of MakeClassWithBlockDone
-func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.ClassWithBlockDone, types.ClassWithBlockDone] {
+func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.ClassWithBlockDone, types.ClassWithBlockDone], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -59,14 +60,17 @@ func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFun
 
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
-		panic(err)
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: MakeClassWithBlockDone: %w", err)
+		panic(wrapped_err)
 	}
 
 	channel := make(chan StreamValue[*stream_types.ClassWithBlockDone, types.ClassWithBlockDone])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "MakeClassWithBlockDone", encoded)
 	if err != nil {
 		close(channel)
-		return channel
+		return nil, err
 	}
 
 	go func() {
@@ -100,11 +104,11 @@ func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFun
 			}
 		}
 	}()
-	return channel
+	return channel, nil
 }
 
 // / Streaming version of MakeClassWithExternalDone
-func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.ClassWithoutDone, types.ClassWithoutDone] {
+func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.ClassWithoutDone, types.ClassWithoutDone], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -122,14 +126,17 @@ func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOption
 
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
-		panic(err)
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: MakeClassWithExternalDone: %w", err)
+		panic(wrapped_err)
 	}
 
 	channel := make(chan StreamValue[*stream_types.ClassWithoutDone, types.ClassWithoutDone])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "MakeClassWithExternalDone", encoded)
 	if err != nil {
 		close(channel)
-		return channel
+		return nil, err
 	}
 
 	go func() {
@@ -163,11 +170,11 @@ func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOption
 			}
 		}
 	}()
-	return channel
+	return channel, nil
 }
 
 // / Streaming version of MakeSemanticContainer
-func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.SemanticContainer, types.SemanticContainer] {
+func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.SemanticContainer, types.SemanticContainer], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -185,14 +192,17 @@ func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc
 
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
-		panic(err)
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: MakeSemanticContainer: %w", err)
+		panic(wrapped_err)
 	}
 
 	channel := make(chan StreamValue[*stream_types.SemanticContainer, types.SemanticContainer])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "MakeSemanticContainer", encoded)
 	if err != nil {
 		close(channel)
-		return channel
+		return nil, err
 	}
 
 	go func() {
@@ -226,5 +236,5 @@ func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc
 			}
 		}
 	}()
-	return channel
+	return channel, nil
 }

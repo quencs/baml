@@ -14,7 +14,10 @@ func main() {
 	// }
 	// fmt.Println(result)
 
-	channel := b.Stream.Foo(context.Background(), 8192)
+	channel, err := b.Stream.Foo(context.Background(), 8192)
+	if err != nil {
+		panic(err)
+	}
 	for result := range channel {
 		if result.IsFinal {
 			fmt.Println("final-----")

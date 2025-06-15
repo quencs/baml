@@ -8,7 +8,10 @@ import (
 )
 
 func main() {
-	channel := b.Stream.MakeSimpleClass(context.Background())
+	channel, err := b.Stream.MakeSimpleClass(context.Background())
+	if err != nil {
+		panic(err)
+	}
 	for result := range channel {
 		if result.IsFinal {
 			fmt.Println("final-----")

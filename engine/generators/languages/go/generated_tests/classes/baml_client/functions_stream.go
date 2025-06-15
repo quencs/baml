@@ -15,6 +15,7 @@ package baml_client
 
 import (
 	"context"
+	"fmt"
 
 	"classes/baml_client/stream_types"
 	"classes/baml_client/types"
@@ -41,7 +42,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 }
 
 // / Streaming version of MakeSimpleClass
-func (*stream) MakeSimpleClass(ctx context.Context, opts ...CallOptionFunc) <-chan StreamValue[*stream_types.SimpleClass, types.SimpleClass] {
+func (*stream) MakeSimpleClass(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.SimpleClass, types.SimpleClass], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -59,14 +60,17 @@ func (*stream) MakeSimpleClass(ctx context.Context, opts ...CallOptionFunc) <-ch
 
 	encoded, err := baml.EncodeRoot(args)
 	if err != nil {
-		panic(err)
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: MakeSimpleClass: %w", err)
+		panic(wrapped_err)
 	}
 
 	channel := make(chan StreamValue[*stream_types.SimpleClass, types.SimpleClass])
 	raw, err := bamlRuntime.CallFunctionStream(ctx, "MakeSimpleClass", encoded)
 	if err != nil {
 		close(channel)
-		return channel
+		return nil, err
 	}
 
 	go func() {
@@ -100,5 +104,5 @@ func (*stream) MakeSimpleClass(ctx context.Context, opts ...CallOptionFunc) <-ch
 			}
 		}
 	}()
-	return channel
+	return channel, nil
 }

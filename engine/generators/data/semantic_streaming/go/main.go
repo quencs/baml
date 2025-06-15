@@ -8,7 +8,10 @@ import (
 
 func main() {
 	ctx := context.Background()
-	stream := b.Stream.MakeSemanticContainer(ctx)
+	stream, err := b.Stream.MakeSemanticContainer(ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	var referenceString *string
 	var referenceInt *int64
