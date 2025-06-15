@@ -10,6 +10,15 @@ function MakeSimpleClass() -> SimpleClass {
     "#
 }
 
+function ConsumeSimpleClass(item: SimpleClass) -> SimpleClass {
+    client "openai/gpt-4o"
+    prompt #"
+        Return back to me verbatim:
+
+        {{ item }}
+    "#
+}
+
 test MakeSimpleClassTest {
     functions [MakeSimpleClass]
     args {

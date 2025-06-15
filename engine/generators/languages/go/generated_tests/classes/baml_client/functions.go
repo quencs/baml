@@ -21,6 +21,41 @@ import (
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 
+func ConsumeSimpleClass(ctx context.Context, item types.SimpleClass, opts ...CallOptionFunc) (types.SimpleClass, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"item": item},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := bamlRuntime.CallFunction(ctx, "ConsumeSimpleClass", encoded)
+	if err != nil {
+		return types.SimpleClass{}, err
+	}
+
+	if result.Error != nil {
+		return types.SimpleClass{}, result.Error
+	}
+
+	casted := *(result.Data).(*types.SimpleClass)
+
+	return casted, nil
+}
+
 func MakeSimpleClass(ctx context.Context, opts ...CallOptionFunc) (types.SimpleClass, error) {
 
 	var callOpts callOption

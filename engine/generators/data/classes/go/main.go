@@ -5,9 +5,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"classes/baml_client/types"
 )
 
 func main() {
+	cls := types.SimpleClass{}
+	cls.Digits = 10
+	cls.Words = "hello"
+
+	result, err := b.ConsumeSimpleClass(context.Background(), cls)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(result)
+
 	channel, err := b.Stream.MakeSimpleClass(context.Background())
 	if err != nil {
 		panic(err)

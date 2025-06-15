@@ -4,10 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	b "enums/baml_client"
+	"enums/baml_client/types"
 	"fmt"
 )
 
 func main() {
+	res, err := b.ConsumeTestEnum(context.Background(), types.TestEnumD)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(res)
+
 	// Test enum with aliases
 	result, err := b.FnTestAliasedEnumOutput(context.Background(), "mehhhhh")
 	if err != nil {

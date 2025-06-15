@@ -40,6 +40,75 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 	return *s.as_stream
 }
 
+// / Streaming version of ConsumeTestEnum
+func (*stream) ConsumeTestEnum(ctx context.Context, input types.TestEnum, opts ...CallOptionFunc) (<-chan StreamValue[*types.TestEnum, types.TestEnum], error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
+		// and include the type of the args you're passing in.
+		wrapped_err := fmt.Errorf("BAML INTERNAL ERROR: ConsumeTestEnum: %w", err)
+		panic(wrapped_err)
+	}
+
+	internal_ctx := context.Background()
+	internal_channel, err := bamlRuntime.CallFunctionStream(internal_ctx, "ConsumeTestEnum", encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	channel := make(chan StreamValue[*types.TestEnum, types.TestEnum])
+	go func() {
+		defer func() {
+			internal_ctx.Done()
+		}()
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-internal_channel:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				if result.HasData {
+					data := *(result.Data).(*types.TestEnum)
+					channel <- StreamValue[*types.TestEnum, types.TestEnum]{
+						IsFinal:  true,
+						as_final: &data,
+					}
+				} else {
+					data := (result.StreamData).(*types.TestEnum)
+					channel <- StreamValue[*types.TestEnum, types.TestEnum]{
+						IsFinal:   false,
+						as_stream: &data,
+					}
+				}
+			}
+		}
+	}()
+	return channel, nil
+}
+
 // / Streaming version of FnTestAliasedEnumOutput
 func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (<-chan StreamValue[*types.TestEnum, types.TestEnum], error) {
 

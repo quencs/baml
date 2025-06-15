@@ -40,6 +40,15 @@ function FnTestAliasedEnumOutput(input: string) -> TestEnum {
   "#
 }
 
+function ConsumeTestEnum(input: TestEnum) -> TestEnum {
+  client "openai/gpt-4o"
+  prompt #"
+    Return back to me verbatim:
+    
+    {{ input }}
+  "#
+}
+
 test FnTestAliasedEnumOutput {
   functions [FnTestAliasedEnumOutput]
   args {

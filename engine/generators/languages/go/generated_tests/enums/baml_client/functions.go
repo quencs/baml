@@ -21,6 +21,41 @@ import (
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 
+func ConsumeTestEnum(ctx context.Context, input types.TestEnum, opts ...CallOptionFunc) (types.TestEnum, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := bamlRuntime.CallFunction(ctx, "ConsumeTestEnum", encoded)
+	if err != nil {
+		return types.TestEnum(""), err
+	}
+
+	if result.Error != nil {
+		return types.TestEnum(""), result.Error
+	}
+
+	casted := *(result.Data).(*types.TestEnum)
+
+	return casted, nil
+}
+
 func FnTestAliasedEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (types.TestEnum, error) {
 
 	var callOpts callOption
