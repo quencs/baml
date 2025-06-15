@@ -112,3 +112,76 @@ func (*stream) Foo(ctx context.Context, x int64, opts ...CallOptionFunc) <-chan 
 	}()
 	return channel
 }
+
+// / Streaming version of JsonInput
+func (*stream) JsonInput(ctx context.Context, x types.JSON, opts ...CallOptionFunc) <-chan StreamValue[stream_types.JSON, types.JSON] {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"x": x},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	channel := make(chan StreamValue[stream_types.JSON, types.JSON])
+	raw, err := bamlRuntime.CallFunctionStream(ctx, "JsonInput", encoded)
+	if err != nil {
+		close(channel)
+		return channel
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(channel)
+				return
+			case result, ok := <-raw:
+				if !ok {
+					close(channel)
+					return
+				}
+				if result.Error != nil {
+					close(channel)
+					return
+				}
+				if result.HasData {
+					data := func(result any) types.JSON {
+						if result == nil {
+							return nil
+						}
+						return (result).(types.JSON)
+					}(result.Data)
+					channel <- StreamValue[stream_types.JSON, types.JSON]{
+						IsFinal:  true,
+						as_final: &data,
+					}
+				} else {
+					data := func(result any) stream_types.JSON {
+						if result == nil {
+							return nil
+						}
+						return (result).(stream_types.JSON)
+					}(result.StreamData)
+					channel <- StreamValue[stream_types.JSON, types.JSON]{
+						IsFinal:   false,
+						as_stream: &data,
+					}
+				}
+			}
+		}
+	}()
+	return channel
+}

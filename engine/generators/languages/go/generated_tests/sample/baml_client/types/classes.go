@@ -61,11 +61,20 @@ func (c Example) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flat
 
 	fields["b"] = c.B
 
-	return baml.EncodeClass(builder, "Example", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Example) BamlTypeName() string {
 	return "Example"
+}
+
+func (u Example) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Example")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Example2 struct {
@@ -114,9 +123,18 @@ func (c Example2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fla
 
 	fields["element2"] = c.Element2
 
-	return baml.EncodeClass(builder, "Example2", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Example2) BamlTypeName() string {
 	return "Example2"
+}
+
+func (u Example2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Example2")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }

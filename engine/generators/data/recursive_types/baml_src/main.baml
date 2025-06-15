@@ -14,6 +14,14 @@ function Foo(x: int) -> JSON {
     "#
 }
 
+function JsonInput(x: JSON) -> JSON {
+    client "ollama/phi4:latest"
+    prompt #"
+        repeat back to me:
+        {{ x }}
+    "#
+}
+
 // This union uses a mix of recursive and non-recursive types.
 // It is meant to test that codegeneration simplifies to
 // a smaller union before generation of a Go type.

@@ -52,13 +52,16 @@ mod class {
 }
 
 mod enums {
+    use super::*;
+
     #[derive(askama::Template)]
     #[template(path = "enums.go.j2", escape = "none")]
-    pub struct EnumGo {
+    pub struct EnumGo<'a> {
         pub name: String,
         pub docstring: Option<String>,
         pub values: Vec<(String, Option<String>)>,
         pub dynamic: bool,
+        pub pkg: &'a CurrentRenderPackage,
     }
 }
 

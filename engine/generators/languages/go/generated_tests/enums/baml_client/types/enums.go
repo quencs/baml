@@ -90,9 +90,18 @@ func (e *TestEnum) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e TestEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "TestEnum", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e TestEnum) BamlTypeName() string {
 	return "TestEnum"
+}
+
+func (u TestEnum) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TestEnum")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }

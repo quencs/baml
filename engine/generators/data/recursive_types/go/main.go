@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	b "recursive_types/baml_client"
+	types "recursive_types/baml_client/types"
 )
 
 func main() {
@@ -13,6 +14,14 @@ func main() {
 	// 	panic(err)
 	// }
 	// fmt.Println(result)
+
+	input := types.Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString{}
+	input.SetString("Hello")
+	output, err := b.JsonInput(context.Background(), &input)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(output)
 
 	channel := b.Stream.Foo(context.Background(), 8192)
 	for result := range channel {

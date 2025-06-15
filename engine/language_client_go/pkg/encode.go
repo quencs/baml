@@ -12,13 +12,11 @@ import (
 type BamlSerializer interface {
 	Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error)
 	BamlTypeName() string
+	BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT
 }
 
 // implment BamlSerializer for anything that implements BamlClassSerializer, BamlEnumSerializer, or BamlUnionSerializer
-func EncodeClass(builder *flatbuffers.Builder, name string, fields map[string]any, dynamicFields *map[string]any) (valueType cffi.CFFIValueUnion, offset flatbuffers.UOffsetT, err error) {
-
-	nameOffset := builder.CreateString(name)
-
+func EncodeClass(builder *flatbuffers.Builder, nameEncoder func(builder *flatbuffers.Builder) flatbuffers.UOffsetT, fields map[string]any, dynamicFields *map[string]any) (valueType cffi.CFFIValueUnion, offset flatbuffers.UOffsetT, err error) {
 	// Encode Static Fields
 	var staticFieldsVectorOffset flatbuffers.UOffsetT
 	if len(fields) > 0 {
@@ -38,6 +36,7 @@ func EncodeClass(builder *flatbuffers.Builder, name string, fields map[string]an
 	}
 
 	// Create the CFFIValueClass table
+	nameOffset := nameEncoder(builder)
 	cffi.CFFIValueClassStart(builder)
 	cffi.CFFIValueClassAddName(builder, nameOffset)
 
@@ -52,10 +51,10 @@ func EncodeClass(builder *flatbuffers.Builder, name string, fields map[string]an
 	return cffi.CFFIValueUnionCFFIValueClass, cffi.CFFIValueClassEnd(builder), nil
 }
 
-func EncodeEnum(builder *flatbuffers.Builder, name string, value string, isDynamic bool) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	nameOffset := builder.CreateString(name)
+func EncodeEnum(builder *flatbuffers.Builder, nameEncoder func(builder *flatbuffers.Builder) flatbuffers.UOffsetT, value string, isDynamic bool) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	valueOffset := builder.CreateString(value)
 
+	nameOffset := nameEncoder(builder)
 	cffi.CFFIValueEnumStart(builder)
 	cffi.CFFIValueEnumAddName(builder, nameOffset)
 	cffi.CFFIValueEnumAddValue(builder, valueOffset)
@@ -63,14 +62,14 @@ func EncodeEnum(builder *flatbuffers.Builder, name string, value string, isDynam
 	return cffi.CFFIValueUnionCFFIValueEnum, cffi.CFFIValueEnumEnd(builder), nil
 }
 
-func EncodeUnion(builder *flatbuffers.Builder, name string, variantName string, value any) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	nameOffset := builder.CreateString(name)
+func EncodeUnion(builder *flatbuffers.Builder, nameEncoder func(builder *flatbuffers.Builder) flatbuffers.UOffsetT, variantName string, value any) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	variantNameOffset := builder.CreateString(variantName)
 	valueHolderOffset, err := Encode(builder, value)
 	if err != nil {
 		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("encoding inner value for union variant '%s': %w", variantName, err)
 	}
 
+	nameOffset := nameEncoder(builder)
 	cffi.CFFIValueUnionVariantStart(builder)
 	cffi.CFFIValueUnionVariantAddName(builder, nameOffset)
 	cffi.CFFIValueUnionVariantAddVariantName(builder, variantNameOffset)
@@ -436,7 +435,6 @@ func encodeFunctionArguments(builder *flatbuffers.Builder, functionArgumentsVal 
 		}
 	}
 
-
 	cffi.CFFIFunctionArgumentsStart(builder)
 	cffi.CFFIFunctionArgumentsAddKwargs(builder, kwargsOffset)
 	if clientRegistryOffset > 0 {
@@ -536,7 +534,7 @@ func encodeFieldType(builder *flatbuffers.Builder, fieldType reflect.Type) flatb
 		// determine if the struct implements BamlSerializer
 		if fieldType.Implements(reflect.TypeOf((*BamlSerializer)(nil)).Elem()) {
 			serializer := reflect.New(fieldType).Interface().(BamlSerializer)
-			nameOffset := builder.CreateString(serializer.BamlTypeName())
+			nameOffset := serializer.BamlEncodeName(builder)
 			cffi.CFFIFieldTypeClassStart(builder)
 			cffi.CFFIFieldTypeClassAddName(builder, nameOffset)
 			fieldTypeOffset = cffi.CFFIFieldTypeClassEnd(builder)
@@ -564,7 +562,8 @@ func EncodeRoot(value any) ([]byte, error) {
 		return nil, err
 	}
 	builder.Finish(rootOffset)
-	return builder.FinishedBytes(), nil
+	finishedBytes := builder.FinishedBytes()
+	return finishedBytes, nil
 }
 
 // Encode now accepts and passes TypeMap.

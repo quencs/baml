@@ -60,3 +60,43 @@ func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.JSON, erro
 
 	return casted, nil
 }
+
+func JsonInput(ctx context.Context, x types.JSON, opts ...CallOptionFunc) (types.JSON, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"x": x},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	encoded, err := baml.EncodeRoot(args)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := bamlRuntime.CallFunction(ctx, "JsonInput", encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	casted := func(result any) types.JSON {
+		if result == nil {
+			return nil
+		}
+		return (result).(types.JSON)
+	}(result.Data)
+
+	return casted, nil
+}

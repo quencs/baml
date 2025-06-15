@@ -12,6 +12,7 @@ import "C"
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"unsafe"
@@ -124,10 +125,16 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, enc
 		}
 	}()
 
-	_, err := baml_go.CallFunctionFromC(r.runtime, functionName, encoded_args, callback_id)
+	result, err := baml_go.CallFunctionFromC(r.runtime, functionName, encoded_args, callback_id)
 	if err != nil {
 		close(return_channel)
 		return nil, err
+	}
+
+	if result != nil {
+		result_str := (*string)(result)
+		close(return_channel)
+		return nil, errors.New(*result_str)
 	}
 
 	select {
@@ -160,10 +167,16 @@ func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName strin
 		}
 	}()
 
-	_, err := baml_go.CallFunctionStreamFromC(r.runtime, functionName, encoded_args, callback_id)
+	result, err := baml_go.CallFunctionStreamFromC(r.runtime, functionName, encoded_args, callback_id)
 	if err != nil {
 		close(return_channel)
 		return nil, err
+	}
+
+	if result != nil {
+		result_str := (*string)(result)
+		close(return_channel)
+		return nil, errors.New(*result_str)
 	}
 
 	return return_channel, nil

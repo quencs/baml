@@ -155,7 +155,7 @@ struct FunctionStreamTemplate<'a> {
 #[template(in_doc = true, escape = "none", ext = "txt")]
 struct TypeMap<'a> {
     classes: &'a [ClassGo<'a>],
-    enums: &'a [EnumGo],
+    enums: &'a [EnumGo<'a>],
     unions: &'a [UnionGo<'a>],
     go_mod_name: &'a str,
 }

@@ -79,11 +79,20 @@ func (c ClassWithBlockDone) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["s_20_words"] = c.S_20_words
 
-	return baml.EncodeClass(builder, "ClassWithBlockDone", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassWithBlockDone) BamlTypeName() string {
 	return "ClassWithBlockDone"
+}
+
+func (u ClassWithBlockDone) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassWithBlockDone")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClassWithoutDone struct {
@@ -142,11 +151,20 @@ func (c ClassWithoutDone) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUn
 
 	fields["s_20_words"] = c.S_20_words
 
-	return baml.EncodeClass(builder, "ClassWithoutDone", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassWithoutDone) BamlTypeName() string {
 	return "ClassWithoutDone"
+}
+
+func (u ClassWithoutDone) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassWithoutDone")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type SemanticContainer struct {
@@ -273,11 +291,20 @@ func (c SemanticContainer) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueU
 
 	fields["final_string"] = c.Final_string
 
-	return baml.EncodeClass(builder, "SemanticContainer", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c SemanticContainer) BamlTypeName() string {
 	return "SemanticContainer"
+}
+
+func (u SemanticContainer) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("SemanticContainer")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type SmallThing struct {
@@ -328,9 +355,18 @@ func (c SmallThing) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 	fields["i_8_digits"] = c.I_8_digits
 
-	return baml.EncodeClass(builder, "SmallThing", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c SmallThing) BamlTypeName() string {
 	return "SmallThing"
+}
+
+func (u SmallThing) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("SmallThing")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }

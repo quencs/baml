@@ -25,7 +25,7 @@ func (u {{ name }}) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
     switch u.variant {
     {% for v in variants %}
     case "{{ v.name }}":
-        return baml.EncodeUnion(builder, "{{ name }}", "{{ v.cffi_name }}", u.variant_{{ v.name }})
+        return baml.EncodeUnion(builder, u.BamlEncodeName, "{{ v.cffi_name }}", *u.variant_{{ v.name }})
     {% endfor %}
     case "":
         return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
@@ -36,6 +36,15 @@ func (u {{ name }}) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 func (u {{ name }}) BamlTypeName() string {
     return "{{ name }}"
+}
+
+func (u {{ name }}) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+    nameOffset := builder.CreateString("{{ cffi_name }}")
+    namespaceOffset := builder.CreateString("{{ pkg.get().current() }}")
+    cffi.CFFITypeNameStart(builder)
+    cffi.CFFITypeNameAddName(builder, nameOffset)
+    cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+    return cffi.CFFITypeNameEnd(builder)
 }
 
 func (u {{ name }}) MarshalJSON() ([]byte, error) {

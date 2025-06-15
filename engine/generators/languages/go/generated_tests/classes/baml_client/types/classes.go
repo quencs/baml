@@ -61,9 +61,18 @@ func (c SimpleClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 
 	fields["words"] = c.Words
 
-	return baml.EncodeClass(builder, "SimpleClass", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c SimpleClass) BamlTypeName() string {
 	return "SimpleClass"
+}
+
+func (u SimpleClass) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("SimpleClass")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }

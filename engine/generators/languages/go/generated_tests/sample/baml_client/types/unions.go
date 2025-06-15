@@ -52,10 +52,10 @@ func (u Union2ExampleOrExample2) Encode(builder *flatbuffers.Builder) (cffi.CFFI
 	switch u.variant {
 
 	case "Example":
-		return baml.EncodeUnion(builder, "Union2ExampleOrExample2", "Example", u.variant_Example)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "Example", *u.variant_Example)
 
 	case "Example2":
-		return baml.EncodeUnion(builder, "Union2ExampleOrExample2", "Example2", u.variant_Example2)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "Example2", *u.variant_Example2)
 
 	case "":
 		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
@@ -66,6 +66,15 @@ func (u Union2ExampleOrExample2) Encode(builder *flatbuffers.Builder) (cffi.CFFI
 
 func (u Union2ExampleOrExample2) BamlTypeName() string {
 	return "Union2ExampleOrExample2"
+}
+
+func (u Union2ExampleOrExample2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Union__Example__Example2")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 func (u Union2ExampleOrExample2) MarshalJSON() ([]byte, error) {

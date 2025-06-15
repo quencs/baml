@@ -31,6 +31,10 @@ impl Package {
         format!("{}.", self.package_path.last().unwrap())
     }
 
+    pub fn current(&self) -> String {
+        self.package_path.last().unwrap().clone()
+    }
+
     pub fn types() -> Package {
         Package::new("baml_client.types")
     }

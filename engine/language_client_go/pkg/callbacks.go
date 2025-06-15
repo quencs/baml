@@ -8,7 +8,6 @@ import "C"
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sync"
 	"unsafe"
@@ -59,7 +58,6 @@ func SetTypeMap(t TypeMap) {
 
 //export error_callback
 func error_callback(id C.uint32_t, isDone C.int, content *C.int8_t, length C.int) {
-	fmt.Println("Error callback")
 	callbackMutex.RLock()
 	id_uint := uint32(id)
 	callback, exists := dynamicCallbacks[id_uint]

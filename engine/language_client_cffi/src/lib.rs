@@ -100,7 +100,6 @@ static ERROR_CALLBACK_FN: OnceCell<CallbackFn> = OnceCell::new();
 
 #[no_mangle]
 extern "C" fn register_callbacks(callback_fn: CallbackFn, error_callback_fn: CallbackFn) {
-    println!("Registering callbacks");
     let _ = baml_log::init();
     let _ = env_logger::try_init_from_env(env_logger::Env::new().filter("BAML_INTERNAL_LOG"));
 

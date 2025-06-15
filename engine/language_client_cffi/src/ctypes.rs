@@ -17,10 +17,8 @@ pub fn buffer_to_cffi_value_holder(buffer: &[u8]) -> Result<BamlValue> {
 
 pub fn buffer_to_cffi_function_arguments(buffer: &[u8]) -> Result<BamlFunctionArguments> {
     let root = flatbuffers::root::<CFFIValueHolder>(buffer)?;
-    Ok(root
-        .value_as_cffifunction_arguments()
-        .expect("Failed to convert CFFIValueHolder to CFFIFunctionArguments")
-        .into())
+    let args = root.value_as_cffifunction_arguments().expect("Failed to convert CFFIValueHolder to CFFIFunctionArguments");
+    Ok(args.into())
 }
 
 fn create_cffi_type_name<'a, 'b>(
@@ -336,7 +334,6 @@ where
     T: HasFieldType + Clone,
 {
     let value_holder = from_baml_value_with_meta(value, &mut builder, allow_partials, ir);
-    // println!("value_holder: {:#?}", value_holder);
     builder.finish(value_holder, None);
     builder.finished_data()
 }

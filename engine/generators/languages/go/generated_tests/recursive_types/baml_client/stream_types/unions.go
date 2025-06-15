@@ -62,10 +62,10 @@ func (u Union2IntOrListRecursive1) Encode(builder *flatbuffers.Builder) (cffi.CF
 	switch u.variant {
 
 	case "Int":
-		return baml.EncodeUnion(builder, "Union2IntOrListRecursive1", "int", u.variant_Int)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "int", *u.variant_Int)
 
 	case "ListRecursive1":
-		return baml.EncodeUnion(builder, "Union2IntOrListRecursive1", "List__Recursive1", u.variant_ListRecursive1)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "List__Recursive1", *u.variant_ListRecursive1)
 
 	case "":
 		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
@@ -76,6 +76,15 @@ func (u Union2IntOrListRecursive1) Encode(builder *flatbuffers.Builder) (cffi.CF
 
 func (u Union2IntOrListRecursive1) BamlTypeName() string {
 	return "Union2IntOrListRecursive1"
+}
+
+func (u Union2IntOrListRecursive1) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Union__List__Recursive1__int")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 func (u Union2IntOrListRecursive1) MarshalJSON() ([]byte, error) {
@@ -152,6 +161,190 @@ func (u *Union2IntOrListRecursive1) ListRecursive1() []*Recursive1 {
 	return *u.variant_ListRecursive1
 }
 
+type Union3IntOrListRecursive1OrString struct {
+	variant string
+
+	variant_Int *int64
+
+	variant_ListRecursive1 *[]*Recursive1
+
+	variant_String *string
+}
+
+func (u *Union3IntOrListRecursive1OrString) Decode(holder *cffi.CFFIValueUnionVariant) {
+	valueHolder := holder.Value(nil)
+	variantName := string(holder.VariantName())
+	switch variantName {
+	case "int":
+		u.variant = "Int"
+		value := *baml.Decode(valueHolder).(*int64)
+		u.variant_Int = &value
+	case "List__Recursive1":
+		u.variant = "ListRecursive1"
+		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) *Recursive1 {
+			return func(param *cffi.CFFIValueHolder) *Recursive1 {
+				decoded := baml.Decode(param)
+				return func(result any) *Recursive1 {
+					if result == nil {
+						return nil
+					}
+					return (result).(*Recursive1)
+				}(decoded)
+			}(inner)
+		})
+		u.variant_ListRecursive1 = &value
+	case "string":
+		u.variant = "String"
+		value := *baml.Decode(valueHolder).(*string)
+		u.variant_String = &value
+
+	default:
+		panic(fmt.Sprintf("invalid union variant: %s", variantName))
+	}
+}
+
+func (u Union3IntOrListRecursive1OrString) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+	switch u.variant {
+
+	case "Int":
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "int", *u.variant_Int)
+
+	case "ListRecursive1":
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "List__Recursive1", *u.variant_ListRecursive1)
+
+	case "String":
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "string", *u.variant_String)
+
+	case "":
+		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
+	}
+
+	return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: %s", u.variant)
+}
+
+func (u Union3IntOrListRecursive1OrString) BamlTypeName() string {
+	return "Union3IntOrListRecursive1OrString"
+}
+
+func (u Union3IntOrListRecursive1OrString) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Union__List__Recursive1__int__string")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
+}
+
+func (u Union3IntOrListRecursive1OrString) MarshalJSON() ([]byte, error) {
+	switch u.variant {
+
+	case "Int":
+		return json.Marshal(u.variant_Int)
+
+	case "ListRecursive1":
+		return json.Marshal(u.variant_ListRecursive1)
+
+	case "String":
+		return json.Marshal(u.variant_String)
+
+	}
+
+	return nil, fmt.Errorf("invalid union variant: %s", u.variant)
+}
+
+func (u *Union3IntOrListRecursive1OrString) UnmarshalJSON(data []byte) error {
+	var err error
+
+	err = json.Unmarshal(data, &u.variant_Int)
+	if err == nil {
+		u.variant = "Int"
+		return nil
+	} else {
+		u.variant_Int = nil
+	}
+
+	err = json.Unmarshal(data, &u.variant_ListRecursive1)
+	if err == nil {
+		u.variant = "ListRecursive1"
+		return nil
+	} else {
+		u.variant_ListRecursive1 = nil
+	}
+
+	err = json.Unmarshal(data, &u.variant_String)
+	if err == nil {
+		u.variant = "String"
+		return nil
+	} else {
+		u.variant_String = nil
+	}
+
+	return fmt.Errorf("invalid union variant: %s", string(data))
+}
+
+func (u *Union3IntOrListRecursive1OrString) SetInt(v int64) {
+	u.variant = "Int"
+	u.variant_Int = &v
+
+	u.variant_ListRecursive1 = nil
+
+	u.variant_String = nil
+
+}
+
+func (u *Union3IntOrListRecursive1OrString) IsInt() bool {
+	return u.variant == "Int"
+}
+
+func (u *Union3IntOrListRecursive1OrString) Int() int64 {
+	if u.variant != "Int" {
+		return 0
+	}
+	return *u.variant_Int
+}
+
+func (u *Union3IntOrListRecursive1OrString) SetListRecursive1(v []*Recursive1) {
+	u.variant = "ListRecursive1"
+	u.variant_ListRecursive1 = &v
+
+	u.variant_Int = nil
+
+	u.variant_String = nil
+
+}
+
+func (u *Union3IntOrListRecursive1OrString) IsListRecursive1() bool {
+	return u.variant == "ListRecursive1"
+}
+
+func (u *Union3IntOrListRecursive1OrString) ListRecursive1() []*Recursive1 {
+	if u.variant != "ListRecursive1" {
+		return nil
+	}
+	return *u.variant_ListRecursive1
+}
+
+func (u *Union3IntOrListRecursive1OrString) SetString(v string) {
+	u.variant = "String"
+	u.variant_String = &v
+
+	u.variant_Int = nil
+
+	u.variant_ListRecursive1 = nil
+
+}
+
+func (u *Union3IntOrListRecursive1OrString) IsString() bool {
+	return u.variant == "String"
+}
+
+func (u *Union3IntOrListRecursive1OrString) String() string {
+	if u.variant != "String" {
+		return ""
+	}
+	return *u.variant_String
+}
+
 type Union3IntOrRecursive1OrString struct {
 	variant string
 
@@ -188,13 +381,13 @@ func (u Union3IntOrRecursive1OrString) Encode(builder *flatbuffers.Builder) (cff
 	switch u.variant {
 
 	case "Recursive1":
-		return baml.EncodeUnion(builder, "Union3IntOrRecursive1OrString", "Recursive1", u.variant_Recursive1)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "Recursive1", *u.variant_Recursive1)
 
 	case "Int":
-		return baml.EncodeUnion(builder, "Union3IntOrRecursive1OrString", "int", u.variant_Int)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "int", *u.variant_Int)
 
 	case "String":
-		return baml.EncodeUnion(builder, "Union3IntOrRecursive1OrString", "string", u.variant_String)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "string", *u.variant_String)
 
 	case "":
 		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
@@ -205,6 +398,15 @@ func (u Union3IntOrRecursive1OrString) Encode(builder *flatbuffers.Builder) (cff
 
 func (u Union3IntOrRecursive1OrString) BamlTypeName() string {
 	return "Union3IntOrRecursive1OrString"
+}
+
+func (u Union3IntOrRecursive1OrString) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Union__Recursive1__int__string")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 func (u Union3IntOrRecursive1OrString) MarshalJSON() ([]byte, error) {
@@ -381,19 +583,19 @@ func (u Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) Encode(builde
 	switch u.variant {
 
 	case "String":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "string", u.variant_String)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "string", *u.variant_String)
 
 	case "Int":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "int", u.variant_Int)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "int", *u.variant_Int)
 
 	case "Float":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "float", u.variant_Float)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "float", *u.variant_Float)
 
 	case "MapStringKeyJSONValue":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "Map__string_JSON", u.variant_MapStringKeyJSONValue)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "Map__string_JSON", *u.variant_MapStringKeyJSONValue)
 
 	case "ListJSON":
-		return baml.EncodeUnion(builder, "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString", "List__JSON", u.variant_ListJSON)
+		return baml.EncodeUnion(builder, u.BamlEncodeName, "List__JSON", *u.variant_ListJSON)
 
 	case "":
 		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
@@ -404,6 +606,15 @@ func (u Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) Encode(builde
 
 func (u Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) BamlTypeName() string {
 	return "Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString"
+}
+
+func (u Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Union__List__JSON__Map__string_JSON__float__int__string")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 func (u Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString) MarshalJSON() ([]byte, error) {

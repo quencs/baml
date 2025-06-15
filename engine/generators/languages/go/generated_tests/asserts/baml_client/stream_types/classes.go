@@ -77,9 +77,18 @@ func (c Person) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 
 	fields["age"] = c.Age
 
-	return baml.EncodeClass(builder, "Person", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Person) BamlTypeName() string {
 	return "Person"
+}
+
+func (u Person) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Person")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }

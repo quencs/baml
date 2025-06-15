@@ -53,9 +53,18 @@ func (c {{ name }}) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
     {% for field in fields %}
     fields["{{ field.name }}"] = c.{{ field.name|exported_name }}
     {% endfor %}
-    return baml.EncodeClass(builder, "{{ name }}", fields, {% if dynamic %}&c.DynamicProperties{% else %}nil{% endif %})
+    return baml.EncodeClass(builder, c.BamlEncodeName, fields, {% if dynamic %}&c.DynamicProperties{% else %}nil{% endif %})
 }
 
 func (c {{ name }}) BamlTypeName() string {
     return "{{ name }}"
+}
+
+func (u {{ name }}) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+    nameOffset := builder.CreateString("{{ name }}")
+    namespaceOffset := builder.CreateString("{{ pkg.get().current() }}")
+    cffi.CFFITypeNameStart(builder)
+    cffi.CFFITypeNameAddName(builder, nameOffset)
+    cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+    return cffi.CFFITypeNameEnd(builder)
 }
