@@ -1,0 +1,11 @@
+{
+  "extends": "../../workspace-tools/typescript/react-library.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "dist"
+  },
+  "include": ["src", "vite.config.ts"],
+  "exclude": ["node_modules", ".vscode-test", "dist", "out", ".turbo"]
+}

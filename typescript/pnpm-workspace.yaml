@@ -1,11 +1,4 @@
 packages:
-  - 'vscode-ext/packages/*'
-  - 'vscode-ext/packages'
-  - 'baml-schema-wasm-node'
-  - 'baml-schema-wasm-web'
-  - 'nextjs-plugin'
-  - 'common'
-  - 'playground-common'
-  - 'fiddle-frontend'
-  - 'codemirror-lang-baml'
-  - 'storybook'
+  - apps/*
+  - packages/*
+  - workspace-tools/*
