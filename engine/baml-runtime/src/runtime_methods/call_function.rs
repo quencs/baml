@@ -58,7 +58,7 @@ impl InternalBamlRuntime {
             // Now actually execute the code.
             let (history, _) =
                 orchestrate_call(orchestrator, self.ir(), &ctx, &renderer, &baml_args, |s| {
-                    renderer.parse(self.ir(), &ctx, s, false)
+                    renderer.smart_parse(self.ir(), &ctx, s, false)
                 })
                 .await;
 

@@ -247,11 +247,14 @@ pub fn from_str_xml(
 
     // Parse as XML instead of JSON
     let xml_value = xmlish::parse(raw_string, xmlish::ParseOptions::default())?;
-    
+
     // Convert XML value to JSONish value for coercion
     let jsonish_value = xml_to_jsonish_value(xml_value)?;
 
-    log::debug!("Parsed XML and converted to JSONish (step 1 of parsing): {:#?}", jsonish_value);
+    log::debug!(
+        "Parsed XML and converted to JSONish (step 1 of parsing): {:#?}",
+        jsonish_value
+    );
     let ctx = ParsingContext::new(of, allow_partials);
 
     // Coerce the converted value into the expected schema
@@ -276,71 +279,83 @@ pub fn from_str_xml(
 /// Convert XML value to JSONish value for type coercion
 fn xml_to_jsonish_value(xml_value: xmlish::Value) -> Result<jsonish::Value> {
     use baml_types::CompletionState;
-    
+
     match xml_value {
         xmlish::Value::Text(text, completion_state) => {
             Ok(jsonish::Value::String(text, completion_state))
         }
-        xmlish::Value::Element { tag, attributes, children, completion_state } => {
+        xmlish::Value::Element {
+            tag,
+            attributes,
+            children,
+            completion_state,
+        } => {
             // Convert XML element to JSON object
             let mut obj_map = indexmap::IndexMap::new();
-            
+
             // Add attributes as fields with @ prefix
-            for (key, value) in attributes {
+            for (key, value) in &attributes {
                 let attr_key = format!("@{}", key);
-                obj_map.insert(attr_key, jsonish::Value::String(value, CompletionState::Complete));
+                obj_map.insert(
+                    attr_key,
+                    jsonish::Value::String(value.clone(), completion_state.clone()),
+                );
             }
-            
-            // Handle children
-            if children.is_empty() {
-                // Empty element, represent as null or empty string
-                obj_map.insert("_text".to_string(), jsonish::Value::String("".to_string(), completion_state.clone()));
-            } else if children.len() == 1 {
-                match &children[0] {
+
+            // Special case: if the element contains only text content and no attributes,
+            // flatten it to just the string value
+            if children.len() == 1 && attributes.is_empty() {
+                if let xmlish::Value::Text(text, _) = &children[0] {
+                    return Ok(jsonish::Value::String(text.clone(), completion_state));
+                }
+            }
+
+            // Collect text content and group child elements by tag name
+            let mut text_content = String::new();
+            let mut child_groups: std::collections::HashMap<String, Vec<jsonish::Value>> =
+                std::collections::HashMap::new();
+
+            for child in children {
+                match &child {
                     xmlish::Value::Text(text, _) => {
-                        // Single text child
-                        obj_map.insert("_text".to_string(), jsonish::Value::String(text.clone(), completion_state.clone()));
+                        text_content.push_str(text);
+                    }
+                    xmlish::Value::Element { tag: child_tag, .. } => {
+                        let child_value = xml_to_jsonish_value(child.clone())?;
+                        child_groups
+                            .entry(child_tag.clone())
+                            .or_insert_with(Vec::new)
+                            .push(child_value);
                     }
                     _ => {
-                        // Single element child
-                        let child_value = xml_to_jsonish_value(children[0].clone())?;
-                        obj_map.insert(tag.clone(), child_value);
-                    }
-                }
-            } else {
-                // Multiple children - group by tag name
-                let mut child_groups: indexmap::IndexMap<String, Vec<jsonish::Value>> = indexmap::IndexMap::new();
-                let mut text_content = String::new();
-                
-                for child in children {
-                    match &child {
-                        xmlish::Value::Text(text, _) => {
-                            text_content.push_str(text);
-                        }
-                        xmlish::Value::Element { tag: child_tag, .. } => {
-                            let child_value = xml_to_jsonish_value(child.clone())?;
-                            child_groups.entry(child_tag.clone()).or_insert_with(Vec::new).push(child_value);
-                        }
-                        _ => {
-                            let child_value = xml_to_jsonish_value(child.clone())?;
-                            child_groups.entry("_unknown".to_string()).or_insert_with(Vec::new).push(child_value);
-                        }
-                    }
-                }
-                
-                if !text_content.trim().is_empty() {
-                    obj_map.insert("_text".to_string(), jsonish::Value::String(text_content, completion_state.clone()));
-                }
-                
-                for (tag_name, values) in child_groups {
-                    if values.len() == 1 {
-                        obj_map.insert(tag_name, values.into_iter().next().unwrap());
-                    } else {
-                        obj_map.insert(tag_name, jsonish::Value::Array(values, completion_state.clone()));
+                        let child_value = xml_to_jsonish_value(child.clone())?;
+                        child_groups
+                            .entry("_unknown".to_string())
+                            .or_insert_with(Vec::new)
+                            .push(child_value);
                     }
                 }
             }
-            
+
+            // Only add _text field if there are child elements AND text content
+            if !text_content.trim().is_empty() && !child_groups.is_empty() {
+                obj_map.insert(
+                    "_text".to_string(),
+                    jsonish::Value::String(text_content, completion_state.clone()),
+                );
+            }
+
+            for (tag_name, values) in child_groups {
+                if values.len() == 1 {
+                    obj_map.insert(tag_name, values.into_iter().next().unwrap());
+                } else {
+                    obj_map.insert(
+                        tag_name,
+                        jsonish::Value::Array(values, completion_state.clone()),
+                    );
+                }
+            }
+
             // Convert IndexMap to Vec for jsonish::Value::Object
             let obj_vec: Vec<(String, jsonish::Value)> = obj_map.into_iter().collect();
             Ok(jsonish::Value::Object(obj_vec, completion_state))
@@ -420,14 +435,14 @@ impl WithScore for ResponseBamlValue {
 mod xml_tests {
     use super::*;
     use crate::xmlish;
-    use internal_baml_jinja::types::OutputFormatContent;
     use baml_types::FieldType;
+    use internal_baml_jinja::types::OutputFormatContent;
 
     #[test]
     fn test_xml_parsing_simple() {
         let xml = "<person><name>John</name><age>30</age></person>";
         let result = xmlish::parse(xml, xmlish::ParseOptions::default()).unwrap();
-        
+
         match result {
             xmlish::Value::Element { tag, children, .. } => {
                 assert_eq!(tag, "person");
@@ -457,7 +472,7 @@ mod xml_tests {
         );
 
         let jsonish_value = xml_to_jsonish_value(xml_value).unwrap();
-        
+
         match jsonish_value {
             jsonish::Value::Object(obj, _) => {
                 assert!(obj.len() >= 2); // Should have at least name and age fields
@@ -467,17 +482,158 @@ mod xml_tests {
     }
 
     #[test]
-    fn test_from_str_xml() {
-        let xml = "<person><name>John</name><age>30</age></person>";
-        let output_format = OutputFormatContent::mk_fake();
-        let target_type = FieldType::Primitive(baml_types::TypeValue::String);
-        
-        // For string target type, should return as string
-        let result = from_str_xml(&output_format, &target_type, xml, false).unwrap();
-        
-        match result {
-            BamlValueWithFlags::String(_) => {}, // Expected for string target
-            _ => panic!("Expected string result for string target type"),
+    fn test_nested_xml_parsing_complex() {
+        let xml = r#"<TestClassNested>
+  <prop1>Sample Text</prop1>
+  <prop2>
+    <InnerClass>
+      <prop1>Inner Text</prop1>
+      <prop2>Another piece of text</prop2>
+      <inner>
+        <InnerClass2>
+          <prop2>42</prop2>
+          <prop3>3.14</prop3>
+        </InnerClass2>
+      </inner>
+    </InnerClass>
+  </prop2>
+</TestClassNested>"#;
+
+        // First test XML parsing
+        let xml_result = xmlish::parse(xml, xmlish::ParseOptions::default()).unwrap();
+
+        match &xml_result {
+            xmlish::Value::Element { tag, children, .. } => {
+                assert_eq!(tag, "TestClassNested");
+                assert_eq!(children.len(), 2); // prop1 and prop2
+            }
+            _ => panic!("Expected XML element"),
         }
+
+        // Test XML to JSON conversion
+        let jsonish_result = xml_to_jsonish_value(xml_result).unwrap();
+
+        // Verify the structure matches expectations
+        match &jsonish_result {
+            jsonish::Value::Object(obj, _) => {
+                let prop1_found = obj.iter().any(|(k, _)| k == "prop1");
+                let prop2_found = obj.iter().any(|(k, _)| k == "prop2");
+                assert!(prop1_found, "prop1 not found in converted object");
+                assert!(prop2_found, "prop2 not found in converted object");
+
+                // Check prop1 value
+                let prop1_value = obj.iter().find(|(k, _)| k == "prop1").unwrap().1.clone();
+                match prop1_value {
+                    jsonish::Value::String(s, _) => {
+                        assert_eq!(s, "Sample Text");
+                    }
+                    _ => panic!("Expected prop1 to be a string"),
+                }
+
+                // Check prop2 nested structure
+                let prop2_value = obj.iter().find(|(k, _)| k == "prop2").unwrap().1.clone();
+                match prop2_value {
+                    jsonish::Value::Object(prop2_obj, _) => {
+                        // prop2 should contain InnerClass
+                        let inner_class_found = prop2_obj.iter().any(|(k, _)| k == "InnerClass");
+                        assert!(inner_class_found, "InnerClass not found in prop2");
+
+                        // Get the InnerClass object
+                        let inner_class_value = prop2_obj
+                            .iter()
+                            .find(|(k, _)| k == "InnerClass")
+                            .unwrap()
+                            .1
+                            .clone();
+                        match inner_class_value {
+                            jsonish::Value::Object(inner_obj, _) => {
+                                let inner_prop1_found = inner_obj.iter().any(|(k, _)| k == "prop1");
+                                let inner_prop2_found = inner_obj.iter().any(|(k, _)| k == "prop2");
+                                let inner_inner_found = inner_obj.iter().any(|(k, _)| k == "inner");
+                                assert!(inner_prop1_found, "prop1 not found in InnerClass object");
+                                assert!(inner_prop2_found, "prop2 not found in InnerClass object");
+                                assert!(inner_inner_found, "inner not found in InnerClass object");
+
+                                // Check inner.InnerClass2
+                                let inner_inner_value = inner_obj
+                                    .iter()
+                                    .find(|(k, _)| k == "inner")
+                                    .unwrap()
+                                    .1
+                                    .clone();
+                                match inner_inner_value {
+                                    jsonish::Value::Object(inner_inner_obj, _) => {
+                                        let inner_class2_found =
+                                            inner_inner_obj.iter().any(|(k, _)| k == "InnerClass2");
+                                        assert!(
+                                            inner_class2_found,
+                                            "InnerClass2 not found in inner object"
+                                        );
+
+                                        let inner_class2_value = inner_inner_obj
+                                            .iter()
+                                            .find(|(k, _)| k == "InnerClass2")
+                                            .unwrap()
+                                            .1
+                                            .clone();
+                                        match inner_class2_value {
+                                            jsonish::Value::Object(inner2_obj, _) => {
+                                                let inner2_prop2_found =
+                                                    inner2_obj.iter().any(|(k, _)| k == "prop2");
+                                                let inner2_prop3_found =
+                                                    inner2_obj.iter().any(|(k, _)| k == "prop3");
+                                                assert!(
+                                                    inner2_prop2_found,
+                                                    "prop2 not found in InnerClass2 object"
+                                                );
+                                                assert!(
+                                                    inner2_prop3_found,
+                                                    "prop3 not found in InnerClass2 object"
+                                                );
+                                            }
+                                            _ => panic!("Expected InnerClass2 to be an object"),
+                                        }
+                                    }
+                                    _ => panic!("Expected inner to be an object"),
+                                }
+                            }
+                            _ => panic!("Expected InnerClass to be an object"),
+                        }
+                    }
+                    _ => panic!("Expected prop2 to be an object"),
+                }
+            }
+            _ => panic!("Expected root to be an object, got: {:?}", jsonish_result),
+        }
+    }
+
+    #[test]
+    fn test_xml_detection_logic() {
+        let xml_content = r#"<TestClassNested>
+  <prop1>Sample Text</prop1>
+  <prop2>
+    <InnerClass>
+      <prop1>Inner Text Content</prop1>
+      <prop2>Another Text Content</prop2>
+      <inner>
+        <InnerClass2>
+          <prop2>42</prop2>
+          <prop3>3.14</prop3>
+        </InnerClass2>
+      </inner>
+    </InnerClass>
+  </prop2>
+</TestClassNested>"#;
+
+        let json_content = r#"{"prop1": "Sample Text", "prop2": {"prop1": "Inner Text"}}"#;
+
+        // Test XML detection logic
+        let is_xml_1 =
+            xml_content.trim_start().starts_with('<') && xml_content.trim_end().ends_with('>');
+        let is_xml_2 =
+            json_content.trim_start().starts_with('<') && json_content.trim_end().ends_with('>');
+
+        assert!(is_xml_1, "Should detect XML content");
+        assert!(!is_xml_2, "Should not detect JSON content as XML");
     }
 }

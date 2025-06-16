@@ -29,6 +29,7 @@ pub struct PromptRenderer {
     pub client_spec: ClientSpec,
     pub output_defs: OutputFormatContent,
     pub output_type: FieldType,
+    pub xml_format_used: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl PromptRenderer {
@@ -50,6 +51,7 @@ impl PromptRenderer {
             },
             output_defs: render_output_format(ir, ctx, &func_v2.output)?,
             output_type: func_v2.output.clone(),
+            xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         })
     }
 
@@ -62,6 +64,7 @@ impl PromptRenderer {
             client_spec: ClientSpec::Named("fake".into()),
             output_defs: OutputFormatContent::mk_fake(),
             output_type: FieldType::Primitive(TypeValue::String),
+            xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         }
     }
 
@@ -106,6 +109,25 @@ impl PromptRenderer {
         res
     }
 
+    /// Smart parse that automatically chooses between XML and JSON parsing based on the format used during rendering
+    pub fn smart_parse(
+        &self,
+        ir: &IntermediateRepr,
+        ctx: &RuntimeContext,
+        raw_string: &str,
+        allow_partials: bool,
+    ) -> Result<ResponseBamlValue> {
+        let xml_used = self
+            .xml_format_used
+            .load(std::sync::atomic::Ordering::Relaxed);
+
+        if xml_used {
+            self.parse_xml(ir, ctx, raw_string, allow_partials)
+        } else {
+            self.parse(ir, ctx, raw_string, allow_partials)
+        }
+    }
+
     pub fn render_prompt(
         &self,
         ir: &IntermediateRepr,
@@ -121,14 +143,17 @@ impl PromptRenderer {
             error_unsupported!("function", self.function_name, "no valid prompt found")
         };
 
-        internal_baml_jinja::render_prompt(
+        let render_ctx = RenderContext {
+            client: client_ctx.clone(),
+            tags: ctx.tags.clone(),
+            output_format: self.output_defs.clone(),
+            xml_format_used: self.xml_format_used.clone(),
+        };
+
+        let (rendered_prompt, xml_used) = internal_baml_jinja::render_prompt(
             &config.prompt_template,
             params,
-            RenderContext {
-                client: client_ctx.clone(),
-                tags: ctx.tags.clone(),
-                output_format: self.output_defs.clone(),
-            },
+            render_ctx,
             &ir.walk_template_strings()
                 .map(|t| TemplateStringMacro {
                     name: t.name().into(),
@@ -142,6 +167,12 @@ impl PromptRenderer {
                 .collect::<Vec<_>>(),
             ir,
             ctx.env_vars(),
-        )
+        )?;
+
+        // Store whether XML format was used for later use in parsing
+        self.xml_format_used
+            .store(xml_used, std::sync::atomic::Ordering::Relaxed);
+
+        Ok(rendered_prompt)
     }
 }

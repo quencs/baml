@@ -20,6 +20,7 @@ pub struct OutputFormat {
 #[derive(Debug)]
 pub struct OutputFormatXml {
     text: OutputFormatContent,
+    xml_format_used: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl OutputFormat {
@@ -34,6 +35,7 @@ impl OutputFormatXml {
     pub fn new(ctx: RenderContext) -> Self {
         Self {
             text: ctx.output_format,
+            xml_format_used: ctx.xml_format_used,
         }
     }
 }
@@ -236,7 +238,7 @@ impl minijinja::value::Object for OutputFormat {
             None => Ok(Value::from_serialize("")),
         }
     }
-    
+
     fn call_method(
         self: &std::sync::Arc<Self>,
         _state: &minijinja::State<'_, '_>,
@@ -270,6 +272,10 @@ impl minijinja::value::Object for OutputFormatXml {
                 "output_format_xml() may only be called with named arguments".to_string(),
             ));
         }
+
+        // Set the flag to indicate XML format was used
+        self.xml_format_used
+            .store(true, std::sync::atomic::Ordering::Relaxed);
 
         let prefix = if kwargs.has("prefix") {
             match kwargs.get::<Option<String>>("prefix") {
@@ -340,7 +346,8 @@ impl minijinja::value::Object for OutputFormatXml {
                     return Err(Error::new(
                         ErrorKind::SyntaxError,
                         format!(
-                            "Invalid value for hoisted_class_prefix (expected string | null): {e}"
+                            "Invalid value for hoisted_class_prefix (expected string | null): {}",
+                            e
                         ),
                     ))
                 }
@@ -350,21 +357,16 @@ impl minijinja::value::Object for OutputFormatXml {
         };
 
         let hoist_classes = if kwargs.has("hoist_classes") {
-            // true | false
-            match kwargs.get::<bool>("hoist_classes") {
-                Ok(true) => Some(HoistClasses::All),
-                Ok(false) => Some(HoistClasses::Auto),
-                // auto
-                Err(_) => match kwargs.get::<String>("hoist_classes") {
-                    Ok(s) if s == "auto" => Some(HoistClasses::Auto),
-                    // subset
-                    _ => match kwargs.get::<Vec<String>>("hoist_classes") {
-                        Ok(classes) => Some(HoistClasses::Subset(classes)),
-                        Err(e) => return Err(Error::new(
-                            ErrorKind::SyntaxError,
-                            format!("Invalid value for hoist_classes (expected one of bool | \"auto\" | string[]): {e}")
-                        ))
-                    }
+            match kwargs.get::<Vec<String>>("hoist_classes") {
+                Ok(classes) => Some(HoistClasses::Subset(classes)),
+                Err(e) => {
+                    return Err(Error::new(
+                        ErrorKind::SyntaxError,
+                        format!(
+                            "Invalid value for hoist_classes (expected list<string>): {}",
+                            e
+                        ),
+                    ))
                 }
             }
         } else {
@@ -425,7 +427,7 @@ impl minijinja::value::Object for OutputFormatXml {
             None => Ok(Value::from_serialize("")),
         }
     }
-    
+
     fn call_method(
         self: &std::sync::Arc<Self>,
         _state: &minijinja::State<'_, '_>,

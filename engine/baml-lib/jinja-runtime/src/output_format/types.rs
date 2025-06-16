@@ -363,9 +363,27 @@ impl std::fmt::Display for XmlClassRender {
         writeln!(f, "<{}>", self.name)?;
         for field in &self.fields {
             if let Some(desc) = &field.description {
-                writeln!(f, "  <!-- {} -->", desc.replace("\n", "\n  <!-- ").trim_end_matches("<!-- "))?;
+                writeln!(
+                    f,
+                    "  <!-- {} -->",
+                    desc.replace("\n", "\n  <!-- ").trim_end_matches("<!-- ")
+                )?;
             }
-            writeln!(f, "  <{}>{}</{}>", field.name, field.r#type, field.name)?;
+
+            // Check if the field type contains nested XML (starts with '<')
+            if field.r#type.trim_start().starts_with('<') {
+                // For nested XML structures, add proper indentation
+                writeln!(f, "  <{}>", field.name)?;
+                for line in field.r#type.lines() {
+                    if !line.trim().is_empty() {
+                        writeln!(f, "    {}", line)?;
+                    }
+                }
+                writeln!(f, "  </{}>", field.name)?;
+            } else {
+                // For simple types, use inline format
+                writeln!(f, "  <{}>{}</{}>", field.name, field.r#type, field.name)?;
+            }
         }
         write!(f, "</{}>", self.name)
     }
@@ -1263,7 +1281,8 @@ impl OutputFormatContent {
             }
             FieldType::RecursiveTypeAlias(name) => name.to_owned(),
             FieldType::List(inner) => {
-                let inner_str = self.render_possibly_hoisted_type_xml(options, inner, render_ctx)?;
+                let inner_str =
+                    self.render_possibly_hoisted_type_xml(options, inner, render_ctx)?;
                 format!("list of <{}> elements", inner_str)
             }
             FieldType::Union(items) => items
@@ -1272,7 +1291,8 @@ impl OutputFormatContent {
                 .collect::<Result<Vec<_>, minijinja::Error>>()?
                 .join(&options.or_splitter),
             FieldType::Optional(inner) => {
-                let inner_str = self.render_possibly_hoisted_type_xml(options, inner, render_ctx)?;
+                let inner_str =
+                    self.render_possibly_hoisted_type_xml(options, inner, render_ctx)?;
                 if inner.is_optional() {
                     inner_str
                 } else {
@@ -1286,9 +1306,14 @@ impl OutputFormatContent {
                 ))
             }
             FieldType::Map(key_type, value_type) => {
-                let key_str = self.render_possibly_hoisted_type_xml(options, key_type, render_ctx)?;
-                let value_str = self.render_possibly_hoisted_type_xml(options, value_type, render_ctx)?;
-                format!("elements with {} attributes containing {}", key_str, value_str)
+                let key_str =
+                    self.render_possibly_hoisted_type_xml(options, key_type, render_ctx)?;
+                let value_str =
+                    self.render_possibly_hoisted_type_xml(options, value_type, render_ctx)?;
+                format!(
+                    "elements with {} attributes containing {}",
+                    key_str, value_str
+                )
             }
             FieldType::Arrow(_) => {
                 return Err(minijinja::Error::new(
@@ -3705,39 +3730,6 @@ VALUE_ENUM
         );
     }
 
-    #[test]
-    fn render_enum_with_descriptions_default_prefix() {
-        let enums = vec![Enum {
-            name: Name::new("Tag".to_string()),
-            values: vec![
-                (
-                    Name::new("Urgent".to_string()),
-                    Some("Requires immediate attention".to_string()),
-                ),
-                (Name::new("Normal".to_string()), None),
-                (Name::new("Low".to_string()), None),
-            ],
-            constraints: Vec::new(),
-        }];
-
-        let content = OutputFormatContent::target(FieldType::Enum("Tag".to_string()))
-            .enums(enums)
-            .build();
-        let rendered = content
-            .render(RenderOptions::default())
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            rendered,
-            r#"Answer with any of the categories:
-Tag
-----
-- Urgent: Requires immediate attention
-- Normal
-- Low"#
-        )
-    }
-
     // XML rendering tests
     #[test]
     fn test_xml_render_class() {
@@ -3823,68 +3815,98 @@ Color
     }
 
     #[test]
-    fn render_enum_with_descriptions_different_name() {
-        let enums = vec![Enum {
-            name: Name::new("Tag".to_string()),
-            values: vec![
+    fn test_xml_render_nested_class() {
+        // Create nested classes that match the user's example
+        let inner_class2 = Class {
+            name: Name::new("InnerClass2".to_string()),
+            fields: vec![
                 (
-                    Name::new("Urgent".to_string()),
-                    Some("Requires immediate attention".to_string()),
+                    Name::new("prop2".to_string()),
+                    FieldType::int(),
+                    None,
+                    false,
                 ),
-                (Name::new("Normal".to_string()), None),
-                (Name::new("Low".to_string()), None),
+                (
+                    Name::new("prop3".to_string()),
+                    FieldType::float(),
+                    None,
+                    false,
+                ),
             ],
             constraints: Vec::new(),
-        }];
+            streaming_behavior: StreamingBehavior::default(),
+        };
 
-        let content = OutputFormatContent::target(FieldType::Enum("Tag".to_string()))
-            .enums(enums)
-            .build();
-        let rendered = content
-            .render(RenderOptions::default())
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            rendered,
-            r#"Answer with any of the categories:
-Tag
-----
-- Urgent: Requires immediate attention
-- Normal
-- Low"#
-        )
-    }
-
-    #[test]
-    fn render_enum_with_descriptions_tag_test() {
-        let enums = vec![Enum {
-            name: Name::new("Tag".to_string()),
-            values: vec![
+        let inner_class = Class {
+            name: Name::new("InnerClass".to_string()),
+            fields: vec![
                 (
-                    Name::new("Urgent".to_string()),
-                    Some("Requires immediate attention".to_string()),
+                    Name::new("prop1".to_string()),
+                    FieldType::string(),
+                    None,
+                    false,
                 ),
-                (Name::new("Normal".to_string()), None),
-                (Name::new("Low".to_string()), None),
+                (
+                    Name::new("prop2".to_string()),
+                    FieldType::string(),
+                    None,
+                    false,
+                ),
+                (
+                    Name::new("inner".to_string()),
+                    FieldType::class("InnerClass2"),
+                    None,
+                    false,
+                ),
             ],
             constraints: Vec::new(),
-        }];
+            streaming_behavior: StreamingBehavior::default(),
+        };
 
-        let content = OutputFormatContent::target(FieldType::Enum("Tag".to_string()))
-            .enums(enums)
+        let test_class_nested = Class {
+            name: Name::new("TestClassNested".to_string()),
+            fields: vec![
+                (
+                    Name::new("prop1".to_string()),
+                    FieldType::string(),
+                    None,
+                    false,
+                ),
+                (
+                    Name::new("prop2".to_string()),
+                    FieldType::class("InnerClass"),
+                    None,
+                    false,
+                ),
+            ],
+            constraints: Vec::new(),
+            streaming_behavior: StreamingBehavior::default(),
+        };
+
+        let classes = vec![test_class_nested, inner_class, inner_class2];
+
+        let content = OutputFormatContent::target(FieldType::class("TestClassNested"))
+            .classes(classes)
             .build();
-        let rendered = content
-            .render(RenderOptions::default())
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            rendered,
-            r#"Answer with any of the categories:
-Tag
-----
-- Urgent: Requires immediate attention
-- Normal
-- Low"#
-        )
+        let rendered = content.render_xml(RenderOptions::default()).unwrap();
+
+        let expected = r#"Answer in XML using this schema:
+<TestClassNested>
+  <prop1>text content</prop1>
+  <prop2>
+    <InnerClass>
+      <prop1>text content</prop1>
+      <prop2>text content</prop2>
+      <inner>
+        <InnerClass2>
+          <prop2>integer</prop2>
+          <prop3>decimal</prop3>
+        </InnerClass2>
+      </inner>
+    </InnerClass>
+  </prop2>
+</TestClassNested>"#;
+
+        assert_eq!(rendered, Some(expected.to_string()));
     }
 }

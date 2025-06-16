@@ -1016,7 +1016,7 @@ impl BamlRuntime {
             &ctx,
         )?;
 
-        renderer.parse(&self.inner.ir(), &ctx, &llm_response, allow_partials)
+        renderer.smart_parse(&self.inner.ir(), &ctx, &llm_response, allow_partials)
     }
 
     #[cfg(not(target_arch = "wasm32"))]

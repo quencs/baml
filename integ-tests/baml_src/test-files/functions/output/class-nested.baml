@@ -18,10 +18,9 @@ function FnOutputClassNested(input: string) -> TestClassNested {
   client GPT35
   prompt #"
     Return a made up json blob that matches this schema:
-    {{ctx.output_format}}
-    ---
+    {{ctx.output_format_xml}}
 
-    JSON:
+    dont add backtic xml. Just the raw xml as if it was an xml request.
   "#
 }
 

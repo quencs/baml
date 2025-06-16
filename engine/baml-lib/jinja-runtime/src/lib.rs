@@ -36,6 +36,7 @@ pub struct RenderContext {
     pub client: RenderContext_Client,
     pub output_format: OutputFormatContent,
     pub tags: HashMap<String, BamlValue>,
+    pub xml_format_used: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 pub struct TemplateStringMacro {
@@ -54,7 +55,7 @@ fn render_minijinja(
     template_string_macros: &[TemplateStringMacro],
     default_role: String,
     allowed_roles: Vec<String>,
-) -> Result<RenderedPrompt, minijinja::Error> {
+) -> Result<(RenderedPrompt, bool), minijinja::Error> {
     let mut env = get_env();
 
     // dedent
@@ -98,17 +99,19 @@ fn render_minijinja(
     env.add_template("prompt", &template)?;
     let client = ctx.client.clone();
     let output_format = ctx.output_format.clone();
+    let xml_format_used = ctx.xml_format_used.clone();
     let tags = std::mem::take(&mut ctx.tags);
     let formatter = OutputFormat::new(ctx);
-    
-    // Create XML formatter with new RenderContext
+
+    // Create XML formatter with shared xml_format_used flag
     let xml_ctx = RenderContext {
         client: client.clone(),
         output_format: output_format.clone(),
         tags: HashMap::new(), // Empty tags since we already moved them
+        xml_format_used: xml_format_used.clone(),
     };
     let xml_formatter = OutputFormatXml::new(xml_ctx);
-    
+
     env.add_global(
         "ctx",
         context! {
@@ -185,7 +188,8 @@ fn render_minijinja(
     let rendered = tmpl.render(args)?;
 
     if !rendered.contains(MAGIC_CHAT_ROLE_DELIMITER) && !rendered.contains(MAGIC_MEDIA_DELIMITER) {
-        return Ok(RenderedPrompt::Completion(rendered));
+        let xml_used = xml_format_used.load(std::sync::atomic::Ordering::Relaxed);
+        return Ok((RenderedPrompt::Completion(rendered), xml_used));
     }
 
     let mut chat_messages = vec![];
@@ -268,7 +272,8 @@ fn render_minijinja(
         }
     }
 
-    Ok(RenderedPrompt::Chat(chat_messages))
+    let xml_used = xml_format_used.load(std::sync::atomic::Ordering::Relaxed);
+    Ok((RenderedPrompt::Chat(chat_messages), xml_used))
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -390,31 +395,6 @@ impl RenderedPrompt {
     }
 }
 
-// pub fn render_prompt(
-//     template: &str,
-//     args: &minijinja::Value,
-//     ctx: RenderContext,
-//     template_string_macros: &[TemplateStringMacro],
-// ) -> anyhow::Result<RenderedPrompt> {
-//     let rendered = render_minijinja(template, args, ctx, template_string_macros);
-
-//     match rendered {
-//         Ok(r) => Ok(r),
-//         Err(err) => {
-//             let mut minijinja_err = "".to_string();
-//             minijinja_err += &format!("{err:#}");
-
-//             let mut err = &err as &dyn std::error::Error;
-//             while let Some(next_err) = err.source() {
-//                 minijinja_err += &format!("\n\ncaused by: {next_err:#}");
-//                 err = next_err;
-//             }
-
-//             anyhow::bail!("Error occurred while rendering prompt: {minijinja_err}");
-//         }
-//     }
-// }
-
 pub fn render_prompt(
     template: &str,
     args: &BamlValue,
@@ -422,7 +402,7 @@ pub fn render_prompt(
     template_string_macros: &[TemplateStringMacro],
     ir: &IntermediateRepr,
     env_vars: &HashMap<String, String>,
-) -> anyhow::Result<RenderedPrompt> {
+) -> anyhow::Result<(RenderedPrompt, bool)> {
     if !matches!(args, BamlValue::Map(_)) {
         anyhow::bail!("args must be a map");
     }
@@ -440,7 +420,7 @@ pub fn render_prompt(
     );
 
     match rendered {
-        Ok(r) => Ok(r),
+        Ok((r, xml_used)) => Ok((r, xml_used)),
         Err(err) => {
             let mut minijinja_err = "".to_string();
             minijinja_err += &format!("{err:#}");
@@ -530,6 +510,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -537,7 +518,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Chat(vec![RenderedChatMessage {
                 role: "system".to_string(),
                 allow_duplicate_role: false,
@@ -549,7 +530,7 @@ mod render_tests {
                         None
                     )),
                 ]
-            },])
+            }])
         );
 
         Ok(())
@@ -591,6 +572,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -598,7 +580,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Chat(vec![RenderedChatMessage {
                 role: "system".to_string(),
                 allow_duplicate_role: false,
@@ -610,7 +592,7 @@ mod render_tests {
                         None
                     )),
                 ]
-            },])
+            }])
         );
 
         Ok(())
@@ -650,6 +632,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -657,7 +640,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Chat(vec![RenderedChatMessage {
                 role: "system".to_string(),
                 allow_duplicate_role: false,
@@ -670,7 +653,7 @@ mod render_tests {
                     )),
                     ChatMessagePart::Text([". Please help me."].join("\n")),
                 ]
-            },])
+            }])
         );
 
         Ok(())
@@ -718,6 +701,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -725,7 +709,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Chat(vec![
                 RenderedChatMessage {
                     role: "system".to_string(),
@@ -796,6 +780,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -803,7 +788,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Completion(
                 [
                     "You are an assistant that always responds",
@@ -847,13 +832,14 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
             &HashMap::new(),
         )?;
 
-        assert_eq!(rendered, RenderedPrompt::Completion("".to_string()));
+        assert_eq!(rendered.0, RenderedPrompt::Completion("".to_string()));
 
         Ok(())
     }
@@ -887,13 +873,14 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
             &HashMap::new(),
         )?;
 
-        assert_eq!(rendered, RenderedPrompt::Completion("HI! ".to_string()));
+        assert_eq!(rendered.0, RenderedPrompt::Completion("HI! ".to_string()));
 
         Ok(())
     }
@@ -927,13 +914,14 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
             &HashMap::new(),
         )?;
 
-        assert_eq!(rendered, RenderedPrompt::Completion("".into()));
+        assert_eq!(rendered.0, RenderedPrompt::Completion("".into()));
 
         Ok(())
     }
@@ -967,6 +955,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -974,7 +963,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Completion("custom format:string".to_string())
         );
 
@@ -1029,6 +1018,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1089,6 +1079,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1096,7 +1087,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Chat(vec![
                 RenderedChatMessage {
                     role: "system".to_string(),
@@ -1173,6 +1164,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1180,7 +1172,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Chat(vec![
                 RenderedChatMessage {
                     role: "system".to_string(),
@@ -1251,6 +1243,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1258,7 +1251,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Chat(vec![RenderedChatMessage {
                 role: "system".to_string(),
                 allow_duplicate_role: false,
@@ -1271,7 +1264,7 @@ mod render_tests {
                     ]
                     .join("\n")
                 )]
-            },])
+            }])
         );
 
         Ok(())
@@ -1306,6 +1299,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1357,6 +1351,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1364,7 +1359,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Completion("{\n    \"key1\": \"value\",\n}".to_string())
         );
 
@@ -1404,13 +1399,14 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
             &HashMap::new(),
         )?;
 
-        assert_eq!(rendered, RenderedPrompt::Completion("true".to_string()));
+        assert_eq!(rendered.0, RenderedPrompt::Completion("true".to_string()));
 
         let rendered = render_prompt(
             "{% if class_arg.prop1 != 'value' %}true{% else %}false{% endif %}",
@@ -1424,13 +1420,14 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
             &HashMap::new(),
         )?;
 
-        assert_eq!(rendered, RenderedPrompt::Completion("false".to_string()));
+        assert_eq!(rendered.0, RenderedPrompt::Completion("false".to_string()));
 
         Ok(())
     }
@@ -1467,13 +1464,14 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
             &HashMap::new(),
         )?;
 
-        assert_eq!(rendered, RenderedPrompt::Completion("true".to_string()));
+        assert_eq!(rendered.0, RenderedPrompt::Completion("true".to_string()));
 
         let rendered = render_prompt(
             "{% if class_arg.prop1 > 50 %}true{% else %}false{% endif %}",
@@ -1487,13 +1485,14 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
             &HashMap::new(),
         )?;
 
-        assert_eq!(rendered, RenderedPrompt::Completion("false".to_string()));
+        assert_eq!(rendered.0, RenderedPrompt::Completion("false".to_string()));
 
         Ok(())
     }
@@ -1530,13 +1529,14 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
             &HashMap::new(),
         )?;
 
-        assert_eq!(rendered, RenderedPrompt::Completion("false".to_string()));
+        assert_eq!(rendered.0, RenderedPrompt::Completion("false".to_string()));
 
         Ok(())
     }
@@ -1604,6 +1604,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1611,7 +1612,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Completion("{\n    \"alias_a_prop1\": \"value_a\",\n    \"a_prop2\": {\n        \"alias_b_prop1\": \"value_b\",\n        \"b_prop2\": [\n            \"item1\",\n            \"item2\",\n        ],\n    },\n}\nvalue_a - value_b - 2".to_string())
         );
 
@@ -1698,6 +1699,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1705,7 +1707,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Completion("value_a - 2 - value_b1 - 1".to_string())
         );
 
@@ -1804,6 +1806,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1811,7 +1814,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Completion("2 - value_a1 - value_b2 - true".to_string())
         );
 
@@ -1881,6 +1884,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1888,7 +1892,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Completion("value_a1 - 1 - value_b1 - 2".to_string())
         );
 
@@ -1941,6 +1945,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -1948,7 +1953,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Chat(vec![RenderedChatMessage {
                 role: "system".to_string(),
                 allow_duplicate_role: false,
@@ -2046,6 +2051,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::new(),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             &ir,
@@ -2053,7 +2059,7 @@ mod render_tests {
         )?;
 
         assert_eq!(
-            rendered,
+            rendered.0,
             RenderedPrompt::Completion("Enum value: VALUE_A".to_string())
         );
 
@@ -2127,6 +2133,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("system".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             "user".to_string(),
@@ -2134,8 +2141,8 @@ mod render_tests {
         )
         .expect("Rendering should succeed");
         match result {
-            RenderedPrompt::Completion(msg) => assert_eq!(msg, "Greg\n"),
-            _ => panic!("Expected Completion"),
+            (RenderedPrompt::Completion(msg), _) => assert_eq!(msg, "Greg\n"),
+            _ => panic!("Expected completion"),
         }
     }
 
@@ -2176,15 +2183,16 @@ mod render_tests {
             },
             output_format: OutputFormatContent::new_string(),
             tags: HashMap::from([("ROLE".to_string(), BamlValue::String("system".into()))]),
+            xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
         let env_vars = HashMap::new();
         let prompt =
             render_prompt(template, &args, ctx, &[], &ir, &env_vars).expect("should render");
         match prompt {
-            RenderedPrompt::Completion(msg) => {
+            (RenderedPrompt::Completion(msg), _) => {
                 assert_eq!(msg, "Greg\n")
             }
-            _ => panic!("Expected Completion"),
+            _ => panic!("Expected completion"),
         }
     }
 
@@ -2209,6 +2217,7 @@ mod render_tests {
                 },
                 output_format: OutputFormatContent::new_string(),
                 tags: HashMap::from([("ROLE".to_string(), BamlValue::String("system".into()))]),
+                xml_format_used: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             },
             &[],
             "user".to_string(),
@@ -2216,8 +2225,8 @@ mod render_tests {
         )
         .expect("Rendering should succeed");
         match result {
-            RenderedPrompt::Completion(msg) => assert_eq!(msg, "Greg\n"),
-            _ => panic!("Expected Completion"),
+            (RenderedPrompt::Completion(msg), _) => assert_eq!(msg, "Greg\n"),
+            _ => panic!("Expected completion"),
         }
     }
 }
