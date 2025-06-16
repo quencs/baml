@@ -13,6 +13,17 @@
 //	$ go install github.com/boundaryml/baml/baml-cli
 package types
 
+import (
+	"encoding/json"
+	"fmt"
+
+	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+	flatbuffers "github.com/google/flatbuffers/go"
+)
+
+type RecursiveUnion = Union2MapStringKeyRecursiveUnionValueOrString
+
 type LinkedListAlias = LinkedListAliasNode
 
 type NodeIndirection = NodeWithAliasIndirection
@@ -20,8 +31,6 @@ type NodeIndirection = NodeWithAliasIndirection
 type JsonEntry = Union2JsonTemplateOrSimpleTag
 
 type JsonTemplate = map[string]JsonEntry
-
-type RecursiveUnion = Union2MapStringKeyRecursiveUnionValueOrString
 
 type Primitive = Union4BoolOrFloatOrIntOrString
 

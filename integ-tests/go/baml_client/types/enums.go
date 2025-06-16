@@ -80,11 +80,20 @@ func (e *AliasedEnum) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e AliasedEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "AliasedEnum", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e AliasedEnum) BamlTypeName() string {
 	return "AliasedEnum"
+}
+
+func (u AliasedEnum) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("AliasedEnum")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Category string
@@ -151,11 +160,20 @@ func (e *Category) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e Category) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "Category", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e Category) BamlTypeName() string {
 	return "Category"
+}
+
+func (u Category) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Category")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Category2 string
@@ -222,11 +240,20 @@ func (e *Category2) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e Category2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "Category2", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e Category2) BamlTypeName() string {
 	return "Category2"
+}
+
+func (u Category2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Category2")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Category3 string
@@ -293,11 +320,20 @@ func (e *Category3) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e Category3) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "Category3", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e Category3) BamlTypeName() string {
 	return "Category3"
+}
+
+func (u Category3) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Category3")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Color string
@@ -362,11 +398,20 @@ func (e *Color) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e Color) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "Color", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e Color) BamlTypeName() string {
 	return "Color"
+}
+
+func (u Color) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Color")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DataType string
@@ -427,11 +472,20 @@ func (e *DataType) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e DataType) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "DataType", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e DataType) BamlTypeName() string {
 	return "DataType"
+}
+
+func (u DataType) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DataType")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DynEnumOne string
@@ -485,11 +539,20 @@ func (e *DynEnumOne) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e DynEnumOne) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "DynEnumOne", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e DynEnumOne) BamlTypeName() string {
 	return "DynEnumOne"
+}
+
+func (u DynEnumOne) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DynEnumOne")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DynEnumTwo string
@@ -543,11 +606,20 @@ func (e *DynEnumTwo) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e DynEnumTwo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "DynEnumTwo", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e DynEnumTwo) BamlTypeName() string {
 	return "DynEnumTwo"
+}
+
+func (u DynEnumTwo) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DynEnumTwo")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type EnumInClass string
@@ -608,11 +680,20 @@ func (e *EnumInClass) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e EnumInClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "EnumInClass", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e EnumInClass) BamlTypeName() string {
 	return "EnumInClass"
+}
+
+func (u EnumInClass) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("EnumInClass")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 // An enum with three values,
@@ -680,11 +761,20 @@ func (e *EnumOutput) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e EnumOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "EnumOutput", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e EnumOutput) BamlTypeName() string {
 	return "EnumOutput"
+}
+
+func (u EnumOutput) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("EnumOutput")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Hobby string
@@ -743,11 +833,20 @@ func (e *Hobby) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e Hobby) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "Hobby", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e Hobby) BamlTypeName() string {
 	return "Hobby"
+}
+
+func (u Hobby) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Hobby")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type MapKey string
@@ -810,11 +909,20 @@ func (e *MapKey) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e MapKey) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "MapKey", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e MapKey) BamlTypeName() string {
 	return "MapKey"
+}
+
+func (u MapKey) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("MapKey")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type NamedArgsSingleEnum string
@@ -875,11 +983,20 @@ func (e *NamedArgsSingleEnum) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e NamedArgsSingleEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "NamedArgsSingleEnum", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e NamedArgsSingleEnum) BamlTypeName() string {
 	return "NamedArgsSingleEnum"
+}
+
+func (u NamedArgsSingleEnum) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("NamedArgsSingleEnum")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type NamedArgsSingleEnumList string
@@ -940,11 +1057,20 @@ func (e *NamedArgsSingleEnumList) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e NamedArgsSingleEnumList) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "NamedArgsSingleEnumList", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e NamedArgsSingleEnumList) BamlTypeName() string {
 	return "NamedArgsSingleEnumList"
+}
+
+func (u NamedArgsSingleEnumList) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("NamedArgsSingleEnumList")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type OptionalTest_CategoryType string
@@ -1007,11 +1133,20 @@ func (e *OptionalTest_CategoryType) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e OptionalTest_CategoryType) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "OptionalTest_CategoryType", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e OptionalTest_CategoryType) BamlTypeName() string {
 	return "OptionalTest_CategoryType"
+}
+
+func (u OptionalTest_CategoryType) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("OptionalTest_CategoryType")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type OrderStatus string
@@ -1076,11 +1211,20 @@ func (e *OrderStatus) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e OrderStatus) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "OrderStatus", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e OrderStatus) BamlTypeName() string {
 	return "OrderStatus"
+}
+
+func (u OrderStatus) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("OrderStatus")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Tag string
@@ -1143,11 +1287,20 @@ func (e *Tag) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e Tag) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "Tag", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e Tag) BamlTypeName() string {
 	return "Tag"
+}
+
+func (u Tag) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Tag")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type TestEnum string
@@ -1218,9 +1371,18 @@ func (e *TestEnum) Decode(holder cffi.CFFIValueEnum) {
 }
 
 func (e TestEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, "TestEnum", string(e), false)
+	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
 }
 
 func (e TestEnum) BamlTypeName() string {
 	return "TestEnum"
+}
+
+func (u TestEnum) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TestEnum")
+	namespaceOffset := builder.CreateString("types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }

@@ -14,8 +14,6 @@
 package baml_client
 
 import (
-	"reflect"
-
 	"example.com/integ-tests/baml_client/stream_types"
 	"example.com/integ-tests/baml_client/types"
 )
@@ -255,6 +253,12 @@ var typeMap = map[string]reflect.Type{
 	"stream_types.Union__int__string":                                                      reflect.TypeOf(stream_types.Union2IntOrString{}),
 	"types.Union__JsonTemplate__SimpleTag":                                                 reflect.TypeOf(types.Union2JsonTemplateOrSimpleTag{}),
 	"stream_types.Union__JsonTemplate__SimpleTag":                                          reflect.TypeOf(stream_types.Union2JsonTemplateOrSimpleTag{}),
+	"types.Union__string_barisa__string_ox_burger":                                         reflect.TypeOf(types.Union2KbarisaOrKox_burger{}),
+	"stream_types.Union__string_barisa__string_ox_burger":                                  reflect.TypeOf(stream_types.Union2KbarisaOrKox_burger{}),
+	"types.Union__string_breakfast__string_dinner":                                         reflect.TypeOf(types.Union2KbreakfastOrKdinner{}),
+	"stream_types.Union__string_breakfast__string_dinner":                                  reflect.TypeOf(stream_types.Union2KbreakfastOrKdinner{}),
+	"types.Union__string_curiosity__string_personal_finance":                               reflect.TypeOf(types.Union2KcuriosityOrKpersonal_finance{}),
+	"stream_types.Union__string_curiosity__string_personal_finance":                        reflect.TypeOf(stream_types.Union2KcuriosityOrKpersonal_finance{}),
 	"types.Union__List__bool__List__int":                                                   reflect.TypeOf(types.Union2ListBoolOrListInt{}),
 	"stream_types.Union__List__bool__List__int":                                            reflect.TypeOf(stream_types.Union2ListBoolOrListInt{}),
 	"types.Union__List__Nested__string":                                                    reflect.TypeOf(types.Union2ListNestedOrString{}),
@@ -267,26 +271,20 @@ var typeMap = map[string]reflect.Type{
 	"stream_types.Union__Nested__string":                                                   reflect.TypeOf(stream_types.Union2NestedOrString{}),
 	"types.Union__OriginalA__OriginalB":                                                    reflect.TypeOf(types.Union2OriginalAOrOriginalB{}),
 	"stream_types.Union__OriginalA__OriginalB":                                             reflect.TypeOf(stream_types.Union2OriginalAOrOriginalB{}),
-	"types.Union__string_barisa__string_ox_burger":                                         reflect.TypeOf(types.Union2StringKbarisaOrStringKox_burger{}),
-	"stream_types.Union__string_barisa__string_ox_burger":                                  reflect.TypeOf(stream_types.Union2StringKbarisaOrStringKox_burger{}),
-	"types.Union__string_breakfast__string_dinner":                                         reflect.TypeOf(types.Union2StringKbreakfastOrStringKdinner{}),
-	"stream_types.Union__string_breakfast__string_dinner":                                  reflect.TypeOf(stream_types.Union2StringKbreakfastOrStringKdinner{}),
-	"types.Union__string_curiosity__string_personal_finance":                               reflect.TypeOf(types.Union2StringKcuriosityOrStringKpersonal_finance{}),
-	"stream_types.Union__string_curiosity__string_personal_finance":                        reflect.TypeOf(stream_types.Union2StringKcuriosityOrStringKpersonal_finance{}),
 	"types.Union__Tag__string":                                                             reflect.TypeOf(types.Union2StringOrTag{}),
 	"stream_types.Union__Tag__string":                                                      reflect.TypeOf(stream_types.Union2StringOrTag{}),
 	"types.Union__AnotherObject__ComplexMemoryObject__MemoryObject":                        reflect.TypeOf(types.Union3AnotherObjectOrComplexMemoryObjectOrMemoryObject{}),
 	"stream_types.Union__AnotherObject__ComplexMemoryObject__MemoryObject":                 reflect.TypeOf(stream_types.Union3AnotherObjectOrComplexMemoryObjectOrMemoryObject{}),
 	"types.Union__BookOrder__FlightConfirmation__GroceryReceipt":                           reflect.TypeOf(types.Union3BookOrderOrFlightConfirmationOrGroceryReceipt{}),
 	"stream_types.Union__BookOrder__FlightConfirmation__GroceryReceipt":                    reflect.TypeOf(stream_types.Union3BookOrderOrFlightConfirmationOrGroceryReceipt{}),
-	"types.Union__bool_true__int_1__string_string_output":                                  reflect.TypeOf(types.Union3BoolKTrueOrIntK1OrStringKstring_output{}),
-	"stream_types.Union__bool_true__int_1__string_string_output":                           reflect.TypeOf(stream_types.Union3BoolKTrueOrIntK1OrStringKstring_output{}),
+	"types.Union__bool_true__int_1__string_string_output":                                  reflect.TypeOf(types.Union3BoolKTrueOrIntK1OrKstring_output{}),
+	"stream_types.Union__bool_true__int_1__string_string_output":                           reflect.TypeOf(stream_types.Union3BoolKTrueOrIntK1OrKstring_output{}),
 	"types.Union__float__int__string":                                                      reflect.TypeOf(types.Union3FloatOrIntOrString{}),
 	"stream_types.Union__float__int__string":                                               reflect.TypeOf(stream_types.Union3FloatOrIntOrString{}),
 	"types.Union__bool__float__int__string":                                                reflect.TypeOf(types.Union4BoolOrFloatOrIntOrString{}),
 	"stream_types.Union__bool__float__int__string":                                         reflect.TypeOf(stream_types.Union4BoolOrFloatOrIntOrString{}),
-	"types.Union__string_four__string_one__string_three__string_two":                       reflect.TypeOf(types.Union4StringKfourOrStringKoneOrStringKthreeOrStringKtwo{}),
-	"stream_types.Union__string_four__string_one__string_three__string_two":                reflect.TypeOf(stream_types.Union4StringKfourOrStringKoneOrStringKthreeOrStringKtwo{}),
+	"types.Union__string_four__string_one__string_three__string_two":                       reflect.TypeOf(types.Union4KfourOrKoneOrKthreeOrKtwo{}),
+	"stream_types.Union__string_four__string_one__string_three__string_two":                reflect.TypeOf(stream_types.Union4KfourOrKoneOrKthreeOrKtwo{}),
 	"types.Union__JsonArray__JsonObject__bool__float__int__string":                         reflect.TypeOf(types.Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString{}),
 	"stream_types.Union__JsonArray__JsonObject__bool__float__int__string":                  reflect.TypeOf(stream_types.Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString{}),
 	"types.Union__List__string__Map__string_List__string__bool__float__int__string":        reflect.TypeOf(types.Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString{}),

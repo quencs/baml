@@ -2,11 +2,12 @@ use crate::generate_types::OpenApiUserData;
 use crate::r#type::TypeOpenApi;
 use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeatures};
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json;
 use serde_yaml;
 use std::hash::Hash;
 
+pub mod builtin_schemas;
 pub mod generate_types;
 pub mod r#type;
 
@@ -39,10 +40,12 @@ impl LanguageFeatures for OpenApiLanguageFeatures {
         _args: &GeneratorArgs,
     ) -> Result<(), anyhow::Error> {
         let user_data = OpenApiUserData::from_ir(ir.as_ref());
-        let rendered = user_data.render();
-        collector.add_file("openapi.yaml", rendered);
+        let rendered = serde_yaml::to_string(&user_data.render())?;
+        collector.add_file("openapi.yaml", rendered)?;
         Ok(())
     }
+
+    const GITIGNORE: Option<&'static str> = Some(".gitignore");
 }
 
 /// The top-level schema for the OpenAPI yaml file.
@@ -56,6 +59,13 @@ pub struct OpenApiSchema {
     pub servers: serde_json::Value,
     pub paths: IndexMap<String, IndexMap<String, Path>>,
     pub components: Components,
+}
+
+impl OpenApiSchema {
+    pub fn from_ir(ir: &IntermediateRepr) -> Self {
+        let user_data = OpenApiUserData::from_ir(ir);
+        user_data.render()
+    }
 }
 
 /// Format of the items in the `paths` field.
@@ -77,25 +87,6 @@ struct Response {
     // response_type: String,
     // schema: TypeOpenApi,
 }
-
-// impl Serialize for Response {
-//     fn serialize<S: serde::Serializer>(
-//         &self,
-//         serializer: S,
-//     ) -> core::result::Result<S::Ok, S::Error> {
-//         let json = serde_json::json!({
-//             "200": {
-//                 "description": "Successful operation",
-//                 "content": {
-//                     "application/json": {
-//                         "schema": self.schema
-//                     }
-//                 }
-//             }
-//         });
-//         json.serialize(serializer)
-//     }
-// }
 
 impl Hash for Response {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -122,9 +113,14 @@ pub struct ComponentRequestBody {
     content: IndexMap<String, MediaTypeSchema>,
 }
 
-/// A schema found under a media type in a 'content' field.
+/// A schema found under a media type in a `path` or 'content' field.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MediaTypeSchema {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// The name of the type of the response. `{FUNCTION_NAME}Response`.
+    /// Some in endpoints, None in components.
+    title: Option<TypeName>,
+    /// The schema of the return type of a function.
     schema: TypeOpenApi,
 }
 

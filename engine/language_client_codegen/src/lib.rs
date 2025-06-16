@@ -15,7 +15,7 @@ use version_check::{check_version, GeneratorType, VersionCheckMode};
 
 mod dir_writer;
 // mod go;
-pub mod openapi;
+// pub mod openapi;
 // mod python;
 // mod ruby;
 // mod typescript;
@@ -32,8 +32,11 @@ pub struct GenerateOutput {
 }
 
 pub trait GenerateClient {
-    fn generate_client(&self, ir: std::sync::Arc<IntermediateRepr>, gen: &GeneratorArgs)
-        -> Result<GenerateOutput>;
+    fn generate_client(
+        &self,
+        ir: std::sync::Arc<IntermediateRepr>,
+        gen: &GeneratorArgs,
+    ) -> Result<GenerateOutput>;
 }
 
 // Assume VSCode is the only one that uses WASM, and it does call this method but at a different time.

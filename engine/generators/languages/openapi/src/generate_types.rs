@@ -1,7 +1,7 @@
 use crate::r#type::{convert_ir_type, OpenApiMeta, TypeOpenApi, TypePrimitive};
 use crate::{
-    ComponentRequestBody, Components, FunctionName, MediaTypeSchema, OpenApiSchema, Path,
-    PathRequestBody, Response, TypeName,
+    builtin_schemas, ComponentRequestBody, Components, FunctionName, MediaTypeSchema,
+    OpenApiSchema, Path, PathRequestBody, Response, TypeName,
 };
 use indexmap::IndexMap;
 use internal_baml_core::ir::repr;
@@ -38,7 +38,9 @@ impl OpenApiUserData {
         OpenApiUserData { types, functions }
     }
 
-    pub fn render(&self) -> String {
+    pub fn render(&self) -> OpenApiSchema {
+        let mut schemas = builtin_schemas::builtin_schemas();
+        schemas.extend(self.types.clone());
         let openapi_schema = OpenApiSchema {
             openapi: "3.0.0".to_string(),
             info: serde_json::json!({
@@ -75,6 +77,7 @@ impl OpenApiUserData {
                             content: vec![(
                                 "application/json".to_string(),
                                 MediaTypeSchema {
+                                    title: None,
                                     schema: TypeOpenApi::Inline {
                                         r#type: TypePrimitive::Object {
                                             properties: IndexMap::from_iter(
@@ -114,10 +117,10 @@ impl OpenApiUserData {
                         (name.clone(), component_request_body)
                     })
                     .collect(),
-                schemas: self.types.clone(),
+                schemas,
             },
         };
-        serde_yaml::to_string(&openapi_schema).expect("Should serialize")
+        openapi_schema
     }
 }
 
@@ -154,20 +157,6 @@ mod class {
             },
             meta: OpenApiMeta::default(),
         }
-    }
-
-    pub fn builtin_classes() -> IndexMap<TypeName, TypeOpenApi> {
-        IndexMap::from_iter(vec![(
-            TypeName("BamlOptions".to_string()),
-            TypeOpenApi::Inline {
-                r#type: TypePrimitive::Object {
-                    properties: IndexMap::new(),
-                    required: Vec::new(),
-                    additional_properties: false,
-                },
-                meta: OpenApiMeta::default(),
-            },
-        )])
     }
 }
 
@@ -213,6 +202,7 @@ mod function {
                     content: IndexMap::from_iter(vec![(
                         "application/json".to_string(),
                         MediaTypeSchema {
+                            title: Some(TypeName(format!("{}Response", name.0))),
                             schema: function.return_type.clone(),
                         },
                     )]),

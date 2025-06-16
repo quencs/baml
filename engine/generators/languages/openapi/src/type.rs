@@ -235,17 +235,14 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &Type) -> TypeOpenApi {
         .meta()
         .constraints
         .iter()
-        .filter_map(|c| match c {
-            Constraint { level, label, .. } => {
-                if level == &ConstraintLevel::Check {
-                    label.clone()
-                } else {
-                    None
-                }
+        .filter_map(|Constraint { level, label, .. }| {
+            if level == &ConstraintLevel::Check {
+                label.clone()
+            } else {
+                None
             }
-            _ => None,
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<String>>();
     if checks.is_empty() {
         base_rep
     } else {

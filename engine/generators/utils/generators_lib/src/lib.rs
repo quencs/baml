@@ -4,7 +4,10 @@ pub use dir_writer::GeneratorArgs;
 use dir_writer::{IntermediateRepr, LanguageFeatures};
 use internal_baml_core::configuration::GeneratorOutputType;
 
-pub fn generate_sdk(ir: Arc<IntermediateRepr>, gen: &GeneratorArgs) -> Result<indexmap::IndexMap<PathBuf, String>, anyhow::Error> {
+pub fn generate_sdk(
+    ir: Arc<IntermediateRepr>,
+    gen: &GeneratorArgs,
+) -> Result<indexmap::IndexMap<PathBuf, String>, anyhow::Error> {
     let res = match gen.client_type {
         GeneratorOutputType::Go => {
             use generators_go::GoLanguageFeatures;
@@ -14,6 +17,11 @@ pub fn generate_sdk(ir: Arc<IntermediateRepr>, gen: &GeneratorArgs) -> Result<in
         GeneratorOutputType::PythonPydantic | GeneratorOutputType::PythonPydanticV1 => {
             use generators_python::PyLanguageFeatures;
             let features = PyLanguageFeatures::default();
+            features.generate_sdk(ir, gen)?
+        }
+        GeneratorOutputType::OpenApi => {
+            use generators_openapi::OpenApiLanguageFeatures;
+            let features = OpenApiLanguageFeatures::default();
             features.generate_sdk(ir, gen)?
         }
         _ => {

@@ -13,5 +13,6 @@ serde_json.workspace = true
 dir-writer = { path = "../dir_writer" }
 generators-go = { path = "../../languages/go" }
 generators-python = { path = "../../languages/python" }
+generators-openapi = { path = "../../languages/openapi" }
 internal-baml-core.workspace = true
 indexmap.workspace = true

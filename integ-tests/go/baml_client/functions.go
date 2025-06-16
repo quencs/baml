@@ -1315,7 +1315,7 @@ func ExtractPeople(ctx context.Context, text string, opts ...CallOptionFunc) ([]
 	return casted, nil
 }
 
-func ExtractReceiptInfo(ctx context.Context, email string, reason types.Union2StringKcuriosityOrStringKpersonal_finance, opts ...CallOptionFunc) (types.ReceiptInfo, error) {
+func ExtractReceiptInfo(ctx context.Context, email string, reason types.Union2KcuriosityOrKpersonal_finance, opts ...CallOptionFunc) (types.ReceiptInfo, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -2260,7 +2260,7 @@ func InOutEnumMapKey(ctx context.Context, i1 map[types.MapKey]string, i2 map[typ
 	return casted, nil
 }
 
-func InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.Union4StringKfourOrStringKoneOrStringKthreeOrStringKtwo]string, i2 map[types.Union4StringKfourOrStringKoneOrStringKthreeOrStringKtwo]string, opts ...CallOptionFunc) (map[types.Union4StringKfourOrStringKoneOrStringKthreeOrStringKtwo]string, error) {
+func InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.Union4KfourOrKoneOrKthreeOrKtwo]string, i2 map[types.Union4KfourOrKoneOrKthreeOrKtwo]string, opts ...CallOptionFunc) (map[types.Union4KfourOrKoneOrKthreeOrKtwo]string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -2290,7 +2290,7 @@ func InOutLiteralStringUnionMapKey(ctx context.Context, i1 map[types.Union4Strin
 		return nil, result.Error
 	}
 
-	casted := (result.Data).(map[types.Union4StringKfourOrStringKoneOrStringKthreeOrStringKtwo]string)
+	casted := (result.Data).(map[types.Union4KfourOrKoneOrKthreeOrKtwo]string)
 
 	return casted, nil
 }
@@ -2400,7 +2400,7 @@ func LLMEcho(ctx context.Context, input string, opts ...CallOptionFunc) (string,
 	return casted, nil
 }
 
-func LiteralUnionsTest(ctx context.Context, input string, opts ...CallOptionFunc) (types.Union3BoolKTrueOrIntK1OrStringKstring_output, error) {
+func LiteralUnionsTest(ctx context.Context, input string, opts ...CallOptionFunc) (types.Union3BoolKTrueOrIntK1OrKstring_output, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -2423,14 +2423,14 @@ func LiteralUnionsTest(ctx context.Context, input string, opts ...CallOptionFunc
 
 	result, err := bamlRuntime.CallFunction(ctx, "LiteralUnionsTest", encoded)
 	if err != nil {
-		return types.Union3BoolKTrueOrIntK1OrStringKstring_output{}, err
+		return types.Union3BoolKTrueOrIntK1OrKstring_output{}, err
 	}
 
 	if result.Error != nil {
-		return types.Union3BoolKTrueOrIntK1OrStringKstring_output{}, result.Error
+		return types.Union3BoolKTrueOrIntK1OrKstring_output{}, result.Error
 	}
 
-	casted := *(result.Data).(*types.Union3BoolKTrueOrIntK1OrStringKstring_output)
+	casted := *(result.Data).(*types.Union3BoolKTrueOrIntK1OrKstring_output)
 
 	return casted, nil
 }

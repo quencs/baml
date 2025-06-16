@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import uuid
 import json
 import os
@@ -51,6 +49,39 @@ import concurrent.futures
 import asyncio
 import random
 
+
+@pytest.mark.asyncio
+async def test_env_vars_reset():
+    env_vars = {
+        "OPENAI_API_KEY": "sk-1234567890",
+    }
+    with pytest.deprecated_call():
+        reset_baml_env_vars(env_vars)
+
+    @trace
+    def top_level_async_tracing():
+        with pytest.deprecated_call():
+            reset_baml_env_vars(env_vars)
+
+    @trace
+    async def atop_level_async_tracing():
+        with pytest.deprecated_call():
+            reset_baml_env_vars(env_vars)
+
+    with pytest.raises(errors.BamlError):
+        # Not allowed to call reset_baml_env_vars inside a traced function
+        top_level_async_tracing()
+
+    with pytest.raises(errors.BamlError):
+        # Not allowed to call reset_baml_env_vars inside a traced function
+        await atop_level_async_tracing()
+
+    with pytest.deprecated_call():
+        reset_baml_env_vars(os.environ.copy())
+    people = await b.ExtractPeople(
+        "My name is Harrison. My hair is black and I'm 6 feet tall. I'm pretty good around the hoop."
+    )
+    assert len(people) > 0
 
 
 def test_sync():
@@ -105,7 +136,6 @@ class TestAllInputs:
         )
         assert res.primary.value is not None
         assert res.primary.value == "help@boundaryml.com"
-        assert res.secondary
         assert res.secondary.value is not None
         assert res.secondary.value == "111-222-3333"
 
@@ -122,7 +152,7 @@ class TestAllInputs:
         with pytest.raises(errors.BamlError) as e:
             _res = await b.UseMalformedConstraints(MalformedConstraints2(foo=2))
 
-        assert "Failed to evaluate assert:" in str(e.value)
+        assert "object has no method named length" in str(e.value)
 
     @pytest.mark.asyncio
     async def test_single_class(self):
@@ -327,8 +357,7 @@ class TestAllInputs:
 
         res = await b.JsonTypeAliasCycle(data)
         assert res == data
-        inner_list = res["json"]["object"]["list"]  # type: ignore
-        assert inner_list == [1, 2, 3]
+        assert res["json"]["object"]["list"] == [1, 2, 3]
 
     # TODO. Doesn't work because of Pydantic bug
     # https://github.com/pydantic/pydantic/issues/2279#issuecomment-1876108310
@@ -974,8 +1003,6 @@ async def test_nested_class_streaming():
     )
     msgs: List[partial_types.TestClassNested] = []
     async for msg in stream:
-        if msg is None:
-            continue
         print("streamed ", msg.model_dump(mode="json"))
         msgs.append(msg)
     final = await stream.get_final_response()
@@ -1239,8 +1266,8 @@ async def test_arg_exceptions():
 async def test_map_as_param():
     with pytest.raises(errors.BamlInvalidArgumentError):
         _ = await b.TestFnNamedArgsSingleMapStringToMap(
-            {"a": "b"}  # type: ignore (intentionally passing the wrong type)
-        ) 
+            {"a": "b"}
+        )  # intentionally passing the wrong type
 
 
 @pytest.mark.asyncio
@@ -1281,8 +1308,6 @@ async def test_no_stream_object_with_numbers():
     stream = b.stream.StreamBigNumbers(digits=12)
     msgs: List[partial_types.BigNumbers] = []
     async for msg in stream:
-        if msg is None:
-            continue
         msgs.append(msg)
     res = await stream.get_final_response()
 
@@ -1298,20 +1323,15 @@ async def test_no_stream_compound_object():
     stream = b.stream.StreamingCompoundNumbers(digits=12, yapping=False)
     msgs: List[partial_types.CompoundBigNumbers] = []
     async for msg in stream:
-        if msg is None:
-            continue
         msgs.append(msg)
     res = await stream.get_final_response()
     for msg in msgs:
         if msg.big is not None:
             assert True if msg.big.a is None else msg.big.a == res.big.a
             assert True if msg.big.b is None else msg.big.b == res.big.b
-        if msg.big_nums is not None:
-            for msgEntry, resEntry in zip(msg.big_nums, res.big_nums):
-                if msgEntry is None:
-                    continue
-                assert True if msgEntry.a is None else msgEntry.a == resEntry.a
-                assert True if msgEntry.b is None else msgEntry.b == resEntry.b
+        for msgEntry, resEntry in zip(msg.big_nums, res.big_nums):
+            assert True if msgEntry.a is None else msgEntry.a == resEntry.a
+            assert True if msgEntry.b is None else msgEntry.b == resEntry.b
         if msg.another is not None:
             assert True if msg.another.a is None else msg.another.a == res.another.a
             assert True if msg.another.b is None else msg.another.b == res.another.b
@@ -1322,22 +1342,15 @@ async def test_no_stream_compound_object_with_yapping():
     stream = b.stream.StreamingCompoundNumbers(digits=12, yapping=True)
     msgs: List[partial_types.CompoundBigNumbers] = []
     async for msg in stream:
-        if msg is None:
-            continue
         msgs.append(msg)
     res = await stream.get_final_response()
     for msg in msgs:
-        if msg is None:
-            continue
         if msg.big is not None:
             assert True if msg.big.a is None else msg.big.a == res.big.a
             assert True if msg.big.b is None else msg.big.b == res.big.b
-        if msg.big_nums is not None:
-            for msgEntry, resEntry in zip(msg.big_nums, res.big_nums):
-                if msgEntry is None:
-                    continue
-                assert True if msgEntry.a is None else msgEntry.a == resEntry.a
-                assert True if msgEntry.b is None else msgEntry.b == resEntry.b
+        for msgEntry, resEntry in zip(msg.big_nums, res.big_nums):
+            assert True if msgEntry.a is None else msgEntry.a == resEntry.a
+            assert True if msgEntry.b is None else msgEntry.b == resEntry.b
         if msg.another is not None:
             assert True if msg.another.a is None else msg.another.a == res.another.a
             assert True if msg.another.b is None else msg.another.b == res.another.b
@@ -1360,11 +1373,8 @@ async def test_parameter_failing_assert():
 async def test_failing_assert_can_stream():
     stream = b.stream.StreamFailingAssertion("Yoshimi battles the pink robots", 300)
     async for msg in stream:
-        if msg is None:
-            continue
         print(msg.story_a)
         print(msg.story_b)
-
     with pytest.raises(errors.BamlValidationError):
         final = await stream.get_final_response()
         assert "Yoshimi" in final.story_a
@@ -1466,8 +1476,7 @@ async def test_block_constraint_arguments():
 async def test_null_literal_class_hello():
     stream = b.stream.NullLiteralClassHello(s="unused")
     async for msg in stream:
-        if msg is not None:
-            assert msg.a is None
+        msg.a is None
 
 
 @pytest.mark.asyncio
@@ -1480,8 +1489,6 @@ async def test_semantic_streaming():
     reference_int: Optional[int] = None
 
     async for msg in stream:
-        if msg is None:
-            continue
         assert "string_with_twenty_words" in dict(msg)
         assert "sixteen_digit_number" in dict(msg)
 
@@ -1515,11 +1522,9 @@ async def test_semantic_streaming():
         if msg.final_string is not None:
             assert msg.class_needed.s_20_words.state == "Complete"
 
-        # Checks for @stream.not_null
-        if msg.three_small_things is not None:
-            for sub in msg.three_small_things:
-                if sub is not None:
-                    assert sub.i_16_digits is not None
+        # Checks for @stream.not_null.
+        for sub in msg.three_small_things:
+            assert sub.i_16_digits is not None
 
     final = await stream.get_final_response()
     print(final)
@@ -1560,6 +1565,12 @@ async def test_thinking_streaming():
     assert len(res.title) > 0, "title should be non-empty"
     assert len(res.content) > 0, "content should be non-empty"
     assert len(res.characters) > 0, "characters should be non-empty"
+
+
+@pytest.mark.asyncio
+async def test_echo_workflow():
+    res = await b.EchoWorkflow()
+    assert res == "Hello, world!"
 
 
 # @pytest.mark.asyncio

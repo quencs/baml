@@ -14,6 +14,7 @@
 package stream_types
 
 import (
+	"encoding/json"
 	"fmt"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
@@ -93,11 +94,20 @@ func (c AnotherObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion
 
 	fields["thingy3"] = c.Thingy3
 
-	return baml.EncodeClass(builder, "AnotherObject", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c AnotherObject) BamlTypeName() string {
 	return "AnotherObject"
+}
+
+func (u AnotherObject) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("AnotherObject")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type BigNumbers struct {
@@ -156,11 +166,20 @@ func (c BigNumbers) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 	fields["b"] = c.B
 
-	return baml.EncodeClass(builder, "BigNumbers", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c BigNumbers) BamlTypeName() string {
 	return "BigNumbers"
+}
+
+func (u BigNumbers) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("BigNumbers")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type BinaryNode struct {
@@ -233,11 +252,20 @@ func (c BinaryNode) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 	fields["right"] = c.Right
 
-	return baml.EncodeClass(builder, "BinaryNode", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c BinaryNode) BamlTypeName() string {
 	return "BinaryNode"
+}
+
+func (u BinaryNode) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("BinaryNode")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Blah struct {
@@ -282,11 +310,20 @@ func (c Blah) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuf
 
 	fields["prop4"] = c.Prop4
 
-	return baml.EncodeClass(builder, "Blah", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Blah) BamlTypeName() string {
 	return "Blah"
+}
+
+func (u Blah) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Blah")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type BlockConstraint struct {
@@ -345,11 +382,20 @@ func (c BlockConstraint) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUni
 
 	fields["bar"] = c.Bar
 
-	return baml.EncodeClass(builder, "BlockConstraint", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c BlockConstraint) BamlTypeName() string {
 	return "BlockConstraint"
+}
+
+func (u BlockConstraint) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("BlockConstraint")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type BlockConstraintForParam struct {
@@ -408,11 +454,20 @@ func (c BlockConstraintForParam) Encode(builder *flatbuffers.Builder) (cffi.CFFI
 
 	fields["bcfp2"] = c.Bcfp2
 
-	return baml.EncodeClass(builder, "BlockConstraintForParam", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c BlockConstraintForParam) BamlTypeName() string {
 	return "BlockConstraintForParam"
+}
+
+func (u BlockConstraintForParam) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("BlockConstraintForParam")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type BookOrder struct {
@@ -499,11 +554,20 @@ func (c BookOrder) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 
 	fields["price"] = c.Price
 
-	return baml.EncodeClass(builder, "BookOrder", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c BookOrder) BamlTypeName() string {
 	return "BookOrder"
+}
+
+func (u BookOrder) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("BookOrder")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClassForNullLiteral struct {
@@ -548,11 +612,20 @@ func (c ClassForNullLiteral) Encode(builder *flatbuffers.Builder) (cffi.CFFIValu
 
 	fields["a"] = c.A
 
-	return baml.EncodeClass(builder, "ClassForNullLiteral", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassForNullLiteral) BamlTypeName() string {
 	return "ClassForNullLiteral"
+}
+
+func (u ClassForNullLiteral) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassForNullLiteral")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClassOptionalOutput struct {
@@ -611,11 +684,20 @@ func (c ClassOptionalOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValu
 
 	fields["prop2"] = c.Prop2
 
-	return baml.EncodeClass(builder, "ClassOptionalOutput", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassOptionalOutput) BamlTypeName() string {
 	return "ClassOptionalOutput"
+}
+
+func (u ClassOptionalOutput) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassOptionalOutput")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClassOptionalOutput2 struct {
@@ -688,11 +770,20 @@ func (c ClassOptionalOutput2) Encode(builder *flatbuffers.Builder) (cffi.CFFIVal
 
 	fields["prop3"] = c.Prop3
 
-	return baml.EncodeClass(builder, "ClassOptionalOutput2", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassOptionalOutput2) BamlTypeName() string {
 	return "ClassOptionalOutput2"
+}
+
+func (u ClassOptionalOutput2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassOptionalOutput2")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClassToRecAlias struct {
@@ -737,11 +828,20 @@ func (c ClassToRecAlias) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUni
 
 	fields["list"] = c.List
 
-	return baml.EncodeClass(builder, "ClassToRecAlias", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassToRecAlias) BamlTypeName() string {
 	return "ClassToRecAlias"
+}
+
+func (u ClassToRecAlias) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassToRecAlias")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClassWithBlockDone struct {
@@ -800,11 +900,20 @@ func (c ClassWithBlockDone) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["s_20_words"] = c.S_20_words
 
-	return baml.EncodeClass(builder, "ClassWithBlockDone", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassWithBlockDone) BamlTypeName() string {
 	return "ClassWithBlockDone"
+}
+
+func (u ClassWithBlockDone) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassWithBlockDone")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClassWithImage struct {
@@ -877,11 +986,20 @@ func (c ClassWithImage) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 
 	fields["fake_image"] = c.Fake_image
 
-	return baml.EncodeClass(builder, "ClassWithImage", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassWithImage) BamlTypeName() string {
 	return "ClassWithImage"
+}
+
+func (u ClassWithImage) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassWithImage")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClassWithoutDone struct {
@@ -940,11 +1058,20 @@ func (c ClassWithoutDone) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUn
 
 	fields["s_20_words"] = c.S_20_words
 
-	return baml.EncodeClass(builder, "ClassWithoutDone", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassWithoutDone) BamlTypeName() string {
 	return "ClassWithoutDone"
+}
+
+func (u ClassWithoutDone) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClassWithoutDone")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ClientDetails1559 struct {
@@ -1073,11 +1200,20 @@ func (c ClientDetails1559) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueU
 
 	fields["client_email"] = c.Client_email
 
-	return baml.EncodeClass(builder, "ClientDetails1559", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ClientDetails1559) BamlTypeName() string {
 	return "ClientDetails1559"
+}
+
+func (u ClientDetails1559) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ClientDetails1559")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ComplexMemoryObject struct {
@@ -1164,11 +1300,20 @@ func (c ComplexMemoryObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValu
 
 	fields["metadata"] = c.Metadata
 
-	return baml.EncodeClass(builder, "ComplexMemoryObject", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ComplexMemoryObject) BamlTypeName() string {
 	return "ComplexMemoryObject"
+}
+
+func (u ComplexMemoryObject) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ComplexMemoryObject")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type CompoundBigNumbers struct {
@@ -1241,11 +1386,20 @@ func (c CompoundBigNumbers) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["another"] = c.Another
 
-	return baml.EncodeClass(builder, "CompoundBigNumbers", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c CompoundBigNumbers) BamlTypeName() string {
 	return "CompoundBigNumbers"
+}
+
+func (u CompoundBigNumbers) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("CompoundBigNumbers")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ContactInfo struct {
@@ -1304,11 +1458,20 @@ func (c ContactInfo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 
 	fields["secondary"] = c.Secondary
 
-	return baml.EncodeClass(builder, "ContactInfo", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ContactInfo) BamlTypeName() string {
 	return "ContactInfo"
+}
+
+func (u ContactInfo) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ContactInfo")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type CustomStory struct {
@@ -1381,11 +1544,20 @@ func (c CustomStory) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 
 	fields["content"] = c.Content
 
-	return baml.EncodeClass(builder, "CustomStory", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c CustomStory) BamlTypeName() string {
 	return "CustomStory"
+}
+
+func (u CustomStory) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("CustomStory")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type CustomTaskResult struct {
@@ -1458,11 +1630,20 @@ func (c CustomTaskResult) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUn
 
 	fields["groceryReceipt"] = c.GroceryReceipt
 
-	return baml.EncodeClass(builder, "CustomTaskResult", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c CustomTaskResult) BamlTypeName() string {
 	return "CustomTaskResult"
+}
+
+func (u CustomTaskResult) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("CustomTaskResult")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Document1559 struct {
@@ -1521,11 +1702,20 @@ func (c Document1559) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion,
 
 	fields["notes"] = c.Notes
 
-	return baml.EncodeClass(builder, "Document1559", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Document1559) BamlTypeName() string {
 	return "Document1559"
+}
+
+func (u Document1559) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Document1559")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DummyOutput struct {
@@ -1594,11 +1784,20 @@ func (c DummyOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 
 	fields["nonce2"] = c.Nonce2
 
-	return baml.EncodeClass(builder, "DummyOutput", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c DummyOutput) BamlTypeName() string {
 	return "DummyOutput"
+}
+
+func (u DummyOutput) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DummyOutput")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DynInputOutput struct {
@@ -1653,11 +1852,20 @@ func (c DynInputOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 
 	fields["testKey"] = c.TestKey
 
-	return baml.EncodeClass(builder, "DynInputOutput", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c DynInputOutput) BamlTypeName() string {
 	return "DynInputOutput"
+}
+
+func (u DynInputOutput) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DynInputOutput")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DynamicClassOne struct {
@@ -1687,11 +1895,20 @@ func (c *DynamicClassOne) Decode(holder cffi.CFFIValueClass) {
 func (c DynamicClassOne) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 
-	return baml.EncodeClass(builder, "DynamicClassOne", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c DynamicClassOne) BamlTypeName() string {
 	return "DynamicClassOne"
+}
+
+func (u DynamicClassOne) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DynamicClassOne")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DynamicClassTwo struct {
@@ -1774,11 +1991,20 @@ func (c DynamicClassTwo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUni
 
 	fields["status"] = c.Status
 
-	return baml.EncodeClass(builder, "DynamicClassTwo", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c DynamicClassTwo) BamlTypeName() string {
 	return "DynamicClassTwo"
+}
+
+func (u DynamicClassTwo) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DynamicClassTwo")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DynamicOutput struct {
@@ -1808,11 +2034,20 @@ func (c *DynamicOutput) Decode(holder cffi.CFFIValueClass) {
 func (c DynamicOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 
-	return baml.EncodeClass(builder, "DynamicOutput", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c DynamicOutput) BamlTypeName() string {
 	return "DynamicOutput"
+}
+
+func (u DynamicOutput) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DynamicOutput")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type DynamicSchema struct {
@@ -1842,11 +2077,20 @@ func (c *DynamicSchema) Decode(holder cffi.CFFIValueClass) {
 func (c DynamicSchema) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
 	fields := map[string]any{}
 
-	return baml.EncodeClass(builder, "DynamicSchema", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c DynamicSchema) BamlTypeName() string {
 	return "DynamicSchema"
+}
+
+func (u DynamicSchema) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("DynamicSchema")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Earthling struct {
@@ -1891,11 +2135,20 @@ func (c Earthling) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 
 	fields["age"] = c.Age
 
-	return baml.EncodeClass(builder, "Earthling", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Earthling) BamlTypeName() string {
 	return "Earthling"
+}
+
+func (u Earthling) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Earthling")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Education struct {
@@ -1996,11 +2249,20 @@ func (c Education) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 
 	fields["graduation_date"] = c.Graduation_date
 
-	return baml.EncodeClass(builder, "Education", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Education) BamlTypeName() string {
 	return "Education"
+}
+
+func (u Education) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Education")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Email struct {
@@ -2073,11 +2335,20 @@ func (c Email) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbu
 
 	fields["from_address"] = c.From_address
 
-	return baml.EncodeClass(builder, "Email", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Email) BamlTypeName() string {
 	return "Email"
+}
+
+func (u Email) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Email")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type EmailAddress struct {
@@ -2122,11 +2393,20 @@ func (c EmailAddress) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion,
 
 	fields["value"] = c.Value
 
-	return baml.EncodeClass(builder, "EmailAddress", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c EmailAddress) BamlTypeName() string {
 	return "EmailAddress"
+}
+
+func (u EmailAddress) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("EmailAddress")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Event struct {
@@ -2213,11 +2493,20 @@ func (c Event) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbu
 
 	fields["description"] = c.Description
 
-	return baml.EncodeClass(builder, "Event", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Event) BamlTypeName() string {
 	return "Event"
+}
+
+func (u Event) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Event")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type FakeImage struct {
@@ -2262,11 +2551,20 @@ func (c FakeImage) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 
 	fields["url"] = c.Url
 
-	return baml.EncodeClass(builder, "FakeImage", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c FakeImage) BamlTypeName() string {
 	return "FakeImage"
+}
+
+func (u FakeImage) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("FakeImage")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type FlightConfirmation struct {
@@ -2367,11 +2665,20 @@ func (c FlightConfirmation) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["seatNumber"] = c.SeatNumber
 
-	return baml.EncodeClass(builder, "FlightConfirmation", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c FlightConfirmation) BamlTypeName() string {
 	return "FlightConfirmation"
+}
+
+func (u FlightConfirmation) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("FlightConfirmation")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type FooAny struct {
@@ -2444,11 +2751,20 @@ func (c FooAny) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 
 	fields["species"] = c.Species
 
-	return baml.EncodeClass(builder, "FooAny", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c FooAny) BamlTypeName() string {
 	return "FooAny"
+}
+
+func (u FooAny) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("FooAny")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Forest struct {
@@ -2493,11 +2809,20 @@ func (c Forest) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 
 	fields["trees"] = c.Trees
 
-	return baml.EncodeClass(builder, "Forest", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Forest) BamlTypeName() string {
 	return "Forest"
+}
+
+func (u Forest) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Forest")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type FormatterTest0 struct {
@@ -2556,11 +2881,20 @@ func (c FormatterTest0) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 
 	fields["ipsum"] = c.Ipsum
 
-	return baml.EncodeClass(builder, "FormatterTest0", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c FormatterTest0) BamlTypeName() string {
 	return "FormatterTest0"
+}
+
+func (u FormatterTest0) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("FormatterTest0")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type FormatterTest1 struct {
@@ -2619,11 +2953,20 @@ func (c FormatterTest1) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 
 	fields["ipsum"] = c.Ipsum
 
-	return baml.EncodeClass(builder, "FormatterTest1", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c FormatterTest1) BamlTypeName() string {
 	return "FormatterTest1"
+}
+
+func (u FormatterTest1) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("FormatterTest1")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type FormatterTest2 struct {
@@ -2682,11 +3025,20 @@ func (c FormatterTest2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 
 	fields["ipsum"] = c.Ipsum
 
-	return baml.EncodeClass(builder, "FormatterTest2", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c FormatterTest2) BamlTypeName() string {
 	return "FormatterTest2"
+}
+
+func (u FormatterTest2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("FormatterTest2")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type FormatterTest3 struct {
@@ -2745,11 +3097,20 @@ func (c FormatterTest3) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 
 	fields["ipsum"] = c.Ipsum
 
-	return baml.EncodeClass(builder, "FormatterTest3", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c FormatterTest3) BamlTypeName() string {
 	return "FormatterTest3"
+}
+
+func (u FormatterTest3) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("FormatterTest3")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type GroceryReceipt struct {
@@ -2836,11 +3197,20 @@ func (c GroceryReceipt) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 
 	fields["totalAmount"] = c.TotalAmount
 
-	return baml.EncodeClass(builder, "GroceryReceipt", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c GroceryReceipt) BamlTypeName() string {
 	return "GroceryReceipt"
+}
+
+func (u GroceryReceipt) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("GroceryReceipt")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Haiku struct {
@@ -2913,11 +3283,20 @@ func (c Haiku) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbu
 
 	fields["line3"] = c.Line3
 
-	return baml.EncodeClass(builder, "Haiku", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Haiku) BamlTypeName() string {
 	return "Haiku"
+}
+
+func (u Haiku) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Haiku")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type InnerClass struct {
@@ -2990,11 +3369,20 @@ func (c InnerClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 	fields["inner"] = c.Inner
 
-	return baml.EncodeClass(builder, "InnerClass", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c InnerClass) BamlTypeName() string {
 	return "InnerClass"
+}
+
+func (u InnerClass) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("InnerClass")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type InnerClass2 struct {
@@ -3053,11 +3441,20 @@ func (c InnerClass2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 
 	fields["prop3"] = c.Prop3
 
-	return baml.EncodeClass(builder, "InnerClass2", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c InnerClass2) BamlTypeName() string {
 	return "InnerClass2"
+}
+
+func (u InnerClass2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("InnerClass2")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type InputClass struct {
@@ -3116,11 +3513,20 @@ func (c InputClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 	fields["key2"] = c.Key2
 
-	return baml.EncodeClass(builder, "InputClass", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c InputClass) BamlTypeName() string {
 	return "InputClass"
+}
+
+func (u InputClass) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("InputClass")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type InputClassNested struct {
@@ -3179,11 +3585,20 @@ func (c InputClassNested) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUn
 
 	fields["nested"] = c.Nested
 
-	return baml.EncodeClass(builder, "InputClassNested", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c InputClassNested) BamlTypeName() string {
 	return "InputClassNested"
+}
+
+func (u InputClassNested) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("InputClassNested")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type LinkedList struct {
@@ -3242,11 +3657,20 @@ func (c LinkedList) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 	fields["len"] = c.Len
 
-	return baml.EncodeClass(builder, "LinkedList", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c LinkedList) BamlTypeName() string {
 	return "LinkedList"
+}
+
+func (u LinkedList) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("LinkedList")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type LinkedListAliasNode struct {
@@ -3305,11 +3729,20 @@ func (c LinkedListAliasNode) Encode(builder *flatbuffers.Builder) (cffi.CFFIValu
 
 	fields["next"] = c.Next
 
-	return baml.EncodeClass(builder, "LinkedListAliasNode", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c LinkedListAliasNode) BamlTypeName() string {
 	return "LinkedListAliasNode"
+}
+
+func (u LinkedListAliasNode) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("LinkedListAliasNode")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type LiteralClassHello struct {
@@ -3354,11 +3787,20 @@ func (c LiteralClassHello) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueU
 
 	fields["prop"] = c.Prop
 
-	return baml.EncodeClass(builder, "LiteralClassHello", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c LiteralClassHello) BamlTypeName() string {
 	return "LiteralClassHello"
+}
+
+func (u LiteralClassHello) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("LiteralClassHello")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type LiteralClassOne struct {
@@ -3403,11 +3845,20 @@ func (c LiteralClassOne) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUni
 
 	fields["prop"] = c.Prop
 
-	return baml.EncodeClass(builder, "LiteralClassOne", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c LiteralClassOne) BamlTypeName() string {
 	return "LiteralClassOne"
+}
+
+func (u LiteralClassOne) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("LiteralClassOne")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type LiteralClassTwo struct {
@@ -3452,11 +3903,20 @@ func (c LiteralClassTwo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUni
 
 	fields["prop"] = c.Prop
 
-	return baml.EncodeClass(builder, "LiteralClassTwo", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c LiteralClassTwo) BamlTypeName() string {
 	return "LiteralClassTwo"
+}
+
+func (u LiteralClassTwo) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("LiteralClassTwo")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type MaintainFieldOrder struct {
@@ -3529,11 +3989,20 @@ func (c MaintainFieldOrder) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["c"] = c.C
 
-	return baml.EncodeClass(builder, "MaintainFieldOrder", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c MaintainFieldOrder) BamlTypeName() string {
 	return "MaintainFieldOrder"
+}
+
+func (u MaintainFieldOrder) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("MaintainFieldOrder")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type MalformedConstraints struct {
@@ -3578,11 +4047,20 @@ func (c MalformedConstraints) Encode(builder *flatbuffers.Builder) (cffi.CFFIVal
 
 	fields["foo"] = c.Foo
 
-	return baml.EncodeClass(builder, "MalformedConstraints", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c MalformedConstraints) BamlTypeName() string {
 	return "MalformedConstraints"
+}
+
+func (u MalformedConstraints) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("MalformedConstraints")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type MalformedConstraints2 struct {
@@ -3627,11 +4105,20 @@ func (c MalformedConstraints2) Encode(builder *flatbuffers.Builder) (cffi.CFFIVa
 
 	fields["foo"] = c.Foo
 
-	return baml.EncodeClass(builder, "MalformedConstraints2", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c MalformedConstraints2) BamlTypeName() string {
 	return "MalformedConstraints2"
+}
+
+func (u MalformedConstraints2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("MalformedConstraints2")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 } /// A Martian organism with an age.
 // / Such a nice type.
 type Martian struct {
@@ -3678,11 +4165,20 @@ func (c Martian) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flat
 
 	fields["age"] = c.Age
 
-	return baml.EncodeClass(builder, "Martian", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Martian) BamlTypeName() string {
 	return "Martian"
+}
+
+func (u Martian) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Martian")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type MemoryObject struct {
@@ -3755,11 +4251,20 @@ func (c MemoryObject) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion,
 
 	fields["description"] = c.Description
 
-	return baml.EncodeClass(builder, "MemoryObject", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c MemoryObject) BamlTypeName() string {
 	return "MemoryObject"
+}
+
+func (u MemoryObject) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("MemoryObject")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type MergeAttrs struct {
@@ -3804,11 +4309,20 @@ func (c MergeAttrs) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 	fields["amount"] = c.Amount
 
-	return baml.EncodeClass(builder, "MergeAttrs", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c MergeAttrs) BamlTypeName() string {
 	return "MergeAttrs"
+}
+
+func (u MergeAttrs) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("MergeAttrs")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type NamedArgsSingleClass struct {
@@ -3881,11 +4395,20 @@ func (c NamedArgsSingleClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIVal
 
 	fields["key_three"] = c.Key_three
 
-	return baml.EncodeClass(builder, "NamedArgsSingleClass", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c NamedArgsSingleClass) BamlTypeName() string {
 	return "NamedArgsSingleClass"
+}
+
+func (u NamedArgsSingleClass) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("NamedArgsSingleClass")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Nested struct {
@@ -3958,11 +4481,20 @@ func (c Nested) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 
 	fields["prop20"] = c.Prop20
 
-	return baml.EncodeClass(builder, "Nested", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Nested) BamlTypeName() string {
 	return "Nested"
+}
+
+func (u Nested) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Nested")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Nested2 struct {
@@ -4021,11 +4553,20 @@ func (c Nested2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flat
 
 	fields["prop12"] = c.Prop12
 
-	return baml.EncodeClass(builder, "Nested2", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Nested2) BamlTypeName() string {
 	return "Nested2"
+}
+
+func (u Nested2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Nested2")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type NestedBlockConstraint struct {
@@ -4070,11 +4611,20 @@ func (c NestedBlockConstraint) Encode(builder *flatbuffers.Builder) (cffi.CFFIVa
 
 	fields["nbc"] = c.Nbc
 
-	return baml.EncodeClass(builder, "NestedBlockConstraint", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c NestedBlockConstraint) BamlTypeName() string {
 	return "NestedBlockConstraint"
+}
+
+func (u NestedBlockConstraint) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("NestedBlockConstraint")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type NestedBlockConstraintForParam struct {
@@ -4119,11 +4669,20 @@ func (c NestedBlockConstraintForParam) Encode(builder *flatbuffers.Builder) (cff
 
 	fields["nbcfp"] = c.Nbcfp
 
-	return baml.EncodeClass(builder, "NestedBlockConstraintForParam", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c NestedBlockConstraintForParam) BamlTypeName() string {
 	return "NestedBlockConstraintForParam"
+}
+
+func (u NestedBlockConstraintForParam) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("NestedBlockConstraintForParam")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Node struct {
@@ -4182,11 +4741,20 @@ func (c Node) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuf
 
 	fields["next"] = c.Next
 
-	return baml.EncodeClass(builder, "Node", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Node) BamlTypeName() string {
 	return "Node"
+}
+
+func (u Node) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Node")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type NodeWithAliasIndirection struct {
@@ -4245,11 +4813,20 @@ func (c NodeWithAliasIndirection) Encode(builder *flatbuffers.Builder) (cffi.CFF
 
 	fields["next"] = c.Next
 
-	return baml.EncodeClass(builder, "NodeWithAliasIndirection", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c NodeWithAliasIndirection) BamlTypeName() string {
 	return "NodeWithAliasIndirection"
+}
+
+func (u NodeWithAliasIndirection) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("NodeWithAliasIndirection")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Note1599 struct {
@@ -4322,11 +4899,20 @@ func (c Note1599) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fla
 
 	fields["note_amount"] = c.Note_amount
 
-	return baml.EncodeClass(builder, "Note1599", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Note1599) BamlTypeName() string {
 	return "Note1599"
+}
+
+func (u Note1599) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Note1599")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type OptionalListAndMap struct {
@@ -4385,11 +4971,20 @@ func (c OptionalListAndMap) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["q"] = c.Q
 
-	return baml.EncodeClass(builder, "OptionalListAndMap", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c OptionalListAndMap) BamlTypeName() string {
 	return "OptionalListAndMap"
+}
+
+func (u OptionalListAndMap) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("OptionalListAndMap")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type OptionalTest_Prop1 struct {
@@ -4448,11 +5043,20 @@ func (c OptionalTest_Prop1) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["omega_b"] = c.Omega_b
 
-	return baml.EncodeClass(builder, "OptionalTest_Prop1", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c OptionalTest_Prop1) BamlTypeName() string {
 	return "OptionalTest_Prop1"
+}
+
+func (u OptionalTest_Prop1) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("OptionalTest_Prop1")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type OptionalTest_ReturnType struct {
@@ -4525,11 +5129,20 @@ func (c OptionalTest_ReturnType) Encode(builder *flatbuffers.Builder) (cffi.CFFI
 
 	fields["omega_3"] = c.Omega_3
 
-	return baml.EncodeClass(builder, "OptionalTest_ReturnType", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c OptionalTest_ReturnType) BamlTypeName() string {
 	return "OptionalTest_ReturnType"
+}
+
+func (u OptionalTest_ReturnType) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("OptionalTest_ReturnType")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type OrderInfo struct {
@@ -4602,11 +5215,20 @@ func (c OrderInfo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 
 	fields["estimated_arrival_date"] = c.Estimated_arrival_date
 
-	return baml.EncodeClass(builder, "OrderInfo", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c OrderInfo) BamlTypeName() string {
 	return "OrderInfo"
+}
+
+func (u OrderInfo) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("OrderInfo")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type OriginalA struct {
@@ -4651,11 +5273,20 @@ func (c OriginalA) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 
 	fields["value"] = c.Value
 
-	return baml.EncodeClass(builder, "OriginalA", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c OriginalA) BamlTypeName() string {
 	return "OriginalA"
+}
+
+func (u OriginalA) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("OriginalA")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type OriginalB struct {
@@ -4710,11 +5341,20 @@ func (c OriginalB) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 
 	fields["value"] = c.Value
 
-	return baml.EncodeClass(builder, "OriginalB", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c OriginalB) BamlTypeName() string {
 	return "OriginalB"
+}
+
+func (u OriginalB) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("OriginalB")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Person struct {
@@ -4783,11 +5423,20 @@ func (c Person) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 
 	fields["hair_color"] = c.Hair_color
 
-	return baml.EncodeClass(builder, "Person", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c Person) BamlTypeName() string {
 	return "Person"
+}
+
+func (u Person) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Person")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type PhoneNumber struct {
@@ -4832,11 +5481,20 @@ func (c PhoneNumber) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 
 	fields["value"] = c.Value
 
-	return baml.EncodeClass(builder, "PhoneNumber", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c PhoneNumber) BamlTypeName() string {
 	return "PhoneNumber"
+}
+
+func (u PhoneNumber) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("PhoneNumber")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Quantity struct {
@@ -4895,11 +5553,20 @@ func (c Quantity) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fla
 
 	fields["unit"] = c.Unit
 
-	return baml.EncodeClass(builder, "Quantity", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Quantity) BamlTypeName() string {
 	return "Quantity"
+}
+
+func (u Quantity) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Quantity")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type RaysData struct {
@@ -4958,17 +5625,26 @@ func (c RaysData) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fla
 
 	fields["value"] = c.Value
 
-	return baml.EncodeClass(builder, "RaysData", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c RaysData) BamlTypeName() string {
 	return "RaysData"
 }
 
+func (u RaysData) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("RaysData")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
+}
+
 type ReceiptInfo struct {
-	Items      *[]*ReceiptItem                        `json:"items"`
-	Total_cost *float64                               `json:"total_cost"`
-	Venue      *Union2StringKbarisaOrStringKox_burger `json:"venue"`
+	Items      *[]*ReceiptItem            `json:"items"`
+	Total_cost *float64                   `json:"total_cost"`
+	Venue      *Union2KbarisaOrKox_burger `json:"venue"`
 }
 
 func (c *ReceiptInfo) Decode(holder cffi.CFFIValueClass) {
@@ -5010,13 +5686,13 @@ func (c *ReceiptInfo) Decode(holder cffi.CFFIValueClass) {
 				}(valueHolder)
 
 			case "venue":
-				c.Venue = func(param *cffi.CFFIValueHolder) *Union2StringKbarisaOrStringKox_burger {
+				c.Venue = func(param *cffi.CFFIValueHolder) *Union2KbarisaOrKox_burger {
 					decoded := baml.Decode(param)
-					return func(result any) *Union2StringKbarisaOrStringKox_burger {
+					return func(result any) *Union2KbarisaOrKox_burger {
 						if result == nil {
 							return nil
 						}
-						return (result).(*Union2StringKbarisaOrStringKox_burger)
+						return (result).(*Union2KbarisaOrKox_burger)
 					}(decoded)
 				}(valueHolder)
 
@@ -5035,11 +5711,20 @@ func (c ReceiptInfo) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 
 	fields["venue"] = c.Venue
 
-	return baml.EncodeClass(builder, "ReceiptInfo", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ReceiptInfo) BamlTypeName() string {
 	return "ReceiptInfo"
+}
+
+func (u ReceiptInfo) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ReceiptInfo")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type ReceiptItem struct {
@@ -5126,16 +5811,25 @@ func (c ReceiptItem) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, 
 
 	fields["price"] = c.Price
 
-	return baml.EncodeClass(builder, "ReceiptItem", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c ReceiptItem) BamlTypeName() string {
 	return "ReceiptItem"
 }
 
+func (u ReceiptItem) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("ReceiptItem")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
+}
+
 type Recipe struct {
-	Ingredients *map[string]*Quantity                  `json:"ingredients"`
-	Recipe_type *Union2StringKbreakfastOrStringKdinner `json:"recipe_type"`
+	Ingredients *map[string]*Quantity      `json:"ingredients"`
+	Recipe_type *Union2KbreakfastOrKdinner `json:"recipe_type"`
 }
 
 func (c *Recipe) Decode(holder cffi.CFFIValueClass) {
@@ -5166,13 +5860,13 @@ func (c *Recipe) Decode(holder cffi.CFFIValueClass) {
 				}(valueHolder)
 
 			case "recipe_type":
-				c.Recipe_type = func(param *cffi.CFFIValueHolder) *Union2StringKbreakfastOrStringKdinner {
+				c.Recipe_type = func(param *cffi.CFFIValueHolder) *Union2KbreakfastOrKdinner {
 					decoded := baml.Decode(param)
-					return func(result any) *Union2StringKbreakfastOrStringKdinner {
+					return func(result any) *Union2KbreakfastOrKdinner {
 						if result == nil {
 							return nil
 						}
-						return (result).(*Union2StringKbreakfastOrStringKdinner)
+						return (result).(*Union2KbreakfastOrKdinner)
 					}(decoded)
 				}(valueHolder)
 
@@ -5189,11 +5883,20 @@ func (c Recipe) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 
 	fields["recipe_type"] = c.Recipe_type
 
-	return baml.EncodeClass(builder, "Recipe", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Recipe) BamlTypeName() string {
 	return "Recipe"
+}
+
+func (u Recipe) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Recipe")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type RecursiveAliasDependency struct {
@@ -5238,11 +5941,20 @@ func (c RecursiveAliasDependency) Encode(builder *flatbuffers.Builder) (cffi.CFF
 
 	fields["value"] = c.Value
 
-	return baml.EncodeClass(builder, "RecursiveAliasDependency", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c RecursiveAliasDependency) BamlTypeName() string {
 	return "RecursiveAliasDependency"
+}
+
+func (u RecursiveAliasDependency) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("RecursiveAliasDependency")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Resume struct {
@@ -5357,11 +6069,20 @@ func (c Resume) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 
 	fields["skills"] = c.Skills
 
-	return baml.EncodeClass(builder, "Resume", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Resume) BamlTypeName() string {
 	return "Resume"
+}
+
+func (u Resume) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Resume")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Schema struct {
@@ -5490,11 +6211,20 @@ func (c Schema) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatb
 
 	fields["other_group"] = c.Other_group
 
-	return baml.EncodeClass(builder, "Schema", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Schema) BamlTypeName() string {
 	return "Schema"
+}
+
+func (u Schema) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Schema")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type SearchParams struct {
@@ -5609,11 +6339,20 @@ func (c SearchParams) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion,
 
 	fields["tags"] = c.Tags
 
-	return baml.EncodeClass(builder, "SearchParams", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c SearchParams) BamlTypeName() string {
 	return "SearchParams"
+}
+
+func (u SearchParams) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("SearchParams")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type SemanticContainer struct {
@@ -5740,11 +6479,20 @@ func (c SemanticContainer) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueU
 
 	fields["final_string"] = c.Final_string
 
-	return baml.EncodeClass(builder, "SemanticContainer", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c SemanticContainer) BamlTypeName() string {
 	return "SemanticContainer"
+}
+
+func (u SemanticContainer) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("SemanticContainer")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type SimpleTag struct {
@@ -5789,11 +6537,20 @@ func (c SimpleTag) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fl
 
 	fields["field"] = c.Field
 
-	return baml.EncodeClass(builder, "SimpleTag", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c SimpleTag) BamlTypeName() string {
 	return "SimpleTag"
+}
+
+func (u SimpleTag) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("SimpleTag")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type SmallThing struct {
@@ -5844,11 +6601,20 @@ func (c SmallThing) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, f
 
 	fields["i_8_digits"] = c.I_8_digits
 
-	return baml.EncodeClass(builder, "SmallThing", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c SmallThing) BamlTypeName() string {
 	return "SmallThing"
+}
+
+func (u SmallThing) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("SmallThing")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type SomeClassNestedDynamic struct {
@@ -5903,11 +6669,20 @@ func (c SomeClassNestedDynamic) Encode(builder *flatbuffers.Builder) (cffi.CFFIV
 
 	fields["hi"] = c.Hi
 
-	return baml.EncodeClass(builder, "SomeClassNestedDynamic", fields, &c.DynamicProperties)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, &c.DynamicProperties)
 }
 
 func (c SomeClassNestedDynamic) BamlTypeName() string {
 	return "SomeClassNestedDynamic"
+}
+
+func (u SomeClassNestedDynamic) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("SomeClassNestedDynamic")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type StringToClassEntry struct {
@@ -5952,11 +6727,20 @@ func (c StringToClassEntry) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["word"] = c.Word
 
-	return baml.EncodeClass(builder, "StringToClassEntry", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c StringToClassEntry) BamlTypeName() string {
 	return "StringToClassEntry"
+}
+
+func (u StringToClassEntry) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("StringToClassEntry")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type TestClassAlias struct {
@@ -6057,11 +6841,20 @@ func (c TestClassAlias) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnio
 
 	fields["key5"] = c.Key5
 
-	return baml.EncodeClass(builder, "TestClassAlias", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c TestClassAlias) BamlTypeName() string {
 	return "TestClassAlias"
+}
+
+func (u TestClassAlias) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TestClassAlias")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type TestClassNested struct {
@@ -6120,11 +6913,20 @@ func (c TestClassNested) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUni
 
 	fields["prop2"] = c.Prop2
 
-	return baml.EncodeClass(builder, "TestClassNested", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c TestClassNested) BamlTypeName() string {
 	return "TestClassNested"
+}
+
+func (u TestClassNested) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TestClassNested")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type TestClassWithEnum struct {
@@ -6183,11 +6985,20 @@ func (c TestClassWithEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueU
 
 	fields["prop2"] = c.Prop2
 
-	return baml.EncodeClass(builder, "TestClassWithEnum", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c TestClassWithEnum) BamlTypeName() string {
 	return "TestClassWithEnum"
+}
+
+func (u TestClassWithEnum) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TestClassWithEnum")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type TestMemoryOutput struct {
@@ -6246,11 +7057,20 @@ func (c TestMemoryOutput) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUn
 
 	fields["more_items"] = c.More_items
 
-	return baml.EncodeClass(builder, "TestMemoryOutput", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c TestMemoryOutput) BamlTypeName() string {
 	return "TestMemoryOutput"
+}
+
+func (u TestMemoryOutput) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TestMemoryOutput")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type TestOutputClass struct {
@@ -6309,11 +7129,20 @@ func (c TestOutputClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUni
 
 	fields["prop2"] = c.Prop2
 
-	return baml.EncodeClass(builder, "TestOutputClass", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c TestOutputClass) BamlTypeName() string {
 	return "TestOutputClass"
+}
+
+func (u TestOutputClass) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TestOutputClass")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type Tree struct {
@@ -6372,11 +7201,20 @@ func (c Tree) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuf
 
 	fields["children"] = c.Children
 
-	return baml.EncodeClass(builder, "Tree", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c Tree) BamlTypeName() string {
 	return "Tree"
+}
+
+func (u Tree) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("Tree")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type TwoStoriesOneTitle struct {
@@ -6449,11 +7287,20 @@ func (c TwoStoriesOneTitle) Encode(builder *flatbuffers.Builder) (cffi.CFFIValue
 
 	fields["story_b"] = c.Story_b
 
-	return baml.EncodeClass(builder, "TwoStoriesOneTitle", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c TwoStoriesOneTitle) BamlTypeName() string {
 	return "TwoStoriesOneTitle"
+}
+
+func (u TwoStoriesOneTitle) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TwoStoriesOneTitle")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type TwoStoriesOneTitleCheck struct {
@@ -6526,11 +7373,20 @@ func (c TwoStoriesOneTitleCheck) Encode(builder *flatbuffers.Builder) (cffi.CFFI
 
 	fields["story_b"] = c.Story_b
 
-	return baml.EncodeClass(builder, "TwoStoriesOneTitleCheck", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c TwoStoriesOneTitleCheck) BamlTypeName() string {
 	return "TwoStoriesOneTitleCheck"
+}
+
+func (u TwoStoriesOneTitleCheck) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("TwoStoriesOneTitleCheck")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type UnionTest_ReturnType struct {
@@ -6603,11 +7459,20 @@ func (c UnionTest_ReturnType) Encode(builder *flatbuffers.Builder) (cffi.CFFIVal
 
 	fields["prop3"] = c.Prop3
 
-	return baml.EncodeClass(builder, "UnionTest_ReturnType", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c UnionTest_ReturnType) BamlTypeName() string {
 	return "UnionTest_ReturnType"
+}
+
+func (u UnionTest_ReturnType) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("UnionTest_ReturnType")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 } /// my docs
 type UniverseQuestion struct {
 	Question *string `json:"question"`
@@ -6665,11 +7530,20 @@ func (c UniverseQuestion) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUn
 
 	fields["answer"] = c.Answer
 
-	return baml.EncodeClass(builder, "UniverseQuestion", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c UniverseQuestion) BamlTypeName() string {
 	return "UniverseQuestion"
+}
+
+func (u UniverseQuestion) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("UniverseQuestion")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type UniverseQuestionInput struct {
@@ -6714,11 +7588,20 @@ func (c UniverseQuestionInput) Encode(builder *flatbuffers.Builder) (cffi.CFFIVa
 
 	fields["question"] = c.Question
 
-	return baml.EncodeClass(builder, "UniverseQuestionInput", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c UniverseQuestionInput) BamlTypeName() string {
 	return "UniverseQuestionInput"
+}
+
+func (u UniverseQuestionInput) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("UniverseQuestionInput")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
 
 type WithReasoning struct {
@@ -6777,9 +7660,18 @@ func (c WithReasoning) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion
 
 	fields["reasoning"] = c.Reasoning
 
-	return baml.EncodeClass(builder, "WithReasoning", fields, nil)
+	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
 }
 
 func (c WithReasoning) BamlTypeName() string {
 	return "WithReasoning"
+}
+
+func (u WithReasoning) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	nameOffset := builder.CreateString("WithReasoning")
+	namespaceOffset := builder.CreateString("stream_types")
+	cffi.CFFITypeNameStart(builder)
+	cffi.CFFITypeNameAddName(builder, nameOffset)
+	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
+	return cffi.CFFITypeNameEnd(builder)
 }
