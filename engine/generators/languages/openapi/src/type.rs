@@ -1,5 +1,5 @@
-use baml_types::ir_type::{Type, TypeValue};
-use baml_types::{BamlMediaType, Constraint, ConstraintLevel};
+use baml_types::ir_type::{Type, TypeValue, UnionTypeViewGeneric};
+use baml_types::{BamlMediaType, Constraint, ConstraintLevel, LiteralValue};
 use indexmap::IndexMap;
 use internal_baml_core::ir::ir_helpers::IRHelper;
 use internal_baml_core::ir::repr::IntermediateRepr;
@@ -15,20 +15,25 @@ use std::hash::Hash;
 #[serde(untagged)]
 pub enum TypeOpenApi {
     Ref {
-        r#ref: String,
+        #[serde(flatten)]
         meta: OpenApiMeta,
+        r#ref: String,
     },
     Inline {
-        r#type: TypePrimitive,
+        #[serde(flatten)]
         meta: OpenApiMeta,
+        #[serde(flatten)]
+        r#type: TypePrimitive,
     },
     Union {
-        one_of: Vec<TypeOpenApi>,
+        #[serde(flatten)]
         meta: OpenApiMeta,
+        one_of: Vec<TypeOpenApi>,
     },
     AnyValue {
-        any_value: IndexMap<String, TypeOpenApi>,
+        #[serde(flatten)]
         meta: OpenApiMeta,
+        any_value: IndexMap<String, TypeOpenApi>,
     },
 }
 
@@ -55,21 +60,21 @@ pub enum TypePrimitive {
 pub struct OpenApiMeta {
     /// Pydantic includes this by default.
     #[serde(skip_serializing_if = "Option::is_none")]
-    title: Option<String>,
+    pub title: Option<String>,
 
     /// JSON schema considers 'enum' to be a validation rule, not a type,
     /// so it can be attached to any type.
     /// We only allow string-shaped enums
     #[serde(skip_serializing_if = "Option::is_none")]
-    r#enum: Option<Vec<String>>,
+    pub r#enum: Option<Vec<String>>,
 
     /// We only allow string-shaped const values
     #[serde(skip_serializing_if = "Option::is_none")]
-    r#const: Option<String>,
+    pub r#const: Option<String>,
     // description: Option<String>,
     /// Nulls in OpenAPI are weird: https://swagger.io/docs/specification/data-models/data-types/
     #[serde(skip_serializing_if = "std::ops::Not::not")]
-    nullable: bool,
+    pub nullable: bool,
 }
 
 impl Default for OpenApiMeta {
@@ -170,7 +175,60 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &Type) -> TypeOpenApi {
                 }
             }
         },
-        _ => todo!(),
+        Type::Class { name, .. } => TypeOpenApi::Ref {
+            r#ref: format!("#/components/schemas/{}", name),
+            meta: meta_copy,
+        },
+        Type::List(inner, _) => TypeOpenApi::Inline {
+            r#type: TypePrimitive::Array {
+                items: Box::new(convert_ir_type(ir, inner)),
+            },
+            meta: meta_copy,
+        },
+        Type::Enum { name, .. } => TypeOpenApi::Ref {
+            r#ref: format!("#/components/schemas/{}", name),
+            meta: meta_copy,
+        },
+        Type::Literal(literal, _) => TypeOpenApi::Inline {
+            r#type: match literal {
+                LiteralValue::String(_) => TypePrimitive::String,
+                LiteralValue::Int(_) => TypePrimitive::Integer,
+                LiteralValue::Bool(_) => TypePrimitive::Boolean,
+            },
+            meta: meta_copy,
+        },
+        Type::Arrow(_, _) => panic!("Arrow types are not supported in code generation"),
+        Type::Union(inner, _) => match inner.view() {
+            UnionTypeViewGeneric::Null => TypeOpenApi::Inline {
+                r#type: TypePrimitive::Null,
+                meta: meta_copy,
+            },
+            UnionTypeViewGeneric::Optional(inner) => convert_ir_type(ir, inner),
+            UnionTypeViewGeneric::OneOf(inner) => TypeOpenApi::Union {
+                one_of: inner.iter().map(|i| convert_ir_type(ir, i)).collect(),
+                meta: meta_copy,
+            },
+            UnionTypeViewGeneric::OneOfOptional(inner) => {
+                let one_of = inner.iter().map(|i| convert_ir_type(ir, i)).collect();
+                TypeOpenApi::Union {
+                    one_of,
+                    meta: meta_copy,
+                }
+            }
+        },
+        Type::Map(key_type, value_type, _) => TypeOpenApi::Inline {
+            r#type: TypePrimitive::Object {
+                properties: IndexMap::new(),
+                required: vec![],
+                additional_properties: true,
+            },
+            meta: meta_copy,
+        },
+        Type::Tuple(..) => panic!("Tuple types are not supported in code generation"),
+        Type::RecursiveTypeAlias { .. } => TypeOpenApi::AnyValue {
+            any_value: IndexMap::new(),
+            meta: meta_copy,
+        },
     };
 
     let checks = ty
