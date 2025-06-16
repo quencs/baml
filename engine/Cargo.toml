@@ -16,6 +16,7 @@ members = [
   "language_server",
   "language_client_cffi",
   "sandbox",
+  "zed",
 ]
 default-members = [
   "baml-lsp-types",
