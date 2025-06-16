@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['jotai-devtools', '@baml/playground-common', '@gloo-ai/baml-schema-wasm-web', '@baml/common'],
+  transpilePackages: [
+    'jotai-devtools',
+    '@baml/playground-common',
+    '@gloo-ai/baml-schema-wasm-web',
+    '@baml/common',
+    '@boundaryml/codemirror-lang-baml',
+  ],
   // productionBrowserSourceMaps: true,
   eslint: {
     ignoreDuringBuilds: true,

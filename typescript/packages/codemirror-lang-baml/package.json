@@ -14,11 +14,11 @@
   "type": "module",
   "exports": {
     ".": {
-      "default": "./index.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
       "types": "./dist/src/index.d.ts"
     }
   },
-  "sideEffects": false,
   "dependencies": {
     "@codemirror/autocomplete": "6.18.6",
     "@codemirror/language": "6.11.1",

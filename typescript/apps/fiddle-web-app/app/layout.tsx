@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { PHProvider, RB2BElement } from './_components/PosthogProvider'
 import { ThemeProvider } from './_components/ThemeProvider'
-import './globals.css'
+import '@baml/ui/globals.css'
 import PostHogPageView from './PostHogPageView'
 
 const inter = Inter({ subsets: ['latin'] })

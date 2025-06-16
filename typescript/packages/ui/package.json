@@ -40,8 +40,8 @@
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
-    "lucide-react": "0.515.0",
-    "markdown-to-jsx": "7.7.6",
+    "lucide-react": "0.516.0",
+    "markdown-to-jsx": "7.7.7",
     "marked": "15.0.12",
     "motion": "12.18.1",
     "nanoid": "5.1.5",
@@ -52,7 +52,7 @@
     "react-day-picker": "9.7.0",
     "react-dom": "19.1.0",
     "react-expanding-textarea": "2.3.6",
-    "react-hook-form": "7.57.0",
+    "react-hook-form": "7.58.0",
     "react-markdown": "10.1.0",
     "react-resizable-panels": "3.0.3",
     "react-scan": "0.3.4",
@@ -74,7 +74,7 @@
     "@types/react-dom": "19.1.6",
     "tailwindcss": "4.1.10",
     "typescript": "5.8.3",
-    "zod": "3.25.64"
+    "zod": "3.25.66"
   },
   "exports": {
     "./*": "./src/components/*.tsx",

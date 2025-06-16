@@ -37,11 +37,11 @@
     "vscode-languageserver": "9.0.1",
     "vscode-languageserver-textdocument": "1.0.12",
     "vscode-uri": "3.1.0",
-    "zod": "3.25.64"
+    "zod": "3.25.66"
   },
   "devDependencies": {
     "@types/lodash": "4.17.17",
-    "@types/node": "24.0.1",
+    "@types/node": "24.0.3",
     "esbuild": "0.25.5",
     "esbuild-plugin-copy": "2.1.1",
     "rimraf": "6.0.1",
