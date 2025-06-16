@@ -87,6 +87,25 @@ impl PromptRenderer {
         res
     }
 
+    /// Parse using XML parser instead of JSON parser
+    pub fn parse_xml(
+        &self,
+        ir: &IntermediateRepr,
+        ctx: &RuntimeContext,
+        raw_string: &str,
+        allow_partials: bool,
+    ) -> Result<ResponseBamlValue> {
+        let parsed = jsonish::from_str_xml(
+            &self.output_defs,
+            &self.output_type,
+            raw_string,
+            allow_partials,
+        )?;
+        let scoped_ir = ScopedIr::new(ir, ctx);
+        let res = parsed_value_to_response(&scoped_ir, parsed, allow_partials);
+        res
+    }
+
     pub fn render_prompt(
         &self,
         ir: &IntermediateRepr,

@@ -6,6 +6,7 @@ use indexmap::IndexMap;
 pub mod deserializer;
 use std::collections::HashMap;
 pub mod jsonish;
+pub mod xmlish;
 
 use baml_types::{
     BamlValue, BamlValueWithMeta, FieldType, HasFieldType, JinjaExpression, ResponseCheck,
@@ -232,6 +233,133 @@ pub fn from_str(
     Ok(parsed_value)
 }
 
+pub fn from_str_xml(
+    of: &OutputFormatContent,
+    target: &FieldType,
+    raw_string: &str,
+    allow_partials: bool,
+) -> Result<BamlValueWithFlags> {
+    if matches!(target, FieldType::Primitive(TypeValue::String)) {
+        return Ok(BamlValueWithFlags::String(
+            (raw_string.to_string(), target).into(),
+        ));
+    }
+
+    // Parse as XML instead of JSON
+    let xml_value = xmlish::parse(raw_string, xmlish::ParseOptions::default())?;
+    
+    // Convert XML value to JSONish value for coercion
+    let jsonish_value = xml_to_jsonish_value(xml_value)?;
+
+    log::debug!("Parsed XML and converted to JSONish (step 1 of parsing): {:#?}", jsonish_value);
+    let ctx = ParsingContext::new(of, allow_partials);
+
+    // Coerce the converted value into the expected schema
+    let parsed_value: BamlValueWithFlags = match target.coerce(&ctx, target, Some(&jsonish_value)) {
+        Ok(v) => {
+            if v.conditions()
+                .flags()
+                .iter()
+                .any(|f| matches!(f, Flag::InferedObject(jsonish::Value::String(_, _))))
+            {
+                anyhow::bail!("Failed to coerce value: {:?}", v.conditions().flags());
+            }
+
+            Ok::<BamlValueWithFlags, anyhow::Error>(v)
+        }
+        Err(e) => anyhow::bail!("Failed to coerce value: {}", e),
+    }?;
+
+    Ok(parsed_value)
+}
+
+/// Convert XML value to JSONish value for type coercion
+fn xml_to_jsonish_value(xml_value: xmlish::Value) -> Result<jsonish::Value> {
+    use baml_types::CompletionState;
+    
+    match xml_value {
+        xmlish::Value::Text(text, completion_state) => {
+            Ok(jsonish::Value::String(text, completion_state))
+        }
+        xmlish::Value::Element { tag, attributes, children, completion_state } => {
+            // Convert XML element to JSON object
+            let mut obj_map = indexmap::IndexMap::new();
+            
+            // Add attributes as fields with @ prefix
+            for (key, value) in attributes {
+                let attr_key = format!("@{}", key);
+                obj_map.insert(attr_key, jsonish::Value::String(value, CompletionState::Complete));
+            }
+            
+            // Handle children
+            if children.is_empty() {
+                // Empty element, represent as null or empty string
+                obj_map.insert("_text".to_string(), jsonish::Value::String("".to_string(), completion_state.clone()));
+            } else if children.len() == 1 {
+                match &children[0] {
+                    xmlish::Value::Text(text, _) => {
+                        // Single text child
+                        obj_map.insert("_text".to_string(), jsonish::Value::String(text.clone(), completion_state.clone()));
+                    }
+                    _ => {
+                        // Single element child
+                        let child_value = xml_to_jsonish_value(children[0].clone())?;
+                        obj_map.insert(tag.clone(), child_value);
+                    }
+                }
+            } else {
+                // Multiple children - group by tag name
+                let mut child_groups: indexmap::IndexMap<String, Vec<jsonish::Value>> = indexmap::IndexMap::new();
+                let mut text_content = String::new();
+                
+                for child in children {
+                    match &child {
+                        xmlish::Value::Text(text, _) => {
+                            text_content.push_str(text);
+                        }
+                        xmlish::Value::Element { tag: child_tag, .. } => {
+                            let child_value = xml_to_jsonish_value(child.clone())?;
+                            child_groups.entry(child_tag.clone()).or_insert_with(Vec::new).push(child_value);
+                        }
+                        _ => {
+                            let child_value = xml_to_jsonish_value(child.clone())?;
+                            child_groups.entry("_unknown".to_string()).or_insert_with(Vec::new).push(child_value);
+                        }
+                    }
+                }
+                
+                if !text_content.trim().is_empty() {
+                    obj_map.insert("_text".to_string(), jsonish::Value::String(text_content, completion_state.clone()));
+                }
+                
+                for (tag_name, values) in child_groups {
+                    if values.len() == 1 {
+                        obj_map.insert(tag_name, values.into_iter().next().unwrap());
+                    } else {
+                        obj_map.insert(tag_name, jsonish::Value::Array(values, completion_state.clone()));
+                    }
+                }
+            }
+            
+            // Convert IndexMap to Vec for jsonish::Value::Object
+            let obj_vec: Vec<(String, jsonish::Value)> = obj_map.into_iter().collect();
+            Ok(jsonish::Value::Object(obj_vec, completion_state))
+        }
+        xmlish::Value::Fragment(text, completion_state) => {
+            // Treat fragments as strings
+            Ok(jsonish::Value::String(text, completion_state))
+        }
+        xmlish::Value::AnyOf(values, original) => {
+            // Convert each possibility
+            let converted_values = values
+                .into_iter()
+                .map(xml_to_jsonish_value)
+                .collect::<Result<Vec<_>>>()?;
+            Ok(jsonish::Value::AnyOf(converted_values, original))
+        }
+    }
+}
+
 impl ResponseBamlValue {
     pub fn score(&self) -> i32 {
         self.0.iter().map(|node| node.meta().0.score()).sum()
@@ -285,5 +413,71 @@ impl From<ResponseBamlValue> for BamlValue {
 impl WithScore for ResponseBamlValue {
     fn score(&self) -> i32 {
         self.0.iter().map(|node| node.meta().0.score()).sum()
+    }
+}
+
+#[cfg(test)]
+mod xml_tests {
+    use super::*;
+    use crate::xmlish;
+    use internal_baml_jinja::types::OutputFormatContent;
+    use baml_types::FieldType;
+
+    #[test]
+    fn test_xml_parsing_simple() {
+        let xml = "<person><name>John</name><age>30</age></person>";
+        let result = xmlish::parse(xml, xmlish::ParseOptions::default()).unwrap();
+        
+        match result {
+            xmlish::Value::Element { tag, children, .. } => {
+                assert_eq!(tag, "person");
+                assert_eq!(children.len(), 2);
+            }
+            _ => panic!("Expected XML element"),
+        }
+    }
+
+    #[test]
+    fn test_xml_to_jsonish_conversion() {
+        let xml_value = xmlish::Value::element(
+            "person".to_string(),
+            std::collections::HashMap::new(),
+            vec![
+                xmlish::Value::element(
+                    "name".to_string(),
+                    std::collections::HashMap::new(),
+                    vec![xmlish::Value::text("John".to_string())],
+                ),
+                xmlish::Value::element(
+                    "age".to_string(),
+                    std::collections::HashMap::new(),
+                    vec![xmlish::Value::text("30".to_string())],
+                ),
+            ],
+        );
+
+        let jsonish_value = xml_to_jsonish_value(xml_value).unwrap();
+        
+        match jsonish_value {
+            jsonish::Value::Object(obj, _) => {
+                assert!(obj.len() >= 2); // Should have at least name and age fields
+            }
+            _ => panic!("Expected JSON object"),
+        }
+    }
+
+    #[test]
+    fn test_from_str_xml() {
+        let xml = "<person><name>John</name><age>30</age></person>";
+        let output_format = OutputFormatContent::mk_fake();
+        let target_type = FieldType::Primitive(baml_types::TypeValue::String);
+        
+        // For string target type, should return as string
+        let result = from_str_xml(&output_format, &target_type, xml, false).unwrap();
+        
+        match result {
+            BamlValueWithFlags::String(_) => {}, // Expected for string target
+            _ => panic!("Expected string result for string target type"),
+        }
     }
 }

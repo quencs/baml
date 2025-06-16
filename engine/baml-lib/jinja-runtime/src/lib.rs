@@ -18,6 +18,7 @@ use std::collections::HashMap;
 use crate::baml_value_to_jinja_value::IntoMiniJinjaValue;
 pub use crate::chat_message_part::ChatMessagePart;
 use crate::output_format::OutputFormat;
+use crate::output_format::OutputFormatXml;
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Serialize)]
@@ -96,14 +97,25 @@ fn render_minijinja(
 
     env.add_template("prompt", &template)?;
     let client = ctx.client.clone();
+    let output_format = ctx.output_format.clone();
     let tags = std::mem::take(&mut ctx.tags);
     let formatter = OutputFormat::new(ctx);
+    
+    // Create XML formatter with new RenderContext
+    let xml_ctx = RenderContext {
+        client: client.clone(),
+        output_format: output_format.clone(),
+        tags: HashMap::new(), // Empty tags since we already moved them
+    };
+    let xml_formatter = OutputFormatXml::new(xml_ctx);
+    
     env.add_global(
         "ctx",
         context! {
             client => client,
             tags => tags,
             output_format => minijinja::value::Value::from_object(formatter),
+            output_format_xml => minijinja::value::Value::from_object(xml_formatter),
         },
     );
 
@@ -2207,5 +2219,11 @@ mod render_tests {
             RenderedPrompt::Completion(msg) => assert_eq!(msg, "Greg\n"),
             _ => panic!("Expected Completion"),
         }
+    }
+}
+
+impl std::fmt::Display for RenderContext_Client {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "RenderContext_Client {{ name: {}, provider: {}, default_role: {}, allowed_roles: {:?} }}", self.name, self.provider, self.default_role, self.allowed_roles)
     }
 }

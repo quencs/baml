@@ -345,6 +345,32 @@ fn indefinite_article_a_or_an(word: &str) -> &str {
     }
 }
 
+/// XML-specific class rendering
+struct XmlClassRender {
+    name: String,
+    fields: Vec<XmlFieldRender>,
+}
+
+/// XML-specific field rendering
+struct XmlFieldRender {
+    name: String,
+    r#type: String,
+    description: Option<String>,
+}
+
+impl std::fmt::Display for XmlClassRender {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "<{}>", self.name)?;
+        for field in &self.fields {
+            if let Some(desc) = &field.description {
+                writeln!(f, "  <!-- {} -->", desc.replace("\n", "\n  <!-- ").trim_end_matches("<!-- "))?;
+            }
+            writeln!(f, "  <{}>{}</{}>", field.name, field.r#type, field.name)?;
+        }
+        write!(f, "</{}>", self.name)
+    }
+}
+
 struct RenderCtx {
     hoisted_enums: IndexSet<String>,
     hoisted_classes: IndexSet<String>,
@@ -905,6 +931,396 @@ impl OutputFormatContent {
             Ok(None)
         } else {
             Ok(Some(output))
+        }
+    }
+
+    /// Renders the output format as XML schema description
+    pub fn render_xml(&self, options: RenderOptions) -> Result<Option<String>, minijinja::Error> {
+        // Render context. Only contains hoisted types for now.
+        let mut render_ctx = RenderCtx {
+            hoisted_enums: IndexSet::new(),
+            // Recursive classes are always hoisted so we start with those as base.
+            hoisted_classes: self.recursive_classes.deref().clone(),
+        };
+
+        // Precompute hoisted enums (same logic as JSON)
+        for enm in self.enums.values() {
+            if enm.values.len() > INLINE_RENDER_ENUM_MAX_VALUES
+                || enm.values.iter().any(|(_, desc)| desc.is_some())
+                || matches!(options.always_hoist_enums, RenderSetting::Always(true))
+            {
+                render_ctx.hoisted_enums.insert(enm.name.name.clone());
+            }
+        }
+
+        // Handle hoist_classes option
+        match &options.hoist_classes {
+            HoistClasses::Auto => {}
+            HoistClasses::All => render_ctx
+                .hoisted_classes
+                .extend(self.classes.keys().cloned()),
+            HoistClasses::Subset(classes) => {
+                let mut not_found = IndexSet::new();
+                for cls in classes {
+                    if self.classes.contains_key(cls) {
+                        render_ctx.hoisted_classes.insert(cls.to_owned());
+                    } else {
+                        not_found.insert(cls.to_owned());
+                    }
+                }
+                if !not_found.is_empty() {
+                    let (class_or_classes, it_does_or_they_do) = if not_found.len() == 1 {
+                        ("class", "it does")
+                    } else {
+                        ("classes", "they do")
+                    };
+                    return Err(minijinja::Error::new(
+                        minijinja::ErrorKind::BadSerialization,
+                        format!(
+                            "Cannot hoist {class_or_classes} {} because {it_does_or_they_do} not exist",
+                            not_found
+                                .iter()
+                                .map(|cls| format!("\"{cls}\""))
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                        ),
+                    ));
+                }
+            }
+        };
+
+        // XML Schema prefix
+        let prefix = self.prefix_xml(&options, &render_ctx);
+
+        let mut message = match &self.target {
+            FieldType::Primitive(TypeValue::String) if prefix.is_none() => None,
+            FieldType::Enum(e) => {
+                let Some(enm) = self.enums.get(e) else {
+                    return Err(minijinja::Error::new(
+                        minijinja::ErrorKind::BadSerialization,
+                        format!("Enum {} not found", e),
+                    ));
+                };
+                Some(self.enum_to_string_xml(enm, &options))
+            }
+            _ => Some(self.inner_type_render_xml(&options, &self.target, &render_ctx)?),
+        };
+
+        // Handle top level recursive classes
+        if let FieldType::Class(class) = &self.target {
+            if render_ctx.hoisted_classes.contains(class) {
+                message = Some(class.to_owned());
+            }
+        }
+
+        // Handle top level hoisted enums
+        let target_is_hoisted_enum = if let FieldType::Enum(enum_name) = &self.target {
+            render_ctx.hoisted_enums.contains(enum_name)
+        } else {
+            false
+        };
+
+        if target_is_hoisted_enum {
+            message = None;
+        }
+
+        let mut class_definitions = Vec::new();
+        let mut type_alias_definitions = Vec::new();
+
+        // Render hoisted classes as XML schema
+        for class_name in &render_ctx.hoisted_classes {
+            let schema = self.inner_type_render_xml(
+                &options,
+                &FieldType::Class(class_name.to_owned()),
+                &render_ctx,
+            )?;
+
+            class_definitions.push(match &options.hoisted_class_prefix {
+                RenderSetting::Always(prefix) if !prefix.is_empty() => {
+                    format!("{prefix} {class_name} {schema}")
+                }
+                _ => format!("{class_name} {schema}"),
+            });
+        }
+
+        // Render type aliases
+        for (alias, target) in self.structural_recursive_aliases.iter() {
+            let recursive_pointer = self.inner_type_render_xml(&options, target, &render_ctx)?;
+            type_alias_definitions.push(match &options.hoisted_class_prefix {
+                RenderSetting::Always(prefix) if !prefix.is_empty() => {
+                    format!("{prefix} {alias} = {recursive_pointer}")
+                }
+                _ => format!("{alias} = {recursive_pointer}"),
+            });
+        }
+
+        // Render enum definitions
+        let enum_definitions = Vec::from_iter(render_ctx.hoisted_enums.into_iter().map(|e| {
+            let enm = self.enums.get(&e).expect("Enum not found");
+            let enum_str = self.enum_to_string_xml(enm, &options);
+
+            if target_is_hoisted_enum && e == enm.name.real_name() {
+                if let Some(p) = &prefix {
+                    format!("{p}{enum_str}")
+                } else {
+                    enum_str
+                }
+            } else {
+                enum_str
+            }
+        }));
+
+        let mut output = String::new();
+
+        if !enum_definitions.is_empty() {
+            output.push_str(&enum_definitions.join("\n\n"));
+            if !target_is_hoisted_enum {
+                output.push_str("\n\n");
+            }
+        }
+
+        if !class_definitions.is_empty() {
+            output.push_str(&class_definitions.join("\n\n"));
+            output.push_str("\n\n");
+        }
+
+        if !type_alias_definitions.is_empty() {
+            output.push_str(&type_alias_definitions.join("\n"));
+            output.push_str("\n\n");
+        }
+
+        if let Some(p) = prefix {
+            if !target_is_hoisted_enum {
+                output.push_str(&p);
+            }
+        }
+
+        if let Some(m) = message {
+            output.push_str(&m);
+        }
+
+        // Trim end
+        while let Some('\n') = output.chars().last() {
+            output.pop();
+        }
+
+        if output.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(output))
+        }
+    }
+
+    /// XML-specific prefix generation
+    fn prefix_xml(&self, options: &RenderOptions, render_state: &RenderCtx) -> Option<String> {
+        fn auto_prefix_xml(
+            ft: &FieldType,
+            options: &RenderOptions,
+            render_state: &RenderCtx,
+            _output_format_content: &OutputFormatContent,
+        ) -> Option<String> {
+            match ft {
+                FieldType::Primitive(TypeValue::String) => None,
+                FieldType::Primitive(p) => Some(format!(
+                    "Answer as {article} ",
+                    article = indefinite_article_a_or_an(&p.to_string())
+                )),
+                FieldType::Literal(_) => Some(String::from("Answer using this specific value:\n")),
+                FieldType::Enum(_) => Some(String::from("Answer with any of the categories:\n")),
+                FieldType::Class(cls) => {
+                    let type_prefix = match &options.hoisted_class_prefix {
+                        RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
+                        _ => RenderOptions::DEFAULT_TYPE_PREFIX_IN_RENDER_MESSAGE,
+                    };
+
+                    let end = if render_state.hoisted_classes.contains(cls) {
+                        " "
+                    } else {
+                        "\n"
+                    };
+
+                    Some(format!("Answer in XML using this {type_prefix}:{end}"))
+                }
+                FieldType::RecursiveTypeAlias(_) => {
+                    let type_prefix = match &options.hoisted_class_prefix {
+                        RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
+                        _ => RenderOptions::DEFAULT_TYPE_PREFIX_IN_RENDER_MESSAGE,
+                    };
+                    Some(format!("Answer in XML using this {type_prefix}: "))
+                }
+                FieldType::List(_) => Some(String::from(
+                    "Answer with XML elements using this schema:\n",
+                )),
+                FieldType::Union(_) => {
+                    Some(String::from("Answer in XML using any of these schemas:\n"))
+                }
+                FieldType::Optional(_) => Some(String::from("Answer in XML using this schema:\n")),
+                FieldType::Map(_, _) => Some(String::from("Answer in XML using this schema:\n")),
+                FieldType::Tuple(_) => None,
+                FieldType::WithMetadata { base, .. } => {
+                    auto_prefix_xml(base, options, render_state, _output_format_content)
+                }
+                FieldType::Arrow(_) => None,
+            }
+        }
+
+        match &options.prefix {
+            RenderSetting::Always(prefix) => Some(prefix.to_owned()),
+            RenderSetting::Never => None,
+            RenderSetting::Auto => auto_prefix_xml(&self.target, options, render_state, self),
+        }
+    }
+
+    /// XML-specific enum rendering
+    fn enum_to_string_xml(&self, enm: &Enum, options: &RenderOptions) -> String {
+        let mut result = format!("{}\n----", enm.name.rendered_name());
+        for (name, description) in &enm.values {
+            result.push_str(&format!(
+                "\n{}{}",
+                match options.enum_value_prefix {
+                    RenderSetting::Auto => "- ",
+                    RenderSetting::Always(ref prefix) => prefix,
+                    RenderSetting::Never => "",
+                },
+                if let Some(desc) = description {
+                    format!("{}: {}", name.rendered_name(), desc.replace("\n", "\n  "))
+                } else {
+                    name.rendered_name().to_string()
+                }
+            ));
+        }
+        result
+    }
+
+    /// XML-specific type rendering
+    fn inner_type_render_xml(
+        &self,
+        options: &RenderOptions,
+        field: &FieldType,
+        render_ctx: &RenderCtx,
+    ) -> Result<String, minijinja::Error> {
+        Ok(match field {
+            FieldType::Primitive(t) => match t {
+                TypeValue::String => "text content".to_string(),
+                TypeValue::Int => "integer".to_string(),
+                TypeValue::Float => "decimal".to_string(),
+                TypeValue::Bool => "boolean".to_string(),
+                TypeValue::Null => "empty".to_string(),
+                TypeValue::Media(media_type) => {
+                    return Err(minijinja::Error::new(
+                        minijinja::ErrorKind::BadSerialization,
+                        format!("type '{media_type}' is not supported in XML outputs"),
+                    ))
+                }
+            },
+            FieldType::Literal(v) => format!("literal value: {}", v),
+            FieldType::WithMetadata { base, .. } => {
+                self.render_possibly_hoisted_type_xml(options, base, render_ctx)?
+            }
+            FieldType::Enum(e) => {
+                let Some(enm) = self.enums.get(e) else {
+                    return Err(minijinja::Error::new(
+                        minijinja::ErrorKind::BadSerialization,
+                        format!("Enum {e} not found"),
+                    ));
+                };
+
+                if render_ctx.hoisted_enums.contains(&enm.name.name) {
+                    enm.name.rendered_name().to_string()
+                } else {
+                    enm.values
+                        .iter()
+                        .map(|(n, _)| format!("'{}'", n.rendered_name()))
+                        .collect::<Vec<_>>()
+                        .join(&options.or_splitter)
+                }
+            }
+            FieldType::Class(cls) => {
+                let Some(class) = self.classes.get(cls) else {
+                    return Err(minijinja::Error::new(
+                        minijinja::ErrorKind::BadSerialization,
+                        format!("Class {cls} not found"),
+                    ));
+                };
+
+                XmlClassRender {
+                    name: class.name.rendered_name().to_string(),
+                    fields: class
+                        .fields
+                        .iter()
+                        .map(|(name, field_type, description, _streaming_needed)| {
+                            Ok(XmlFieldRender {
+                                name: name.rendered_name().to_string(),
+                                description: description.clone(),
+                                r#type: self.render_possibly_hoisted_type_xml(
+                                    options, field_type, render_ctx,
+                                )?,
+                            })
+                        })
+                        .collect::<Result<_, minijinja::Error>>()?,
+                }
+                .to_string()
+            }
+            FieldType::RecursiveTypeAlias(name) => name.to_owned(),
+            FieldType::List(inner) => {
+                let inner_str = self.render_possibly_hoisted_type_xml(options, inner, render_ctx)?;
+                format!("list of <{}> elements", inner_str)
+            }
+            FieldType::Union(items) => items
+                .iter()
+                .map(|t| self.render_possibly_hoisted_type_xml(options, t, render_ctx))
+                .collect::<Result<Vec<_>, minijinja::Error>>()?
+                .join(&options.or_splitter),
+            FieldType::Optional(inner) => {
+                let inner_str = self.render_possibly_hoisted_type_xml(options, inner, render_ctx)?;
+                if inner.is_optional() {
+                    inner_str
+                } else {
+                    format!("{}{}empty", inner_str, options.or_splitter)
+                }
+            }
+            FieldType::Tuple(_) => {
+                return Err(minijinja::Error::new(
+                    minijinja::ErrorKind::BadSerialization,
+                    "Tuple type is not supported in XML outputs",
+                ))
+            }
+            FieldType::Map(key_type, value_type) => {
+                let key_str = self.render_possibly_hoisted_type_xml(options, key_type, render_ctx)?;
+                let value_str = self.render_possibly_hoisted_type_xml(options, value_type, render_ctx)?;
+                format!("elements with {} attributes containing {}", key_str, value_str)
+            }
+            FieldType::Arrow(_) => {
+                return Err(minijinja::Error::new(
+                    minijinja::ErrorKind::BadSerialization,
+                    "Arrow type is not supported in LLM function outputs",
+                ))
+            }
+        })
+    }
+
+    /// XML-specific hoisted type rendering
+    fn render_possibly_hoisted_type_xml(
+        &self,
+        options: &RenderOptions,
+        field_type: &FieldType,
+        render_ctx: &RenderCtx,
+    ) -> Result<String, minijinja::Error> {
+        match field_type {
+            FieldType::Class(class_name) if render_ctx.hoisted_classes.contains(class_name) => {
+                Ok(class_name.to_owned())
+            }
+            FieldType::Enum(enum_name) if render_ctx.hoisted_enums.contains(enum_name) => {
+                Ok(enum_name.to_owned())
+            }
+            FieldType::RecursiveTypeAlias(alias) => {
+                if self.structural_recursive_aliases.contains_key(alias) {
+                    Ok(alias.to_owned())
+                } else {
+                    self.inner_type_render_xml(options, field_type, render_ctx)
+                }
+            }
+            _ => self.inner_type_render_xml(options, field_type, render_ctx),
         }
     }
 }
@@ -3287,5 +3703,188 @@ VALUE_ENUM
 - two: The second enum.
 - hi: three"
         );
+    }
+
+    #[test]
+    fn render_enum_with_descriptions_default_prefix() {
+        let enums = vec![Enum {
+            name: Name::new("Tag".to_string()),
+            values: vec![
+                (
+                    Name::new("Urgent".to_string()),
+                    Some("Requires immediate attention".to_string()),
+                ),
+                (Name::new("Normal".to_string()), None),
+                (Name::new("Low".to_string()), None),
+            ],
+            constraints: Vec::new(),
+        }];
+
+        let content = OutputFormatContent::target(FieldType::Enum("Tag".to_string()))
+            .enums(enums)
+            .build();
+        let rendered = content
+            .render(RenderOptions::default())
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            rendered,
+            r#"Answer with any of the categories:
+Tag
+----
+- Urgent: Requires immediate attention
+- Normal
+- Low"#
+        )
+    }
+
+    // XML rendering tests
+    #[test]
+    fn test_xml_render_class() {
+        let classes = vec![Class {
+            name: Name::new("Person".to_string()),
+            fields: vec![
+                (
+                    Name::new("name".to_string()),
+                    FieldType::string(),
+                    Some("The person's name".to_string()),
+                    false,
+                ),
+                (
+                    Name::new("age".to_string()),
+                    FieldType::int(),
+                    Some("The person's age".to_string()),
+                    false,
+                ),
+            ],
+            constraints: Vec::new(),
+            streaming_behavior: StreamingBehavior::default(),
+        }];
+
+        let content = OutputFormatContent::target(FieldType::class("Person"))
+            .classes(classes)
+            .build();
+        let rendered = content.render_xml(RenderOptions::default()).unwrap();
+        assert_eq!(
+            rendered,
+            Some(String::from(
+                r#"Answer in XML using this schema:
+<Person>
+  <!-- The person's name -->
+  <name>text content</name>
+  <!-- The person's age -->
+  <age>integer</age>
+</Person>"#
+            ))
+        );
+    }
+
+    #[test]
+    fn test_xml_render_enum() {
+        let enums = vec![Enum {
+            name: Name::new("Color".to_string()),
+            values: vec![
+                (Name::new("Red".to_string()), None),
+                (Name::new("Green".to_string()), None),
+                (Name::new("Blue".to_string()), None),
+            ],
+            constraints: Vec::new(),
+        }];
+
+        let content = OutputFormatContent::target(FieldType::Enum("Color".to_string()))
+            .enums(enums)
+            .build();
+        let rendered = content.render_xml(RenderOptions::default()).unwrap();
+        assert_eq!(
+            rendered,
+            Some(String::from(
+                "Answer with any of the categories:
+Color
+----
+- Red
+- Green
+- Blue"
+            ))
+        );
+    }
+
+    #[test]
+    fn test_xml_render_string() {
+        let content = OutputFormatContent::target(FieldType::string()).build();
+        let rendered = content.render_xml(RenderOptions::default()).unwrap();
+        assert_eq!(rendered, None);
+    }
+
+    #[test]
+    fn test_xml_render_int() {
+        let content = OutputFormatContent::target(FieldType::int()).build();
+        let rendered = content.render_xml(RenderOptions::default()).unwrap();
+        assert_eq!(rendered, Some("Answer as an integer".into()));
+    }
+
+    #[test]
+    fn render_enum_with_descriptions_different_name() {
+        let enums = vec![Enum {
+            name: Name::new("Tag".to_string()),
+            values: vec![
+                (
+                    Name::new("Urgent".to_string()),
+                    Some("Requires immediate attention".to_string()),
+                ),
+                (Name::new("Normal".to_string()), None),
+                (Name::new("Low".to_string()), None),
+            ],
+            constraints: Vec::new(),
+        }];
+
+        let content = OutputFormatContent::target(FieldType::Enum("Tag".to_string()))
+            .enums(enums)
+            .build();
+        let rendered = content
+            .render(RenderOptions::default())
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            rendered,
+            r#"Answer with any of the categories:
+Tag
+----
+- Urgent: Requires immediate attention
+- Normal
+- Low"#
+        )
+    }
+
+    #[test]
+    fn render_enum_with_descriptions_tag_test() {
+        let enums = vec![Enum {
+            name: Name::new("Tag".to_string()),
+            values: vec![
+                (
+                    Name::new("Urgent".to_string()),
+                    Some("Requires immediate attention".to_string()),
+                ),
+                (Name::new("Normal".to_string()), None),
+                (Name::new("Low".to_string()), None),
+            ],
+            constraints: Vec::new(),
+        }];
+
+        let content = OutputFormatContent::target(FieldType::Enum("Tag".to_string()))
+            .enums(enums)
+            .build();
+        let rendered = content
+            .render(RenderOptions::default())
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            rendered,
+            r#"Answer with any of the categories:
+Tag
+----
+- Urgent: Requires immediate attention
+- Normal
+- Low"#
+        )
     }
 }
