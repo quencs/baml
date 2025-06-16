@@ -813,7 +813,10 @@ impl OutputFormatContent {
 
         // Top level hoisted enums will just use their name instead of the
         // entire schema which should already be hoisted.
-        let target_is_hoisted_enum = if let FieldType::Enum { name: enum_name, .. } = &self.target {
+        let target_is_hoisted_enum = if let FieldType::Enum {
+            name: enum_name, ..
+        } = &self.target
+        {
             render_ctx.hoisted_enums.contains(enum_name)
         } else {
             false
@@ -2899,15 +2902,16 @@ Answer in JSON using this schema:
 
     #[test]
     fn render_simple_recursive_aliases() {
-        let content = OutputFormatContent::target(FieldType::recursive_type_alias("RecursiveMapAlias"))
-        .structural_recursive_aliases(IndexMap::from([(
-            "RecursiveMapAlias".to_string(),
-            FieldType::map(
-                FieldType::string(),
-                FieldType::recursive_type_alias("RecursiveMapAlias")
-            ),
-        )]))
-        .build();
+        let content =
+            OutputFormatContent::target(FieldType::recursive_type_alias("RecursiveMapAlias"))
+                .structural_recursive_aliases(IndexMap::from([(
+                    "RecursiveMapAlias".to_string(),
+                    FieldType::map(
+                        FieldType::string(),
+                        FieldType::recursive_type_alias("RecursiveMapAlias"),
+                    ),
+                )]))
+                .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
         #[rustfmt::skip]
         assert_eq!(
@@ -2924,17 +2928,11 @@ Answer in JSON using this schema: RecursiveMapAlias"#
     fn render_recursive_alias_cycle() {
         let content = OutputFormatContent::target(FieldType::recursive_type_alias("A"))
             .structural_recursive_aliases(IndexMap::from([
-                (
-                    "A".to_string(),
-                    FieldType::recursive_type_alias("B")
-                ),
-                (
-                    "B".to_string(),
-                    FieldType::recursive_type_alias("C")
-                ),
+                ("A".to_string(), FieldType::recursive_type_alias("B")),
+                ("B".to_string(), FieldType::recursive_type_alias("C")),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::recursive_type_alias("A"))
+                    FieldType::list(FieldType::recursive_type_alias("A")),
                 ),
             ]))
             .build();
@@ -2956,17 +2954,11 @@ Answer in JSON using this schema: A"#
     fn render_recursive_alias_cycle_with_hoist_prefix() {
         let content = OutputFormatContent::target(FieldType::recursive_type_alias("A"))
             .structural_recursive_aliases(IndexMap::from([
-                (
-                    "A".to_string(),
-                    FieldType::recursive_type_alias("B")
-                ),
-                (
-                    "B".to_string(),
-                    FieldType::recursive_type_alias("C")
-                ),
+                ("A".to_string(), FieldType::recursive_type_alias("B")),
+                ("B".to_string(), FieldType::recursive_type_alias("C")),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::recursive_type_alias("A"))
+                    FieldType::list(FieldType::recursive_type_alias("A")),
                 ),
             ]))
             .build();
@@ -3191,7 +3183,7 @@ Answer in JSON using this schema: Ret"#
             constraints: Vec::new(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::Enum("EnumOutput".to_string()))
+        let content = OutputFormatContent::target(FieldType::r#enum("EnumOutput"))
             .enums(enums)
             .build();
 
@@ -3252,7 +3244,7 @@ Answer in JSON using this schema: Ret"#
             constraints: Vec::new(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::Enum("EnumOutput".to_string()))
+        let content = OutputFormatContent::target(FieldType::r#enum("EnumOutput"))
             .enums(enums)
             .build();
 
