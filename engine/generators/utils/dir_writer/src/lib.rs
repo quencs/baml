@@ -11,7 +11,6 @@ use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
 
-
 pub struct GeneratorArgs {
     /// Output directory for the generated client, relative to baml_src
     pub output_dir_relative_to_baml_src: PathBuf,
@@ -167,7 +166,12 @@ pub trait LanguageFeatures: Default + Sized {
         collector.commit(&args.output_dir())
     }
 
-    fn generate_sdk_files(&self, collector: &mut FileCollector<Self>, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<(), anyhow::Error>;
+    fn generate_sdk_files(
+        &self,
+        collector: &mut FileCollector<Self>,
+        ir: std::sync::Arc<IntermediateRepr>,
+        args: &GeneratorArgs,
+    ) -> Result<(), anyhow::Error>;
 }
 
 pub struct FileCollector<L: LanguageFeatures + Default> {

@@ -1,0 +1,20 @@
+import type { BamlRuntime, BamlCtxManager, ClientRegistry, Collector } from "@boundaryml/baml"
+import { toBamlError } from "@boundaryml/baml"
+import type TypeBuilder from "./type_builder"
+import { HttpRequest, HttpStreamRequest } from "./sync_request"
+import { LlmResponseParser, LlmStreamParser } from "./parser"
+import { DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_CTX, DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME } from "./globals"
+import { BaseBamlClient, type BamlCallOptions } from "./base_client"
+
+/**
+ * @deprecated Use RecursivePartialNull from 'baml_client/types' instead.
+ * Example:
+ * ```ts
+ * import { RecursivePartialNull } from './baml_client/types'
+ * ```
+ */
+export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>;
+
+{% include "base_client.ts.j2" %}
+
+export const b = new BamlSyncClient(DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME, DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_CTX)

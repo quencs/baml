@@ -1,0 +1,14 @@
+import type { BamlRuntime, BamlCtxManager, ClientRegistry, Image, Audio } from "@boundaryml/baml"
+import { toBamlError, HTTPRequest } from "@boundaryml/baml"
+import type { Checked, Check } from "./types"
+import type * as types from "./types"
+import type {
+  {%- for t in types %}{{ t }}{% if !loop.last %}, {% endif %}{% endfor -%}
+} from "./types"
+import type TypeBuilder from "./type_builder"
+
+{% from "base_request.ts.j2" import request_class %}
+
+{{ request_class("HttpRequest", false, false) }}
+
+{{ request_class("HttpStreamRequest", false, true) }}

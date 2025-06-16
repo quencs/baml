@@ -101,6 +101,7 @@ impl<L: TestLanguageFeatures> TestStructure<L> {
             on_generate: match L::test_name() {
                 "go" => vec!["gofmt -w . && goimports -w . && go build".to_string()],
                 "python" => vec!["ruff check --fix".to_string()],
+                "typescript" => vec!["npx prettier --write .".to_string()],
                 _ => vec![],
             },
             client_type,

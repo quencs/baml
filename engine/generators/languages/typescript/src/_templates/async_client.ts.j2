@@ -1,0 +1,61 @@
+import type { BamlRuntime, FunctionResult, BamlCtxManager, ClientRegistry, Image, Audio, Collector } from "@boundaryml/baml"
+import { toBamlError, BamlStream, type HTTPRequest } from "@boundaryml/baml"
+import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
+import type { partial_types } from "./partial_types"
+import type TypeBuilder from "./type_builder"
+import { AsyncHttpRequest, AsyncHttpStreamRequest } from "./async_request"
+import { LlmResponseParser, LlmStreamParser } from "./parser"
+import { DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_CTX, DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME } from "./globals"
+import { BaseBamlClient, type BamlCallOptions } from "./base_client"
+
+/**
+ * @deprecated Use RecursivePartialNull from 'baml_client/types' instead.
+ */
+export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
+
+{% include "base_client.ts.j2" %}
+
+class BamlStreamClient extends BaseBamlClient {
+  constructor(runtime: BamlRuntime, ctxManager: BamlCtxManager, bamlOptions?: BamlCallOptions) {
+    super(runtime, ctxManager, bamlOptions)
+  }
+
+  {% for func in functions %}
+  {{ func.name }}(
+      {% for (name, arg_type) in func.args -%}
+      {{name}}{% if arg_type.meta().is_optional() %}?{% endif %}: {{arg_type.serialize_type(pkg)}},
+      {%- endfor %}
+      __baml_options__?: BamlCallOptions
+  ): BamlStream<{{ func.stream_return_type.serialize_type(pkg) }}, {{ func.return_type.serialize_type(pkg) }}> {
+    try {
+      const options = this.getMergedOptions(__baml_options__)
+      const collector = this.getCollector(options)
+      const env = this.getEnv(options)
+      const raw = this.runtime.streamFunction(
+        "{{func.name}}",
+        {
+          {% for (name, arg_type) in func.args -%}
+          "{{name}}": {{name}}{% if arg_type.meta().is_optional() %} ?? null{% endif %}{% if !loop.last %},{% endif %}
+          {%- endfor %}
+        },
+        undefined,
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return new BamlStream<{{ func.stream_return_type.serialize_type(pkg) }}, {{ func.return_type.serialize_type(pkg) }}>(
+        raw,
+        (a): {{ func.stream_return_type.serialize_type(pkg) }} => a,
+        (a): {{ func.return_type.serialize_type(pkg) }} => a,
+        this.ctxManager.cloneContext(),
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  {% endfor %}
+}
+
+export const b = new BamlAsyncClient(DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME, DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_CTX)
