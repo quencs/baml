@@ -96,8 +96,6 @@ pub fn create_routes(
     state: Arc<RwLock<PlaygroundState>>,
     session: Arc<Session>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    // tracing::info!("Creating playground routes");
-
     // WebSocket handler with error handling
     let ws_route = warp::path("ws")
         .and(warp::ws())
@@ -159,7 +157,7 @@ pub async fn broadcast_function_change(
     root_path: &str,
     function_name: String,
 ) -> Result<()> {
-    // tracing::info!("Broadcasting function change for: {}", function_name);
+    tracing::debug!("Broadcasting function change for: {}", function_name);
 
     let select_function_msg = FrontendMessage::select_function {
         root_path: root_path.to_string(),

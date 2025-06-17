@@ -1,6 +1,5 @@
-/// Script to run the playground server based of a specified directory.
-/// Currently uses a custom filewatcher which detects changes to files in
-/// the directory and refreshes the web-view.
+/// Script that runs the playground server.
+/// On the input port
 use crate::playground::definitions::PlaygroundState;
 use crate::playground::playground_server::create_routes;
 use crate::session::Session;
@@ -8,7 +7,7 @@ use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PlaygroundServer {
     state: Arc<RwLock<PlaygroundState>>,
     session: Arc<Session>,

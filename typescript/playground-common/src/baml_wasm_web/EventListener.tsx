@@ -139,11 +139,11 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
   console.log('selectedFunc', selectedFunc)
 
   useEffect(() => {
-    if (isVSCodeWebview) {
-      console.log('Websocket disabled in VSCode')
-      setIsConnected(true)
-      return
-    }
+    // if (isVSCodeWebview) {
+    //   console.log('Websocket disabled in VSCode')
+    //   setIsConnected(true)
+    //   return
+    // }
 
     const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const ws = new WebSocket(`${scheme}://${window.location.host}/ws`)

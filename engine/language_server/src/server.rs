@@ -135,13 +135,9 @@ impl Server {
                 anyhow::anyhow!("Failed to get the current working directory while creating a default workspace.")
             })?;
 
-        // tracing::info!("init params: {:?}", init_params);
-
-        // for some reason tracing logs are not available before this point
         tracing::info!("Starting server with {} worker threads", worker_threads);
         tracing::info!("-------- Version: {}", env!("CARGO_PKG_VERSION"));
 
-        // Create a new tokio runtime for the playground server
         let rt = tokio::runtime::Runtime::new()?;
 
         let mut session = Session::new(
@@ -152,43 +148,25 @@ impl Server {
             rt.handle().clone(),
         )?;
 
-        // Create a client and notifier to pass to reload
         let client = client::Client::new(connection.make_sender());
         let notifier = client.notifier();
 
-        // Initialize playground state if enabled
-        // if session.baml_settings.enable_playground {
+        // Playground state is initialized here, but server startup is now external
         let playground_state = Arc::new(RwLock::new(PlaygroundState::new()));
         session.playground_state = Some(playground_state.clone());
-
-        // Update session_arc with the new session that has playground state
         let session_arc = Arc::new(session.clone());
-
-        // Create and start the playground server using the shared playground_state
-        let playground_server = PlaygroundServer::new(playground_state.clone(), session_arc);
-        let playground_port = session.baml_settings.playground_port.unwrap_or(3030);
-
-        // Spawn the playground server on the runtime
-        rt.spawn(playground_server.run(playground_port));
-
-        tracing::info!(
-            "Hosted playground at http://localhost:{}...",
-            playground_port
-        );
-        // }
-
         // Store the runtime in the session
         session.playground_runtime = Some(rt);
-
-        // Reload the session with the notifier
         session.reload(Some(notifier))?;
 
-        Ok(Self {
+        let server = Self {
             connection,
             worker_threads,
             session,
             client_capabilities,
-        })
+        };
+        server.start_playground_server();
+        Ok(server)
     }
 
     pub fn run(self) -> anyhow::Result<()> {
@@ -399,6 +377,47 @@ impl Server {
                 ..Default::default()
             }),
             ..Default::default()
+        }
+    }
+
+    fn start_playground_server(&self) {
+        if let (Some(playground_state), Some(rt)) = (
+            self.session.playground_state.clone(),
+            self.session.playground_runtime.as_ref(),
+        ) {
+            let mut playground_port = self.session.baml_settings.playground_port.unwrap_or(3030);
+            let session_arc = Arc::new(self.session.clone());
+            let playground_server = PlaygroundServer::new(playground_state.clone(), session_arc);
+            rt.spawn(async move {
+                loop {
+                    // Check if port is available before attempting to bind
+                    let port_available = {
+                        match std::net::TcpListener::bind(("127.0.0.1", playground_port)) {
+                            Ok(_) => true,
+                            Err(_) => false,
+                        }
+                    };
+
+                    if port_available {
+                        // Port is available, start the server
+                        let server = playground_server.clone();
+                        server.run(playground_port).await.unwrap();
+                        tracing::info!(
+                            "Hosted playground at http://localhost:{}...",
+                            playground_port
+                        );
+                        break;
+                    } else {
+                        // Port is already in use, try next port
+                        playground_port += 1;
+                        tracing::info!(
+                            "Port {} is in use, trying port {}...",
+                            playground_port - 1,
+                            playground_port
+                        );
+                    }
+                }
+            });
         }
     }
 }
