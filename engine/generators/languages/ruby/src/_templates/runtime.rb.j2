@@ -1,0 +1,117 @@
+  class BamlCallOptions < T::Struct
+      extend T::Sig
+      
+      const :tb,              T.nilable(Baml::TypeBuilder),  optional: true
+      const :client_registry, T.nilable(ClientRegistry), optional: true
+      const :env,             T.nilable(T::Hash[String, T.nilable(String)]), optional: true
+      const :collector,       T.any(T.nilable(Collector), T::Array[Collector]), optional: true
+
+      sig { returns(T::Hash[String, T.untyped]) }
+      def to_h
+        {
+          tb: @tb,
+          client_registry: @client_registry,
+          env: @env,
+          collector: @collector
+        }
+      end
+
+      sig { params(h: T::Hash[String, T.untyped]).returns(BamlCallOptions) }
+      def self.from_h(h)
+        BamlCallOptions.new(
+          tb: h["tb"],
+          client_registry: h["client_registry"],
+          env: h["env"],
+          collector: h["collector"]
+        )
+      end
+  end
+
+module Internal
+  class ResolvedBamlOptions < T::Struct
+      const :tb,              T.nilable(Baml::Ffi::TypeBuilder)
+      const :client_registry, T.nilable(ClientRegistry)
+      const :collectors,      T::Array[Collector]
+      const :env_vars,        T::Hash[String, String]
+  end
+
+  class CallManager
+      extend T::Sig
+
+      class CallMode < T::Enum
+          enums do
+              STREAM = new
+              REQUEST = new
+          end
+      end
+
+      sig { params(baml_options: BamlCallOptions).void }
+      def initialize(baml_options)
+        @baml_options = baml_options
+      end
+
+      # -------------------------------------------------------------------------
+      # Public helpers – identical API surface to Python version
+      # -------------------------------------------------------------------------
+
+      sig { params(options: BamlCallOptions).returns(CallManager) }
+      def merge_options(options)
+        merged_hash = @baml_options.to_h.merge(options.to_h)
+        CallManager.new(BamlCallOptions.from_h(merged_hash))
+      end
+
+      sig { params(function_name: String, args: T::Hash[String, T.untyped]).returns(Baml::Ffi::FunctionResult) }
+      def call_function_sync(function_name:, args:)
+        r = resolve
+        runtime = Internal::DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_RUNTIME
+        ctx = Internal::DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_CTX
+        runtime.call_function(
+          function_name,
+          args,
+          ctx,
+          r.tb,
+          r.client_registry,
+          r.collectors,
+          r.env_vars,
+        )
+      end
+
+
+
+      # -------------------------------------------------------------------------
+      # Private helpers
+      # -------------------------------------------------------------------------
+      private
+
+      sig { returns(ResolvedBamlOptions) }
+      def resolve
+        tb       = @baml_options.tb
+        baml_tb = case tb
+                  when nil then nil
+                  else tb._registry
+                  end
+
+        cr = @baml_options.client_registry
+
+        collector = @baml_options.collector
+        collectors = case collector
+                     when nil    then []
+                     when Array  then collector
+                     else             [collector]
+                     end
+
+        # 4. env – start with ENV and patch
+        env_vars = ENV.to_h
+        (@baml_options.env || {}).each do |k, v|
+          v.nil? ? env_vars.delete(k) : env_vars[k] = v
+        end
+
+        ResolvedBamlOptions.new(
+          tb:              baml_tb,
+          client_registry: cr || nil,
+          collectors:      collectors,
+          env_vars:        env_vars,
+        )
+      end
+  end
+end

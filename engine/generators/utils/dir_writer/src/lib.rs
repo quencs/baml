@@ -152,6 +152,16 @@ pub trait LanguageFeatures: Default + Sized {
         Self::CONTENT_PREFIX.trim()
     }
 
+    fn on_file_created(&self, _path: &Path, content: &mut String) -> Result<()> {
+        content.push_str(self.content_prefix());
+        content.push_str("\n");
+        Ok(())
+    }
+
+    fn on_file_finished(&self, _path: &Path, _content: &mut String) -> Result<()> {
+        Ok(())
+    }
+
     const REMOVE_DIR_BEHAVIOR: RemoveDirBehavior = RemoveDirBehavior::Safe;
 
     /// If set, the contents of a .gitignore file to be written to the generated baml_client
@@ -160,8 +170,14 @@ pub trait LanguageFeatures: Default + Sized {
     /// backwards compat implications for the other generators
     const GITIGNORE: Option<&'static str> = None;
 
-    fn generate_sdk(&self, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<IndexMap<PathBuf, String>, anyhow::Error> {
-        let mut collector = FileCollector::<Self>::new();
+    fn generate_sdk<'a>(&'a self, ir: std::sync::Arc<IntermediateRepr>, args: &GeneratorArgs) -> Result<IndexMap<PathBuf, String>, anyhow::Error> {
+        let mut collector: FileCollector<'a, Self> = FileCollector::<'a, Self>::new();
+        collector.on_file_created.push(Box::new(|path, content| {
+            self.on_file_created(path, content)
+        }));
+        collector.on_file_finished.push(Box::new(|path, content| {
+            self.on_file_finished(path, content)
+        }));
         self.generate_sdk_files(&mut collector, ir, args)?;
         collector.commit(&args.output_dir())
     }
@@ -174,11 +190,14 @@ pub trait LanguageFeatures: Default + Sized {
     ) -> Result<(), anyhow::Error>;
 }
 
-pub struct FileCollector<L: LanguageFeatures + Default> {
+pub struct FileCollector<'a, L: LanguageFeatures + Default> {
     // map of path to a an object that has the trail File
     files: IndexMap<PathBuf, String>,
 
     lang: L,
+
+    on_file_created: Vec<Box<dyn Fn(&Path, &mut String) -> Result<()> + 'a>>,
+    on_file_finished: Vec<Box<dyn Fn(&Path, &mut String) -> Result<()> + 'a>>,
 }
 
 fn try_delete_tmp_dir(temp_path: &Path) -> Result<()> {
@@ -224,22 +243,31 @@ fn try_delete_tmp_dir(temp_path: &Path) -> Result<()> {
     Ok(())
 }
 
-impl<L: LanguageFeatures + Default> FileCollector<L> {
+impl<'a, L: LanguageFeatures + Default> FileCollector<'a, L> {    
     pub fn new() -> Self {
         Self {
             files: IndexMap::new(),
             lang: L::default(),
+            on_file_created: vec![],
+            on_file_finished: vec![],
         }
+    }
+
+    fn on_file_created(&mut self, path: &Path) -> Result<()> {
+        let mut content = Default::default();
+        for on_file_created in self.on_file_created.iter() {
+            on_file_created(path, &mut content)?;
+        }
+        self.files.insert(path.to_path_buf(), content);
+        Ok(())
     }
 
     pub fn add_file<K: AsRef<str>, V: AsRef<str>>(&mut self, name: K, contents: V) -> Result<()> {
         if self.files.contains_key(&PathBuf::from(name.as_ref())) {
             anyhow::bail!("File already exists: {}", name.as_ref());
         }
-        self.files.insert(
-            PathBuf::from(name.as_ref()),
-            format!("{}\n{}", self.lang.content_prefix(), contents.as_ref()),
-        );
+        self.on_file_created(&PathBuf::from(name.as_ref()))?;
+        self.append_to_file(name, contents.as_ref())?;
         Ok(())
     }
 
@@ -346,6 +374,12 @@ impl<L: LanguageFeatures + Default> FileCollector<L> {
     /// `output_path` is the path to be written to, and the path that will be prepended
     /// to the returned file entries
     pub fn commit(&mut self, output_path: &Path) -> Result<IndexMap<PathBuf, String>> {
+        for (path, content) in self.files.iter_mut() {
+            for on_file_finished in self.on_file_finished.iter() {
+                on_file_finished(path, content)?;
+            }
+        }
+
         if let Some(gitignore) = L::GITIGNORE {
             self.files.insert(
                 PathBuf::from(".gitignore"),
