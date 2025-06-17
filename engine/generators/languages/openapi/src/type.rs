@@ -1,6 +1,6 @@
 use baml_types::ir_type::{Type, TypeValue, UnionTypeViewGeneric};
 use baml_types::{BamlMediaType, Constraint, ConstraintLevel, LiteralValue};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::ir_helpers::IRHelper;
 use internal_baml_core::ir::repr::IntermediateRepr;
 use serde::Serialize;
@@ -13,10 +13,12 @@ use std::hash::Hash;
 /// attributes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
+#[serde(rename_all = "camelCase")]
 pub enum TypeOpenApi {
     Ref {
         #[serde(flatten)]
         meta: OpenApiMeta,
+        #[serde(rename = "$ref")]
         r#ref: String,
     },
     Inline {
@@ -28,17 +30,19 @@ pub enum TypeOpenApi {
     Union {
         #[serde(flatten)]
         meta: OpenApiMeta,
+        #[serde(rename = "oneOf")]
         one_of: Vec<TypeOpenApi>,
     },
     AnyValue {
         #[serde(flatten)]
         meta: OpenApiMeta,
+        #[serde(rename = "AnyValue")]
         any_value: IndexMap<String, TypeOpenApi>,
     },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum TypePrimitive {
     String,
@@ -49,11 +53,33 @@ pub enum TypePrimitive {
         items: Box<TypeOpenApi>,
     },
     Object {
+        #[serde(skip_serializing_if = "IndexMap::is_empty")]
         properties: IndexMap<String, TypeOpenApi>,
-        required: Vec<String>,
-        additional_properties: bool,
+        required: IndexSet<String>,
+        #[serde(rename = "additionalProperties")]
+        additional_properties: AdditionalProperties,
     },
     Null,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AdditionalProperties {
+    Closed,
+    Open,
+    Schema(Box<TypeOpenApi>),
+}
+
+impl Serialize for AdditionalProperties {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            AdditionalProperties::Closed => serializer.serialize_bool(false),
+            AdditionalProperties::Open => serializer.serialize_bool(true),
+            AdditionalProperties::Schema(schema) => schema.serialize(serializer),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -132,13 +158,16 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &Type) -> TypeOpenApi {
         }),
         _ => None,
     };
+    let meta_enum = None;
+    let meta_const = match ty {
+        Type::Literal(literal, _) => Some(literal.to_string()),
+        _ => None,
+    };
+    let meta_const = None;
     let meta = OpenApiMeta {
         nullable: ty.is_optional(),
         r#enum: meta_enum,
-        r#const: match ty {
-            Type::Literal(literal, _) => Some(literal.to_string()),
-            _ => None,
-        },
+        r#const: meta_const,
         title: None, // TODO: Correct?
     };
     let meta_copy = meta.clone();
@@ -216,11 +245,13 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &Type) -> TypeOpenApi {
                 }
             }
         },
-        Type::Map(key_type, value_type, _) => TypeOpenApi::Inline {
+        Type::Map(_key_type, value_type, _) => TypeOpenApi::Inline {
             r#type: TypePrimitive::Object {
                 properties: IndexMap::new(),
-                required: vec![],
-                additional_properties: true,
+                required: IndexSet::new(),
+                additional_properties: AdditionalProperties::Schema(Box::new(convert_ir_type(
+                    ir, value_type,
+                ))),
             },
             meta: meta_copy,
         },
@@ -254,8 +285,8 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &Type) -> TypeOpenApi {
                 ]
                 .into_iter()
                 .collect(),
-                required: vec!["value".to_string(), "checks".to_string()],
-                additional_properties: false,
+                required: IndexSet::from_iter(vec!["value".to_string(), "checks".to_string()]),
+                additional_properties: AdditionalProperties::Closed,
             },
             meta,
         }
@@ -280,14 +311,14 @@ fn type_def_for_checks(checks: Vec<String>) -> TypeOpenApi {
         .collect();
     properties.sort_keys();
 
-    let mut required: Vec<String> = checks.into_iter().collect();
+    let mut required: IndexSet<String> = checks.into_iter().collect();
     required.sort();
 
     TypeOpenApi::Inline {
         r#type: TypePrimitive::Object {
             properties,
             required,
-            additional_properties: false,
+            additional_properties: AdditionalProperties::Closed,
         },
         meta: OpenApiMeta::default(),
     }

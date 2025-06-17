@@ -1,12 +1,14 @@
-use crate::r#type::{convert_ir_type, OpenApiMeta, TypeOpenApi, TypePrimitive};
+use crate::r#type::{
+    convert_ir_type, AdditionalProperties, OpenApiMeta, TypeOpenApi, TypePrimitive,
+};
 use crate::{
     builtin_schemas, ComponentRequestBody, Components, FunctionName, MediaTypeSchema,
     OpenApiSchema, Path, PathRequestBody, Response, TypeName,
 };
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::repr;
 
-pub use class::convert_ir_class;
+pub use class::{convert_ir_class, convert_ir_enum};
 pub use function::{convert_ir_function, FunctionOpenApi};
 
 pub struct OpenApiUserData {
@@ -26,15 +28,22 @@ impl OpenApiUserData {
             })
             .collect();
 
-        let types = ir
-            .walk_classes()
-            .map(|class| {
+        let mut types: IndexMap<TypeName, TypeOpenApi> = ir
+            .walk_enums()
+            .map(|r#enum| {
+                (
+                    TypeName(r#enum.name().to_string()),
+                    convert_ir_enum(&r#enum.item.elem),
+                )
+            })
+            .chain(ir.walk_classes().map(|class| {
                 (
                     TypeName(class.name().to_string()),
                     convert_ir_class(&ir, &class.item.elem),
                 )
-            })
+            }))
             .collect();
+        types.sort_keys();
         OpenApiUserData { types, functions }
     }
 
@@ -44,9 +53,9 @@ impl OpenApiUserData {
         let openapi_schema = OpenApiSchema {
             openapi: "3.0.0".to_string(),
             info: serde_json::json!({
-                "title": "Baml API",
+                "description": "baml-cli serve",
                 "version": "0.1.0",
-                "description": "Baml API",
+                "title": "baml-cli serve",
             }),
             servers: serde_json::json!([{
                 "url": "{address}",
@@ -73,16 +82,25 @@ impl OpenApiUserData {
                     .map(|(name, func)| {
                         let mut schema = func.return_type.clone();
                         schema.meta_mut().title = Some(format!("{}Request", name.0));
+                        let mut properties: Vec<(String, bool, TypeOpenApi)> = func
+                            .args
+                            .clone()
+                            .into_iter()
+                            .map(|(name, is_optional, ty)| (name, is_optional, ty))
+                            .collect();
+                        properties.sort_by_key(|(name, _, _)| name.clone());
                         let component_request_body = ComponentRequestBody {
                             content: vec![(
                                 "application/json".to_string(),
                                 MediaTypeSchema {
-                                    title: None,
                                     schema: TypeOpenApi::Inline {
                                         r#type: TypePrimitive::Object {
                                             properties: IndexMap::from_iter(
-                                                func.args.clone().into_iter().chain(
-                                                    std::iter::once((
+                                                properties
+                                                    .clone()
+                                                    .into_iter()
+                                                    .map(|(n, _, ty)| (n, ty))
+                                                    .chain(std::iter::once((
                                                         "__baml_options__".to_string(),
                                                         TypeOpenApi::Ref {
                                                             r#ref:
@@ -93,15 +111,20 @@ impl OpenApiUserData {
                                                                 ..OpenApiMeta::default()
                                                             },
                                                         },
-                                                    )),
-                                                ),
+                                                    ))),
                                             ),
-                                            required: func
-                                                .args
-                                                .iter()
-                                                .map(|(name, _)| name.clone())
-                                                .collect(), // TODO: Omit optional args?
-                                            additional_properties: false,
+                                            required: IndexSet::from_iter(
+                                                properties.iter().filter_map(
+                                                    |(name, is_optional, _ty)| {
+                                                        if *is_optional {
+                                                            None
+                                                        } else {
+                                                            Some(name.clone())
+                                                        }
+                                                    },
+                                                ),
+                                            ), // TODO: Omit optional args?
+                                            additional_properties: AdditionalProperties::Closed,
                                         },
                                         meta: OpenApiMeta {
                                             title: Some(format!("{}Request", name.0)),
@@ -125,12 +148,14 @@ impl OpenApiUserData {
 }
 
 mod class {
+    use indexmap::IndexSet;
+
     use super::*;
     use crate::r#type::{TypeOpenApi, TypePrimitive};
 
     pub fn convert_ir_class(ir: &repr::IntermediateRepr, class: &repr::Class) -> TypeOpenApi {
-        let mut required = Vec::new();
-        let properties = class
+        let mut required = IndexSet::new();
+        let mut properties: IndexMap<String, TypeOpenApi> = class
             .static_fields
             .iter()
             .map(|field| {
@@ -140,7 +165,7 @@ mod class {
                         convert_ir_type(&ir, &field.elem.r#type.elem),
                     )
                 } else {
-                    required.push(field.elem.name.clone());
+                    required.insert(field.elem.name.clone());
                     (
                         field.elem.name.clone(),
                         convert_ir_type(&ir, &field.elem.r#type.elem),
@@ -148,14 +173,26 @@ mod class {
                 }
             })
             .collect();
+        properties.sort_keys();
+        required.sort();
 
         TypeOpenApi::Inline {
             r#type: TypePrimitive::Object {
                 properties,
                 required,
-                additional_properties: false,
+                additional_properties: AdditionalProperties::Closed,
             },
             meta: OpenApiMeta::default(),
+        }
+    }
+
+    pub fn convert_ir_enum(r#enum: &repr::Enum) -> TypeOpenApi {
+        TypeOpenApi::Inline {
+            r#type: TypePrimitive::String,
+            meta: OpenApiMeta {
+                r#enum: Some(r#enum.values.iter().map(|v| v.0.elem.0.clone()).collect()),
+                ..OpenApiMeta::default()
+            },
         }
     }
 }
@@ -167,7 +204,8 @@ mod function {
     pub struct FunctionOpenApi {
         pub name: String,
         pub documentation: Option<String>,
-        pub args: Vec<(String, TypeOpenApi)>,
+        /// (name, is_optional, type)
+        pub args: Vec<(String, bool, TypeOpenApi)>,
         pub return_type: TypeOpenApi,
         // pub stream_return_type: TypeOpenApi, // TODO: Support streaming responses.
     }
@@ -179,7 +217,13 @@ mod function {
         let args = function
             .inputs
             .iter()
-            .map(|(arg_name, arg_type)| (arg_name.clone(), convert_ir_type(&ir, &arg_type)))
+            .map(|(arg_name, arg_type)| {
+                (
+                    arg_name.clone(),
+                    arg_type.is_optional(),
+                    convert_ir_type(&ir, &arg_type),
+                )
+            })
             .collect();
         FunctionOpenApi {
             name: function.name.clone(),
@@ -190,6 +234,8 @@ mod function {
     }
 
     pub fn render_path(name: &FunctionName, function: &FunctionOpenApi) -> IndexMap<String, Path> {
+        let mut response_type = function.return_type.clone();
+        response_type.meta_mut().title = Some(format!("{}Response", name.0));
         let path = Path {
             request_body: PathRequestBody {
                 ref_: format!("#/components/requestBodies/{}", name.0),
@@ -202,8 +248,7 @@ mod function {
                     content: IndexMap::from_iter(vec![(
                         "application/json".to_string(),
                         MediaTypeSchema {
-                            title: Some(TypeName(format!("{}Response", name.0))),
-                            schema: function.return_type.clone(),
+                            schema: response_type,
                         },
                     )]),
                 },

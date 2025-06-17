@@ -192,6 +192,19 @@ fn serialize_with_meta<S: Serializer, T: Serialize>(
     }
 }
 
+pub fn sap_parse<M>(
+    of: &OutputFormatContent,
+    target: &FieldType,
+    raw_string: &str,
+    allow_partials: bool
+) -> Result<BamlValueWithMeta<M>> 
+where
+    M: HasFieldType + From<FieldType>,
+{
+    todo!()
+}
+
+// Deprecate in favor of the generic one.
 pub fn from_str(
     of: &OutputFormatContent,
     target: &FieldType,
