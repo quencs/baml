@@ -76,6 +76,7 @@ impl std::fmt::Display for Package {
 pub(crate) struct CurrentRenderPackage {
     package: std::sync::Arc<std::sync::Mutex<std::sync::Arc<Package>>>,
     lookup: std::sync::Arc<IntermediateRepr>,
+    currently_defining_alias: Option<String>,
 }
 
 impl CurrentRenderPackage {
@@ -83,16 +84,21 @@ impl CurrentRenderPackage {
         Self {
             package: std::sync::Arc::new(std::sync::Mutex::new(std::sync::Arc::new(Package::new(package)))),
             lookup,
+            currently_defining_alias: None,
         }
     }
 
-    pub fn in_type_definition(&self) -> Self {
+    pub fn define_alias(&self, name: &str) -> Self {
         Self {
             package: std::sync::Arc::new(std::sync::Mutex::new(std::sync::Arc::new(self.get().clone_as_type_definition()))),
             lookup: self.lookup.clone(),
+            currently_defining_alias: Some(name.to_string()),
         }
     }
 
+    pub fn is_defining_alias(&self, name: &str) -> bool {
+        self.currently_defining_alias.as_ref().map(|s| s == name).unwrap_or(false)
+    }
 
     pub fn lookup(&self) -> &impl TypeLookups {
         self.lookup.as_ref()

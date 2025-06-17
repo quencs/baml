@@ -127,7 +127,8 @@ pub fn render_config(_pkg: &CurrentRenderPackage) -> Result<String, askama::Erro
 }
 
 pub fn render_tracing(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
-    Ok(include_str!("./_templates/tracing.rb").to_string())
+    Ok("".to_string())
+    // Ok(include_str!("./_templates/tracing.rb").to_string())
 }
 
 #[derive(askama::Template)]

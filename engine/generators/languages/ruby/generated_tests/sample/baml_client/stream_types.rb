@@ -18,7 +18,13 @@ module BamlClient
 
   module StreamTypes
 
-
+  class StreamState < T::Struct
+      extend T::Sig
+      extend T::Generic
+      Value = type_member
+      const :value, Value
+      const :state, Symbol
+  end
   # #########################################################################
   # Generated classes (2)
   # #########################################################################

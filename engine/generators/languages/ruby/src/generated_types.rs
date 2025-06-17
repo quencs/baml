@@ -34,7 +34,7 @@ mod class {
     /// {% if let Some(docstring) = docstring %}
     /// {{ crate::utils::prefix_lines(docstring, "# ") }}
     /// {% endif %}
-    /// const :{{ name }}, {{ type.serialize_type(&pkg.in_type_definition()) }}
+    /// const :{{ name }}, {{ type.serialize_type(pkg) }}
     /// ```
     #[derive(askama::Template, Clone)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
@@ -73,6 +73,7 @@ mod enums {
     ///     {%- endfor %}
     ///     end
     ///     {%- endif %}
+    /// end
     /// ```
     #[derive(askama::Template)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
@@ -321,7 +322,7 @@ mod type_aliases {
     /// {% if let Some(docstring) = docstring -%}
     /// {{ crate::utils::prefix_lines(docstring, "# ") }}
     /// {%- endif %}
-    /// {{ name }}: typing_extensions.TypeAlias = {{ type_.serialize_type(&pkg.in_type_definition()) }}
+    /// {{ name }} = T.type_alias{ {{ type_.serialize_type(&pkg.define_alias(&name)) }} }
     /// ```
     #[derive(askama::Template)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
@@ -399,6 +400,13 @@ pub(crate) fn render_rb_types<T: askama::Template>(
 /// A list of types in Rb.
 ///
 /// ```askama
+/// class StreamState < T::Struct
+///     extend T::Sig
+///     extend T::Generic
+///     Value = type_member
+///     const :value, Value
+///     const :state, Symbol
+/// end
 /// ```
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]

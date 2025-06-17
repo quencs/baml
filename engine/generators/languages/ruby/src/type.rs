@@ -220,12 +220,7 @@ pub trait SerializeType {
 impl SerializeType for TypeRb {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         let meta = self.meta();
-        let pkg = if meta.map(|m| m.is_optional() || m.wrap_stream_state || m.is_checked()).unwrap_or(false) {
-            &pkg.in_type_definition()
-        } else {
-            pkg
-        };
-        
+
         let type_str: String = match self {
             TypeRb::String(..) => "String".to_string(),
             TypeRb::Int(..) => "Integer".to_string(),
@@ -234,10 +229,14 @@ impl SerializeType for TypeRb {
             TypeRb::Media(media, _) => media.serialize_type(pkg),
             TypeRb::Class { package, name, .. } |
             TypeRb::TypeAlias { package, name, .. } => {
-                format!("{}{}", package.relative_from(pkg), name)
+                if pkg.is_defining_alias(name) {
+                    // Recursive types are not supported in sorbet, so we use T.anything
+                    format!("T.anything")
+                } else {
+                    format!("{}{}", package.relative_from(pkg), name)
+                }
             }
             TypeRb::Union { variants, .. } => {
-                let pkg = pkg.in_type_definition();
                 format!("T.any({})", variants.iter().map(|v| v.serialize_type(&pkg)).collect::<Vec<_>>().join(", "))
             }
             TypeRb::Enum { package, name, dynamic, .. } => {
@@ -248,13 +247,12 @@ impl SerializeType for TypeRb {
                     enm
                 }
             },
-            TypeRb::List(inner, _) => format!("T::Array[{}]", inner.serialize_type(&pkg.in_type_definition())),
+            TypeRb::List(inner, _) => format!("T::Array[{}]", inner.serialize_type(pkg)),
             TypeRb::Map(key, value, _) => {
-                let pkg = pkg.in_type_definition();
                 format!(
                     "T::Hash[{}, {}]",
-                    key.serialize_type(&pkg),
-                    value.serialize_type(&pkg)
+                    key.serialize_type(pkg),
+                    value.serialize_type(pkg)
                 )
             }
             TypeRb::Any { .. } => "T.anything".to_string(),
