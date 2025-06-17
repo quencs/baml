@@ -77,6 +77,8 @@ futures-util = "0.3"
 include_dir = "0.7"
 mime_guess = "2.0.4"
 
+webbrowser = "0.8"
+
 [dev-dependencies]
 insta = { version = "1.42.1" }
 

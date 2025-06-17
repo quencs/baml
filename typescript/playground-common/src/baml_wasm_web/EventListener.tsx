@@ -84,7 +84,7 @@ const ConnectionStatus: React.FC = () => {
   const isConnected = useAtomValue(isConnectedAtom)
   const isVSCodeWebview = typeof vscode !== 'undefined'
 
-  if (isVSCodeWebview || isConnected) return null
+  if (isConnected) return null
 
   return (
     <div className='fixed top-0 left-0 right-0 bg-red-600 text-white p-2 flex items-center justify-between z-50'>
@@ -140,9 +140,9 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // if (isVSCodeWebview) {
-    //   console.log('Websocket disabled in VSCode')
-    //   setIsConnected(true)
-    //   return
+    // console.log('Websocket disabled in VSCode')
+    // setIsConnected(true)
+    // return
     // }
 
     const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
