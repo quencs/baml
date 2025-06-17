@@ -1,4 +1,4 @@
-# typed: false
+# typed: strict
 # ----------------------------------------------------------------------------
 #
 #  Welcome to Baml! To use this generated code, please run the following:
@@ -14,11 +14,17 @@
 require "sorbet-runtime"
 require "baml"
 
-module Baml
+module BamlClient
 
   module StreamTypes
 
-
+  class StreamState < T::Struct
+      extend T::Sig
+      extend T::Generic
+      Value = type_member
+      const :value, Value
+      const :state, Symbol
+  end
   # #########################################################################
   # Generated classes (2)
   # #########################################################################
@@ -36,7 +42,7 @@ module Baml
 
   class UseMyUnion < T::Struct
       include Baml::Sorbet::Struct
-      const :u, T.nilable(T.any(Integer, T::Array[T.nilable(Recursive1)], String))
+      const :u, T.nilable(T.any(Recursive1, Integer, String))
   end
 
   # #########################################################################
@@ -44,19 +50,19 @@ module Baml
   # #########################################################################
 
 
-  SystemComponentCategory: typing_extensions.TypeAlias = T.nilable(T.any(String, String))
+  SystemComponentCategory = T.type_alias{ T.nilable(T.any(String, String)) }
 
 
-  MyUnion: typing_extensions.TypeAlias = T.nilable(T.any(Recursive1, Integer, String))
+  MyUnion = T.type_alias{ T.nilable(T.any(Recursive1, Integer, String)) }
 
 
-  Recursive1: typing_extensions.TypeAlias = T.nilable(T.any(Integer, T::Array[T.nilable(Recursive1)]))
+  Recursive1 = T.type_alias{ T.nilable(T.any(Integer, T::Array[T.nilable(T.anything)])) }
 
 
-  Nonrecursive1: typing_extensions.TypeAlias = T.nilable(Integer)
+  Nonrecursive1 = T.type_alias{ T.nilable(Integer) }
 
 
-  Nonrecursive2: typing_extensions.TypeAlias = T.nilable(String)
+  Nonrecursive2 = T.type_alias{ T.nilable(String) }
 
 
   end

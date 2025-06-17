@@ -14,11 +14,17 @@
 require "sorbet-runtime"
 require "baml"
 
-module Baml
+module BamlClient
 
   module StreamTypes
 
-
+  class StreamState < T::Struct
+      extend T::Sig
+      extend T::Generic
+      Value = type_member
+      const :value, Value
+      const :state, Symbol
+  end
   # #########################################################################
   # Generated classes (4)
   # #########################################################################
@@ -44,7 +50,7 @@ module Baml
       const :string_with_twenty_words, T.nilable(String)
       const :class_1, T.nilable(ClassWithoutDone)
       const :class_2, T.nilable(ClassWithBlockDone)
-      const :class_done_needed, baml_client::types::ClassWithBlockDone
+      const :class_done_needed, BamlClient::Types::ClassWithBlockDone
       const :class_needed, ClassWithoutDone
       const :three_small_things, T.nilable(T::Array[T.nilable(SmallThing)])
       const :final_string, T.nilable(String)

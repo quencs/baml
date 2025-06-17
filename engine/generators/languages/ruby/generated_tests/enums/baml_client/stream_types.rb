@@ -14,11 +14,17 @@
 require "sorbet-runtime"
 require "baml"
 
-module Baml
+module BamlClient
 
   module StreamTypes
 
-
+  class StreamState < T::Struct
+      extend T::Sig
+      extend T::Generic
+      Value = type_member
+      const :value, Value
+      const :state, Symbol
+  end
   # #########################################################################
   # Generated classes (0)
   # #########################################################################

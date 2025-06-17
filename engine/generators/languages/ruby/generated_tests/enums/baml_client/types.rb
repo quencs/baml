@@ -1,4 +1,4 @@
-# typed: false
+# typed: strict
 # ----------------------------------------------------------------------------
 #
 #  Welcome to Baml! To use this generated code, please run the following:
@@ -14,7 +14,7 @@
 require "sorbet-runtime"
 require "baml"
 
-module Baml
+module BamlClient
 
   module Types
 
@@ -47,6 +47,7 @@ module Baml
           F = new("F")
           G = new("G")
       end
+  end
 
   # #########################################################################
   # Generated classes (0)
