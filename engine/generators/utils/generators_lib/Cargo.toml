@@ -15,5 +15,6 @@ generators-go = { path = "../../languages/go" }
 generators-python = { path = "../../languages/python" }
 generators-openapi = { path = "../../languages/openapi" }
 generators-typescript = { path = "../../languages/typescript" }
+generators-ruby = { path = "../../languages/ruby" }
 internal-baml-core.workspace = true
 indexmap.workspace = true

@@ -2721,6 +2721,7 @@ dependencies = [
  "generators-go",
  "generators-openapi",
  "generators-python",
+ "generators-ruby",
  "generators-typescript",
  "indexmap",
  "internal-baml-core",

@@ -242,7 +242,7 @@ impl SerializeType for TypeRb {
             TypeRb::Enum { package, name, dynamic, .. } => {
                 let enm = format!("{}{}", package.relative_from(pkg), name);
                 if *dynamic {
-                    format!("T.any([{}, String)", enm)
+                    format!("T.any({}, String)", enm)
                 } else {
                     enm
                 }
