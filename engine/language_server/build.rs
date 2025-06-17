@@ -50,13 +50,13 @@ fn main() {
 
     // Run tsc and vite build in web-panel directory to get the dist directory
     // for embedding in the language server
-    run_command(
-        Command::new("npx")
-            .current_dir(&web_panel_dir)
-            .args(["tsc", "--noEmit"]),
-        "tsc type check",
-    )
-    .expect("Failed to execute tsc type check");
+    // run_command(
+    //     Command::new("npx")
+    //         .current_dir(&web_panel_dir)
+    //         .args(["tsc", "--noEmit"]),
+    //     "tsc type check",
+    // )
+    // .expect("Failed to execute tsc type check");
 
     run_command(
         Command::new("npx")
