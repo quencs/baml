@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 'use client';
 
-import type { createStore } from 'jotai';
+import { Provider, type createStore } from 'jotai';
 import { createJSONStorage } from 'jotai/utils';
 import type { SyncStorage } from 'jotai/vanilla/utils/atomWithStorage';
 
@@ -26,6 +26,5 @@ export default function JotaiProvider({
   children: React.ReactNode;
   store?: ReturnType<typeof createStore>;
 }) {
-  // return <Provider store={store}>{children}</Provider>
-  return children;
+  return <Provider store={store}>{children}</Provider>;
 }

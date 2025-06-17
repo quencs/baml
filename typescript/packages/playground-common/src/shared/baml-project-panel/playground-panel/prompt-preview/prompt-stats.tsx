@@ -30,6 +30,7 @@ export const PromptStats: React.FC<{ text: string }> = ({ text }) => {
       </div>
       <button
         className="mt-2 sm:mt-0 sm:ml-4 px-2 py-1 rounded bg-card border border-border text-xs hover:bg-accent transition-colors self-end sm:self-center"
+        type="button"
         onClick={() =>
           setDisplaySettings((prev) => ({
             ...prev,

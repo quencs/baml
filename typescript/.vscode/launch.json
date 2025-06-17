@@ -5,8 +5,7 @@
       "name": "Launch VS Code extension",
       "type": "extensionHost",
       "request": "launch",
-      // "runtimeExecutable": "${execPath}",
-      // "sourceMaps": true,
+      "sourceMaps": true,
       "cwd": "${workspaceFolder}/typescript/apps/vscode-ext",
       "args": [
         "--disable-extensions",

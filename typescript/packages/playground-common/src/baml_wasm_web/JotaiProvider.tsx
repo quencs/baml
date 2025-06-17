@@ -1,5 +1,7 @@
 'use client';
 
+import { createStore } from 'jotai';
+import { Provider } from 'jotai/react';
 // import { Provider, createStore } from 'jotai'
 // import { DevTools } from 'jotai-devtools'
 import { createJSONStorage } from 'jotai/utils';
@@ -8,7 +10,7 @@ import type { SyncStorage } from 'jotai/vanilla/utils/atomWithStorage';
 import { vscode } from '../shared/baml-project-panel/vscode';
 // import { vscode } from '../../../../../playground-common/src/shared/baml-project-panel/vscode'
 
-// export const atomStore: ReturnType<typeof createStore> = createStore()
+export const atomStore: ReturnType<typeof createStore> = createStore();
 
 function setVSCodeState(state: any) {
   vscode.setState(state);
@@ -49,7 +51,9 @@ if (typeof window !== 'undefined' && !window.localStorage) {
   });
 }
 
-// export const vscodeLocalStorageStore: SyncStorage<any> = createJSONStorage(() => window.localStorage)
+export const vscodeLocalStorageStore: SyncStorage<any> = createJSONStorage(
+  () => window.localStorage,
+);
 // export const persistentVSCodeStore: SyncStorage<any> = createJSONStorage(() => ({
 //   getItem: (key: string) => {
 //     if (vscodeAPI()) {
@@ -76,11 +80,10 @@ export const sessionStore: SyncStorage<any> = createJSONStorage(
 );
 
 export function JotaiProvider({ children }: { children: React.ReactNode }) {
-  return children;
-  // return (
-  //   <Provider store={atomStore}>
-  //     {/* <DevTools store={atomStore} /> */}
-  //     {children}
-  //   </Provider>
-  // )
+  return (
+    <Provider store={atomStore}>
+      {/* <DevTools store={atomStore} /> */}
+      {children}
+    </Provider>
+  );
 }

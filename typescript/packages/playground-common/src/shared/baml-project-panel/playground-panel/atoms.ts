@@ -10,9 +10,8 @@ export const runtimeStateAtom: Atom<{
   if (rt === undefined) {
     if (lastValidRt === undefined) {
       return { functions: [], stale: false };
-    } else {
-      return { functions: lastValidRt.list_functions(), stale: true };
     }
+    return { functions: lastValidRt.list_functions(), stale: true };
   }
   const functions = rt.list_functions();
   return { functions, stale: false };
@@ -145,7 +144,7 @@ export const selectionAtom = atom((get) => {
     if (foundFn) {
       selectedFn = foundFn;
     } else {
-      console.error('Function not found', selectedFunction);
+      console.warn('Function not found', selectedFunction);
     }
   } else {
     console.log('No function selected');

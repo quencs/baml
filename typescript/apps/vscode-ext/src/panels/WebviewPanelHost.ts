@@ -220,9 +220,6 @@ export class WebviewPanelHost {
         window.__vite_plugin_react_preamble_installed__ = true
       </script>`;
 
-    const reactRefreshHash =
-      'sha256-HjGiRduPjIPUqpgYIIsmVtkcLmuf/iR80mv9eslzb4I=';
-
     const csp = [
       `default-src 'none';`,
       `script-src 'unsafe-eval' https://* http://${localServerUrl} http://0.0.0.0:${localPort} 'nonce-${nonce}'`,
@@ -254,7 +251,7 @@ export class WebviewPanelHost {
       isProd
         ? `<script type="module" nonce="${nonce}" src="${scriptUri}"></script>`
         : `
-    ${reactRefresh}
+      ${isProd ? '' : reactRefresh}
       <script type="module" src="http://${localServerUrl}/@vite/client"></script>
       <script type="module" src="http://${localServerUrl}/main.tsx"></script>
       `

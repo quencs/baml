@@ -1,4 +1,4 @@
-import * as path from 'path';
+import * as path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import topLevelAwait from 'vite-plugin-top-level-await';
@@ -9,17 +9,17 @@ const isWatchMode = process.argv.includes('--watch') || true;
 export default defineConfig({
   plugins: [
     react({
-      // babel: {
-      //   presets: ['jotai/babel/preset'],
-      // },
+      babel: {
+        presets: ['jotai/babel/preset'],
+      },
     }),
     wasm(),
     topLevelAwait(),
   ],
   root: path.resolve(process.cwd(), './src/web-panel'),
   server: {
-    port: process.env.VITE_PORT ? Number.parseInt(process.env.VITE_PORT) : 5173,
-    strictPort: false, // Allow fallback to next available port
+    port: 5173,
+    strictPort: true, // Allow fallback to next available port
     host: true,
     cors: {
       origin: '*',
@@ -59,9 +59,9 @@ export default defineConfig({
       external: ['baml_wasm_web/rpc'],
       output: {
         format: 'es',
-        entryFileNames: `assets/[name].js`,
-        chunkFileNames: `assets/[name].js`,
-        assetFileNames: `assets/[name].[ext]`,
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
       },
     },
   },
