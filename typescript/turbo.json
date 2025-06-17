@@ -1,8 +1,28 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "globalEnv": ["NODE_ENV"],
+  "ui": "tui",
+  "tasks": {
+    "//#clean": {
+      "cache": false
+    },
+    "clean": {
+      "cache": false,
+      "dependsOn": ["^clean"]
+    },
+    "topo": {
+      "dependsOn": ["^topo"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {
+      "dependsOn": ["^topo", "^build"],
+      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+    },
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^topo", "^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "watch": {
@@ -11,16 +31,30 @@
     },
     "@gloo-ai/baml-schema-wasm-node#build": {
       "dependsOn": ["^build"],
-      "inputs": ["../../engine/**/*.rs", "../../engine/**/*.toml", "../../engine/**/*.j2", "../../engine/**/*.pest"],
+      "inputs": [
+        "../../engine/**/*.rs",
+        "../../engine/**/*.toml",
+        "../../engine/**/*.j2",
+        "../../engine/**/*.pest"
+      ],
       "outputs": ["dist/**"]
     },
     "@gloo-ai/baml-schema-wasm-web#build": {
       "dependsOn": ["^build", "@gloo-ai/baml-schema-wasm-node#build"],
-      "inputs": ["../../engine/**/*.rs", "../../engine/**/*.toml", "../../engine/**/*.j2", "../../engine/**/*.pest"],
+      "inputs": [
+        "../../engine/**/*.rs",
+        "../../engine/**/*.toml",
+        "../../engine/**/*.j2",
+        "../../engine/**/*.pest"
+      ],
       "outputs": ["dist/**"]
     },
     "@gloo-ai/web-panel#build": {
-      "dependsOn": ["^build", "@baml/common#build", "@gloo-ai/baml-schema-wasm-web#build"],
+      "dependsOn": [
+        "^build",
+        "@baml/common#build",
+        "@gloo-ai/baml-schema-wasm-web#build"
+      ],
       "outputs": ["dist/**"]
     },
     "@baml/common#build": {
@@ -28,7 +62,10 @@
       "outputs": ["dist/**"]
     },
     "fiddle-frontend": {
-      "dependsOn": ["@baml/playground-common#build", "@gloo-ai/baml-schema-wasm-web#build"],
+      "dependsOn": [
+        "@baml/playground-common#build",
+        "@gloo-ai/baml-schema-wasm-web#build"
+      ],
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "@baml/playground-common#build": {
@@ -41,16 +78,17 @@
       "cache": false
     },
     "baml-client": {
-      "dependsOn": ["@gloo-ai/web-panel#build", "@baml/common#build"],
-      "outputs": ["out/**"]
-    },
-    "baml-client#build:release": {
-      "dependsOn": ["@gloo-ai/web-panel#build", "@baml/common#build"],
+      "dependsOn": [
+        "@gloo-ai/baml-language-server#build",
+        "@gloo-ai/web-panel#build",
+        "@baml/common#build"
+      ],
       "outputs": ["out/**"]
     },
     "lint": {},
-    "clean": {
-      "cache": false
+    "baml-client#build": {
+      "dependsOn": ["@gloo-ai/baml-language-server#build"],
+      "outputs": ["out/**"]
     },
     "baml#vscode:package": {
       "dependsOn": ["baml-client#build"],

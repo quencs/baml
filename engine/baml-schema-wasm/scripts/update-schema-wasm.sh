@@ -22,9 +22,9 @@ fi
 ## Dirs
 baml_schema_wasm_dir="./baml-schema-wasm"
 if [ "$TARGET" == "node" ]; then
-    dist_dir="../typescript/baml-schema-wasm-node/dist"
+    dist_dir="../typescript/packages/baml-schema-wasm-node/dist"
 else
-    dist_dir="../typescript/baml-schema-wasm-web/dist"
+    dist_dir="../typescript/packages/baml-schema-wasm-web/dist"
 fi
 
 [ ! -d "$baml_schema_wasm_dir" ] && echo "baml_schema_wasm was not found in the current directory" && exit 1
