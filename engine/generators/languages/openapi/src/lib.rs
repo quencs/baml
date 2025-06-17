@@ -81,11 +81,9 @@ pub struct Path {
 
 /// The responses of the paths.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct Response {
-    description: String,
-    content: IndexMap<String, MediaTypeSchema>,
-    // response_type: String,
-    // schema: TypeOpenApi,
+pub struct Response {
+    pub description: String,
+    pub content: IndexMap<String, MediaTypeSchema>,
 }
 
 impl Hash for Response {
@@ -98,7 +96,7 @@ impl Hash for Response {
 #[derive(Debug, Clone, PartialEq, Hash, Eq, Serialize)]
 pub struct FunctionName(String);
 
-#[derive(Debug, Clone, PartialEq, Hash, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq, Serialize, PartialOrd, Ord)]
 pub struct TypeName(String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -116,10 +114,6 @@ pub struct ComponentRequestBody {
 /// A schema found under a media type in a `path` or 'content' field.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MediaTypeSchema {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// The name of the type of the response. `{FUNCTION_NAME}Response`.
-    /// Some in endpoints, None in components.
-    title: Option<TypeName>,
     /// The schema of the return type of a function.
     schema: TypeOpenApi,
 }
@@ -137,278 +131,7 @@ pub struct PathRequestBody {
     pub ref_: String,
 }
 
-// impl Serialize for RequestBody {
-//     fn serialize<S: serde::Serializer>(
-//         &self,
-//         serializer: S,
-//     ) -> core::result::Result<S::Ok, S::Error> {
-//         let json = serde_json::json!({
-//             "required": true,
-//             "content": {
-//                 "application/json": {
-//                     "schema": {
-//                         "$ref": self.ref_
-//                     }
-//                 }
-//             }
-//         });
-//         json.serialize(serializer)
-//     }
-// }
-
-// /// A schema as it should be rendered in the OpenAPI yaml file.
-// #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-// #[serde(rename_all = "lowercase")]
-// #[serde(tag = "type")]
-// pub enum Schema {
-//     String,
-//     Number,
-//     Integer,
-//     Boolean,
-//     Array {
-//         items: Box<Schema>,
-//     },
-//     Object {
-//         properties: IndexMap<String, Field>,
-//         required: Vec<String>,
-//         additional_properties: bool,
-//     },
-//     OneOf(Vec<Variant>),
-//     Reference {
-//         reference: String,
-//     },
-// }
-//
-// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-// pub struct Field {
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub description: Option<String>,
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub required: Option<bool>,
-//     #[serde(flatten)]
-//     pub schema: Schema,
-// }
-//
-// #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-// pub struct Variant {
-//     pub title: String,
-//     #[serde(flatten)]
-//     pub schema: Schema,
-// }
-//
-// impl Hash for Schema {
-//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//         let s = serde_yaml::to_string(self).expect("Should serialize");
-//         s.hash(state);
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // #[test]
-    // fn encode_object() {
-    //     let schema = Schema::Object {
-    //         properties: IndexMap::from_iter([(
-    //             "MyClass".to_string(),
-    //             Field {
-    //                 name: "my_field".to_string(),
-    //                 description: "A field".to_string(),
-    //                 required: true,
-    //                 schema: Schema::String,
-    //             },
-    //         )]),
-    //         required: vec!["my_field".to_string()],
-    //         additional_properties: false,
-    //     };
-
-    //     let yaml = serde_yaml::to_string(&schema).unwrap();
-    //     println!("{}", yaml);
-    // }
-
-    // #[test]
-    // fn render_whole_file() {
-    //     let spec = OpenApiSchema {
-    //         openapi: "3.0.0".to_string(),
-    //         info: json!({
-    //             "description": "baml-cli serve",
-    //             "version": "0.1.0",
-    //             "title": "baml-cli serve"
-    //         }),
-    //         servers: vec![Server {
-    //             url: "{address}".to_string(),
-    //             variables: IndexMap::from_iter([(
-    //                 "address".to_string(),
-    //                 ServerVariable {
-    //                     default: "http://localhost:2024".to_string(),
-    //                 },
-    //             )]),
-    //         }],
-    //         paths: IndexMap::from_iter([(
-    //             "/call/ExtractResume".to_string(),
-    //             PathItem {
-    //                 post: Some(Operation {
-    //                     request_body: Some(RequestBody {
-    //                         required: true,
-    //                         content: IndexMap::from_iter([(
-    //                             "application/json".to_string(),
-    //                             MediaType {
-    //                                 schema: Schema::Object {
-    //                                     properties: IndexMap::from_iter([
-    //                                         (
-    //                                             "resume".to_string(),
-    //                                             Field {
-    //                                                 name: "resume".to_string(),
-    //                                                 description: "".to_string(),
-    //                                                 required: true,
-    //                                                 schema: Schema::String,
-    //                                             },
-    //                                         ),
-    //                                         (
-    //                                             "__baml_options__".to_string(),
-    //                                             Field {
-    //                                                 name: "__baml_options__".to_string(),
-    //                                                 description: "".to_string(),
-    //                                                 required: false,
-    //                                                 schema: Schema::Reference {
-    //                                                     reference:
-    //                                                         "#/components/schemas/BamlOptions"
-    //                                                             .to_string(),
-    //                                                 },
-    //                                             },
-    //                                         ),
-    //                                     ]),
-    //                                     required: vec!["resume".to_string()],
-    //                                     additional_properties: false,
-    //                                 },
-    //                             },
-    //                         )]),
-    //                     }),
-    //                     responses: IndexMap::from_iter([(
-    //                         "200".to_string(),
-    //                         Response {
-    //                             description: "Successful operation".to_string(),
-    //                             content: IndexMap::from_iter([(
-    //                                 "application/json".to_string(),
-    //                                 MediaType {
-    //                                     schema: Schema::Reference {
-    //                                         reference: "#/components/schemas/Resume".to_string(),
-    //                                     },
-    //                                 },
-    //                             )]),
-    //                         },
-    //                     )]),
-    //                     operation_id: "ExtractResume".to_string(),
-    //                 }),
-    //             },
-    //         )]),
-    //         components: Components {
-    //             requestBodies: IndexMap::from_iter([(
-    //                 FunctionName("ExtractResume".to_string()),
-    //                 ComponentRequestBody {
-    //                     required: true,
-    //                     content: IndexMap::from_iter([(
-    //                         "application/json".to_string(),
-    //                         MediaTypeSchema {
-    //                             schema: Schema::Object {
-    //                                 properties: IndexMap::from_iter([(
-    //                                     "resume".to_string(),
-    //                                     Field {
-    //                                         name: "resume".to_string(),
-    //                                         description: "".to_string(),
-    //                                         required: true,
-    //                                         schema: Schema::String,
-    //                                     },
-    //                                 )]),
-    //                                 required: vec!["resume".to_string()],
-    //                                 additional_properties: false,
-    //                             },
-    //                         },
-    //                     )]),
-    //                 },
-    //             )]),
-    //             schemas: IndexMap::from_iter([
-    //                 (
-    //                     TypeName("BamlImage".to_string()),
-    //                     Schema::OneOf(vec![
-    //                         Variant {
-    //                             title: "base64".to_string(),
-    //                             schema: Schema::Object {
-    //                                 properties: IndexMap::from_iter([
-    //                                     (
-    //                                         "base64".to_string(),
-    //                                         Field {
-    //                                             name: "base64".to_string(),
-    //                                             description: "".to_string(),
-    //                                             required: true,
-    //                                             schema: Schema::String,
-    //                                         },
-    //                                     ),
-    //                                     (
-    //                                         "media_type".to_string(),
-    //                                         Field {
-    //                                             name: "media_type".to_string(),
-    //                                             description: "".to_string(),
-    //                                             required: false,
-    //                                             schema: Schema::String,
-    //                                         },
-    //                                     ),
-    //                                 ]),
-    //                                 required: vec!["base64".to_string()],
-    //                                 additional_properties: false,
-    //                             },
-    //                         },
-    //                         Variant {
-    //                             title: "url".to_string(),
-    //                             schema: Schema::Object {
-    //                                 properties: IndexMap::from_iter([
-    //                                     (
-    //                                         "url".to_string(),
-    //                                         Field {
-    //                                             name: "url".to_string(),
-    //                                             description: "".to_string(),
-    //                                             required: true,
-    //                                             schema: Schema::String,
-    //                                         },
-    //                                     ),
-    //                                     (
-    //                                         "media_type".to_string(),
-    //                                         Field {
-    //                                             name: "media_type".to_string(),
-    //                                             description: "".to_string(),
-    //                                             required: false,
-    //                                             schema: Schema::String,
-    //                                         },
-    //                                     ),
-    //                                 ]),
-    //                                 required: vec!["url".to_string()],
-    //                                 additional_properties: false,
-    //                             },
-    //                         },
-    //                     ]),
-    //                 ),
-    //                 (
-    //                     TypeName("Resume".to_string()),
-    //                     Schema::Object {
-    //                         properties: IndexMap::from_iter([(
-    //                             "email".to_string(),
-    //                             Field {
-    //                                 name: "email".to_string(),
-    //                                 description: "".to_string(),
-    //                                 required: true,
-    //                                 schema: Schema::String,
-    //                             },
-    //                         )]),
-    //                         required: vec!["email".to_string()],
-    //                         additional_properties: false,
-    //                     },
-    //                 ),
-    //             ]),
-    //         },
-    //     };
-
-    //     let yaml = serde_yaml::to_string(&spec).unwrap();
-    //     println!("{}", yaml);
-    // }
 }
