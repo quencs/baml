@@ -205,7 +205,7 @@ export function PreviewToolbar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuLabel>Display</DropdownMenuLabel>
+            {/* <DropdownMenuLabel>Display</DropdownMenuLabel> */}
             {/* {options.map((option) => (
               <DropdownMenuCheckboxItem
                 key={option.label}
@@ -216,7 +216,7 @@ export function PreviewToolbar() {
                 {option.label}
               </DropdownMenuCheckboxItem>
             ))} */}
-            <DropdownMenuSeparator />
+            {/* <DropdownMenuSeparator /> */}
             <DropdownMenuLabel>Testing</DropdownMenuLabel>
             <DropdownMenuCheckboxItem
               checked={isParallelTestsEnabled}

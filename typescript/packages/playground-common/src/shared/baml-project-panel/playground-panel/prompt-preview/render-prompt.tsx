@@ -11,7 +11,7 @@ export const RenderPrompt: React.FC<{
     <div className="h-full space-y-4">
       {chat.map((p, partIndex) => (
         <CollapsibleMessage
-          key={partIndex}
+          key={`${partIndex}-${p.role}`}
           part={p}
           partIndex={partIndex}
           testCase={testCase}

@@ -34,6 +34,8 @@ function TestUniverseQuestion(question: UniverseQuestionInput) -> UniverseQuesti
 function LongQuestion(prompt: string) -> UniverseQuestion {
   client AwsBedrock
   prompt #"
+    {{ _.role("system")}}
+
     You are a helpful assistant that answers questions about the universe. Your knowledge is vast and your wisdom is deep. You have been entrusted with the task of enlightening the curious minds of the world. Your answers are not just words, they are the keys to unlocking the mysteries of the universe.
 
     {{ ctx.output_format }}

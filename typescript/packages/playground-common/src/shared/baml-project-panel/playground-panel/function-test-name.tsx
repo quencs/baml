@@ -3,6 +3,7 @@ import { ChevronRight, FlaskConical, FunctionSquare } from 'lucide-react';
 import { useMemo } from 'react';
 import { vscode } from '../vscode';
 import { functionObjectAtom, testcaseObjectAtom } from './atoms';
+import { cn } from '@baml/ui/lib/utils';
 
 interface FunctionTestNameProps {
   functionName: string;
@@ -46,10 +47,14 @@ export const FunctionTestName: React.FC<FunctionTestNameProps> = ({
 
   return (
     <div
-      className={`flex w-full items-center space-x-1 text-xs ${selected ? '' : 'text-foreground/90'}`}
+      className={cn(
+        'flex w-full text-sm',
+        !selected && 'text-foreground/90',
+        'flex-col sm:flex-row sm:items-center sm:space-x-2 sm:gap-y-0 gap-y-1 items-start',
+      )}
     >
       <div
-        className="flex items-center cursor-pointer hover:text-primary"
+        className="flex items-center cursor-pointer hover:text-primary gap-1"
         onClick={() => {
           if (fn?.span) {
             vscode.postMessage({
@@ -59,12 +64,12 @@ export const FunctionTestName: React.FC<FunctionTestNameProps> = ({
           }
         }}
       >
-        <FunctionSquare className="mr-1 w-3 h-3" />
+        <FunctionSquare className="size-4" />
         {functionName}
       </div>
-      <ChevronRight className="w-3 h-3" />
+      <ChevronRight className="size-4 sm:block hidden" />
       <div
-        className="flex items-center cursor-pointer hover:text-primary"
+        className="flex items-center cursor-pointer hover:text-primary gap-1"
         onClick={() => {
           if (tc?.span) {
             vscode.postMessage({
@@ -74,7 +79,7 @@ export const FunctionTestName: React.FC<FunctionTestNameProps> = ({
           }
         }}
       >
-        <FlaskConical className="mr-1 w-3 h-3" />
+        <FlaskConical className="size-4" />
         {testName}
       </div>
     </div>

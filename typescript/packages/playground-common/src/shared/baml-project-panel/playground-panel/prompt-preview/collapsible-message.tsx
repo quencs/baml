@@ -4,7 +4,10 @@ import {
   CollapsibleTrigger,
 } from '@baml/ui/collapsible';
 import { cn } from '@baml/ui/lib/utils';
-import type { WasmTestCase } from '@gloo-ai/baml-schema-wasm-web';
+import type {
+  WasmChatMessage,
+  WasmTestCase,
+} from '@gloo-ai/baml-schema-wasm-web';
 import { ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
 import { getFirstLine } from './highlight-utils';
@@ -12,7 +15,7 @@ import { PromptStats } from './prompt-stats';
 import { RenderPart } from './render-part';
 
 interface CollapsibleMessageProps {
-  part: any;
+  part: WasmChatMessage;
   partIndex: number;
   testCase?: WasmTestCase;
 }
@@ -43,23 +46,32 @@ export const CollapsibleMessage: React.FC<CollapsibleMessageProps> = ({
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger
           className={cn(
-            'flex w-full items-center justify-between px-2 py-2 transition-colors',
-            'data-[state=closed]:bg-card data-[state=closed]:rounded-t',
+            'flex w-full items-center justify-between p-3 transition-colors',
+            'data-[state=closed]:bg-card rounded-t data-[state=closed]:hover:bg-card/80 cursor-pointer data-[state=open]:hover:bg-card/80',
           )}
         >
-          <div className="flex flex-col items-start gap-1">
-            <div className="text-xs text-muted-foreground">
-              {part.role.charAt(0).toUpperCase() + part.role.slice(1)}
+          <div className="flex flex-col items-start gap-1 flex-1 overflow-hidden min-w-0">
+            <div className="flex items-center w-full justify-between">
+              <div className="text-xs text-muted-foreground">
+                {part.role.charAt(0).toUpperCase() + part.role.slice(1)}
+              </div>
+              <ChevronsUpDown className="size-4 ml-4 flex-shrink-0" />
             </div>
             {!open && firstLine && (
-              <div className="text-sm truncate">{firstLine} ...</div>
+              <div className="text-sm truncate whitespace-nowrap w-full">
+                {firstLine}
+              </div>
             )}
           </div>
-          <ChevronsUpDown className={'size-4'} />
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-3">
-          {part.parts.map((part: any, index: number) => (
-            <div key={`${partIndex}-${index}`}>
+          {part.parts.map((part, index) => (
+            <div
+              key={`${partIndex}-${
+                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                index
+              }`}
+            >
               <RenderPart part={part} testCase={testCase} />
             </div>
           ))}

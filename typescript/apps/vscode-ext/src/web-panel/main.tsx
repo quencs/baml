@@ -7,7 +7,10 @@ import '@baml/ui/globals.css';
 
 // Create a root.
 const container = document.getElementById('root');
-const root = createRoot(container!); // TypeScript non-null assertion
+if (!container) {
+  throw new Error('No container found');
+}
+const root = createRoot(container);
 
 // Initial render: Render your app inside the AppStateProvider.
 root.render(

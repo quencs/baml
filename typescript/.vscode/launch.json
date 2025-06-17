@@ -8,7 +8,7 @@
       "sourceMaps": true,
       "cwd": "${workspaceFolder}/typescript/apps/vscode-ext",
       "args": [
-        "--disable-extensions",
+        // "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}/typescript/apps/vscode-ext"
       ],
       "outFiles": [
