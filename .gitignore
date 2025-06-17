@@ -165,3 +165,5 @@ yarn.lock
 artifacts
 .direnv
 typescript/vscode-ext/packages/vscode/server/baml-cli
+.rollup.cache
+/typescript/apps/vscode-ext/src/server/baml-cli

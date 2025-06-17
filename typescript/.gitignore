@@ -6,3 +6,4 @@ node_modules
 .DS_Store
 .turbo
 *storybook.log
+apps/vscode-ext/src/server

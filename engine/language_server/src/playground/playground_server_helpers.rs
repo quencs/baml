@@ -1,19 +1,19 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use base64::engine::general_purpose;
+use base64::Engine as _;
 use futures_util::{SinkExt, StreamExt};
 use include_dir::{include_dir, Dir};
 use mime_guess::from_path;
+use serde_json::Value;
 use tokio::sync::RwLock;
 use warp::{http::Response, ws::Message, Filter};
-use serde_json::Value;
-use base64::engine::general_purpose;
-use base64::Engine as _;
 
 use crate::{
     playground::definitions::{FrontendMessage, PlaygroundState},
-    session::Session,
     playground::playground_server_rpc::handle_rpc_websocket,
+    session::Session,
 };
 
 /// Embed at compile time everything in dist/
@@ -22,7 +22,7 @@ use crate::{
 /// WARNING: this is a relative path, will easily break if file structure changes
 /// WARNING: works as a macro so any build script executes after this is evaluated
 static STATIC_DIR: Dir<'_> =
-    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/vscode-ext/packages/web-panel/dist");
+    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/apps/web-panel/dist");
 
 /// Helper to send all projects/files to a websocket client
 pub async fn send_all_projects_to_client(
@@ -153,7 +153,7 @@ pub fn create_server_routes(
                 start_client_connection(socket, state, session).await;
             })
         });
-    
+
     tracing::info!("Setting up RPC websocket...");
     // RPC WebSocket handler
     let rpc_session = session.clone();
