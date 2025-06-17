@@ -76,8 +76,22 @@ module BamlClient
           )
         end
 
-
-
+        sig { params(function_name: String, args: T::Hash[String, T.untyped]).returns([Baml::Ffi::RuntimeContextManager, Baml::Ffi::FunctionResultStream]) }
+        def create_sync_stream(function_name:, args:)
+          r = resolve
+          runtime = Internal::DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_RUNTIME
+          ctx = Internal::DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_CTX
+          result = runtime.stream_function(
+            function_name,
+            args,
+            ctx,
+            r.tb,
+            r.client_registry,
+            r.collectors,
+            r.env_vars,
+          )
+          [ctx, result]
+        end
         # -------------------------------------------------------------------------
         # Private helpers
         # -------------------------------------------------------------------------

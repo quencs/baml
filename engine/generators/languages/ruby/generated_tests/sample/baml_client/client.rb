@@ -19,8 +19,7 @@ module BamlClient
   extend T::Sig
 
 
-  @baml_sync_client = T.let(BamlSyncClient.new(BamlCallOptions.from_hash({})), BamlSyncClient)
-
+  @baml_sync_client = T.let(BamlSyncClient.new(BamlClient::Internal::DoNotUseDirectlyCallManager.new(BamlCallOptions.from_hash({}))), BamlSyncClient)
 
   sig {returns(BamlSyncClient)}
   def self.b
@@ -30,10 +29,134 @@ module BamlClient
   class BamlSyncClient
       extend T::Sig
 
-      sig {params(options: BamlCallOptions).void}
+
+      sig {params(options: BamlClient::Internal::DoNotUseDirectlyCallManager).void}
       def initialize(options)
-          @options = T.let(BamlClient::Internal::DoNotUseDirectlyCallManager.new(options), BamlClient::Internal::DoNotUseDirectlyCallManager)
+          @options = options
       end
+
+      sig {params(collector: T.nilable(T.any(Baml::Collector, T::Array[Baml::Collector])), tb: T.nilable(Baml::TypeBuilder), client_registry: T.nilable(Baml::ClientRegistry), env_vars: T.nilable(T::Hash[Symbol, String])).returns(BamlSyncClient)}
+      def with_options(collector: nil, tb: nil, client_registry: nil, env_vars: nil)
+          BamlSyncClient.new(@options.merge_options(BamlCallOptions.from_hash({
+              collector: collector,
+              tb: tb,
+              client_registry: client_registry,
+              env_vars: env_vars,
+          })))
+      end
+
+      sig {params(
+          varargs: T.untyped,
+          x: Integer,
+          baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
+      ).returns(T.any(BamlClient::Types::Example, BamlClient::Types::Example2))}
+      def Bar(
+          *varargs,
+          x:,
+          baml_options: {}
+      )
+          if varargs.any?
+              raise ArgumentError.new("Bar may only be called with keyword arguments")
+          end
+
+          options = @options.merge_options(BamlCallOptions.from_hash(baml_options))
+
+          result = options.call_function_sync(function_name: "Bar", args: {
+              x: x,
+          })
+
+          parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
+          # for sorbet we need to cast to the return type since parsed is now the right value
+          # We just need to tell sorbet that the return type is the right type
+          parsed.cast_to(T.any(BamlClient::Types::Example, BamlClient::Types::Example2))
+      end
+      sig {params(
+          varargs: T.untyped,
+          x: Integer,
+          baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
+      ).returns(T.any(BamlClient::Types::Example2, BamlClient::Types::Example))}
+      def Foo(
+          *varargs,
+          x:,
+          baml_options: {}
+      )
+          if varargs.any?
+              raise ArgumentError.new("Foo may only be called with keyword arguments")
+          end
+
+          options = @options.merge_options(BamlCallOptions.from_hash(baml_options))
+
+          result = options.call_function_sync(function_name: "Foo", args: {
+              x: x,
+          })
+
+          parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
+          # for sorbet we need to cast to the return type since parsed is now the right value
+          # We just need to tell sorbet that the return type is the right type
+          parsed.cast_to(T.any(BamlClient::Types::Example2, BamlClient::Types::Example))
+      end
+
+  end
+
+  class BamlStreamClient
+      extend T::Sig
+
+      sig {params(options: BamlClient::Internal::DoNotUseDirectlyCallManager).void}
+      def initialize(options)
+          @options = options
+      end
+
+      sig {params(
+          varargs: T.untyped,
+          x: Integer,
+          baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
+      ).returns(Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example, BamlClient::StreamTypes::Example2)), T.any(BamlClient::Types::Example, BamlClient::Types::Example2)])}
+      def Bar(
+          *varargs,
+          x:,
+          baml_options: {}
+      )
+          if varargs.any?
+              raise ArgumentError.new("Bar may only be called with keyword arguments")
+          end
+
+          options = @options.merge_options(BamlCallOptions.from_hash(baml_options))
+
+          ctx, result = options.create_sync_stream(function_name: "Bar", args: {
+              x: x,
+          })
+
+          Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example, BamlClient::StreamTypes::Example2)), T.any(BamlClient::Types::Example, BamlClient::Types::Example2)].new(
+              ffi_stream: result,
+              ctx_manager: ctx
+          )
+      end
+      sig {params(
+          varargs: T.untyped,
+          x: Integer,
+          baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
+      ).returns(Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example2, BamlClient::StreamTypes::Example)), T.any(BamlClient::Types::Example2, BamlClient::Types::Example)])}
+      def Foo(
+          *varargs,
+          x:,
+          baml_options: {}
+      )
+          if varargs.any?
+              raise ArgumentError.new("Foo may only be called with keyword arguments")
+          end
+
+          options = @options.merge_options(BamlCallOptions.from_hash(baml_options))
+
+          ctx, result = options.create_sync_stream(function_name: "Foo", args: {
+              x: x,
+          })
+
+          Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example2, BamlClient::StreamTypes::Example)), T.any(BamlClient::Types::Example2, BamlClient::Types::Example)].new(
+              ffi_stream: result,
+              ctx_manager: ctx
+          )
+      end
+
   end
 
 end

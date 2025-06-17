@@ -25,7 +25,7 @@ module BamlClient
 
     DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_CTX = T.let(
       DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_RUNTIME.create_context_manager(),
-      Baml::Ffi::BamlCtxManager
+      Baml::Ffi::RuntimeContextManager
     )
   end
 

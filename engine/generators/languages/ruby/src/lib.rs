@@ -101,7 +101,7 @@ impl LanguageFeatures for RbLanguageFeatures {
         ir: std::sync::Arc<IntermediateRepr>,
         args: &GeneratorArgs,
     ) -> Result<(), anyhow::Error> {
-        let pkg = package::CurrentRenderPackage::new("baml_client", ir.clone());
+        let pkg = package::CurrentRenderPackage::new("BamlClient", ir.clone());
         let file_map = args.file_map_as_json_string()?;
 
         // collector.add_file("b.rb", render_init(&pkg, &args.default_client_mode)?)?;
@@ -135,13 +135,13 @@ impl LanguageFeatures for RbLanguageFeatures {
         // pkg.set("baml_client.type_map");
         // collector.add_file("type_map.rb", render_type_map(&rb_classes, &enums)?)?;
 
-        pkg.set("baml_client.type_builder");
+        pkg.set("BamlClient");
         collector.add_file(
             "type_builder.rb",
             render_rb_type_builder(&rb_classes, &enums)?,
         )?;
 
-        pkg.set("baml_client.types");
+        pkg.set("BamlClient.Types");
         collector.add_file("types.rb", "module Types\n")?;
         collector.append_to_file("types.rb", &render_rb_types_utils(&pkg)?)?;
         collector.append_to_file("types.rb", &render_rb_types(&enums, &pkg)?)?;
@@ -159,7 +159,7 @@ impl LanguageFeatures for RbLanguageFeatures {
             .map(|c| ir_to_rb::classes::ir_class_to_rb_stream(c.item, &pkg))
             .collect::<Vec<_>>();
 
-        pkg.set("baml_client.stream_types");
+        pkg.set("BamlClient.StreamTypes");
         collector.add_file("stream_types.rb", "module StreamTypes\n")?;
         collector.append_to_file("stream_types.rb", &render_rb_stream_types_utils(&pkg)?)?;
         collector.append_to_file("stream_types.rb", &render_rb_types(&rb_classes, &pkg)?)?;
