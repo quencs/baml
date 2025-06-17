@@ -8,8 +8,8 @@ const GITHUB_REPO: &str = "BoundaryML/baml";
 
 // Embed the binary for debug mode
 #[cfg(feature = "debug")]
-const BAML_CLI_BINARY: &[u8] = include_bytes!("../baml-cli");
-
+const BAML_CLI_BINARY: &[u8] = include_bytes!("../../target/debug/baml-cli");
+// const BAML_CLI_BINARY: &[u8] = include_bytes!("../baml-cli");
 struct BamlBinary {
     path: String,
     args: Option<Vec<String>>,
@@ -86,7 +86,7 @@ impl BamlExtension {
                 },
                 arch = match arch {
                     zed::Architecture::Aarch64 => "aarch64",
-                    zed::Architecture::X86 => "i686",
+                    zed::Architecture::X86 => "unsupported",
                     zed::Architecture::X8664 => "x86_64",
                 },
                 extension = match platform {

@@ -4,6 +4,7 @@ use crate::server::client::Requester;
 use crate::server::{client::Notifier, Result};
 use crate::{DocumentKey, Session};
 use lsp_types::{self as types, request as req, HoverParams, TextDocumentItem};
+use std::collections::HashMap;
 
 pub(crate) struct Hover;
 
@@ -64,6 +65,35 @@ impl SyncRequestHandler for Hover {
                 None
             }
         };
+
+        // Broadcast function change to playground clients
+        if let Some(state) = &session.playground_state {
+            let project_lock = project.lock().unwrap();
+            // Get the first function from the current file if available
+            if let Some(function) = project_lock
+                .list_functions()
+                .unwrap_or(vec![])
+                .into_iter()
+                .filter(|f| f.span.file_path == document_key.path().to_string_lossy())
+                .next()
+            {
+                tracing::info!("Broadcasting function change for: {}", function.name);
+                let root_path = project_lock.root_path().to_string_lossy().to_string();
+                let state = state.clone();
+                let function_name = function.name.clone();
+                if let Some(runtime) = &session.playground_runtime {
+                    runtime.spawn(async move {
+                        let _ = crate::playground::broadcast_function_change(
+                            &state,
+                            &root_path,
+                            function_name,
+                        )
+                        .await;
+                    });
+                }
+            }
+        }
+
         Ok(hover)
     }
 }

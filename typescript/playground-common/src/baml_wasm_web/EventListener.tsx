@@ -139,20 +139,20 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
   console.log('selectedFunc', selectedFunc)
 
   useEffect(() => {
-    if (isVSCodeWebview) {
-      setIsConnected(true)
-      return
-    }
+    // if (isVSCodeWebview) {
+    //   setIsConnected(true)
+    //   return
+    // }
 
     const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const ws = new WebSocket(`${scheme}://${window.location.host}/ws`)
 
     ws.onopen = () => {
-      console.log('WebSocket connected')
+      console.log('WebSocket Opened')
       setIsConnected(true)
     }
     ws.onmessage = (e) => {
-      console.log('message!')
+      console.log('Websocket recieved message!')
       try {
         const payload = JSON.parse(e.data)
         window.postMessage(payload, '*')
@@ -161,7 +161,7 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
     ws.onclose = () => {
-      console.log('WebSocket disconnected')
+      console.log('WebSocket Closed')
       setIsConnected(false)
     }
     ws.onerror = () => {

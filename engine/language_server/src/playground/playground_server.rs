@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 use warp::{http::Response, ws::Message, Filter};
 
 /// Embed at compile time everything in dist/
-// static STATIC_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/dist");
+// WARNING: this is a relative path, will easily break if file structure changes
 static STATIC_DIR: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/../../typescript/vscode-ext/packages/web-panel/dist");
 
@@ -96,6 +96,8 @@ pub fn create_routes(
     state: Arc<RwLock<PlaygroundState>>,
     session: Arc<Session>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    // tracing::info!("Creating playground routes");
+
     // WebSocket handler with error handling
     let ws_route = warp::path("ws")
         .and(warp::ws())
@@ -147,6 +149,26 @@ pub async fn broadcast_project_update(
     let msg_str = serde_json::to_string(&add_project_msg)?;
     if let Err(e) = state.read().await.broadcast_update(msg_str) {
         tracing::error!("Failed to broadcast project update: {}", e);
+    }
+    Ok(())
+}
+
+// Helper function to broadcast function changes
+pub async fn broadcast_function_change(
+    state: &Arc<RwLock<PlaygroundState>>,
+    root_path: &str,
+    function_name: String,
+) -> Result<()> {
+    // tracing::info!("Broadcasting function change for: {}", function_name);
+
+    let select_function_msg = FrontendMessage::select_function {
+        root_path: root_path.to_string(),
+        function_name,
+    };
+
+    let msg_str = serde_json::to_string(&select_function_msg)?;
+    if let Err(e) = state.read().await.broadcast_update(msg_str) {
+        tracing::error!("Failed to broadcast function change: {}", e);
     }
     Ok(())
 }
