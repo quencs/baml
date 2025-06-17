@@ -46,7 +46,7 @@ pub async fn send_all_projects_to_client(
     }
 }
 
-pub async fn client_connection(
+pub async fn start_client_connection(
     ws: warp::ws::WebSocket,
     state: Arc<RwLock<PlaygroundState>>,
     session: Arc<Session>,
@@ -92,7 +92,9 @@ pub async fn client_connection(
     });
 }
 
-pub fn create_routes(
+/// Adds a "/" route which servers the static files of the frontend
+/// and a "/ws" route which handles the websocket connection.
+pub fn create_server_routes(
     state: Arc<RwLock<PlaygroundState>>,
     session: Arc<Session>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -103,7 +105,7 @@ pub fn create_routes(
             let state = state.clone();
             let session = session.clone();
             ws.on_upgrade(move |socket| async move {
-                client_connection(socket, state, session).await;
+                start_client_connection(socket, state, session).await;
             })
         });
 

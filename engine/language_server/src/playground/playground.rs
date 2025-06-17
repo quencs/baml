@@ -1,7 +1,7 @@
 /// Script that runs the playground server.
 /// On the input port
 use crate::playground::definitions::PlaygroundState;
-use crate::playground::playground_server::create_routes;
+use crate::playground::playground_server::create_server_routes;
 use crate::session::Session;
 use anyhow::Result;
 use std::sync::Arc;
@@ -19,8 +19,10 @@ impl PlaygroundServer {
     }
 
     pub async fn run(self, port: u16) -> Result<()> {
-        let routes = create_routes(self.state, self.session);
-        warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+        let routes = create_server_routes(self.state, self.session);
+
+        warp::serve(routes).try_bind(([127, 0, 0, 1], port)).await;
+
         Ok(())
     }
 }

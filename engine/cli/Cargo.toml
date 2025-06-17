@@ -77,7 +77,6 @@ web-time.workspace = true
 static_assertions.workspace = true
 mime_guess = "2.0.4"
 mime = "0.3.17"
-include_dir = "0.7"
 
 # For tracing
 envy = "0.4.2"

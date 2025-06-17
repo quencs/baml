@@ -352,7 +352,11 @@ impl Server {
             code_lens_provider: Some(CodeLensOptions {
                 resolve_provider: Some(true),
             }),
-
+            code_action_provider: Some(lsp_types::CodeActionProviderCapability::Simple(true)),
+            execute_command_provider: Some(lsp_types::ExecuteCommandOptions {
+                commands: vec!["openPlayground".to_string()],
+                work_done_progress_options: Default::default(),
+            }),
             definition_provider: Some(lsp_types::OneOf::Left(true)),
             document_formatting_provider: Some(lsp_types::OneOf::Left(true)),
             hover_provider: Some(HoverProviderCapability::Simple(true)),
@@ -373,7 +377,6 @@ impl Server {
                     supported: Some(true),
                     change_notifications: Some(lsp_types::OneOf::Left(true)),
                 }),
-
                 ..Default::default()
             }),
             ..Default::default()
@@ -401,11 +404,17 @@ impl Server {
                     if port_available {
                         // Port is available, start the server
                         let server = playground_server.clone();
-                        server.run(playground_port).await.unwrap();
                         tracing::info!(
                             "Hosted playground at http://localhost:{}...",
                             playground_port
                         );
+                        // Open the default browser
+                        // if let Err(e) =
+                        //     webbrowser::open(&format!("http://localhost:{}", playground_port))
+                        // {
+                        //     tracing::warn!("Failed to open browser: {}", e);
+                        // }
+                        server.run(playground_port).await.unwrap();
                         break;
                     } else {
                         // Port is already in use, try next port
