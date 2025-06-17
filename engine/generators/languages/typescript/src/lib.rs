@@ -1,5 +1,5 @@
 use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeatures};
-use functions::{render_async_client, render_base_client, render_globals, render_index, render_sync_client};
+use functions::{render_async_client, render_globals, render_index, render_sync_client};
 use generated_types::render_ts_types;
 mod functions;
 mod generated_types;
@@ -45,12 +45,15 @@ $ pnpm add @boundaryml/baml
         ir: std::sync::Arc<IntermediateRepr>,
         args: &GeneratorArgs,
     ) -> Result<(), anyhow::Error> {
-        let Some(ts_mod_name) = &args.client_package_name else {
-            anyhow::bail!("TypeScript client package name is required");
-        };
-
         let pkg = package::CurrentRenderPackage::new("baml_client", ir.clone());
         let file_map = args.file_map_as_json_string()?;
+        let mut types: Vec<String> = ir
+            .walk_classes()
+            .map(|c| c.name().to_string())
+            .chain(ir.walk_enums().map(|e| e.name().to_string()))
+            .chain(ir.walk_alias_cycles().map(|a| a.item.0.clone()))
+            .collect();
+        types.sort();
         // collector.add_file("baml_source_map.ts", render_source_files(file_map)?);
         // collector.add_file("runtime.ts", render_runtime_code(&pkg)?);
         collector.add_file(
@@ -68,15 +71,11 @@ $ pnpm add @boundaryml/baml
             .collect::<Vec<_>>();
         collector.add_file(
             "async_client.ts",
-            render_async_client(&functions, &pkg)?,
+            render_async_client(&functions, &types, &pkg)?,
         )?;
         collector.add_file(
             "sync_client.ts",
-            render_sync_client(&functions, &pkg)?,
-        )?;
-        collector.add_file(
-            "base_client.ts",
-            render_base_client(&functions, &pkg)?,
+            render_sync_client(&functions, &types, &pkg)?,
         )?;
         // collector.add_file(
         //     "functions.ts",
@@ -92,10 +91,10 @@ $ pnpm add @boundaryml/baml
             .walk_classes()
             .map(|c| ir_to_ts::classes::ir_class_to_ts(c.item, &pkg))
             .collect::<Vec<_>>();
-        // let enums = ir
-        //     .walk_enums()
-        //     .map(|e| ir_to_ts::enums::ir_enum_to_ts(e.item, &pkg))
-        //     .collect::<Vec<_>>();
+        let ts_enums = ir
+            .walk_enums()
+            .map(|e| ir_to_ts::enums::ir_enum_to_ts(e.item, &pkg))
+            .collect::<Vec<_>>();
         // let unions = {
         //     let mut unions = ir.walk_all_types()
         //                 .filter_map(|t| ir_to_ts::unions::ir_union_to_ts(t, &pkg))
@@ -105,10 +104,11 @@ $ pnpm add @boundaryml/baml
         //     unions.dedup_by_key(|u| u.name.clone());
         //     unions
         // };
-        // let type_aliases = ir
-        //     .walk_type_aliases()
-        //     .map(|c| ir_to_ts::type_aliases::ir_type_alias_to_ts(c.item, &pkg))
-        //     .collect::<Vec<_>>();
+        let mut type_aliases = ir
+            .walk_type_aliases()
+            .map(|a| ir_to_ts::type_aliases::ir_type_alias_to_ts(a.item, &pkg))
+            .collect::<Vec<_>>();
+        type_aliases.sort_by(|a, b| a.name.cmp(&b.name));
 
         // collector.add_file(
         //     "types.ts",
@@ -118,8 +118,12 @@ $ pnpm add @boundaryml/baml
         pkg.set("baml_client.types");
         collector.add_file(
             "types.ts",
-            render_ts_types(&ts_classes, &pkg)?,
+            render_ts_types(&ts_enums, &ts_classes, &type_aliases, &pkg)?,
         );
+        // collector.add_file(
+        //     "partial_types.ts",
+        //     render_partial_types(&ts_classes, &pkg)?,
+        // );
         // collector.add_file(
         //     "types/enums.go",
         //     render_ts_types(&enums, &pkg)?,

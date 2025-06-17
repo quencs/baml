@@ -9,9 +9,9 @@ use baml_types::{
 };
 
 pub mod classes;
-// pub mod enums;
+pub mod enums;
 pub mod functions;
-// pub mod type_aliases;
+pub mod type_aliases;
 // pub mod unions;
 
 pub(crate) fn stream_type_to_ts(field: &TypeStreaming, _lookup: &impl TypeLookups) -> TypeTS {
@@ -106,7 +106,7 @@ pub(crate) fn stream_type_to_ts(field: &TypeStreaming, _lookup: &impl TypeLookup
                     .map(|t| t.default_name_within_union())
                     .collect::<Vec<_>>();
                 name.sort();
-                let name = name.join("Or");
+                let name = name.join(" | ");
                 TypeTS::Union {
                     package: stream_pkg.clone(),
                     name: format!("Union{}{}", num_options, name),
@@ -121,7 +121,7 @@ pub(crate) fn stream_type_to_ts(field: &TypeStreaming, _lookup: &impl TypeLookup
                     .map(|t| t.default_name_within_union())
                     .collect::<Vec<_>>();
                 name.sort();
-                let name = name.join("Or");
+                let name = name.join(" | ");
                 let mut meta = meta;
                 meta.make_optional();
                 TypeTS::Union {
@@ -209,7 +209,7 @@ pub(crate) fn type_to_ts(field: &Type, _lookup: &impl TypeLookups) -> TypeTS {
                     .map(|t| t.default_name_within_union())
                     .collect::<Vec<_>>();
                 name.sort();
-                let name = name.join("Or");
+                let name = name.join(" | ");
                 TypeTS::Union {
                     package: type_pkg.clone(),
                     name: format!("Union{}{}", num_options, name),
@@ -225,7 +225,7 @@ pub(crate) fn type_to_ts(field: &Type, _lookup: &impl TypeLookups) -> TypeTS {
                     .map(|t| t.default_name_within_union())
                     .collect::<Vec<_>>();
                 name.sort();
-                let name = name.join("Or");
+                let name = name.join(" | ");
 
                 let mut meta = meta;
                 meta.make_optional();

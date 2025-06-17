@@ -33,6 +33,7 @@ export class LlmResponseParser {
   ): Recipe {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AaaSamOutputFormat",
         llmResponse,
@@ -40,6 +41,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Recipe
     } catch (error) {
@@ -53,6 +55,7 @@ export class LlmResponseParser {
   ): LinkedListAliasNode {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasThatPointsToRecursiveType",
         llmResponse,
@@ -60,6 +63,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as LinkedListAliasNode
     } catch (error) {
@@ -70,8 +74,9 @@ export class LlmResponseParser {
   AliasWithMultipleAttrs(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): Checked<number,"gt_ten"> {
+  ): Checked<number, "gt_ten"> {
     try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasWithMultipleAttrs",
@@ -81,7 +86,7 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as Checked<number,"gt_ten">
+      ) as Checked<number, "gt_ten">
     } catch (error) {
       throw toBamlError(error);
     }
@@ -93,6 +98,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputClass",
         llmResponse,
@@ -100,6 +106,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -113,6 +120,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputClass2",
         llmResponse,
@@ -120,6 +128,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -133,6 +142,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputClassNested",
         llmResponse,
@@ -140,6 +150,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -153,6 +164,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputEnum",
         llmResponse,
@@ -160,6 +172,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -173,6 +186,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputList",
         llmResponse,
@@ -180,6 +194,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -193,6 +208,7 @@ export class LlmResponseParser {
   ): OptionalListAndMap {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AllowedOptionals",
         llmResponse,
@@ -200,6 +216,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as OptionalListAndMap
     } catch (error) {
@@ -213,6 +230,7 @@ export class LlmResponseParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AssertFn",
         llmResponse,
@@ -220,6 +238,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -233,6 +252,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AudioInput",
         llmResponse,
@@ -240,6 +260,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -253,6 +274,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AudioInputOpenai",
         llmResponse,
@@ -260,6 +282,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -273,6 +296,7 @@ export class LlmResponseParser {
   ): LinkedList {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "BuildLinkedList",
         llmResponse,
@@ -280,6 +304,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as LinkedList
     } catch (error) {
@@ -293,6 +318,7 @@ export class LlmResponseParser {
   ): Tree {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "BuildTree",
         llmResponse,
@@ -300,6 +326,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Tree
     } catch (error) {
@@ -313,6 +340,7 @@ export class LlmResponseParser {
   ): ClassToRecAlias {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassThatPointsToRecursiveClassThroughAlias",
         llmResponse,
@@ -320,6 +348,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ClassToRecAlias
     } catch (error) {
@@ -333,6 +362,7 @@ export class LlmResponseParser {
   ): (string | DynEnumTwo) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassifyDynEnumTwo",
         llmResponse,
@@ -340,6 +370,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (string | DynEnumTwo)
     } catch (error) {
@@ -353,6 +384,7 @@ export class LlmResponseParser {
   ): Category {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassifyMessage",
         llmResponse,
@@ -360,6 +392,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Category
     } catch (error) {
@@ -373,6 +406,7 @@ export class LlmResponseParser {
   ): Category {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassifyMessage2",
         llmResponse,
@@ -380,6 +414,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Category
     } catch (error) {
@@ -393,6 +428,7 @@ export class LlmResponseParser {
   ): Category {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassifyMessage3",
         llmResponse,
@@ -400,6 +436,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Category
     } catch (error) {
@@ -413,6 +450,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "Completion",
         llmResponse,
@@ -420,6 +458,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -433,6 +472,7 @@ export class LlmResponseParser {
   ): BookOrder | FlightConfirmation | GroceryReceipt {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "CustomTask",
         llmResponse,
@@ -440,6 +480,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as BookOrder | FlightConfirmation | GroceryReceipt
     } catch (error) {
@@ -453,6 +494,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeImage",
         llmResponse,
@@ -460,6 +502,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -473,6 +516,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeImage2",
         llmResponse,
@@ -480,6 +524,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -493,6 +538,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeImage3",
         llmResponse,
@@ -500,6 +546,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -513,6 +560,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeImage4",
         llmResponse,
@@ -520,6 +568,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -533,6 +582,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeMedia1599",
         llmResponse,
@@ -540,6 +590,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -553,6 +604,7 @@ export class LlmResponseParser {
   ): OriginalA | OriginalB {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DifferentiateUnions",
         llmResponse,
@@ -560,6 +612,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as OriginalA | OriginalB
     } catch (error) {
@@ -573,6 +626,7 @@ export class LlmResponseParser {
   ): DummyOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DummyOutputFunction",
         llmResponse,
@@ -580,6 +634,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as DummyOutput
     } catch (error) {
@@ -593,6 +648,7 @@ export class LlmResponseParser {
   ): DynamicClassTwo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DynamicFunc",
         llmResponse,
@@ -600,6 +656,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as DynamicClassTwo
     } catch (error) {
@@ -613,6 +670,7 @@ export class LlmResponseParser {
   ): DynInputOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DynamicInputOutput",
         llmResponse,
@@ -620,6 +678,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as DynInputOutput
     } catch (error) {
@@ -633,6 +692,7 @@ export class LlmResponseParser {
   ): DynInputOutput[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DynamicListInputOutput",
         llmResponse,
@@ -640,6 +700,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as DynInputOutput[]
     } catch (error) {
@@ -653,6 +714,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExpectFailure",
         llmResponse,
@@ -660,6 +722,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -673,6 +736,7 @@ export class LlmResponseParser {
   ): ContactInfo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractContactInfo",
         llmResponse,
@@ -680,6 +744,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ContactInfo
     } catch (error) {
@@ -693,6 +758,7 @@ export class LlmResponseParser {
   ): DynamicSchema {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractEntities",
         llmResponse,
@@ -700,6 +766,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as DynamicSchema
     } catch (error) {
@@ -713,6 +780,7 @@ export class LlmResponseParser {
   ): (string | Hobby)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractHobby",
         llmResponse,
@@ -720,6 +788,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (string | Hobby)[]
     } catch (error) {
@@ -733,6 +802,7 @@ export class LlmResponseParser {
   ): string[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractNames",
         llmResponse,
@@ -740,6 +810,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string[]
     } catch (error) {
@@ -753,6 +824,7 @@ export class LlmResponseParser {
   ): Person[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractPeople",
         llmResponse,
@@ -760,6 +832,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Person[]
     } catch (error) {
@@ -773,6 +846,7 @@ export class LlmResponseParser {
   ): ReceiptInfo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractReceiptInfo",
         llmResponse,
@@ -780,6 +854,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ReceiptInfo
     } catch (error) {
@@ -793,6 +868,7 @@ export class LlmResponseParser {
   ): Resume {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractResume",
         llmResponse,
@@ -800,6 +876,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Resume
     } catch (error) {
@@ -813,6 +890,7 @@ export class LlmResponseParser {
   ): Resume {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractResume2",
         llmResponse,
@@ -820,6 +898,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Resume
     } catch (error) {
@@ -833,6 +912,7 @@ export class LlmResponseParser {
   ): ClassOptionalOutput | null {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnClassOptionalOutput",
         llmResponse,
@@ -840,6 +920,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ClassOptionalOutput | null
     } catch (error) {
@@ -853,6 +934,7 @@ export class LlmResponseParser {
   ): ClassOptionalOutput2 | null {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnClassOptionalOutput2",
         llmResponse,
@@ -860,6 +942,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ClassOptionalOutput2 | null
     } catch (error) {
@@ -873,6 +956,7 @@ export class LlmResponseParser {
   ): EnumOutput[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnEnumListOutput",
         llmResponse,
@@ -880,6 +964,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as EnumOutput[]
     } catch (error) {
@@ -893,6 +978,7 @@ export class LlmResponseParser {
   ): EnumOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnEnumOutput",
         llmResponse,
@@ -900,6 +986,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as EnumOutput
     } catch (error) {
@@ -913,6 +1000,7 @@ export class LlmResponseParser {
   ): LiteralClassHello {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnLiteralClassInputOutput",
         llmResponse,
@@ -920,6 +1008,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as LiteralClassHello
     } catch (error) {
@@ -933,6 +1022,7 @@ export class LlmResponseParser {
   ): LiteralClassOne | LiteralClassTwo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnLiteralUnionClassInputOutput",
         llmResponse,
@@ -940,6 +1030,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as LiteralClassOne | LiteralClassTwo
     } catch (error) {
@@ -953,6 +1044,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnNamedArgsSingleStringOptional",
         llmResponse,
@@ -960,6 +1052,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -973,6 +1066,7 @@ export class LlmResponseParser {
   ): boolean {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputBool",
         llmResponse,
@@ -980,6 +1074,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as boolean
     } catch (error) {
@@ -993,6 +1088,7 @@ export class LlmResponseParser {
   ): TestOutputClass {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputClass",
         llmResponse,
@@ -1000,6 +1096,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TestOutputClass
     } catch (error) {
@@ -1013,6 +1110,7 @@ export class LlmResponseParser {
   ): TestOutputClass[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputClassList",
         llmResponse,
@@ -1020,6 +1118,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TestOutputClass[]
     } catch (error) {
@@ -1033,6 +1132,7 @@ export class LlmResponseParser {
   ): TestClassNested {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputClassNested",
         llmResponse,
@@ -1040,6 +1140,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TestClassNested
     } catch (error) {
@@ -1053,6 +1154,7 @@ export class LlmResponseParser {
   ): TestClassWithEnum {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputClassWithEnum",
         llmResponse,
@@ -1060,6 +1162,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TestClassWithEnum
     } catch (error) {
@@ -1073,6 +1176,7 @@ export class LlmResponseParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputInt",
         llmResponse,
@@ -1080,6 +1184,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -1093,6 +1198,7 @@ export class LlmResponseParser {
   ): false {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputLiteralBool",
         llmResponse,
@@ -1100,6 +1206,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as false
     } catch (error) {
@@ -1113,6 +1220,7 @@ export class LlmResponseParser {
   ): 5 {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputLiteralInt",
         llmResponse,
@@ -1120,6 +1228,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as 5
     } catch (error) {
@@ -1133,6 +1242,7 @@ export class LlmResponseParser {
   ): "example output" {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputLiteralString",
         llmResponse,
@@ -1140,6 +1250,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as "example output"
     } catch (error) {
@@ -1153,6 +1264,7 @@ export class LlmResponseParser {
   ): string[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputStringList",
         llmResponse,
@@ -1160,6 +1272,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string[]
     } catch (error) {
@@ -1173,6 +1286,7 @@ export class LlmResponseParser {
   ): TestEnum {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnTestAliasedEnumOutput",
         llmResponse,
@@ -1180,6 +1294,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TestEnum
     } catch (error) {
@@ -1193,6 +1308,7 @@ export class LlmResponseParser {
   ): TestClassAlias {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnTestClassAlias",
         llmResponse,
@@ -1200,6 +1316,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TestClassAlias
     } catch (error) {
@@ -1213,6 +1330,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnTestNamedArgsSingleEnum",
         llmResponse,
@@ -1220,6 +1338,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1233,6 +1352,7 @@ export class LlmResponseParser {
   ): RaysData {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "GetDataType",
         llmResponse,
@@ -1240,6 +1360,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RaysData
     } catch (error) {
@@ -1253,6 +1374,7 @@ export class LlmResponseParser {
   ): OrderInfo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "GetOrderInfo",
         llmResponse,
@@ -1260,6 +1382,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as OrderInfo
     } catch (error) {
@@ -1273,6 +1396,7 @@ export class LlmResponseParser {
   ): SearchParams {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "GetQuery",
         llmResponse,
@@ -1280,6 +1404,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as SearchParams
     } catch (error) {
@@ -1293,6 +1418,7 @@ export class LlmResponseParser {
   ): Partial<Record<types.MapKey, string>> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "InOutEnumMapKey",
         llmResponse,
@@ -1300,6 +1426,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Partial<Record<types.MapKey, string>>
     } catch (error) {
@@ -1313,6 +1440,7 @@ export class LlmResponseParser {
   ): Partial<Record<"one" | "two" | "three" | "four", string>> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "InOutLiteralStringUnionMapKey",
         llmResponse,
@@ -1320,6 +1448,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Partial<Record<"one" | "two" | "three" | "four", string>>
     } catch (error) {
@@ -1333,6 +1462,7 @@ export class LlmResponseParser {
   ): Partial<Record<"key", string>> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "InOutSingleLiteralStringMapKey",
         llmResponse,
@@ -1340,6 +1470,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Partial<Record<"key", string>>
     } catch (error) {
@@ -1353,6 +1484,7 @@ export class LlmResponseParser {
   ): JsonValue {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "JsonTypeAliasCycle",
         llmResponse,
@@ -1360,6 +1492,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as JsonValue
     } catch (error) {
@@ -1373,6 +1506,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "LLMEcho",
         llmResponse,
@@ -1380,6 +1514,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1393,6 +1528,7 @@ export class LlmResponseParser {
   ): 1 | true | "string output" {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "LiteralUnionsTest",
         llmResponse,
@@ -1400,6 +1536,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as 1 | true | "string output"
     } catch (error) {
@@ -1410,8 +1547,9 @@ export class LlmResponseParser {
   MakeBlockConstraint(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): Checked<BlockConstraint,"cross_field"> {
+  ): Checked<BlockConstraint, "cross_field"> {
     try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeBlockConstraint",
@@ -1421,7 +1559,7 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as Checked<BlockConstraint,"cross_field">
+      ) as Checked<BlockConstraint, "cross_field">
     } catch (error) {
       throw toBamlError(error);
     }
@@ -1433,6 +1571,7 @@ export class LlmResponseParser {
   ): ClassWithBlockDone {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeClassWithBlockDone",
         llmResponse,
@@ -1440,6 +1579,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ClassWithBlockDone
     } catch (error) {
@@ -1453,6 +1593,7 @@ export class LlmResponseParser {
   ): ClassWithoutDone {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeClassWithExternalDone",
         llmResponse,
@@ -1460,6 +1601,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ClassWithoutDone
     } catch (error) {
@@ -1473,6 +1615,7 @@ export class LlmResponseParser {
   ): NestedBlockConstraint {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeNestedBlockConstraint",
         llmResponse,
@@ -1480,6 +1623,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as NestedBlockConstraint
     } catch (error) {
@@ -1493,6 +1637,7 @@ export class LlmResponseParser {
   ): SemanticContainer {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeSemanticContainer",
         llmResponse,
@@ -1500,6 +1645,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as SemanticContainer
     } catch (error) {
@@ -1513,6 +1659,7 @@ export class LlmResponseParser {
   ): Record<string, string[]> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MapAlias",
         llmResponse,
@@ -1520,6 +1667,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Record<string, string[]>
     } catch (error) {
@@ -1533,6 +1681,7 @@ export class LlmResponseParser {
   ): MergeAttrs {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MergeAliasAttributes",
         llmResponse,
@@ -1540,6 +1689,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as MergeAttrs
     } catch (error) {
@@ -1553,6 +1703,7 @@ export class LlmResponseParser {
   ): DynamicOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MyFunc",
         llmResponse,
@@ -1560,6 +1711,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as DynamicOutput
     } catch (error) {
@@ -1573,6 +1725,7 @@ export class LlmResponseParser {
   ): number | string | boolean | number | string[] | Record<string, string[]> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "NestedAlias",
         llmResponse,
@@ -1580,6 +1733,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number | string | boolean | number | string[] | Record<string, string[]>
     } catch (error) {
@@ -1593,6 +1747,7 @@ export class LlmResponseParser {
   ): ClassForNullLiteral {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "NullLiteralClassHello",
         llmResponse,
@@ -1600,6 +1755,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ClassForNullLiteral
     } catch (error) {
@@ -1613,6 +1769,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "OpenAIWithAnthropicResponseHello",
         llmResponse,
@@ -1620,6 +1777,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1633,6 +1791,7 @@ export class LlmResponseParser {
   ): (OptionalTest_ReturnType | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "OptionalTest_Function",
         llmResponse,
@@ -1640,6 +1799,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (OptionalTest_ReturnType | null)[]
     } catch (error) {
@@ -1653,6 +1813,7 @@ export class LlmResponseParser {
   ): FooAny {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PredictAge",
         llmResponse,
@@ -1660,6 +1821,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as FooAny
     } catch (error) {
@@ -1670,8 +1832,9 @@ export class LlmResponseParser {
   PredictAgeBare(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): Checked<number,"too_big"> {
+  ): Checked<number, "too_big"> {
     try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PredictAgeBare",
@@ -1681,7 +1844,7 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as Checked<number,"too_big">
+      ) as Checked<number, "too_big">
     } catch (error) {
       throw toBamlError(error);
     }
@@ -1693,6 +1856,7 @@ export class LlmResponseParser {
   ): number | string | boolean | number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PrimitiveAlias",
         llmResponse,
@@ -1700,6 +1864,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number | string | boolean | number
     } catch (error) {
@@ -1713,6 +1878,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestClaude",
         llmResponse,
@@ -1720,6 +1886,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1733,6 +1900,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestClaudeChat",
         llmResponse,
@@ -1740,6 +1908,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1753,6 +1922,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestClaudeChatNoSystem",
         llmResponse,
@@ -1760,6 +1930,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1773,6 +1944,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestOpenAI",
         llmResponse,
@@ -1780,6 +1952,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1793,6 +1966,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestOpenAIChat",
         llmResponse,
@@ -1800,6 +1974,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1813,6 +1988,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestOpenAIChatNoSystem",
         llmResponse,
@@ -1820,6 +1996,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1833,6 +2010,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestStreaming",
         llmResponse,
@@ -1840,6 +2018,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -1853,6 +2032,7 @@ export class LlmResponseParser {
   ): RecAliasOne {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "RecursiveAliasCycle",
         llmResponse,
@@ -1860,6 +2040,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecAliasOne
     } catch (error) {
@@ -1873,6 +2054,7 @@ export class LlmResponseParser {
   ): NodeWithAliasIndirection {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "RecursiveClassWithAliasIndirection",
         llmResponse,
@@ -1880,6 +2062,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as NodeWithAliasIndirection
     } catch (error) {
@@ -1893,6 +2076,7 @@ export class LlmResponseParser {
   ): RecursiveUnion {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "RecursiveUnionTest",
         llmResponse,
@@ -1900,6 +2084,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecursiveUnion
     } catch (error) {
@@ -1910,8 +2095,9 @@ export class LlmResponseParser {
   ReturnAliasWithMergedAttributes(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): Checked<number,"gt_ten"> {
+  ): Checked<number, "gt_ten"> {
     try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ReturnAliasWithMergedAttributes",
@@ -1921,7 +2107,7 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as Checked<number,"gt_ten">
+      ) as Checked<number, "gt_ten">
     } catch (error) {
       throw toBamlError(error);
     }
@@ -1933,6 +2119,7 @@ export class LlmResponseParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ReturnFailingAssert",
         llmResponse,
@@ -1940,6 +2127,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -1953,6 +2141,7 @@ export class LlmResponseParser {
   ): JsonTemplate {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ReturnJsonEntry",
         llmResponse,
@@ -1960,6 +2149,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as JsonTemplate
     } catch (error) {
@@ -1973,6 +2163,7 @@ export class LlmResponseParser {
   ): MalformedConstraints {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ReturnMalformedConstraints",
         llmResponse,
@@ -1980,6 +2171,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as MalformedConstraints
     } catch (error) {
@@ -1993,6 +2185,7 @@ export class LlmResponseParser {
   ): Schema {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "SchemaDescriptions",
         llmResponse,
@@ -2000,6 +2193,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Schema
     } catch (error) {
@@ -2013,6 +2207,7 @@ export class LlmResponseParser {
   ): RecursiveListAlias {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "SimpleRecursiveListAlias",
         llmResponse,
@@ -2020,6 +2215,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecursiveListAlias
     } catch (error) {
@@ -2033,6 +2229,7 @@ export class LlmResponseParser {
   ): RecursiveMapAlias {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "SimpleRecursiveMapAlias",
         llmResponse,
@@ -2040,6 +2237,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecursiveMapAlias
     } catch (error) {
@@ -2053,6 +2251,7 @@ export class LlmResponseParser {
   ): BigNumbers {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamBigNumbers",
         llmResponse,
@@ -2060,6 +2259,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as BigNumbers
     } catch (error) {
@@ -2073,6 +2273,7 @@ export class LlmResponseParser {
   ): TwoStoriesOneTitle {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamFailingAssertion",
         llmResponse,
@@ -2080,6 +2281,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TwoStoriesOneTitle
     } catch (error) {
@@ -2093,6 +2295,7 @@ export class LlmResponseParser {
   ): TwoStoriesOneTitleCheck {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamFailingCheck",
         llmResponse,
@@ -2100,6 +2303,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TwoStoriesOneTitleCheck
     } catch (error) {
@@ -2113,6 +2317,7 @@ export class LlmResponseParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamOneBigNumber",
         llmResponse,
@@ -2120,6 +2325,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -2133,6 +2339,7 @@ export class LlmResponseParser {
   ): (number | string)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamUnionIntegers",
         llmResponse,
@@ -2140,6 +2347,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (number | string)[]
     } catch (error) {
@@ -2153,6 +2361,7 @@ export class LlmResponseParser {
   ): CompoundBigNumbers {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamingCompoundNumbers",
         llmResponse,
@@ -2160,6 +2369,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as CompoundBigNumbers
     } catch (error) {
@@ -2173,6 +2383,7 @@ export class LlmResponseParser {
   ): Document1559 {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StructureDocument1559",
         llmResponse,
@@ -2180,6 +2391,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Document1559
     } catch (error) {
@@ -2193,6 +2405,7 @@ export class LlmResponseParser {
   ): RecursiveAliasDependency {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TakeRecAliasDep",
         llmResponse,
@@ -2200,6 +2413,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecursiveAliasDependency
     } catch (error) {
@@ -2213,6 +2427,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TellStory",
         llmResponse,
@@ -2220,6 +2435,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2233,6 +2449,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAnthropic",
         llmResponse,
@@ -2240,6 +2457,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2253,6 +2471,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAnthropicShorthand",
         llmResponse,
@@ -2260,6 +2479,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2273,6 +2493,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAws",
         llmResponse,
@@ -2280,6 +2501,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2293,6 +2515,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsClaude37",
         llmResponse,
@@ -2300,6 +2523,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2313,6 +2537,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInferenceProfile",
         llmResponse,
@@ -2320,6 +2545,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2333,6 +2559,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInvalidAccessKey",
         llmResponse,
@@ -2340,6 +2567,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2353,6 +2581,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInvalidProfile",
         llmResponse,
@@ -2360,6 +2589,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2373,6 +2603,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInvalidRegion",
         llmResponse,
@@ -2380,6 +2611,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2393,6 +2625,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInvalidSessionToken",
         llmResponse,
@@ -2400,6 +2633,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2413,6 +2647,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzure",
         llmResponse,
@@ -2420,6 +2655,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2433,6 +2669,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureFailure",
         llmResponse,
@@ -2440,6 +2677,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2453,6 +2691,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO1NoMaxTokens",
         llmResponse,
@@ -2460,6 +2699,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2473,6 +2713,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO1WithMaxCompletionTokens",
         llmResponse,
@@ -2480,6 +2721,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2493,6 +2735,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO1WithMaxTokens",
         llmResponse,
@@ -2500,6 +2743,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2513,6 +2757,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO3NoMaxTokens",
         llmResponse,
@@ -2520,6 +2765,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2533,6 +2779,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO3WithMaxCompletionTokens",
         llmResponse,
@@ -2540,6 +2787,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2553,6 +2801,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureWithMaxTokens",
         llmResponse,
@@ -2560,6 +2809,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2573,6 +2823,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestCaching",
         llmResponse,
@@ -2580,6 +2831,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2593,6 +2845,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFallbackClient",
         llmResponse,
@@ -2600,6 +2853,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2613,6 +2867,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFallbackStrategy",
         llmResponse,
@@ -2620,6 +2875,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2633,6 +2889,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFallbackToShorthand",
         llmResponse,
@@ -2640,6 +2897,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2653,6 +2911,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleBool",
         llmResponse,
@@ -2660,6 +2919,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2673,6 +2933,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleClass",
         llmResponse,
@@ -2680,6 +2941,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2693,6 +2955,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleEnumList",
         llmResponse,
@@ -2700,6 +2963,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2713,6 +2977,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleFloat",
         llmResponse,
@@ -2720,6 +2985,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2733,6 +2999,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleInt",
         llmResponse,
@@ -2740,6 +3007,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2753,6 +3021,7 @@ export class LlmResponseParser {
   ): Record<string, StringToClassEntry> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleMapStringToClass",
         llmResponse,
@@ -2760,6 +3029,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Record<string, StringToClassEntry>
     } catch (error) {
@@ -2773,6 +3043,7 @@ export class LlmResponseParser {
   ): Record<string, Record<string, string>> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleMapStringToMap",
         llmResponse,
@@ -2780,6 +3051,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Record<string, Record<string, string>>
     } catch (error) {
@@ -2793,6 +3065,7 @@ export class LlmResponseParser {
   ): Record<string, string> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleMapStringToString",
         llmResponse,
@@ -2800,6 +3073,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Record<string, string>
     } catch (error) {
@@ -2813,6 +3087,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleString",
         llmResponse,
@@ -2820,6 +3095,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2833,6 +3109,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleStringArray",
         llmResponse,
@@ -2840,6 +3117,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2853,6 +3131,7 @@ export class LlmResponseParser {
   ): string[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleStringList",
         llmResponse,
@@ -2860,6 +3139,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string[]
     } catch (error) {
@@ -2873,6 +3153,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGemini",
         llmResponse,
@@ -2880,6 +3161,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2893,6 +3175,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGeminiOpenAiGeneric",
         llmResponse,
@@ -2900,6 +3183,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2913,6 +3197,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGeminiSystem",
         llmResponse,
@@ -2920,6 +3205,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2933,6 +3219,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGeminiSystemAsChat",
         llmResponse,
@@ -2940,6 +3227,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2953,6 +3241,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGroq",
         llmResponse,
@@ -2960,6 +3249,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2973,6 +3263,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestImageInput",
         llmResponse,
@@ -2980,6 +3271,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -2993,6 +3285,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestImageInputAnthropic",
         llmResponse,
@@ -3000,6 +3293,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3013,6 +3307,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestImageListInput",
         llmResponse,
@@ -3020,6 +3315,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3033,6 +3329,7 @@ export class LlmResponseParser {
   ): TestMemoryOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestMemory",
         llmResponse,
@@ -3040,6 +3337,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as TestMemoryOutput
     } catch (error) {
@@ -3053,6 +3351,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestMulticlassNamedArgs",
         llmResponse,
@@ -3060,6 +3359,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3073,6 +3373,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestNamedArgsLiteralBool",
         llmResponse,
@@ -3080,6 +3381,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3093,6 +3395,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestNamedArgsLiteralInt",
         llmResponse,
@@ -3100,6 +3403,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3113,6 +3417,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestNamedArgsLiteralString",
         llmResponse,
@@ -3120,6 +3425,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3133,6 +3439,7 @@ export class LlmResponseParser {
   ): string | null {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOllama",
         llmResponse,
@@ -3140,6 +3447,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string | null
     } catch (error) {
@@ -3153,6 +3461,7 @@ export class LlmResponseParser {
   ): Haiku {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOllamaHaiku",
         llmResponse,
@@ -3160,6 +3469,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Haiku
     } catch (error) {
@@ -3173,6 +3483,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAI",
         llmResponse,
@@ -3180,6 +3491,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3193,6 +3505,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIDummyClient",
         llmResponse,
@@ -3200,6 +3513,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3213,48 +3527,9 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIGPT4oMini",
-        llmResponse,
-        false,
-        this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
-        env,
-      ) as string
-    } catch (error) {
-      throw toBamlError(error);
-    }
-  }
-  
-  TestOpenAIGPT4oMini2(
-      llmResponse: string,
-      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): string {
-    try {
-      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
-      return this.runtime.parseLlmResponse(
-        "TestOpenAIGPT4oMini2",
-        llmResponse,
-        false,
-        this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
-        env,
-      ) as string
-    } catch (error) {
-      throw toBamlError(error);
-    }
-  }
-  
-  TestOpenAIGPT4oMini3(
-      llmResponse: string,
-      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): string {
-    try {
-      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
-      return this.runtime.parseLlmResponse(
-        "TestOpenAIGPT4oMini3",
         llmResponse,
         false,
         this.ctxManager.cloneContext(),
@@ -3273,6 +3548,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAILegacyProvider",
         llmResponse,
@@ -3280,6 +3556,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3293,6 +3570,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIO1NoMaxTokens",
         llmResponse,
@@ -3300,6 +3578,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3313,6 +3592,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIO1WithMaxCompletionTokens",
         llmResponse,
@@ -3320,6 +3600,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3333,6 +3614,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIO1WithMaxTokens",
         llmResponse,
@@ -3340,6 +3622,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3353,6 +3636,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIShorthand",
         llmResponse,
@@ -3360,6 +3644,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3373,6 +3658,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIWithFinishReasonError",
         llmResponse,
@@ -3380,6 +3666,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3393,6 +3680,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIWithMaxTokens",
         llmResponse,
@@ -3400,6 +3688,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3413,6 +3702,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIWithNullMaxTokens",
         llmResponse,
@@ -3420,6 +3710,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3433,6 +3724,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenRouterMistralSmall3_1_24b",
         llmResponse,
@@ -3440,6 +3732,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3453,6 +3746,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestRetryConstant",
         llmResponse,
@@ -3460,6 +3754,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3473,6 +3768,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestRetryExponential",
         llmResponse,
@@ -3480,6 +3776,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3493,6 +3790,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestRoundRobinStrategy",
         llmResponse,
@@ -3500,6 +3798,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3513,6 +3812,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestSingleFallbackClient",
         llmResponse,
@@ -3520,6 +3820,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3533,6 +3834,7 @@ export class LlmResponseParser {
   ): CustomStory {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestThinking",
         llmResponse,
@@ -3540,6 +3842,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as CustomStory
     } catch (error) {
@@ -3553,6 +3856,7 @@ export class LlmResponseParser {
   ): UniverseQuestion {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestUniverseQuestion",
         llmResponse,
@@ -3560,6 +3864,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as UniverseQuestion
     } catch (error) {
@@ -3573,6 +3878,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestVertex",
         llmResponse,
@@ -3580,6 +3886,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3593,6 +3900,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestVertexClaude",
         llmResponse,
@@ -3600,6 +3908,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3613,6 +3922,7 @@ export class LlmResponseParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestVertexWithSystemInstructions",
         llmResponse,
@@ -3620,6 +3930,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3633,6 +3944,7 @@ export class LlmResponseParser {
   ): UnionTest_ReturnType {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UnionTest_Function",
         llmResponse,
@@ -3640,6 +3952,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as UnionTest_ReturnType
     } catch (error) {
@@ -3653,6 +3966,7 @@ export class LlmResponseParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UseBlockConstraint",
         llmResponse,
@@ -3660,6 +3974,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -3673,6 +3988,7 @@ export class LlmResponseParser {
   ): MaintainFieldOrder {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UseMaintainFieldOrder",
         llmResponse,
@@ -3680,6 +3996,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as MaintainFieldOrder
     } catch (error) {
@@ -3693,6 +4010,7 @@ export class LlmResponseParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UseMalformedConstraints",
         llmResponse,
@@ -3700,6 +4018,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -3713,6 +4032,7 @@ export class LlmResponseParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UseNestedBlockConstraint",
         llmResponse,
@@ -3720,6 +4040,7 @@ export class LlmResponseParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -3739,6 +4060,7 @@ export class LlmStreamParser {
   ): partial_types.Recipe {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AaaSamOutputFormat",
         llmResponse,
@@ -3746,6 +4068,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.Recipe
     } catch (error) {
@@ -3759,6 +4082,7 @@ export class LlmStreamParser {
   ): partial_types.LinkedListAliasNode {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasThatPointsToRecursiveType",
         llmResponse,
@@ -3766,6 +4090,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.LinkedListAliasNode
     } catch (error) {
@@ -3779,6 +4104,7 @@ export class LlmStreamParser {
   ): Checked<number,"gt_ten"> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasWithMultipleAttrs",
         llmResponse,
@@ -3786,6 +4112,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Checked<number,"gt_ten">
     } catch (error) {
@@ -3799,6 +4126,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputClass",
         llmResponse,
@@ -3806,6 +4134,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3819,6 +4148,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputClass2",
         llmResponse,
@@ -3826,6 +4156,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3839,6 +4170,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputClassNested",
         llmResponse,
@@ -3846,6 +4178,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3859,6 +4192,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputEnum",
         llmResponse,
@@ -3866,6 +4200,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3879,6 +4214,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AliasedInputList",
         llmResponse,
@@ -3886,6 +4222,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3899,6 +4236,7 @@ export class LlmStreamParser {
   ): partial_types.OptionalListAndMap {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AllowedOptionals",
         llmResponse,
@@ -3906,6 +4244,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.OptionalListAndMap
     } catch (error) {
@@ -3919,6 +4258,7 @@ export class LlmStreamParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AssertFn",
         llmResponse,
@@ -3926,6 +4266,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -3939,6 +4280,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AudioInput",
         llmResponse,
@@ -3946,6 +4288,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3959,6 +4302,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "AudioInputOpenai",
         llmResponse,
@@ -3966,6 +4310,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -3979,6 +4324,7 @@ export class LlmStreamParser {
   ): partial_types.LinkedList {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "BuildLinkedList",
         llmResponse,
@@ -3986,6 +4332,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.LinkedList
     } catch (error) {
@@ -3999,6 +4346,7 @@ export class LlmStreamParser {
   ): partial_types.Tree {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "BuildTree",
         llmResponse,
@@ -4006,6 +4354,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.Tree
     } catch (error) {
@@ -4019,6 +4368,7 @@ export class LlmStreamParser {
   ): partial_types.ClassToRecAlias {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassThatPointsToRecursiveClassThroughAlias",
         llmResponse,
@@ -4026,6 +4376,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.ClassToRecAlias
     } catch (error) {
@@ -4039,6 +4390,7 @@ export class LlmStreamParser {
   ): (string | DynEnumTwo) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassifyDynEnumTwo",
         llmResponse,
@@ -4046,6 +4398,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (string | DynEnumTwo)
     } catch (error) {
@@ -4059,6 +4412,7 @@ export class LlmStreamParser {
   ): types.Category {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassifyMessage",
         llmResponse,
@@ -4066,6 +4420,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as types.Category
     } catch (error) {
@@ -4079,6 +4434,7 @@ export class LlmStreamParser {
   ): types.Category {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassifyMessage2",
         llmResponse,
@@ -4086,6 +4442,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as types.Category
     } catch (error) {
@@ -4099,6 +4456,7 @@ export class LlmStreamParser {
   ): types.Category {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ClassifyMessage3",
         llmResponse,
@@ -4106,6 +4464,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as types.Category
     } catch (error) {
@@ -4119,6 +4478,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "Completion",
         llmResponse,
@@ -4126,6 +4486,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4139,6 +4500,7 @@ export class LlmStreamParser {
   ): ((partial_types.BookOrder | null) | (partial_types.FlightConfirmation | null) | (partial_types.GroceryReceipt | null)) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "CustomTask",
         llmResponse,
@@ -4146,6 +4508,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((partial_types.BookOrder | null) | (partial_types.FlightConfirmation | null) | (partial_types.GroceryReceipt | null))
     } catch (error) {
@@ -4159,6 +4522,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeImage",
         llmResponse,
@@ -4166,6 +4530,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4179,6 +4544,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeImage2",
         llmResponse,
@@ -4186,6 +4552,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4199,6 +4566,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeImage3",
         llmResponse,
@@ -4206,6 +4574,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4219,6 +4588,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeImage4",
         llmResponse,
@@ -4226,6 +4596,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4239,6 +4610,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DescribeMedia1599",
         llmResponse,
@@ -4246,6 +4618,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4259,6 +4632,7 @@ export class LlmStreamParser {
   ): ((partial_types.OriginalA | null) | (partial_types.OriginalB | null)) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DifferentiateUnions",
         llmResponse,
@@ -4266,6 +4640,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((partial_types.OriginalA | null) | (partial_types.OriginalB | null))
     } catch (error) {
@@ -4279,6 +4654,7 @@ export class LlmStreamParser {
   ): partial_types.DummyOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DummyOutputFunction",
         llmResponse,
@@ -4286,6 +4662,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.DummyOutput
     } catch (error) {
@@ -4299,6 +4676,7 @@ export class LlmStreamParser {
   ): partial_types.DynamicClassTwo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DynamicFunc",
         llmResponse,
@@ -4306,6 +4684,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.DynamicClassTwo
     } catch (error) {
@@ -4319,6 +4698,7 @@ export class LlmStreamParser {
   ): partial_types.DynInputOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DynamicInputOutput",
         llmResponse,
@@ -4326,6 +4706,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.DynInputOutput
     } catch (error) {
@@ -4339,6 +4720,7 @@ export class LlmStreamParser {
   ): (partial_types.DynInputOutput | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "DynamicListInputOutput",
         llmResponse,
@@ -4346,6 +4728,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (partial_types.DynInputOutput | null)[]
     } catch (error) {
@@ -4359,6 +4742,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExpectFailure",
         llmResponse,
@@ -4366,6 +4750,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4379,6 +4764,7 @@ export class LlmStreamParser {
   ): partial_types.ContactInfo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractContactInfo",
         llmResponse,
@@ -4386,6 +4772,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.ContactInfo
     } catch (error) {
@@ -4399,6 +4786,7 @@ export class LlmStreamParser {
   ): partial_types.DynamicSchema {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractEntities",
         llmResponse,
@@ -4406,6 +4794,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.DynamicSchema
     } catch (error) {
@@ -4419,6 +4808,7 @@ export class LlmStreamParser {
   ): (string | Hobby | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractHobby",
         llmResponse,
@@ -4426,6 +4816,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (string | Hobby | null)[]
     } catch (error) {
@@ -4439,6 +4830,7 @@ export class LlmStreamParser {
   ): (string | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractNames",
         llmResponse,
@@ -4446,6 +4838,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (string | null)[]
     } catch (error) {
@@ -4459,6 +4852,7 @@ export class LlmStreamParser {
   ): (partial_types.Person | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractPeople",
         llmResponse,
@@ -4466,6 +4860,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (partial_types.Person | null)[]
     } catch (error) {
@@ -4479,6 +4874,7 @@ export class LlmStreamParser {
   ): partial_types.ReceiptInfo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractReceiptInfo",
         llmResponse,
@@ -4486,6 +4882,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.ReceiptInfo
     } catch (error) {
@@ -4499,6 +4896,7 @@ export class LlmStreamParser {
   ): partial_types.Resume {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractResume",
         llmResponse,
@@ -4506,6 +4904,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.Resume
     } catch (error) {
@@ -4519,6 +4918,7 @@ export class LlmStreamParser {
   ): partial_types.Resume {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ExtractResume2",
         llmResponse,
@@ -4526,6 +4926,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.Resume
     } catch (error) {
@@ -4539,6 +4940,7 @@ export class LlmStreamParser {
   ): ((partial_types.ClassOptionalOutput | null) | null) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnClassOptionalOutput",
         llmResponse,
@@ -4546,6 +4948,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((partial_types.ClassOptionalOutput | null) | null)
     } catch (error) {
@@ -4559,6 +4962,7 @@ export class LlmStreamParser {
   ): ((partial_types.ClassOptionalOutput2 | null) | null) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnClassOptionalOutput2",
         llmResponse,
@@ -4566,6 +4970,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((partial_types.ClassOptionalOutput2 | null) | null)
     } catch (error) {
@@ -4579,6 +4984,7 @@ export class LlmStreamParser {
   ): (EnumOutput | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnEnumListOutput",
         llmResponse,
@@ -4586,6 +4992,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (EnumOutput | null)[]
     } catch (error) {
@@ -4599,6 +5006,7 @@ export class LlmStreamParser {
   ): types.EnumOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnEnumOutput",
         llmResponse,
@@ -4606,6 +5014,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as types.EnumOutput
     } catch (error) {
@@ -4619,6 +5028,7 @@ export class LlmStreamParser {
   ): partial_types.LiteralClassHello {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnLiteralClassInputOutput",
         llmResponse,
@@ -4626,6 +5036,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.LiteralClassHello
     } catch (error) {
@@ -4639,6 +5050,7 @@ export class LlmStreamParser {
   ): ((partial_types.LiteralClassOne | null) | (partial_types.LiteralClassTwo | null)) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnLiteralUnionClassInputOutput",
         llmResponse,
@@ -4646,6 +5058,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((partial_types.LiteralClassOne | null) | (partial_types.LiteralClassTwo | null))
     } catch (error) {
@@ -4659,6 +5072,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnNamedArgsSingleStringOptional",
         llmResponse,
@@ -4666,6 +5080,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4679,6 +5094,7 @@ export class LlmStreamParser {
   ): boolean {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputBool",
         llmResponse,
@@ -4686,6 +5102,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as boolean
     } catch (error) {
@@ -4699,6 +5116,7 @@ export class LlmStreamParser {
   ): partial_types.TestOutputClass {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputClass",
         llmResponse,
@@ -4706,6 +5124,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.TestOutputClass
     } catch (error) {
@@ -4719,6 +5138,7 @@ export class LlmStreamParser {
   ): (partial_types.TestOutputClass | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputClassList",
         llmResponse,
@@ -4726,6 +5146,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (partial_types.TestOutputClass | null)[]
     } catch (error) {
@@ -4739,6 +5160,7 @@ export class LlmStreamParser {
   ): partial_types.TestClassNested {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputClassNested",
         llmResponse,
@@ -4746,6 +5168,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.TestClassNested
     } catch (error) {
@@ -4759,6 +5182,7 @@ export class LlmStreamParser {
   ): partial_types.TestClassWithEnum {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputClassWithEnum",
         llmResponse,
@@ -4766,6 +5190,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.TestClassWithEnum
     } catch (error) {
@@ -4779,6 +5204,7 @@ export class LlmStreamParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputInt",
         llmResponse,
@@ -4786,6 +5212,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -4799,6 +5226,7 @@ export class LlmStreamParser {
   ): false {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputLiteralBool",
         llmResponse,
@@ -4806,6 +5234,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as false
     } catch (error) {
@@ -4819,6 +5248,7 @@ export class LlmStreamParser {
   ): 5 {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputLiteralInt",
         llmResponse,
@@ -4826,6 +5256,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as 5
     } catch (error) {
@@ -4839,6 +5270,7 @@ export class LlmStreamParser {
   ): "example output" {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputLiteralString",
         llmResponse,
@@ -4846,6 +5278,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as "example output"
     } catch (error) {
@@ -4859,6 +5292,7 @@ export class LlmStreamParser {
   ): (string | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnOutputStringList",
         llmResponse,
@@ -4866,6 +5300,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (string | null)[]
     } catch (error) {
@@ -4879,6 +5314,7 @@ export class LlmStreamParser {
   ): types.TestEnum {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnTestAliasedEnumOutput",
         llmResponse,
@@ -4886,6 +5322,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as types.TestEnum
     } catch (error) {
@@ -4899,6 +5336,7 @@ export class LlmStreamParser {
   ): partial_types.TestClassAlias {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnTestClassAlias",
         llmResponse,
@@ -4906,6 +5344,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.TestClassAlias
     } catch (error) {
@@ -4919,6 +5358,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "FnTestNamedArgsSingleEnum",
         llmResponse,
@@ -4926,6 +5366,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -4939,6 +5380,7 @@ export class LlmStreamParser {
   ): partial_types.RaysData {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "GetDataType",
         llmResponse,
@@ -4946,6 +5388,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.RaysData
     } catch (error) {
@@ -4959,6 +5402,7 @@ export class LlmStreamParser {
   ): partial_types.OrderInfo {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "GetOrderInfo",
         llmResponse,
@@ -4966,6 +5410,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.OrderInfo
     } catch (error) {
@@ -4979,6 +5424,7 @@ export class LlmStreamParser {
   ): partial_types.SearchParams {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "GetQuery",
         llmResponse,
@@ -4986,6 +5432,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.SearchParams
     } catch (error) {
@@ -4999,6 +5446,7 @@ export class LlmStreamParser {
   ): (Record<MapKey, (string | null)> ) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "InOutEnumMapKey",
         llmResponse,
@@ -5006,6 +5454,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (Record<MapKey, (string | null)> )
     } catch (error) {
@@ -5019,6 +5468,7 @@ export class LlmStreamParser {
   ): (Record<"one" | "two" | "three" | "four", (string | null)> ) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "InOutLiteralStringUnionMapKey",
         llmResponse,
@@ -5026,6 +5476,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (Record<"one" | "two" | "three" | "four", (string | null)> )
     } catch (error) {
@@ -5039,6 +5490,7 @@ export class LlmStreamParser {
   ): (Record<"key", (string | null)> ) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "InOutSingleLiteralStringMapKey",
         llmResponse,
@@ -5046,6 +5498,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (Record<"key", (string | null)> )
     } catch (error) {
@@ -5059,6 +5512,7 @@ export class LlmStreamParser {
   ): JsonValue {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "JsonTypeAliasCycle",
         llmResponse,
@@ -5066,6 +5520,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as JsonValue
     } catch (error) {
@@ -5079,6 +5534,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "LLMEcho",
         llmResponse,
@@ -5086,6 +5542,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5099,6 +5556,7 @@ export class LlmStreamParser {
   ): (1 | true | "string output") {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "LiteralUnionsTest",
         llmResponse,
@@ -5106,6 +5564,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (1 | true | "string output")
     } catch (error) {
@@ -5119,6 +5578,7 @@ export class LlmStreamParser {
   ): Checked<partial_types.BlockConstraint,"cross_field"> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeBlockConstraint",
         llmResponse,
@@ -5126,6 +5586,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Checked<partial_types.BlockConstraint,"cross_field">
     } catch (error) {
@@ -5136,8 +5597,9 @@ export class LlmStreamParser {
   MakeClassWithBlockDone(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): types.ClassWithBlockDone {
+  ): partial_types.ClassWithBlockDone {
     try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeClassWithBlockDone",
@@ -5147,7 +5609,7 @@ export class LlmStreamParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as types.ClassWithBlockDone
+      ) as partial_types.ClassWithBlockDone
     } catch (error) {
       throw toBamlError(error);
     }
@@ -5159,6 +5621,7 @@ export class LlmStreamParser {
   ): types.ClassWithoutDone {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeClassWithExternalDone",
         llmResponse,
@@ -5166,6 +5629,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as types.ClassWithoutDone
     } catch (error) {
@@ -5179,6 +5643,7 @@ export class LlmStreamParser {
   ): partial_types.NestedBlockConstraint {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeNestedBlockConstraint",
         llmResponse,
@@ -5186,6 +5651,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.NestedBlockConstraint
     } catch (error) {
@@ -5199,6 +5665,7 @@ export class LlmStreamParser {
   ): partial_types.SemanticContainer {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MakeSemanticContainer",
         llmResponse,
@@ -5206,6 +5673,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.SemanticContainer
     } catch (error) {
@@ -5219,6 +5687,7 @@ export class LlmStreamParser {
   ): (Record<string, (string | null)[]> ) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MapAlias",
         llmResponse,
@@ -5226,6 +5695,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (Record<string, (string | null)[]> )
     } catch (error) {
@@ -5239,6 +5709,7 @@ export class LlmStreamParser {
   ): partial_types.MergeAttrs {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MergeAliasAttributes",
         llmResponse,
@@ -5246,6 +5717,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.MergeAttrs
     } catch (error) {
@@ -5259,6 +5731,7 @@ export class LlmStreamParser {
   ): partial_types.DynamicOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "MyFunc",
         llmResponse,
@@ -5266,6 +5739,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.DynamicOutput
     } catch (error) {
@@ -5276,8 +5750,9 @@ export class LlmStreamParser {
   NestedAlias(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): (((number | null) | (string | null) | (boolean | null) | (number | null) | null) | (string | null)[] | (Record<string, (string | null)[]> | null)) {
+  ): ((number | null) | (string | null) | (boolean | null) | (number | null) | (string | null)[] | (Record<string, (string | null)[]> | null)) {
     try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "NestedAlias",
@@ -5287,7 +5762,7 @@ export class LlmStreamParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as (((number | null) | (string | null) | (boolean | null) | (number | null) | null) | (string | null)[] | (Record<string, (string | null)[]> | null))
+      ) as ((number | null) | (string | null) | (boolean | null) | (number | null) | (string | null)[] | (Record<string, (string | null)[]> | null))
     } catch (error) {
       throw toBamlError(error);
     }
@@ -5299,6 +5774,7 @@ export class LlmStreamParser {
   ): partial_types.ClassForNullLiteral {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "NullLiteralClassHello",
         llmResponse,
@@ -5306,6 +5782,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.ClassForNullLiteral
     } catch (error) {
@@ -5319,6 +5796,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "OpenAIWithAnthropicResponseHello",
         llmResponse,
@@ -5326,6 +5804,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5339,6 +5818,7 @@ export class LlmStreamParser {
   ): ((partial_types.OptionalTest_ReturnType | null) | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "OptionalTest_Function",
         llmResponse,
@@ -5346,6 +5826,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((partial_types.OptionalTest_ReturnType | null) | null)[]
     } catch (error) {
@@ -5359,6 +5840,7 @@ export class LlmStreamParser {
   ): partial_types.FooAny {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PredictAge",
         llmResponse,
@@ -5366,6 +5848,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.FooAny
     } catch (error) {
@@ -5379,6 +5862,7 @@ export class LlmStreamParser {
   ): Checked<number,"too_big"> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PredictAgeBare",
         llmResponse,
@@ -5386,6 +5870,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Checked<number,"too_big">
     } catch (error) {
@@ -5399,6 +5884,7 @@ export class LlmStreamParser {
   ): ((number | null) | (string | null) | (boolean | null) | (number | null)) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PrimitiveAlias",
         llmResponse,
@@ -5406,6 +5892,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((number | null) | (string | null) | (boolean | null) | (number | null))
     } catch (error) {
@@ -5419,6 +5906,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestClaude",
         llmResponse,
@@ -5426,6 +5914,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5439,6 +5928,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestClaudeChat",
         llmResponse,
@@ -5446,6 +5936,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5459,6 +5950,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestClaudeChatNoSystem",
         llmResponse,
@@ -5466,6 +5958,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5479,6 +5972,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestOpenAI",
         llmResponse,
@@ -5486,6 +5980,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5499,6 +5994,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestOpenAIChat",
         llmResponse,
@@ -5506,6 +6002,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5519,6 +6016,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestOpenAIChatNoSystem",
         llmResponse,
@@ -5526,6 +6024,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5539,6 +6038,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "PromptTestStreaming",
         llmResponse,
@@ -5546,6 +6046,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5559,6 +6060,7 @@ export class LlmStreamParser {
   ): RecAliasOne {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "RecursiveAliasCycle",
         llmResponse,
@@ -5566,6 +6068,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecAliasOne
     } catch (error) {
@@ -5579,6 +6082,7 @@ export class LlmStreamParser {
   ): partial_types.NodeWithAliasIndirection {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "RecursiveClassWithAliasIndirection",
         llmResponse,
@@ -5586,6 +6090,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.NodeWithAliasIndirection
     } catch (error) {
@@ -5599,6 +6104,7 @@ export class LlmStreamParser {
   ): RecursiveUnion {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "RecursiveUnionTest",
         llmResponse,
@@ -5606,6 +6112,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecursiveUnion
     } catch (error) {
@@ -5619,6 +6126,7 @@ export class LlmStreamParser {
   ): Checked<number,"gt_ten"> {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ReturnAliasWithMergedAttributes",
         llmResponse,
@@ -5626,6 +6134,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as Checked<number,"gt_ten">
     } catch (error) {
@@ -5639,6 +6148,7 @@ export class LlmStreamParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ReturnFailingAssert",
         llmResponse,
@@ -5646,6 +6156,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -5659,6 +6170,7 @@ export class LlmStreamParser {
   ): JsonTemplate {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ReturnJsonEntry",
         llmResponse,
@@ -5666,6 +6178,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as JsonTemplate
     } catch (error) {
@@ -5679,6 +6192,7 @@ export class LlmStreamParser {
   ): partial_types.MalformedConstraints {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "ReturnMalformedConstraints",
         llmResponse,
@@ -5686,6 +6200,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.MalformedConstraints
     } catch (error) {
@@ -5699,6 +6214,7 @@ export class LlmStreamParser {
   ): partial_types.Schema {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "SchemaDescriptions",
         llmResponse,
@@ -5706,6 +6222,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.Schema
     } catch (error) {
@@ -5719,6 +6236,7 @@ export class LlmStreamParser {
   ): RecursiveListAlias {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "SimpleRecursiveListAlias",
         llmResponse,
@@ -5726,6 +6244,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecursiveListAlias
     } catch (error) {
@@ -5739,6 +6258,7 @@ export class LlmStreamParser {
   ): RecursiveMapAlias {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "SimpleRecursiveMapAlias",
         llmResponse,
@@ -5746,6 +6266,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as RecursiveMapAlias
     } catch (error) {
@@ -5759,6 +6280,7 @@ export class LlmStreamParser {
   ): partial_types.BigNumbers {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamBigNumbers",
         llmResponse,
@@ -5766,6 +6288,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.BigNumbers
     } catch (error) {
@@ -5779,6 +6302,7 @@ export class LlmStreamParser {
   ): partial_types.TwoStoriesOneTitle {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamFailingAssertion",
         llmResponse,
@@ -5786,6 +6310,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.TwoStoriesOneTitle
     } catch (error) {
@@ -5799,6 +6324,7 @@ export class LlmStreamParser {
   ): partial_types.TwoStoriesOneTitleCheck {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamFailingCheck",
         llmResponse,
@@ -5806,6 +6332,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.TwoStoriesOneTitleCheck
     } catch (error) {
@@ -5819,6 +6346,7 @@ export class LlmStreamParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamOneBigNumber",
         llmResponse,
@@ -5826,6 +6354,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -5839,6 +6368,7 @@ export class LlmStreamParser {
   ): ((number | null) | (string | null) | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamUnionIntegers",
         llmResponse,
@@ -5846,6 +6376,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((number | null) | (string | null) | null)[]
     } catch (error) {
@@ -5859,6 +6390,7 @@ export class LlmStreamParser {
   ): partial_types.CompoundBigNumbers {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StreamingCompoundNumbers",
         llmResponse,
@@ -5866,6 +6398,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.CompoundBigNumbers
     } catch (error) {
@@ -5879,6 +6412,7 @@ export class LlmStreamParser {
   ): partial_types.Document1559 {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "StructureDocument1559",
         llmResponse,
@@ -5886,6 +6420,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.Document1559
     } catch (error) {
@@ -5899,6 +6434,7 @@ export class LlmStreamParser {
   ): partial_types.RecursiveAliasDependency {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TakeRecAliasDep",
         llmResponse,
@@ -5906,6 +6442,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.RecursiveAliasDependency
     } catch (error) {
@@ -5919,6 +6456,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TellStory",
         llmResponse,
@@ -5926,6 +6464,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5939,6 +6478,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAnthropic",
         llmResponse,
@@ -5946,6 +6486,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5959,6 +6500,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAnthropicShorthand",
         llmResponse,
@@ -5966,6 +6508,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5979,6 +6522,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAws",
         llmResponse,
@@ -5986,6 +6530,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -5999,6 +6544,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsClaude37",
         llmResponse,
@@ -6006,6 +6552,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6019,6 +6566,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInferenceProfile",
         llmResponse,
@@ -6026,6 +6574,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6039,6 +6588,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInvalidAccessKey",
         llmResponse,
@@ -6046,6 +6596,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6059,6 +6610,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInvalidProfile",
         llmResponse,
@@ -6066,6 +6618,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6079,6 +6632,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInvalidRegion",
         llmResponse,
@@ -6086,6 +6640,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6099,6 +6654,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAwsInvalidSessionToken",
         llmResponse,
@@ -6106,6 +6662,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6119,6 +6676,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzure",
         llmResponse,
@@ -6126,6 +6684,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6139,6 +6698,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureFailure",
         llmResponse,
@@ -6146,6 +6706,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6159,6 +6720,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO1NoMaxTokens",
         llmResponse,
@@ -6166,6 +6728,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6179,6 +6742,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO1WithMaxCompletionTokens",
         llmResponse,
@@ -6186,6 +6750,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6199,6 +6764,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO1WithMaxTokens",
         llmResponse,
@@ -6206,6 +6772,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6219,6 +6786,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO3NoMaxTokens",
         llmResponse,
@@ -6226,6 +6794,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6239,6 +6808,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureO3WithMaxCompletionTokens",
         llmResponse,
@@ -6246,6 +6816,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6259,6 +6830,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestAzureWithMaxTokens",
         llmResponse,
@@ -6266,6 +6838,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6279,6 +6852,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestCaching",
         llmResponse,
@@ -6286,6 +6860,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6299,6 +6874,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFallbackClient",
         llmResponse,
@@ -6306,6 +6882,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6319,6 +6896,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFallbackStrategy",
         llmResponse,
@@ -6326,6 +6904,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6339,6 +6918,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFallbackToShorthand",
         llmResponse,
@@ -6346,6 +6926,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6359,6 +6940,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleBool",
         llmResponse,
@@ -6366,6 +6948,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6379,6 +6962,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleClass",
         llmResponse,
@@ -6386,6 +6970,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6399,6 +6984,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleEnumList",
         llmResponse,
@@ -6406,6 +6992,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6419,6 +7006,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleFloat",
         llmResponse,
@@ -6426,6 +7014,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6439,6 +7028,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleInt",
         llmResponse,
@@ -6446,6 +7036,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6459,6 +7050,7 @@ export class LlmStreamParser {
   ): (Record<string, (partial_types.StringToClassEntry | null)> ) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleMapStringToClass",
         llmResponse,
@@ -6466,6 +7058,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (Record<string, (partial_types.StringToClassEntry | null)> )
     } catch (error) {
@@ -6479,6 +7072,7 @@ export class LlmStreamParser {
   ): (Record<string, (Record<string, (string | null)> | null)> ) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleMapStringToMap",
         llmResponse,
@@ -6486,6 +7080,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (Record<string, (Record<string, (string | null)> | null)> )
     } catch (error) {
@@ -6499,6 +7094,7 @@ export class LlmStreamParser {
   ): (Record<string, (string | null)> ) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleMapStringToString",
         llmResponse,
@@ -6506,6 +7102,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (Record<string, (string | null)> )
     } catch (error) {
@@ -6519,6 +7116,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleString",
         llmResponse,
@@ -6526,6 +7124,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6539,6 +7138,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleStringArray",
         llmResponse,
@@ -6546,6 +7146,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6559,6 +7160,7 @@ export class LlmStreamParser {
   ): (string | null)[] {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestFnNamedArgsSingleStringList",
         llmResponse,
@@ -6566,6 +7168,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as (string | null)[]
     } catch (error) {
@@ -6579,6 +7182,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGemini",
         llmResponse,
@@ -6586,6 +7190,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6599,6 +7204,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGeminiOpenAiGeneric",
         llmResponse,
@@ -6606,6 +7212,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6619,6 +7226,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGeminiSystem",
         llmResponse,
@@ -6626,6 +7234,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6639,6 +7248,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGeminiSystemAsChat",
         llmResponse,
@@ -6646,6 +7256,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6659,6 +7270,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestGroq",
         llmResponse,
@@ -6666,6 +7278,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6679,6 +7292,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestImageInput",
         llmResponse,
@@ -6686,6 +7300,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6699,6 +7314,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestImageInputAnthropic",
         llmResponse,
@@ -6706,6 +7322,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6719,6 +7336,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestImageListInput",
         llmResponse,
@@ -6726,6 +7344,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6739,6 +7358,7 @@ export class LlmStreamParser {
   ): partial_types.TestMemoryOutput {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestMemory",
         llmResponse,
@@ -6746,6 +7366,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.TestMemoryOutput
     } catch (error) {
@@ -6759,6 +7380,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestMulticlassNamedArgs",
         llmResponse,
@@ -6766,6 +7388,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6779,6 +7402,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestNamedArgsLiteralBool",
         llmResponse,
@@ -6786,6 +7410,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6799,6 +7424,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestNamedArgsLiteralInt",
         llmResponse,
@@ -6806,6 +7432,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6819,6 +7446,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestNamedArgsLiteralString",
         llmResponse,
@@ -6826,6 +7454,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6839,6 +7468,7 @@ export class LlmStreamParser {
   ): ((string | null) | null) {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOllama",
         llmResponse,
@@ -6846,6 +7476,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as ((string | null) | null)
     } catch (error) {
@@ -6859,6 +7490,7 @@ export class LlmStreamParser {
   ): partial_types.Haiku {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOllamaHaiku",
         llmResponse,
@@ -6866,6 +7498,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.Haiku
     } catch (error) {
@@ -6879,6 +7512,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAI",
         llmResponse,
@@ -6886,6 +7520,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6899,6 +7534,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIDummyClient",
         llmResponse,
@@ -6906,6 +7542,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6919,48 +7556,9 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIGPT4oMini",
-        llmResponse,
-        true,
-        this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
-        env,
-      ) as string
-    } catch (error) {
-      throw toBamlError(error);
-    }
-  }
-  
-  TestOpenAIGPT4oMini2(
-      llmResponse: string,
-      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): string {
-    try {
-      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
-      return this.runtime.parseLlmResponse(
-        "TestOpenAIGPT4oMini2",
-        llmResponse,
-        true,
-        this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
-        env,
-      ) as string
-    } catch (error) {
-      throw toBamlError(error);
-    }
-  }
-  
-  TestOpenAIGPT4oMini3(
-      llmResponse: string,
-      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
-  ): string {
-    try {
-      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
-      return this.runtime.parseLlmResponse(
-        "TestOpenAIGPT4oMini3",
         llmResponse,
         true,
         this.ctxManager.cloneContext(),
@@ -6979,6 +7577,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAILegacyProvider",
         llmResponse,
@@ -6986,6 +7585,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -6999,6 +7599,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIO1NoMaxTokens",
         llmResponse,
@@ -7006,6 +7607,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7019,6 +7621,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIO1WithMaxCompletionTokens",
         llmResponse,
@@ -7026,6 +7629,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7039,6 +7643,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIO1WithMaxTokens",
         llmResponse,
@@ -7046,6 +7651,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7059,6 +7665,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIShorthand",
         llmResponse,
@@ -7066,6 +7673,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7079,6 +7687,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIWithFinishReasonError",
         llmResponse,
@@ -7086,6 +7695,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7099,6 +7709,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIWithMaxTokens",
         llmResponse,
@@ -7106,6 +7717,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7119,6 +7731,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenAIWithNullMaxTokens",
         llmResponse,
@@ -7126,6 +7739,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7139,6 +7753,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestOpenRouterMistralSmall3_1_24b",
         llmResponse,
@@ -7146,6 +7761,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7159,6 +7775,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestRetryConstant",
         llmResponse,
@@ -7166,6 +7783,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7179,6 +7797,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestRetryExponential",
         llmResponse,
@@ -7186,6 +7805,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7199,6 +7819,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestRoundRobinStrategy",
         llmResponse,
@@ -7206,6 +7827,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7219,6 +7841,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestSingleFallbackClient",
         llmResponse,
@@ -7226,6 +7849,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7239,6 +7863,7 @@ export class LlmStreamParser {
   ): partial_types.CustomStory {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestThinking",
         llmResponse,
@@ -7246,6 +7871,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.CustomStory
     } catch (error) {
@@ -7259,6 +7885,7 @@ export class LlmStreamParser {
   ): partial_types.UniverseQuestion {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestUniverseQuestion",
         llmResponse,
@@ -7266,6 +7893,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.UniverseQuestion
     } catch (error) {
@@ -7279,6 +7907,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestVertex",
         llmResponse,
@@ -7286,6 +7915,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7299,6 +7929,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestVertexClaude",
         llmResponse,
@@ -7306,6 +7937,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7319,6 +7951,7 @@ export class LlmStreamParser {
   ): string {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "TestVertexWithSystemInstructions",
         llmResponse,
@@ -7326,6 +7959,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as string
     } catch (error) {
@@ -7339,6 +7973,7 @@ export class LlmStreamParser {
   ): partial_types.UnionTest_ReturnType {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UnionTest_Function",
         llmResponse,
@@ -7346,6 +7981,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.UnionTest_ReturnType
     } catch (error) {
@@ -7359,6 +7995,7 @@ export class LlmStreamParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UseBlockConstraint",
         llmResponse,
@@ -7366,6 +8003,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -7379,6 +8017,7 @@ export class LlmStreamParser {
   ): partial_types.MaintainFieldOrder {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UseMaintainFieldOrder",
         llmResponse,
@@ -7386,6 +8025,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as partial_types.MaintainFieldOrder
     } catch (error) {
@@ -7399,6 +8039,7 @@ export class LlmStreamParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UseMalformedConstraints",
         llmResponse,
@@ -7406,6 +8047,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {
@@ -7419,6 +8061,7 @@ export class LlmStreamParser {
   ): number {
     try {
       const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       return this.runtime.parseLlmResponse(
         "UseNestedBlockConstraint",
         llmResponse,
@@ -7426,6 +8069,7 @@ export class LlmStreamParser {
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
+        env,
         env,
       ) as number
     } catch (error) {

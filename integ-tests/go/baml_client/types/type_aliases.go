@@ -61,3 +61,11 @@ type JsonValue = Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
 type JsonObject = map[string]JsonValue
 
 type JsonArray = []JsonValue
+
+type LinkedListAlias = LinkedListAliasNode
+
+type NodeIndirection = NodeWithAliasIndirection
+
+type JsonEntry = Union2JsonTemplateOrSimpleTag
+
+type JsonTemplate = map[string]JsonEntry

@@ -24,6 +24,11 @@ pub fn generate_sdk(
             let features = OpenApiLanguageFeatures::default();
             features.generate_sdk(ir, gen)?
         }
+        GeneratorOutputType::Typescript => {
+            use generators_typescript::TsLanguageFeatures;
+            let features = TsLanguageFeatures::default();
+            features.generate_sdk(ir, gen)?
+        }
         _ => {
             println!("Generating SDK for {} not supported yet", gen.client_type);
             return Ok(Default::default());

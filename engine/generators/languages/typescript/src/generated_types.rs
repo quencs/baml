@@ -11,6 +11,40 @@ mod filters {
     // }
 }
 
+mod r#enum {
+    use crate::package::CurrentRenderPackage;
+
+    /// An enum in TS.
+    ///
+    /// ```askama
+    /// {%- if let Some(docstring) = docstring %}
+    /// /**
+    /// {{crate::utils::prefix_lines(docstring, " * ") }}
+    ///  */
+    /// {%- endif %}
+    /// export enum {{name}} {
+    ///   {%- for (value, docstring) in values %}
+    ///   {%- if let Some(docstring) = docstring %}
+    ///   /**
+    ///   {{crate::utils::prefix_lines(docstring, " * ") }}
+    ///    */
+    ///   {%- endif %}
+    ///   {{ value }} = "{{ value }}",
+    ///   {%- endfor %}
+    /// }
+    /// 
+    /// ```
+    #[derive(askama::Template)]
+    #[template(in_doc = true, escape = "none", ext = "txt")]
+    pub struct EnumTS<'a> {
+        pub name: String,
+        pub docstring: Option<String>,
+        pub values: Vec<(String, Option<String>)>,
+        pub dynamic: bool,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+}
+
 mod class {
     use super::*;
 
@@ -18,12 +52,17 @@ mod class {
     ///
     /// ```askama
     /// {%- if let Some(docstring) = docstring %}
-    /// {{docstring}}
+    /// /**
+    /// {{crate::utils::prefix_lines(docstring, " * ") }}
+    ///  */
     /// {%- endif %}
     /// export interface {{name}} {
     ///   {%- for field in fields %}
     ///   {{field.render()?}}
     ///   {%- endfor %}
+    ///   {% if dynamic %}
+    ///   [key: string]: any;
+    ///   {%- endif %}
     /// }
     ///
     /// ```
@@ -41,9 +80,11 @@ mod class {
     ///
     /// ```askama
     /// {% if let Some(docstring) = docstring -%}
-    /// {{ crate::utils::prefix_lines(docstring, "//") }}
+    ///   /**
+    ///   {{crate::utils::prefix_lines(docstring, " * ") }}
+    ///    */
     /// {%- endif %}
-    /// {{name}}{% if type.meta().is_optional() %}?{% endif %}: {{type.serialize_type(pkg)}}
+    ///   {{name}}{% if type.meta().is_optional() %}?{% endif %}: {{type.serialize_type(pkg)}}
     /// ```
     #[derive(askama::Template, Clone)]
     #[template(in_doc = true, escape = "none", ext = "txt")]
@@ -63,54 +104,95 @@ mod class {
         }
     }
 }
+mod type_aliases {
+    use super::*;
 
+    /// A type alias in TS.
+    ///
+    /// ```askama
+    /// {% if let Some(docstring) = docstring -%}
+    /// /**
+    ///  {{crate::utils::prefix_lines(docstring, " * ") }}
+    ///  */
+    /// {%- endif %}
+    /// export type {{ name }} = {{ target_type.serialize_type(pkg) }}
+    /// 
+    /// ```
+    #[derive(askama::Template)]
+    #[template(in_doc = true, escape = "none", ext = "txt")]
+    pub struct TypeAliasTS<'a> {
+        pub name: String,
+        pub target_type: TypeTS,
+        pub docstring: Option<String>,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+}
 /// A list of types in TS.
-///
+/// 
 /// ```askama
-/// /// import type { Image, Audio } from "@boundaryml/baml"
+/// import type { Image, Audio } from "@boundaryml/baml"
 /// /**
-/// * Recursively partial type that can be null.
-/// *
-/// * @deprecated Use types from the `partial_types` namespace instead, which provides type-safe partial implementations
-/// * @template T The type to make recursively partial.
-/// */
+///  * Recursively partial type that can be null.
+///  *
+///  * @deprecated Use types from the `partial_types` namespace instead, which provides type-safe partial implementations
+///  * @template T The type to make recursively partial.
+///  */
 /// export type RecursivePartialNull<T> = T extends object
 ///     ? { [P in keyof T]?: RecursivePartialNull<T[P]> }
 ///     : T | null;
-
+/// 
 /// export interface Checked<T,CheckName extends string = string> {
 ///     value: T,
 ///     checks: Record<CheckName, Check>,
 /// }
+/// 
 /// export interface Check {
 ///     name: string,
 ///     expr: string
 ///     status: "succeeded" | "failed"
 /// }
+/// 
 /// export function all_succeeded<CheckName extends string>(checks: Record<CheckName, Check>): boolean {
 ///     return get_checks(checks).every(check => check.status === "succeeded")
 /// }
+/// 
 /// export function get_checks<CheckName extends string>(checks: Record<CheckName, Check>): Check[] {
 ///     return Object.values(checks)
 /// }
-/// ```
+/// 
+/// {%- for e in enums %}
+/// {{- e.render()? }}
+/// {%- endfor %}
 ///
+/// {%- for cls in classes %}
+/// {{- cls.render()? }}
+/// {%- endfor %}
+/// 
+/// {%- for alias in type_aliases %}
+/// {{- alias.render()? }}
+/// {%- endfor %}
+/// ```
 #[derive(askama::Template)]
 #[template(in_doc = true, escape = "none", ext = "txt")]
-struct TsTypes<'ir, T: askama::Template> {
-    items: &'ir [T],
+struct TsTypes<'ir> {
+    enums: &'ir [EnumTS<'ir>],
+    classes: &'ir [ClassTS<'ir>],
+    type_aliases: &'ir [TypeAliasTS<'ir>],
 }
 
-pub(crate) fn render_ts_types<T: askama::Template>(
-    items: &[T],
+pub(crate) fn render_ts_types(
+    enums: &[EnumTS],
+    classes: &[ClassTS],
+    type_aliases: &[TypeAliasTS],
     _pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
 
-    TsTypes { items }.render()
+    let ts_types: TsTypes = TsTypes { enums, classes, type_aliases };
+    ts_types.render()
 }
 
 pub use class::{ClassTS, FieldTS};
-// pub use enums::EnumTS;
+pub use r#enum::EnumTS;
 // pub use union::{UnionTS, VariantTS};
-// pub use type_aliases::TypeAliasTS;
+pub use type_aliases::TypeAliasTS;

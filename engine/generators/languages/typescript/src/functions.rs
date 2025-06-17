@@ -19,34 +19,18 @@ pub struct FunctionTS {
 }
 
 #[derive(askama::Template)]
-#[template(path = "base_client.ts.j2", escape = "none", ext = "txt")]
-struct BaseClient<'a> {
-    functions: &'a [FunctionTS],
-    pkg: &'a CurrentRenderPackage,
-    client_class: &'a str,
-}
-
-pub fn render_base_client(functions: &[FunctionTS], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
-    BaseClient {
-        functions,
-        pkg,
-        client_class: "client_class",
-    }.render()
-}
-
-#[derive(askama::Template)]
 #[template(path = "async_client.ts.j2", escape = "none", ext = "txt")]
 struct AsyncClient<'a> {
     functions: &'a [FunctionTS],
+    types: &'a [String],
     pkg: &'a CurrentRenderPackage,
-    client_class: &'a str,
 }
 
-pub fn render_async_client(functions: &[FunctionTS], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub fn render_async_client(functions: &[FunctionTS],types: &[String],pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     AsyncClient {
         functions,
+        types,
         pkg,
-        client_class: "client_class",
     }.render()
 }
 
@@ -55,18 +39,17 @@ pub fn render_async_client(functions: &[FunctionTS], pkg: &CurrentRenderPackage)
 #[template(path = "sync_client.ts.j2", escape = "none")]
 struct SyncClient<'a> {
     functions: &'a [FunctionTS],
+    types: &'a [String],
     pkg: &'a CurrentRenderPackage,
-    client_class: &'a str,
 }
 
-pub fn render_sync_client(functions: &[FunctionTS], pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
+pub fn render_sync_client(functions: &[FunctionTS],types: &[String],pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     SyncClient {
         functions,
+        types,
         pkg,
-        client_class: "client_class",
     }.render()
 }
-
 
 
 #[derive(askama::Template)]

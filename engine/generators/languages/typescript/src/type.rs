@@ -139,7 +139,7 @@ impl TypeTS {
             TypeTS::Class { name, .. } => name.clone(),
             TypeTS::Union { name, .. } => name.clone(),
             TypeTS::Enum { name, .. } => name.clone(),
-            TypeTS::List(type_, _) => format!("Array<{}>", type_.default_name_within_union()),
+            TypeTS::List(type_, _) => format!("{}[]", type_.default_name_within_union()),
             TypeTS::Map(key, value, _) => format!(
                 "Record<{}, {}>",
                 key.default_name_within_union(),
@@ -147,177 +147,6 @@ impl TypeTS {
             ),
             TypeTS::Any { .. } => "any".to_string(),
         }
-    }
-
-    pub fn zero_value(&self, pkg: &CurrentRenderPackage) -> String {
-        if matches!(self.meta().type_wrapper, TypeWrapper::Optional(_)) {
-            return "null".to_string();
-        }
-        match self {
-            TypeTS::String(_) => "\"\"".to_string(),
-            TypeTS::Int(_) => "0".to_string(),
-            TypeTS::Float(_) => "0.0".to_string(),
-            TypeTS::Bool(_) => "false".to_string(),
-            TypeTS::Media(..) | TypeTS::Class { .. } | TypeTS::Union { .. } => {
-                format!("{{}}")
-            }
-            TypeTS::Enum { .. } => {
-                format!("null")
-            }
-            TypeTS::TypeAlias { name, package, .. } => {
-                let lookup = pkg.lookup();
-                match lookup.expand_recursive_type(name) {
-                    Ok(expansion) => {
-                        if package == &Package::types() {
-                            crate::ir_to_ts::type_to_ts(expansion, lookup).zero_value(pkg)
-                        } else {
-                            crate::ir_to_ts::stream_type_to_ts(
-                                &expansion.partialize(lookup),
-                                lookup,
-                            )
-                            .zero_value(pkg)
-                        }
-                    }
-                    Err(_) => format!("{}{{}}", self.serialize_type(pkg)),
-                }
-            }
-            TypeTS::List(..) => "[]".to_string(),
-            TypeTS::Map(..) => "{{}}".to_string(),
-            TypeTS::Any { .. } => "null".to_string(),
-        }
-    }
-
-    fn cast_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        format!("({param}).({})", self.serialize_type(pkg))
-            .trim()
-            .to_string()
-    }
-
-    fn cast_return_value(&self, pkg: &CurrentRenderPackage) -> String {
-        if self.meta().wrap_stream_state {
-            format!(
-                "{}{{Value: null, State: StreamStatePending}}",
-                self.serialize_type(pkg)
-            )
-        } else {
-            self.zero_value(pkg)
-        }
-    }
-
-    pub fn cast_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        if self.meta().is_optional() {
-            format!(
-                r#"
-                func(result any) {t} {{
-                    if result == null {{
-                        return {return_value}
-                    }}
-                    return {casted}
-                }}({param})
-            "#,
-                t = self.serialize_type(pkg),
-                casted = self.cast_from_any_skip_optional("result", pkg),
-                return_value = self.cast_return_value(pkg)
-            )
-        } else {
-            self.cast_from_any_skip_optional(param, pkg)
-        }
-        .trim()
-        .to_string()
-    }
-
-    pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        match self {
-            TypeTS::List(..) | TypeTS::Map(..) => self.cast_from_any_skip_optional(param, pkg),
-            TypeTS::TypeAlias { name, .. } => {
-                let lookup = pkg.lookup();
-                match lookup.expand_recursive_type(name) {
-                    Ok(expansion) if expansion.is_optional() => format!(
-                        r#"
-                            func(result any) {t} {{
-                                if result == null {{
-                                    return null
-                                }}
-                                return (result).({t})
-                            }}({param})
-                        "#,
-                        t = self.serialize_type(pkg),
-                    )
-                    .trim()
-                    .to_string(),
-                    _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
-                }
-            }
-            _ if self.meta().is_optional() => self.cast_from_any_skip_optional(param, pkg),
-            _ => format!("*({param}).(*{})", self.serialize_type(pkg)),
-        }
-    }
-
-    fn decode_from_any_skip_optional(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        match self {
-            TypeTS::List(inner, meta) if !meta.is_optional() => format!(
-                "baml.DecodeList({param}, func(inner *cffi.CFFIValueHolder) {t} {{
-                return {casted}
-            }})",
-                t = inner.serialize_type(pkg),
-                casted = inner.decode_from_any("inner", pkg)
-            ),
-            TypeTS::Map(key, value, meta) if !meta.is_optional() => format!(
-                "baml.DecodeMap({param}, func(inner *cffi.CFFIValueHolder) {t} {{
-                return {casted}
-            }})",
-                t = value.serialize_type(pkg),
-                casted = value.decode_from_any("inner", pkg)
-            ),
-            TypeTS::TypeAlias { name, .. } => {
-                if pkg
-                    .lookup()
-                    .expand_recursive_type(name)
-                    .map(|e| e.is_optional())
-                    .unwrap_or(false)
-                {
-                    format!(
-                        r#"
-                    func(param *cffi.CFFIValueHolder) {name} {{
-                        decoded := baml.Decode(param)
-                        if decoded == null {{
-                            return null
-                        }}
-                        return decoded.({name})
-                    }}({param})
-                    "#,
-                        name = self.serialize_type(pkg)
-                    )
-                } else {
-                    format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
-                }
-            }
-            _ if !self.meta().is_optional() => {
-                format!("*baml.Decode({param}).(*{})", self.serialize_type(pkg))
-            }
-            _ => format!("baml.Decode({param}).({})", self.serialize_type(pkg)),
-        }
-        .trim()
-        .to_string()
-    }
-
-    pub fn decode_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        if self.meta().is_optional() {
-            format!(
-                r#"
-                func(param *cffi.CFFIValueHolder) {t} {{
-                    decoded := baml.Decode(param)
-                    return {casted}
-                }}({param})
-            "#,
-                t = self.serialize_type(pkg),
-                casted = self.cast_from_any("decoded", pkg)
-            )
-        } else {
-            self.decode_from_any_skip_optional(param, pkg)
-        }
-        .trim()
-        .to_string()
     }
 
     pub fn meta(&self) -> &TypeMetaTS {
@@ -386,7 +215,7 @@ impl SerializeType for TypeTS {
                 format!("{}{}", package.relative_from(pkg), name)
             }
             TypeTS::Enum { package, name, .. } => format!("{}{}", package.relative_from(pkg), name),
-            TypeTS::List(inner, _) => format!("Array<{}>", inner.serialize_type(pkg)),
+            TypeTS::List(inner, _) => format!("{}[]", inner.serialize_type(pkg)),
             TypeTS::Map(key, value, _) => {
                 format!(
                     "Record<{}, {}>",
