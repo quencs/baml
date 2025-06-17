@@ -1,4 +1,4 @@
-# typed: strict
+# typed: false
 # ----------------------------------------------------------------------------
 #
 #  Welcome to Baml! To use this generated code, please run the following:
@@ -16,17 +16,24 @@ require "baml"
 
 module BamlClient
 
-  module Internal
+  extend T::Sig
 
-    DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_RUNTIME = T.let(
-      Baml::Ffi::BamlRuntime.from_files("baml_src", Baml::Internal::FILE_MAP, ENV),
-      Baml::Ffi::BamlRuntime
-    )
 
-    DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_CTX = T.let(
-      DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOU_RE_DOING_RUNTIME.create_context_manager(),
-      Baml::Ffi::BamlCtxManager
-    )
+  @baml_sync_client = T.let(BamlSyncClient.new(BamlCallOptions.from_hash({})), BamlSyncClient)
+
+
+  sig {returns(BamlSyncClient)}
+  def self.b
+     @baml_sync_client
+  end
+
+  class BamlSyncClient
+      extend T::Sig
+
+      sig {params(options: BamlCallOptions).void}
+      def initialize(options)
+          @options = T.let(BamlClient::Internal::DoNotUseDirectlyCallManager.new(options), BamlClient::Internal::DoNotUseDirectlyCallManager)
+      end
   end
 
 end

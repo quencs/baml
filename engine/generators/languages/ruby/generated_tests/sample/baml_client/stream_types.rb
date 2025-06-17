@@ -14,7 +14,7 @@
 require "sorbet-runtime"
 require "baml"
 
-module Baml
+module BamlClient
 
   module StreamTypes
 

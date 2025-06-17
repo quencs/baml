@@ -19,11 +19,17 @@ mod utils;
 #[derive(Default)]
 pub struct RbLanguageFeatures {
     requires: std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, Vec<String>>>,
+    requires_relative: std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, Vec<String>>>,
 }
 
 impl RbLanguageFeatures {
-    fn add_import(&self, path: &str, import: &str) {
-        self.requires.lock().unwrap().get_mut(std::path::Path::new(path)).expect("path should already be created").push(import.to_string());
+    fn add_import(&self, path: &str, import: &str, relative: bool) {
+        let mut map = if relative {
+            self.requires_relative.lock().unwrap()
+        } else {
+            self.requires.lock().unwrap()
+        };
+        map.entry(std::path::Path::new(path).to_path_buf()).or_insert_with(Vec::new).push(import.to_string());
     }
 }
 
@@ -54,10 +60,8 @@ impl LanguageFeatures for RbLanguageFeatures {
         _content: &mut String,
     ) -> anyhow::Result<()> {
         // Do nothing we'll do this in on_file_finished
-        self.requires.lock().unwrap().insert(
-            _path.to_path_buf(),
-            vec!["sorbet-runtime".to_string(), "baml".to_string()],
-        );
+        self.add_import(_path.to_str().unwrap(), "sorbet-runtime", false);
+        self.add_import(_path.to_str().unwrap(), "baml", false);
         Ok(())
     }
 
@@ -70,8 +74,14 @@ impl LanguageFeatures for RbLanguageFeatures {
                     new_content.push_str(&format!("require \"{}\"\n", require));
                 }
             }
+            if let Some(requires) = self.requires_relative.lock().unwrap().get(path) {
+                new_content.push_str("\n");
+                for require in requires {
+                    new_content.push_str(&format!("require_relative \"{}\"\n", require));
+                }
+            }
             new_content.push_str("\n");
-            new_content.push_str("module Baml\n");
+            new_content.push_str("module BamlClient\n");
             for line in content.split("\n") {
                 if line.trim().is_empty() {
                     new_content.push_str("\n");
@@ -97,7 +107,7 @@ impl LanguageFeatures for RbLanguageFeatures {
         // collector.add_file("b.rb", render_init(&pkg, &args.default_client_mode)?)?;
         // collector.add_file("inlinedbaml.rb", render_source_files(file_map)?)?;
         collector.add_file("runtime.rb", render_runtime(&pkg)?)?;
-        self.add_import("runtime.rb", "type_builder");
+        self.add_import("runtime.rb", "type_builder", true);
         // collector.add_file("tracing.rb", render_tracing(&pkg)?)?;
         collector.add_file("globals.rb", render_globals(&pkg)?)?;
         // collector.add_file("config.rb", render_config(&pkg)?)?;
@@ -106,7 +116,7 @@ impl LanguageFeatures for RbLanguageFeatures {
             .iter()
             .map(|f| ir_to_rb::functions::ir_function_to_rb(f, &pkg))
             .collect::<Vec<_>>();
-        // collector.add_file("client.rb", render_client(&functions, &pkg)?)?;
+        collector.add_file("client.rb", render_client(&functions, &pkg)?)?;
         // collector.add_file("parser.rb", render_parser(&functions, &pkg)?)?;
 
         let rb_classes = ir
