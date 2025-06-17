@@ -2,38 +2,33 @@
   "name": "baml-extension",
   "displayName": "Baml",
   "description": "BAML is a DSL for AI applications.",
-  "version": "0.89.0",
+  "version": "0.90.0",
   "publisher": "Boundary",
   "packageManager": "pnpm@9.12.0",
   "repository": "https://github.com/BoundaryML/baml",
   "homepage": "https://www.boundaryml.com",
+  "type": "commonjs",
   "icon": "baml-logo.png",
   "engines": {
-    "vscode": "1.63.0"
+    "vscode": ">=1.96.0"
   },
-  "categories": [
-    "Programming Languages",
-    "Snippets",
-    "Other"
+  "categories": ["Programming Languages", "Debuggers", "Testing", "Other"],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:python",
+    "onLanguage:typescript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescriptreact"
   ],
-  "main": "./vscode/out/extension.js",
   "contributes": {
-    "activationEvents": [
-      "onLanguage:baml",
-      "onLanguage:python",
-      "onLanguage:typescript",
-      "onLanguage:javascriptreact",
-      "onLanguage:typescriptreact"
-    ],
+    "activationEvents": ["onLanguage:baml"],
     "configuration": {
       "type": "object",
       "title": "Baml extension settings",
       "properties": {
         "baml.cliPath": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "default": null,
           "description": "Use the locally installed baml CLI instead of the one bundled with the extension. Helps keeps generated code more in sync.",
           "scope": "machine-overridable"
@@ -41,20 +36,13 @@
         "baml.generateCodeOnSave": {
           "type": "string",
           "default": "always",
-          "enum": [
-            "never",
-            "always"
-          ],
+          "enum": ["never", "always"],
           "description": "Generate code on save"
         },
         "baml.syncExtensionToGeneratorVersion": {
           "type": "string",
           "default": "auto",
-          "enum": [
-            "auto",
-            "never",
-            "always"
-          ],
+          "enum": ["auto", "never", "always"],
           "description": "Sync the extension to the currently selected baml_src generator version (provided all your generators have the same version). This will automatically download the correct version of the baml-cli to generate the client code -- preventing issues with mismatched versions. Note that on some platforms, if you have this on `auto`, it may be disabled."
         },
         "baml.enablePlaygroundProxy": {
@@ -71,11 +59,7 @@
         "baml.trace.server": {
           "scope": "window",
           "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
+          "enum": ["off", "messages", "verbose"],
           "default": "off",
           "description": "Setting for logging between the VS Code extension and the language server."
         },
@@ -99,13 +83,8 @@
     "languages": [
       {
         "id": "baml",
-        "aliases": [
-          "Baml",
-          "baml"
-        ],
-        "extensions": [
-          ".baml"
-        ],
+        "aliases": ["Baml", "baml"],
+        "extensions": [".baml"],
         "configuration": "./language-configuration.json",
         "icon": {
           "light": "./baml-logo.png",
@@ -114,14 +93,8 @@
       },
       {
         "id": "baml-jinja",
-        "aliases": [
-          "Jinja baml",
-          "jinja baml"
-        ],
-        "extensions": [
-          ".baml.jinja",
-          ".baml.jinja"
-        ],
+        "aliases": ["Jinja baml", "jinja baml"],
+        "extensions": [".baml.jinja", ".baml.jinja"],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -178,23 +151,29 @@
     ]
   },
   "scripts": {
-    "dev": "NODE_ENV=development vite",
-    "build": "npx tsc --noEmit && vite build",
+    "dev": "concurrently \"bun run dev:webview\" \"bun run dev:extension\"",
+    "dev:extension": "NODE_ENV=development bun run build:base --watch --sourcemap=inline",
+    "dev:webview": "NODE_ENV=development vite",
+    "build": "bun run typecheck && bun run build:webview && bun run build:base --minify --production",
+    "build:base": "bun build ./src/extension.ts --outfile ./dist/extension.js --target node --bundle --external vscode --format cjs",
+    "build:debug": "bun run typecheck && bun run build:webview && bun run build:base --sourcemap=inline",
+    "build:webview": "vite build",
     "preview": "NODE_ENV=development vite preview",
-    "watch": "NODE_ENV=development vite",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "vscode:package": "vsce package --no-dependencies",
     "vscode:publish": "vsce publish --no-dependencies",
-    "clean": "rimraf baml-*.vsix .turbo dist out node_modules",
+    "clean": "rimraf baml-*.vsix .turbo dist out node_modules src/web-panel/dist",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.830.0",
     "@baml/common": "workspace:*",
     "@baml/playground-common": "workspace:*",
+    "@baml/ui": "workspace:*",
     "@smithy/types": "4.3.1",
     "adm-zip": "0.5.16",
+    "allotment": "1.20.4",
     "axios": "1.10.0",
     "cors": "2.8.5",
     "dotenv": "16.5.0",
@@ -209,6 +188,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "semver": "7.7.2",
+    "tar": "7.4.3",
     "typescript": "5.8.3",
     "unique-names-generator": "4.7.1",
     "uuid": "11.1.0",
@@ -217,6 +197,7 @@
     "zod": "3.25.66"
   },
   "devDependencies": {
+    "concurrently": "9.1.2",
     "@types/adm-zip": "0.5.7",
     "@types/cors": "2.8.19",
     "@types/express": "5.0.3",
@@ -225,9 +206,11 @@
     "@types/react-dom": "19.1.6",
     "@types/semver": "7.7.0",
     "@types/tar": "6.1.13",
+    "@types/vscode": "1.96.0",
     "@vitejs/plugin-react": "4.5.2",
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "3.5.0",
+    "react-refresh": "0.17.0",
     "rimraf": "6.0.1",
     "vite": "6.3.5",
     "vite-plugin-top-level-await": "1.5.0",

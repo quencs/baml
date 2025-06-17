@@ -19,5 +19,14 @@
     "target": "ES2022",
     "types": ["vitest/globals"]
   },
-  "exclude": ["node_modules", "dist", "build", ".next", ".expo", "public", "out", ".turbo"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    ".next",
+    ".expo",
+    "public",
+    "out",
+    ".turbo"
+  ]
 }

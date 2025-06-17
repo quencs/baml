@@ -1,7 +1,7 @@
-import { type VariantProps, cva } from 'class-variance-authority'
-import type * as React from 'react'
+import { type VariantProps, cva } from 'class-variance-authority';
+import type * as React from 'react';
 
-import { cn } from '../lib/utils'
+import { cn } from '../lib/utils';
 
 const kbdVariants = cva(
   'select-none rounded border px-1.5 py-px font-mono font-normal text-[0.7rem] shadow-sm disabled:opacity-50',
@@ -16,31 +16,39 @@ const kbdVariants = cva(
       variant: 'default',
     },
   },
-)
+);
 
-export interface KbdProps extends React.ComponentPropsWithoutRef<'kbd'>, VariantProps<typeof kbdVariants> {
+export interface KbdProps
+  extends React.ComponentPropsWithoutRef<'kbd'>,
+    VariantProps<typeof kbdVariants> {
   /**
    * The title of the `abbr` element inside the `kbd` element.
    * @default undefined
    * @type string | undefined
    * @example title="Command"
    */
-  abbrTitle?: string
+  abbrTitle?: string;
 }
 
-const Kbd = ({ abbrTitle, children, className, variant, ...props }: KbdProps) => {
+const Kbd = ({
+  abbrTitle,
+  children,
+  className,
+  variant,
+  ...props
+}: KbdProps) => {
   return (
     <kbd className={cn(kbdVariants({ variant, className }))} {...props}>
       {abbrTitle ? (
-        <abbr title={abbrTitle} className='no-underline'>
+        <abbr title={abbrTitle} className="no-underline">
           {children}
         </abbr>
       ) : (
         children
       )}
     </kbd>
-  )
-}
-Kbd.displayName = 'Kbd'
+  );
+};
+Kbd.displayName = 'Kbd';
 
-export { Kbd }
+export { Kbd };

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect } from 'react';
 
 // const loadDoorbell = () => {
 //   ;(window as any).doorbellOptions = {
@@ -62,23 +62,23 @@ import { useEffect } from 'react'
 // }
 
 const loadChatwoot = () => {
-  ;(function (d, t) {
-    var BASE_URL = 'https://app.chatwoot.com'
+  ((d, t) => {
+    var BASE_URL = 'https://app.chatwoot.com';
     var g = d.createElement(t) as any,
-      s = d.getElementsByTagName(t)[0] as any
-    g.src = BASE_URL + '/packs/js/sdk.js'
-    g.defer = true
-    g.async = true
-    s.parentNode.insertBefore(g, s)
-    g.onload = function () {
-      ;(window as any).chatwootSDK.run({
+      s = d.getElementsByTagName(t)[0] as any;
+    g.src = BASE_URL + '/packs/js/sdk.js';
+    g.defer = true;
+    g.async = true;
+    s.parentNode.insertBefore(g, s);
+    g.onload = () => {
+      (window as any).chatwootSDK.run({
         websiteToken: 'M4EXKvdb9NGgxqZzkTZfeFV7',
         baseUrl: BASE_URL,
         position: 'left',
-      })
-    }
-  })(document, 'script')
-}
+      });
+    };
+  })(document, 'script');
+};
 
 export const useFeedbackWidget = () => {
   useEffect(() => {
@@ -86,6 +86,6 @@ export const useFeedbackWidget = () => {
     // loadSignalZen()
     // loadSmallChat()
     // loadHubspot()
-    loadChatwoot()
-  }, [])
-}
+    loadChatwoot();
+  }, []);
+};

@@ -44,7 +44,11 @@
   },
   "impl for BAML": {
     "prefix": "impl<",
-    "body": ["impl<${1:ModelType}, ${2:FunctionName}> ${3:VariantName} {", "\t$0", "}"],
+    "body": [
+      "impl<${1:ModelType}, ${2:FunctionName}> ${3:VariantName} {",
+      "\t$0",
+      "}"
+    ],
     "description": "Snippet for impl block"
   }
 }

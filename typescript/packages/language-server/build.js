@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-const esbuildplugincopy = require('esbuild-plugin-copy')
-const minify = process.argv.includes('--minify')
-const sourcemap = process.argv.includes('--sourcemap')
-const watch = process.argv.includes('--watch')
-;(async () => {
+const esbuildplugincopy = require('esbuild-plugin-copy');
+const minify = process.argv.includes('--minify');
+const sourcemap = process.argv.includes('--sourcemap');
+const watch = process.argv.includes('--watch');
+(async () => {
   const ctx = await require('esbuild').context({
     entryPoints: ['./src/bin.ts'],
     bundle: true,
@@ -27,12 +27,12 @@ const watch = process.argv.includes('--watch')
         ],
       }),
     ],
-  })
+  });
   if (watch) {
-    await ctx.watch()
-    console.log('watching...')
+    await ctx.watch();
+    console.log('watching...');
   } else {
-    await ctx.rebuild()
-    await ctx.dispose()
+    await ctx.rebuild();
+    await ctx.dispose();
   }
-})()
+})();

@@ -1,5 +1,3 @@
-import { WasmPanicRegistry } from './WasmPanicRegistry'
-
 /**
  * Set up a global registry for Wasm panics.
  * This allows us to retrieve the panic message from the Wasm panic hook,

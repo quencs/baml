@@ -1,23 +1,23 @@
 export type BAMLProject = {
-  id: string
-  name: string
-  description: string
-  file: EditorFile
-  filePath?: string
+  id: string;
+  name: string;
+  description: string;
+  file: EditorFile;
+  filePath?: string;
   // functionsWithTests: ParserDBFunctionTestModel[];
-  testRunOutput?: any
-}
+  testRunOutput?: any;
+};
 
 type EditorFile = {
-  path: string
-  content: string
-}
+  path: string;
+  content: string;
+};
 
 export type BamlProjectsGroupings = {
-  intros: BAMLProject[]
-  advancedPromptSyntax: BAMLProject[]
-  promptEngineering: BAMLProject[]
-}
+  intros: BAMLProject[];
+  advancedPromptSyntax: BAMLProject[];
+  promptEngineering: BAMLProject[];
+};
 
 export async function loadExampleProjects(): Promise<BamlProjectsGroupings> {
   const exampleProjects: BamlProjectsGroupings = {
@@ -49,7 +49,8 @@ export async function loadExampleProjects(): Promise<BamlProjectsGroupings> {
       {
         id: 'chain-of-thought',
         name: 'Chain of Thought',
-        description: 'Using chain of thought to improve results and reduce hallucinations',
+        description:
+          'Using chain of thought to improve results and reduce hallucinations',
         filePath: '/prompt-engineering/chain-of-thought/',
         file: { path: '', content: '' },
       },
@@ -57,10 +58,11 @@ export async function loadExampleProjects(): Promise<BamlProjectsGroupings> {
         id: 'symbol-tuning',
         name: 'Symbol Tuning',
         filePath: '/prompt-engineering/symbol-tuning/',
-        description: 'Use symbol tuning to remove biases on schema property names',
+        description:
+          'Use symbol tuning to remove biases on schema property names',
         file: { path: '', content: '' },
       },
     ],
-  }
-  return exampleProjects
+  };
+  return exampleProjects;
 }

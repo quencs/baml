@@ -1,1 +1,1 @@
-export const BAML_DIR = 'baml_src'
+export const BAML_DIR = 'baml_src';

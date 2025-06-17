@@ -1,21 +1,24 @@
-import 'jotai-devtools/styles.css'
-import { default as EnvVars } from '@baml/playground-common/shared/baml-project-panel/playground-panel/side-bar/env-vars-old'
-import { createStore } from 'jotai'
-import { Provider as JotaiProvider } from 'jotai'
-import { ThemeProvider } from 'next-themes'
-import '../App.css'
-import { envVarsAtom } from '@baml/playground-common/shared/baml-project-panel/atoms'
+import 'jotai-devtools/styles.css';
+import { default as EnvVars } from '@baml/playground-common/shared/baml-project-panel/playground-panel/side-bar/env-vars-old';
+import { createStore } from 'jotai';
+import { Provider as JotaiProvider } from 'jotai';
+import { ThemeProvider } from 'next-themes';
+import '../App.css';
+import { envVarsAtom } from '@baml/playground-common/shared/baml-project-panel/atoms';
 
 interface JotaiProviderProps {
-  envVars: Record<string, string>
-  children: React.ReactNode
+  envVars: Record<string, string>;
+  children: React.ReactNode;
 }
 
-const JotaiStorybookProvider: React.FC<JotaiProviderProps> = ({ envVars, children }) => {
-  const storybookStore = createStore()
-  storybookStore.set(envVarsAtom, envVars)
-  return <JotaiProvider store={storybookStore}>{children}</JotaiProvider>
-}
+const JotaiStorybookProvider: React.FC<JotaiProviderProps> = ({
+  envVars,
+  children,
+}) => {
+  const storybookStore = createStore();
+  storybookStore.set(envVarsAtom, envVars);
+  return <JotaiProvider store={storybookStore}>{children}</JotaiProvider>;
+};
 
 export default {
   title: 'EnvVarsOld',
@@ -23,7 +26,12 @@ export default {
   decorators: [
     (Story: React.FC) => (
       <div>
-        <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange={true}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange={true}
+        >
           <Story />
         </ThemeProvider>
       </div>
@@ -33,7 +41,7 @@ export default {
     // More on how to position stories at: https://storybook.js.org/docs/configure/story-layout
     layout: 'centered',
   },
-}
+};
 
 // More on component testing: https://storybook.js.org/docs/writing-tests/component-testing
 export const WithFilledVariables = {
@@ -50,7 +58,7 @@ export const WithFilledVariables = {
       </JotaiStorybookProvider>
     ),
   ],
-}
+};
 
 export const WithMissingRequired = {
   decorators: [
@@ -66,4 +74,4 @@ export const WithMissingRequired = {
       </JotaiStorybookProvider>
     ),
   ],
-}
+};

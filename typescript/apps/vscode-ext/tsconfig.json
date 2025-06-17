@@ -2,10 +2,19 @@
   "extends": "../../workspace-tools/typescript/react-library.json",
   "compilerOptions": {
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
-    "baseUrl": ".",
-    "rootDir": ".",
-    "outDir": "dist"
+    "jsx": "react-jsx",
+    "noEmit": false,
+    // "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node", "vscode"]
   },
-  "include": ["src", "vite.config.ts"],
-  "exclude": ["node_modules", ".vscode-test", "dist", "out", ".turbo"]
+  "include": ["src"],
+  "exclude": [
+    "node_modules",
+    ".vscode-test",
+    "dist",
+    ".turbo",
+    "src/web-panel/dist"
+  ]
 }

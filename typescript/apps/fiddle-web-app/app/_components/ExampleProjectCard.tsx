@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,20 +8,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@baml/ui/alert-dialog'
-import { Card, CardDescription, CardHeader, CardTitle } from '@baml/ui/card'
-import { cn } from '@baml/ui/lib/utils'
-import { useAtomValue } from 'jotai'
-import { usePathname, useRouter, useSearchParams, useSelectedLayoutSegment } from 'next/navigation'
-import type { BAMLProject } from '../../lib/exampleProjects'
-import { unsavedChangesAtom } from '../[project_id]/_atoms/atoms'
+} from '@baml/ui/alert-dialog';
+import { Card, CardDescription, CardHeader, CardTitle } from '@baml/ui/card';
+import { cn } from '@baml/ui/lib/utils';
+import { useAtomValue } from 'jotai';
+import { usePathname, useRouter } from 'next/navigation';
+import type { BAMLProject } from '../../lib/exampleProjects';
+import { unsavedChangesAtom } from '../[project_id]/_atoms/atoms';
 
 export const ExampleProjectCard = ({ project }: { project: BAMLProject }) => {
   // const searchParams = useSearchParams()
-  const router = useRouter()
-  const selectedId = usePathname()?.replace('/', '')
-  const isSelected = selectedId === project.id || (project.id === 'extract-verbs' && selectedId === '')
-  const unsavedChanges = useAtomValue(unsavedChangesAtom)
+  const router = useRouter();
+  const selectedId = usePathname()?.replace('/', '');
+  const isSelected =
+    selectedId === project.id ||
+    (project.id === 'extract-verbs' && selectedId === '');
+  const unsavedChanges = useAtomValue(unsavedChangesAtom);
   return (
     <AlertDialog>
       <AlertDialogTrigger>
@@ -33,14 +35,18 @@ export const ExampleProjectCard = ({ project }: { project: BAMLProject }) => {
           onClick={() => {
             // TODO use Link since the data can be prefetched
             if (!unsavedChanges) {
-              router.push(`/${project.id}`)
+              router.push(`/${project.id}`);
               // router.refresh()
             }
           }}
         >
-          <CardHeader className='w-full px-1 py-4'>
-            <CardTitle className='text-base text-left'>{project.name}</CardTitle>
-            <CardDescription className='text-sm text-left'>{project.description}</CardDescription>
+          <CardHeader className="w-full px-1 py-4">
+            <CardTitle className="text-base text-left">
+              {project.name}
+            </CardTitle>
+            <CardDescription className="text-sm text-left">
+              {project.description}
+            </CardDescription>
           </CardHeader>
         </Card>
       </AlertDialogTrigger>
@@ -53,7 +59,7 @@ export const ExampleProjectCard = ({ project }: { project: BAMLProject }) => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                router.push(`/${project.id}`, { scroll: false })
+                router.push(`/${project.id}`, { scroll: false });
               }}
             >
               Yes, continue
@@ -62,5 +68,5 @@ export const ExampleProjectCard = ({ project }: { project: BAMLProject }) => {
         </AlertDialogContent>
       )}
     </AlertDialog>
-  )
-}
+  );
+};

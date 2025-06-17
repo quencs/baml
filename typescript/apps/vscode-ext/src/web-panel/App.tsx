@@ -1,31 +1,33 @@
-import { Suspense } from 'react'
-import './App.css'
-import 'allotment/dist/style.css'
-import { EventListener } from '@baml/playground-common/baml_wasm_web/EventListener'
+import { Suspense } from 'react';
+import 'allotment/dist/style.css';
+import { EventListener } from '@baml/playground-common';
 // import FunctionPanel from './shared/FunctionPanel'
 // import { ViewSelector } from './shared/Selectors'
 // import SettingsDialog, { ShowSettingsButton, showSettingsAtom } from './shared/SettingsDialog'
 // import IntroToChecksDialog from './shared/IntroToChecksDialog'
-import CustomErrorBoundary from '@baml/playground-common/utils/ErrorFallback'
-import { DevTools } from 'jotai-devtools'
-import { Compass, FlaskConical, FlaskConicalOff } from 'lucide-react'
-import 'jotai-devtools/styles.css'
-import { PromptPreview } from '@baml/playground-common'
+import { CustomErrorBoundary } from '@baml/playground-common';
+// import 'jotai-devtools/styles.css'
+import { PromptPreview } from '@baml/playground-common';
 // import { Snippets } from './shared/Snippets'
 // import { AppStateProvider } from './shared/AppStateContext' // Import the AppStateProvider
-import { useFeedbackWidget } from '@baml/playground-common/lib/feedback_widget'
-import { ThemeProvider } from 'next-themes'
+import { useFeedbackWidget } from '@baml/playground-common';
+import { ThemeProvider } from 'next-themes';
 
 function App() {
-  useFeedbackWidget()
+  useFeedbackWidget();
   return (
-    <CustomErrorBoundary message='Error loading playground'>
+    <CustomErrorBoundary message="Error loading playground">
       {/* <DevTools /> */}
       <Suspense fallback={<div>Loading...</div>}>
         <EventListener />
 
-        <div className='relative min-h-screen bg-background text-foreground p-2'>
-          <ThemeProvider attribute='class' defaultTheme='dark' enableSystem disableTransitionOnChange={true}>
+        <div className="relative min-h-screen bg-background text-foreground p-2">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange={true}
+          >
             <PromptPreview />
           </ThemeProvider>
         </div>
@@ -49,7 +51,7 @@ function App() {
           </AppStateProvider>{' '} */}
       </Suspense>
     </CustomErrorBoundary>
-  )
+  );
 }
 
-export default App
+export default App;

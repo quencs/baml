@@ -4,8 +4,8 @@ export function formatNumber(
     maximumFractionDigits = 0,
     minimumFractionDigits = 0,
   }: {
-    maximumFractionDigits?: number
-    minimumFractionDigits?: number
+    maximumFractionDigits?: number;
+    minimumFractionDigits?: number;
   } = {},
 ): string {
   return new Intl.NumberFormat('en-US', {
@@ -14,5 +14,5 @@ export function formatNumber(
     minimumFractionDigits,
     notation: 'compact',
     style: 'decimal',
-  }).format(value)
+  }).format(value);
 }

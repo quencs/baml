@@ -23,7 +23,7 @@
     "esbuild-base": "node ./build.js",
     "esbuild-build": "node ./build.js --sourcemap",
     "esbuild-watch": "node ./build.js --sourcemap --watch",
-    "dev": "echo 'No dev command in vscode-ext/packages/language-server/package.json' && exit 0",
+    "dev": "tsc --watch",
     "watch": "pnpm run esbuild-watch",
     "build": "pnpm typecheck && pnpm run esbuild-base",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
@@ -62,7 +62,5 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "dist"
-  ]
+  "files": ["dist"]
 }

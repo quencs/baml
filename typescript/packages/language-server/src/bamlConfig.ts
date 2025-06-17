@@ -1,6 +1,6 @@
 // COPIED FROM ./vscode-ext/packages/vscode/src/plugins/language-server/bamlConfig.ts
 
-import { z } from 'zod'
+import { z } from 'zod';
 export const bamlConfigSchema = z
   .object({
     cliPath: z.optional(z.string().nullable()).default(null),
@@ -13,12 +13,17 @@ export const bamlConfigSchema = z
       server: z.enum(['off', 'messages', 'verbose']).default('off'),
     }),
     bamlPanelOpen: z.boolean().default(false),
-    syncExtensionToGeneratorVersion: z.enum(['auto', 'never', 'always']).default('auto'),
+    syncExtensionToGeneratorVersion: z
+      .enum(['auto', 'never', 'always'])
+      .default('auto'),
   })
-  .partial()
-type BamlConfig = z.infer<typeof bamlConfigSchema>
+  .partial();
+type BamlConfig = z.infer<typeof bamlConfigSchema>;
 
-export const bamlConfig: { config: BamlConfig | null; cliVersion: string | null } = {
+export const bamlConfig: {
+  config: BamlConfig | null;
+  cliVersion: string | null;
+} = {
   config: null,
   cliVersion: null,
-}
+};

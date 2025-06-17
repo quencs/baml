@@ -1,9 +1,9 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 export const eventIOTypeSchema = z.object({
   name: z.string(),
   fields: z.any(),
-})
+});
 
 export const llmOutputSchema = z.object({
   raw_text: z.string(),
@@ -16,12 +16,12 @@ export const llmOutputSchema = z.object({
     finish_reason: z.string().optional().nullable(),
   }),
   override: z.any().optional().nullable(),
-})
+});
 
 export const llmChatSchema = z.object({
   role: z.string(),
   content: z.string(),
-})
+});
 
 export const llmEventSchema = z.object({
   model_name: z.string(),
@@ -35,7 +35,7 @@ export const llmEventSchema = z.object({
     invocation_params: z.record(z.any()),
   }),
   output: llmOutputSchema.optional().nullable(),
-})
+});
 
 export enum EventType {
   log = 'log',
@@ -94,9 +94,9 @@ export const clientEventLogSchema = z.object({
     .optional()
     .nullable(),
   metadata: llmEventSchema.optional().nullable(),
-})
+});
 
-export type ClientEventLog = z.infer<typeof clientEventLogSchema>
-export type LLMEvent = z.infer<typeof llmEventSchema>
-export type LLMOutput = z.infer<typeof llmOutputSchema>
-export type LLMChat = z.infer<typeof llmChatSchema>
+export type ClientEventLog = z.infer<typeof clientEventLogSchema>;
+export type LLMEvent = z.infer<typeof llmEventSchema>;
+export type LLMOutput = z.infer<typeof llmOutputSchema>;
+export type LLMChat = z.infer<typeof llmChatSchema>;

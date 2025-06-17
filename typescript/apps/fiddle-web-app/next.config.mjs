@@ -5,7 +5,7 @@ const nextConfig = {
     '@baml/playground-common',
     '@gloo-ai/baml-schema-wasm-web',
     '@baml/common',
-    '@boundaryml/codemirror-lang-baml',
+    '@baml/codemirror-lang-baml',
   ],
   // productionBrowserSourceMaps: true,
   eslint: {
@@ -18,7 +18,7 @@ const nextConfig = {
       syncWebAssembly: true,
       layers: true,
       topLevelAwait: true,
-    }
+    };
 
     if (dev) {
       // config.devtool = 'eval-source-map'
@@ -33,9 +33,9 @@ const nextConfig = {
           // Ignore everything in node_modules except the workspace package
           '**/node_modules/!(@baml/playground-common)**',
         ],
-      }
+      };
     }
-    return config
+    return config;
   },
   headers: async () => {
     return [
@@ -53,8 +53,8 @@ const nextConfig = {
           // },
         ],
       },
-    ]
+    ];
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

@@ -1,32 +1,30 @@
-import { closeBrackets, completeFromList, snippetCompletion } from '@codemirror/autocomplete'
+import { snippetCompletion } from '@codemirror/autocomplete';
 import {
   LRLanguage,
   LanguageSupport,
   StreamLanguage,
-  continuedIndent,
   delimitedIndent,
   foldInside,
   foldNodeProp,
   indentNodeProp,
-  indentOnInput,
   syntaxHighlighting,
-} from '@codemirror/language'
-import { jinja2 } from '@codemirror/legacy-modes/mode/jinja2'
-import { parseMixed } from '@lezer/common'
-import { classHighlighter, styleTags, tags as t, tagHighlighter } from '@lezer/highlight'
-import { vscodeDarkInit } from '@uiw/codemirror-theme-vscode'
-import { parser } from './syntax.grammar'
+} from '@codemirror/language';
+import { jinja2 } from '@codemirror/legacy-modes/mode/jinja2';
+import { parseMixed } from '@lezer/common';
+import { classHighlighter, styleTags, tags as t } from '@lezer/highlight';
+import { vscodeDarkInit } from '@uiw/codemirror-theme-vscode';
+import { parser } from './syntax.grammar';
 
 export const BAMLLanguage = LRLanguage.define({
   parser: parser.configure({
     wrap: parseMixed((node) => {
       if (node.name !== 'PromptExprContents' && node.name !== 'JinjaExpr') {
-        return null
+        return null;
       }
 
       return {
         parser: StreamLanguage.define(jinja2).parser,
-      }
+      };
     }),
     props: [
       indentNodeProp.add({
@@ -105,16 +103,22 @@ export const BAMLLanguage = LRLanguage.define({
     },
     snippetCompletion: true,
   },
-})
+});
 
 const exampleCompletion = BAMLLanguage.data.of({
   autocomplete: [
     snippetCompletion('@alias(#"${one}"#)', { label: '@alias' }),
     snippetCompletion('@assert({{ this }})', { label: '@assert' }),
-    snippetCompletion('@check(custom_check_name, {{ this }})', { label: '@check' }),
+    snippetCompletion('@check(custom_check_name, {{ this }})', {
+      label: '@check',
+    }),
     snippetCompletion('@description(#"${}"#)', { label: '@description' }),
-    snippetCompletion('class ${ClassName} {\n  ${property string}\n}', { label: 'class' }),
-    snippetCompletion('enum ${EnumName} {\n  ${ONE}\n  ${TWO}\n}', { label: 'enum' }),
+    snippetCompletion('class ${ClassName} {\n  ${property string}\n}', {
+      label: 'class',
+    }),
+    snippetCompletion('enum ${EnumName} {\n  ${ONE}\n  ${TWO}\n}', {
+      label: 'enum',
+    }),
     snippetCompletion(
       'function MyFunction(${arg: string}) -> ${YourOutputType} {\n  ${client YourClient}\n  prompt #"\n    ${add some instructions}\n  "#\n}',
       { label: 'function' },
@@ -125,15 +129,23 @@ const exampleCompletion = BAMLLanguage.data.of({
     ),
     snippetCompletion('_.role("${role}")', { label: '_.role"' }),
     snippetCompletion('#"${mystring}"#', { label: '#"' }),
-    snippetCompletion('client<llm> GPT4 {\n  provider baml-openai-chat\n  options {\n    model gpt4  \n}}', {
-      label: 'client<llm> GPT4',
+    snippetCompletion(
+      'client<llm> GPT4 {\n  provider baml-openai-chat\n  options {\n    model gpt4  \n}}',
+      {
+        label: 'client<llm> GPT4',
+      },
+    ),
+    snippetCompletion(
+      'template_string MyString(${arg1}: string) #"\n  A jinja string\n"#',
+      {
+        label: 'template_string',
+      },
+    ),
+    snippetCompletion('type ${AliasName} = ${TypeExpr};', {
+      label: 'type alias',
     }),
-    snippetCompletion('template_string MyString(${arg1}: string) #"\n  A jinja string\n"#', {
-      label: 'template_string',
-    }),
-    snippetCompletion('type ${AliasName} = ${TypeExpr};', { label: 'type alias' }),
   ],
-})
+});
 export const theme: ReturnType<typeof vscodeDarkInit> = vscodeDarkInit({
   styles: [
     {
@@ -153,8 +165,11 @@ export const theme: ReturnType<typeof vscodeDarkInit> = vscodeDarkInit({
       color: '#c586c0',
     },
   ],
-})
+});
 
 export function BAML() {
-  return new LanguageSupport(BAMLLanguage, [exampleCompletion, syntaxHighlighting(classHighlighter)])
+  return new LanguageSupport(BAMLLanguage, [
+    exampleCompletion,
+    syntaxHighlighting(classHighlighter),
+  ]);
 }

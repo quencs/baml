@@ -1,10 +1,9 @@
-import { Card, CardTitle } from '@baml/ui/card'
 //import { useSelections } from '@baml/playground-common'
-import { useAtom } from 'jotai'
-import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import Joyride, { type Placement, TooltipProps } from 'react-joyride'
-import { productTourDoneAtom, productTourTestDoneAtom } from '../_atoms/atoms'
+import { useAtom } from 'jotai';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import Joyride, { type Placement } from 'react-joyride';
+import { productTourDoneAtom, productTourTestDoneAtom } from '../_atoms/atoms';
 
 export const InitialTour = () => {
   const steps = [
@@ -12,8 +11,11 @@ export const InitialTour = () => {
       target: '.tour-editor',
       content: (
         <>
-          Welcome! PromptFiddle is a playground to share and test prompt templates.{' '}
-          <span className='font-semibold'>Prompts here are modeled like functions</span>
+          Welcome! PromptFiddle is a playground to share and test prompt
+          templates.{' '}
+          <span className="font-semibold">
+            Prompts here are modeled like functions
+          </span>
         </>
       ),
       disableBeacon: true,
@@ -29,9 +31,12 @@ export const InitialTour = () => {
       target: '.tour-prompt-preview',
       content: (
         <div>
-          <p>See a realtime preview of the exact prompt, even if you add loops, ifs, or change models</p>
+          <p>
+            See a realtime preview of the exact prompt, even if you add loops,
+            ifs, or change models
+          </p>
           <br />
-          <p className='font-semibold'> No guessing what the prompt is!</p>
+          <p className="font-semibold"> No guessing what the prompt is!</p>
         </div>
       ),
       placement: 'left' as Placement,
@@ -40,8 +45,8 @@ export const InitialTour = () => {
       target: '.tour-test-panel',
       content: (
         <>
-          Click <span className='font-semibold'>'Run all'</span> to test this LLM function! Close this dialog by
-          clicking next.
+          Click <span className="font-semibold">'Run all'</span> to test this
+          LLM function! Close this dialog by clicking next.
         </>
       ),
       placement: 'left-start' as Placement,
@@ -51,14 +56,14 @@ export const InitialTour = () => {
     //   target: '.tour-templates',
     //   content: 'Check out other templates to learn different prompting strategies',
     // },
-  ]
-  const [productTourDone, setProductTourDone] = useAtom(productTourDoneAtom)
+  ];
+  const [productTourDone, setProductTourDone] = useAtom(productTourDoneAtom);
   if (productTourDone) {
-    return null
+    return null;
   }
 
   return (
-    <div className=''>
+    <div className="">
       <Joyride
         steps={steps}
         continuous={true}
@@ -70,7 +75,7 @@ export const InitialTour = () => {
         showSkipButton={false}
         callback={(data) => {
           if (data.status === 'finished') {
-            setProductTourDone(true)
+            setProductTourDone(true);
           }
         }}
         styles={{
@@ -80,26 +85,29 @@ export const InitialTour = () => {
         }}
       />
     </div>
-  )
-}
+  );
+};
 
 export const PostTestRunTour = () => {
   //const { test_results, test_result_url, test_result_exit_status } = useSelections()
-  const params = useParams()
-  const project_id = params?.project_id
+  const params = useParams();
+  const project_id = params?.project_id;
 
   const steps = [
     {
       target: '.tour-test-result-panel',
       content: (
         <div>
-          These are the test results! BAML calls the LLM and parses the output into your function output type.
+          These are the test results! BAML calls the LLM and parses the output
+          into your function output type.
           <br />
           <br />
-          The JSON view is the <span className='font-semibold'>parsed output</span>.
+          The JSON view is the{' '}
+          <span className="font-semibold">parsed output</span>.
           <br />
           <br />
-          Click on <span className='font-semibold'>"Show raw output"</span> to see the string that the LLM returned.
+          Click on <span className="font-semibold">"Show raw output"</span> to
+          see the string that the LLM returned.
         </div>
       ),
       disableBeacon: true,
@@ -110,10 +118,12 @@ export const PostTestRunTour = () => {
     //   target: '.tour-templates',
     //   content: 'Check out other templates to learn different prompting strategies',
     // },
-  ]
+  ];
 
-  const [productTourTestDone, setProductTourTestDone] = useAtom(productTourTestDoneAtom)
-  const [productTourDone] = useAtom(productTourDoneAtom)
+  const [productTourTestDone, setProductTourTestDone] = useAtom(
+    productTourTestDoneAtom,
+  );
+  const [productTourDone] = useAtom(productTourDoneAtom);
 
   if (project_id === 'extract-resume' || project_id === undefined) {
     steps.push({
@@ -121,9 +131,9 @@ export const PostTestRunTour = () => {
       target: '.tour-file-view',
       content: (
         <div>
-          Check out the main.py or main.ts file to see how the LLM function is called in Python or TypeScript. For more
-          info, see the{' '}
-          <Link className='text-blue-600' href='https://docs.boundaryml.com'>
+          Check out the main.py or main.ts file to see how the LLM function is
+          called in Python or TypeScript. For more info, see the{' '}
+          <Link className="text-blue-600" href="https://docs.boundaryml.com">
             docs
           </Link>{' '}
           , or reach out on Discord.
@@ -134,19 +144,19 @@ export const PostTestRunTour = () => {
       ),
       disableBeacon: false,
       placement: 'right' as Placement,
-    })
+    });
   }
 
   if (!productTourDone) {
-    return null
+    return null;
   }
 
   if (/*test_result_exit_status !== 'COMPLETED' || */ productTourTestDone) {
-    return null
+    return null;
   }
 
   return (
-    <div className=''>
+    <div className="">
       <Joyride
         steps={steps}
         continuous={true}
@@ -158,7 +168,7 @@ export const PostTestRunTour = () => {
         showSkipButton={false}
         callback={(data) => {
           if (data.status === 'finished') {
-            setProductTourTestDone(true)
+            setProductTourTestDone(true);
           }
         }}
         styles={{
@@ -168,5 +178,5 @@ export const PostTestRunTour = () => {
         }}
       />
     </div>
-  )
-}
+  );
+};

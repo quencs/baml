@@ -1,5 +1,5 @@
 {
-  "name": "fiddle-frontend",
+  "name": "@baml/fiddle-web-app",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@9.12.0",
@@ -12,10 +12,10 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@baml/codemirror-lang-baml": "workspace:*",
     "@baml/common": "workspace:*",
     "@baml/playground-common": "workspace:*",
     "@baml/ui": "workspace:*",
-    "@boundaryml/codemirror-lang-baml": "workspace:*",
     "@gloo-ai/baml-schema-wasm-web": "workspace:*",
     "@microsoft/fetch-event-source": "2.0.1",
     "@vercel/kv": "3.0.0",

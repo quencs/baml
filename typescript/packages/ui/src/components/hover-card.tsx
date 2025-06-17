@@ -1,16 +1,22 @@
-'use client'
+'use client';
 
-import * as HoverCardPrimitive from '@radix-ui/react-hover-card'
-import type * as React from 'react'
+import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
+import type * as React from 'react';
 
-import { cn } from '@baml/ui/lib/utils'
+import { cn } from '@baml/ui/lib/utils';
 
-function HoverCard({ ...props }: React.ComponentProps<typeof HoverCardPrimitive.Root>) {
-  return <HoverCardPrimitive.Root data-slot='hover-card' {...props} />
+function HoverCard({
+  ...props
+}: React.ComponentProps<typeof HoverCardPrimitive.Root>) {
+  return <HoverCardPrimitive.Root data-slot="hover-card" {...props} />;
 }
 
-function HoverCardTrigger({ ...props }: React.ComponentProps<typeof HoverCardPrimitive.Trigger>) {
-  return <HoverCardPrimitive.Trigger data-slot='hover-card-trigger' {...props} />
+function HoverCardTrigger({
+  ...props
+}: React.ComponentProps<typeof HoverCardPrimitive.Trigger>) {
+  return (
+    <HoverCardPrimitive.Trigger data-slot="hover-card-trigger" {...props} />
+  );
 }
 
 function HoverCardContent({
@@ -21,7 +27,7 @@ function HoverCardContent({
 }: React.ComponentProps<typeof HoverCardPrimitive.Content>) {
   return (
     <HoverCardPrimitive.Content
-      data-slot='hover-card-content'
+      data-slot="hover-card-content"
       align={align}
       sideOffset={sideOffset}
       className={cn(
@@ -30,7 +36,7 @@ function HoverCardContent({
       )}
       {...props}
     />
-  )
+  );
 }
 
-export { HoverCard, HoverCardTrigger, HoverCardContent }
+export { HoverCard, HoverCardTrigger, HoverCardContent };

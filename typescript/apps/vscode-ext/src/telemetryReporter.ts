@@ -1,38 +1,40 @@
-import os from 'os'
-import { PostHog } from 'posthog-node'
-import { type Disposable, workspace } from 'vscode'
-import * as vscode from 'vscode'
-import { getProjectHash } from './hashes'
-type TelemetryLevel = 'off' | 'crash' | 'error' | 'all' | undefined
+import os from 'os';
+import { PostHog } from 'posthog-node';
+import { type Disposable, workspace } from 'vscode';
+import * as vscode from 'vscode';
+import { getProjectHash } from './hashes';
+type TelemetryLevel = 'off' | 'crash' | 'error' | 'all' | undefined;
 
-const client = new PostHog('phc_732PWG6HFZ75S7h0TK2AuqRVkqZDiD4WePE9gXYJkOu')
+const client = new PostHog('phc_732PWG6HFZ75S7h0TK2AuqRVkqZDiD4WePE9gXYJkOu');
 
 export interface TelemetryEvent {
-  event: string
-  properties: Record<string, any>
+  event: string;
+  properties: Record<string, any>;
 }
 
 export default class TelemetryReporter {
-  private userOptIn = false
-  private readonly configListener: Disposable
+  private userOptIn = false;
+  private readonly configListener: Disposable;
 
-  private static TELEMETRY_SECTION_ID = 'telemetry'
-  private static TELEMETRY_SETTING_ID = 'telemetryLevel'
+  private static TELEMETRY_SECTION_ID = 'telemetry';
+  private static TELEMETRY_SETTING_ID = 'telemetryLevel';
   // Deprecated since https://code.visualstudio.com/updates/v1_61#_telemetry-settings
-  private static TELEMETRY_OLD_SETTING_ID = 'enableTelemetry'
-  private telemetryProps: Record<string, any> = {}
+  private static TELEMETRY_OLD_SETTING_ID = 'enableTelemetry';
+  private telemetryProps: Record<string, any> = {};
 
   constructor(
     private extensionId: string,
     private extensionVersion: string,
   ) {
-    this.updateUserOptIn()
-    this.configListener = workspace.onDidChangeConfiguration(() => this.updateUserOptIn())
+    this.updateUserOptIn();
+    this.configListener = workspace.onDidChangeConfiguration(() =>
+      this.updateUserOptIn(),
+    );
   }
 
   public async initialize(): Promise<void> {
     if (this.userOptIn) {
-      const machine_id = vscode.env.machineId
+      const machine_id = vscode.env.machineId;
       const properties = {
         extension: this.extensionId,
         version: this.extensionVersion,
@@ -45,14 +47,14 @@ export default class TelemetryReporter {
           platform: os.platform(),
           arch: os.arch(),
         },
-      }
-      this.telemetryProps = properties
+      };
+      this.telemetryProps = properties;
       client.capture({
         event: 'extension_loaded',
         distinctId: machine_id,
         properties: properties,
-      })
-      client.flush()
+      });
+      client.flush();
     }
   }
 
@@ -65,16 +67,22 @@ export default class TelemetryReporter {
           ...this.telemetryProps,
           ...data.properties,
         },
-      })
-      client.flush()
+      });
+      client.flush();
     }
   }
 
   private updateUserOptIn() {
-    const telemetrySettings = workspace.getConfiguration(TelemetryReporter.TELEMETRY_SECTION_ID)
-    const isTelemetryEnabled = telemetrySettings.get<boolean>(TelemetryReporter.TELEMETRY_OLD_SETTING_ID)
+    const telemetrySettings = workspace.getConfiguration(
+      TelemetryReporter.TELEMETRY_SECTION_ID,
+    );
+    const isTelemetryEnabled = telemetrySettings.get<boolean>(
+      TelemetryReporter.TELEMETRY_OLD_SETTING_ID,
+    );
     // Only available since https://code.visualstudio.com/updates/v1_61#_telemetry-settings
-    const telemetryLevel = telemetrySettings.get<string>(TelemetryReporter.TELEMETRY_SETTING_ID)
+    const telemetryLevel = telemetrySettings.get<string>(
+      TelemetryReporter.TELEMETRY_SETTING_ID,
+    );
 
     // `enableTelemetry` is either true or false (default = true). Deprecated since https://code.visualstudio.com/updates/v1_61#_telemetry-settings
     // It is replaced by `telemetryLevel`, only available since v1.61 (default = 'all')
@@ -85,21 +93,28 @@ export default class TelemetryReporter {
     // `enableTelemetry` is true and `telemetryLevel` set to 'all' -> enabled
     // both settings undefined -> enabled (default behavior)
     // anything else falls back to disabled.
-    const isTelemetryEnabledWithOldSetting = isTelemetryEnabled && !telemetryLevel
-    const isTelemetryEnabledWithNewSetting = isTelemetryEnabled && telemetryLevel && telemetryLevel === 'all'
-    const areBothSettingsUndefined = isTelemetryEnabled === undefined && telemetryLevel === undefined
+    const isTelemetryEnabledWithOldSetting =
+      isTelemetryEnabled && !telemetryLevel;
+    const isTelemetryEnabledWithNewSetting =
+      isTelemetryEnabled && telemetryLevel && telemetryLevel === 'all';
+    const areBothSettingsUndefined =
+      isTelemetryEnabled === undefined && telemetryLevel === undefined;
 
-    if (isTelemetryEnabledWithOldSetting || isTelemetryEnabledWithNewSetting || areBothSettingsUndefined) {
-      this.userOptIn = true
-      console.info('Telemetry is enabled for BAML extension')
+    if (
+      isTelemetryEnabledWithOldSetting ||
+      isTelemetryEnabledWithNewSetting ||
+      areBothSettingsUndefined
+    ) {
+      this.userOptIn = true;
+      console.info('Telemetry is enabled for BAML extension');
     } else {
-      this.userOptIn = false
-      console.info('Telemetry is disabled for BAML extension')
+      this.userOptIn = false;
+      console.info('Telemetry is disabled for BAML extension');
     }
   }
 
   public async dispose(): Promise<void> {
-    this.configListener.dispose()
-    await client.shutdown()
+    this.configListener.dispose();
+    await client.shutdown();
   }
 }

@@ -1,3 +1,3 @@
-import * as BamlWasm from '@gloo-ai/baml-schema-wasm-node'
+import * as BamlWasm from '@gloo-ai/baml-schema-wasm-node';
 
-export { BamlWasm }
+export { BamlWasm };

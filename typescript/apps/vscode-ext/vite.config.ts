@@ -1,24 +1,32 @@
-import * as path from 'path'
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
-import topLevelAwait from 'vite-plugin-top-level-await'
-import wasm from 'vite-plugin-wasm'
+import * as path from 'path';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import topLevelAwait from 'vite-plugin-top-level-await';
+import wasm from 'vite-plugin-wasm';
 
-const isWatchMode = process.argv.includes('--watch') || true
+const isWatchMode = process.argv.includes('--watch') || true;
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react({
-      babel: {
-        presets: ['jotai/babel/preset'],
-      },
+      // babel: {
+      //   presets: ['jotai/babel/preset'],
+      // },
     }),
     wasm(),
     topLevelAwait(),
   ],
+  root: path.resolve(process.cwd(), './src/web-panel'),
   server: {
-    port: process.env.VITE_PORT ? parseInt(process.env.VITE_PORT) : 3000,
+    port: process.env.VITE_PORT ? Number.parseInt(process.env.VITE_PORT) : 5173,
     strictPort: false, // Allow fallback to next available port
+    host: true,
+    cors: {
+      origin: '*',
+    },
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    },
     hmr: {
       // This is needed for HMR to work in VSCode webviews
       protocol: 'ws',
@@ -32,15 +40,20 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@gloo-ai/baml-schema-wasm-web': path.resolve(__dirname, '../../../baml-schema-wasm-web/dist'),
-      baml_wasm_web: path.resolve(__dirname, '../../../baml-schema-wasm-web/dist'),
+      '@gloo-ai/baml-schema-wasm-web': path.resolve(
+        __dirname,
+        '../../packages/baml-schema-wasm-web/dist',
+      ),
+      baml_wasm_web: path.resolve(
+        __dirname,
+        '../../packages/baml-schema-wasm-web/dist',
+      ),
     },
   },
   mode: isWatchMode ? 'development' : 'production',
   build: {
     target: 'esnext',
     minify: isWatchMode ? false : 'esbuild',
-    outDir: 'dist',
     sourcemap: isWatchMode ? 'inline' : false,
     rollupOptions: {
       external: ['baml_wasm_web/rpc'],
@@ -57,4 +70,4 @@ export default defineConfig({
       target: 'esnext',
     },
   },
-})
+});

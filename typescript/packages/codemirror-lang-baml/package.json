@@ -1,10 +1,10 @@
 {
-  "name": "@boundaryml/codemirror-lang-baml",
+  "name": "@baml/codemirror-lang-baml",
   "version": "0.1.3",
   "description": "BAML language support for CodeMirror",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
-    "dev": "echo 'No dev command in codemirror-lang-baml/package.json' && exit 0",
+    "dev": "tsc --watch",
     "test": "mocha test/test.js",
     "build": "rollup -c",
     "prepare": "pnpm build",

@@ -1,162 +1,164 @@
-import { AwsCredentialIdentity } from '@smithy/types'
+import type { AwsCredentialIdentity } from '@smithy/types';
 
 // Commands that vscode sends to the webview
 export type VscodeToWebviewCommand =
   | {
-      command: 'modify_file'
+      command: 'modify_file';
       content: {
-        root_path: string
-        name: string
-        content: string | undefined
-      }
+        root_path: string;
+        name: string;
+        content: string | undefined;
+      };
     }
   | {
-      command: 'add_project'
+      command: 'add_project';
       content: {
-        root_path: string
-        files: Record<string, string>
-      }
+        root_path: string;
+        files: Record<string, string>;
+      };
     }
   | {
-      command: 'remove_project'
+      command: 'remove_project';
       content: {
-        root_path: string
-      }
+        root_path: string;
+      };
     }
   | {
-      command: 'select_function'
+      command: 'select_function';
       content: {
-        root_path: string
-        function_name: string
-      }
+        root_path: string;
+        function_name: string;
+      };
     }
   | {
-      command: 'update_cursor'
+      command: 'update_cursor';
       content: {
         cursor: {
-          fileName: string
-          fileText: string
-          line: number
-          column: number
-        }
-      }
+          fileName: string;
+          fileText: string;
+          line: number;
+          column: number;
+        };
+      };
     }
   | {
-      command: 'port_number'
+      command: 'port_number';
       content: {
-        port: number
-      }
+        port: number;
+      };
     }
   | {
-      command: 'baml_cli_version'
-      content: string
+      command: 'baml_cli_version';
+      content: string;
     }
   | {
-      command: 'run_test'
+      command: 'run_test';
       content: {
-        test_name: string
-      }
-    }
+        test_name: string;
+      };
+    };
 
 // Commands that the webview sends to vscode
-type EnsureVSCodeCommand<T> = T extends { vscodeCommand: string } ? T : never
+type EnsureVSCodeCommand<T> = T extends { vscodeCommand: string } ? T : never;
 
-type ExtractRequestType<T> = T extends [infer Req, any] ? EnsureVSCodeCommand<Req> : never
+type ExtractRequestType<T> = T extends [infer Req, any]
+  ? EnsureVSCodeCommand<Req>
+  : never;
 
-type RequestUnion<T extends [any, any][]> = ExtractRequestType<T[number]>
+type RequestUnion<T extends [any, any][]> = ExtractRequestType<T[number]>;
 
 export interface EchoRequest {
-  vscodeCommand: 'ECHO'
-  message: string
+  vscodeCommand: 'ECHO';
+  message: string;
 }
 
 export interface EchoResponse {
-  message: string
+  message: string;
 }
 
 export interface SetProxySettingsRequest {
-  vscodeCommand: 'SET_PROXY_SETTINGS'
-  proxyEnabled: boolean
+  vscodeCommand: 'SET_PROXY_SETTINGS';
+  proxyEnabled: boolean;
 }
 
 export interface GetBamlSrcRequest {
-  vscodeCommand: 'GET_BAML_SRC'
-  path: string
+  vscodeCommand: 'GET_BAML_SRC';
+  path: string;
 }
 
 export interface GetBamlSrcResponse {
-  contents: Uint8Array
+  contents: Uint8Array;
 }
 
 export interface GetWebviewUriRequest {
-  vscodeCommand: 'GET_WEBVIEW_URI'
-  bamlSrc: string
-  path: string
-  contents?: true
+  vscodeCommand: 'GET_WEBVIEW_URI';
+  bamlSrc: string;
+  path: string;
+  contents?: true;
 }
 
 export interface GetWebviewUriResponse {
-  uri: string
-  contents?: string
-  readError?: string
+  uri: string;
+  contents?: string;
+  readError?: string;
 }
 
 export interface GetVSCodeSettingsRequest {
-  vscodeCommand: 'GET_VSCODE_SETTINGS'
+  vscodeCommand: 'GET_VSCODE_SETTINGS';
 }
 
 export interface GetVSCodeSettingsResponse {
-  enablePlaygroundProxy: boolean
+  enablePlaygroundProxy: boolean;
 }
 
 export interface GetPlaygroundPortRequest {
-  vscodeCommand: 'GET_PLAYGROUND_PORT'
+  vscodeCommand: 'GET_PLAYGROUND_PORT';
 }
 
 export interface GetPlaygroundPortResponse {
-  port: number
+  port: number;
 }
 
 export interface LoadAwsCredsRequest {
-  vscodeCommand: 'LOAD_AWS_CREDS'
-  profile: string | null
+  vscodeCommand: 'LOAD_AWS_CREDS';
+  profile: string | null;
 }
 
 export type LoadAwsCredsResponse =
   | {
-      ok: AwsCredentialIdentity
+      ok: AwsCredentialIdentity;
     }
   | {
       error: {
-        name: string
-        message: string
-      }
-    }
+        name: string;
+        message: string;
+      };
+    };
 
 export interface LoadGcpCredsRequest {
-  vscodeCommand: 'LOAD_GCP_CREDS'
+  vscodeCommand: 'LOAD_GCP_CREDS';
 }
 
 export type LoadGcpCredsResponse =
   | {
       ok: {
-        accessToken: string
-        projectId: string
-      }
+        accessToken: string;
+        projectId: string;
+      };
     }
   | {
       error: {
-        name: string
-        message: string
-      }
-    }
+        name: string;
+        message: string;
+      };
+    };
 
 export interface InitializedRequest {
-  vscodeCommand: 'INITIALIZED'
+  vscodeCommand: 'INITIALIZED';
 }
 
 export interface InitializedResponse {
-  ack: true
+  ack: true;
 }
 
 type ApiPairs = [
@@ -170,24 +172,27 @@ type ApiPairs = [
   [LoadAwsCredsRequest, LoadAwsCredsResponse],
   [LoadGcpCredsRequest, LoadGcpCredsResponse],
   [InitializedRequest, InitializedResponse],
-]
+];
 
 // Serialization for binary data (like images)
 function serializeBinaryData(uint8Array: Uint8Array): string {
-  return uint8Array.reduce((data, byte) => data + String.fromCharCode(byte), '')
+  return uint8Array.reduce(
+    (data, byte) => data + String.fromCharCode(byte),
+    '',
+  );
 }
 
 // Deserialization for binary data
 function deserializeBinaryData(serialized: string): Uint8Array {
-  return new Uint8Array(serialized.split('').map((char) => char.charCodeAt(0)))
+  return new Uint8Array(serialized.split('').map((char) => char.charCodeAt(0)));
 }
 
 export function encodeBuffer(arr: Uint8Array): string {
-  return serializeBinaryData(arr)
+  return serializeBinaryData(arr);
 }
 
 export function decodeBuffer(str: string): Uint8Array {
-  return deserializeBinaryData(str)
+  return deserializeBinaryData(str);
 }
 
-export type WebviewToVscodeRpc = RequestUnion<ApiPairs>
+export type WebviewToVscodeRpc = RequestUnion<ApiPairs>;

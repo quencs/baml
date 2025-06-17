@@ -1,177 +1,191 @@
-import { atom, useAtomValue } from 'jotai'
-import { atomFamily, atomWithStorage, createJSONStorage } from 'jotai/utils'
+import { atom, useAtomValue } from 'jotai';
+import { atomFamily, atomWithStorage } from 'jotai/utils';
 
-import { WasmDiagnosticError, WasmRuntime } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build'
-import { unwrap } from 'jotai/utils'
-import { bamlConfig } from '../../baml_wasm_web/bamlConfig'
-import { vscodeLocalStorageStore } from './Jotai'
-import { orchIndexAtom } from './playground-panel/atoms-orch-graph'
-import { type ICodeBlock } from './types'
-import { vscode } from './vscode'
+import type {
+  WasmDiagnosticError,
+  WasmRuntime,
+} from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
+import { unwrap } from 'jotai/utils';
+import { bamlConfig } from '../../baml_wasm_web/bamlConfig';
+import { vscodeLocalStorageStore } from './Jotai';
+import { orchIndexAtom } from './playground-panel/atoms-orch-graph';
+import type { ICodeBlock } from './types';
+import { vscode } from './vscode';
 
 const wasmAtomAsync = atom(async () => {
-  const wasm = await import('@gloo-ai/baml-schema-wasm-web/baml_schema_build')
-  wasm.init_js_callback_bridge(vscode.loadAwsCreds, vscode.loadGcpCreds)
-  return wasm
-})
+  const wasm = await import('@gloo-ai/baml-schema-wasm-web/baml_schema_build');
+  wasm.init_js_callback_bridge(vscode.loadAwsCreds, vscode.loadGcpCreds);
+  return wasm;
+});
 
-export const wasmAtom = unwrap(wasmAtomAsync)
+export const wasmAtom = unwrap(wasmAtomAsync);
 
 export const useWaitForWasm = () => {
-  const wasm = useAtomValue(wasmAtom)
-  return wasm !== undefined
-}
+  const wasm = useAtomValue(wasmAtom);
+  return wasm !== undefined;
+};
 
-export const filesAtom = atom<Record<string, string>>({})
-export const sandboxFilesAtom = atom<Record<string, string>>({})
+export const filesAtom = atom<Record<string, string>>({});
+export const sandboxFilesAtom = atom<Record<string, string>>({});
 
 export const projectAtom = atom((get) => {
-  const wasm = get(wasmAtom)
-  const files = get(filesAtom)
+  const wasm = get(wasmAtom);
+  const files = get(filesAtom);
   if (wasm === undefined) {
-    return undefined
+    return undefined;
   }
   // filter out files that are not baml files
-  const bamlFiles = Object.entries(files).filter(([path, content]) => path.endsWith('.baml'))
+  const bamlFiles = Object.entries(files).filter(([path, content]) =>
+    path.endsWith('.baml'),
+  );
   // TODO: add python generator if using sandbox
 
-  return wasm.WasmProject.new('./', bamlFiles)
-})
+  return wasm.WasmProject.new('./', bamlFiles);
+});
 
 export const ctxAtom = atom((get) => {
-  const wasm = get(wasmAtom)
+  const wasm = get(wasmAtom);
   if (wasm === undefined) {
-    return undefined
+    return undefined;
   }
-  const context = new wasm.WasmCallContext()
-  const orch_index = get(orchIndexAtom)
-  context.node_index = orch_index
-  return context
-})
+  const context = new wasm.WasmCallContext();
+  const orch_index = get(orchIndexAtom);
+  context.node_index = orch_index;
+  return context;
+});
 
 export const runtimeAtom = atom<{
-  rt: WasmRuntime | undefined
-  diags: WasmDiagnosticError | undefined
-  lastValidRt: WasmRuntime | undefined
+  rt: WasmRuntime | undefined;
+  diags: WasmDiagnosticError | undefined;
+  lastValidRt: WasmRuntime | undefined;
 }>((get) => {
   try {
-    const wasm = get(wasmAtom)
-    const project = get(projectAtom)
-    const envVars = get(envVarsAtom)
+    const wasm = get(wasmAtom);
+    const project = get(projectAtom);
+    const envVars = get(envVarsAtom);
 
     if (wasm === undefined || project === undefined) {
-      return { rt: undefined, diags: undefined, lastValidRt: undefined }
+      return { rt: undefined, diags: undefined, lastValidRt: undefined };
     }
-    const selectedEnvVars = Object.fromEntries(Object.entries(envVars).filter(([key, value]) => value !== undefined))
-    const rt = project.runtime(selectedEnvVars)
-    const diags = project.diagnostics(rt)
-    return { rt, diags, lastValidRt: rt }
+    const selectedEnvVars = Object.fromEntries(
+      Object.entries(envVars).filter(([key, value]) => value !== undefined),
+    );
+    const rt = project.runtime(selectedEnvVars);
+    const diags = project.diagnostics(rt);
+    return { rt, diags, lastValidRt: rt };
   } catch (e) {
-    console.log('Error occurred while getting runtime', e)
-    const wasm = get(wasmAtom)
+    console.log('Error occurred while getting runtime', e);
+    const wasm = get(wasmAtom);
     if (wasm) {
-      const WasmDiagnosticError = wasm.WasmDiagnosticError
+      const WasmDiagnosticError = wasm.WasmDiagnosticError;
       if (e instanceof WasmDiagnosticError) {
-        return { rt: undefined, diags: e, lastValidRt: undefined }
+        return { rt: undefined, diags: e, lastValidRt: undefined };
       }
     }
     if (e instanceof Error) {
-      console.error(e.message)
+      console.error(e.message);
     } else {
-      console.error(e)
+      console.error(e);
     }
   }
-  return { rt: undefined, diags: undefined, lastValidRt: undefined }
-})
+  return { rt: undefined, diags: undefined, lastValidRt: undefined };
+});
 
 export const diagnosticsAtom = atom((get) => {
-  const runtime = get(runtimeAtom)
-  return runtime.diags?.errors() ?? []
-})
+  const runtime = get(runtimeAtom);
+  return runtime.diags?.errors() ?? [];
+});
 
 export const numErrorsAtom = atom((get) => {
-  const errors = get(diagnosticsAtom)
+  const errors = get(diagnosticsAtom);
 
-  const warningCount = errors.filter((e) => e.type === 'warning').length
+  const warningCount = errors.filter((e) => e.type === 'warning').length;
 
-  return { errors: errors.length - warningCount, warnings: warningCount }
-})
+  return { errors: errors.length - warningCount, warnings: warningCount };
+});
 
 // todo debounce this.
 export const generatedFilesAtom = atom((get) => {
-  const project = get(projectAtom)
+  const project = get(projectAtom);
   if (project === undefined) {
-    return undefined
+    return undefined;
   }
-  const runtime = get(runtimeAtom)
+  const runtime = get(runtimeAtom);
   if (runtime.rt === undefined) {
-    return undefined
+    return undefined;
   }
 
-  const generators = project.run_generators()
+  const generators = project.run_generators();
   const files = generators.flatMap((gen) =>
     gen.files.map((f) => ({
       path: f.path_in_output_dir,
       content: f.contents,
       outputDir: gen.output_dir,
     })),
-  )
-  return files
-})
+  );
+  return files;
+});
 
-export const generatedFilesByLangAtom = atomFamily((lang: ICodeBlock['language']) =>
-  atom((get) => {
-    const allFiles = get(generatedFilesAtom)
-    if (!allFiles) return undefined
+export const generatedFilesByLangAtom = atomFamily(
+  (lang: ICodeBlock['language']) =>
+    atom((get) => {
+      const allFiles = get(generatedFilesAtom);
+      if (!allFiles) return undefined;
 
-    return allFiles
-      .filter((f) => f.outputDir.includes(lang))
-      .map(({ path, content }) => ({
-        path,
-        content,
-      }))
-  }),
-)
+      return allFiles
+        .filter((f) => f.outputDir.includes(lang))
+        .map(({ path, content }) => ({
+          path,
+          content,
+        }));
+    }),
+);
 
-export const isPanelVisibleAtom = atom(false)
+export const isPanelVisibleAtom = atom(false);
 
 const vscodeSettingsAtom = atom<{ enablePlaygroundProxy: boolean }>((get) => {
-  const config = get(bamlConfig)
+  const config = get(bamlConfig);
   return {
     enablePlaygroundProxy: config.config?.enablePlaygroundProxy ?? true,
-  }
-})
+  };
+});
 
 const playgroundPortAtom = unwrap(
   atom(async () => {
     try {
-      const res = await vscode.getPlaygroundPort()
-      return res
+      const res = await vscode.getPlaygroundPort();
+      return res;
     } catch (e) {
-      console.error(`Error occurred while getting playground port:\n${JSON.stringify(e)}`)
-      return 0
+      console.error(
+        `Error occurred while getting playground port:\n${JSON.stringify(e)}`,
+      );
+      return 2780144;
     }
   }),
-)
+);
 
 export const proxyUrlAtom = atom((get) => {
-  const vscodeSettings = get(vscodeSettingsAtom)
-  const port = get(playgroundPortAtom)
-  const proxyUrl = port && port !== 0 ? `http://localhost:${port}` : undefined
-  const proxyEnabled = !!vscodeSettings?.enablePlaygroundProxy
+  const vscodeSettings = get(vscodeSettingsAtom);
+  const port = get(playgroundPortAtom);
+  const proxyUrl = port && port !== 0 ? `http://localhost:${port}` : undefined;
+  const proxyEnabled = !!vscodeSettings?.enablePlaygroundProxy;
   return {
     proxyEnabled,
     proxyUrl,
-  }
-})
+  };
+});
 
 export const resetEnvKeyValuesAtom = atom(null, (get, set) => {
-  set(envKeyValueStorage, [])
-})
+  set(envKeyValueStorage, []);
+});
 export const envKeyValuesAtom = atom(
   (get) => {
-    const envKeyValues = get(envKeyValueStorage)
-    return envKeyValues.map(([k, v], idx): [string, string, number] => [k, v, idx])
+    const envKeyValues = get(envKeyValueStorage);
+    return envKeyValues.map(([k, v], idx): [string, string, number] => [
+      k,
+      v,
+      idx,
+    ]);
   },
   (
     get,
@@ -184,119 +198,131 @@ export const envKeyValuesAtom = atom(
       | { itemIndex: number; remove: true }
       // Insert key
       | {
-          itemIndex: null
-          key: string
-          value?: string
+          itemIndex: null;
+          key: string;
+          value?: string;
         },
   ) => {
     if (update.itemIndex !== null) {
-      const keyValues = [...get(envKeyValueStorage)]
+      const keyValues = [...get(envKeyValueStorage)];
       if ('value' in update) {
-        const kv = keyValues[update.itemIndex]
+        const kv = keyValues[update.itemIndex];
         if (kv !== undefined) {
-          kv[1] = update.value ?? ''
+          kv[1] = update.value ?? '';
         }
       } else if ('newKey' in update) {
-        const kv = keyValues[update.itemIndex]
+        const kv = keyValues[update.itemIndex];
         if (kv !== undefined) {
-          kv[0] = update.newKey ?? ''
+          kv[0] = update.newKey ?? '';
         }
       } else if ('remove' in update) {
-        keyValues.splice(update.itemIndex, 1)
+        keyValues.splice(update.itemIndex, 1);
       }
-      set(envKeyValueStorage, keyValues)
+      set(envKeyValueStorage, keyValues);
     } else {
-      set(envKeyValueStorage, (prev) => [...prev, [update.key, update.value ?? '']])
+      set(envKeyValueStorage, (prev) => [
+        ...prev,
+        [update.key, update.value ?? ''],
+      ]);
     }
   },
-)
+);
 export const envVarsAtom = atom(
   (get) => {
     if (typeof window === 'undefined') {
-      return {}
+      return {};
     }
     if ((window as any).next?.version) {
       // NextJS environment doesnt have vscode settings, and proxy is always enabled
-      return Object.fromEntries(defaultEnvKeyValues.map(([k, v]) => [k, v]))
-    } else {
-      const { proxyEnabled, proxyUrl } = get(proxyUrlAtom)
-      if (!proxyEnabled) {
-        // if proxy is not enabled, remove the BOUNDARY_PROXY_URL
-        const envKeyValues = get(envKeyValuesAtom)
-        return Object.fromEntries(envKeyValues.map(([k, v]) => [k, v]).filter(([k]) => k !== 'BOUNDARY_PROXY_URL'))
-      }
-
-      const envKeyValues = get(envKeyValuesAtom)
-      if (proxyUrl === undefined) {
-        return Object.fromEntries(envKeyValues.map(([k, v]) => [k, v]).filter(([k]) => k !== 'BOUNDARY_PROXY_URL'))
-      }
-
-      // Check if BOUNDARY_PROXY_URL exists in the env vars.
-      const hasBoundaryProxyUrl = envKeyValues.some(([k]) => k === 'BOUNDARY_PROXY_URL')
-
-      const entries = envKeyValues.map(([k, v]) => {
-        if (k === 'BOUNDARY_PROXY_URL') {
-          return [k, proxyUrl]
-        }
-        return [k, v]
-      })
-
-      // If proxy is enabled and there's a proxyUrl but no BOUNDARY_PROXY_URL, add it
-      // TODO: it's likely when proxy is updated we dont update our env vars properly again.
-      // so we resort to this.
-      if (proxyEnabled && proxyUrl && !hasBoundaryProxyUrl) {
-        console.warn(
-          '⚠️ WARNING: BOUNDARY_PROXY_URL was not found in env vars but proxy is enabled. Adding it automatically.',
-        )
-        entries.push(['BOUNDARY_PROXY_URL', proxyUrl])
-      }
-
-      return Object.fromEntries(entries.filter((e) => e !== undefined))
+      return Object.fromEntries(defaultEnvKeyValues.map(([k, v]) => [k, v]));
     }
+    const { proxyEnabled, proxyUrl } = get(proxyUrlAtom);
+    if (!proxyEnabled) {
+      // if proxy is not enabled, remove the BOUNDARY_PROXY_URL
+      const envKeyValues = get(envKeyValuesAtom);
+      return Object.fromEntries(
+        envKeyValues
+          .map(([k, v]) => [k, v])
+          .filter(([k]) => k !== 'BOUNDARY_PROXY_URL'),
+      );
+    }
+
+    const envKeyValues = get(envKeyValuesAtom);
+    if (proxyUrl === undefined) {
+      return Object.fromEntries(
+        envKeyValues
+          .map(([k, v]) => [k, v])
+          .filter(([k]) => k !== 'BOUNDARY_PROXY_URL'),
+      );
+    }
+
+    // Check if BOUNDARY_PROXY_URL exists in the env vars.
+    const hasBoundaryProxyUrl = envKeyValues.some(
+      ([k]) => k === 'BOUNDARY_PROXY_URL',
+    );
+
+    const entries = envKeyValues.map(([k, v]) => {
+      if (k === 'BOUNDARY_PROXY_URL') {
+        return [k, proxyUrl];
+      }
+      return [k, v];
+    });
+
+    // If proxy is enabled and there's a proxyUrl but no BOUNDARY_PROXY_URL, add it
+    // TODO: it's likely when proxy is updated we dont update our env vars properly again.
+    // so we resort to this.
+    if (proxyEnabled && proxyUrl && !hasBoundaryProxyUrl) {
+      console.warn(
+        '⚠️ WARNING: BOUNDARY_PROXY_URL was not found in env vars but proxy is enabled. Adding it automatically.',
+      );
+      entries.push(['BOUNDARY_PROXY_URL', proxyUrl]);
+    }
+
+    return Object.fromEntries(entries.filter((e) => e !== undefined));
   },
   (get, set, newEnvVars: Record<string, string>) => {
-    const envKeyValues = Object.entries(newEnvVars)
-    set(envKeyValueStorage, envKeyValues)
+    const envKeyValues = Object.entries(newEnvVars);
+    set(envKeyValueStorage, envKeyValues);
   },
-)
+);
 
 export const requiredEnvVarsAtom = atom((get) => {
-  const { rt } = get(runtimeAtom)
+  const { rt } = get(runtimeAtom);
   if (rt === undefined) {
-    return []
+    return [];
   }
-  const requiredEnvVars = rt.required_env_vars()
-  const defaultEnvVars = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY']
-  defaultEnvVars.forEach((e) => {
+  const requiredEnvVars = rt.required_env_vars();
+  const defaultEnvVars = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'];
+  for (const e of defaultEnvVars) {
     if (!requiredEnvVars.find((envVar) => e === envVar)) {
-      requiredEnvVars.push(e)
+      requiredEnvVars.push(e);
     }
-  })
+  }
 
-  return requiredEnvVars
-})
+  return requiredEnvVars;
+});
 
 const defaultEnvKeyValues: [string, string][] = (() => {
   if (typeof window === 'undefined') {
-    return []
+    return [];
   }
   if ((window as any).next?.version) {
-    console.log('Running in nextjs')
+    console.log('Running in nextjs');
 
-    const domain = window?.location?.origin || ''
+    const domain = window?.location?.origin || '';
     if (domain.includes('localhost')) {
       // we can do somehting fancier here later if we want to test locally.
-      return [['BOUNDARY_PROXY_URL', 'https://fiddle-proxy.fly.dev']]
+      return [['BOUNDARY_PROXY_URL', 'https://fiddle-proxy.fly.dev']];
     }
-    return [['BOUNDARY_PROXY_URL', 'https://fiddle-proxy.fly.dev']]
-  } else {
-    console.log('Not running in a Next.js environment, set default value')
-    // Not running in a Next.js environment, set default value
-    return [['BOUNDARY_PROXY_URL', 'http://localhost:0000']]
+    return [['BOUNDARY_PROXY_URL', 'https://fiddle-proxy.fly.dev']];
   }
-})()
+
+  console.log('Not running in a Next.js environment, set default value');
+  // Not running in a Next.js environment, set default value
+  return [['BOUNDARY_PROXY_URL', 'http://localhost:0000']];
+})();
 export const envKeyValueStorage = atomWithStorage<[string, string][]>(
   'env-key-values',
   defaultEnvKeyValues,
   vscodeLocalStorageStore,
-)
+);

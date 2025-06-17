@@ -1,5 +1,5 @@
-import { exec } from 'child_process'
-import type { URI } from 'vscode-uri'
+import { exec } from 'child_process';
+import type { URI } from 'vscode-uri';
 
 export function cliBuild(
   cliPath: string,
@@ -7,10 +7,10 @@ export function cliBuild(
   onError?: (errorMessage: string) => void,
   onSuccess?: () => void,
 ) {
-  const buildCommand = `${cliPath} generate --from ${workspacePath?.fsPath}`
+  const buildCommand = `${cliPath} generate --from ${workspacePath?.fsPath}`;
 
   if (!workspacePath) {
-    return
+    return;
   }
 
   exec(
@@ -20,26 +20,28 @@ export function cliBuild(
     },
     (error: Error | null, stdout: string, stderr: string) => {
       if (stdout) {
-        console.log(stdout)
+        console.log(stdout);
         // outputChannel.appendLine(stdout);
       }
 
       if (stderr) {
         // our CLI is by default logging everything to stderr
-        console.info(stderr)
+        console.info(stderr);
       }
 
       if (error) {
-        console.error(`Error running baml cli script: ${JSON.stringify(error, null, 2)}`)
-        onError?.(`baml-cli error: ${error.message}`)
-        return
+        console.error(
+          `Error running baml cli script: ${JSON.stringify(error, null, 2)}`,
+        );
+        onError?.(`baml-cli error: ${error.message}`);
+        return;
       } else {
         if (onSuccess) {
-          onSuccess()
+          onSuccess();
         }
       }
     },
-  )
+  );
 }
 
 export function cliVersion(
@@ -47,23 +49,23 @@ export function cliVersion(
   onError?: (errorMessage: string) => void,
   onSuccess?: (ver: string) => void,
 ) {
-  const buildCommand = `${cliPath} --version`
+  const buildCommand = `${cliPath} --version`;
 
   exec(buildCommand, (error: Error | null, stdout: string, stderr: string) => {
     if (stderr) {
       // our CLI is by default logging everything to stderr
-      console.info(stderr)
+      console.info(stderr);
     }
 
     if (error) {
-      onError?.(`Baml cli error`)
-      return
+      onError?.(`Baml cli error`);
+      return;
     } else {
       if (onSuccess) {
-        onSuccess(stdout)
+        onSuccess(stdout);
       }
     }
-  })
+  });
 }
 
 export function cliCheckForUpdates(
@@ -71,21 +73,21 @@ export function cliCheckForUpdates(
   onError?: (errorMessage: string) => void,
   onSuccess?: (ver: string) => void,
 ) {
-  const buildCommand = `${cliPath} version --check --output json`
+  const buildCommand = `${cliPath} version --check --output json`;
 
   exec(buildCommand, (error: Error | null, stdout: string, stderr: string) => {
     if (stderr) {
       // our CLI is by default logging everything to stderr
-      console.info(stderr)
+      console.info(stderr);
     }
 
     if (error) {
-      onError?.(`Baml cli error`)
-      return
+      onError?.(`Baml cli error`);
+      return;
     } else {
       if (onSuccess) {
-        onSuccess(stdout)
+        onSuccess(stdout);
       }
     }
-  })
+  });
 }

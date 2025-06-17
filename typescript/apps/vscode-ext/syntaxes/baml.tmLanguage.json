@@ -1,7 +1,5 @@
 {
-  "fileTypes": [
-    "baml"
-  ],
+  "fileTypes": ["baml"],
   "name": "baml",
   "patterns": [
     {

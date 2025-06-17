@@ -1,28 +1,43 @@
-'use client'
-import { BAML } from '@boundaryml/codemirror-lang-baml'
-import { linter } from '@codemirror/lint'
-import { RangeSet, StateEffect, StateField } from '@codemirror/state'
-import { Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view'
-import { tags as t } from '@lezer/highlight'
-import { vscodeDarkInit, vscodeLightInit } from '@uiw/codemirror-theme-vscode'
-import CodeMirror, { Compartment, EditorView, type Extension, type ReactCodeMirrorRef } from '@uiw/react-codemirror'
-import { inlineCopilot } from 'codemirror-copilot'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+'use client';
+import { BAML } from '@baml/codemirror-lang-baml';
+import { linter } from '@codemirror/lint';
+import { RangeSet, StateEffect, StateField } from '@codemirror/state';
+import { Decoration } from '@codemirror/view';
+import { tags as t } from '@lezer/highlight';
+import { vscodeDarkInit, vscodeLightInit } from '@uiw/codemirror-theme-vscode';
+import CodeMirror, {
+  Compartment,
+  EditorView,
+  type Extension,
+  type ReactCodeMirrorRef,
+} from '@uiw/react-codemirror';
+import { inlineCopilot } from 'codemirror-copilot';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { hyperLink } from '@uiw/codemirror-extensions-hyper-link'
-import { langs } from '@uiw/codemirror-extensions-langs'
-import { useAtomValue, useSetAtom, useStore } from 'jotai'
-import { type ICodeBlock } from '../types'
-import { CodeMirrorDiagnosticsAtom } from './atoms'
+import { hyperLink } from '@uiw/codemirror-extensions-hyper-link';
+import { langs } from '@uiw/codemirror-extensions-langs';
+import { useAtomValue, useSetAtom, useStore } from 'jotai';
+import type { ICodeBlock } from '../types';
+import { CodeMirrorDiagnosticsAtom } from './atoms';
 
-import { autocompletion } from '@codemirror/autocomplete'
-import { javascript } from '@codemirror/lang-javascript'
-import { tsAutocomplete, tsFacet, tsHover, tsLinter, tsSync } from '@valtown/codemirror-ts'
+import { autocompletion } from '@codemirror/autocomplete';
+import { javascript } from '@codemirror/lang-javascript';
+import {
+  tsAutocomplete,
+  tsFacet,
+  tsHover,
+  tsLinter,
+  tsSync,
+} from '@valtown/codemirror-ts';
 
-import { createDefaultMapFromCDN, createSystem, createVirtualTypeScriptEnvironment } from '@typescript/vfs'
-import { useTheme } from 'next-themes'
-import ts from 'typescript'
-import { FlashRange, flashRangesAtom, updateCursorAtom } from '../playground-panel/atoms'
+import {
+  createDefaultMapFromCDN,
+  createSystem,
+  createVirtualTypeScriptEnvironment,
+} from '@typescript/vfs';
+import { useTheme } from 'next-themes';
+import ts from 'typescript';
+import { flashRangesAtom, updateCursorAtom } from '../playground-panel/atoms';
 
 const extensionMap = {
   js: [langs.javascript()],
@@ -31,15 +46,15 @@ const extensionMap = {
   python: [langs.python()],
   json: [langs.json()],
   baml: [BAML()],
-}
+};
 
 export interface GeneratedFile {
-  path: string
-  content: string
+  path: string;
+  content: string;
 }
 
-const addFlashingEffect = StateEffect.define<{ from: number; to: number }[]>()
-const clearFlashingEffect = StateEffect.define<void>()
+const addFlashingEffect = StateEffect.define<{ from: number; to: number }[]>();
+const clearFlashingEffect = StateEffect.define<void>();
 const flashingMark = Decoration.mark({
   attributes: {
     style: `
@@ -51,11 +66,11 @@ const flashingMark = Decoration.mark({
       animation: pulseGlow 1s ease-in-out infinite alternate;
     `,
   },
-})
+});
 
 // Add the animation keyframes to the document
 if (typeof document !== 'undefined') {
-  const style = document.createElement('style')
+  const style = document.createElement('style');
   style.textContent = `
     @keyframes pulseGlow {
       from {
@@ -67,42 +82,44 @@ if (typeof document !== 'undefined') {
         text-shadow: 0 0 4px #00FF00, 0 0 6px #00FF00;
       }
     }
-  `
-  document.head.appendChild(style)
+  `;
+  document.head.appendChild(style);
 }
 
 // Create a StateField for the highlights
 const createFlashingField = () => {
   return StateField.define({
     create() {
-      return RangeSet.empty
+      return RangeSet.empty;
     },
     update(highlights, tr) {
       // Map the decorations through document changes
-      highlights = highlights.map(tr.changes)
+      highlights = highlights.map(tr.changes);
 
       // Apply effects
       for (const effect of tr.effects) {
         if (effect.is(addFlashingEffect)) {
           // Create new highlight decorations
-          const decorations = effect.value.map((range) => flashingMark.range(range.from, range.to))
+          const decorations = effect.value.map((range) =>
+            flashingMark.range(range.from, range.to),
+          );
 
           // Add them to the set
           highlights = highlights.update({
             add: decorations,
             sort: true,
-          })
+          });
         } else if (effect.is(clearFlashingEffect)) {
           // Clear all decorations
-          highlights = RangeSet.empty
+          highlights = RangeSet.empty;
         }
       }
 
-      return highlights
+      return highlights;
     },
     provide: (field) => EditorView.decorations.from(field),
-  })
-}
+  });
+};
 
 export const CodeMirrorViewer = ({
   lang,
@@ -114,40 +131,43 @@ export const CodeMirrorViewer = ({
   onContentChange,
   onAutocompleteTrigger,
 }: {
-  lang: ICodeBlock['language']
-  fileContent: ICodeBlock
-  generatedFiles?: GeneratedFile[]
-  shouldScrollDown: boolean
-  isReadOnly?: boolean
-  hideLineNumbers?: boolean
-  onContentChange: (content: string) => void
-  onAutocompleteTrigger?: (content: string) => Promise<string>
+  lang: ICodeBlock['language'];
+  fileContent: ICodeBlock;
+  generatedFiles?: GeneratedFile[];
+  shouldScrollDown: boolean;
+  isReadOnly?: boolean;
+  hideLineNumbers?: boolean;
+  onContentChange: (content: string) => void;
+  onAutocompleteTrigger?: (content: string) => Promise<string>;
 }) => {
-  const ref = useRef<ReactCodeMirrorRef>({})
-  const store = useStore()
-  const flashRanges = useAtomValue(flashRangesAtom)
+  const ref = useRef<ReactCodeMirrorRef>({});
+  const store = useStore();
+  const flashRanges = useAtomValue(flashRangesAtom);
 
   useEffect(() => {
-    console.log('flashRanges updated: ', flashRanges)
-    if (!ref.current.view) return
-    const view = ref.current.view
+    console.log('flashRanges updated: ', flashRanges);
+    if (!ref.current.view) return;
+    const view = ref.current.view;
     // TODO: Filter by filename?
     const convertedRanges = flashRanges.map((range) => ({
       from: view.state.doc.line(range.startLine + 1).from + range.startCol,
       to: view.state.doc.line(range.endLine + 1).from + range.endCol,
-    }))
-    console.log('convertedRanges: ', convertedRanges)
+    }));
+    console.log('convertedRanges: ', convertedRanges);
     view?.dispatch({
-      effects: [clearFlashingEffect.of(), addFlashingEffect.of(convertedRanges)],
-    })
-  }, [flashRanges])
+      effects: [
+        clearFlashingEffect.of(),
+        addFlashingEffect.of(convertedRanges),
+      ],
+    });
+  }, [flashRanges]);
 
   const makeLinter = useCallback(() => {
     if (lang === 'baml') {
       return linter(
         () => {
           try {
-            const diags = store.get(CodeMirrorDiagnosticsAtom)
+            const diags = store.get(CodeMirrorDiagnosticsAtom);
             return diags.map((d) => {
               return {
                 from: d.from,
@@ -155,15 +175,15 @@ export const CodeMirrorViewer = ({
                 to: d.to - 1,
                 severity: d.severity,
                 message: d.message,
-              }
-            })
+              };
+            });
           } catch (e) {
-            console.error('Error getting diagnostics', e)
-            return []
+            console.error('Error getting diagnostics', e);
+            return [];
           }
         },
         { delay: 300 },
-      )
+      );
     } else if (lang === 'python') {
       // use ruff wasm here
       // return linter(
@@ -175,24 +195,24 @@ export const CodeMirrorViewer = ({
       //   { delay: 200 }
       // );
     }
-    return []
-  }, [store, lang])
+    return [];
+  }, [store, lang]);
 
-  const compartment = useMemo(() => new Compartment(), [])
+  const compartment = useMemo(() => new Compartment(), []);
 
-  const [extensions, setExtensions] = useState<Extension[]>([])
+  const [extensions, setExtensions] = useState<Extension[]>([]);
 
   useEffect(() => {
     // const interval = setInterval(() => {
     if (ref.current?.view?.contentDOM) {
-      const line = ref.current.view.state.doc.lineAt(ref.current.view.state.doc.length)
-      if (line) {
-        if (shouldScrollDown) {
-          ref.current.view?.dispatch({
-            selection: { anchor: line.from, head: undefined },
-            scrollIntoView: true,
-          })
-        }
+      const line = ref.current.view.state.doc.lineAt(
+        ref.current.view.state.doc.length,
+      );
+      if (line && shouldScrollDown) {
+        ref.current.view?.dispatch({
+          selection: { anchor: line.from, head: undefined },
+          scrollIntoView: true,
+        });
       }
       // // Scroll to the bottom of the container
       // containerRef.current.contentDOM.scrollIntoView({
@@ -202,32 +222,44 @@ export const CodeMirrorViewer = ({
     // }, 1000); // Adjust the interval time (in milliseconds) as needed
 
     // return () => clearInterval(interval); // Clean up the interval on component unmount
-  }, [fileContent, ref, shouldScrollDown])
+  }, [fileContent, ref, shouldScrollDown]);
 
-  const setUpdateCursor = useSetAtom(updateCursorAtom)
+  const setUpdateCursor = useSetAtom(updateCursorAtom);
 
   useEffect(() => {
     async function initializeExtensions() {
       try {
         if (lang === 'typescript') {
-          console.log('initializing ts extensions')
-          const fsMap = await createDefaultMapFromCDN({ target: ts.ScriptTarget.ES2022 }, '5.6.3', true, ts)
-          const system = createSystem(fsMap)
+          console.log('initializing ts extensions');
+          const fsMap = await createDefaultMapFromCDN(
+            { target: ts.ScriptTarget.ES2022 },
+            '5.6.3',
+            true,
+            ts,
+          );
+          const system = createSystem(fsMap);
           const compilerOpts = {
             lib: ['es2022', 'dom'],
-          }
-          const baml_dir = '/baml_client'
-          let generated_files_paths: string[] = []
+          };
+          const baml_dir = '/baml_client';
+          let generated_files_paths: string[] = [];
           // I dont think we need to update fsmap..
           if (generatedFiles) {
-            generated_files_paths = generatedFiles.map((f) => baml_dir + '/' + f.path)
+            generated_files_paths = generatedFiles.map(
+              (f) => baml_dir + '/' + f.path,
+            );
             generatedFiles.forEach((f) => {
-              fsMap.set(baml_dir + '/' + f.path, f.content)
-            })
+              fsMap.set(baml_dir + '/' + f.path, f.content);
+            });
           }
-          const env = createVirtualTypeScriptEnvironment(system, generated_files_paths, ts, compilerOpts)
+          const env = createVirtualTypeScriptEnvironment(
+            system,
+            generated_files_paths,
+            ts,
+            compilerOpts,
+          );
           for (const f of generatedFiles ?? []) {
-            env.createFile(baml_dir + '/' + f.path, f.content)
+            env.createFile(baml_dir + '/' + f.path, f.content);
           }
 
           const tsExtensions = [
@@ -240,10 +272,15 @@ export const CodeMirrorViewer = ({
             autocompletion({
               override: [tsAutocomplete()],
             }),
-          ]
+          ];
 
-          setExtensions([...tsExtensions, EditorView.lineWrapping, hyperLink, createFlashingField()])
-          return
+          setExtensions([
+            ...tsExtensions,
+            EditorView.lineWrapping,
+            hyperLink,
+            createFlashingField(),
+          ]);
+          return;
         }
 
         setExtensions([
@@ -252,34 +289,39 @@ export const CodeMirrorViewer = ({
           lang === 'baml' ? compartment.of(makeLinter()) : [],
           hyperLink,
           createFlashingField(),
-        ])
+        ]);
       } catch (e) {
-        console.error('Error initializing extensions', e)
-        setExtensions([])
+        console.error('Error initializing extensions', e);
+        setExtensions([]);
       }
     }
 
-    void initializeExtensions()
-  }, [JSON.stringify(generatedFiles?.map((f) => f.content)), compartment, lang, makeLinter])
+    void initializeExtensions();
+  }, [
+    JSON.stringify(generatedFiles?.map((f) => f.content)),
+    compartment,
+    lang,
+    makeLinter,
+  ]);
 
   const inlineCopilotExtension = useMemo(
     () => [
       inlineCopilot(async (prefix: string, suffix: string) => {
         if (isReadOnly) {
-          return ''
+          return '';
         }
         const res = await fetch('/api/completion', {
           method: 'POST',
           body: JSON.stringify({ prefix, suffix, language: lang }),
-        })
-        const { prediction } = await res.json()
-        return prediction
+        });
+        const { prediction } = await res.json();
+        return prediction;
       }, 500),
     ],
     [lang, isReadOnly],
-  )
+  );
 
-  const { theme } = useTheme()
+  const { theme } = useTheme();
 
   const editorTheme =
     theme === 'dark'
@@ -328,39 +370,39 @@ export const CodeMirrorViewer = ({
             gutterActiveForeground: '#808080',
             gutterBorder: '#fff',
           },
-        })
+        });
 
   useEffect(() => {
-    onContentChange?.(fileContent.code)
-  }, [fileContent.code])
+    onContentChange?.(fileContent.code);
+  }, [fileContent.code]);
 
   useEffect(() => {
     if (lang !== 'baml') {
-      return
+      return;
     }
     if (ref.current?.view) {
-      const view = ref.current.view
+      const view = ref.current.view;
       view.dispatch({
         effects: compartment.reconfigure([makeLinter()]),
-      })
+      });
     }
-  }, [fileContent.code, lang, makeLinter, compartment])
+  }, [fileContent.code, lang, makeLinter, compartment]);
 
   const handleReset = () => {
     // setActualFileContent(file_content);
-  }
+  };
 
   const handleSave = () => {
-    console.log('Saving changes...')
-  }
+    console.log('Saving changes...');
+  };
 
   return (
-    <div className='w-full h-fit'>
+    <div className="w-full h-fit">
       <div
-        className='pb-8 w-full h-full'
+        className="pb-8 w-full h-full"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-            e.preventDefault()
+            e.preventDefault();
           }
         }}
       >
@@ -373,28 +415,28 @@ export const CodeMirrorViewer = ({
             foldGutter: hideLineNumbers ? false : true,
           }}
           onStatistics={(data) => {
-            const pos = data.selectionAsSingle.from
-            const line = data.line.number
+            const pos = data.selectionAsSingle.from;
+            const line = data.line.number;
             // Calculate column by finding the difference between cursor position and line start
-            const column = pos - data.line.from + 1
+            const column = pos - data.line.from + 1;
 
             setUpdateCursor({
               fileName: fileContent.id,
               fileText: ref.current?.view?.state.doc.toString() || '',
               line,
               column,
-            })
+            });
           }}
           value={fileContent.code}
           onChange={(value) => {
-            onContentChange?.(value)
+            onContentChange?.(value);
           }}
           readOnly={false}
           extensions={[...extensions]}
           theme={editorTheme}
-          className='text-xs border-none'
-          height='100%'
-          width='100%'
+          className="text-xs border-none"
+          height="100%"
+          width="100%"
           style={{ width: '100%', height: '100%' }}
         />
         {/* {modified && (
@@ -427,7 +469,7 @@ export const CodeMirrorViewer = ({
         )} */}
       </div>
     </div>
-  )
-}
+  );
+};
 
-CodeMirrorViewer.displayName = 'CodeMirrorViewer'
+CodeMirrorViewer.displayName = 'CodeMirrorViewer';

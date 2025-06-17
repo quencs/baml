@@ -14,30 +14,21 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./*": [
-      "./src/*.ts",
-      "./src/*.tsx",
-      "./src/*/index.ts"
-    ]
+    "./*": ["./src/*.ts", "./src/*.tsx", "./src/*/index.ts"]
   },
-  "files": [
-    "src"
-  ],
+  "files": ["src"],
   "typesVersions": {
     "*": {
-      "*": [
-        "src/*",
-        "src/*/index"
-      ]
+      "*": ["src/*", "src/*/index"]
     }
   },
   "engines": {
     "vscode": ">=1.63.0"
   },
   "dependencies": {
+    "@baml/codemirror-lang-baml": "workspace:*",
     "@baml/common": "workspace:",
     "@baml/ui": "workspace:*",
-    "@boundaryml/codemirror-lang-baml": "workspace:*",
     "@codemirror/autocomplete": "6.18.6",
     "@codemirror/lang-javascript": "6.2.4",
     "@codemirror/lint": "6.8.5",
@@ -88,7 +79,7 @@
     "@types/node": "24.0.3",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
-    "@types/vscode": "1.101.0",
+    "@types/vscode": "1.96.0",
     "jotai-devtools": "0.12.0",
     "react-dom": "19.1.0",
     "ts-node": "10.9.2",

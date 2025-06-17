@@ -1,34 +1,34 @@
-import type { ParserDatabase } from '@baml/common'
+import type { ParserDatabase } from '@baml/common';
 // import { languageWasm } from '.'
 // import { lint as wasmLint } from '@gloo-ai/baml-schema-wasm-web'
 // import { handleFormatPanic, handleWasmError } from './internals'
 
 type LintResponse = {
-  diagnostics: LinterError[]
+  diagnostics: LinterError[];
 } & (
   | { ok: false }
   | {
-      ok: true
-      response: ParserDatabase
+      ok: true;
+      response: ParserDatabase;
     }
-)
+);
 
 export interface LinterError {
-  start: number
-  end: number
-  text: string
-  is_warning: boolean
-  source_file: string
+  start: number;
+  end: number;
+  text: string;
+  is_warning: boolean;
+  source_file: string;
 }
 
 export interface LinterSourceFile {
-  path: string
-  content: string
+  path: string;
+  content: string;
 }
 
 export interface LinterInput {
-  root_path: string
-  files: LinterSourceFile[]
+  root_path: string;
+  files: LinterSourceFile[];
 }
 
 // export default function lint(input: LinterInput, onError?: (errorMessage: string) => void): LintResponse {
