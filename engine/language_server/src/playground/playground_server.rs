@@ -2,17 +2,15 @@ use crate::playground::definitions::{FrontendMessage, PlaygroundState};
 use crate::session::Session;
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
-use include_dir::{include_dir, Dir};
 use mime_guess::from_path;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use warp::{http::Response, ws::Message, Filter};
 
-/// Embed at compile time everything in dist/
-// WARNING: this is a relative path, will easily break if file structure changes
-static STATIC_DIR: Dir<'_> =
-    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/vscode-ext/packages/web-panel/dist");
+/// Path to the static files directory
+const STATIC_DIR: &str = "../../typescript/vscode-ext/packages/web-panel/dist";
 
 /// Helper to send all projects/files to a websocket client
 pub async fn send_all_projects_to_client(
@@ -116,17 +114,18 @@ pub fn create_server_routes(
             .and_then(|full: warp::path::FullPath| async move {
                 let path = full.as_str().trim_start_matches('/');
                 let file = if path.is_empty() { "index.html" } else { path };
-                match STATIC_DIR.get_file(file) {
-                    Some(f) => {
-                        let body = f.contents();
+                let file_path = PathBuf::from(STATIC_DIR).join(file);
+
+                match tokio::fs::read(&file_path).await {
+                    Ok(contents) => {
                         let mime = from_path(file).first_or_octet_stream();
                         Ok::<_, warp::Rejection>(
                             Response::builder()
                                 .header("content-type", mime.as_ref())
-                                .body(body.to_vec()),
+                                .body(contents),
                         )
                     }
-                    None => Ok::<_, warp::Rejection>(
+                    Err(_) => Ok::<_, warp::Rejection>(
                         Response::builder().status(404).body(b"Not Found".to_vec()),
                     ),
                 }

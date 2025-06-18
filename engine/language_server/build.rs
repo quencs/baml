@@ -48,11 +48,23 @@ fn main() {
     )
     .expect("Failed to execute pnpm install command");
 
+    // pnpm run build:playground
+    // Builds the dependencies for the web-view dist
+    run_command(
+        Command::new("pnpm")
+            .current_dir(&typescript_dir)
+            .args(["run", "build:playground"]),
+        "pnpm build",
+    )
+    .expect("Failed to execute pnpm build command");
+
+    // pnpm run build
+    // in web-panel, builds dist
     run_command(
         Command::new("pnpm")
             .current_dir(&web_panel_dir)
-            .arg("build"),
-        "pnpm build web-panel",
+            .args(["run", "build"]),
+        "pnpm build",
     )
     .expect("Failed to execute pnpm build command");
 
@@ -67,4 +79,7 @@ fn main() {
             dist_path.display()
         );
     }
+
+    // Tell cargo to rerun if the dist directory changes
+    println!("cargo:rerun-if-changed={}", dist_path.display());
 }
