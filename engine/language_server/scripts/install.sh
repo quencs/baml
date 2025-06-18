@@ -15,15 +15,15 @@ echo "Running pnpm install..."
 cd "$TYPESCRIPT_DIR"
 pnpm install
 
-# Build playground dependencies
-echo "Building playground dependencies..."
-pnpm run build:playground
-
 # Check if wasm-bindgen is installed, install if not
 if ! command -v wasm-bindgen &> /dev/null; then
     printf '%s\n' " -> Installing wasm-bindgen-cli..."
     cargo install -f wasm-bindgen-cli@0.2.92
 fi
+
+# Build playground dependencies
+echo "Building playground dependencies..."
+pnpm run build:playground
 
 # Build web panel
 echo "Building web panel..."
