@@ -197,7 +197,6 @@
     "zod": "3.25.66"
   },
   "devDependencies": {
-    "concurrently": "9.1.2",
     "@types/adm-zip": "0.5.7",
     "@types/cors": "2.8.19",
     "@types/express": "5.0.3",
@@ -210,6 +209,7 @@
     "@vitejs/plugin-react": "4.5.2",
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "3.5.0",
+    "concurrently": "9.1.2",
     "react-refresh": "0.17.0",
     "rimraf": "6.0.1",
     "vite": "6.3.5",

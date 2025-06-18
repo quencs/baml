@@ -18,11 +18,21 @@
       "persistent": true
     },
     "typecheck": {
-      "dependsOn": ["^topo", "^build"],
+      "dependsOn": [
+        "^topo",
+        "^build",
+        "@gloo-ai/baml-schema-wasm-node#build",
+        "@gloo-ai/baml-schema-wasm-web#build"
+      ],
       "outputs": ["node_modules/.cache/tsbuildinfo.json"]
     },
     "build": {
-      "dependsOn": ["^topo", "^build"],
+      "dependsOn": [
+        "^topo",
+        "^build",
+        "@gloo-ai/baml-schema-wasm-node#build",
+        "@gloo-ai/baml-schema-wasm-web#build"
+      ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "watch": {
