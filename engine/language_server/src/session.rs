@@ -442,12 +442,14 @@ mod tests {
         let global_settings = ClientSettings::default();
         let workspace_folders = vec![]; // Start with empty workspace
 
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
         Session::new(
             &client_capabilities,
             position_encoding,
             global_settings,
             &workspace_folders,
-            tokio::runtime::Handle::current(),
+            rt.handle().clone(),
         )
         .unwrap()
     }
