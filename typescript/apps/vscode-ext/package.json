@@ -202,6 +202,8 @@
     "@types/vscode": "1.63.0",
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "3.5.0",
+    "concurrently": "9.1.2",
+    "react-refresh": "0.17.0",
     "rimraf": "6.0.1",
     "tsup": "^8.0.0"
   },
