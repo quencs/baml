@@ -1,4 +1,4 @@
-/// This build script exists as a workaround to guarantee
+/// This build script exists as a fix to guarantee
 /// that the web-panel dist directory is built before the
 /// language server is built. As the web-panel is a embedded
 /// in the language server.
@@ -39,7 +39,7 @@ fn main() {
         typescript_dir.display()
     );
 
-    // pnpm install
+    // Install dependencies
     run_command(
         Command::new("pnpm")
             .current_dir(&typescript_dir)
@@ -48,38 +48,26 @@ fn main() {
     )
     .expect("Failed to execute pnpm install command");
 
-    // Run tsc and vite build in web-panel directory to get the dist directory
-    // for embedding in the language server
-    // run_command(
-    //     Command::new("npx")
-    //         .current_dir(&web_panel_dir)
-    //         .args(["tsc", "--noEmit"]),
-    //     "tsc type check",
-    // )
-    // .expect("Failed to execute tsc type check");
-
+    // Build frontend
     run_command(
-        Command::new("npx")
-            .current_dir(&web_panel_dir)
-            .args(["vite", "build"]),
-        "vite build",
+        Command::new("npx").current_dir(&typescript_dir).args([
+            "turbo",
+            "build",
+            "--filter=fiddle-frontend",
+        ]),
+        "turbo build",
     )
-    .expect("Failed to execute vite build");
+    .expect("Failed to execute turbo build");
 
-    // Try to find the dist directory
-    let dist_path = web_panel_dir.join("dist");
+    // Double check we correctly built the frontend
+    let dist_path = env::var("BAML_WEB_PANEL_DIST")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| web_panel_dir.join("dist"));
 
-    // Check if the directory exists
     if !dist_path.exists() {
         panic!(
             "Web panel dist directory not found at {}. Please ensure the path is correct or set BAML_WEB_PANEL_DIST environment variable.",
             dist_path.display()
         );
     }
-
-    // Set the environment variable for the build
-    println!(
-        "cargo:rustc-env=BAML_WEB_PANEL_DIST={}",
-        dist_path.display()
-    );
 }
