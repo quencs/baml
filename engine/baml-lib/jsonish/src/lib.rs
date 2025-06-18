@@ -15,11 +15,11 @@ use deserializer::{
     deserialize_flags::DeserializerConditions,
 };
 
-pub use deserializer::types::BamlValueWithFlags;
 use internal_baml_core::ir::TypeValue;
 use internal_baml_jinja::types::OutputFormatContent;
 
-use crate::deserializer::score::WithScore;
+use crate::deserializer::types::{HasFlags, HasType};
+use crate::deserializer::{coercer::DefaultValue, score::WithScore};
 use baml_types::{Completion, CompletionState};
 use deserializer::deserialize_flags::Flag;
 use deserializer::types::ParsingErrorToUiJson;
@@ -192,52 +192,48 @@ fn serialize_with_meta<S: Serializer, T: Serialize>(
     }
 }
 
-pub fn sap_parse<M>(
+/// The main entrypoint of the Structure Aligned Parser.
+/// Parses a string into a `BamlValueWithMeta`.
+/// The function is generic over `M` the metadata of the BamlValueWithMeta,
+/// and `T`, the Rust type representing the BAML type.
+///
+/// Two concrete users of this function are expected:
+/// `BamlValueWithFlags`
+///    M: (DeserializerConditions, Type)
+///    T: Type
+/// `BamlValueStreamingWithFlags`
+///    M: (DeserializerConditions, TypeStreaming)
+///    T: TypeStreaming
+pub fn sap_parse<M, T>(
     of: &OutputFormatContent,
-    target: &FieldType,
+    target: &T,
     raw_string: &str,
-    allow_partials: bool
-) -> Result<BamlValueWithMeta<M>> 
+) -> Result<BamlValueWithMeta<M>>
 where
-    M: HasFieldType + From<FieldType>,
+    M: HasType<Type = T> + HasFlags,
+    T: TypeCoercer<T, M> + DefaultValue<T, M>,
 {
-    todo!()
-}
-
-// Deprecate in favor of the generic one.
-pub fn from_str(
-    of: &OutputFormatContent,
-    target: &FieldType,
-    raw_string: &str,
-    allow_partials: bool,
-) -> Result<BamlValueWithFlags> {
-    if matches!(target, FieldType::Primitive(TypeValue::String, _)) {
-        return Ok(BamlValueWithFlags::String(
-            (raw_string.to_string(), target).into(),
-        ));
-    }
-
-    // When the schema is just a string, i should really just return the raw_string w/o parsing it.
-    let value = jsonish::parse(raw_string, jsonish::ParseOptions::default())?;
+    let value: Value = jsonish::parse(raw_string, jsonish::ParseOptions::default())?;
 
     // Pick the schema that is the most specific.
     log::debug!("Parsed JSONish (step 1 of parsing): {:#?}", value);
-    let ctx = ParsingContext::new(of, allow_partials);
+    let ctx = ParsingContext::new(of);
 
     // Determine the best way to get the desired schema from the parsed schema.
 
     // Lets try to now coerce the value into the expected schema.
-    let parsed_value: BamlValueWithFlags = match target.coerce(&ctx, target, Some(&value)) {
+    let parsed_value: BamlValueWithMeta<M> = match target.coerce(&ctx, target, Some(&value)) {
         Ok(v) => {
-            if v.conditions()
+            if v.meta()
+                .flags()
                 .flags()
                 .iter()
                 .any(|f| matches!(f, Flag::InferedObject(jsonish::Value::String(_, _))))
             {
-                anyhow::bail!("Failed to coerce value: {:?}", v.conditions().flags());
+                anyhow::bail!("Failed to coerce value: {:?}", v.meta().flags().flags());
             }
 
-            Ok::<BamlValueWithFlags, anyhow::Error>(v)
+            Ok::<BamlValueWithMeta<M>, anyhow::Error>(v)
         }
         Err(e) => anyhow::bail!("Failed to coerce value: {}", e),
     }?;

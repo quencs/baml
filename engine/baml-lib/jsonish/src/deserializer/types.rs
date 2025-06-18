@@ -16,15 +16,15 @@ use super::{
 
 /// A deserialization target for full (non-streaming values, which captures
 /// the parser scoring at each node in the nested value.
-type BamlValueWithFlags = BamlValueWithMeta<(DeserializerConditions, Type)>;
+pub type BamlValueWithFlags = BamlValueWithMeta<(DeserializerConditions, Type)>;
 
 /// A deserialization target for streaming values, which captures
 /// the parser scoring at each node in the nested value.
-type BamlValueStreamingWithFlags = BamlValueWithMeta<(DeserializerConditions, TypeStreaming)>;
+pub type BamlValueStreamingWithFlags = BamlValueWithMeta<(DeserializerConditions, TypeStreaming)>;
 
 /// A trait for Metadata types that contain some sort of "Type-like" field,
 /// (e.g. `Type` or `TypeStreaming`).
-trait HasType {
+pub trait HasType {
     /// The type of the "Type-like" field.
     type Type: std::fmt::Display;
 
@@ -60,7 +60,7 @@ impl HasType for (DeserializerConditions, TypeStreaming) {
 }
 
 /// A trait for Metadata types that contain a `DeserializerConditions` field.
-trait HasFlags {
+pub trait HasFlags {
     /// Get a reference to the flags.
     fn flags(&self) -> &DeserializerConditions;
 
@@ -69,7 +69,7 @@ trait HasFlags {
 
     /// Get the score of the flags under a value, including the score of all
     /// flags under the value's children.
-    fn score(value: BamlValueWithMeta<Self>) -> i32
+    fn score(value: &BamlValueWithMeta<Self>) -> i32
     where
         Self: Sized,
     {

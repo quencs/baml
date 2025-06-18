@@ -12,20 +12,20 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 
-use baml_types::{BamlValue, Constraint, JinjaExpression};
+use baml_types::{BamlValue, BamlValueWithMeta, Constraint, JinjaExpression};
 use internal_baml_jinja::types::OutputFormatContent;
 
 use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, FieldType};
 
 use crate::jsonish;
 
-use super::types::BamlValueWithFlags;
+use super::types::{BamlValueStreamingWithFlags, BamlValueWithFlags, HasFlags, HasType};
 
 pub struct ParsingContext<'a> {
     pub scope: Vec<String>,
     visited: HashSet<(String, jsonish::Value)>,
     pub of: &'a OutputFormatContent,
-    pub allow_partials: bool,
+    // pub allow_partials: bool,
 }
 
 impl ParsingContext<'_> {
@@ -36,12 +36,11 @@ impl ParsingContext<'_> {
         self.scope.join(".")
     }
 
-    pub(crate) fn new(of: &OutputFormatContent, allow_partials: bool) -> ParsingContext<'_> {
+    pub(crate) fn new(of: &OutputFormatContent) -> ParsingContext<'_> {
         ParsingContext {
             scope: Vec::new(),
             visited: HashSet::new(),
             of,
-            allow_partials,
         }
     }
 
@@ -52,7 +51,6 @@ impl ParsingContext<'_> {
             scope: new_scope,
             visited: self.visited.clone(),
             of: self.of,
-            allow_partials: self.allow_partials,
         }
     }
 
@@ -69,7 +67,6 @@ impl ParsingContext<'_> {
             scope: self.scope.clone(),
             visited: new_visited,
             of: self.of,
-            allow_partials: self.allow_partials,
         }
     }
 
@@ -246,17 +243,17 @@ impl std::fmt::Display for ParsingError {
 
 impl std::error::Error for ParsingError {}
 
-pub trait TypeCoercer {
+pub trait TypeCoercer<T, M: HasType<Type = T> + HasFlags> {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &T,
         value: Option<&crate::jsonish::Value>,
-    ) -> Result<BamlValueWithFlags, ParsingError>;
+    ) -> Result<BamlValueWithMeta<M>, ParsingError>;
 }
 
-pub trait DefaultValue {
-    fn default_value(&self, error: Option<&ParsingError>) -> Option<BamlValueWithFlags>;
+pub trait DefaultValue<T, M: HasType<Type = T> + HasFlags> {
+    fn default_value(&self, error: Option<&ParsingError>) -> Option<BamlValueWithMeta<M>>;
 }
 
 /// Run all checks and asserts for a value at a given type.

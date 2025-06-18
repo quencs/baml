@@ -1,33 +1,17 @@
-use baml_types::{Constraint, ConstraintLevel};
+use baml_types::{BamlValueWithMeta, Constraint, ConstraintLevel};
 
-use super::{
-    deserialize_flags::{DeserializerConditions, Flag},
-    types::{BamlValueWithFlags, ValueWithFlags},
-};
+use crate::deserializer::types::HasFlags;
+
+use super::deserialize_flags::{DeserializerConditions, Flag};
 
 // Lower is better
 pub trait WithScore {
     fn score(&self) -> i32;
 }
 
-impl WithScore for BamlValueWithFlags {
+impl<M: HasFlags> WithScore for BamlValueWithMeta<M> {
     fn score(&self) -> i32 {
-        match self {
-            BamlValueWithFlags::String(s) => s.score(),
-            BamlValueWithFlags::Int(s) => s.score(),
-            BamlValueWithFlags::Float(s) => s.score(),
-            BamlValueWithFlags::Bool(s) => s.score(),
-            BamlValueWithFlags::List(s, _, items) => {
-                s.score() + 10 * items.iter().map(WithScore::score).sum::<i32>()
-            }
-            BamlValueWithFlags::Map(s, _, _) => s.score(),
-            BamlValueWithFlags::Enum(_, _, s) => s.score(),
-            BamlValueWithFlags::Class(_, s, _, kv) => {
-                s.score() + 10 * kv.iter().map(|(_, v)| v.score()).sum::<i32>()
-            }
-            BamlValueWithFlags::Null(_, s) => s.score(),
-            BamlValueWithFlags::Media(_, s) => s.score(),
-        }
+        HasFlags::score(self)
     }
 }
 
@@ -73,12 +57,6 @@ impl WithScore for Flag {
             Flag::Incomplete => 0,
             Flag::Pending => 0,
         }
-    }
-}
-
-impl<T> WithScore for ValueWithFlags<T> {
-    fn score(&self) -> i32 {
-        self.flags.score()
     }
 }
 
