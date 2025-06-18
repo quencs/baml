@@ -48,16 +48,13 @@ fn main() {
     )
     .expect("Failed to execute pnpm install command");
 
-    // Build frontend
     run_command(
-        Command::new("npx").current_dir(&typescript_dir).args([
-            "turbo",
-            "build",
-            "--filter=fiddle-frontend",
-        ]),
-        "turbo build",
+        Command::new("pnpm")
+            .current_dir(&web_panel_dir)
+            .arg("build"),
+        "pnpm build web-panel",
     )
-    .expect("Failed to execute turbo build");
+    .expect("Failed to execute pnpm build command");
 
     // Double check we correctly built the frontend
     let dist_path = env::var("BAML_WEB_PANEL_DIST")
