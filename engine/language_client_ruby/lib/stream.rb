@@ -1,34 +1,9 @@
+# typed: strict
 require "sorbet-runtime"
 
 module Baml
-  # class BamlStream
-  #   include Enumerable
-
-  #   def initialize(raw_stream:)
-  #     @raw_stream = raw_stream
-  #   end
-
-  #   def each(&block)
-  #     @raw_stream.each do |raw_msg|
-  #       yield Message.from(raw_msg)
-  #     end
-  #   end
-  # end
-
-  class StreamState < T::Struct
+  class PendingResponse < T::Struct
     extend T::Sig
-
-    extend T::Generic
-
-    Value = type_member
-
-    const :value, Value
-    const :state, Symbol
-
-    def initialize(props)
-      super(value: props[:value], state: props[:state])
-    end
-
   end
 
   class BamlStream
@@ -37,17 +12,26 @@ module Baml
 
     include Enumerable
 
-    PartialType = type_member
-    FinalType = type_member
+    Elem = type_member(:out)
+    FinalType = type_member(:out)
 
+    sig { params(
+      ffi_stream: Baml::Ffi::FunctionResultStream,
+      ctx_manager: Baml::Ffi::RuntimeContextManager,
+      partial_cast: T.proc.params(event: T.untyped).returns(Elem),
+      final_cast: T.proc.params(event: T.untyped).returns(FinalType)
+    ).void }
     def initialize(
       ffi_stream:,
-      ctx_manager:
+      ctx_manager:,
+      partial_cast:,
+      final_cast:
     )
       @ffi_stream = ffi_stream
       @ctx_manager = ctx_manager
-
-      @final_response = nil
+      @partial_cast = partial_cast
+      @final_cast = final_cast
+      @final_response = T.let(PendingResponse.new, T.any(PendingResponse, FinalType))
     end
 
     # Calls the given block once for each event in the stream, where event is a parsed
@@ -57,31 +41,33 @@ module Baml
     #
     # @yieldparam [PartialType] event the parsed partial response
     # @return [BamlStream] self
-    sig { params(block: T.proc.params(event: PartialType).void).returns(BamlStream)}
+    sig do
+      override.params(block: T.proc.params(event: Elem).void)
+        .returns(BamlStream[Elem, FinalType])
+    end
     def each(&block)
       # Implementing this and include-ing Enumerable allows users to treat this as a Ruby
       # collection: https://ruby-doc.org/3.1.6/Enumerable.html#module-Enumerable-label-Usage
-      if @final_response == nil
+      case @final_response
+      when PendingResponse
         @final_response = @ffi_stream.done(@ctx_manager) do |event|
-          block.call event.parsed_using_types(Baml::Types, Baml::PartialTypes, true)
+          block.call(@partial_cast.call(event))
         end
       end
-
       self
     end
-
 
     # Gets the final response from the stream.
     #
     # @return [FinalType] the parsed final response
     sig {returns(FinalType)}
     def get_final_response
-      if @final_response == nil
+      case @final_response
+      when PendingResponse
         @final_response = @ffi_stream.done(@ctx_manager)
       end
 
-      @final_response.parsed_using_types(Baml::Types, Baml::PartialTypes, false)
+      @final_cast.call(@final_response)
     end
   end
-
 end

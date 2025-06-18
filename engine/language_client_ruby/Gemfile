@@ -5,15 +5,17 @@ source "https://rubygems.org"
 # Specify your gem's dependencies in baml.gemspec
 gemspec
 
-gem "rake", "~> 13.0"
-gem "rake-compiler", "~> 1.2"
 # Must be kept in sync with Cargo.toml
 gem "rb_sys", "=0.9.111"
+
+gem "tapioca", require: false, :group => [:development, :test]
+gem "rake", "~> 13.0", :group => [:development, :test]
+gem "rake-compiler", "~> 1.2", :group => [:development, :test]
 
 group :test do
   gem "async"
   gem "minitest-reporters"
   gem "sorbet-coerce"
-  gem "sorbet-runtime"
+  gem "sorbet-static-and-runtime"
   gem "sorbet-struct-comparable"
 end

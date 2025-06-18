@@ -1,3 +1,4 @@
+# typed: true
 require 'test/unit'
 require 'baml'
 
@@ -5,7 +6,7 @@ require 'baml'
 # string representations of complex types like classes and enums. this is
 # important for debugging and logging purposes, as it helps
 # understand the structure of their type definitions at runtime.
-class TypeBuilderTest < Test::Unit::TestCase
+class TypeBuilderTest < Minitest::Test
 
   # tests that class definitions are properly stringified with all their
   # properties and metadata intact. this helps ensure our type system

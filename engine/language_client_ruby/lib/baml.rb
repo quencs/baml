@@ -1,34 +1,37 @@
+# typed: false
 begin
   ruby_version = /(\d+\.\d+)/.match(RUBY_VERSION)
   require_relative "baml/#{ruby_version}/ruby_ffi"
 rescue LoadError
   require_relative "baml/ruby_ffi"
 end
-# require_relative "baml/ruby_ffi"
+
 require_relative "stream"
 require_relative "struct"
-require_relative "checked"
 
 module Baml
+  extend T::Sig
+
+  # Expose FFI types.
   ClientRegistry = Baml::Ffi::ClientRegistry
   Image = Baml::Ffi::Image
   Audio = Baml::Ffi::Audio
   Collector = Baml::Ffi::Collector
 
-  # Reexport Checked types.
-  Checked = Baml::Checks::Checked
-  Check = Baml::Checks::Check
-
-
   # Dynamically + idempotently define Baml::TypeConverter
   # NB: this does not respect raise_coercion_error = false
+  sig { params(type: T.untyped).returns(T.untyped) }
   def self.convert_to(type)
     if !Baml.const_defined?(:TypeConverter)
       Baml.const_set(:TypeConverter, Class.new(TypeCoerce::Converter) do
+        extend T::Sig
+
+        sig { params(type: T.untyped).void }
         def initialize(type)
           super(type)
         end
-        
+
+        sig { params(value: T.untyped, type: T.untyped, raise_coercion_error: T.untyped, coerce_empty_to_nil: T.untyped).returns(T.untyped) }
         def _convert(value, type, raise_coercion_error, coerce_empty_to_nil)
           # make string handling more strict
           if type == String

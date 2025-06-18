@@ -1,3 +1,4 @@
+# typed: true
 require 'minitest/autorun'
 require 'minitest/reporters'
 require "sorbet-runtime"
@@ -12,6 +13,15 @@ class Color < T::Enum
 end
 
 module Identifiable
+  extend T::Helpers
+  extend T::Sig
+
+  abstract!
+
+  sig { abstract.returns(String) }
+  def name; end
+
+  sig { returns(String) }
   def identify
     "i am a #{self.name}"
   end
@@ -53,18 +63,18 @@ end
 
 describe "learning ruby and sorbet" do
   it "defines an enum without warnings" do
-    assert_equal(Color::RED.serialize, "rojo")
-    assert_equal(Color.deserialize("rojo"), Color::RED)
+    must_equal(Color::RED.serialize, "rojo")
+    must_equal(Color.deserialize("rojo"), Color::RED)
   end
 
   it "uses include correctly" do
     v = Vehicle.new
-    assert_equal(v.identify, "i am a vehicle")
+    must_equal(v.identify, "i am a vehicle")
   end
 
   it "serializes a basic struct without warnings" do
     foo = Baml::Types::Foo.new(foo: 1)
-    assert_equal(foo.serialize.foo, 1)
+    must_equal(foo.serialize.foo, 1)
   end
 
   it "forwards each correctly" do
@@ -88,11 +98,11 @@ describe "learning ruby and sorbet" do
 
     f = FakeStream.new
 
-    assert_nil(f.final)
+    must_equal(f.final, nil)
     f.each_with_index do |e, i|
-      assert_equal(e, i + 1)
+      must_equal(e, i + 1)
     end
-    assert_equal(f.final, 'final')
+    must_equal(f.final, 'final')
   end
 end
 

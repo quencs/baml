@@ -1,3 +1,4 @@
+# typed: strict
 require "async"
 require_relative "../lib/baml"
 

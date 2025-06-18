@@ -1,3 +1,4 @@
+# typed: false
 require "mkmf"
 require "rb_sys/mkmf"
 
