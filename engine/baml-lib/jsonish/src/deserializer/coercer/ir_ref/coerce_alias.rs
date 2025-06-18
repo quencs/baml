@@ -1,44 +1,27 @@
 use anyhow::Result;
-use internal_baml_core::ir::FieldType;
+use baml_types::{BamlValueWithMeta, FieldType};
 
-use crate::deserializer::types::BamlValueWithFlags;
+use crate::deserializer::{types::{HasFlags, HasType}, coercer::{ParsingContext, ParsingError, TypeCoercer}};
 
-use super::{ParsingContext, ParsingError, TypeCoercer};
-
-pub fn coerce_alias(
+pub(super) fn coerce_alias<M>(
     ctx: &ParsingContext,
-    target: &FieldType,
+    alias: &FieldType,
     value: Option<&crate::jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
-    assert!(matches!(target, FieldType::RecursiveTypeAlias { .. }));
-    log::debug!(
-        "scope: {scope} :: coercing to: {name} (current: {current})",
-        name = target.to_string(),
-        scope = ctx.display_scope(),
-        current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
-    );
-
-    let FieldType::RecursiveTypeAlias { name: alias, .. } = target else {
-        unreachable!("coerce_alias");
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
+    // For recursive type aliases, we need to find the target type and coerce to that
+    let FieldType::RecursiveTypeAlias { name, .. } = alias else {
+        return Err(ctx.error_internal("coerce_alias called on non-alias type"));
     };
-
-    // See coerce_class.rs
-    let mut nested_ctx = None;
-    if let Some(v) = value {
-        let cls_value_pair = (alias.to_string(), v.to_owned());
-        if ctx.visited.contains(&cls_value_pair) {
-            return Err(ctx.error_circular_reference(alias, v));
+    
+    // Find the target type for this alias
+    match ctx.of.find_recursive_alias_target(name) {
+        Ok(target_type) => {
+            // Coerce to the target type
+            target_type.coerce(ctx, target_type, value)
         }
-        nested_ctx = Some(ctx.visit_class_value_pair(cls_value_pair));
+        Err(e) => Err(ctx.error_internal(e.to_string())),
     }
-    let ctx = nested_ctx.as_ref().unwrap_or(ctx);
-
-    ctx.of
-        .find_recursive_alias_target(alias)
-        .map_err(|e| ParsingError {
-            reason: format!("Failed to find recursive alias target: {e}"),
-            scope: ctx.scope.clone(),
-            causes: Vec::new(),
-        })?
-        .coerce(ctx, target, value)
 }

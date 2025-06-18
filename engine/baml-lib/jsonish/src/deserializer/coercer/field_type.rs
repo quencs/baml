@@ -1,11 +1,11 @@
 use anyhow::Result;
-use baml_types::{BamlMap, CompletionState, Constraint, ConstraintLevel, LiteralValue};
-use internal_baml_core::{ir::FieldType, ir::TypeValue};
+use baml_types::{BamlMap, BamlValueWithMeta, CompletionState, Constraint, ConstraintLevel, LiteralValue, FieldType};
+use internal_baml_core::ir::TypeValue;
 
 use crate::deserializer::{
     coercer::{run_user_checks, DefaultValue, TypeCoercer},
     deserialize_flags::{DeserializerConditions, Flag},
-    types::BamlValueWithFlags,
+    types::{BamlValueWithFlags, HasFlags, HasType},
 };
 
 use super::{
@@ -17,13 +17,16 @@ use super::{
     ParsingContext, ParsingError,
 };
 
-impl TypeCoercer for FieldType {
+impl<M> TypeCoercer<FieldType, M> for FieldType
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     fn coerce(
         &self,
         ctx: &ParsingContext,
         target: &FieldType,
         value: Option<&crate::jsonish::Value>,
-    ) -> Result<BamlValueWithFlags, ParsingError> {
+    ) -> Result<BamlValueWithMeta<M>, ParsingError> {
         let mut result = match value {
             Some(crate::jsonish::Value::AnyOf(candidates, primitive)) => {
                 log::debug!(
@@ -63,7 +66,7 @@ impl TypeCoercer for FieldType {
                     current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
                 );
                 self.coerce(ctx, target, Some(v)).map(|mut v| {
-                    v.add_flag(Flag::ObjectFromMarkdown(
+                    v.meta_mut().flags_mut().add_flag(Flag::ObjectFromMarkdown(
                         if matches!(target, FieldType::Primitive(TypeValue::String, _)) {
                             1
                         } else {
@@ -82,7 +85,7 @@ impl TypeCoercer for FieldType {
                     current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
                 );
                 let mut v = self.coerce(ctx, target, Some(v))?;
-                v.add_flag(Flag::ObjectFromFixedJson(fixes.to_vec()));
+                v.meta_mut().flags_mut().add_flag(Flag::ObjectFromFixedJson(fixes.to_vec()));
                 Ok(v)
             }
             _ => match self {
@@ -91,15 +94,15 @@ impl TypeCoercer for FieldType {
                 FieldType::Literal(l, _) => l.coerce(ctx, target, value),
                 FieldType::Class { name, .. } => IrRef::Class(name).coerce(ctx, target, value),
                 FieldType::RecursiveTypeAlias { name, .. } => {
-                    coerce_alias(ctx, self, value).map(|v| v.with_target(target))
+                    coerce_alias(ctx, self, value)
                 }
                 FieldType::List(_, _) => {
-                    coerce_array(ctx, self, value).map(|v| v.with_target(target))
+                    coerce_array(ctx, self, value)
                 }
                 FieldType::Union(_, _) => {
-                    coerce_union(ctx, self, value).map(|v| v.with_target(target))
+                    coerce_union(ctx, self, value)
                 }
-                FieldType::Map(..) => coerce_map(ctx, self, value).map(|v| v.with_target(target)),
+                FieldType::Map(..) => coerce_map(ctx, self, value),
                 FieldType::Tuple(_, _) => Err(ctx.error_internal("Tuple not supported")),
                 FieldType::Arrow(_, _) => Err(ctx.error_internal("Arrow type not supported")),
             },
@@ -121,11 +124,11 @@ impl TypeCoercer for FieldType {
                             .map(|(label, expr)| (label, expr, result))
                     })
                     .collect();
-                coerced_value.add_flag(Flag::ConstraintResults(check_results));
+                coerced_value.meta_mut().flags_mut().add_flag(Flag::ConstraintResults(check_results));
             }
         }
         if let Some(CompletionState::Incomplete) = value.map(|v| v.completion_state()) {
-            result.iter_mut().for_each(|v| v.add_flag(Flag::Incomplete));
+            result.iter_mut().for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
         }
         result
     }
@@ -176,8 +179,11 @@ pub fn validate_asserts(constraints: &[(Constraint, bool)]) -> Result<(), Parsin
     }
 }
 
-impl DefaultValue for FieldType {
-    fn default_value(&self, error: Option<&ParsingError>) -> Option<BamlValueWithFlags> {
+impl<M> DefaultValue<FieldType, M> for FieldType
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
+    fn default_value(&self, error: Option<&ParsingError>) -> Option<BamlValueWithMeta<M>> {
         let get_flags = || {
             DeserializerConditions::new().with_flag(error.map_or(Flag::DefaultFromNoValue, |e| {
                 Flag::DefaultButHadUnparseableValue(e.clone())
@@ -189,30 +195,37 @@ impl DefaultValue for FieldType {
             FieldType::Literal(_, _) => None,
             FieldType::Class { .. } => None,
             FieldType::RecursiveTypeAlias { .. } => None,
-            FieldType::List(_, _) => Some(BamlValueWithFlags::List(
-                get_flags(),
-                self.clone(),
-                Vec::new(),
-            )),
+            FieldType::List(_, _) => {
+                let mut meta = M::default();
+                *meta.type_mut() = self.clone();
+                meta.flags_mut().flags.extend(get_flags().flags);
+                Some(BamlValueWithMeta::List(Vec::new(), meta))
+            }
             FieldType::Union(items, _) => items
                 .iter_include_null()
                 .iter()
                 .find_map(|i| i.default_value(error)),
             FieldType::Primitive(TypeValue::Null, _) => {
-                return Some(BamlValueWithFlags::Null(self.clone(), get_flags()))
+                let mut meta = M::default();
+                *meta.type_mut() = self.clone();
+                meta.flags_mut().flags.extend(get_flags().flags);
+                return Some(BamlValueWithMeta::Null(meta))
             }
-            FieldType::Map(..) => Some(BamlValueWithFlags::Map(
-                get_flags(),
-                self.clone(),
-                BamlMap::new(),
-            )),
+            FieldType::Map(..) => {
+                let mut meta = M::default();
+                *meta.type_mut() = self.clone();
+                meta.flags_mut().flags.extend(get_flags().flags);
+                Some(BamlValueWithMeta::Map(BamlMap::new(), meta))
+            }
             FieldType::Tuple(v, _) => {
                 let default_values: Vec<_> = v.iter().map(|f| f.default_value(error)).collect();
                 if default_values.iter().all(Option::is_some) {
-                    Some(BamlValueWithFlags::List(
-                        get_flags(),
-                        self.clone(),
+                    let mut meta = M::default();
+                    *meta.type_mut() = self.clone();
+                    meta.flags_mut().flags.extend(get_flags().flags);
+                    Some(BamlValueWithMeta::List(
                         default_values.into_iter().map(Option::unwrap).collect(),
+                        meta,
                     ))
                 } else {
                     None

@@ -1,20 +1,21 @@
 use anyhow::Result;
-use internal_baml_core::ir::FieldType;
-
-use baml_types::CompletionState;
+use baml_types::{BamlValueWithMeta, CompletionState, FieldType};
 
 use crate::deserializer::{
     deserialize_flags::{DeserializerConditions, Flag},
-    types::BamlValueWithFlags,
+    types::{HasFlags, HasType},
 };
 
 use super::{ParsingContext, ParsingError, TypeCoercer};
 
-pub(super) fn coerce_array(
+pub(super) fn coerce_array<M>(
     ctx: &ParsingContext,
     list_target: &FieldType,
     value: Option<&crate::jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     assert!(matches!(list_target, FieldType::List(_, _)));
 
     log::debug!(
@@ -55,5 +56,9 @@ pub(super) fn coerce_array(
         None => {}
     };
 
-    Ok(BamlValueWithFlags::List(flags, list_target.clone(), items))
+    let mut meta = M::default();
+    *meta.type_mut() = list_target.clone();
+    meta.flags_mut().flags.extend(flags.flags);
+
+    Ok(BamlValueWithMeta::List(items, meta))
 }

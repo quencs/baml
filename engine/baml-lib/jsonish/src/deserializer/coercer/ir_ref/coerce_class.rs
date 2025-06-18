@@ -1,13 +1,12 @@
 use anyhow::Result;
-use baml_types::{BamlMap, Constraint};
-use internal_baml_core::ir::FieldType;
+use baml_types::{BamlMap, BamlValueWithMeta, Constraint, FieldType};
 use internal_baml_jinja::types::{Class, Name};
 
 use crate::deserializer::{
     coercer::field_type::validate_asserts,
     coercer::{array_helper, run_user_checks, DefaultValue, ParsingError, TypeCoercer},
     deserialize_flags::{DeserializerConditions, Flag},
-    types::BamlValueWithFlags,
+    types::{BamlValueWithFlags, HasFlags, HasType},
 };
 
 use super::ParsingContext;
@@ -15,13 +14,16 @@ use super::ParsingContext;
 // Name, type, description, streaming_needed.
 type FieldValue = (Name, FieldType, Option<String>, bool);
 
-impl TypeCoercer for Class {
+impl<M> TypeCoercer<FieldType, M> for &Class
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     fn coerce(
         &self,
         ctx: &ParsingContext,
         target: &FieldType,
         value: Option<&crate::jsonish::Value>,
-    ) -> Result<BamlValueWithFlags, ParsingError> {
+    ) -> Result<BamlValueWithMeta<M>, ParsingError> {
         log::debug!(
             "scope: {scope} :: coercing to: {name} (current: {current})",
             name = self.name.real_name(),
@@ -116,7 +118,7 @@ impl TypeCoercer for Class {
                             )),
                         )
                         .map(|mut v| {
-                            v.add_flag(Flag::ImpliedKey(field.0.real_name().into()));
+                            v.meta_mut().flags_mut().add_flag(Flag::ImpliedKey(field.0.real_name().into()));
                             v
                         });
 
@@ -144,7 +146,7 @@ impl TypeCoercer for Class {
                     let scope = ctx.enter_scope(&format!("<implied:{}>", field.0.real_name()));
                     let parsed = match field.1.coerce(&scope, &field.1, value) {
                         Ok(mut v) => {
-                            v.add_flag(Flag::ImpliedKey(field.0.real_name().into()));
+                            v.meta_mut().flags_mut().add_flag(Flag::ImpliedKey(field.0.real_name().into()));
                             Ok(v)
                         }
                         Err(e) => Err(e),
@@ -179,7 +181,7 @@ impl TypeCoercer for Class {
                     let scope = ctx.enter_scope(&format!("<implied:{}>", field.0.real_name()));
                     let parsed = match field.1.coerce(&scope, &field.1, Some(x)) {
                         Ok(mut v) => {
-                            v.add_flag(Flag::ImpliedKey(field.0.real_name().into()));
+                            v.meta_mut().flags_mut().add_flag(Flag::ImpliedKey(field.0.real_name().into()));
                             flags.add_flag(Flag::InferedObject(x.clone()));
                             Ok(v)
                         }
@@ -206,11 +208,12 @@ impl TypeCoercer for Class {
                                 t.default_value(Some(e))
                             }
                             // If we're missing a field, thats ok!
-                            None => Some(BamlValueWithFlags::Null(
-                                t.clone(),
-                                DeserializerConditions::new()
-                                    .with_flag(Flag::OptionalDefaultFromNoValue),
-                            )),
+                            None => {
+                                let mut meta = M::default();
+                                *meta.type_mut() = t.clone();
+                                meta.flags_mut().add_flag(Flag::OptionalDefaultFromNoValue);
+                                Some(BamlValueWithMeta::Null(meta))
+                            }
                         };
 
                         if let Some(next) = next {
@@ -222,25 +225,23 @@ impl TypeCoercer for Class {
                     let next = match v {
                         Some(Ok(_)) => None,
                         Some(Err(e)) => t.default_value(Some(e)).or_else(|| {
-                            if ctx.allow_partials {
-                                Some(BamlValueWithFlags::Null(
-                                    t.clone().as_optional(),
-                                    DeserializerConditions::new()
-                                        .with_flag(Flag::OptionalDefaultFromNoValue)
-                                        .with_flag(Flag::Pending),
-                                ))
+                            if false { // ctx.allow_partials - removed for now
+                                let mut meta = M::default();
+                                *meta.type_mut() = t.clone().as_optional();
+                                meta.flags_mut().add_flag(Flag::OptionalDefaultFromNoValue);
+                                meta.flags_mut().add_flag(Flag::Pending);
+                                Some(BamlValueWithMeta::Null(meta))
                             } else {
                                 None
                             }
                         }),
                         None => t.default_value(None).or_else(|| {
-                            if ctx.allow_partials {
-                                Some(BamlValueWithFlags::Null(
-                                    t.clone().as_optional(),
-                                    DeserializerConditions::new()
-                                        .with_flag(Flag::OptionalDefaultFromNoValue)
-                                        .with_flag(Flag::Pending),
-                                ))
+                            if false { // ctx.allow_partials - removed for now
+                                let mut meta = M::default();
+                                *meta.type_mut() = t.clone().as_optional();
+                                meta.flags_mut().add_flag(Flag::OptionalDefaultFromNoValue);
+                                meta.flags_mut().add_flag(Flag::Pending);
+                                Some(BamlValueWithMeta::Null(meta))
                             } else {
                                 None
                             }
@@ -298,16 +299,7 @@ impl TypeCoercer for Class {
                     ));
                 }
             } else {
-                // TODO: Figure out how to propagate these errors as flags.
-                let merged_errors = required_values
-                    .iter()
-                    .filter_map(|(_k, v)| v.clone())
-                    .filter_map(|v| match v {
-                        Ok(_) => None,
-                        Err(e) => Some(e.to_string()),
-                    })
-                    .collect::<Vec<_>>();
-
+                // Create valid fields map
                 let valid_fields = required_values
                     .iter()
                     .filter_map(|(k, v)| match v.to_owned() {
@@ -317,41 +309,39 @@ impl TypeCoercer for Class {
                     .chain(optional_values.iter().map(|(k, v)| {
                         match v.to_owned() {
                             Some(Ok(v)) => {
-                                // Decide if null is a better option.
                                 (k.to_string(), v)
                             }
-                            None => (
-                                k.to_string(),
-                                BamlValueWithFlags::Null(
-                                    self.fields
-                                        .iter()
-                                        .find(|(name, ..)| name.real_name() == k)
-                                        .map(|f| f.1.clone().as_optional())
-                                        .expect(&format!(
-                                            "Field {} not found in class {}",
-                                            k,
-                                            self.name.real_name()
-                                        )),
-                                    DeserializerConditions::new().with_flag(Flag::Incomplete),
-                                ),
-                            ),
-                            Some(Err(e)) => (
-                                k.to_string(),
-                                BamlValueWithFlags::Null(
-                                    self.fields
-                                        .iter()
-                                        .find(|(name, ..)| name.real_name() == k)
-                                        .map(|f| f.1.clone().as_optional())
-                                        .expect(&format!(
-                                            "Field {} not found in class {}",
-                                            k,
-                                            self.name.real_name()
-                                        )),
-                                    DeserializerConditions::new()
-                                        .with_flag(Flag::DefaultButHadUnparseableValue(e))
-                                        .with_flag(Flag::Incomplete),
-                                ),
-                            ),
+                            None => {
+                                let field_type = self.fields
+                                    .iter()
+                                    .find(|(name, ..)| name.real_name() == k)
+                                    .map(|f| f.1.clone().as_optional())
+                                    .expect(&format!(
+                                        "Field {} not found in class {}",
+                                        k,
+                                        self.name.real_name()
+                                    ));
+                                let mut meta = M::default();
+                                *meta.type_mut() = field_type;
+                                meta.flags_mut().add_flag(Flag::Incomplete);
+                                (k.to_string(), BamlValueWithMeta::Null(meta))
+                            },
+                            Some(Err(e)) => {
+                                let field_type = self.fields
+                                    .iter()
+                                    .find(|(name, ..)| name.real_name() == k)
+                                    .map(|f| f.1.clone().as_optional())
+                                    .expect(&format!(
+                                        "Field {} not found in class {}",
+                                        k,
+                                        self.name.real_name()
+                                    ));
+                                let mut meta = M::default();
+                                *meta.type_mut() = field_type;
+                                meta.flags_mut().add_flag(Flag::DefaultButHadUnparseableValue(e));
+                                meta.flags_mut().add_flag(Flag::Incomplete);
+                                (k.to_string(), BamlValueWithMeta::Null(meta))
+                            },
                         }
                     }))
                     .collect::<BamlMap<String, _>>();
@@ -365,21 +355,23 @@ impl TypeCoercer for Class {
                     }
                 }
 
-                let completed_instance = Ok(BamlValueWithFlags::Class(
+                let mut meta = M::default();
+                *meta.type_mut() = target.clone();
+                meta.flags_mut().flags.extend(flags.flags);
+
+                let completed_instance = BamlValueWithMeta::Class(
                     self.name.real_name().into(),
-                    flags,
-                    target.clone(),
                     ordered_valid_fields.clone(),
-                ))
-                .and_then(|value| {
-                    apply_constraints(
-                        target,
-                        vec![],
-                        value,
-                        constraints.clone(),
-                        streaming_behavior,
-                    )
-                });
+                    meta,
+                );
+
+                let completed_instance = apply_constraints(
+                    target,
+                    vec![],
+                    completed_instance,
+                    constraints.clone(),
+                    streaming_behavior,
+                );
 
                 completed_cls.insert(0, completed_instance);
             }
@@ -391,13 +383,16 @@ impl TypeCoercer for Class {
     }
 }
 
-pub fn apply_constraints(
+pub fn apply_constraints<M>(
     class_type: &FieldType,
     scope: Vec<String>,
-    mut value: BamlValueWithFlags,
+    mut value: BamlValueWithMeta<M>,
     constraints: Vec<Constraint>,
     streaming_behavior: baml_types::type_meta::base::StreamingBehavior
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     if constraints.is_empty() {
         Ok(value)
     } else {
@@ -421,17 +416,19 @@ pub fn apply_constraints(
                     .map(|(label, expr)| (label, expr, result))
             })
             .collect();
-        value.add_flag(Flag::ConstraintResults(check_results));
+        value.meta_mut().flags_mut().add_flag(Flag::ConstraintResults(check_results));
         Ok(value)
     }
 }
 
-fn update_map<'a>(
-    required_values: &'a mut BamlMap<String, Option<Result<BamlValueWithFlags, ParsingError>>>,
-    optional_values: &'a mut BamlMap<String, Option<Result<BamlValueWithFlags, ParsingError>>>,
+fn update_map<'a, M>(
+    required_values: &'a mut BamlMap<String, Option<Result<BamlValueWithMeta<M>, ParsingError>>>,
+    optional_values: &'a mut BamlMap<String, Option<Result<BamlValueWithMeta<M>, ParsingError>>>,
     (name, t, ..): &'a FieldValue,
-    value: Result<BamlValueWithFlags, ParsingError>,
-) {
+    value: Result<BamlValueWithMeta<M>, ParsingError>,
+) where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     let map = if t.is_optional() {
         optional_values
     } else {

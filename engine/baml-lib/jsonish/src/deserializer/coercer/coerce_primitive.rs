@@ -1,24 +1,28 @@
 use anyhow::Result;
-use baml_types::{BamlMediaType, CompletionState};
-use internal_baml_core::ir::{FieldType, TypeValue};
+use baml_types::{BamlMediaType, BamlValueWithMeta, CompletionState};
+use internal_baml_core::ir::TypeValue;
 
 use crate::deserializer::{
     coercer::TypeCoercer,
     deserialize_flags::{DeserializerConditions, Flag},
-    types::BamlValueWithFlags,
+    types::{HasFlags, HasType},
 };
 use regex::Regex;
 
 use super::{array_helper::coerce_array_to_singular, ParsingContext, ParsingError};
 
-impl TypeCoercer for TypeValue {
+impl<T, M> TypeCoercer<T, M> for TypeValue 
+where
+    M: HasType<Type = T> + HasFlags,
+    T: std::fmt::Display + Clone,
+{
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &T,
         // Parsed from JSONish
         value: Option<&crate::jsonish::Value>,
-    ) -> Result<BamlValueWithFlags, ParsingError> {
+    ) -> Result<BamlValueWithMeta<M>, ParsingError> {
         log::debug!(
             "scope: {scope} :: coercing to: {name} (current: {current})",
             name = target.to_string(),
@@ -44,65 +48,85 @@ impl TypeCoercer for TypeValue {
     }
 }
 
-fn coerce_null(
+fn coerce_null<T, M>(
     _ctx: &ParsingContext,
-    target: &FieldType,
+    target: &T,
     value: Option<&crate::jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = T> + HasFlags,
+    T: Clone,
+{
+    let mut meta = M::default();
+    *meta.type_mut() = target.clone();
+    
     match value {
         Some(crate::jsonish::Value::Null) | None => {
-            Ok(BamlValueWithFlags::Null(target.clone(), Default::default()))
+            Ok(BamlValueWithMeta::Null(meta))
         }
-        Some(v) => Ok(BamlValueWithFlags::Null(
-            target.clone(),
-            DeserializerConditions::new().with_flag(Flag::DefaultButHadValue(v.clone())),
-        )),
+        Some(v) => {
+            meta.flags_mut().add_flag(Flag::DefaultButHadValue(v.clone()));
+            Ok(BamlValueWithMeta::Null(meta))
+        }
     }
 }
 
-fn coerce_string(
+fn coerce_string<T, M>(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &T,
     value: Option<&crate::jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = T> + HasFlags,
+    T: Clone,
+{
     let Some(value) = value else {
         return Err(ctx.error_unexpected_null(target));
     };
+
+    let mut meta = M::default();
+    *meta.type_mut() = target.clone();
 
     match value {
         crate::jsonish::Value::String(s, completion_state) => {
-            let mut baml_value = BamlValueWithFlags::String((s.to_string(), target).into());
             if completion_state == &CompletionState::Incomplete {
-                baml_value.add_flag(Flag::Incomplete);
+                meta.flags_mut().add_flag(Flag::Incomplete);
             }
-            Ok(baml_value)
+            Ok(BamlValueWithMeta::String(s.to_string(), meta))
         }
         crate::jsonish::Value::Null => Err(ctx.error_unexpected_null(target)),
-        v => Ok(BamlValueWithFlags::String(
-            (v.to_string(), target, Flag::JsonToString(v.clone())).into(),
-        )),
+        v => {
+            meta.flags_mut().add_flag(Flag::JsonToString(v.clone()));
+            Ok(BamlValueWithMeta::String(v.to_string(), meta))
+        }
     }
 }
 
-pub(super) fn coerce_int(
+pub(super) fn coerce_int<T, M>(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &T,
     value: Option<&crate::jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = T> + HasFlags,
+    T: Clone + std::fmt::Display,
+{
     let Some(value) = value else {
         return Err(ctx.error_unexpected_null(target));
     };
+
+    let mut meta = M::default();
+    *meta.type_mut() = target.clone();
 
     let mut result = match value {
         crate::jsonish::Value::Number(n, _) => {
             if let Some(n) = n.as_i64() {
-                Ok(BamlValueWithFlags::Int((n, target).into()))
+                Ok(BamlValueWithMeta::Int(n, meta))
             } else if let Some(n) = n.as_u64() {
-                Ok(BamlValueWithFlags::Int((n as i64, target).into()))
+                Ok(BamlValueWithMeta::Int(n as i64, meta))
             } else if let Some(n) = n.as_f64() {
-                Ok(BamlValueWithFlags::Int(
-                    ((n.round() as i64), target, Flag::FloatToInt(n)).into(),
-                ))
+                meta.flags_mut().add_flag(Flag::FloatToInt(n));
+                Ok(BamlValueWithMeta::Int(n.round() as i64, meta))
             } else {
                 Err(ctx.error_unexpected_type(target, &value))
             }
@@ -112,21 +136,18 @@ pub(super) fn coerce_int(
             // Trim trailing commas
             let s = s.trim_end_matches(',');
             if let Ok(n) = s.parse::<i64>() {
-                Ok(BamlValueWithFlags::Int((n, target).into()))
+                Ok(BamlValueWithMeta::Int(n, meta))
             } else if let Ok(n) = s.parse::<u64>() {
-                Ok(BamlValueWithFlags::Int((n as i64, target).into()))
+                Ok(BamlValueWithMeta::Int(n as i64, meta))
             } else if let Ok(n) = s.parse::<f64>() {
-                Ok(BamlValueWithFlags::Int(
-                    ((n.round() as i64), target, Flag::FloatToInt(n)).into(),
-                ))
+                meta.flags_mut().add_flag(Flag::FloatToInt(n));
+                Ok(BamlValueWithMeta::Int(n.round() as i64, meta))
             } else if let Some(frac) = float_from_maybe_fraction(s) {
-                Ok(BamlValueWithFlags::Int(
-                    ((frac.round() as i64), target, Flag::FloatToInt(frac)).into(),
-                ))
+                meta.flags_mut().add_flag(Flag::FloatToInt(frac));
+                Ok(BamlValueWithMeta::Int(frac.round() as i64, meta))
             } else if let Some(frac) = float_from_comma_separated(s) {
-                Ok(BamlValueWithFlags::Int(
-                    ((frac.round() as i64), target, Flag::FloatToInt(frac)).into(),
-                ))
+                meta.flags_mut().add_flag(Flag::FloatToInt(frac));
+                Ok(BamlValueWithMeta::Int(frac.round() as i64, meta))
             } else {
                 Err(ctx.error_unexpected_type(target, &value))
             }
@@ -141,7 +162,7 @@ pub(super) fn coerce_int(
     match value.completion_state() {
         CompletionState::Complete => {}
         CompletionState::Incomplete => {
-            result.iter_mut().for_each(|v| v.add_flag(Flag::Incomplete));
+            result.iter_mut().for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
         }
         CompletionState::Pending => unreachable!("jsonish::Value may never be in a Pending state."),
     }
@@ -180,22 +201,30 @@ fn float_from_comma_separated(value: &str) -> Option<f64> {
     without_currency.parse::<f64>().ok()
 }
 
-fn coerce_float(
+fn coerce_float<T, M>(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &T,
     value: Option<&crate::jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = T> + HasFlags,
+    T: Clone + std::fmt::Display,
+{
     let Some(value) = value else {
         return Err(ctx.error_unexpected_null(target));
     };
+
+    let mut meta = M::default();
+    *meta.type_mut() = target.clone();
+
     let mut result = match value {
         crate::jsonish::Value::Number(n, _) => {
             if let Some(n) = n.as_f64() {
-                Ok(BamlValueWithFlags::Float((n, target).into()))
+                Ok(BamlValueWithMeta::Float(n, meta))
             } else if let Some(n) = n.as_i64() {
-                Ok(BamlValueWithFlags::Float(((n as f64), target).into()))
+                Ok(BamlValueWithMeta::Float(n as f64, meta))
             } else if let Some(n) = n.as_u64() {
-                Ok(BamlValueWithFlags::Float(((n as f64), target).into()))
+                Ok(BamlValueWithMeta::Float(n as f64, meta))
             } else {
                 Err(ctx.error_unexpected_type(target, &value))
             }
@@ -205,22 +234,21 @@ fn coerce_float(
             // Trim trailing commas
             let s = s.trim_end_matches(',');
             if let Ok(n) = s.parse::<f64>() {
-                Ok(BamlValueWithFlags::Float((n, target).into()))
+                Ok(BamlValueWithMeta::Float(n, meta))
             } else if let Ok(n) = s.parse::<i64>() {
-                Ok(BamlValueWithFlags::Float(((n as f64), target).into()))
+                Ok(BamlValueWithMeta::Float(n as f64, meta))
             } else if let Ok(n) = s.parse::<u64>() {
-                Ok(BamlValueWithFlags::Float(((n as f64), target).into()))
+                Ok(BamlValueWithMeta::Float(n as f64, meta))
             } else if let Some(frac) = float_from_maybe_fraction(s) {
-                Ok(BamlValueWithFlags::Float((frac, target).into()))
+                Ok(BamlValueWithMeta::Float(frac, meta))
             } else if let Some(frac) = float_from_comma_separated(s) {
-                let mut baml_value = BamlValueWithFlags::Float((frac, target).into());
                 // Add flag here to penalize strings like
                 // "1 cup unsalted butter, room temperature".
                 // If we're trying to parse this to a float it should work
                 // anyway but unions like "float | string" should still coerce
                 // this to a string.
-                baml_value.add_flag(Flag::StringToFloat(s.to_string()));
-                Ok(baml_value)
+                meta.flags_mut().add_flag(Flag::StringToFloat(s.to_string()));
+                Ok(BamlValueWithMeta::Float(frac, meta))
             } else {
                 Err(ctx.error_unexpected_type(target, &value))
             }
@@ -235,31 +263,40 @@ fn coerce_float(
     match value.completion_state() {
         CompletionState::Complete => {}
         CompletionState::Incomplete => {
-            result.iter_mut().for_each(|v| v.add_flag(Flag::Incomplete));
+            result.iter_mut().for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
         }
         CompletionState::Pending => unreachable!("jsonish::Value may never be in pending state"),
     }
     result
 }
 
-pub(super) fn coerce_bool(
+pub(super) fn coerce_bool<T, M>(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &T,
     value: Option<&crate::jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = T> + HasFlags,
+    T: Clone + std::fmt::Display,
+{
     let Some(value) = value else {
         return Err(ctx.error_unexpected_null(target));
     };
 
+    let mut meta = M::default();
+    *meta.type_mut() = target.clone();
+
     let mut result = match value {
-        crate::jsonish::Value::Boolean(b) => Ok(BamlValueWithFlags::Bool((*b, target).into())),
+        crate::jsonish::Value::Boolean(b) => Ok(BamlValueWithMeta::Bool(*b, meta)),
         crate::jsonish::Value::String(s, _) => match s.to_lowercase().as_str() {
-            "true" => Ok(BamlValueWithFlags::Bool(
-                (true, target, Flag::StringToBool(s.clone())).into(),
-            )),
-            "false" => Ok(BamlValueWithFlags::Bool(
-                (false, target, Flag::StringToBool(s.clone())).into(),
-            )),
+            "true" => {
+                meta.flags_mut().add_flag(Flag::StringToBool(s.clone()));
+                Ok(BamlValueWithMeta::Bool(true, meta))
+            }
+            "false" => {
+                meta.flags_mut().add_flag(Flag::StringToBool(s.clone()));
+                Ok(BamlValueWithMeta::Bool(false, meta))
+            }
             _ => {
                 match super::match_string::match_string(
                     ctx,
@@ -274,12 +311,14 @@ pub(super) fn coerce_bool(
                     ],
                 ) {
                     Ok(val) => match val.value().as_str() {
-                        "true" => Ok(BamlValueWithFlags::Bool(
-                            (true, target, Flag::StringToBool(val.value().clone())).into(),
-                        )),
-                        "false" => Ok(BamlValueWithFlags::Bool(
-                            (false, target, Flag::StringToBool(val.value().clone())).into(),
-                        )),
+                        "true" => {
+                            meta.flags_mut().add_flag(Flag::StringToBool(val.value().clone()));
+                            Ok(BamlValueWithMeta::Bool(true, meta))
+                        }
+                        "false" => {
+                            meta.flags_mut().add_flag(Flag::StringToBool(val.value().clone()));
+                            Ok(BamlValueWithMeta::Bool(false, meta))
+                        }
                         _ => Err(ctx.error_unexpected_type(target, &value)),
                     },
                     Err(_) => Err(ctx.error_unexpected_type(target, &value)),
@@ -296,7 +335,7 @@ pub(super) fn coerce_bool(
     match value.completion_state() {
         CompletionState::Complete => {}
         CompletionState::Incomplete => {
-            result.iter_mut().for_each(|v| v.add_flag(Flag::Incomplete));
+            result.iter_mut().for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
         }
         CompletionState::Pending => unreachable!("jsonish::Value may never be in pending state."),
     }

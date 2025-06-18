@@ -1,16 +1,20 @@
 use anyhow::Result;
-use internal_baml_core::ir::FieldType;
+use baml_types::{BamlValueWithMeta, FieldType};
 
-use crate::deserializer::{coercer::array_helper, types::BamlValueWithFlags};
+use crate::deserializer::{coercer::array_helper, types::{HasFlags, HasType}};
 
 use super::{ParsingContext, ParsingError, TypeCoercer};
 
-pub(super) fn coerce_union(
+pub(super) fn coerce_union<M>(
     ctx: &ParsingContext,
     union_target: &FieldType,
     value: Option<&crate::jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     assert!(matches!(union_target, FieldType::Union(_, _)));
+
     log::debug!(
         "scope: {scope} :: coercing to: {name} (current: {current})",
         name = union_target.to_string(),

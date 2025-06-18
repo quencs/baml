@@ -296,3 +296,20 @@ impl WithScore for ResponseBamlValue {
         self.0.iter().map(|node| node.meta().0.score()).sum()
     }
 }
+
+/// Convenience function for parsing with the concrete BamlValueWithFlags type.
+/// This maintains backwards compatibility with existing tests.
+pub fn from_str(
+    of: &OutputFormatContent,
+    target: &FieldType,
+    raw_string: &str,
+    allow_partials: bool,
+) -> Result<BamlValueWithFlags> {
+    use crate::deserializer::types::BamlValueWithFlags;
+    use crate::deserializer::deserialize_flags::DeserializerConditions;
+    use baml_types::ir_type::Type;
+
+    // FieldType and Type are the same thing (both TypeGeneric<type_meta::Base>)
+    let result: BamlValueWithMeta<(DeserializerConditions, Type)> = sap_parse(of, target, raw_string)?;
+    Ok(result)
+}

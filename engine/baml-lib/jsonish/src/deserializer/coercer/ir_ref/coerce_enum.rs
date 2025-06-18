@@ -1,68 +1,72 @@
+use crate::{
+    deserializer::{
+        coercer::{match_string::match_string, ParsingContext, ParsingError, TypeCoercer},
+        deserialize_flags::{DeserializerConditions, Flag},
+        types::{HasFlags, HasType},
+    },
+    jsonish,
+};
 use anyhow::Result;
-use baml_types::{FieldType};
+use baml_types::{BamlValueWithMeta, FieldType};
 use internal_baml_jinja::types::Enum;
 
-use crate::deserializer::{
-    coercer::{
-        ir_ref::coerce_class::apply_constraints, match_string::match_string, ParsingError,
-        TypeCoercer,
-    },
-    types::BamlValueWithFlags,
-};
-
-use super::ParsingContext;
-
-fn enum_match_candidates(enm: &Enum) -> Vec<(&str, Vec<String>)> {
-    enm.values
-        .iter()
-        .map(|(name, desc)| {
-            (
-                name.real_name(),
-                match desc.as_ref().map(|d| d.trim()) {
-                    Some(d) if !d.is_empty() => vec![
-                        name.rendered_name().into(),
-                        d.into(),
-                        format!("{}: {}", name.rendered_name(), d),
-                    ],
-                    _ => vec![name.rendered_name().into()],
-                },
-            )
-        })
-        .collect()
-}
-
-impl TypeCoercer for Enum {
+impl<M> TypeCoercer<FieldType, M> for &Enum
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     fn coerce(
         &self,
         ctx: &ParsingContext,
         target: &FieldType,
-        value: Option<&crate::jsonish::Value>,
-    ) -> Result<BamlValueWithFlags, ParsingError> {
+        value: Option<&jsonish::Value>,
+    ) -> Result<BamlValueWithMeta<M>, ParsingError> {
         log::debug!(
             "scope: {scope} :: coercing to: {name} (current: {current})",
-            name = self.name.real_name(),
+            name = target.to_string(),
             scope = ctx.display_scope(),
             current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
         );
 
-        let constraints = ctx
-            .of
-            .find_enum(self.name.real_name())
-            .map_or(vec![], |class| class.constraints.clone());
+        // Get rid of nulls.
+        let value = match value {
+            None | Some(jsonish::Value::Null) => {
+                return Err(ctx.error_unexpected_null(target));
+            }
+            Some(v) => v,
+        };
 
-        let variant_match = match_string(ctx, target, value, &enum_match_candidates(self))?;
-        let enum_match = apply_constraints(
-            target,
-            vec![],
-            BamlValueWithFlags::Enum(
-                self.name.real_name().to_string(),
-                target.clone(),
-                variant_match,
-            ),
-            constraints.clone(),
-            Default::default(),
-        )?;
+        // Get valid values for this enum
+        let candidates = self
+            .values
+            .iter()
+            .map(|(name, _description)| {
+                (
+                    name.real_name(),
+                    vec![name.real_name().to_string(), name.rendered_name().to_string()],
+                )
+            })
+            .collect::<Vec<_>>();
 
-        Ok(enum_match)
+        // First try string matching
+        let string_match_result = match_string(ctx, target, Some(value), &candidates);
+        match string_match_result {
+            Ok(matched_string) => {
+                // Create enum value with proper metadata
+                let mut meta = M::default();
+                *meta.type_mut() = target.clone();
+                
+                // Copy flags from string match result
+                if let BamlValueWithMeta::String(_, string_meta) = &matched_string {
+                    meta.flags_mut().flags.extend(string_meta.flags().flags.clone());
+                }
+
+                Ok(BamlValueWithMeta::Enum(
+                    self.name.real_name().to_string(),
+                    matched_string.into_inner().0,  // Extract the string value
+                    meta,
+                ))
+            }
+            Err(e) => Err(e),
+        }
     }
 }

@@ -22,6 +22,9 @@ pub type BamlValueWithFlags = BamlValueWithMeta<(DeserializerConditions, Type)>;
 /// the parser scoring at each node in the nested value.
 pub type BamlValueStreamingWithFlags = BamlValueWithMeta<(DeserializerConditions, TypeStreaming)>;
 
+/// A convenience type for values with flags for string matching operations.
+pub type ValueWithFlags<T> = (T, FieldType, DeserializerConditions);
+
 /// A trait for Metadata types that contain some sort of "Type-like" field,
 /// (e.g. `Type` or `TypeStreaming`).
 pub trait HasType {
@@ -56,6 +59,20 @@ impl HasType for (DeserializerConditions, TypeStreaming) {
     }
     fn type_mut(&mut self) -> &mut TypeStreaming {
         &mut self.1
+    }
+}
+
+/// Default implementation for base type metadata
+impl Default for (DeserializerConditions, Type) {
+    fn default() -> Self {
+        (DeserializerConditions::default(), Type::null())
+    }
+}
+
+/// Default implementation for streaming type metadata
+impl Default for (DeserializerConditions, TypeStreaming) {
+    fn default() -> Self {
+        (DeserializerConditions::default(), TypeStreaming::null())
     }
 }
 

@@ -5,9 +5,9 @@ pub mod coerce_enum;
 use core::panic;
 
 use anyhow::Result;
-use internal_baml_core::ir::FieldType;
+use baml_types::{BamlValueWithMeta, FieldType};
 
-use crate::deserializer::{coercer::TypeCoercer, types::BamlValueWithFlags};
+use crate::deserializer::{coercer::TypeCoercer, types::{HasFlags, HasType}};
 
 use super::{ParsingContext, ParsingError};
 
@@ -17,13 +17,16 @@ pub(super) enum IrRef<'a> {
     RecursiveAlias(&'a String),
 }
 
-impl TypeCoercer for IrRef<'_> {
+impl<M> TypeCoercer<FieldType, M> for IrRef<'_>
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     fn coerce(
         &self,
         ctx: &ParsingContext,
         target: &FieldType,
         value: Option<&crate::jsonish::Value>,
-    ) -> Result<BamlValueWithFlags, ParsingError> {
+    ) -> Result<BamlValueWithMeta<M>, ParsingError> {
         match self {
             IrRef::Enum(e) => match ctx.of.find_enum(e.as_str()) {
                 Ok(e) => e.coerce(ctx, target, value),

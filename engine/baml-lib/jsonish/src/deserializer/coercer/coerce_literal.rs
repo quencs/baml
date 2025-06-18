@@ -1,28 +1,31 @@
 use std::vec;
 
 use anyhow::Result;
-use baml_types::LiteralValue;
-use internal_baml_core::ir::FieldType;
+use baml_types::{BamlValueWithMeta, LiteralValue};
 use internal_baml_jinja::CompletionOptions;
 
 use crate::{
     deserializer::{
         coercer::{coerce_primitive::coerce_bool, match_string::match_string, TypeCoercer},
         deserialize_flags::{DeserializerConditions, Flag},
-        types::BamlValueWithFlags,
+        types::{HasFlags, HasType},
     },
     jsonish,
 };
 
 use super::{coerce_primitive::coerce_int, ParsingContext, ParsingError};
 
-impl TypeCoercer for LiteralValue {
+impl<T, M> TypeCoercer<T, M> for LiteralValue
+where
+    M: HasType<Type = T> + HasFlags,
+    T: Clone + std::fmt::Display,
+{
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &T,
         value: Option<&jsonish::Value>,
-    ) -> Result<BamlValueWithFlags, ParsingError> {
+    ) -> Result<BamlValueWithMeta<M>, ParsingError> {
         log::debug!(
             "scope: {scope} :: coercing to: {name:?} (current: {current})",
             name = self,
@@ -48,7 +51,7 @@ impl TypeCoercer for LiteralValue {
                     | jsonish::Value::Boolean(_)
                     | jsonish::Value::String(_, _) => {
                         let mut result = self.coerce(ctx, target, Some(&inner_value))?;
-                        result.add_flag(Flag::ObjectToPrimitive(jsonish::Value::Object(
+                        result.meta_mut().flags_mut().add_flag(Flag::ObjectToPrimitive(jsonish::Value::Object(
                             obj.clone(),
                             completion_state.clone(),
                         )));
@@ -61,28 +64,30 @@ impl TypeCoercer for LiteralValue {
 
         match self {
             LiteralValue::Int(literal_int) => {
-                let BamlValueWithFlags::Int(coerced_int) = coerce_int(ctx, target, Some(value))?
-                else {
-                    unreachable!("coerce_int returned a non-integer value");
-                };
-
-                if coerced_int.value() == literal_int {
-                    Ok(BamlValueWithFlags::Int(coerced_int))
-                } else {
-                    Err(ctx.error_unexpected_type(target, &value))
+                let coerced_int = coerce_int(ctx, target, Some(value))?;
+                match &coerced_int {
+                    BamlValueWithMeta::Int(int_val, _) => {
+                        if int_val == literal_int {
+                            Ok(coerced_int)
+                        } else {
+                            Err(ctx.error_unexpected_type(target, &value))
+                        }
+                    }
+                    _ => unreachable!("coerce_int returned a non-integer value"),
                 }
             }
 
             LiteralValue::Bool(literal_bool) => {
-                let BamlValueWithFlags::Bool(coerced_bool) = coerce_bool(ctx, target, Some(value))?
-                else {
-                    unreachable!("coerce_bool returned a non-boolean value");
-                };
-
-                if coerced_bool.value() == literal_bool {
-                    Ok(BamlValueWithFlags::Bool(coerced_bool))
-                } else {
-                    Err(ctx.error_unexpected_type(target, &value))
+                let coerced_bool = coerce_bool(ctx, target, Some(value))?;
+                match &coerced_bool {
+                    BamlValueWithMeta::Bool(bool_val, _) => {
+                        if bool_val == literal_bool {
+                            Ok(coerced_bool)
+                        } else {
+                            Err(ctx.error_unexpected_type(target, &value))
+                        }
+                    }
+                    _ => unreachable!("coerce_bool returned a non-boolean value"),
                 }
             }
 
@@ -92,7 +97,7 @@ impl TypeCoercer for LiteralValue {
 
                 let literal_match = match_string(ctx, target, Some(value), &candidates)?;
 
-                Ok(BamlValueWithFlags::String(literal_match))
+                Ok(literal_match)
             }
         }
     }

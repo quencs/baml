@@ -5,13 +5,13 @@
 use std::{cmp::Ordering, collections::HashMap};
 
 use anyhow::Result;
-use baml_types::{FieldType, TypeValue};
+use baml_types::{BamlValueWithMeta, TypeValue};
 
 use crate::{
     deserializer::{
         coercer::ParsingError,
         deserialize_flags::{DeserializerConditions, Flag},
-        types::ValueWithFlags,
+        types::{HasFlags, HasType, ValueWithFlags},
     },
     jsonish,
 };
@@ -19,13 +19,17 @@ use crate::{
 use super::ParsingContext;
 
 /// Heuristic match of different possible values against an input string.
-pub(super) fn match_string(
+pub(super) fn match_string<T, M>(
     parsing_context: &ParsingContext,
-    target: &FieldType,
+    target: &T,
     value: Option<&jsonish::Value>,
     // List of (name, [aliases]) tuples.
     candidates: &[(&str, Vec<String>)],
-) -> Result<ValueWithFlags<String>, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = T> + HasFlags,
+    T: Clone + std::fmt::Display,
+{
     // Get rid of nulls.
     let value = match value {
         None | Some(jsonish::Value::Null) => {
@@ -101,12 +105,16 @@ fn strip_punctuation(s: &str) -> String {
 /// Helper function to return a single string match result.
 ///
 /// Multiple results will yield an error.
-fn try_match_only_once(
+fn try_match_only_once<T, M>(
     parsing_context: &ParsingContext<'_>,
-    target: &FieldType,
+    target: &T,
     string_match: &str,
     flags: DeserializerConditions,
-) -> Result<ValueWithFlags<String>, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = T> + HasFlags,
+    T: Clone + std::fmt::Display,
+{
     if let Some(mismatch) = flags.flags.iter().find_map(|f| match f {
         Flag::StrMatchOneFromMany(options) => Some(options),
         _ => None,
@@ -119,7 +127,11 @@ fn try_match_only_once(
         ));
     };
 
-    Ok((string_match.to_string(), target, flags).into())
+    let mut meta = M::default();
+    *meta.type_mut() = target.clone();
+    meta.flags_mut().flags.extend(flags.flags);
+    
+    Ok(BamlValueWithMeta::String(string_match.to_string(), meta))
 }
 
 /// Heuristic string match algorithm.

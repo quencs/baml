@@ -1,33 +1,48 @@
 use std::any::Any;
 
-use crate::deserializer::{deserialize_flags::Flag, types::BamlValueWithFlags};
+use crate::deserializer::{deserialize_flags::Flag, types::{BamlValueWithFlags, HasFlags, HasType}};
 use anyhow::Result;
-use internal_baml_core::{ast::Field, ir::FieldType};
+use baml_types::{BamlValueWithMeta, FieldType};
 
 use super::{ParsingContext, ParsingError};
 
-pub fn coerce_array_to_singular(
+pub fn coerce_array_to_singular<M>(
     ctx: &ParsingContext,
     target: &FieldType,
     items: &[&crate::jsonish::Value],
-    coercion: &dyn (Fn(&crate::jsonish::Value) -> Result<BamlValueWithFlags, ParsingError>),
-) -> Result<BamlValueWithFlags, ParsingError> {
+    coercion: &dyn (Fn(&crate::jsonish::Value) -> Result<BamlValueWithMeta<M>, ParsingError>),
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     let parsed = items.iter().map(|item| coercion(item)).collect::<Vec<_>>();
 
     let mut best = pick_best(ctx, target, &parsed);
 
     if let Ok(ref mut f) = best {
-        f.add_flag(Flag::FirstMatch(0, parsed.to_vec()))
+        f.meta_mut().flags_mut().add_flag(Flag::FirstMatch(0, 
+            parsed.iter().map(|r| match r {
+                Ok(v) => {
+                    // Convert to concrete type for flag storage
+                    let concrete_v: BamlValueWithFlags = v.clone().map_meta(|m| (m.flags().clone(), m.r#type().clone()));
+                    Ok(concrete_v)
+                }
+                Err(e) => Err(e.clone())
+            }).collect()
+        ))
     }
 
     best
 }
 
-pub(super) fn pick_best(
+pub(super) fn pick_best<M>(
     ctx: &ParsingContext,
     target: &FieldType,
-    res: &[Result<BamlValueWithFlags, ParsingError>],
-) -> Result<BamlValueWithFlags, ParsingError> {
+    res: &[Result<BamlValueWithMeta<M>, ParsingError>],
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     let Some(first) = res.first() else {
         return Err(ctx.error_unexpected_empty_array(target));
     };
@@ -37,7 +52,7 @@ pub(super) fn pick_best(
 
     let res_index = (0..res.len())
         .map(|i| match res[i] {
-            Ok(ref v) => (i, v.score()),
+            Ok(ref v) => (i, v.meta().flags().score()),
             Err(_) => (i, i32::MAX),
         })
         .collect::<Vec<_>>();
@@ -50,9 +65,9 @@ pub(super) fn pick_best(
                 i,
                 score,
                 match r {
-                    BamlValueWithFlags::List(flags, _, items) => {
+                    BamlValueWithMeta::List(items, meta) => {
                         items.is_empty()
-                            && flags.flags.iter().any(|f| matches!(f, Flag::SingleToArray))
+                            && meta.flags().flags.iter().any(|f| matches!(f, Flag::SingleToArray))
                     }
                     _ => false,
                 },
@@ -68,16 +83,18 @@ pub(super) fn pick_best(
             // TODO: This is a bit of a hack. We should likely use some is_subtype_of logic here
             // to ensure that we're accepting the "best" type.
             // E.g. if a is a subtype of b, we should prefer a over b. (empty list is a subtype of any list)
-            if matches!(a_val, BamlValueWithFlags::List(..))
-                && matches!(b_val, BamlValueWithFlags::List(..))
+            if matches!(a_val, BamlValueWithMeta::List(..))
+                && matches!(b_val, BamlValueWithMeta::List(..))
             {
                 let a_is_single = a_val
-                    .conditions()
+                    .meta()
+                    .flags()
                     .flags
                     .iter()
                     .any(|f| matches!(f, Flag::SingleToArray));
                 let b_is_single = b_val
-                    .conditions()
+                    .meta()
+                    .flags()
                     .flags
                     .iter()
                     .any(|f| matches!(f, Flag::SingleToArray));
@@ -89,18 +106,20 @@ pub(super) fn pick_best(
                     (false, true) => return std::cmp::Ordering::Less,
                     _ => {
                         if let (
-                            BamlValueWithFlags::List(_, _, items_a),
-                            BamlValueWithFlags::List(_, _, items_b),
+                            BamlValueWithMeta::List(items_a, _),
+                            BamlValueWithMeta::List(items_b, _),
                         ) = (a_val, b_val)
                         {
                             let unparseables_a = a_val
-                                .conditions()
+                                .meta()
+                                .flags()
                                 .flags
                                 .iter()
                                 .filter(|f| matches!(f, Flag::ArrayItemParseError(..)))
                                 .count();
                             let unparseables_b = b_val
-                                .conditions()
+                                .meta()
+                                .flags()
                                 .flags
                                 .iter()
                                 .filter(|f| matches!(f, Flag::ArrayItemParseError(..)))
@@ -123,8 +142,8 @@ pub(super) fn pick_best(
 
             // De-value default values when comparing
             if let (
-                BamlValueWithFlags::Class(_, _, a_conds, a_props),
-                BamlValueWithFlags::Class(_, _, b_conds, b_props),
+                BamlValueWithMeta::Class(_, a_props, _),
+                BamlValueWithMeta::Class(_, b_props, _),
             ) = (a_val, b_val)
             {
                 // If matching on a union, and one of the choices is picking an object that only
@@ -133,9 +152,10 @@ pub(super) fn pick_best(
                 if matches!(target, FieldType::Union(_, _)) {
                     let a_is_coerced_string = a_props.len() == 1
                         && a_props.iter().all(|(_, cond)| {
-                            matches!(cond, BamlValueWithFlags::String(..))
+                            matches!(cond, BamlValueWithMeta::String(..))
                                 && cond
-                                    .conditions()
+                                    .meta()
+                                    .flags()
                                     .flags
                                     .iter()
                                     .any(|f| matches!(f, Flag::ImpliedKey(..)))
@@ -143,9 +163,10 @@ pub(super) fn pick_best(
 
                     let b_is_coerced_string = b_props.len() == 1
                         && b_props.iter().all(|(_, cond)| {
-                            matches!(cond, BamlValueWithFlags::String(..))
+                            matches!(cond, BamlValueWithMeta::String(..))
                                 && cond
-                                    .conditions()
+                                    .meta()
+                                    .flags()
                                     .flags
                                     .iter()
                                     .any(|f| matches!(f, Flag::ImpliedKey(..)))
@@ -161,7 +182,7 @@ pub(super) fn pick_best(
                 }
 
                 let a_is_default = a_props.iter().all(|(k, cond)| {
-                    cond.conditions().flags.iter().any(|f| {
+                    cond.meta().flags().flags.iter().any(|f| {
                         matches!(
                             f,
                             Flag::OptionalDefaultFromNoValue | Flag::DefaultFromNoValue
@@ -169,7 +190,7 @@ pub(super) fn pick_best(
                     })
                 });
                 let b_is_default = b_props.iter().all(|(k, cond)| {
-                    cond.conditions().flags.iter().any(|f| {
+                    cond.meta().flags().flags.iter().any(|f| {
                         matches!(
                             f,
                             Flag::OptionalDefaultFromNoValue | Flag::DefaultFromNoValue
@@ -187,10 +208,14 @@ pub(super) fn pick_best(
             }
 
             // Devalue strings that were cast from objects.
-            if !a_val.is_composite() && b_val.is_composite() {
+            let a_is_composite = matches!(a_val, BamlValueWithMeta::Class(..) | BamlValueWithMeta::List(..) | BamlValueWithMeta::Map(..));
+            let b_is_composite = matches!(b_val, BamlValueWithMeta::Class(..) | BamlValueWithMeta::List(..) | BamlValueWithMeta::Map(..));
+            
+            if !a_is_composite && b_is_composite {
                 if a_val
-                    .conditions()
+                    .meta()
                     .flags()
+                    .flags
                     .iter()
                     .any(|f| matches!(f, Flag::JsonToString(..) | Flag::FirstMatch(_, _)))
                 {
@@ -198,10 +223,11 @@ pub(super) fn pick_best(
                 }
             }
 
-            if a_val.is_composite() && !b_val.is_composite() {
+            if a_is_composite && !b_is_composite {
                 if b_val
-                    .conditions()
+                    .meta()
                     .flags()
+                    .flags
                     .iter()
                     .any(|f| matches!(f, Flag::JsonToString(..) | Flag::FirstMatch(_, _)))
                 {
@@ -242,10 +268,28 @@ pub(super) fn pick_best(
         Some(&(i, _, _, v)) => {
             let mut v = v.clone();
             if res.len() > 1 {
-                v.add_flag(if matches!(target, FieldType::Union(_, _)) {
-                    Flag::UnionMatch(i, res.to_vec())
+                v.meta_mut().flags_mut().add_flag(if matches!(target, FieldType::Union(_, _)) {
+                    Flag::UnionMatch(i, 
+                        res.iter().map(|r| match r {
+                            Ok(val) => {
+                                // Convert to concrete type for flag storage
+                                let concrete_v: BamlValueWithFlags = val.clone().map_meta(|m| (m.flags().clone(), m.r#type().clone()));
+                                Ok(concrete_v)
+                            }
+                            Err(e) => Err(e.clone())
+                        }).collect()
+                    )
                 } else {
-                    Flag::FirstMatch(i, res.to_vec())
+                    Flag::FirstMatch(i, 
+                        res.iter().map(|r| match r {
+                            Ok(val) => {
+                                // Convert to concrete type for flag storage
+                                let concrete_v: BamlValueWithFlags = val.clone().map_meta(|m| (m.flags().clone(), m.r#type().clone()));
+                                Ok(concrete_v)
+                            }
+                            Err(e) => Err(e.clone())
+                        }).collect()
+                    )
                 });
             }
             Ok(v.to_owned())

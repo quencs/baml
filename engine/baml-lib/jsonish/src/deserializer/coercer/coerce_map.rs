@@ -5,19 +5,22 @@ use anyhow::Result;
 use crate::{
     deserializer::{
         deserialize_flags::{DeserializerConditions, Flag},
-        types::BamlValueWithFlags,
+        types::{HasFlags, HasType},
     },
     jsonish,
 };
-use baml_types::{BamlMap, CompletionState, FieldType, LiteralValue, TypeValue};
+use baml_types::{BamlMap, BamlValueWithMeta, CompletionState, FieldType, LiteralValue, TypeValue};
 
 use super::{ParsingContext, ParsingError, TypeCoercer};
 
-pub(super) fn coerce_map(
+pub(super) fn coerce_map<M>(
     ctx: &ParsingContext,
     map_target: &FieldType,
     value: Option<&jsonish::Value>,
-) -> Result<BamlValueWithFlags, ParsingError> {
+) -> Result<BamlValueWithMeta<M>, ParsingError>
+where
+    M: HasType<Type = FieldType> + HasFlags,
+{
     log::debug!(
         "scope: {scope} :: coercing to: {name} (current: {current})",
         name = map_target.to_string(),
@@ -110,7 +113,10 @@ pub(super) fn coerce_map(
             if *completion_state == CompletionState::Incomplete {
                 flags.add_flag(Flag::Incomplete);
             }
-            Ok(BamlValueWithFlags::Map(flags, map_target.clone(), items))
+            let mut meta = M::default();
+            *meta.type_mut() = map_target.clone();
+            meta.flags_mut().flags.extend(flags.flags);
+            Ok(BamlValueWithMeta::Map(items, meta))
         }
         // TODO: first map in an array that matches
         _ => Err(ctx.error_unexpected_type(map_target, value)),
