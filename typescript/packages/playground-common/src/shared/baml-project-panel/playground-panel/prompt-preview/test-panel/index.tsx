@@ -4,10 +4,8 @@ import { useAtom, useAtomValue } from 'jotai';
 import { ErrorBoundary } from 'react-error-boundary';
 import { isClientCallGraphEnabledAtom } from '../../preview-toolbar';
 import { selectedHistoryIndexAtom, testHistoryAtom } from './atoms';
-import { CardView } from './components/CardView';
 import { ClientGraphView } from './components/ClientGraphView';
-import { SimpleCardView } from './components/SimpleCardView';
-import { TabularView } from './components/TabularView';
+import { SimpleTestResultView } from './components/SimpleTestResultView';
 import { TestMenu } from './components/TestMenu';
 import { TestPanelViewType, testPanelViewTypeAtom } from './components/atoms';
 
@@ -45,21 +43,6 @@ const TestPanel = () => {
 
   const currentRun = testHistory[selectedHistoryIndex];
 
-  const renderView = () => {
-    switch (viewType) {
-      case TestPanelViewType.TABULAR:
-        return <TabularView currentRun={currentRun} />;
-      case TestPanelViewType.CARD_SIMPLE:
-        return <SimpleCardView currentRun={currentRun} />;
-      case TestPanelViewType.CARD_EXPANDED:
-        return <CardView currentRun={currentRun} />;
-      case TestPanelViewType.CLIENT_GRAPH:
-        return <ClientGraphView />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <>
       <div className="px-1 pt-2">
@@ -89,7 +72,7 @@ const TestPanel = () => {
           }}
           resetKeys={[viewType, currentRun]}
         >
-          {renderView()}
+          <SimpleTestResultView currentRun={currentRun} />
         </ErrorBoundary>
       </ScrollArea>
     </>

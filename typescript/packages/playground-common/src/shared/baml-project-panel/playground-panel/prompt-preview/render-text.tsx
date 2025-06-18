@@ -96,7 +96,7 @@ export const RenderPromptPart: React.FC<{
 
   return (
     <div className="flex flex-col">
-      <div className="relative p-3  bg-card group max-h-[600px] overflow-y-auto">
+      <div className="relative p-3 bg-card group max-h-[600px] overflow-y-auto">
         <div className="absolute right-2 top-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <CopyButton text={text} size="sm" variant="secondary" />
         </div>
