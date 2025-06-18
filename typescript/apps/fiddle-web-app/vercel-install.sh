@@ -14,6 +14,6 @@ set -e
 # cargo install -f wasm-bindgen-cli@0.2.87
 
 # cargo build
-# cd ../../typescript/fiddle-frontend
+# cd ../../typescript/apps/fiddle-web-app
 pnpm i
 #turbo build --filter=@baml/prompt-fiddle-next

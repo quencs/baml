@@ -144,7 +144,7 @@ tasks {
 
     register<Copy>("copyTextmateFiles") {
         group = "build"
-        from("../typescript/vscode-ext/packages") {
+        from("../typescript/apps/vscode-ext") {
             include("package.json")
             include("language-configuration.json")
             include("syntaxes/baml.tmLanguage.json")
@@ -155,7 +155,7 @@ tasks {
 
     register<Copy>("copyWebPanelDist") {
         group = "build"
-        from("../typescript/vscode-ext/packages/web-panel/") {
+        from("../typescript/apps/vscode-ext/src/web-panel/") {
             include("dist")
         }
         into("src/main/resources/web-panel")

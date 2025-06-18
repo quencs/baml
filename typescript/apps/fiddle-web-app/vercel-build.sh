@@ -23,7 +23,7 @@ cargo update -p wasm-bindgen
 cargo install -f wasm-bindgen-cli@0.2.92
 
 # cargo build
-cd ../../typescript/fiddle-frontend
+cd ../../typescript/apps/fiddle-web-app
 
 npm add -g tsup
 

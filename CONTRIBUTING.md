@@ -242,7 +242,7 @@ Each language has its own debugging setup in VS Code:
 
 - `cargo test --features internal`
 
-This will run the baml-serve server locally, and ping it. You may need to change the PORT variable for your new test to use a different port (we don’t have a good way of autoselecting a port).
+This will run the baml-serve server locally, and ping it. You may need to change the PORT variable for your new test to use a different port (we don't have a good way of autoselecting a port).
 
 > Instructions for testing a particular OpenAPI client are TBD.
 
@@ -283,7 +283,7 @@ This requires a macos or linux machine, since we symlink some playground files b
      - This will open a new VSCode window in Debug mode.
      - You can open a simple BAML project in this window (refer to our quickstart guide to set up a simple project, or clone the `baml-examples` repository).
 4. Generate the language server binary (in case our scripts don't do this for you)
-   - `cd typescript/vscode-ext/packages/vscode`
+   - `cd typescript/apps/vscode-ext`
    - `pnpm server:build`
 
 5. Reload the extension:
@@ -293,18 +293,18 @@ This requires a macos or linux machine, since we symlink some playground files b
 
 To rebuild the playground UI:
 
-1. `cd typescript/vscode-ext/packages/web-panel`
+1. `cd typescript/apps/vscode-ext/src/web-panel`
 2. `pnpm build`
-3. Close and open the playground in your “Debug mode VSCode window”
+3. Close and open the playground in your "Debug mode VSCode window"
 
 ## Testing [promptfiddle.com](http://promptfiddle.com)
 
 This is useful if you want to iterate faster on the Extension UI, since it supports hot-reloading.
 
 1. Navigate to the Fiddle Frontend directory:
-   - `cd typescript/fiddle-frontend`
+   - `cd typescript/apps/fiddle-web-app`
 
 2. Start the dev server:
    - `pnpm dev`
 
-3. Modify the files in `typescript/playground-common`
+3. Modify the files in `typescript/packages/playground-common`
