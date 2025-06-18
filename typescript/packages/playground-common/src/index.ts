@@ -1,5 +1,5 @@
 export { EventListener } from './baml_wasm_web/EventListener';
-export { PromptPreview } from './shared/baml-project-panel/playground-panel/prompt-preview';
+export * from './shared/baml-project-panel/playground-panel/prompt-preview';
 // export { ASTProvider } from "./shared/ASTProvider";
 // export { default as FunctionPanel } from './shared/FunctionPanel'
 // export { FunctionSelector } from './shared/Selectors'

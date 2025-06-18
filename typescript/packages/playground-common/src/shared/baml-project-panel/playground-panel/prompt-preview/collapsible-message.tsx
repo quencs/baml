@@ -58,7 +58,7 @@ export const CollapsibleMessage: React.FC<CollapsibleMessageProps> = ({
               <ChevronsUpDown className="size-4 ml-4 flex-shrink-0" />
             </div>
             {!open && firstLine && (
-              <div className="text-sm truncate whitespace-nowrap w-full">
+              <div className="text-sm truncate whitespace-nowrap w-full text-left">
                 {firstLine}
               </div>
             )}
