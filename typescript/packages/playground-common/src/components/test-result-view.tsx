@@ -4,12 +4,10 @@ import {
   CollapsibleTrigger,
 } from '@baml/ui/collapsible';
 import { cn } from '@baml/ui/lib/utils';
-import { useAtomValue } from 'jotai';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import { testCaseResponseAtom } from '../../../atoms';
-import { RenderPromptPart } from '../../render-text';
-import type { TestHistoryRun } from '../atoms';
+import { RenderPromptPart } from './render-text';
+import type { TestHistoryRun } from '../types';
 
 interface SimpleTestResultViewProps {
   currentRun?: TestHistoryRun;
@@ -27,8 +25,7 @@ const TestResultMessage: React.FC<TestResultMessageProps> = ({
   historicalResponse,
 }) => {
   const [open, setOpen] = useState(false);
-  const response = useAtomValue(testCaseResponseAtom({ functionName, testName }));
-  const displayResponse = historicalResponse || response;
+  const displayResponse = historicalResponse;
 
   if (!displayResponse) {
     return null;
