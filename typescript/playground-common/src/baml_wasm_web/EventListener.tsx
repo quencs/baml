@@ -82,9 +82,8 @@ export const isConnectedAtom = atom(true)
 
 const ConnectionStatus: React.FC = () => {
   const isConnected = useAtomValue(isConnectedAtom)
-  const isVSCodeWebview = typeof vscode !== 'undefined'
 
-  if (isConnected) return null
+  if (isConnected || vscode.isVscode()) return null
 
   return (
     <div className='fixed top-0 left-0 right-0 bg-red-600 text-white p-2 flex items-center justify-between z-50'>
@@ -109,7 +108,7 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
   const debouncedSetFiles = useDebounceCallback(setFiles, 50, true)
   const setFlashRanges = useSetAtom(flashRangesAtom)
   const setIsConnected = useSetAtom(isConnectedAtom)
-  const isVSCodeWebview = typeof vscode !== 'undefined'
+  const isVSCodeWebview = vscode.isVscode()
 
   const [selectedFunc, setSelectedFunction] = useAtom(selectedFunctionAtom)
   const setSelectedTestcase = useSetAtom(selectedTestcaseAtom)
@@ -139,11 +138,11 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
   console.log('selectedFunc', selectedFunc)
 
   useEffect(() => {
-    // if (isVSCodeWebview) {
-    // console.log('Websocket disabled in VSCode')
-    // setIsConnected(true)
-    // return
-    // }
+    // Only open websocket if not in VSCode webview
+    if (isVSCodeWebview) {
+      setIsConnected(true)
+      // return
+    }
 
     const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const ws = new WebSocket(`${scheme}://${window.location.host}/ws`)

@@ -75,6 +75,9 @@ jobs:
       - name: Install Node
         run: pnpm install --frozen-lockfile
         working-directory: engine/language_client_typescript
+      - name: Run language server install script
+        run: bash ./scripts/install.sh
+        working-directory: engine/language_server
       - name: Build Wasm (for language server)
         run: cargo build --target=wasm32-unknown-unknown
         working-directory: engine/baml-schema-wasm
@@ -139,6 +142,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
+      - name: Run language server install script
+        run: bash ./scripts/install.sh
+        working-directory: engine/language_server
       - name: Build Wasm (for language server)
         run: cargo build --target=wasm32-unknown-unknown
         working-directory: engine/baml-schema-wasm
@@ -162,6 +168,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
+      - name: Run language server install script
+        run: bash ./scripts/install.sh
+        working-directory: engine/language_server
       - name: Build Wasm (for language server)
         run: cargo build --target=wasm32-unknown-unknown
         working-directory: engine/baml-schema-wasm
