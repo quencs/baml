@@ -36,7 +36,7 @@ export const RenderPart: React.FC<{
     const text = he.encode(part.as_text() ?? '')
     // Skip processing if any input value is too large
     const hasLargeInput = (testCase?.inputs ?? []).some(
-      (input) => typeof input.value === 'string' && input.value.length > 20000,
+      (input: any) => typeof input.value === 'string' && input.value.length > 20000,
     )
 
     const allChunks = hasLargeInput ? [] : extractStringValues(testCase?.inputs ?? [])

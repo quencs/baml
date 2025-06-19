@@ -53,7 +53,7 @@ export const PromptPreviewContent = () => {
     return <ErrorMessage error={error instanceof Error ? error.message : 'Unknown Error'} />
   }
 
-  if (diagnostics.length > 0 && diagnostics.some((d) => d.type === 'error')) {
+  if (diagnostics.length > 0 && diagnostics.some((d: any) => d.type === 'error')) {
     return (
       <div className='relative'>
         {/* todo: maybe keep rendering the last known prompt? And make this a more condensed error banner in absolute position? */}
@@ -61,10 +61,10 @@ export const PromptPreviewContent = () => {
           <div className='mb-2 text-sm font-medium text-red-500'>Syntax Error</div>
           <pre className='px-2 py-1 font-mono text-sm text-red-500 whitespace-pre-wrap rounded-lg'>
             <div className='space-y-2'>
-              <div>{diagnostics.filter((d: WasmError) => d.type === 'error').length} error(s):</div>
+              <div>{diagnostics.filter((d: any) => d.type === 'error').length} error(s):</div>
               {diagnostics
-                .filter((d: WasmError) => d.type === 'error')
-                .map((d, i) => (
+                .filter((d: any) => d.type === 'error')
+                .map((d: any, i: any) => (
                   <div key={i}>- {d.message}</div>
                 ))}
             </div>

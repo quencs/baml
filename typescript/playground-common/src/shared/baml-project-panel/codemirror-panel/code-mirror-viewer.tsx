@@ -155,7 +155,7 @@ export const CodeMirrorViewer = ({
         () => {
           try {
             const diags = store.get(CodeMirrorDiagnosticsAtom)
-            return diags.map((d) => {
+            return diags.map((d: any) => {
               return {
                 from: d.from,
                 // seems to be off by one after adding the copilot extension?

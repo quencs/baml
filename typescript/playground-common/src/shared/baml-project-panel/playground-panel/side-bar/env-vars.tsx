@@ -50,10 +50,10 @@ const renderedEnvVarsAtom = atom<EnvVarEntry[]>((get) => {
     hidden: visibility[key] !== false, // hidden by default unless explicitly set to false
   }))
 
-  const missingVars = requiredEnvVars.filter((envVar) => !(envVar in envVars))
+  const missingVars = requiredEnvVars.filter((envVar: any) => !(envVar in envVars))
 
   vars.push(
-    ...missingVars.map((envVar) => ({
+    ...missingVars.map((envVar: any) => ({
       key: envVar,
       value: undefined,
       required: true,

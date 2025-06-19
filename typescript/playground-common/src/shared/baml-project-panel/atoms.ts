@@ -102,7 +102,7 @@ export const diagnosticsAtom = atom((get) => {
 export const numErrorsAtom = atom((get) => {
   const errors = get(diagnosticsAtom)
 
-  const warningCount = errors.filter((e) => e.type === 'warning').length
+  const warningCount = errors.filter((e: any) => e.type === 'warning').length
 
   return { errors: errors.length - warningCount, warnings: warningCount }
 })
@@ -119,8 +119,8 @@ export const generatedFilesAtom = atom((get) => {
   }
 
   const generators = project.run_generators()
-  const files = generators.flatMap((gen) =>
-    gen.files.map((f) => ({
+  const files = generators.flatMap((gen: any) =>
+    gen.files.map((f: any) => ({
       path: f.path_in_output_dir,
       content: f.contents,
       outputDir: gen.output_dir,
@@ -135,8 +135,8 @@ export const generatedFilesByLangAtom = atomFamily((lang: ICodeBlock['language']
     if (!allFiles) return undefined
 
     return allFiles
-      .filter((f) => f.outputDir.includes(lang))
-      .map(({ path, content }) => ({
+      .filter((f: any) => f.outputDir.includes(lang))
+      .map(({ path, content }: any) => ({
         path,
         content,
       }))
@@ -272,7 +272,7 @@ export const requiredEnvVarsAtom = atom((get) => {
   const requiredEnvVars = rt.required_env_vars()
   const defaultEnvVars = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY']
   defaultEnvVars.forEach((e) => {
-    if (!requiredEnvVars.find((envVar) => e === envVar)) {
+    if (!requiredEnvVars.find((envVar: any) => e === envVar)) {
       requiredEnvVars.push(e)
     }
   })

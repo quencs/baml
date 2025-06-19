@@ -9,7 +9,7 @@ export const RenderPrompt: React.FC<{
 
   return (
     <div className='h-full space-y-4'>
-      {chat.map((p, partIndex) => (
+      {chat.map((p: any, partIndex: any) => (
         <div
           key={partIndex}
           className={`border-l-4 pl-4 ${
@@ -24,7 +24,7 @@ export const RenderPrompt: React.FC<{
         >
           <div className='mb-2 text-xs text-muted-foreground'>{p.role}</div>
           <div className='space-y-3'>
-            {p.parts.map((part, index) => (
+            {p.parts.map((part: any, index: any) => (
               <RenderPart key={`${partIndex}-${index}`} part={part} testCase={testCase} />
             ))}
           </div>

@@ -69,7 +69,7 @@ export default function Component() {
     navigator.clipboard.writeText(
       renderedPrompt
         .as_chat()
-        ?.map((msg) => `${msg.role}:\n${msg.parts.map((part) => part.as_text()).join('\n')}`)
+        ?.map((msg: any) => `${msg.role}:\n${msg.parts.map((part: any) => part.as_text()).join('\n')}`)
         .join('\n\n') ?? '',
     )
     setShowCopied(true)

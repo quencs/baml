@@ -39,10 +39,10 @@ const renderedEnvVarsAtom = atom((get) => {
     required: requiredEnvVars.includes(key),
   }))
 
-  const missingVars = requiredEnvVars.filter((envVar) => !(envVar in envVars))
+  const missingVars = requiredEnvVars.filter((envVar: any) => !(envVar in envVars))
 
   vars.push(
-    ...missingVars.map((envVar) => ({
+    ...missingVars.map((envVar: any) => ({
       key: envVar,
       value: undefined,
       required: true,

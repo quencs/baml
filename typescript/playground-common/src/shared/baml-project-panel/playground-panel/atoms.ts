@@ -35,7 +35,7 @@ export const selectedItemAtom = atom(
 export const functionObjectAtom = atomFamily((functionName: string) =>
   atom((get) => {
     const { functions } = get(runtimeStateAtom)
-    const fn = functions.find((f) => f.name === functionName)
+    const fn = functions.find((f: any) => f.name === functionName)
     if (!fn) {
       return undefined
     }
@@ -46,11 +46,11 @@ export const functionObjectAtom = atomFamily((functionName: string) =>
 export const testcaseObjectAtom = atomFamily((params: { functionName: string; testcaseName: string }) =>
   atom((get) => {
     const { functions } = get(runtimeStateAtom)
-    const fn = functions.find((f) => f.name === params.functionName)
+    const fn = functions.find((f: any) => f.name === params.functionName)
     if (!fn) {
       return undefined
     }
-    const tc = fn.test_cases.find((tc) => tc.name === params.testcaseName)
+    const tc = fn.test_cases.find((tc: any) => tc.name === params.testcaseName)
     if (!tc) {
       return undefined
     }
@@ -102,7 +102,7 @@ export const selectionAtom = atom((get) => {
 
   let selectedFn = state.functions.at(0)
   if (selectedFunction !== undefined) {
-    const foundFn = state.functions.find((f) => f.name === selectedFunction)
+    const foundFn = state.functions.find((f: any) => f.name === selectedFunction)
     if (foundFn) {
       selectedFn = foundFn
     } else {
@@ -114,7 +114,7 @@ export const selectionAtom = atom((get) => {
 
   let selectedTc = selectedFn?.test_cases.at(0)
   if (selectedTestcase !== undefined) {
-    const foundTc = selectedFn?.test_cases.find((tc) => tc.name === selectedTestcase)
+    const foundTc = selectedFn?.test_cases.find((tc: any) => tc.name === selectedTestcase)
     if (foundTc) {
       selectedTc = foundTc
     } else {
@@ -143,7 +143,7 @@ export const showEnvDialogAtom = atom(
     const envVars = get(envVarsAtom)
 
     // Check if ALL required vars are missing
-    const hasMissingVars = requiredVars.length > 0 && requiredVars.every((key) => !envVars[key])
+    const hasMissingVars = requiredVars.length > 0 && requiredVars.every((key: any) => !envVars[key])
 
     const hasShownDialog = get(hasShownEnvDialogAtom)
     if (hasShownDialog) return envDialogOpen
@@ -168,7 +168,7 @@ export const areEnvVarsMissingAtom = atom((get) => {
   const isVscode = vscode.isVscode()
   if (!isVscode) return false
   const envVars = get(envVarsAtom)
-  return requiredVars.length > 0 && requiredVars.every((key) => !envVars[key])
+  return requiredVars.length > 0 && requiredVars.every((key: any) => !envVars[key])
 })
 
 // Related to test status
@@ -207,8 +207,8 @@ export type TestState =
 export const testCaseAtom = atomFamily((params: { functionName: string; testName: string }) =>
   atom((get) => {
     const { functions } = get(runtimeStateAtom)
-    const fn = functions.find((f) => f.name === params.functionName)
-    const tc = fn?.test_cases.find((tc) => tc.name === params.testName)
+    const fn = functions.find((f: any) => f.name === params.functionName)
+    const tc = fn?.test_cases.find((tc: any) => tc.name === params.testName)
     if (!fn || !tc) {
       return undefined
     }
@@ -219,7 +219,7 @@ export const testCaseAtom = atomFamily((params: { functionName: string; testName
 export const functionTestSnippetAtom = atomFamily((functionName: string) =>
   atom((get) => {
     const { functions } = get(runtimeStateAtom)
-    const fn = functions.find((f) => f.name === functionName)
+    const fn = functions.find((f: any) => f.name === functionName)
     if (!fn) {
       return undefined
     }

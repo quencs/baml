@@ -40,9 +40,9 @@ const functionsAtom = atom((get) => {
   if (runtimeState === undefined) {
     return []
   }
-  return runtimeState.functions.map((f) => ({
+  return runtimeState.functions.map((f: any) => ({
     name: f.name,
-    tests: f.test_cases.map((t) => t.name),
+    tests: f.test_cases.map((t: any) => t.name),
   }))
 })
 
@@ -66,12 +66,12 @@ export default function CustomSidebar({ isEmbed = false }: { isEmbed?: boolean }
   const filteredFunctions = functions.filter(
     (func) =>
       func.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      func.tests.some((test) => test.toLowerCase().includes(searchTerm.toLowerCase())),
+      func.tests.some((test: any) => test.toLowerCase().includes(searchTerm.toLowerCase())),
   )
 
   const handleRunFilteredTests = () => {
     const testsToRun = filteredFunctions.flatMap((func) =>
-      func.tests.map((test) => ({
+      func.tests.map((test: any) => ({
         functionName: func.name,
         testName: test,
       })),
