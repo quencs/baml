@@ -30,8 +30,8 @@ mod capabilities;
 pub mod index;
 mod settings;
 
-// TODO(dhruvmanila): In general, the server shouldn't use any salsa queries directly and instead
-// should use methods on `ProjectDatabase`.
+use crate::playground::{broadcast_project_update, PlaygroundState};
+use tokio::sync::{broadcast, RwLock};
 
 /// The global state for the LSP
 #[derive(Debug)]
@@ -48,6 +48,20 @@ pub struct Session {
     pub resolved_client_capabilities: Arc<ResolvedClientCapabilities>,
 
     pub baml_settings: BamlSettings,
+
+    pub playground_state: Option<Arc<RwLock<PlaygroundState>>>,
+
+    /// Runtime for the playground server
+    pub playground_runtime: Option<tokio::runtime::Runtime>,
+}
+
+impl Drop for Session {
+    fn drop(&mut self) {
+        // Shutdown the playground runtime if it exists
+        if let Some(runtime) = self.playground_runtime.take() {
+            runtime.shutdown_timeout(std::time::Duration::from_secs(1));
+        }
+    }
 }
 
 impl Clone for Session {
@@ -58,6 +72,8 @@ impl Clone for Session {
             position_encoding: self.position_encoding.clone(),
             resolved_client_capabilities: self.resolved_client_capabilities.clone(),
             baml_settings: self.baml_settings.clone(),
+            playground_state: self.playground_state.clone(),
+            playground_runtime: None, // Don't clone the runtime
         }
     }
 }
@@ -68,6 +84,7 @@ impl Session {
         position_encoding: PositionEncoding,
         global_settings: ClientSettings,
         workspace_folders: &[(Url, ClientSettings)],
+        runtime_handle: tokio::runtime::Handle,
     ) -> anyhow::Result<Self> {
         let mut projects = HashMap::new();
         let index = index::Index::new(global_settings.clone());
@@ -105,6 +122,8 @@ impl Session {
                 client_capabilities,
             )),
             baml_settings: BamlSettings::default(),
+            playground_state: None,
+            playground_runtime: None,
         })
     }
 
@@ -423,11 +442,14 @@ mod tests {
         let global_settings = ClientSettings::default();
         let workspace_folders = vec![]; // Start with empty workspace
 
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
         Session::new(
             &client_capabilities,
             position_encoding,
             global_settings,
             &workspace_folders,
+            rt.handle().clone(),
         )
         .unwrap()
     }
@@ -436,7 +458,7 @@ mod tests {
     fn test_get_or_create_project() {
         init_logging(LogLevel::Info, None);
 
-        let mut session = create_test_session();
+        let session = create_test_session();
 
         // Using paths similar to the logs
         let path_str1 = "/Users/aaronvillalpando/Projects/baml-examples/ruby-starter/baml_src";

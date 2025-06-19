@@ -591,7 +591,7 @@ impl BamlRuntime {
                 .finish_call(call, ctx, None)
             {
                 Ok(id) => {}
-                Err(e) => log::debug!("Error during logging: {}", e),
+                Err(e) => baml_log::error!("Error during logging: {}", e),
             }
             #[cfg(target_arch = "wasm32")]
             match self
@@ -601,7 +601,7 @@ impl BamlRuntime {
                 .await
             {
                 Ok(id) => {}
-                Err(e) => log::debug!("Error during logging: {}", e),
+                Err(e) => log::error!("Error during logging: {}", e),
             }
         }
 
@@ -689,6 +689,7 @@ impl BamlRuntime {
 
         log::trace!("Calling function: {}", function_name);
         log::debug!("collectors: {:#?}", &collectors);
+
         let call = self
             .tracer_wrapper
             .get_or_create_tracer(&env_vars)
@@ -854,7 +855,7 @@ impl BamlRuntime {
             .finish_baml_call(call, ctx, &response)
         {
             Ok(id) => {}
-            Err(e) => log::debug!("Error during logging: {}", e),
+            Err(e) => baml_log::error!("Error during logging: {}", e),
         }
         #[cfg(target_arch = "wasm32")]
         match self
@@ -864,7 +865,7 @@ impl BamlRuntime {
             .await
         {
             Ok(id) => {}
-            Err(e) => log::debug!("Error during logging: {}", e),
+            Err(e) => log::error!("Error during logging: {}", e),
         }
 
         (response, curr_call_id)
