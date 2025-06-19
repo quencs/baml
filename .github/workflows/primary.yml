@@ -75,12 +75,12 @@ jobs:
       - name: Install Node
         run: pnpm install --frozen-lockfile
         working-directory: engine/language_client_typescript
-      - name: Run language server install script
-        run: bash ./scripts/install.sh
+      # This step is necessary to guarantee that the language server has a frontend to embed.
+      # Is also included in build and integ-tests steps.
+      - name: Build web-panel for language server
+        run: bash ./scripts/build.sh
         working-directory: engine/language_server
-      - name: Build Wasm (for language server)
-        run: cargo build --target=wasm32-unknown-unknown
-        working-directory: engine/baml-schema-wasm
+      # ------------------------------------------------------------
       - name: Build Node
         run: pnpm build:debug
         working-directory: engine/language_client_typescript
@@ -142,12 +142,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
-      - name: Run language server install script
-        run: bash ./scripts/install.sh
+      - name: Build web-panel for language server
+        run: bash ./scripts/build.sh
         working-directory: engine/language_server
-      - name: Build Wasm (for language server)
-        run: cargo build --target=wasm32-unknown-unknown
-        working-directory: engine/baml-schema-wasm
       - name: Test Rust
         # skip doctests & integration tests (the latter require OPENAI_API_KEY and ANTHROPIC_API_KEY to be set)
         run: cargo test --lib
@@ -168,12 +165,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
-      - name: Run language server install script
-        run: bash ./scripts/install.sh
+      - name: Build web-panel for language server
+        run: bash ./scripts/build.sh
         working-directory: engine/language_server
-      - name: Build Wasm (for language server)
-        run: cargo build --target=wasm32-unknown-unknown
-        working-directory: engine/baml-schema-wasm
       - name: run python tests
         run: |
           cd integ-tests/python

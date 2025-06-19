@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This script is needed as the language_server embeds the web-panel dist
+# directory in the playground_server.rs file. It builds all of the dependencies
+# for it as well as the web-panel itself. 
+
 # Exit on error
 set -e
 
@@ -34,7 +38,6 @@ pnpm run build
 DIST_PATH="${BAML_WEB_PANEL_DIST:-$WEB_PANEL_DIR/dist}"
 if [ ! -d "$DIST_PATH" ]; then
     echo "Error: Web panel dist directory not found at $DIST_PATH"
-    echo "Please ensure the path is correct or set BAML_WEB_PANEL_DIST environment variable."
     exit 1
 fi
 
