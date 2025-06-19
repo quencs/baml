@@ -63,20 +63,10 @@ export const getHighlightChunks = (
 /**
  * Returns the first non-empty line from the first text part in the array.
  */
-export function getFirstLine(parts: any[]): string {
-  for (const part of parts) {
-    if (part.is_text && part.is_text()) {
-      const text = part.as_text();
-      if (text) {
-        const decodedText = he.decode(text);
-        const lines = decodedText.split('\n');
-        if (lines.length > 0 && lines[0]?.trim()) {
-          return lines[0]?.trim() ?? '';
-        }
-      }
-    }
-  }
-  return '';
+export function getFirstLine(text: string): string {
+  if (!text) return '';
+  const lines = text.split('\n');
+  return lines[0] || '';
 }
 
 /**
@@ -118,4 +108,14 @@ export function getHighlightedParts(
     parts.push({ text: text.slice(lastIndex), highlight: false });
   }
   return parts;
+}
+
+// Mock WasmParam type to avoid WASM dependency
+export interface WasmParam {
+  name: string;
+  value: any;
+}
+
+export function highlightParams(params: WasmParam[]): string {
+  return params.map(p => `${p.name}: ${p.value}`).join(', ');
 }

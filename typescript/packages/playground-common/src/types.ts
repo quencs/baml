@@ -12,7 +12,9 @@ export interface TestResult {
 	response?: any;
 	message?: string;
 	latency?: number;
+	latency_ms?: number;
 	timestamp: number;
+	input?: Array<{ name?: string; value: any }>;
 }
 
 export interface TestHistoryRun {

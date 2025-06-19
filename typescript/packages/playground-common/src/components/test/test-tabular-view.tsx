@@ -26,22 +26,22 @@ import type {
 } from '@gloo-ai/baml-schema-wasm-web';
 import { useMemo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { vscode } from '../../../../vscode';
+import { vscode } from '../../vscode';
 import {
   type TestState,
   selectedItemAtom,
   testcaseObjectAtom,
-} from '../../../atoms';
-import type { TestHistoryRun } from '../atoms';
-import { useRunBamlTests } from '../test-runner';
+} from '../../atoms';
+import type { TestHistoryRun } from '../../types';
+import { useRunBamlTests } from './test-runner';
 import {
   getExplanation,
   getStatus,
   getTestStateResponse,
-} from '../testStateUtils';
+} from './testStateUtils';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ParsedResponseRenderer } from './ParsedResponseRender';
-import { TestStatus } from './TestStatus';
+import { TestStatus } from './test-status';
 import { type ResponseViewType, tabularViewConfigAtom } from './atoms';
 interface TabularViewProps {
   currentRun?: TestHistoryRun;
@@ -147,14 +147,14 @@ export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
   const [selectedItem, setSelectedItem] = useAtom(selectedItemAtom);
 
   const toggleConfig = (key: keyof typeof config) => {
-    setConfig((prev) => ({
+    setConfig((prev: typeof config) => ({
       ...prev,
       [key]: !prev[key],
     }));
   };
 
   const handleResponseTypeChange = (value: string) => {
-    setConfig((prev) => ({
+    setConfig((prev: typeof config) => ({
       ...prev,
       responseViewType: value as ResponseViewType,
     }));
@@ -285,7 +285,7 @@ export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
                     'border-purple-500/20 shadow-xs dark:border-purple-900/30 dark:bg-muted/90',
                 )}
                 onClick={() =>
-                  setSelectedItem(test.functionName, test.testName)
+                  setSelectedItem([test.functionName, test.testName])
                 }
               >
                 <TableCell className="px-1 py-1">

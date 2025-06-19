@@ -10,7 +10,7 @@ export function isValidFileName(name: string): boolean {
 
 export function getFileExtension(fileName: string): string {
 	const parts = fileName.split('.');
-	return parts.length > 1 ? parts[parts.length - 1] : '';
+	return parts.length > 1 ? (parts[parts.length - 1] ?? '') : '';
 }
 
 export function createFileMap(entries: [string, string][]): Record<string, string> {

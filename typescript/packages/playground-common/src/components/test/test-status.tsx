@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
-import type { TestState } from '../../../atoms';
-import { Loader } from '../../components';
-import type { FinalTestStatus } from '../testStateUtils';
+import type { TestState } from '../../atoms';
+import { Loader } from '../components';
+import type { FinalTestStatus } from './testStateUtils';
 
 interface TestStatusProps {
   status: TestState['status'];

@@ -1,8 +1,10 @@
 import { cn } from '@baml/ui/lib/utils';
 import { useAtomValue } from 'jotai';
-import { ChevronRight, FlaskConical, FunctionSquare } from 'lucide-react';
+import { ChevronRight, FlaskConical, FunctionSquare, Check, Copy } from 'lucide-react';
 import { useMemo } from 'react';
-import { vscode } from '../vscode';
+import { Button } from '@baml/ui/button';
+import { useState } from 'react';
+import { vscode } from '../../vscode';
 import { functionObjectAtom, testcaseObjectAtom } from './atoms';
 
 interface FunctionTestNameProps {

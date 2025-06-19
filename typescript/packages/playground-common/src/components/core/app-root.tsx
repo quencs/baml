@@ -1,6 +1,7 @@
 'use client';
 
-import CustomErrorBoundary from '../utils/ErrorFallback';
+import React from 'react';
+import CustomErrorBoundary from '../../utils/ErrorFallback';
 import { RuntimeInitializer } from './runtime-initializer';
 import { StatusBar } from './status-bar';
 import { VSCodeHandler } from './vscode-handler';
@@ -20,7 +21,7 @@ export function AppRoot({ children }: AppRootProps) {
 			<StatusBar />
 
 			{/* Main content with error boundary */}
-			<CustomErrorBoundary message="Error loading project">
+			<CustomErrorBoundary>
 				{children}
 			</CustomErrorBoundary>
 		</>

@@ -1,8 +1,10 @@
 'use client';
 
-import { useAtomValue } from 'jotai';
+import { cn } from '@baml/ui/lib/utils';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-import { diagnosticsAtom } from '../shared/baml-project-panel/atoms';
+import { useAtomValue } from 'jotai';
+import React from 'react';
+import { diagnosticsAtom, numErrorsAtom } from '../../shared/baml-project-panel/atoms';
 
 export function ErrorCount() {
 	const diagnostics = useAtomValue(diagnosticsAtom);
