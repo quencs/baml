@@ -7,6 +7,7 @@ members = [
   "baml-ids",
   "baml-runtime",
   "baml-schema-wasm",
+  "baml-vm",
   "bstd",
   "cli",
   "language_client_codegen",
@@ -28,6 +29,7 @@ default-members = [
   # and it's OK to not build this by default because we have to build ts separately (this may
   # also have something to do with resolver=2 and how duplicate dep builds are handled)
   # "baml-schema-wasm",
+  "baml-vm",
   "bstd",
   "cli",
   "language_client_cffi",

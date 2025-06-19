@@ -1,0 +1,6 @@
+[package]
+name = "baml-vm"
+version.workspace = true
+authors.workspace = true
+description = "BAML Virtual Machine"
+license-file.workspace = true
