@@ -1023,11 +1023,11 @@ impl BamlRuntime {
     fn generate_client(
         &self,
         client_type: &GeneratorOutputType,
-        args: &internal_baml_codegen::GeneratorArgs,
+        args: &generators_lib::GeneratorArgs,
     ) -> Result<internal_baml_codegen::GenerateOutput> {
-        use internal_baml_codegen::GenerateClient;
+        generators_lib::generate_sdk(self.inner.ir.clone(), args)?;
 
-        client_type.generate_client(self.inner.ir(), args)
+        todo!()
     }
 }
 
@@ -1137,19 +1137,13 @@ impl BamlRuntime {
         client_types
             .iter()
             .map(|(generator, args)| {
-                generator
-                    .output_type
-                    .generate_client(self.inner.ir(), args)
-                    .with_context(|| {
-                        let err_msg = format!(
-                            "Error while running generator defined at {}:{}:{}",
-                            generator.span.file.path(),
-                            generator.span.line_and_column().0 .0,
-                            generator.span.line_and_column().0 .1
-                        );
-                        log::error!("{}", err_msg);
-                        err_msg
-                    })
+                let files = generators_lib::generate_sdk(self.inner.ir.clone(), args)?;
+                Ok(internal_baml_codegen::GenerateOutput {
+                    client_type: generator.output_type,
+                    output_dir_shorthand: generator.output_dir(),
+                    output_dir_full: generator.output_dir(),
+                    files,
+                })
             })
             .collect()
     }

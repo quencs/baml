@@ -82,22 +82,24 @@ struct RuntimeAST {
 }
 
 impl RuntimeAST {
-    #[allow(dead_code)]
     pub fn base_url(&self) -> String {
         // const SAM_API_URL: &str = "https://abe8c5ez29.execute-api.us-east-1.amazonaws.com";
         // const CHRIS_API_URL: &str = "https://o2em3sulde.execute-api.us-east-1.amazonaws.com";
         // return SAM_API_URL.to_string();
-        self.ast
-            .env_var("BOUNDARY_API_URL")
-            .cloned()
-            .unwrap_or_else(|| "https://api.boundaryml.com".to_string())
+        let url = match self.ast.env_var("BOUNDARY_API_URL") {
+            Some(url) if !url.is_empty() => url.clone(),
+            _ => "https://api.boundaryml.com".to_string(),
+        };
+        url
     }
 
-    #[allow(dead_code)]
     pub fn api_key(&self) -> Option<String> {
         // const CHRIS_API_KEY: &str = "7fc9adc617ed731ba6048daffe0e0de2ec168283624d07a94c2ed520183ea3f722633aa2a5eee9109098254e294f995e";
         // return CHRIS_API_KEY.to_string();
-        self.ast.env_var("BOUNDARY_API_KEY").cloned()
+        match self.ast.env_var("BOUNDARY_API_KEY") {
+            Some(key) if !key.is_empty() => Some(key.clone()),
+            _ => None,
+        }
     }
 
     async fn api_request<'req, 'resp, TEndpoint>(
@@ -118,10 +120,16 @@ impl RuntimeAST {
             .client
             .post(format!("{}{}", self.base_url(), TEndpoint::path()))
             .json(&request)
-            .bearer_auth(self.api_key().unwrap())
-            .send()
-            .await
-            .map_err(ApiError::Transport)?;
+            .bearer_auth(self.api_key().unwrap());
+        let response = response.send().await;
+
+        let response = match response {
+            Ok(response) => response,
+            Err(e) => {
+                println!("error: {:#?}, url: {}, path: {}", e, self.base_url(), TEndpoint::path());
+                return Err(ApiError::Transport(e));
+            }
+        };
 
         // B) take the status code up‑front
         let status = response.status();
