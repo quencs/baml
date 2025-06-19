@@ -344,7 +344,6 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
 
             BamlValueWithMeta::Class(name, fields, meta) => {
                 if !self.is_subtype(
-                    // TODO(Rahul): how do we get the dynamic flag?
                     &FieldType::class(name.as_str()),
                     &field_type,
                 ) {

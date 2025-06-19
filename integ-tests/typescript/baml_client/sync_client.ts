@@ -142,7 +142,7 @@ export class BamlSyncClient {
   AliasWithMultipleAttrs(
       money: number,
       __baml_options__?: BamlCallOptions
-  ): number {
+  ): types.Checked<number,"gt_ten"> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -158,7 +158,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as number
+      return raw.parsed(false) as types.Checked<number,"gt_ten">
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -467,7 +467,7 @@ export class BamlSyncClient {
   ClassifyDynEnumTwo(
       input: string,
       __baml_options__?: BamlCallOptions
-  ): types.DynEnumTwo {
+  ): (string | types.DynEnumTwo) {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -483,7 +483,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.DynEnumTwo
+      return raw.parsed(false) as (string | types.DynEnumTwo)
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -592,7 +592,7 @@ export class BamlSyncClient {
   CustomTask(
       input: string,
       __baml_options__?: BamlCallOptions
-  ): types.Union3BookOrder | FlightConfirmation | GroceryReceipt {
+  ): BookOrder | FlightConfirmation | GroceryReceipt {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -608,7 +608,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Union3BookOrder | FlightConfirmation | GroceryReceipt
+      return raw.parsed(false) as BookOrder | FlightConfirmation | GroceryReceipt
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -742,7 +742,7 @@ export class BamlSyncClient {
   DifferentiateUnions(
       
       __baml_options__?: BamlCallOptions
-  ): types.Union2OriginalA | OriginalB {
+  ): OriginalA | OriginalB {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -758,7 +758,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Union2OriginalA | OriginalB
+      return raw.parsed(false) as OriginalA | OriginalB
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -942,7 +942,7 @@ export class BamlSyncClient {
   ExtractHobby(
       text: string,
       __baml_options__?: BamlCallOptions
-  ): types.Hobby[] {
+  ): (string | types.Hobby)[] {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -958,7 +958,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Hobby[]
+      return raw.parsed(false) as (string | types.Hobby)[]
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -1015,7 +1015,7 @@ export class BamlSyncClient {
   }
   
   ExtractReceiptInfo(
-      email: string,reason: types.Union2string | string,
+      email: string,reason: "curiosity" | "personal_finance",
       __baml_options__?: BamlCallOptions
   ): types.ReceiptInfo {
     try {
@@ -1215,9 +1215,9 @@ export class BamlSyncClient {
   }
   
   FnLiteralUnionClassInputOutput(
-      input: types.Union2LiteralClassOne | LiteralClassTwo,
+      input: LiteralClassOne | LiteralClassTwo,
       __baml_options__?: BamlCallOptions
-  ): types.Union2LiteralClassOne | LiteralClassTwo {
+  ): LiteralClassOne | LiteralClassTwo {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1233,7 +1233,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Union2LiteralClassOne | LiteralClassTwo
+      return raw.parsed(false) as LiteralClassOne | LiteralClassTwo
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -1417,7 +1417,7 @@ export class BamlSyncClient {
   FnOutputLiteralBool(
       input: string,
       __baml_options__?: BamlCallOptions
-  ): boolean {
+  ): false {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1433,7 +1433,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as boolean
+      return raw.parsed(false) as false
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -1442,7 +1442,7 @@ export class BamlSyncClient {
   FnOutputLiteralInt(
       input: string,
       __baml_options__?: BamlCallOptions
-  ): number {
+  ): 5 {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1458,7 +1458,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as number
+      return raw.parsed(false) as 5
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -1467,7 +1467,7 @@ export class BamlSyncClient {
   FnOutputLiteralString(
       input: string,
       __baml_options__?: BamlCallOptions
-  ): string {
+  ): "example output" {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1483,7 +1483,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as string
+      return raw.parsed(false) as "example output"
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -1665,9 +1665,9 @@ export class BamlSyncClient {
   }
   
   InOutEnumMapKey(
-      i1: Record<types.MapKey, string>,i2: Record<types.MapKey, string>,
+      i1: Partial<Record<types.MapKey, string>>,i2: Partial<Record<types.MapKey, string>>,
       __baml_options__?: BamlCallOptions
-  ): Record<types.MapKey, string> {
+  ): Partial<Record<types.MapKey, string>> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1683,16 +1683,16 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as Record<types.MapKey, string>
+      return raw.parsed(false) as Partial<Record<types.MapKey, string>>
     } catch (error: any) {
       throw toBamlError(error);
     }
   }
   
   InOutLiteralStringUnionMapKey(
-      i1: Record<types.Union4string | string | string | string, string>,i2: Record<types.Union4string | string | string | string, string>,
+      i1: Partial<Record<"one" | "two" | "three" | "four", string>>,i2: Partial<Record<"one" | "two" | "three" | "four", string>>,
       __baml_options__?: BamlCallOptions
-  ): Record<types.Union4string | string | string | string, string> {
+  ): Partial<Record<"one" | "two" | "three" | "four", string>> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1708,16 +1708,16 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as Record<types.Union4string | string | string | string, string>
+      return raw.parsed(false) as Partial<Record<"one" | "two" | "three" | "four", string>>
     } catch (error: any) {
       throw toBamlError(error);
     }
   }
   
   InOutSingleLiteralStringMapKey(
-      m: Record<string, string>,
+      m: Record<"key", string>,
       __baml_options__?: BamlCallOptions
-  ): Record<string, string> {
+  ): Record<"key", string> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1733,7 +1733,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as Record<string, string>
+      return raw.parsed(false) as Record<"key", string>
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -1792,7 +1792,7 @@ export class BamlSyncClient {
   LiteralUnionsTest(
       input: string,
       __baml_options__?: BamlCallOptions
-  ): types.Union3boolean | number | string {
+  ): 1 | true | "string output" {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1808,7 +1808,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Union3boolean | number | string
+      return raw.parsed(false) as 1 | true | "string output"
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -1817,7 +1817,7 @@ export class BamlSyncClient {
   MakeBlockConstraint(
       
       __baml_options__?: BamlCallOptions
-  ): types.Checked<types.BlockConstraint> {
+  ): types.Checked<types.BlockConstraint,"cross_field"> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -1833,7 +1833,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Checked<types.BlockConstraint>
+      return raw.parsed(false) as types.Checked<types.BlockConstraint,"cross_field">
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -2015,9 +2015,9 @@ export class BamlSyncClient {
   }
   
   NestedAlias(
-      c: types.Union6Record<string, string[]> | boolean | number | number | string | string[],
+      c: number | string | boolean | number | string[] | Record<string, string[]>,
       __baml_options__?: BamlCallOptions
-  ): types.Union6Record<string, string[]> | boolean | number | number | string | string[] {
+  ): number | string | boolean | number | string[] | Record<string, string[]> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -2033,7 +2033,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Union6Record<string, string[]> | boolean | number | number | string | string[]
+      return raw.parsed(false) as number | string | boolean | number | string[] | Record<string, string[]>
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -2092,7 +2092,7 @@ export class BamlSyncClient {
   OptionalTest_Function(
       input: string,
       __baml_options__?: BamlCallOptions
-  ): types.OptionalTest_ReturnType | null[] {
+  ): (types.OptionalTest_ReturnType | null)[] {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -2108,7 +2108,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.OptionalTest_ReturnType | null[]
+      return raw.parsed(false) as (types.OptionalTest_ReturnType | null)[]
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -2142,7 +2142,7 @@ export class BamlSyncClient {
   PredictAgeBare(
       inp: string,
       __baml_options__?: BamlCallOptions
-  ): number {
+  ): types.Checked<number,"too_big"> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -2158,16 +2158,16 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as number
+      return raw.parsed(false) as types.Checked<number,"too_big">
     } catch (error: any) {
       throw toBamlError(error);
     }
   }
   
   PrimitiveAlias(
-      p: types.Union4boolean | number | number | string,
+      p: number | string | boolean | number,
       __baml_options__?: BamlCallOptions
-  ): types.Union4boolean | number | number | string {
+  ): number | string | boolean | number {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -2183,7 +2183,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Union4boolean | number | number | string
+      return raw.parsed(false) as number | string | boolean | number
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -2442,7 +2442,7 @@ export class BamlSyncClient {
   ReturnAliasWithMergedAttributes(
       money: number,
       __baml_options__?: BamlCallOptions
-  ): number {
+  ): types.Checked<number,"gt_ten"> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -2458,7 +2458,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as number
+      return raw.parsed(false) as types.Checked<number,"gt_ten">
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -2717,7 +2717,7 @@ export class BamlSyncClient {
   StreamUnionIntegers(
       digits: number,
       __baml_options__?: BamlCallOptions
-  ): types.Union2number | string[] {
+  ): (number | string)[] {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -2733,7 +2733,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as types.Union2number | string[]
+      return raw.parsed(false) as (number | string)[]
     } catch (error: any) {
       throw toBamlError(error);
     }
@@ -3890,7 +3890,7 @@ export class BamlSyncClient {
   }
   
   TestNamedArgsLiteralBool(
-      myBool: boolean,
+      myBool: true,
       __baml_options__?: BamlCallOptions
   ): string {
     try {
@@ -3915,7 +3915,7 @@ export class BamlSyncClient {
   }
   
   TestNamedArgsLiteralInt(
-      myInt: number,
+      myInt: 1,
       __baml_options__?: BamlCallOptions
   ): string {
     try {
@@ -3940,7 +3940,7 @@ export class BamlSyncClient {
   }
   
   TestNamedArgsLiteralString(
-      myString: string,
+      myString: "My String",
       __baml_options__?: BamlCallOptions
   ): string {
     try {
@@ -4590,7 +4590,7 @@ export class BamlSyncClient {
   }
   
   UnionTest_Function(
-      input: types.Union2boolean | string,
+      input: string | boolean,
       __baml_options__?: BamlCallOptions
   ): types.UnionTest_ReturnType {
     try {

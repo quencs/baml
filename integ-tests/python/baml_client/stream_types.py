@@ -478,28 +478,7 @@ class WithReasoning(BaseModel):
 # #########################################################################
 
 
-RecursiveUnion: typing_extensions.TypeAlias = typing.Optional[typing.Union[str, typing.Dict[str, typing.Optional["RecursiveUnion"]]]]
-
-
-LinkedListAlias: typing_extensions.TypeAlias = typing.Optional["LinkedListAliasNode"]
-
-
-NodeIndirection: typing_extensions.TypeAlias = typing.Optional["NodeWithAliasIndirection"]
-
-
-JsonEntry: typing_extensions.TypeAlias = typing.Optional[typing.Union["SimpleTag", "JsonTemplate"]]
-
-
-JsonTemplate: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["JsonEntry"]]]
-
-
-Primitive: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float]]
-
-
-List: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional[str]]]
-
-
-Graph: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]
+Amount: typing_extensions.TypeAlias = typing.Optional[int]
 
 
 Combination: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float, typing.List[typing.Optional[str]], typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]]
@@ -508,31 +487,52 @@ Combination: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str
 Currency: typing_extensions.TypeAlias = typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]]
 
 
-Amount: typing_extensions.TypeAlias = typing.Optional[int]
+Graph: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional[typing.List[typing.Optional[str]]]]]
 
 
-MultipleAttrs: typing_extensions.TypeAlias = typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]]
+JsonArray: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["JsonValue"]]]
 
 
-RecursiveMapAlias: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["RecursiveMapAlias"]]]
-
-
-RecursiveListAlias: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["RecursiveListAlias"]]]
-
-
-RecAliasOne: typing_extensions.TypeAlias = typing.Optional["RecAliasTwo"]
-
-
-RecAliasTwo: typing_extensions.TypeAlias = typing.Optional["RecAliasThree"]
-
-
-RecAliasThree: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["RecAliasOne"]]]
-
-
-JsonValue: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]]
+JsonEntry: typing_extensions.TypeAlias = typing.Optional[typing.Union["SimpleTag", "JsonTemplate"]]
 
 
 JsonObject: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["JsonValue"]]]
 
 
-JsonArray: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["JsonValue"]]]
+JsonTemplate: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["JsonEntry"]]]
+
+
+JsonValue: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]]
+
+
+LinkedListAlias: typing_extensions.TypeAlias = typing.Optional["LinkedListAliasNode"]
+
+
+List: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional[str]]]
+
+
+MultipleAttrs: typing_extensions.TypeAlias = typing.Optional[types.Checked[int, typing_extensions.Literal['gt_ten']]]
+
+
+NodeIndirection: typing_extensions.TypeAlias = typing.Optional["NodeWithAliasIndirection"]
+
+
+Primitive: typing_extensions.TypeAlias = typing.Optional[typing.Union[int, str, bool, float]]
+
+
+RecAliasOne: typing_extensions.TypeAlias = typing.Optional["RecAliasTwo"]
+
+
+RecAliasThree: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["RecAliasOne"]]]
+
+
+RecAliasTwo: typing_extensions.TypeAlias = typing.Optional["RecAliasThree"]
+
+
+RecursiveListAlias: typing_extensions.TypeAlias = typing.Optional[typing.List[typing.Optional["RecursiveListAlias"]]]
+
+
+RecursiveMapAlias: typing_extensions.TypeAlias = typing.Optional[typing.Dict[str, typing.Optional["RecursiveMapAlias"]]]
+
+
+RecursiveUnion: typing_extensions.TypeAlias = typing.Optional[typing.Union[str, typing.Dict[str, typing.Optional["RecursiveUnion"]]]]

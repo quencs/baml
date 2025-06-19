@@ -2463,7 +2463,6 @@ fn make_test_ir_and_diagnostics_from_dir(
     Ok((ir, diagnostics))
 }
 
-
 // Specialize generics.
 fn specialize_generics(expr: &Expr<ExprMetadata>, ctx: &mut HashMap<Name, Expr<ExprMetadata>>) {
     match expr {

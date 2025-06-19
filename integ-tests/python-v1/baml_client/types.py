@@ -78,9 +78,11 @@ class DataType(str, Enum):
     Resume = "Resume"
     Event = "Event"
 
-class DynEnumOne(str, Enum):pass
+class DynEnumOne(str, Enum):
+    pass
 
-class DynEnumTwo(str, Enum):pass
+class DynEnumTwo(str, Enum):
+    pass
 
 class EnumInClass(str, Enum):
     ONE = "ONE"
@@ -792,28 +794,7 @@ class WithReasoning(BaseModel):
 # #########################################################################
 
 
-RecursiveUnion: typing_extensions.TypeAlias = typing.Union[str, typing.Dict[str, "RecursiveUnion"]]
-
-
-LinkedListAlias: typing_extensions.TypeAlias = "LinkedListAliasNode"
-
-
-NodeIndirection: typing_extensions.TypeAlias = "NodeWithAliasIndirection"
-
-
-JsonEntry: typing_extensions.TypeAlias = typing.Union["SimpleTag", "JsonTemplate"]
-
-
-JsonTemplate: typing_extensions.TypeAlias = typing.Dict[str, "JsonEntry"]
-
-
-Primitive: typing_extensions.TypeAlias = typing.Union[int, str, bool, float]
-
-
-List: typing_extensions.TypeAlias = typing.List[str]
-
-
-Graph: typing_extensions.TypeAlias = typing.Dict[str, typing.List[str]]
+Amount: typing_extensions.TypeAlias = int
 
 
 Combination: typing_extensions.TypeAlias = typing.Union[int, str, bool, float, typing.List[str], typing.Dict[str, typing.List[str]]]
@@ -822,31 +803,52 @@ Combination: typing_extensions.TypeAlias = typing.Union[int, str, bool, float, t
 Currency: typing_extensions.TypeAlias = Checked[int, typing_extensions.Literal['gt_ten']]
 
 
-Amount: typing_extensions.TypeAlias = int
+Graph: typing_extensions.TypeAlias = typing.Dict[str, typing.List[str]]
 
 
-MultipleAttrs: typing_extensions.TypeAlias = Checked[int, typing_extensions.Literal['gt_ten']]
+JsonArray: typing_extensions.TypeAlias = typing.List["JsonValue"]
 
 
-RecursiveMapAlias: typing_extensions.TypeAlias = typing.Dict[str, "RecursiveMapAlias"]
-
-
-RecursiveListAlias: typing_extensions.TypeAlias = typing.List["RecursiveListAlias"]
-
-
-RecAliasOne: typing_extensions.TypeAlias = "RecAliasTwo"
-
-
-RecAliasTwo: typing_extensions.TypeAlias = "RecAliasThree"
-
-
-RecAliasThree: typing_extensions.TypeAlias = typing.List["RecAliasOne"]
-
-
-JsonValue: typing_extensions.TypeAlias = typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]
+JsonEntry: typing_extensions.TypeAlias = typing.Union["SimpleTag", "JsonTemplate"]
 
 
 JsonObject: typing_extensions.TypeAlias = typing.Dict[str, "JsonValue"]
 
 
-JsonArray: typing_extensions.TypeAlias = typing.List["JsonValue"]
+JsonTemplate: typing_extensions.TypeAlias = typing.Dict[str, "JsonEntry"]
+
+
+JsonValue: typing_extensions.TypeAlias = typing.Union[int, str, bool, float, "JsonObject", "JsonArray"]
+
+
+LinkedListAlias: typing_extensions.TypeAlias = "LinkedListAliasNode"
+
+
+List: typing_extensions.TypeAlias = typing.List[str]
+
+
+MultipleAttrs: typing_extensions.TypeAlias = Checked[int, typing_extensions.Literal['gt_ten']]
+
+
+NodeIndirection: typing_extensions.TypeAlias = "NodeWithAliasIndirection"
+
+
+Primitive: typing_extensions.TypeAlias = typing.Union[int, str, bool, float]
+
+
+RecAliasOne: typing_extensions.TypeAlias = "RecAliasTwo"
+
+
+RecAliasThree: typing_extensions.TypeAlias = typing.List["RecAliasOne"]
+
+
+RecAliasTwo: typing_extensions.TypeAlias = "RecAliasThree"
+
+
+RecursiveListAlias: typing_extensions.TypeAlias = typing.List["RecursiveListAlias"]
+
+
+RecursiveMapAlias: typing_extensions.TypeAlias = typing.Dict[str, "RecursiveMapAlias"]
+
+
+RecursiveUnion: typing_extensions.TypeAlias = typing.Union[str, typing.Dict[str, "RecursiveUnion"]]

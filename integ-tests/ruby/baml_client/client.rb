@@ -99,7 +99,7 @@ module BamlClient
           varargs: T.untyped,
           money: Integer,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(BamlClient::Types::Checked[Integer, :'gt_ten' Check])}
+      ).returns(BamlClient::Types::Checked[Integer])}
       def AliasWithMultipleAttrs(
           *varargs,
           money:,
@@ -118,7 +118,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(BamlClient::Types::Checked[Integer, :'gt_ten' Check])
+          parsed.cast_to(BamlClient::Types::Checked[Integer])
       end
       sig {params(
           varargs: T.untyped,
@@ -1774,7 +1774,7 @@ module BamlClient
           varargs: T.untyped,
 
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(BamlClient::Types::Checked[BamlClient::Types::BlockConstraint, :'cross_field' Check, :'cross_field' Check])}
+      ).returns(BamlClient::Types::Checked[BamlClient::Types::BlockConstraint])}
       def MakeBlockConstraint(
           *varargs,
 
@@ -1793,7 +1793,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(BamlClient::Types::Checked[BamlClient::Types::BlockConstraint, :'cross_field' Check, :'cross_field' Check])
+          parsed.cast_to(BamlClient::Types::Checked[BamlClient::Types::BlockConstraint])
       end
       sig {params(
           varargs: T.untyped,
@@ -2099,7 +2099,7 @@ module BamlClient
           varargs: T.untyped,
           inp: String,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(BamlClient::Types::Checked[Integer, :'too_big' Check])}
+      ).returns(BamlClient::Types::Checked[Integer])}
       def PredictAgeBare(
           *varargs,
           inp:,
@@ -2118,7 +2118,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(BamlClient::Types::Checked[Integer, :'too_big' Check])
+          parsed.cast_to(BamlClient::Types::Checked[Integer])
       end
       sig {params(
           varargs: T.untyped,
@@ -2399,7 +2399,7 @@ module BamlClient
           varargs: T.untyped,
           money: Integer,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(BamlClient::Types::Checked[Integer, :'gt_ten' Check])}
+      ).returns(BamlClient::Types::Checked[Integer])}
       def ReturnAliasWithMergedAttributes(
           *varargs,
           money:,
@@ -2418,7 +2418,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(BamlClient::Types::Checked[Integer, :'gt_ten' Check])
+          parsed.cast_to(BamlClient::Types::Checked[Integer])
       end
       sig {params(
           varargs: T.untyped,
@@ -4735,7 +4735,7 @@ module BamlClient
           varargs: T.untyped,
           money: Integer,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer, :'gt_ten' Check]), BamlClient::Types::Checked[Integer, :'gt_ten' Check]])}
+      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer]), BamlClient::Types::Checked[Integer]])}
       def AliasWithMultipleAttrs(
           *varargs,
           money:,
@@ -4751,7 +4751,7 @@ module BamlClient
               money: money,
           })
 
-          Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer, :'gt_ten' Check]), BamlClient::Types::Checked[Integer, :'gt_ten' Check]].new(
+          Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer]), BamlClient::Types::Checked[Integer]].new(
               ffi_stream: result,
               ctx_manager: ctx
           )
@@ -6410,7 +6410,7 @@ module BamlClient
           varargs: T.untyped,
 
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::Checked[BamlClient::StreamTypes::BlockConstraint, :'cross_field' Check, :'cross_field' Check]), BamlClient::Types::Checked[BamlClient::Types::BlockConstraint, :'cross_field' Check, :'cross_field' Check]])}
+      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::Checked[BamlClient::StreamTypes::BlockConstraint]), BamlClient::Types::Checked[BamlClient::Types::BlockConstraint]])}
       def MakeBlockConstraint(
           *varargs,
 
@@ -6426,7 +6426,7 @@ module BamlClient
 
           })
 
-          Baml::BamlStream[T.nilable(BamlClient::Types::Checked[BamlClient::StreamTypes::BlockConstraint, :'cross_field' Check, :'cross_field' Check]), BamlClient::Types::Checked[BamlClient::Types::BlockConstraint, :'cross_field' Check, :'cross_field' Check]].new(
+          Baml::BamlStream[T.nilable(BamlClient::Types::Checked[BamlClient::StreamTypes::BlockConstraint]), BamlClient::Types::Checked[BamlClient::Types::BlockConstraint]].new(
               ffi_stream: result,
               ctx_manager: ctx
           )
@@ -6735,7 +6735,7 @@ module BamlClient
           varargs: T.untyped,
           inp: String,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer, :'too_big' Check]), BamlClient::Types::Checked[Integer, :'too_big' Check]])}
+      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer]), BamlClient::Types::Checked[Integer]])}
       def PredictAgeBare(
           *varargs,
           inp:,
@@ -6751,7 +6751,7 @@ module BamlClient
               inp: inp,
           })
 
-          Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer, :'too_big' Check]), BamlClient::Types::Checked[Integer, :'too_big' Check]].new(
+          Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer]), BamlClient::Types::Checked[Integer]].new(
               ffi_stream: result,
               ctx_manager: ctx
           )
@@ -7035,7 +7035,7 @@ module BamlClient
           varargs: T.untyped,
           money: Integer,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer, :'gt_ten' Check]), BamlClient::Types::Checked[Integer, :'gt_ten' Check]])}
+      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer]), BamlClient::Types::Checked[Integer]])}
       def ReturnAliasWithMergedAttributes(
           *varargs,
           money:,
@@ -7051,7 +7051,7 @@ module BamlClient
               money: money,
           })
 
-          Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer, :'gt_ten' Check]), BamlClient::Types::Checked[Integer, :'gt_ten' Check]].new(
+          Baml::BamlStream[T.nilable(BamlClient::Types::Checked[Integer]), BamlClient::Types::Checked[Integer]].new(
               ffi_stream: result,
               ctx_manager: ctx
           )

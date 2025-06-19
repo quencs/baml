@@ -24,23 +24,23 @@ import (
 	"example.com/integ-tests/baml_client/types"
 )
 
-type RecursiveUnion = *Union2MapStringKeyRecursiveUnionValueOrString
-type LinkedListAlias = *LinkedListAliasNode
-type NodeIndirection = *NodeWithAliasIndirection
-type JsonEntry = *Union2JsonTemplateOrSimpleTag
-type JsonTemplate = *map[string]*JsonEntry
-type Primitive = *Union4BoolOrFloatOrIntOrString
-type List = *[]*string
-type Graph = *map[string]*[]*string
+type Amount = *int64
 type Combination = *Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString
 type Currency = *types.Checked[int64]
-type Amount = *int64
-type MultipleAttrs = *types.Checked[int64]
-type RecursiveMapAlias = *map[string]*RecursiveMapAlias
-type RecursiveListAlias = *[]*RecursiveListAlias
-type RecAliasOne = *RecAliasTwo
-type RecAliasTwo = *RecAliasThree
-type RecAliasThree = *[]*RecAliasOne
-type JsonValue = *Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
-type JsonObject = *map[string]*JsonValue
+type Graph = *map[string]*[]*string
 type JsonArray = *[]*JsonValue
+type JsonEntry = *Union2JsonTemplateOrSimpleTag
+type JsonObject = *map[string]*JsonValue
+type JsonTemplate = *map[string]*JsonEntry
+type JsonValue = *Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
+type LinkedListAlias = *LinkedListAliasNode
+type List = *[]*string
+type MultipleAttrs = *types.Checked[int64]
+type NodeIndirection = *NodeWithAliasIndirection
+type Primitive = *Union4BoolOrFloatOrIntOrString
+type RecAliasOne = *RecAliasTwo
+type RecAliasThree = *[]*RecAliasOne
+type RecAliasTwo = *RecAliasThree
+type RecursiveListAlias = *[]*RecursiveListAlias
+type RecursiveMapAlias = *map[string]*RecursiveMapAlias
+type RecursiveUnion = *Union2MapStringKeyRecursiveUnionValueOrString

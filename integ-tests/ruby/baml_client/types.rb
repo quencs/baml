@@ -388,7 +388,7 @@ module BamlClient
 
   class Earthling < T::Struct
       include Baml::Sorbet::Struct
-      const :age, Checked[Integer, :'earth_aged' Check, :'no_infants' Check]
+      const :age, Checked[Integer]
   end
 
 
@@ -444,8 +444,8 @@ module BamlClient
   class FooAny < T::Struct
       include Baml::Sorbet::Struct
       const :planetary_age, T.any(Martian, Earthling)
-      const :certainty, Checked[Integer, :'unreasonably_certain' Check]
-      const :species, Checked[String, :'trivial' Check, :'regex_good' Check, :'regex_bad' Check]
+      const :certainty, Checked[Integer]
+      const :species, Checked[String]
   end
 
 
@@ -571,7 +571,7 @@ module BamlClient
 
   class MalformedConstraints < T::Struct
       include Baml::Sorbet::Struct
-      const :foo, Checked[Integer, :'foo_check' Check]
+      const :foo, Checked[Integer]
   end
 
 
@@ -588,7 +588,7 @@ module BamlClient
       # The age of the Martian in Mars years.
       # So many Mars years.
 
-      const :age, Checked[Integer, :'young_enough' Check]
+      const :age, Checked[Integer]
   end
 
 
@@ -602,7 +602,7 @@ module BamlClient
 
   class MergeAttrs < T::Struct
       include Baml::Sorbet::Struct
-      const :amount, Checked[Integer, :'gt_ten' Check]
+      const :amount, Checked[Integer]
   end
 
 
@@ -631,7 +631,7 @@ module BamlClient
 
   class NestedBlockConstraint < T::Struct
       include Baml::Sorbet::Struct
-      const :nbc, Checked[BlockConstraint, :'cross_field' Check, :'cross_field' Check]
+      const :nbc, Checked[BlockConstraint]
   end
 
 
@@ -890,8 +890,8 @@ module BamlClient
   class TwoStoriesOneTitleCheck < T::Struct
       include Baml::Sorbet::Struct
       const :title, String
-      const :story_a, Checked[String, :'too_long_story' Check]
-      const :story_b, Checked[String, :'too_long_story' Check]
+      const :story_a, Checked[String]
+      const :story_b, Checked[String]
   end
 
 
@@ -928,64 +928,64 @@ module BamlClient
   # #########################################################################
 
 
-  RecursiveUnion = T.type_alias{ T.any(String, T::Hash[String, T.anything]) }
-
-
-  LinkedListAlias = T.type_alias{ LinkedListAliasNode }
-
-
-  NodeIndirection = T.type_alias{ NodeWithAliasIndirection }
-
-
-  JsonEntry = T.type_alias{ T.any(SimpleTag, JsonTemplate) }
-
-
-  JsonTemplate = T.type_alias{ T::Hash[String, JsonEntry] }
-
-
-  Primitive = T.type_alias{ T.any(Integer, String, T::Boolean, Float) }
-
-
-  List = T.type_alias{ T::Array[String] }
-
-
-  Graph = T.type_alias{ T::Hash[String, T::Array[String]] }
+  Amount = T.type_alias{ Integer }
 
 
   Combination = T.type_alias{ T.any(Integer, String, T::Boolean, Float, T::Array[String], T::Hash[String, T::Array[String]]) }
 
 
-  Currency = T.type_alias{ Checked[Integer, :'gt_ten' Check] }
+  Currency = T.type_alias{ Checked[Integer] }
 
 
-  Amount = T.type_alias{ Integer }
+  Graph = T.type_alias{ T::Hash[String, T::Array[String]] }
 
 
-  MultipleAttrs = T.type_alias{ Checked[Integer, :'gt_ten' Check] }
+  JsonArray = T.type_alias{ T::Array[JsonValue] }
 
 
-  RecursiveMapAlias = T.type_alias{ T::Hash[String, T.anything] }
-
-
-  RecursiveListAlias = T.type_alias{ T::Array[T.anything] }
-
-
-  RecAliasOne = T.type_alias{ RecAliasTwo }
-
-
-  RecAliasTwo = T.type_alias{ RecAliasThree }
-
-
-  RecAliasThree = T.type_alias{ T::Array[RecAliasOne] }
-
-
-  JsonValue = T.type_alias{ T.any(Integer, String, T::Boolean, Float, JsonObject, JsonArray) }
+  JsonEntry = T.type_alias{ T.any(SimpleTag, JsonTemplate) }
 
 
   JsonObject = T.type_alias{ T::Hash[String, JsonValue] }
 
 
-  JsonArray = T.type_alias{ T::Array[JsonValue] }
+  JsonTemplate = T.type_alias{ T::Hash[String, JsonEntry] }
+
+
+  JsonValue = T.type_alias{ T.any(Integer, String, T::Boolean, Float, JsonObject, JsonArray) }
+
+
+  LinkedListAlias = T.type_alias{ LinkedListAliasNode }
+
+
+  List = T.type_alias{ T::Array[String] }
+
+
+  MultipleAttrs = T.type_alias{ Checked[Integer] }
+
+
+  NodeIndirection = T.type_alias{ NodeWithAliasIndirection }
+
+
+  Primitive = T.type_alias{ T.any(Integer, String, T::Boolean, Float) }
+
+
+  RecAliasOne = T.type_alias{ RecAliasTwo }
+
+
+  RecAliasThree = T.type_alias{ T::Array[RecAliasOne] }
+
+
+  RecAliasTwo = T.type_alias{ RecAliasThree }
+
+
+  RecursiveListAlias = T.type_alias{ T::Array[T.anything] }
+
+
+  RecursiveMapAlias = T.type_alias{ T::Hash[String, T.anything] }
+
+
+  RecursiveUnion = T.type_alias{ T.any(String, T::Hash[String, T.anything]) }
 
 
   end

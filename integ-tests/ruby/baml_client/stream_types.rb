@@ -228,7 +228,7 @@ module BamlClient
 
   class Earthling < T::Struct
       include Baml::Sorbet::Struct
-      const :age, T.nilable(BamlClient::Types::Checked[Integer, :'earth_aged' Check, :'no_infants' Check])
+      const :age, T.nilable(BamlClient::Types::Checked[Integer])
   end
 
 
@@ -284,8 +284,8 @@ module BamlClient
   class FooAny < T::Struct
       include Baml::Sorbet::Struct
       const :planetary_age, T.nilable(T.any(Martian, Earthling))
-      const :certainty, T.nilable(BamlClient::Types::Checked[Integer, :'unreasonably_certain' Check])
-      const :species, T.nilable(BamlClient::Types::Checked[String, :'trivial' Check, :'regex_good' Check, :'regex_bad' Check])
+      const :certainty, T.nilable(BamlClient::Types::Checked[Integer])
+      const :species, T.nilable(BamlClient::Types::Checked[String])
   end
 
 
@@ -411,7 +411,7 @@ module BamlClient
 
   class MalformedConstraints < T::Struct
       include Baml::Sorbet::Struct
-      const :foo, T.nilable(BamlClient::Types::Checked[Integer, :'foo_check' Check])
+      const :foo, T.nilable(BamlClient::Types::Checked[Integer])
   end
 
 
@@ -428,7 +428,7 @@ module BamlClient
       # The age of the Martian in Mars years.
       # So many Mars years.
 
-      const :age, T.nilable(BamlClient::Types::Checked[Integer, :'young_enough' Check])
+      const :age, T.nilable(BamlClient::Types::Checked[Integer])
   end
 
 
@@ -442,7 +442,7 @@ module BamlClient
 
   class MergeAttrs < T::Struct
       include Baml::Sorbet::Struct
-      const :amount, T.nilable(BamlClient::Types::Checked[Integer, :'gt_ten' Check])
+      const :amount, T.nilable(BamlClient::Types::Checked[Integer])
   end
 
 
@@ -471,7 +471,7 @@ module BamlClient
 
   class NestedBlockConstraint < T::Struct
       include Baml::Sorbet::Struct
-      const :nbc, T.nilable(BamlClient::Types::Checked[BlockConstraint, :'cross_field' Check, :'cross_field' Check])
+      const :nbc, T.nilable(BamlClient::Types::Checked[BlockConstraint])
   end
 
 
@@ -730,8 +730,8 @@ module BamlClient
   class TwoStoriesOneTitleCheck < T::Struct
       include Baml::Sorbet::Struct
       const :title, T.nilable(String)
-      const :story_a, T.nilable(BamlClient::Types::Checked[String, :'too_long_story' Check])
-      const :story_b, T.nilable(BamlClient::Types::Checked[String, :'too_long_story' Check])
+      const :story_a, T.nilable(BamlClient::Types::Checked[String])
+      const :story_b, T.nilable(BamlClient::Types::Checked[String])
   end
 
 
@@ -768,64 +768,64 @@ module BamlClient
   # #########################################################################
 
 
-  RecursiveUnion = T.type_alias{ T.nilable(T.any(String, T::Hash[String, T.nilable(T.anything)])) }
-
-
-  LinkedListAlias = T.type_alias{ T.nilable(LinkedListAliasNode) }
-
-
-  NodeIndirection = T.type_alias{ T.nilable(NodeWithAliasIndirection) }
-
-
-  JsonEntry = T.type_alias{ T.nilable(T.any(SimpleTag, JsonTemplate)) }
-
-
-  JsonTemplate = T.type_alias{ T.nilable(T::Hash[String, T.nilable(JsonEntry)]) }
-
-
-  Primitive = T.type_alias{ T.nilable(T.any(Integer, String, T::Boolean, Float)) }
-
-
-  List = T.type_alias{ T.nilable(T::Array[T.nilable(String)]) }
-
-
-  Graph = T.type_alias{ T.nilable(T::Hash[String, T.nilable(T::Array[T.nilable(String)])]) }
+  Amount = T.type_alias{ T.nilable(Integer) }
 
 
   Combination = T.type_alias{ T.nilable(T.any(Integer, String, T::Boolean, Float, T::Array[T.nilable(String)], T::Hash[String, T.nilable(T::Array[T.nilable(String)])])) }
 
 
-  Currency = T.type_alias{ T.nilable(BamlClient::Types::Checked[Integer, :'gt_ten' Check]) }
+  Currency = T.type_alias{ T.nilable(BamlClient::Types::Checked[Integer]) }
 
 
-  Amount = T.type_alias{ T.nilable(Integer) }
+  Graph = T.type_alias{ T.nilable(T::Hash[String, T.nilable(T::Array[T.nilable(String)])]) }
 
 
-  MultipleAttrs = T.type_alias{ T.nilable(BamlClient::Types::Checked[Integer, :'gt_ten' Check]) }
+  JsonArray = T.type_alias{ T.nilable(T::Array[T.nilable(JsonValue)]) }
 
 
-  RecursiveMapAlias = T.type_alias{ T.nilable(T::Hash[String, T.nilable(T.anything)]) }
-
-
-  RecursiveListAlias = T.type_alias{ T.nilable(T::Array[T.nilable(T.anything)]) }
-
-
-  RecAliasOne = T.type_alias{ T.nilable(RecAliasTwo) }
-
-
-  RecAliasTwo = T.type_alias{ T.nilable(RecAliasThree) }
-
-
-  RecAliasThree = T.type_alias{ T.nilable(T::Array[T.nilable(RecAliasOne)]) }
-
-
-  JsonValue = T.type_alias{ T.nilable(T.any(Integer, String, T::Boolean, Float, JsonObject, JsonArray)) }
+  JsonEntry = T.type_alias{ T.nilable(T.any(SimpleTag, JsonTemplate)) }
 
 
   JsonObject = T.type_alias{ T.nilable(T::Hash[String, T.nilable(JsonValue)]) }
 
 
-  JsonArray = T.type_alias{ T.nilable(T::Array[T.nilable(JsonValue)]) }
+  JsonTemplate = T.type_alias{ T.nilable(T::Hash[String, T.nilable(JsonEntry)]) }
+
+
+  JsonValue = T.type_alias{ T.nilable(T.any(Integer, String, T::Boolean, Float, JsonObject, JsonArray)) }
+
+
+  LinkedListAlias = T.type_alias{ T.nilable(LinkedListAliasNode) }
+
+
+  List = T.type_alias{ T.nilable(T::Array[T.nilable(String)]) }
+
+
+  MultipleAttrs = T.type_alias{ T.nilable(BamlClient::Types::Checked[Integer]) }
+
+
+  NodeIndirection = T.type_alias{ T.nilable(NodeWithAliasIndirection) }
+
+
+  Primitive = T.type_alias{ T.nilable(T.any(Integer, String, T::Boolean, Float)) }
+
+
+  RecAliasOne = T.type_alias{ T.nilable(RecAliasTwo) }
+
+
+  RecAliasThree = T.type_alias{ T.nilable(T::Array[T.nilable(RecAliasOne)]) }
+
+
+  RecAliasTwo = T.type_alias{ T.nilable(RecAliasThree) }
+
+
+  RecursiveListAlias = T.type_alias{ T.nilable(T::Array[T.nilable(T.anything)]) }
+
+
+  RecursiveMapAlias = T.type_alias{ T.nilable(T::Hash[String, T.nilable(T.anything)]) }
+
+
+  RecursiveUnion = T.type_alias{ T.nilable(T.any(String, T::Hash[String, T.nilable(T.anything)])) }
 
 
   end

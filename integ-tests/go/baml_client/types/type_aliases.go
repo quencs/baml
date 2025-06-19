@@ -22,42 +22,42 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-type RecursiveUnion = Union2MapStringKeyRecursiveUnionValueOrString
-
-type LinkedListAlias = LinkedListAliasNode
-
-type NodeIndirection = NodeWithAliasIndirection
-
-type JsonEntry = Union2JsonTemplateOrSimpleTag
-
-type JsonTemplate = map[string]JsonEntry
-
-type Primitive = Union4BoolOrFloatOrIntOrString
-
-type List = []string
-
-type Graph = map[string][]string
+type Amount = int64
 
 type Combination = Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString
 
 type Currency = int64
 
-type Amount = int64
+type Graph = map[string][]string
 
-type MultipleAttrs = int64
+type JsonArray = []JsonValue
 
-type RecursiveMapAlias = map[string]RecursiveMapAlias
-
-type RecursiveListAlias = []RecursiveListAlias
-
-type RecAliasOne = RecAliasTwo
-
-type RecAliasTwo = RecAliasThree
-
-type RecAliasThree = []RecAliasOne
-
-type JsonValue = Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
+type JsonEntry = Union2JsonTemplateOrSimpleTag
 
 type JsonObject = map[string]JsonValue
 
-type JsonArray = []JsonValue
+type JsonTemplate = map[string]JsonEntry
+
+type JsonValue = Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
+
+type LinkedListAlias = LinkedListAliasNode
+
+type List = []string
+
+type MultipleAttrs = int64
+
+type NodeIndirection = NodeWithAliasIndirection
+
+type Primitive = Union4BoolOrFloatOrIntOrString
+
+type RecAliasOne = RecAliasTwo
+
+type RecAliasThree = []RecAliasOne
+
+type RecAliasTwo = RecAliasThree
+
+type RecursiveListAlias = []RecursiveListAlias
+
+type RecursiveMapAlias = map[string]RecursiveMapAlias
+
+type RecursiveUnion = Union2MapStringKeyRecursiveUnionValueOrString
