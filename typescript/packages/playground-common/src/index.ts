@@ -42,13 +42,16 @@ export * from './components/render/render-part';
 export * from './components/render/render-prompt';
 export * from './components/render/render-tokens';
 
-// UI Components (6 components)
+// UI Components (8 components)
 export * from './components/ui/file-viewer';
 export * from './components/ui/tree-node';
 export * from './components/ui/webview-media';
 export * from './components/ui/long-text';
 export * from './components/ui/collapsible-message';
 export * from './components/ui/function-test-name';
+export * from './components/ui/theme-provider';
+export * from './components/ui/theme-toggle';
+export * from './components/ui/code-mirror-viewer';
 
 // Legacy Components (3 components)
 export * from './components/legacy/jotai-provider';
@@ -58,9 +61,14 @@ export * from './components/legacy/event-listener-original';
 // ===== HOOKS =====
 export * from './hooks/use-test-runner';
 export * from './hooks/use-vscode';
+export * from './hooks/use-debounced-atom';
 
 // ===== SERVICES =====
 export * from './services/test-service';
+export { vscode, VSCodeAPIWrapper } from './services/vscode-service';
+
+// ===== LIB =====
+export * from './lib/vscode-rpc';
 
 // ===== UTILS =====
 export * from './utils/file-utils';
@@ -74,19 +82,22 @@ export * from './utils/baml-config';
 // ===== TYPES =====
 export * from './types';
 
-// ===== LEGACY EXPORTS (for backwards compatibility during transition) =====
-// Re-export original deeply nested components with deprecation notice
-// These should be removed after migration is complete
+// ===== ATOMS =====
+// Export only specific atoms to avoid conflicts
+export {
+  wasmAtom,
+  filesAtom,
+  projectAtom,
+  runtimeAtom,
+  diagnosticsAtom,
+  selectedFunctionAtom,
+  selectedTestcaseAtom,
+  flashRangesAtom,
+  updateCursorAtom,
+  runningTestsAtom,
+  CodeMirrorDiagnosticsAtom
+} from './atoms';
 
-// Original atoms and legacy components (keeping for compatibility)
-export * from './shared/baml-project-panel/atoms';
-export * from './shared/baml-project-panel/playground-panel/atoms';
-export * from './shared/baml-project-panel/playground-panel/atoms-orch-graph';
-
-// Legacy utilities
-export * from './utils/ErrorFallback';
-
-// Other original exports that might still be needed
+// ===== OTHER =====
 export * from './wasm';
 export * from './Tree';
-export * from './lib';

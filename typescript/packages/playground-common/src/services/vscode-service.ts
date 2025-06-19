@@ -13,7 +13,7 @@ import {
   type LoadGcpCredsResponse,
   type SetProxySettingsRequest,
   decodeBuffer,
-} from './vscode-rpc';
+} from '../lib/vscode-rpc';
 
 const RPC_TIMEOUT_MS = 5000;
 
@@ -243,3 +243,6 @@ class VSCodeAPIWrapper {
 
 // Exports class singleton to prevent multiple invocations of acquireVsCodeApi.
 export const vscode = new VSCodeAPIWrapper();
+
+// Also export the class itself
+export { VSCodeAPIWrapper };

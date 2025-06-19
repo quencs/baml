@@ -17,8 +17,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hyperLink } from '@uiw/codemirror-extensions-hyper-link';
 import { langs } from '@uiw/codemirror-extensions-langs';
 import { useAtomValue, useSetAtom, useStore } from 'jotai';
-import type { ICodeBlock } from '../types';
-import { CodeMirrorDiagnosticsAtom } from './atoms';
+import type { ICodeBlock } from '../../types';
+import { CodeMirrorDiagnosticsAtom, flashRangesAtom, updateCursorAtom } from '../../atoms';
 
 import { autocompletion } from '@codemirror/autocomplete';
 import { javascript } from '@codemirror/lang-javascript';
@@ -37,7 +37,6 @@ import {
 } from '@typescript/vfs';
 import { useTheme } from 'next-themes';
 import ts from 'typescript';
-import { flashRangesAtom, updateCursorAtom } from '../playground-panel/atoms';
 
 const extensionMap = {
   js: [langs.javascript()],
@@ -51,6 +50,20 @@ const extensionMap = {
 export interface GeneratedFile {
   path: string;
   content: string;
+}
+
+interface DiagnosticItem {
+  from: number;
+  to: number;
+  severity: string;
+  message: string;
+}
+
+interface FlashRange {
+  startLine: number;
+  startCol: number;
+  endLine: number;
+  endCol: number;
 }
 
 const addFlashingEffect = StateEffect.define<{ from: number; to: number }[]>();
@@ -100,7 +113,7 @@ const createFlashingField = () => {
       for (const effect of tr.effects) {
         if (effect.is(addFlashingEffect)) {
           // Create new highlight decorations
-          const decorations = effect.value.map((range) =>
+          const decorations = effect.value.map((range: { from: number; to: number }) =>
             flashingMark.range(range.from, range.to),
           );
 
@@ -149,7 +162,7 @@ export const CodeMirrorViewer = ({
     if (!ref.current.view) return;
     const view = ref.current.view;
     // TODO: Filter by filename?
-    const convertedRanges = flashRanges.map((range) => ({
+    const convertedRanges = flashRanges.map((range: FlashRange) => ({
       from: view.state.doc.line(range.startLine + 1).from + range.startCol,
       to: view.state.doc.line(range.endLine + 1).from + range.endCol,
     }));
@@ -167,8 +180,8 @@ export const CodeMirrorViewer = ({
       return linter(
         () => {
           try {
-            const diags = store.get(CodeMirrorDiagnosticsAtom);
-            return diags.map((d) => {
+            const diags = store.get(CodeMirrorDiagnosticsAtom) as DiagnosticItem[];
+            return diags.map((d: DiagnosticItem) => {
               return {
                 from: d.from,
                 // seems to be off by one after adding the copilot extension?
