@@ -8,7 +8,7 @@ import com.redhat.devtools.lsp4ij.server.StreamConnectionProvider
 class BamlLanguageServerFactory : LanguageServerFactory {
 
     override fun createConnectionProvider(project: Project): StreamConnectionProvider {
-        return BamlLanguageServer()
+        return BamlLanguageServer(project)
     }
 
     override fun createClientFeatures(): LSPClientFeatures {
@@ -17,13 +17,11 @@ class BamlLanguageServerFactory : LanguageServerFactory {
         return features
     }
 
-//    // If you need to provide client specific features
-//    override fun createLanguageClient(project: Project): LanguageClientImpl {
-//        return BamlLanguageServerFactory(project)
-//    }
+    override fun createLanguageClient(project: Project) =
+        BamlLanguageClient(project)      // our custom client
 
-//    // If you need to expose a custom server API
+    // If you need to expose a custom server API
 //    override fun getServerInterface(): Class<out LanguageServer> {
-//        return MyCustomServerAPI::class.java
+//        return BamlCustomServerAPI::class.java
 //    }
 }

@@ -17,8 +17,23 @@ class BamlToolWindowFactory : ToolWindowFactory {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val myToolWindow = BamlToolWindow(toolWindow)
-        val content = ContentFactory.getInstance().createContent(myToolWindow.getContent(), null, false)
+        val browser = JBCefBrowser()
+        val panel   = JPanel(BorderLayout()).apply {
+            add(browser.component, BorderLayout.CENTER)
+        }
+
+        //-- subscribe once per tool-window instance
+        val connection = project.messageBus.connect(toolWindow.disposable)
+        connection.subscribe(BamlPortService.TOPIC, BamlPortService.Listener { port ->
+            browser.loadURL("http://localhost:$port/")
+        })
+
+        // if LS started before the tool window was opened
+        project.getService(BamlPortService::class.java).port?.let { port ->
+            browser.loadURL("http://localhost:$port/")
+        }
+
+        val content = ContentFactory.getInstance().createContent(panel, null, false)
         toolWindow.contentManager.addContent(content)
     }
 
@@ -28,24 +43,17 @@ class BamlToolWindowFactory : ToolWindowFactory {
 
         private val browser = JBCefBrowser()
 
-
-
         init {
-            // TODO: Have a launching playground status here
-            var htmlContent = """
-                          <!DOCTYPE html>
-                          <html lang="en">
-                            <head>
-                              <meta charset="UTF-8" />
-                              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                              <title>Hello World</title>
-                            </head>
-                            <body>
-                              <div id="root">TODO: Have a launching playground status here</div>
-                            </body>
-                          </html>
-            """.trimIndent()
-//            browser.loadURL("localhost:3030/")
+            browser.loadHTML(
+                """
+                <!DOCTYPE html>
+                <html lang="en">
+                  <head><meta charset="UTF-8"/><title>Loading…</title></head>
+                  <body><div id="root">Loading BAML applications…</div></body>
+                </html>
+                """.trimIndent()
+            )
+
         }
 
         fun getContent(): JPanel {
@@ -53,7 +61,6 @@ class BamlToolWindowFactory : ToolWindowFactory {
                 add(browser.component, BorderLayout.CENTER)
             }
         }
-
 
         // This approach doesn't work.
         // We need to follow instructions here and implement resource loaders

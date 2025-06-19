@@ -39,6 +39,8 @@ pub(crate) use connection::ClientSender;
 
 use crate::playground::{PlaygroundServer, PlaygroundState};
 
+use serde::{Deserialize, Serialize};
+
 pub type Result<T> = std::result::Result<T, api::Error>;
 
 pub(crate) struct Server {
@@ -46,6 +48,17 @@ pub(crate) struct Server {
     pub client_capabilities: ClientCapabilities,
     pub worker_threads: NonZeroUsize,
     pub session: Session,
+}
+
+#[derive(Serialize, Deserialize)]
+struct PortNotificationParams {
+    port: u16,
+}
+
+impl PortNotificationParams {
+    fn new(port: u16) -> Self {
+        PortNotificationParams { port }
+    }
 }
 
 impl Server {
@@ -391,6 +404,8 @@ impl Server {
             let mut playground_port = self.session.baml_settings.playground_port.unwrap_or(3030);
             let session_arc = Arc::new(self.session.clone());
             let playground_server = PlaygroundServer::new(playground_state.clone(), session_arc);
+            let sender = self.connection.make_sender();
+
             rt.spawn(async move {
                 loop {
                     // Check if port is available before attempting to bind
@@ -408,12 +423,17 @@ impl Server {
                             "Hosted playground at http://localhost:{}...",
                             playground_port
                         );
-                        // Open the default browser
-                        // if let Err(e) =
-                        //     webbrowser::open(&format!("http://localhost:{}", playground_port))
-                        // {
-                        //     tracing::warn!("Failed to open browser: {}", e);
-                        // }
+
+                        // Send LSP notification about the port
+                        let params = PortNotificationParams::new(playground_port);
+                        let notification = lsp_server::Notification::new(
+                            "baml/port".to_string(),
+                            serde_json::to_value(params).unwrap(),
+                        );
+                        if let Err(e) = sender.send(Message::Notification(notification)) {
+                            tracing::error!("Failed to send port notification: {}", e);
+                        }
+
                         server.run(playground_port).await.unwrap();
                         break;
                     } else {
