@@ -72,7 +72,9 @@ mod enums {
     ///     {%- if let Some(docstring) = docstring %}
     ///     {{crate::utils::prefix_lines(docstring, "# ") }}
     ///     {% endif %}
-    ///     {%- if values.is_empty() %}pass{% endif %}
+    ///     {%- if values.is_empty() %}
+    ///     pass
+    ///     {%- endif %}
     ///     {%- for (value, docstring) in values %}
     ///     {%- if let Some(docstring) = docstring %}
     ///     {{ crate::utils::prefix_lines(docstring, "# ") }}

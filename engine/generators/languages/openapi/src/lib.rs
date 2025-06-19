@@ -130,8 +130,3 @@ pub struct PathRequestBody {
     #[serde(rename = "$ref")]
     pub ref_: String,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-}
