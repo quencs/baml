@@ -37,12 +37,8 @@ pub fn validate_streaming_state(
     baml_value: &BamlValueStreamingWithFlags,
     allow_partials: bool,
 ) -> Result<BamlValueWithMeta<Completion>, StreamingError> {
-    let baml_value_with_meta_flags: BamlValueWithMeta<Vec<Flag>> =
-        baml_value.map_meta(|(flags, r#type)| (flags.flags().clone()));
-    let typed_baml_value: BamlValueWithMeta<(Vec<Flag>,)> =
-        ir.distribute_type_with_meta(baml_value_with_meta_flags, baml_value.field_type().clone())?;
     let baml_value_with_streaming_state_and_behavior =
-        typed_baml_value.map_meta(|(flags, r#type)| (completion_state(&flags), r#type));
+        baml_value.map_meta(|(flags, r#type)| (completion_state(flags.flags()), r#type));
 
     let top_level_node = process_node(
         ir,
@@ -325,7 +321,7 @@ fn required_done<T>(
             view.iter().any(|option| {
                 let variant_required_done = required_done(ir, option, value);
                 let value_unifies_with_variant =
-                    infer_type_with_meta(value).map_or(false, |v| ir.is_subtype(&v, option));
+                    infer_type_with_meta(value).map_or(false, |v| ir.is_subtype(&v, &option));
                 variant_required_done && value_unifies_with_variant
             })
         }
@@ -357,22 +353,22 @@ mod tests {
 
     use super::*;
 
-    fn mk_null() -> BamlValueWithFlags {
+    fn mk_null() -> BamlValueStreamingWithFlags {
         let value = BamlValue::Null;
-        let meta = (DeserializerConditions::default(), Type::null());
-        BamlValueWithFlags::Null(meta)
+        let meta = (DeserializerConditions::default(), TypeStreaming::null());
+        BamlValueStreamingWithFlags::Null(meta)
     }
 
-    fn mk_string(s: &str) -> BamlValueWithFlags {
+    fn mk_string(s: &str) -> BamlValueStreamingWithFlags {
         let value = BamlValue::String(s.to_string());
-        let meta = (DeserializerConditions::default(), Type::string());
-        BamlValueWithFlags::String(s.to_string(), meta)
+        let meta = (DeserializerConditions::default(), TypeStreaming::string());
+        BamlValueStreamingWithFlags::String(s.to_string(), meta)
     }
 
-    fn mk_float(s: f64) -> BamlValueWithFlags {
+    fn mk_float(s: f64) -> BamlValueStreamingWithFlags {
         let value = BamlValue::Float(s);
-        let meta = (DeserializerConditions::default(), Type::float());
-        BamlValueWithFlags::Float(s, meta)
+        let meta = (DeserializerConditions::default(), TypeStreaming::float());
+        BamlValueStreamingWithFlags::Float(s, meta)
     }
 
     #[test]
@@ -384,12 +380,12 @@ mod tests {
         )
         .unwrap();
 
-        fn mk_list(items: Vec<BamlValueWithFlags>) -> BamlValueWithFlags {
+        fn mk_list(items: Vec<BamlValueStreamingWithFlags>) -> BamlValueStreamingWithFlags {
             let meta = (
                 DeserializerConditions::default(),
-                Type::recursive_type_alias("A").as_list(),
+                TypeStreaming::recursive_type_alias("A").as_list(),
             );
-            BamlValueWithFlags::List(items, meta)
+            BamlValueStreamingWithFlags::List(items, meta)
         }
 
         let value = mk_list(vec![
@@ -432,10 +428,13 @@ mod tests {
         .into_iter()
         .collect();
 
-        let name_value = BamlValueWithFlags::Class(
+        let name_value = BamlValueStreamingWithFlags::Class(
             "Name".to_string(),
             name_fields,
-            (DeserializerConditions::default(), Type::class("Name")),
+            (
+                DeserializerConditions::default(),
+                TypeStreaming::class("Name"),
+            ),
         );
 
         let info_fields = vec![
@@ -447,10 +446,13 @@ mod tests {
         .into_iter()
         .collect();
 
-        let value = BamlValueWithFlags::Class(
+        let value = BamlValueStreamingWithFlags::Class(
             "Info".to_string(),
             info_fields,
-            (DeserializerConditions::default(), Type::class("Info")),
+            (
+                DeserializerConditions::default(),
+                TypeStreaming::class("Info"),
+            ),
         );
 
         let res = validate_streaming_state(&ir, &value, true).unwrap();

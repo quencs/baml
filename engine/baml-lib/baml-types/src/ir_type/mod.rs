@@ -343,30 +343,110 @@ impl<T> TypeGeneric<T> {
             return vec![self];
         } else {
             match self {
-                TypeGeneric::Primitive(..) |
-                TypeGeneric::Enum { .. }  |
-                TypeGeneric::Literal(..) |
-                TypeGeneric::Class { .. } |
-                TypeGeneric::RecursiveTypeAlias { .. } => vec![],
+                TypeGeneric::Primitive(..)
+                | TypeGeneric::Enum { .. }
+                | TypeGeneric::Literal(..)
+                | TypeGeneric::Class { .. }
+                | TypeGeneric::RecursiveTypeAlias { .. } => vec![],
                 TypeGeneric::List(inner, _) => inner.find_if(predicate),
                 TypeGeneric::Map(type_generic, type_generic1, _) => {
                     let mut res = type_generic.find_if(predicate);
                     res.extend(type_generic1.find_if(predicate));
                     res
-                },
-                TypeGeneric::Tuple(type_generics, _) => {
-                    type_generics.iter().flat_map(|t| t.find_if(predicate)).collect()
-                },
-                TypeGeneric::Union(union_type_generic, _) => {
-                    union_type_generic.iter_skip_null().iter().flat_map(|t| t.find_if(predicate)).collect()
-                },
+                }
+                TypeGeneric::Tuple(type_generics, _) => type_generics
+                    .iter()
+                    .flat_map(|t| t.find_if(predicate))
+                    .collect(),
+                TypeGeneric::Union(union_type_generic, _) => union_type_generic
+                    .iter_skip_null()
+                    .iter()
+                    .flat_map(|t| t.find_if(predicate))
+                    .collect(),
                 TypeGeneric::Arrow(arrow_generic, _) => {
-                    let res = arrow_generic.param_types.iter().flat_map(|t| t.find_if(predicate));
+                    let res = arrow_generic
+                        .param_types
+                        .iter()
+                        .flat_map(|t| t.find_if(predicate));
                     let mut returned = arrow_generic.return_type.find_if(predicate);
                     returned.extend(res);
                     returned
-                },
+                }
             }
+        }
+    }
+
+    pub fn map_meta<F, U>(&self, f: F) -> TypeGeneric<U>
+    where
+        F: Fn(&T) -> U + Copy,
+    {
+        match self {
+            TypeGeneric::Class {
+                meta,
+                name,
+                mode,
+                dynamic,
+            } => TypeGeneric::Class {
+                meta: f(meta),
+                name: name.clone(),
+                mode: mode.clone(),
+                dynamic: *dynamic,
+            },
+            TypeGeneric::Arrow(arrow_generic, meta) => {
+                let ArrowGeneric {
+                    param_types,
+                    return_type,
+                } = arrow_generic.as_ref();
+                TypeGeneric::Arrow(
+                    Box::new(ArrowGeneric {
+                        param_types: param_types.iter().map(|t| t.map_meta(f)).collect(),
+                        return_type: return_type.map_meta(f),
+                    }),
+                    f(meta),
+                )
+            }
+            TypeGeneric::Primitive(type_value, meta) => {
+                TypeGeneric::Primitive(*type_value, f(meta))
+            }
+            TypeGeneric::Enum {
+                meta,
+                name,
+                dynamic,
+            } => TypeGeneric::Enum {
+                meta: f(meta),
+                name: name.clone(),
+                dynamic: *dynamic,
+            },
+            TypeGeneric::Literal(literal_value, meta) => {
+                TypeGeneric::Literal(literal_value.clone(), f(meta))
+            }
+            TypeGeneric::List(type_generic, meta) => {
+                TypeGeneric::List(Box::new(type_generic.map_meta(f)), f(meta))
+            }
+            TypeGeneric::Map(type_generic, type_generic1, meta) => TypeGeneric::Map(
+                Box::new(type_generic.map_meta(f)),
+                Box::new(type_generic1.map_meta(f)),
+                f(meta),
+            ),
+            TypeGeneric::RecursiveTypeAlias { meta, name } => TypeGeneric::RecursiveTypeAlias {
+                meta: f(meta),
+                name: name.clone(),
+            },
+            TypeGeneric::Tuple(type_generics, meta) => TypeGeneric::Tuple(
+                type_generics.iter().map(|t| t.map_meta(f)).collect(),
+                f(meta),
+            ),
+            TypeGeneric::Union(union_type_generic, meta) => TypeGeneric::Union(
+                UnionTypeGeneric {
+                    types: union_type_generic
+                        .types
+                        .iter()
+                        .map(|t| t.map_meta(f))
+                        .collect(),
+                    null_type: Box::new(union_type_generic.null_type.map_meta(f)),
+                },
+                f(meta),
+            ),
         }
     }
 
@@ -864,6 +944,184 @@ pub struct TypeMetaIR {
     /// A type with the `state` property will be represented in client code as
     /// a struct: `{value: T, streaming_state: "incomplete" | "complete"}`.
     pub state: bool,
+}
+
+impl std::fmt::Display for TypeStreaming {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut metadata_display_fmt = String::new();
+
+        for constraint in &self.meta().constraints {
+            // " @check( the_name, {{..}} )"
+            let constraint_level = match constraint.level {
+                ConstraintLevel::Assert => "assert",
+                ConstraintLevel::Check => "check",
+            };
+            let constraint_name = match &constraint.label {
+                None => "".to_string(),
+                Some(label) => format!("{}, ", label),
+            };
+            metadata_display_fmt.push_str(&format!(
+                " @{constraint_level}({constraint_name}, {{{{..}}}} )"
+            ));
+        }
+        let type_meta::stream::StreamingBehavior { done, state } = self.meta().streaming_behavior;
+        if done {
+            metadata_display_fmt.push_str(" @stream.done")
+        }
+
+        if state {
+            metadata_display_fmt.push_str(" @stream.with_state")
+        }
+
+        let _res = match self {
+            TypeStreaming::Enum { name, .. }
+            | TypeStreaming::Class { name, .. }
+            | TypeStreaming::RecursiveTypeAlias { name, .. } => write!(f, "{name}"),
+            TypeStreaming::Primitive(t, _) => write!(f, "{t}"),
+            TypeStreaming::Literal(v, _) => write!(f, "{v}"),
+            TypeStreaming::Union(choices, _) => {
+                let view = choices.view();
+                let res = match view {
+                    UnionTypeViewGeneric::Null => "null".to_string(),
+                    UnionTypeViewGeneric::Optional(field_type) => {
+                        format!("{} | null", field_type.to_string())
+                    }
+                    UnionTypeViewGeneric::OneOf(field_types) => field_types
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" | "),
+                    UnionTypeViewGeneric::OneOfOptional(field_types) => {
+                        let not_null_choices_str = field_types
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(" | ");
+                        format!("{} | null", not_null_choices_str)
+                    }
+                };
+                write!(f, "({res})")
+            }
+            TypeStreaming::Tuple(choices, _) => {
+                write!(
+                    f,
+                    "({})",
+                    choices
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            TypeStreaming::Map(k, v, _) => write!(f, "map<{k}, {v}>"),
+            TypeStreaming::List(t, _) => write!(f, "{t}[]"),
+            TypeStreaming::Arrow(arrow, _) => write!(
+                f,
+                "({}) -> {}",
+                arrow
+                    .param_types
+                    .iter()
+                    .map(|t| t.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                arrow.return_type.to_string()
+            ),
+        }?;
+
+        write!(f, "{}", metadata_display_fmt)
+    }
+}
+
+impl std::fmt::Display for TypeGeneric<type_meta::Base> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut metadata_display_fmt = String::new();
+
+        for constraint in &self.meta().constraints {
+            // " @check( the_name, {{..}} )"
+            let constraint_level = match constraint.level {
+                ConstraintLevel::Assert => "assert",
+                ConstraintLevel::Check => "check",
+            };
+            let constraint_name = match &constraint.label {
+                None => "".to_string(),
+                Some(label) => format!("{}, ", label),
+            };
+            metadata_display_fmt.push_str(&format!(
+                " @{constraint_level}({constraint_name}, {{{{..}}}} )"
+            ));
+        }
+        let type_meta::base::StreamingBehavior {
+            done,
+            needed,
+            state,
+        } = self.streaming_behavior();
+        if *done {
+            metadata_display_fmt.push_str(" @stream.done")
+        }
+        if *needed {
+            metadata_display_fmt.push_str(" @stream.not_null")
+        }
+        if *state {
+            metadata_display_fmt.push_str(" @stream.with_state")
+        }
+
+        let _res = match self {
+            TypeGeneric::Enum { name, .. }
+            | TypeGeneric::Class { name, .. }
+            | TypeGeneric::RecursiveTypeAlias { name, .. } => write!(f, "{name}"),
+            TypeGeneric::Primitive(t, _) => write!(f, "{t}"),
+            TypeGeneric::Literal(v, _) => write!(f, "{v}"),
+            TypeGeneric::Union(choices, _) => {
+                let view = choices.view();
+                let res = match view {
+                    UnionTypeViewGeneric::Null => "null".to_string(),
+                    UnionTypeViewGeneric::Optional(field_type) => {
+                        format!("{} | null", field_type.to_string())
+                    }
+                    UnionTypeViewGeneric::OneOf(field_types) => field_types
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" | "),
+                    UnionTypeViewGeneric::OneOfOptional(field_types) => {
+                        let not_null_choices_str = field_types
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(" | ");
+                        format!("{} | null", not_null_choices_str)
+                    }
+                };
+                write!(f, "({res})")
+            }
+            TypeGeneric::Tuple(choices, _) => {
+                write!(
+                    f,
+                    "({})",
+                    choices
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            TypeGeneric::Map(k, v, _) => write!(f, "map<{k}, {v}>"),
+            TypeGeneric::List(t, _) => write!(f, "{t}[]"),
+            TypeGeneric::Arrow(arrow, _) => write!(
+                f,
+                "({}) -> {}",
+                arrow
+                    .param_types
+                    .iter()
+                    .map(|t| t.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                arrow.return_type.to_string()
+            ),
+        }?;
+
+        write!(f, "{}", metadata_display_fmt)
+    }
 }
 
 #[cfg(test)]

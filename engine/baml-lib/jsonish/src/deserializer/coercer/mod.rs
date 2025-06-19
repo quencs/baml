@@ -12,14 +12,16 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 
-use baml_types::{BamlValue, BamlValueWithMeta, Constraint, JinjaExpression};
+use baml_types::{ir_type::TypeGeneric, BamlValue, BamlValueWithMeta, Constraint, JinjaExpression};
 use internal_baml_jinja::types::OutputFormatContent;
 
 use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, FieldType};
 
 use crate::jsonish;
 
-use super::types::{BamlValueStreamingWithFlags, BamlValueWithFlags, HasFlags, HasType};
+use super::types::{
+    BamlValueStreamingWithFlags, BamlValueWithFlags, HasConstraints, HasFlags, HasType,
+};
 
 pub struct ParsingContext<'a> {
     pub scope: Vec<String>,
@@ -70,11 +72,14 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_too_many_matches<T: std::fmt::Display>(
+    pub(crate) fn error_too_many_matches<T>(
         &self,
-        target: &FieldType,
-        options: impl IntoIterator<Item = T>,
-    ) -> ParsingError {
+        target: &TypeGeneric<T>,
+        options: impl IntoIterator<Item = TypeGeneric<T>>,
+    ) -> ParsingError
+    where
+        TypeGeneric<T>: std::fmt::Display,
+    {
         ParsingError {
             reason: format!(
                 "Too many matches for {}. Got: {}",
@@ -243,16 +248,16 @@ impl std::fmt::Display for ParsingError {
 
 impl std::error::Error for ParsingError {}
 
-pub trait TypeCoercer<T, M: HasType<Type = T> + HasFlags> {
+pub trait TypeCoercer<T, M: HasType<Meta = T> + HasFlags> {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &T,
+        target: &TypeGeneric<T>,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithMeta<M>, ParsingError>;
 }
 
-pub trait DefaultValue<T, M: HasType<Type = T> + HasFlags> {
+pub trait DefaultValue<T, M: HasType<Meta = T> + HasFlags> {
     fn default_value(&self, error: Option<&ParsingError>) -> Option<BamlValueWithMeta<M>>;
 }
 
@@ -262,14 +267,18 @@ pub trait DefaultValue<T, M: HasType<Type = T> + HasFlags> {
 ///
 /// For a function that traverses a whole `BamlValue` looking for failed asserts,
 /// see `first_failing_assert_nested`.
-pub fn run_user_checks(
+pub fn run_user_checks<T, M: HasType<Meta = T> + HasFlags>(
     baml_value: &BamlValue,
-    type_: &FieldType,
-) -> Result<Vec<(Constraint, bool)>> {
+    type_: &TypeGeneric<T>,
+) -> Result<Vec<(Constraint, bool)>>
+where
+    TypeGeneric<T>: std::fmt::Display,
+    T: HasConstraints,
+{
     eprintln!("baml_value: {:?} type: {}", baml_value, type_);
     let res = type_
         .meta()
-        .constraints
+        .constraints()
         .iter()
         .map(|constraint| {
             let result = evaluate_predicate(baml_value, &constraint.expression)?;

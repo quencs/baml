@@ -2,7 +2,8 @@ use anyhow::Result;
 use std::collections::HashSet;
 
 use baml_types::{
-    ir_type::{Type, TypeStreaming},
+    ir_type::{Type, TypeGeneric, TypeStreaming},
+    type_meta::{base::TypeMeta, stream::TypeMetaStreaming},
     BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, Constraint, FieldType, JinjaExpression,
 };
 use serde_json::json;
@@ -29,52 +30,101 @@ pub type ValueWithFlags<T> = (T, FieldType, DeserializerConditions);
 /// (e.g. `Type` or `TypeStreaming`).
 pub trait HasType {
     /// The type of the "Type-like" field.
-    type Type: std::fmt::Display;
+    type Meta;
 
     /// Get a reference to the type.
-    fn r#type(&self) -> &Self::Type;
+    fn r#type(&self) -> &TypeGeneric<Self::Meta>;
 
     /// Get a mutable reference to the type.
-    fn type_mut(&mut self) -> &mut Self::Type;
+    fn type_mut(&mut self) -> &mut TypeGeneric<Self::Meta>;
+
+    /// Get a reference to the metadata.
+    fn meta(&self) -> &Self::Meta;
+
+    /// Get a mutable reference to the metadata.
+    fn meta_mut(&mut self) -> &mut Self::Meta;
 }
 
 /// `BamlValueWithFlags` metadata implements `HasType`. The type is `Type`, the
 /// base BAML type.
-impl HasType for (DeserializerConditions, Type) {
-    type Type = Type;
-    fn r#type(&self) -> &Type {
+impl HasType for (DeserializerConditions, TypeGeneric<TypeMeta>) {
+    type Meta = TypeMeta;
+    fn r#type(&self) -> &TypeGeneric<TypeMeta> {
         &self.1
     }
-    fn type_mut(&mut self) -> &mut Type {
+    fn type_mut(&mut self) -> &mut TypeGeneric<TypeMeta> {
         &mut self.1
+    }
+
+    fn meta(&self) -> &TypeMeta {
+        &self.1.meta()
+    }
+
+    fn meta_mut(&mut self) -> &mut TypeMeta {
+        self.1.meta_mut()
+    }
+}
+
+pub trait HasConstraints {
+    fn constraints(&self) -> &[Constraint];
+}
+
+/// A type that contains constraints, either directly (like `TypeMeta`) or
+/// indirectly (like `BamlValueWithMeta<M>` when M implements `HasType` for
+/// a type that directly contains constraints).
+impl HasConstraints for TypeMeta {
+    fn constraints(&self) -> &[Constraint] {
+        &self.constraints
+    }
+}
+
+impl HasConstraints for TypeMetaStreaming {
+    fn constraints(&self) -> &[Constraint] {
+        self.constraints.as_slice()
+    }
+}
+
+impl<T, M> HasConstraints for BamlValueWithMeta<M>
+where
+    M: HasType<Meta = T>,
+    T: HasConstraints + 'static,
+{
+    fn constraints(&self) -> &[Constraint] {
+        self.meta().r#type().meta().constraints()
     }
 }
 
 /// `BamlValueStreamingWithFlags` metadata implements `HasType`. The type is
 /// `TypeStreaming`, the streaming BAML type.
 impl HasType for (DeserializerConditions, TypeStreaming) {
-    type Type = TypeStreaming;
-    fn r#type(&self) -> &TypeStreaming {
+    type Meta = TypeMetaStreaming;
+    fn r#type(&self) -> &TypeGeneric<TypeMetaStreaming> {
         &self.1
     }
     fn type_mut(&mut self) -> &mut TypeStreaming {
         &mut self.1
     }
+    fn meta(&self) -> &TypeMetaStreaming {
+        &self.1.meta()
+    }
+    fn meta_mut(&mut self) -> &mut TypeMetaStreaming {
+        self.1.meta_mut()
+    }
 }
 
 /// Default implementation for base type metadata
-impl Default for (DeserializerConditions, Type) {
-    fn default() -> Self {
-        (DeserializerConditions::default(), Type::null())
-    }
-}
-
-/// Default implementation for streaming type metadata
-impl Default for (DeserializerConditions, TypeStreaming) {
-    fn default() -> Self {
-        (DeserializerConditions::default(), TypeStreaming::null())
-    }
-}
+// impl Default for (DeserializerConditions, Type) {
+//     fn default() -> Self {
+//         (DeserializerConditions::default(), Type::null())
+//     }
+// }
+//
+// /// Default implementation for streaming type metadata
+// impl Default for (DeserializerConditions, TypeStreaming) {
+//     fn default() -> Self {
+//         (DeserializerConditions::default(), TypeStreaming::null())
+//     }
+// }
 
 /// A trait for Metadata types that contain a `DeserializerConditions` field.
 pub trait HasFlags {
@@ -95,9 +145,10 @@ pub trait HasFlags {
 
     /// Get the explanation of the flags under a value, including the explanation
     /// of all flags under the value's children.
-    fn explanation_json(value: &BamlValueWithMeta<Self>) -> Vec<serde_json::Value>
+    fn explanation_json<T>(value: &BamlValueWithMeta<Self>) -> Vec<serde_json::Value>
     where
         Self: Sized + HasType,
+        TypeGeneric<<Self as HasType>::Meta>: std::fmt::Display,
     {
         let mut expl = vec![];
         Self::explanation_impl(value, vec!["<root>".to_string()], &mut expl);
@@ -112,6 +163,7 @@ pub trait HasFlags {
         expls: &mut Vec<ParsingError>,
     ) where
         Self: HasType + Sized,
+        TypeGeneric<<Self as HasType>::Meta>: std::fmt::Display,
     {
         let shallow_causes = value.meta().flags().explanation();
         let type_name = value.meta().r#type().to_string();

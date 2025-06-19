@@ -22,8 +22,8 @@ use crate::{
 
 use anyhow::Result;
 use baml_types::{
-    BamlMap, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, LiteralValue,
-    TypeValue, UnionType,
+    ir_type::TypeGeneric, BamlMap, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel,
+    FieldType, LiteralValue, TypeValue, UnionType,
 };
 pub use to_baml_arg::ArgCoercer;
 
@@ -107,12 +107,15 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
     /// this module's test suite.
     ///
     /// Consider renaming this to `is_assignable`.
-    fn is_subtype(&self, base: &FieldType, other: &FieldType) -> bool {
+    fn is_subtype<U, V>(&self, base: &TypeGeneric<U>, other: &TypeGeneric<V>) -> bool {
+        let base = &base.map_meta(|_| ());
+        let other = &other.map_meta(|_| ());
+
         if base == other {
             return true;
         }
 
-        if let FieldType::Union(items, _) = other {
+        if let TypeGeneric::Union(items, _) = other {
             if items
                 .iter_include_null()
                 .iter()
@@ -124,81 +127,80 @@ pub trait IRHelperExtended: IRSemanticStreamingHelper {
 
         match (base, other) {
             // TODO: O(n)
-            (FieldType::RecursiveTypeAlias { name, .. }, _) => self
+            (TypeGeneric::RecursiveTypeAlias { name, .. }, _) => self
                 .get_all_recursive_aliases(name)
                 .any(|target| self.is_subtype(target, other)),
-            (_, FieldType::RecursiveTypeAlias { name, .. }) => self
+            (_, TypeGeneric::RecursiveTypeAlias { name, .. }) => self
                 .get_all_recursive_aliases(name)
                 .any(|target| self.is_subtype(base, target)),
-            (FieldType::Primitive(p1, _), FieldType::Primitive(p2, _)) => p1 == p2,
-            (FieldType::Primitive(TypeValue::Null, _), _) => false,
-            (FieldType::Primitive(p1, _), _) => false,
+            (TypeGeneric::Primitive(p1, _), TypeGeneric::Primitive(p2, _)) => p1 == p2,
+            (TypeGeneric::Primitive(TypeValue::Null, _), _) => false,
+            (TypeGeneric::Primitive(p1, _), _) => false,
 
             // Handle types that nest other types.
-            (FieldType::List(base_item, _), FieldType::List(other_item, _)) => {
+            (TypeGeneric::List(base_item, _), TypeGeneric::List(other_item, _)) => {
                 self.is_subtype(&base_item, other_item)
             }
-            (FieldType::List(_, _), _) => false,
+            (TypeGeneric::List(_, _), _) => false,
 
-            (FieldType::Map(base_k, base_v, _), FieldType::Map(other_k, other_v, _)) => {
+            (TypeGeneric::Map(base_k, base_v, _), TypeGeneric::Map(other_k, other_v, _)) => {
                 self.is_subtype(other_k, base_k) && self.is_subtype(&**base_v, other_v)
             }
-            (FieldType::Map(_, _, _), _) => false,
+            (TypeGeneric::Map(_, _, _), _) => false,
             (
-                FieldType::Literal(LiteralValue::Bool(_), _),
-                FieldType::Primitive(TypeValue::Bool, _),
+                TypeGeneric::Literal(LiteralValue::Bool(_), _),
+                TypeGeneric::Primitive(TypeValue::Bool, _),
             ) => true,
-            (FieldType::Literal(LiteralValue::Bool(_), _), _) => {
+            (TypeGeneric::Literal(LiteralValue::Bool(_), _), _) => {
                 self.is_subtype(base, &FieldType::bool())
             }
             (
-                FieldType::Literal(LiteralValue::Int(_), _),
-                FieldType::Primitive(TypeValue::Int, _),
+                TypeGeneric::Literal(LiteralValue::Int(_), _),
+                TypeGeneric::Primitive(TypeValue::Int, _),
             ) => true,
-            (FieldType::Literal(LiteralValue::Int(_), _), _) => self.is_subtype(
-                base,
-                &FieldType::Primitive(TypeValue::Int, Default::default()),
-            ),
+            (TypeGeneric::Literal(LiteralValue::Int(_), _), _) => {
+                self.is_subtype(base, &TypeGeneric::Primitive(TypeValue::Int, ()))
+            }
             (
-                FieldType::Literal(LiteralValue::String(_), _),
-                FieldType::Primitive(TypeValue::String, _),
+                TypeGeneric::Literal(LiteralValue::String(_), _),
+                TypeGeneric::Primitive(TypeValue::String, _),
             ) => true,
-            (FieldType::Literal(LiteralValue::String(_), _), _) => {
-                self.is_subtype(base, &FieldType::string())
+            (TypeGeneric::Literal(LiteralValue::String(_), _), _) => {
+                self.is_subtype(base, &TypeGeneric::<()>::string())
             }
 
-            (FieldType::Union(items, _), _) => items
+            (TypeGeneric::Union(items, _), _) => items
                 .iter_include_null()
                 .iter()
                 .all(|item| self.is_subtype(item, other)),
 
-            (FieldType::Tuple(base_items, _), FieldType::Tuple(other_items, _)) => {
+            (TypeGeneric::Tuple(base_items, _), TypeGeneric::Tuple(other_items, _)) => {
                 base_items.len() == other_items.len()
                     && base_items
                         .iter()
                         .zip(other_items)
                         .all(|(base_item, other_item)| self.is_subtype(base_item, other_item))
             }
-            (FieldType::Tuple(_, _), _) => false,
-            (FieldType::Arrow(_, _), _) => false,
+            (TypeGeneric::Tuple(_, _), _) => false,
+            (TypeGeneric::Arrow(_, _), _) => false,
             (
-                FieldType::Enum {
+                TypeGeneric::Enum {
                     name: base_name, ..
                 },
-                FieldType::Enum {
+                TypeGeneric::Enum {
                     name: other_name, ..
                 },
             ) => base_name == other_name,
-            (FieldType::Enum { .. }, _) => false,
+            (TypeGeneric::Enum { .. }, _) => false,
             (
-                FieldType::Class {
+                TypeGeneric::Class {
                     name: base_name, ..
                 },
-                FieldType::Class {
+                TypeGeneric::Class {
                     name: other_name, ..
                 },
             ) => base_name == other_name,
-            (FieldType::Class { .. }, _) => false,
+            (TypeGeneric::Class { .. }, _) => false,
         }
     }
 

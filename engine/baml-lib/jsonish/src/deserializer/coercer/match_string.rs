@@ -5,7 +5,7 @@
 use std::{cmp::Ordering, collections::HashMap};
 
 use anyhow::Result;
-use baml_types::{BamlValueWithMeta, TypeValue};
+use baml_types::{ir_type::TypeGeneric, BamlValueWithMeta, TypeValue};
 
 use crate::{
     deserializer::{
@@ -107,13 +107,14 @@ fn strip_punctuation(s: &str) -> String {
 /// Multiple results will yield an error.
 fn try_match_only_once<T, M>(
     parsing_context: &ParsingContext<'_>,
-    target: &T,
+    target: &TypeGeneric<T>,
     string_match: &str,
     flags: DeserializerConditions,
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Default,
     T: Clone + std::fmt::Display,
+    TypeGeneric<T>: std::fmt::Display,
 {
     if let Some(mismatch) = flags.flags.iter().find_map(|f| match f {
         Flag::StrMatchOneFromMany(options) => Some(options),
@@ -130,7 +131,7 @@ where
     let mut meta = M::default();
     *meta.type_mut() = target.clone();
     meta.flags_mut().flags.extend(flags.flags);
-    
+
     Ok(BamlValueWithMeta::String(string_match.to_string(), meta))
 }
 
