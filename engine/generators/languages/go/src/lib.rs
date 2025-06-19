@@ -82,7 +82,9 @@ impl LanguageFeatures for GoLanguageFeatures {
             unions
         };
 
-        let type_aliases = ir.walk_type_aliases().collect::<Vec<_>>();
+        let type_aliases = ir
+            .walk_type_aliases()
+            .collect::<Vec<_>>();
 
         let mut go_type_aliases = type_aliases
             .iter()
