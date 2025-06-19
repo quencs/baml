@@ -28,7 +28,10 @@ class BamlToolWindowFactory : ToolWindowFactory {
 
         private val browser = JBCefBrowser()
 
+
+
         init {
+            // TODO: Have a launching playground status here
             var htmlContent = """
                           <!DOCTYPE html>
                           <html lang="en">
@@ -38,11 +41,11 @@ class BamlToolWindowFactory : ToolWindowFactory {
                               <title>Hello World</title>
                             </head>
                             <body>
-                              <div id="root">TODO: render the BAML playground here and wire up the vscode provider bridge</div>
+                              <div id="root">TODO: Have a launching playground status here</div>
                             </body>
                           </html>
             """.trimIndent()
-            browser.loadHTML(htmlContent)
+//            browser.loadURL("localhost:3030/")
         }
 
         fun getContent(): JPanel {
