@@ -204,14 +204,14 @@ fn serialize_with_meta<S: Serializer, T: Serialize>(
 /// `BamlValueStreamingWithFlags`
 ///    M: (DeserializerConditions, TypeStreaming)
 ///    T: TypeStreaming
-pub fn sap_parse<M, T>(
+pub fn sap_parse<T, M>(
     of: &OutputFormatContent,
     target: &T,
     raw_string: &str,
 ) -> Result<BamlValueWithMeta<M>>
 where
-    M: HasType<Type = T> + HasFlags,
-    T: TypeCoercer<T, M> + DefaultValue<T, M>,
+    M: HasType<Meta = T> + HasFlags + Clone,
+    T: TypeCoercer<T, M> + DefaultValue<T, M> + Clone + std::fmt::Display,
 {
     let value: Value = jsonish::parse(raw_string, jsonish::ParseOptions::default())?;
 
@@ -305,11 +305,12 @@ pub fn from_str(
     raw_string: &str,
     allow_partials: bool,
 ) -> Result<BamlValueWithFlags> {
-    use crate::deserializer::types::BamlValueWithFlags;
     use crate::deserializer::deserialize_flags::DeserializerConditions;
+    use crate::deserializer::types::BamlValueWithFlags;
     use baml_types::ir_type::Type;
 
     // FieldType and Type are the same thing (both TypeGeneric<type_meta::Base>)
-    let result: BamlValueWithMeta<(DeserializerConditions, Type)> = sap_parse(of, target, raw_string)?;
+    let result: BamlValueWithMeta<(DeserializerConditions, Type)> =
+        sap_parse(of, target, raw_string)?;
     Ok(result)
 }

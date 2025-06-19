@@ -21,14 +21,15 @@ use super::ParsingContext;
 /// Heuristic match of different possible values against an input string.
 pub(super) fn match_string<T, M>(
     parsing_context: &ParsingContext,
-    target: &T,
+    target: &TypeGeneric<T>,
     value: Option<&jsonish::Value>,
     // List of (name, [aliases]) tuples.
     candidates: &[(&str, Vec<String>)],
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Default,
     T: Clone + std::fmt::Display,
+    TypeGeneric<T>: std::fmt::Display,
 {
     // Get rid of nulls.
     let value = match value {

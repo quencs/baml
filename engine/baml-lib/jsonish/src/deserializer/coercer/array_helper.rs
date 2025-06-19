@@ -1,47 +1,57 @@
 use std::any::Any;
 
-use crate::deserializer::{deserialize_flags::Flag, types::{BamlValueWithFlags, HasFlags, HasType}};
+use crate::deserializer::{
+    deserialize_flags::Flag,
+    types::{BamlValueWithFlags, HasFlags, HasType},
+};
 use anyhow::Result;
-use baml_types::{BamlValueWithMeta, FieldType};
+use baml_types::{ir_type::TypeGeneric, BamlValueWithMeta};
 
 use super::{ParsingContext, ParsingError};
 
-pub fn coerce_array_to_singular<M>(
+pub fn coerce_array_to_singular<M, T>(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeGeneric<T>,
     items: &[&crate::jsonish::Value],
     coercion: &dyn (Fn(&crate::jsonish::Value) -> Result<BamlValueWithMeta<M>, ParsingError>),
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = FieldType> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Clone,
+    M: HasFlags,
 {
     let parsed = items.iter().map(|item| coercion(item)).collect::<Vec<_>>();
 
     let mut best = pick_best(ctx, target, &parsed);
 
     if let Ok(ref mut f) = best {
-        f.meta_mut().flags_mut().add_flag(Flag::FirstMatch(0, 
-            parsed.iter().map(|r| match r {
-                Ok(v) => {
-                    // Convert to concrete type for flag storage
-                    let concrete_v: BamlValueWithFlags = v.clone().map_meta(|m| (m.flags().clone(), m.r#type().clone()));
-                    Ok(concrete_v)
-                }
-                Err(e) => Err(e.clone())
-            }).collect()
+        f.meta_mut().flags_mut().add_flag(Flag::FirstMatch(
+            0,
+            parsed
+                .iter()
+                .map(|r| match r {
+                    Ok(v) => {
+                        // Convert to concrete type for flag storage
+                        let concrete_v: BamlValueWithFlags = v
+                            .clone()
+                            .map_meta(|m| (m.flags().clone(), m.r#type().clone()));
+                        Ok(concrete_v)
+                    }
+                    Err(e) => Err(e.clone()),
+                })
+                .collect(),
         ))
     }
 
     best
 }
 
-pub(super) fn pick_best<M>(
+pub(super) fn pick_best<M, T>(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeGeneric<T>,
     res: &[Result<BamlValueWithMeta<M>, ParsingError>],
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = FieldType> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Clone,
 {
     let Some(first) = res.first() else {
         return Err(ctx.error_unexpected_empty_array(target));
@@ -67,7 +77,11 @@ where
                 match r {
                     BamlValueWithMeta::List(items, meta) => {
                         items.is_empty()
-                            && meta.flags().flags.iter().any(|f| matches!(f, Flag::SingleToArray))
+                            && meta
+                                .flags()
+                                .flags
+                                .iter()
+                                .any(|f| matches!(f, Flag::SingleToArray))
                     }
                     _ => false,
                 },
@@ -149,7 +163,7 @@ where
                 // If matching on a union, and one of the choices is picking an object that only
                 // had a single string coerced from JSON, prefer the other one
                 // (since string cost is low, its better to pick the other one if possible)
-                if matches!(target, FieldType::Union(_, _)) {
+                if matches!(target, TypeGeneric::Union(_, _)) {
                     let a_is_coerced_string = a_props.len() == 1
                         && a_props.iter().all(|(_, cond)| {
                             matches!(cond, BamlValueWithMeta::String(..))
@@ -208,9 +222,19 @@ where
             }
 
             // Devalue strings that were cast from objects.
-            let a_is_composite = matches!(a_val, BamlValueWithMeta::Class(..) | BamlValueWithMeta::List(..) | BamlValueWithMeta::Map(..));
-            let b_is_composite = matches!(b_val, BamlValueWithMeta::Class(..) | BamlValueWithMeta::List(..) | BamlValueWithMeta::Map(..));
-            
+            let a_is_composite = matches!(
+                a_val,
+                BamlValueWithMeta::Class(..)
+                    | BamlValueWithMeta::List(..)
+                    | BamlValueWithMeta::Map(..)
+            );
+            let b_is_composite = matches!(
+                b_val,
+                BamlValueWithMeta::Class(..)
+                    | BamlValueWithMeta::List(..)
+                    | BamlValueWithMeta::Map(..)
+            );
+
             if !a_is_composite && b_is_composite {
                 if a_val
                     .meta()
@@ -268,29 +292,41 @@ where
         Some(&(i, _, _, v)) => {
             let mut v = v.clone();
             if res.len() > 1 {
-                v.meta_mut().flags_mut().add_flag(if matches!(target, FieldType::Union(_, _)) {
-                    Flag::UnionMatch(i, 
-                        res.iter().map(|r| match r {
-                            Ok(val) => {
-                                // Convert to concrete type for flag storage
-                                let concrete_v: BamlValueWithFlags = val.clone().map_meta(|m| (m.flags().clone(), m.r#type().clone()));
-                                Ok(concrete_v)
-                            }
-                            Err(e) => Err(e.clone())
-                        }).collect()
-                    )
-                } else {
-                    Flag::FirstMatch(i, 
-                        res.iter().map(|r| match r {
-                            Ok(val) => {
-                                // Convert to concrete type for flag storage
-                                let concrete_v: BamlValueWithFlags = val.clone().map_meta(|m| (m.flags().clone(), m.r#type().clone()));
-                                Ok(concrete_v)
-                            }
-                            Err(e) => Err(e.clone())
-                        }).collect()
-                    )
-                });
+                v.meta_mut()
+                    .flags_mut()
+                    .add_flag(if matches!(target, TypeGeneric::Union(_, _)) {
+                        Flag::UnionMatch(
+                            i,
+                            res.iter()
+                                .map(|r| match r {
+                                    Ok(val) => {
+                                        // Convert to concrete type for flag storage
+                                        let concrete_v: BamlValueWithFlags = val
+                                            .clone()
+                                            .map_meta(|m| (m.flags().clone(), m.r#type().clone()));
+                                        Ok(concrete_v)
+                                    }
+                                    Err(e) => Err(e.clone()),
+                                })
+                                .collect(),
+                        )
+                    } else {
+                        Flag::FirstMatch(
+                            i,
+                            res.iter()
+                                .map(|r| match r {
+                                    Ok(val) => {
+                                        // Convert to concrete type for flag storage
+                                        let concrete_v: BamlValueWithFlags = val
+                                            .clone()
+                                            .map_meta(|m| (m.flags().clone(), m.r#type().clone()));
+                                        Ok(concrete_v)
+                                    }
+                                    Err(e) => Err(e.clone()),
+                                })
+                                .collect(),
+                        )
+                    });
             }
             Ok(v.to_owned())
         }

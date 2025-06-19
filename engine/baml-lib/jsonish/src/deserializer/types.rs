@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::collections::HashSet;
 
 use baml_types::{
+    baml_value::TypeLookups,
     ir_type::{Type, TypeGeneric, TypeStreaming},
     type_meta::{base::TypeMeta, stream::TypeMetaStreaming},
     BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, Constraint, FieldType, JinjaExpression,
@@ -231,6 +232,27 @@ impl HasFlags for (DeserializerConditions, TypeStreaming) {
     }
     fn flags_mut(&mut self) -> &mut DeserializerConditions {
         &mut self.0
+    }
+}
+
+/// A type that can be reached from the base `Type` implements
+/// this trait. Base `Type`s implementation is just "id". Streaming
+/// type's implementation is `partialize`.
+pub trait FromType {
+    fn from_type(type_lookups: &impl TypeLookups, r#type: Type) -> TypeGeneric<Self>
+    where
+        Self: Sized;
+}
+
+impl FromType for TypeMeta {
+    fn from_type(_type_lookups: &impl TypeLookups, r#type: Type) -> TypeGeneric<Self> {
+        r#type
+    }
+}
+
+impl FromType for TypeMetaStreaming {
+    fn from_type(type_lookups: &impl TypeLookups, r#type: Type) -> TypeGeneric<Self> {
+        r#type.partialize(type_lookups)
     }
 }
 

@@ -116,7 +116,10 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_unexpected_null(&self, target: &FieldType) -> ParsingError {
+    pub(crate) fn error_unexpected_null<T>(&self, target: &TypeGeneric<T>) -> ParsingError
+    where
+        TypeGeneric<T>: std::fmt::Display,
+    {
         ParsingError {
             reason: format!("Expected {}, got null", target),
             scope: self.scope.clone(),
@@ -179,17 +182,20 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_unexpected_type<T: std::fmt::Display + std::fmt::Debug>(
+    pub(crate) fn error_unexpected_type<T: std::fmt::Display>(
         &self,
-        target: &FieldType,
-        got: &T,
-    ) -> ParsingError {
+        target: &TypeGeneric<T>,
+        got: &crate::jsonish::Value,
+    ) -> ParsingError
+    where
+        TypeGeneric<T>: std::fmt::Display,
+    {
         ParsingError {
             reason: format!(
-                "Expected {}, got {:?}.",
+                "Expected {}, got {}.",
                 match target {
-                    FieldType::Enum { .. } => format!("{} enum value", target),
-                    FieldType::Class { .. } => format!("{}", target),
+                    TypeGeneric::Enum { .. } => format!("{} enum value", target),
+                    TypeGeneric::Class { .. } => format!("{}", target),
                     _ => format!("{target}"),
                 },
                 got

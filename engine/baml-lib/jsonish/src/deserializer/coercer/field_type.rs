@@ -1,5 +1,8 @@
 use anyhow::Result;
-use baml_types::{BamlMap, BamlValueWithMeta, CompletionState, Constraint, ConstraintLevel, LiteralValue, FieldType};
+use baml_types::{
+    ir_type::TypeGeneric, type_meta::base::TypeMeta, BamlMap, BamlValueWithMeta, CompletionState,
+    Constraint, ConstraintLevel, FieldType, LiteralValue,
+};
 use internal_baml_core::ir::TypeValue;
 
 use crate::deserializer::{
@@ -17,14 +20,14 @@ use super::{
     ParsingContext, ParsingError,
 };
 
-impl<M> TypeCoercer<FieldType, M> for FieldType
+impl<M> TypeCoercer<TypeMeta, M> for FieldType
 where
-    M: HasType<Type = FieldType> + HasFlags,
+    M: HasType<Meta = TypeMeta> + HasFlags + Clone,
 {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeGeneric<TypeMeta>,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithMeta<M>, ParsingError> {
         let mut result = match value {
@@ -85,7 +88,9 @@ where
                     current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
                 );
                 let mut v = self.coerce(ctx, target, Some(v))?;
-                v.meta_mut().flags_mut().add_flag(Flag::ObjectFromFixedJson(fixes.to_vec()));
+                v.meta_mut()
+                    .flags_mut()
+                    .add_flag(Flag::ObjectFromFixedJson(fixes.to_vec()));
                 Ok(v)
             }
             _ => match self {
@@ -93,15 +98,9 @@ where
                 FieldType::Enum { name, .. } => IrRef::Enum(name).coerce(ctx, target, value),
                 FieldType::Literal(l, _) => l.coerce(ctx, target, value),
                 FieldType::Class { name, .. } => IrRef::Class(name).coerce(ctx, target, value),
-                FieldType::RecursiveTypeAlias { name, .. } => {
-                    coerce_alias(ctx, self, value)
-                }
-                FieldType::List(_, _) => {
-                    coerce_array(ctx, self, value)
-                }
-                FieldType::Union(_, _) => {
-                    coerce_union(ctx, self, value)
-                }
+                FieldType::RecursiveTypeAlias { name, .. } => coerce_alias(ctx, self, value),
+                FieldType::List(_, _) => coerce_array(ctx, self, value),
+                FieldType::Union(_, _) => coerce_union(ctx, self, value),
                 FieldType::Map(..) => coerce_map(ctx, self, value),
                 FieldType::Tuple(_, _) => Err(ctx.error_internal("Tuple not supported")),
                 FieldType::Arrow(_, _) => Err(ctx.error_internal("Arrow type not supported")),
@@ -124,11 +123,16 @@ where
                             .map(|(label, expr)| (label, expr, result))
                     })
                     .collect();
-                coerced_value.meta_mut().flags_mut().add_flag(Flag::ConstraintResults(check_results));
+                coerced_value
+                    .meta_mut()
+                    .flags_mut()
+                    .add_flag(Flag::ConstraintResults(check_results));
             }
         }
         if let Some(CompletionState::Incomplete) = value.map(|v| v.completion_state()) {
-            result.iter_mut().for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
+            result
+                .iter_mut()
+                .for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
         }
         result
     }
@@ -209,7 +213,7 @@ where
                 let mut meta = M::default();
                 *meta.type_mut() = self.clone();
                 meta.flags_mut().flags.extend(get_flags().flags);
-                return Some(BamlValueWithMeta::Null(meta))
+                return Some(BamlValueWithMeta::Null(meta));
             }
             FieldType::Map(..) => {
                 let mut meta = M::default();

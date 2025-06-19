@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_types::{BamlValueWithMeta, CompletionState, FieldType};
+use baml_types::{ir_type::TypeGeneric, BamlValueWithMeta, CompletionState, FieldType};
 
 use crate::deserializer::{
     deserialize_flags::{DeserializerConditions, Flag},
@@ -8,15 +8,16 @@ use crate::deserializer::{
 
 use super::{ParsingContext, ParsingError, TypeCoercer};
 
-pub(super) fn coerce_array<M>(
+pub(super) fn coerce_array<M, T>(
     ctx: &ParsingContext,
-    list_target: &FieldType,
+    list_target: &TypeGeneric<T>,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = FieldType> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Clone,
+    TypeGeneric<T>: std::fmt::Display,
 {
-    assert!(matches!(list_target, FieldType::List(_, _)));
+    assert!(matches!(list_target, TypeGeneric::List(_, _)));
 
     log::debug!(
         "scope: {scope} :: coercing to: {name} (current: {current})",
@@ -26,7 +27,7 @@ where
     );
 
     let inner = match list_target {
-        FieldType::List(inner, _) => inner,
+        TypeGeneric::List(inner, _) => inner,
         _ => unreachable!("coerce_array"),
     };
 

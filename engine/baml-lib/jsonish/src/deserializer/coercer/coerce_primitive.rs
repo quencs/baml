@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_types::{BamlMediaType, BamlValueWithMeta, CompletionState};
+use baml_types::{ir_type::TypeGeneric, BamlMediaType, BamlValueWithMeta, CompletionState};
 use internal_baml_core::ir::TypeValue;
 
 use crate::deserializer::{
@@ -11,15 +11,16 @@ use regex::Regex;
 
 use super::{array_helper::coerce_array_to_singular, ParsingContext, ParsingError};
 
-impl<T, M> TypeCoercer<T, M> for TypeValue 
+impl<T, M> TypeCoercer<T, M> for TypeValue
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Default,
     T: std::fmt::Display + Clone,
+    TypeGeneric<T>: std::fmt::Display,
 {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &T,
+        target: &TypeGeneric<T>,
         // Parsed from JSONish
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithMeta<M>, ParsingError> {
@@ -50,22 +51,21 @@ where
 
 fn coerce_null<T, M>(
     _ctx: &ParsingContext,
-    target: &T,
+    target: &TypeGeneric<T>,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Default,
     T: Clone,
 {
     let mut meta = M::default();
     *meta.type_mut() = target.clone();
-    
+
     match value {
-        Some(crate::jsonish::Value::Null) | None => {
-            Ok(BamlValueWithMeta::Null(meta))
-        }
+        Some(crate::jsonish::Value::Null) | None => Ok(BamlValueWithMeta::Null(meta)),
         Some(v) => {
-            meta.flags_mut().add_flag(Flag::DefaultButHadValue(v.clone()));
+            meta.flags_mut()
+                .add_flag(Flag::DefaultButHadValue(v.clone()));
             Ok(BamlValueWithMeta::Null(meta))
         }
     }
@@ -73,12 +73,13 @@ where
 
 fn coerce_string<T, M>(
     ctx: &ParsingContext,
-    target: &T,
+    target: &TypeGeneric<T>,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Default,
     T: Clone,
+    TypeGeneric<T>: std::fmt::Display,
 {
     let Some(value) = value else {
         return Err(ctx.error_unexpected_null(target));
@@ -104,12 +105,13 @@ where
 
 pub(super) fn coerce_int<T, M>(
     ctx: &ParsingContext,
-    target: &T,
+    target: &TypeGeneric<T>,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Default,
     T: Clone + std::fmt::Display,
+    TypeGeneric<T>: std::fmt::Display,
 {
     let Some(value) = value else {
         return Err(ctx.error_unexpected_null(target));
@@ -162,7 +164,9 @@ where
     match value.completion_state() {
         CompletionState::Complete => {}
         CompletionState::Incomplete => {
-            result.iter_mut().for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
+            result
+                .iter_mut()
+                .for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
         }
         CompletionState::Pending => unreachable!("jsonish::Value may never be in a Pending state."),
     }
@@ -203,12 +207,13 @@ fn float_from_comma_separated(value: &str) -> Option<f64> {
 
 fn coerce_float<T, M>(
     ctx: &ParsingContext,
-    target: &T,
+    target: &TypeGeneric<T>,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Default + Clone,
     T: Clone + std::fmt::Display,
+    TypeGeneric<T>: std::fmt::Display,
 {
     let Some(value) = value else {
         return Err(ctx.error_unexpected_null(target));
@@ -247,7 +252,8 @@ where
                 // If we're trying to parse this to a float it should work
                 // anyway but unions like "float | string" should still coerce
                 // this to a string.
-                meta.flags_mut().add_flag(Flag::StringToFloat(s.to_string()));
+                meta.flags_mut()
+                    .add_flag(Flag::StringToFloat(s.to_string()));
                 Ok(BamlValueWithMeta::Float(frac, meta))
             } else {
                 Err(ctx.error_unexpected_type(target, &value))
@@ -263,7 +269,9 @@ where
     match value.completion_state() {
         CompletionState::Complete => {}
         CompletionState::Incomplete => {
-            result.iter_mut().for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
+            result
+                .iter_mut()
+                .for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
         }
         CompletionState::Pending => unreachable!("jsonish::Value may never be in pending state"),
     }
@@ -272,12 +280,13 @@ where
 
 pub(super) fn coerce_bool<T, M>(
     ctx: &ParsingContext,
-    target: &T,
+    target: &TypeGeneric<T>,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithMeta<M>, ParsingError>
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags + Default,
     T: Clone + std::fmt::Display,
+    TypeGeneric<T>: std::fmt::Display,
 {
     let Some(value) = value else {
         return Err(ctx.error_unexpected_null(target));
@@ -311,12 +320,14 @@ where
                     ],
                 ) {
                     Ok(val) => match val.value().as_str() {
-                        "true" => {
-                            meta.flags_mut().add_flag(Flag::StringToBool(val.value().clone()));
+                        Some("true") => {
+                            meta.flags_mut()
+                                .add_flag(Flag::StringToBool(val.value().to_string()));
                             Ok(BamlValueWithMeta::Bool(true, meta))
                         }
-                        "false" => {
-                            meta.flags_mut().add_flag(Flag::StringToBool(val.value().clone()));
+                        Some("false") => {
+                            meta.flags_mut()
+                                .add_flag(Flag::StringToBool(val.value().to_string()));
                             Ok(BamlValueWithMeta::Bool(false, meta))
                         }
                         _ => Err(ctx.error_unexpected_type(target, &value)),
@@ -335,7 +346,9 @@ where
     match value.completion_state() {
         CompletionState::Complete => {}
         CompletionState::Incomplete => {
-            result.iter_mut().for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
+            result
+                .iter_mut()
+                .for_each(|v| v.meta_mut().flags_mut().add_flag(Flag::Incomplete));
         }
         CompletionState::Pending => unreachable!("jsonish::Value may never be in pending state."),
     }

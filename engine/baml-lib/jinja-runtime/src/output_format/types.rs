@@ -1,7 +1,11 @@
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
-use baml_types::{ir_type::UnionTypeViewGeneric, type_meta, Constraint, FieldType, TypeValue};
+use baml_types::{
+    baml_value::TypeLookups,
+    ir_type::{TypeGeneric, UnionTypeViewGeneric},
+    type_meta, Constraint, FieldType, TypeValue,
+};
 use indexmap::{IndexMap, IndexSet};
 
 #[derive(Debug, PartialEq, Eq)]

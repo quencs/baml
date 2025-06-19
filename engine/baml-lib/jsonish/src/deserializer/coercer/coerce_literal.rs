@@ -1,7 +1,7 @@
 use std::vec;
 
 use anyhow::Result;
-use baml_types::{BamlValueWithMeta, LiteralValue};
+use baml_types::{ir_type::TypeGeneric, BamlValueWithMeta, LiteralValue};
 use internal_baml_jinja::CompletionOptions;
 
 use crate::{
@@ -17,13 +17,14 @@ use super::{coerce_primitive::coerce_int, ParsingContext, ParsingError};
 
 impl<T, M> TypeCoercer<T, M> for LiteralValue
 where
-    M: HasType<Type = T> + HasFlags,
+    M: HasType<Meta = T> + HasFlags,
     T: Clone + std::fmt::Display,
+    TypeGeneric<T>: std::fmt::Display,
 {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &T,
+        target: &TypeGeneric<T>,
         value: Option<&jsonish::Value>,
     ) -> Result<BamlValueWithMeta<M>, ParsingError> {
         log::debug!(
@@ -50,11 +51,15 @@ where
                     jsonish::Value::Number(_, _)
                     | jsonish::Value::Boolean(_)
                     | jsonish::Value::String(_, _) => {
-                        let mut result = self.coerce(ctx, target, Some(&inner_value))?;
-                        result.meta_mut().flags_mut().add_flag(Flag::ObjectToPrimitive(jsonish::Value::Object(
-                            obj.clone(),
-                            completion_state.clone(),
-                        )));
+                        let mut result: BamlValueWithMeta<M> =
+                            self.coerce(ctx, target, Some(&inner_value))?;
+                        result
+                            .meta_mut()
+                            .flags_mut()
+                            .add_flag(Flag::ObjectToPrimitive(jsonish::Value::Object(
+                                obj.clone(),
+                                completion_state.clone(),
+                            )));
                         return Ok(result);
                     }
                     _ => {}
