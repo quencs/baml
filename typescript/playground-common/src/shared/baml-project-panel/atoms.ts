@@ -67,7 +67,11 @@ export const runtimeAtom = atom<{
       } = get(runtimeAtom)
       return { rt: undefined, diags: undefined, lastValidRt: previousState.lastValidRt }
     }
-    const selectedEnvVars = Object.fromEntries(Object.entries(envVars).filter(([key, value]) => value !== undefined))
+    const selectedEnvVars = Object.fromEntries(
+      Object.entries(envVars)
+        .filter(([key, value]) => value !== undefined)
+        .map(([key, value]) => [key, String(value)])
+    );
     const rt = project.runtime(selectedEnvVars)
     const diags = project.diagnostics(rt)
     return { rt, diags, lastValidRt: rt }
