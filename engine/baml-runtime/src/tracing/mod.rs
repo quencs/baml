@@ -4,7 +4,9 @@ use crate::on_log_event::LogEventCallbackSync;
 use crate::tracingv2::storage::storage::{Collector, BAML_TRACER};
 use crate::InnerTraceStats;
 use anyhow::{Context, Result};
-use baml_types::tracing::events::{EvaluationContext, FunctionStart, TraceData, TraceEvent};
+use baml_types::tracing::events::{
+    EvaluationContext, FunctionStart, FunctionType, TraceData, TraceEvent,
+};
 use baml_types::{BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta};
 use cfg_if::cfg_if;
 use colored::{ColoredString, Colorize};
@@ -157,7 +159,7 @@ impl Visualize for FunctionResult {
                     if let Some(max_size) = max_chunk_size.maybe_truncate_to(json_str.len()) {
                         s.push(truncate_string(&json_str, max_size).to_string());
                     } else {
-                        s.push(json_str);
+                        s.push(json_str.to_string());
                     }
                 }
             }
@@ -402,6 +404,8 @@ impl BamlTracer {
         ctx: &RuntimeContextManager,
         params: &BamlMap<String, BamlValue>,
         is_baml_function: bool,
+        is_stream: bool,
+        // baml_src_hash: Option<String>,
         collectors: Option<Vec<Arc<Collector>>>,
     ) -> TracingCall {
         self.trace_stats.guard().start();
@@ -459,7 +463,12 @@ impl BamlTracer {
                     .map(|(k, v)| (k, serde_json::to_value(v).unwrap_or_default()))
                     .collect(),
             },
-            is_baml_function,
+            if is_baml_function {
+                FunctionType::BamlLlm
+            } else {
+                FunctionType::Native
+            },
+            is_stream,
         );
         BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
 
@@ -549,7 +558,9 @@ impl BamlTracer {
                 );
                 baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
             }),
-            None => baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default()),
+            None => {
+                baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
+            }
         };
         let baml_value_with_meta: BamlValueWithMeta<baml_types::FieldType> =
             BamlValueWithMeta::with_const_meta(

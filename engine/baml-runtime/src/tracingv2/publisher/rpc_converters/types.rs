@@ -48,10 +48,7 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, runtime_api::BamlValue<'a>> for BamlV
             BamlValueWithMeta::Null(_) => baml_rpc::runtime_api::ValueContent::Null,
         };
 
-        baml_rpc::runtime_api::BamlValue {
-            r#type: type_ref,
-            value,
-        }
+        baml_rpc::runtime_api::BamlValue { type_ref, value }
     }
 }
 
@@ -73,7 +70,7 @@ impl<'a, 'b> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType
                     })
                 }
             },
-            baml_types::FieldType::Enum{name, ..} => lookup
+            baml_types::FieldType::Enum { name, .. } => lookup
                 .type_lookup(name.as_str())
                 .map(|id| TypeReference::enum_type(id))
                 .unwrap_or(TypeReference::Unknown),

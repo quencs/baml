@@ -10,6 +10,9 @@ mod display;
 pub mod type_meta;
 mod union_type;
 
+// Types, depending on the context, have different metadata attached to them.
+// When you define a type in BAML you have the IR rep of the type.
+// Sometimes you use them in streaming or nonstreaming contexts.
 /// The building block of IR types in BAML.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, Eq, Hash)]
 pub enum TypeGeneric<T> {
@@ -343,29 +346,35 @@ impl<T> TypeGeneric<T> {
             return vec![self];
         } else {
             match self {
-                TypeGeneric::Primitive(..) |
-                TypeGeneric::Enum { .. }  |
-                TypeGeneric::Literal(..) |
-                TypeGeneric::Class { .. } |
-                TypeGeneric::RecursiveTypeAlias { .. } => vec![],
+                TypeGeneric::Primitive(..)
+                | TypeGeneric::Enum { .. }
+                | TypeGeneric::Literal(..)
+                | TypeGeneric::Class { .. }
+                | TypeGeneric::RecursiveTypeAlias { .. } => vec![],
                 TypeGeneric::List(inner, _) => inner.find_if(predicate),
                 TypeGeneric::Map(type_generic, type_generic1, _) => {
                     let mut res = type_generic.find_if(predicate);
                     res.extend(type_generic1.find_if(predicate));
                     res
-                },
-                TypeGeneric::Tuple(type_generics, _) => {
-                    type_generics.iter().flat_map(|t| t.find_if(predicate)).collect()
-                },
-                TypeGeneric::Union(union_type_generic, _) => {
-                    union_type_generic.iter_skip_null().iter().flat_map(|t| t.find_if(predicate)).collect()
-                },
+                }
+                TypeGeneric::Tuple(type_generics, _) => type_generics
+                    .iter()
+                    .flat_map(|t| t.find_if(predicate))
+                    .collect(),
+                TypeGeneric::Union(union_type_generic, _) => union_type_generic
+                    .iter_skip_null()
+                    .iter()
+                    .flat_map(|t| t.find_if(predicate))
+                    .collect(),
                 TypeGeneric::Arrow(arrow_generic, _) => {
-                    let res = arrow_generic.param_types.iter().flat_map(|t| t.find_if(predicate));
+                    let res = arrow_generic
+                        .param_types
+                        .iter()
+                        .flat_map(|t| t.find_if(predicate));
                     let mut returned = arrow_generic.return_type.find_if(predicate);
                     returned.extend(res);
                     returned
-                },
+                }
             }
         }
     }
