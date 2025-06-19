@@ -4,7 +4,7 @@ import com.intellij.util.messages.Topic
 
 
 @Service(Service.Level.PROJECT)
-class BamlPortService(private val project: Project) {
+class BamlGetPortService(private val project: Project) {
 
     companion object {
         val TOPIC = Topic.create(

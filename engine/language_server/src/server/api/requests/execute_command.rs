@@ -67,6 +67,29 @@ impl SyncRequestHandler for ExecuteCommand {
                     }
                 }
             }
+        } else if params.command == "baml.openBamlPanel" {
+            // First (and only) argument is the JSON object you put in the lens
+            if let Some(state) = &session.playground_state {
+                if let Some(function_name) = params
+                    .arguments
+                    .first()
+                    .and_then(|arg| arg.get("functionName"))
+                    .and_then(|v| v.as_str().map(|s| s.to_string()))
+                {
+                    tracing::info!("Broadcasting function change for: {}", function_name);
+                    let state = state.clone();
+                    if let Some(runtime) = &session.playground_runtime {
+                        runtime.spawn(async move {
+                            let _ = crate::playground::broadcast_function_change(
+                                &state,
+                                &function_name.to_string(),
+                                function_name,
+                            )
+                            .await;
+                        });
+                    }
+                }
+            }
         } else {
             return Err(crate::server::api::Error {
                 code: ErrorCode::MethodNotFound,

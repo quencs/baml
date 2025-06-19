@@ -7,7 +7,6 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefBrowser
 import java.awt.BorderLayout
-import java.awt.Container
 import javax.swing.JPanel
 
 class BamlToolWindowFactory : ToolWindowFactory {
@@ -24,12 +23,12 @@ class BamlToolWindowFactory : ToolWindowFactory {
 
         //-- subscribe once per tool-window instance
         val connection = project.messageBus.connect(toolWindow.disposable)
-        connection.subscribe(BamlPortService.TOPIC, BamlPortService.Listener { port ->
+        connection.subscribe(BamlGetPortService.TOPIC, BamlGetPortService.Listener { port ->
             browser.loadURL("http://localhost:$port/")
         })
 
         // if LS started before the tool window was opened
-        project.getService(BamlPortService::class.java).port?.let { port ->
+        project.getService(BamlGetPortService::class.java).port?.let { port ->
             browser.loadURL("http://localhost:$port/")
         }
 

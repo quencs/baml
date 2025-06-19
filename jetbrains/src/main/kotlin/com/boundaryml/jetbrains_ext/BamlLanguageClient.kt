@@ -13,7 +13,7 @@ class BamlLanguageClient(project: Project) :
 
     override fun onPort(params: PortParams) {
         Logger.getInstance(javaClass).warn("Port params: ${params.port}")
-        project.getService(BamlPortService::class.java)
+        project.getService(BamlGetPortService::class.java)
             .setPort(params.port)
     }
 }
