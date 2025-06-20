@@ -2,7 +2,6 @@ import type {
   WasmChatMessagePart,
   WasmTestCase,
 } from '@gloo-ai/baml-schema-wasm-web';
-import he from 'he';
 import { extractStringValues, getHighlightChunks } from './highlight-utils';
 import { RenderPromptPart } from './render-text';
 import { WebviewMedia } from './webview-media';
@@ -13,8 +12,8 @@ export const RenderPart: React.FC<{
   maxTextLength?: number;
 }> = ({ part, testCase, maxTextLength = 20000 }) => {
   if (part.is_text()) {
-    // this makes it so that we can escape html
-    const text = he.encode(part.as_text() ?? '');
+    // Get the raw text without HTML encoding - React will handle escaping automatically
+    const text = part.as_text() ?? '';
     // Skip processing if any input value is too large
     const hasLargeInput = (testCase?.inputs ?? []).some(
       (input) =>
@@ -24,11 +23,8 @@ export const RenderPart: React.FC<{
     const allChunks = hasLargeInput
       ? []
       : extractStringValues(testCase?.inputs ?? []);
-    console.log('Debug - Text:', text);
-    console.log('Debug - All chunks:', allChunks);
 
     const highlightChunks = getHighlightChunks(text, allChunks);
-    console.log('Debug - Final highlight chunks:', highlightChunks);
 
     return text ? (
       <RenderPromptPart text={text} highlightChunks={highlightChunks} />

@@ -11,6 +11,37 @@ export const showTokenCountsAtom = atom(
   (get) => get(displaySettingsAtom).showTokenCounts,
 );
 
+const HighlightedText: React.FC<{
+  text: string;
+  highlightChunks: string[];
+}> = ({ text, highlightChunks }) => {
+  const parts = getHighlightedParts(text, highlightChunks);
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.highlight ? (
+          <mark
+            key={`${i}-${part.highlight}-${part.text.length}`}
+            className={cn(
+              'inline whitespace-pre-wrap break-words rounded px-1 py-0.5 font-normal text-xs text-input',
+              part.text.trim() === ''
+                ? 'bg-[var(--vscode-charts-red)]/30'
+                : 'bg-[var(--vscode-charts-blue)]/40',
+            )}
+          >
+            {part.text}
+          </mark>
+        ) : (
+          <React.Fragment key={`${i}-normal-${part.text.length}`}>
+            {part.text}
+          </React.Fragment>
+        ),
+      )}
+    </>
+  );
+};
+
 export const RenderPromptPart: React.FC<{
   text: string;
   highlightChunks?: string[];
@@ -18,7 +49,6 @@ export const RenderPromptPart: React.FC<{
   provider?: string;
 }> = ({ text, highlightChunks = [], model, provider }) => {
   const isDebugMode = useAtomValue(showTokenCountsAtom);
-  const isLongText = useMemo(() => text.split('\n').length > 18, [text]);
   // const currentClient = useAtomValue(currentClientsAtom)
   // this causes weird scroll issues
 
@@ -37,35 +67,6 @@ export const RenderPromptPart: React.FC<{
     return { enc, tokens: enc.encode(text) };
   }, [text, isDebugMode, model, provider]);
 
-  const HighlightedText: React.FC<{
-    text: string;
-    highlightChunks: string[];
-  }> = ({ text, highlightChunks }) => {
-    const parts = getHighlightedParts(text, highlightChunks);
-    return (
-      <>
-        {parts.map((part, i) =>
-          part.highlight ? (
-            <mark
-              key={i}
-              className={cn(
-                'inline-flex items-center align-middle text-input rounded px-1 py-0.5 font-normal text-xs',
-                part.text.trim() === ''
-                  ? 'bg-[var(--vscode-charts-red)]/20'
-                  : 'bg-[var(--vscode-charts-blue)]/20',
-              )}
-              style={{ whiteSpace: 'pre', wordBreak: 'keep-all' }}
-            >
-              {part.text}
-            </mark>
-          ) : (
-            <React.Fragment key={i}>{part.text}</React.Fragment>
-          ),
-        )}
-      </>
-    );
-  };
-
   // Only compute highlighted text if we're not tokenizing
   const renderContent = useMemo(() => {
     if (tokenizer) {
@@ -76,7 +77,7 @@ export const RenderPromptPart: React.FC<{
         <>
           {tokenized.map((token, i) => (
             <span
-              key={i}
+              key={`${i}-token-${token.length}-${token.charCodeAt(0) || 0}`}
               className={cn(
                 'text-white',
                 // Uncomment and use these classes if you want to color-code tokens
@@ -96,7 +97,7 @@ export const RenderPromptPart: React.FC<{
 
   return (
     <div className="flex flex-col">
-      <div className="relative p-3 bg-card group max-h-[600px] overflow-y-auto">
+      <div className="relative p-3 bg-card group max-h-[600px] overflow-y-auto overflow-x-hidden">
         <div className="absolute right-2 top-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <CopyButton text={text} size="sm" variant="secondary" />
         </div>

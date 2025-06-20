@@ -1,111 +1,89 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["NODE_ENV"],
-  "ui": "tui",
+  "globalDependencies": [
+    ".env",
+    ".env.local",
+    "tsconfig.json",
+    "biome.json",
+    "pnpm-workspace.yaml",
+    "package.json"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "CI",
+    "VERCEL",
+    "GITHUB_TOKEN",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY"
+  ],
+  "globalPassThroughEnv": ["HOME", "PATH", "SHELL", "USER", "TERM", "TMPDIR"],
   "tasks": {
     "//#clean": {
-      "cache": false
-    },
-    "clean": {
       "cache": false,
-      "dependsOn": ["^clean"]
-    },
-    "topo": {
-      "dependsOn": ["^topo"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "typecheck": {
-      "dependsOn": [
-        "^topo",
-        "^build",
-        "@gloo-ai/baml-schema-wasm-node#build",
-        "@gloo-ai/baml-schema-wasm-web#build"
-      ],
-      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
-    },
-    "build": {
-      "dependsOn": [
-        "^topo",
-        "^build",
-        "@gloo-ai/baml-schema-wasm-node#build",
-        "@gloo-ai/baml-schema-wasm-web#build"
-      ],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
-    },
-    "watch": {
-      "dependsOn": ["^watch"],
-      "outputs": ["dist/**"]
+      "outputs": []
     },
     "@gloo-ai/baml-schema-wasm-node#build": {
-      "dependsOn": ["^build"],
+      "cache": true,
       "inputs": [
         "../../engine/**/*.rs",
-        "../../engine/**/*.toml",
+        "../../engine/**/Cargo.toml",
         "../../engine/**/*.j2",
-        "../../engine/**/*.pest"
+        "../../engine/**/*.pest",
+        "scripts/**",
+        "package.json"
       ],
       "outputs": ["dist/**"]
     },
     "@gloo-ai/baml-schema-wasm-web#build": {
-      "dependsOn": ["^build", "@gloo-ai/baml-schema-wasm-node#build"],
+      "cache": true,
+      "dependsOn": ["@gloo-ai/baml-schema-wasm-node#build"],
       "inputs": [
         "../../engine/**/*.rs",
-        "../../engine/**/*.toml",
+        "../../engine/**/Cargo.toml",
         "../../engine/**/*.j2",
-        "../../engine/**/*.pest"
+        "../../engine/**/*.pest",
+        "scripts/**",
+        "package.json"
       ],
       "outputs": ["dist/**"]
     },
-    "@gloo-ai/web-panel#build": {
-      "dependsOn": [
-        "^build",
-        "@baml/common#build",
-        "@gloo-ai/baml-schema-wasm-web#build"
-      ],
-      "outputs": ["dist/**"]
-    },
-    "@baml/common#build": {
+    "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "next-env.d.ts",
+        ".output/**",
+        ".vercel/output/**",
+        "dist/**"
+      ]
     },
-    "fiddle-frontend": {
-      "dependsOn": [
-        "@baml/playground-common#build",
-        "@gloo-ai/baml-schema-wasm-web#build"
-      ],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
-    "@baml/playground-common#build": {
-      "dependsOn": ["@baml/common#build"],
-      "outputs": ["dist/**"]
-    },
-    "@gloo-ai/baml-language-server#build": {
-      "dependsOn": ["@gloo-ai/baml-schema-wasm-node#build"],
-      "outputs": ["out/**"],
+    "clean": {
       "cache": false
     },
-    "baml-client": {
-      "dependsOn": [
-        "@gloo-ai/baml-language-server#build",
-        "@gloo-ai/web-panel#build",
-        "@baml/common#build"
-      ],
-      "outputs": ["out/**"]
+    "dev": {
+      "cache": false,
+      "dependsOn": ["^topo", "^build"],
+      "persistent": true
     },
-    "lint": {},
-    "baml-client#build": {
-      "dependsOn": ["@gloo-ai/baml-language-server#build"],
-      "outputs": ["out/**"]
-    },
-    "baml#vscode:package": {
-      "dependsOn": ["baml-client#build"],
-      "outputs": ["baml-*.vsix"]
+    "format": {
+      "dependsOn": ["^topo", "^build"]
     },
     "package": {
-      "dependsOn": ["baml#vscode:package"]
+      "dependsOn": ["^vscode:package"]
+    },
+    "topo": {
+      "cache": false,
+      "dependsOn": ["^topo"]
+    },
+    "typecheck": {
+      "dependsOn": ["^topo", "^build"],
+      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+    },
+    "vscode:package": {
+      "dependsOn": ["^build"],
+      "outputs": ["baml-*.vsix"]
     }
-  }
+  },
+  "ui": "tui"
 }
