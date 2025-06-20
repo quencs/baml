@@ -1,4 +1,5 @@
 [package]
+edition = "2021"
 name = "baml-vm"
 version.workspace = true
 authors.workspace = true

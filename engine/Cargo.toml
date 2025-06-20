@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+  "baml-compiler",
   "baml-lib/*",
   "baml-lsp-types",
   "baml-rpc",
@@ -21,6 +22,7 @@ members = [
   "sandbox",
 ]
 default-members = [
+  "baml-compiler",
   "baml-lsp-types",
   "baml-lib/*",
   "baml-rpc",

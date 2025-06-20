@@ -922,6 +922,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml-compiler"
+version = "0.90.1"
+dependencies = [
+ "baml-vm",
+ "internal-baml-parser-database",
+]
+
+[[package]]
 name = "baml-derive"
 version = "0.90.1"
 dependencies = [

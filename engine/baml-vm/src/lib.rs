@@ -1,7 +1,16 @@
-/// Max call stack size.
+/// Baml virtual machine.
 ///
-/// Could be dynamic but we still need to set a limit and error with stack
-/// overflow if reached.
+/// This crate implements a stack based virtual machine similar to the CPython
+/// VM or Lox VM from [Crafting Interpreters](https://craftinginterpreters.com/).
+///
+/// Main entry point is [`Vm::exec`] which runs the VM cycle:
+/// 1. Decode Instruction.
+/// 2. Execute Instruction.
+/// 3. Increment instruction pointer and repeat loop.
+///
+/// The instructions that the VM runs are defined in [`Instruction`] enum.
+
+/// Max call stack size.
 const MAX_FRAMES: usize = 256;
 
 /// Individual bytecode instruction.
@@ -33,7 +42,7 @@ const MAX_FRAMES: usize = 256;
 /// Instead store the state or complex structure in the [`Vm`] struct and find a
 /// way to reference it with very simple instructions.
 #[derive(Clone)]
-enum Instruction {
+pub enum Instruction {
     /// Loads a constant from the bytecode's constant pool.
     ///
     /// Format: `LOAD_CONST i` where `i` is the index of the constant in the
@@ -98,6 +107,23 @@ enum Instruction {
     /// No arguments needed, result is stored in the eval stack and the VM
     /// simply has to clean up the call stack and continue execution.
     Return,
+}
+
+impl std::fmt::Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Instruction::LoadConst(i) => write!(f, "LOAD_CONST {i}"),
+            Instruction::LoadVar(i) => write!(f, "LOAD_VAR {i}"),
+            Instruction::StoreVar(i) => write!(f, "STORE_VAR {i}"),
+            Instruction::Pop => f.write_str("POP"),
+            Instruction::Jump(o) => write!(f, "JUMP {o}"),
+            Instruction::JumpIfFalse(o) => write!(f, "JUMP_IF_FALSE {o}"),
+            Instruction::LoadGlobal(i) => write!(f, "LOAD_GLOBAL {i}"),
+            Instruction::StoreGlobal(i) => write!(f, "STORE_GLOBAL {i}"),
+            Instruction::Call(n) => write!(f, "CALL {n}"),
+            Instruction::Return => f.write_str("RETURN"),
+        }
+    }
 }
 
 /// Runtime values.
@@ -177,6 +203,114 @@ struct Frame {
 }
 
 /// The beast.
+///
+/// This is a stack based virtual machine. Stack based machines work by pushing
+/// and popping values from an "evaluation stack". Picture this example from
+/// [Crafting Interpreters](https://craftinginterpreters.com/a-virtual-machine.html):
+///
+/// ```ignore
+/// fn echo(n) {
+///     print(n)
+///     return n
+/// }
+///
+/// print(echo(echo(1) + echo(2)) + echo(echo(4) + echo(5)))
+/// ```
+///
+/// Output should be:
+///
+/// ```text
+/// 1
+/// 2
+/// 3
+/// 4
+/// 5
+/// 9
+/// 12
+/// ```
+///
+/// The code above would create an AST similar to this:
+///
+/// ```text
+///                 +-------+
+///                 | print |
+///                 +-------+
+///                     |
+///                   +---+
+///          +--------| + |--------+
+///          |        +---+        |
+///      +------+               +------+
+///      | echo |               | echo |
+///      +------+               +------+
+///          |                     |
+///        +---+                 +---+
+///        | + |                 | + |
+///        +---+                 +---+
+///          |                     |
+///     +---------+           +----------+
+///     |         |           |          |
+/// +------+   +------+   +------+   +------+
+/// | echo |   | echo |   | echo |   | echo |
+/// +------+   +------+   +------+   +------+
+///     |         |           |          |
+///   +---+     +---+       +---+      +---+
+///   | 1 |     | 2 |       | 4 |      | 5 |
+///   +---+     +---+       +---+      +---+
+/// ```
+///
+/// If we "flatten" the AST considering the "lifetime" of each value, we get
+/// this structure:
+///
+/// ```text
+///                   +---+
+/// constant 1 ...... | 1 |
+/// echo(1) ......... |   |---+
+/// constant 2 ...... |   | 2 |
+/// echo(2) ......... |   |   |
+///                   +---+---+
+/// add 1+2 ......... | 3 |
+/// echo(3) ......... |   |---+
+/// constant 4 ...... |   | 4 |
+/// echo(4) ......... |   |   |---+
+/// constant 5 ...... |   |   | 5 |
+/// echo(5) ......... |   |   |   |
+///                   |   |---+---+
+/// add 4+5 ......... |   | 9 |
+/// echo(9) ......... |   |   |
+///                   +---+---+
+/// add 3+9 ......... |12 |
+/// print(12) ....... |   |
+///                   +---+
+/// ```
+///
+/// Looks like a stack doesn't it? That's the evaluation stack. All values in
+/// the program flow through that stack, eliminating the need for instructions
+/// with registers. Instead of `ADD r2, r0, r1` we just have `ADD`, which pops
+/// two values from the stack, produces the result and pushes it back on top.
+/// Simple, right? The drawback is that we need to execute more instructions to
+/// achieve the same result as a register based VM. If we want to add two
+/// variables, a register VM would run a single instruction:
+///
+/// ```text
+/// ADD r2, r0, r1  // Add the contents of r0 and r1 and store the result in r2
+///                 // r2 = r0 + r1
+/// ```
+///
+/// Meanwhile a stack VM would run 4 instructions:
+///
+/// ```text
+/// LOAD_VAR 0   // Push the contents of variable 0 on top of the stack
+/// LOAD_VAR 1   // Push the contents of variable 1 on top of the stack
+/// ADD          // Pop two values, add and push the result on top of the stack
+/// STORE_VAR 2  // Store the top of the stack in variable 2
+/// ```
+///
+/// Basically it's slower because it needs more cycles to do the same thing.
+/// Other than that, pretty much everything is better in a stack VM, especially
+/// simplicity (we don't even need to figure out which registers to use and when
+/// to use them).
+///
+/// TODO: Explain frames and objects.
 struct Vm {
     /// Call stack.
     frames: Vec<Frame>,
