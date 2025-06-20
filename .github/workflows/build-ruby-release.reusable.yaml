@@ -38,6 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Setup Rust toolchain (respects rust-toolchain.toml)
+      - uses: dtolnay/rust-toolchain@stable
+
       - uses: oxidize-rb/actions/setup-ruby-and-rust@main
         with:
           rubygems: latest
@@ -45,7 +48,7 @@ jobs:
           bundler-cache: false
           cargo-cache: false
           cargo-vendor: false
-          rustup-toolchain: stable
+          rustup-toolchain: none
 
       #################################################################################################################
       #

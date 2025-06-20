@@ -75,11 +75,8 @@ jobs:
           echo "Contents of cli-artifact-${{ matrix.code-target }} directory:"
           ls -R cli-artifact-${{ matrix.code-target }}
 
-      # Rust toolchain setup (only needed for WASM part)
+      # Rust toolchain setup (only needed for WASM part, respects rust-toolchain.toml)
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine

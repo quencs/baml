@@ -91,6 +91,11 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      # Setup Rust toolchain (respects rust-toolchain.toml)
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix._.target }}
+
       # Setup Python for non-ARM64 Windows targets and other OS
       - name: Setup Python (default)
         if: matrix._.target != 'aarch64-pc-windows-msvc'

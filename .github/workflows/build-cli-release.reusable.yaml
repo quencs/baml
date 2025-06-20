@@ -72,8 +72,7 @@ jobs:
       
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix._.target }}
+          targets: ${{ matrix._.target }}
       
       - name: Use Cross
         if: contains(matrix._.os, 'ubuntu')

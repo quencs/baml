@@ -102,7 +102,6 @@ jobs:
             engine/language_client_typescript/pnpm-lock.yaml
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           targets: ${{ matrix._.target }}
 
       # Set up build cache and dependencies
