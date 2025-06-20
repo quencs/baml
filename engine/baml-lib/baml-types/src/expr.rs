@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use crate::{field_type::FieldType, BamlMap, BamlValueWithMeta};
+use crate::{ir_type::FieldType, BamlMap, BamlValueWithMeta};
 use internal_baml_diagnostics::Span;
 use itertools::join;
 
@@ -20,7 +20,6 @@ pub enum Expr<T> {
         spread: Option<Box<Expr<T>>>,
         meta: T,
     },
-
     LLMFunction(Name, Vec<Name>, T),
     // A free variable, not bound by a lambda.
     FreeVar(Name, T),

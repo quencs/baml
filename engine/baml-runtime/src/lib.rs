@@ -41,6 +41,7 @@ use internal_baml_core::ir::repr::IntermediateRepr;
 use jsonish::ResponseValueMeta;
 use tracingv2::publisher::flush;
 
+use crate::errors::IntoBamlError;
 use crate::internal::llm_client::LLMCompleteResponse;
 use baml_types::expr::{Expr, ExprMetadata};
 use baml_types::tracing::events::HTTPBody;
@@ -427,6 +428,7 @@ impl BamlRuntime {
                 ctx,
                 &Default::default(),
                 true,
+                true, // tests always stream which is why there's an on_event
                 collector.as_ref().map(|c| vec![c.clone()]),
             );
 
@@ -693,7 +695,7 @@ impl BamlRuntime {
         let call = self
             .tracer_wrapper
             .get_or_create_tracer(&env_vars)
-            .start_call(&function_name, ctx, params, true, collectors);
+            .start_call(&function_name, ctx, params, true, false, collectors);
         let curr_call_id = call.curr_call_id();
 
         let fake_syntax_span = Span::fake();
@@ -720,24 +722,22 @@ impl BamlRuntime {
 
                         // Call (CANNOT RETURN HERE until trace event is finished)
                         let result = self.inner.call_function_impl(prepared_func, rctx).await;
+                        // eprintln!("result: {:?}", result);
                         // Trace event
                         let trace_event = TraceEvent::new_function_end(
                             call_id_stack.clone(),
                             match &result {
-                                Ok(result) => match result.parsed() {
-                                    Some(Ok(value)) => Ok(value.0.map_meta(|f| f.3.clone())),
-                                    Some(Err(e)) => {
-                                        Err(baml_types::tracing::errors::BamlError::from(e))
-                                    }
-                                    None => Err(baml_types::tracing::errors::BamlError::Base {
-                                        message: format!(
-                                            "No parsed result found for function: {}",
-                                            function_name
-                                        )
-                                        .into(),
-                                    }),
+                                Ok(result) => match result.result_with_constraints_content() {
+                                    Ok(value) => Ok(value.0.map_meta(|f| f.3.clone())),
+                                    Err(e) => Err((&e).into_baml_error()), // None => Err(baml_types::tracing::errors::BamlError::Base {
+                                                                           //     message: format!(
+                                                                           //         "No parsed result found for function: {}",
+                                                                           //         function_name
+                                                                           //     )
+                                                                           //     .into(),
+                                                                           // }),
                                 },
-                                Err(e) => Err(baml_types::tracing::errors::BamlError::from(e)),
+                                Err(e) => Err(e.into_baml_error()),
                             },
                         );
                         BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
@@ -955,12 +955,12 @@ impl BamlRuntime {
         //
         // Would also be nice if RequestBuilder had getters so we didn't have to
         // call .build()? above.
-        Ok(HTTPRequest {
-            id: HttpRequestId::new(),
-            url: request.url().to_string(),
-            method: request.method().to_string(),
-            headers: json_headers(request.headers()),
-            body: HTTPBody::new(
+        Ok(HTTPRequest::new(
+            HttpRequestId::new(),
+            request.url().to_string(),
+            request.method().to_string(),
+            json_headers(request.headers()),
+            HTTPBody::new(
                 request
                     .body()
                     .map(reqwest::Body::as_bytes)
@@ -968,7 +968,7 @@ impl BamlRuntime {
                     .unwrap_or_default()
                     .into(),
             ),
-        })
+        ))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -1023,11 +1023,11 @@ impl BamlRuntime {
     fn generate_client(
         &self,
         client_type: &GeneratorOutputType,
-        args: &internal_baml_codegen::GeneratorArgs,
+        args: &generators_lib::GeneratorArgs,
     ) -> Result<internal_baml_codegen::GenerateOutput> {
-        use internal_baml_codegen::GenerateClient;
+        generators_lib::generate_sdk(self.inner.ir.clone(), args)?;
 
-        client_type.generate_client(self.inner.ir(), args)
+        todo!()
     }
 }
 
@@ -1137,19 +1137,13 @@ impl BamlRuntime {
         client_types
             .iter()
             .map(|(generator, args)| {
-                generator
-                    .output_type
-                    .generate_client(self.inner.ir(), args)
-                    .with_context(|| {
-                        let err_msg = format!(
-                            "Error while running generator defined at {}:{}:{}",
-                            generator.span.file.path(),
-                            generator.span.line_and_column().0 .0,
-                            generator.span.line_and_column().0 .1
-                        );
-                        log::error!("{}", err_msg);
-                        err_msg
-                    })
+                let files = generators_lib::generate_sdk(self.inner.ir.clone(), args)?;
+                Ok(internal_baml_codegen::GenerateOutput {
+                    client_type: generator.output_type,
+                    output_dir_shorthand: generator.output_dir(),
+                    output_dir_full: generator.output_dir(),
+                    files,
+                })
             })
             .collect()
     }
@@ -1180,7 +1174,7 @@ impl ExperimentalTracingInterface for BamlRuntime {
     ) -> TracingCall {
         self.tracer_wrapper
             .get_or_create_tracer(env_vars)
-            .start_call(function_name, ctx, params, false, None)
+            .start_call(function_name, ctx, params, false, false, None)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -1355,7 +1349,7 @@ async fn expr_eval_result(
         Ok(expr_fn) => {
             log::trace!("Calling function: {}", function_name);
             let collectors = collector.as_ref().map(|c| vec![c.clone()]);
-            let call = tracer.start_call(&function_name, mgr, params, true, collectors);
+            let call = tracer.start_call(&function_name, mgr, params, true, false, collectors);
 
             let ctx = mgr.create_ctx(tb, cb, env_vars.clone(), call.new_call_id_stack.clone())?;
             let env = EvalEnv {
