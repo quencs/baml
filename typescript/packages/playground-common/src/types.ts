@@ -46,6 +46,12 @@ export interface BamlConfig {
 	[key: string]: any;
 }
 
+export type ICodeBlock = {
+	code: string;
+	language: 'python' | 'typescript' | 'baml';
+	id: string;
+};
+
 // Event message types for VSCode communication
 export type VSCodeEventMessage =
 	| {

@@ -4,21 +4,35 @@ import Node from './Node';
 
 export const data = [
   {
-    id: '1',
-    name: 'public',
-    children: [{ id: 'c1-1', name: 'index.html' }],
+    id: 'prompt-engineering',
+    icon: 'star',
+    name: 'Prompt engineering',
+    children: [{ id: 'system_user_prompts', name: 'Prompt roles' }],
   },
   {
-    id: '2',
-    name: 'src',
+    id: 'testing',
+    icon: 'beakers',
+    name: 'Testing',
     children: [
-      { id: 'c2-1', name: 'App.js' },
-      { id: 'c2-2', name: 'index.js' },
-      { id: 'c2-3', name: 'styles.css' },
+      { id: 'test_ai_function', name: 'Test an AI function' },
+      { id: 'evaluate_results', name: 'Evaluate LLM results' },
     ],
   },
-  { id: '3', name: 'package.json' },
-  { id: '4', name: 'README.md' },
+  {
+    id: 'resilience_reliability',
+    icon: 'shield',
+    name: 'Resilence / Reliability',
+    children: [
+      { id: 'add_retries', name: 'Function retries' },
+      { id: 'fall_back', name: 'Model fall-back' },
+    ],
+  },
+  {
+    id: 'streaming_dir',
+    icon: 'waves',
+    name: 'Streaming',
+    children: [{ id: 'streaming_structured', name: 'Structured streaming' }],
+  },
 ];
 
 export const FileViewer = () => {
@@ -30,8 +44,8 @@ export const FileViewer = () => {
         ref={treeRef}
         openByDefault={true}
         data={data}
-        rowHeight={24}
-        className="truncate"
+        rowHeight={32}
+        className="tree-container"
       >
         {Node}
       </Tree>

@@ -42,7 +42,7 @@ export * from './components/render/render-part';
 export * from './components/render/render-prompt';
 export * from './components/render/render-tokens';
 
-// UI Components (6 components)
+// UI Components (8 components)
 export * from './components/ui/file-viewer';
 export * from './components/ui/tree-node';
 export * from './components/ui/webview-media';
@@ -52,7 +52,7 @@ export * from './components/ui/function-test-name';
 
 // Legacy Components (3 components)
 export * from './components/legacy/jotai-provider';
-export * from './components/legacy/jotai-context';
+export { default as JotaiProvider } from './components/legacy/jotai-context';
 export * from './components/legacy/event-listener-original';
 
 // ===== HOOKS =====
@@ -61,6 +61,8 @@ export * from './hooks/use-vscode';
 
 // ===== SERVICES =====
 export * from './services/test-service';
+
+// ===== LIB =====
 
 // ===== UTILS =====
 export * from './utils/file-utils';
@@ -72,21 +74,27 @@ export * from './utils/vscode';
 export * from './utils/baml-config';
 
 // ===== TYPES =====
-export * from './types';
+export type {
+  TestCase,
+  TestResult,
+  TestHistoryRun,
+  FlashRange,
+  Cursor,
+  VSCodeMessage,
+  BamlConfig,
+  ICodeBlock,
+  VSCodeEventMessage,
+  TestViewType,
+  ErrorCount,
+  TestStatus
+} from './types';
 
-// ===== LEGACY EXPORTS (for backwards compatibility during transition) =====
-// Re-export original deeply nested components with deprecation notice
-// These should be removed after migration is complete
+// ===== ATOMS =====
+// Export only specific atoms to avoid conflicts
+export {
+  CodeMirrorDiagnosticsAtom
+} from './atoms';
 
-// Original atoms and legacy components (keeping for compatibility)
-export * from './shared/baml-project-panel/atoms';
-export * from './shared/baml-project-panel/playground-panel/atoms';
-export * from './shared/baml-project-panel/playground-panel/atoms-orch-graph';
-
-// Legacy utilities
-export * from './utils/ErrorFallback';
-
-// Other original exports that might still be needed
+// ===== OTHER =====
 export * from './wasm';
-export * from './Tree';
-export * from './lib';
+export { default as TreeNode } from './Tree/Node';
