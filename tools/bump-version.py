@@ -111,7 +111,9 @@ def main(
     os.chdir(repo_root)
 
     # Pull latest tags
-    run("git pull --tags")
+    if False:
+        # Temporarily disable pulling tags to do a patch release.
+        run("git pull --tags")
 
     # Check git status
     if run("git diff --quiet", check=False).returncode != 0:

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [0.90.2](https://github.com/boundaryml/baml/compare/0.90.1..0.90.2) - 2025-06-21
+
+### Bug Fixes
+
+- [VSCode Extension] fix VSCode Proxy Handling for more complex routes for Playground (#2065)
+
 ## [0.90.1](https://github.com/boundaryml/baml/compare/0.90.0..0.90.1) - 2025-06-16
 
 
