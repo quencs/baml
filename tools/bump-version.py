@@ -236,7 +236,10 @@ def main(
     run("git commit --amend --no-edit")
 
     # Run build scripts
+    os.chdir(os.path.join(repo_root, "engine/language_client_typescript"))
+    run("pnpm install")
     os.chdir(os.path.join(repo_root, "integ-tests/typescript"))
+    run("pnpm install")
     run("pnpm build")
     run("pnpm generate")
 
