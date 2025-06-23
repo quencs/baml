@@ -1,9 +1,11 @@
 use std::collections::HashSet;
 
 use anyhow::Result;
+use baml_types::type_meta::{base::TypeMeta, stream::TypeMetaStreaming};
 use baml_types::{
     BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, Constraint, FieldType, JinjaExpression,
 };
+use either::Either;
 use serde_json::json;
 use strsim::jaro;
 
@@ -12,6 +14,28 @@ use super::{
     deserialize_flags::{DeserializerConditions, Flag},
     score::WithScore,
 };
+
+/// Metadata useful during parsing.
+/// We store either regular TypeMeta or TypeMetaStreaming, depending on whether
+/// we are performing a final or partial parse.
+///
+/// The `ParseMeta` type is used temporarily, during parsing, before
+/// the resulting BamlValue has its original type restored.
+///
+/// Going through this monomorphic intermediare makes it easier to write jsonish
+/// deserializors without becoming too generic.
+pub struct ParseMeta {
+    meta: Either<TypeMeta, TypeMetaStreaming>,
+}
+
+impl ParseMeta {
+    pub fn constraints(&self) -> &Vec<Constraint> {
+        match &self.meta {
+            Either::Left(meta) => &meta.constraints,
+            Either::Right(meta) => &meta.constraints,
+        }
+    }
+}
 
 // Recursive parity
 #[derive(Clone, Debug)]

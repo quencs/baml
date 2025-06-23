@@ -17,23 +17,23 @@ unused_variables = "allow"
 type_complexity = "allow"
 
 [dependencies]
+# jsonschema = "0.17.1"
 anyhow.workspace = true
 baml-types = { path = "../baml-types" }
 bstd.workspace = true
 colored = "2"
-pest = "2.1.3"
-indoc.workspace = true
-internal-baml-jinja = { path = "../jinja-runtime" }
-internal-baml-core = { path = "../baml-core" }
-log = "0.4.20"
+either.workspace = true
 indexmap = "2.1.0"
-strsim = "0.10.0"
+indoc.workspace = true
+internal-baml-core = { path = "../baml-core" }
+internal-baml-jinja = { path = "../jinja-runtime" }
+log = "0.4.20"
+pest = "2.1.3"
+regex.workspace = true
 serde_json.workspace = true
 serde.workspace = true
-# jsonschema = "0.17.1"
-either = "1.10.0"
+strsim = "0.10.0"
 test-log = "0.2.16"
-regex.workspace = true
 thiserror = "2.0.9"
 
 [dev-dependencies]
