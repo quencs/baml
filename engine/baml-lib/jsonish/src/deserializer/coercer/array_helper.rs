@@ -17,7 +17,7 @@ pub fn coerce_array_to_singular(
     let mut best = pick_best(ctx, target, &parsed);
 
     if let Ok(ref mut f) = best {
-        f.add_flag(Flag::FirstMatch(0, parsed.to_vec()))
+        f.add_flag(Flag::FirstMatch(0, parsed))
     }
 
     best

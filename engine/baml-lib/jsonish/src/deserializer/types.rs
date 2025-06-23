@@ -25,6 +25,7 @@ use super::{
 ///
 /// Going through this monomorphic intermediare makes it easier to write jsonish
 /// deserializors without becoming too generic.
+#[derive(Clone, Debug)]
 pub struct ParseMeta {
     meta: Either<TypeMeta, TypeMetaStreaming>,
 }
@@ -39,6 +40,7 @@ impl ParseMeta {
 }
 
 /// Representation of BAML values used during parsing.
+#[derive(Clone, Debug)]
 pub struct BamlValueWithFlags(
     pub BamlValueWithMeta<(TypeGeneric<ParseMeta>, DeserializerConditions)>,
 );
@@ -52,9 +54,11 @@ pub struct BamlValueWithFlags(
 
 impl BamlValueWithFlags {
     #[cfg(test)]
-    pub fn as_list(&self) -> Option<&Vec<BamlValueWithFlags>> {
-        match self.0 {
-            BamlValueWithMeta::List(v, _) => Some(v),
+    pub fn as_list(&self) -> Option<Vec<BamlValueWithFlags>> {
+        match &self.0 {
+            BamlValueWithMeta::List(v, _) => {
+                Some(v.iter().map(|v| BamlValueWithFlags(v.clone())).collect())
+            }
             _ => None,
         }
     }
@@ -90,6 +94,10 @@ impl BamlValueWithFlags {
 
     pub fn conditions(&self) -> &DeserializerConditions {
         &self.0.meta().1
+    }
+
+    pub fn add_flag(&mut self, flag: Flag) {
+        self.0.meta_mut().1.add_flag(flag);
     }
 }
 
