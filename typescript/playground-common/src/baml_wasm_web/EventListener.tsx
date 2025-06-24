@@ -135,7 +135,7 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
       setOrchestratorIndex(0)
     }
   }, [selectedFunc])
-  console.log('selectedFunc', selectedFunc)
+  // console.log('selectedFunc', selectedFunc)
 
   useEffect(() => {
     // Only open websocket if not in VSCode webview
@@ -171,8 +171,6 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return () => ws.close()
   }, [setIsConnected, isVSCodeWebview])
-
-  console.log('Websocket execution finished')
 
   useEffect(() => {
     console.log('adding event listener')

@@ -55,8 +55,6 @@ impl SyncRequestHandler for ExecuteCommand {
                     let state = state.clone();
                     if let Some(runtime) = &session.playground_runtime {
                         runtime.spawn(async move {
-                            // Wait a bit for the server to be ready
-                            sleep(Duration::from_millis(500)).await;
                             let _ = crate::playground::broadcast_function_change(
                                 &state,
                                 &function_name.to_string(),
@@ -106,6 +104,7 @@ impl SyncRequestHandler for ExecuteCommand {
                         );
 
                         // First, set the selected function
+                        // TODO: test run should handle this in the future
                         let state_clone = state.clone();
                         let func_name = function_name.to_string();
                         let project_path = project_id.to_string();
@@ -125,8 +124,8 @@ impl SyncRequestHandler for ExecuteCommand {
                         let test_name = test_case_name.to_string();
                         if let Some(runtime) = &session.playground_runtime {
                             runtime.spawn(async move {
-                                // Wait a bit for the function change to be processed
-                                sleep(Duration::from_millis(100)).await;
+                                // TODO: temoporary fix to wait for function change to process
+                                sleep(Duration::from_millis(1200)).await;
                                 let _ =
                                     crate::playground::broadcast_test_run(&state_clone, test_name)
                                         .await;

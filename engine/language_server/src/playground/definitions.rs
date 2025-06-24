@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use tokio::sync::broadcast;
 
 // Note: the name add_project should match exactly to the
@@ -34,6 +35,9 @@ pub struct PlaygroundState {
     _rx: broadcast::Receiver<String>,
     /// Key = root_path, value = last selected function for that project
     last_function: tokio::sync::RwLock<HashMap<String, String>>,
+    /// Buffer for events that occur before the first client connects.
+    pub event_buffer: VecDeque<String>,
+    pub first_client_connected: bool,
 }
 
 impl PlaygroundState {
@@ -43,6 +47,8 @@ impl PlaygroundState {
             tx,
             _rx: rx,
             last_function: tokio::sync::RwLock::new(HashMap::new()),
+            event_buffer: VecDeque::new(),
+            first_client_connected: false,
         }
     }
 
@@ -62,5 +68,22 @@ impl PlaygroundState {
 
     pub async fn get_all_root_paths_with_functions(&self) -> Vec<String> {
         self.last_function.read().await.keys().cloned().collect()
+    }
+
+    /// Push an event to the buffer if the first client hasn't connected yet.
+    pub fn buffer_event(&mut self, event: String) {
+        if !self.first_client_connected {
+            self.event_buffer.push_back(event);
+        }
+    }
+
+    /// Drain the buffer, returning all buffered events.
+    pub fn drain_event_buffer(&mut self) -> Vec<String> {
+        self.event_buffer.drain(..).collect()
+    }
+
+    /// Mark that the first client has connected.
+    pub fn mark_first_client_connected(&mut self) {
+        self.first_client_connected = true;
     }
 }

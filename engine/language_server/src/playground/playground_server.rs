@@ -79,6 +79,18 @@ pub async fn start_client_connection(
         }
     }
 
+    // --- SEND BUFFERED EVENTS (if any) ---
+    {
+        let mut st = state.write().await;
+        let buffered_events = st.drain_event_buffer();
+        for event in buffered_events.clone() {
+            let _ = ws_tx.send(Message::text(event)).await;
+        }
+        tracing::info!("Sent {} buffered events", buffered_events.len());
+        st.mark_first_client_connected();
+    }
+    // --- END BUFFERED EVENTS ---
+
     // Handle incoming messages and broadcast updates
     tokio::spawn(async move {
         loop {
@@ -166,7 +178,10 @@ pub async fn broadcast_project_update(
     };
 
     let msg_str = serde_json::to_string(&add_project_msg)?;
-    if let Err(e) = state.read().await.broadcast_update(msg_str) {
+    let mut st = state.write().await;
+    if !st.first_client_connected {
+        st.buffer_event(msg_str);
+    } else if let Err(e) = st.broadcast_update(msg_str) {
         tracing::error!("Failed to broadcast project update: {}", e);
     }
     Ok(())
@@ -194,7 +209,10 @@ pub async fn broadcast_function_change(
     };
 
     let msg_str = serde_json::to_string(&select_function_msg)?;
-    if let Err(e) = state.read().await.broadcast_update(msg_str) {
+    let mut st = state.write().await;
+    if !st.first_client_connected {
+        st.buffer_event(msg_str);
+    } else if let Err(e) = st.broadcast_update(msg_str) {
         tracing::error!("Failed to broadcast function change: {}", e);
     }
     Ok(())
@@ -211,7 +229,10 @@ pub async fn broadcast_test_run(
     let run_test_msg = FrontendMessage::run_test { test_name };
 
     let msg_str = serde_json::to_string(&run_test_msg)?;
-    if let Err(e) = state.read().await.broadcast_update(msg_str) {
+    let mut st = state.write().await;
+    if !st.first_client_connected {
+        st.buffer_event(msg_str);
+    } else if let Err(e) = st.broadcast_update(msg_str) {
         tracing::error!("Failed to broadcast test run: {}", e);
     }
     Ok(())
