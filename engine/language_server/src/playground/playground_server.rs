@@ -61,24 +61,6 @@ pub async fn start_client_connection(
     // Send initial project state using the helper
     send_all_projects_to_client(&mut ws_tx, &session).await;
 
-    // Send last-selected function for each project
-    {
-        let st = state.read().await;
-        let root_paths = st.get_all_root_paths_with_functions().await;
-
-        for root_path in root_paths {
-            if let Some(func) = st.get_last_function(&root_path).await {
-                let msg = FrontendMessage::select_function {
-                    root_path: root_path.clone(),
-                    function_name: func,
-                };
-                if let Ok(json) = serde_json::to_string(&msg) {
-                    let _ = ws_tx.send(Message::text(json)).await;
-                }
-            }
-        }
-    }
-
     // --- SEND BUFFERED EVENTS (if any) ---
     {
         let mut st = state.write().await;
@@ -194,13 +176,6 @@ pub async fn broadcast_function_change(
     function_name: String,
 ) -> Result<()> {
     tracing::debug!("Broadcasting function change for: {}", function_name);
-
-    // remember it
-    {
-        let st = state.read().await;
-        st.set_last_function(root_path.to_string(), function_name.clone())
-            .await;
-    }
 
     // broadcast to all connected clients
     let select_function_msg = FrontendMessage::select_function {

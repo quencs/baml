@@ -33,8 +33,6 @@ pub struct PlaygroundState {
     pub tx: broadcast::Sender<String>,
     // Keep a reference to the receiver to prevent the channel from being closed
     _rx: broadcast::Receiver<String>,
-    /// Key = root_path, value = last selected function for that project
-    last_function: tokio::sync::RwLock<HashMap<String, String>>,
     /// Buffer for events that occur before the first client connects.
     pub event_buffer: VecDeque<String>,
     pub first_client_connected: bool,
@@ -46,7 +44,6 @@ impl PlaygroundState {
         Self {
             tx,
             _rx: rx,
-            last_function: tokio::sync::RwLock::new(HashMap::new()),
             event_buffer: VecDeque::new(),
             first_client_connected: false,
         }
@@ -56,18 +53,6 @@ impl PlaygroundState {
         let n = self.tx.send(msg)?;
         tracing::debug!("broadcast sent to {n} receivers");
         Ok(())
-    }
-
-    pub async fn set_last_function(&self, root: String, func: String) {
-        self.last_function.write().await.insert(root, func);
-    }
-
-    pub async fn get_last_function(&self, root: &str) -> Option<String> {
-        self.last_function.read().await.get(root).cloned()
-    }
-
-    pub async fn get_all_root_paths_with_functions(&self) -> Vec<String> {
-        self.last_function.read().await.keys().cloned().collect()
     }
 
     /// Push an event to the buffer if the first client hasn't connected yet.
