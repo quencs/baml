@@ -38,6 +38,12 @@ pub struct PlaygroundState {
     pub first_client_connected: bool,
 }
 
+impl Default for PlaygroundState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PlaygroundState {
     pub fn new() -> Self {
         let (tx, rx) = broadcast::channel(100);
