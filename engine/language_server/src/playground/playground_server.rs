@@ -12,6 +12,7 @@ use warp::{http::Response, ws::Message, Filter};
 
 /// Embed at compile time everything in dist/
 // WARNING: this is a relative path, will easily break if file structure changes
+// WARNING: works as a macro so any build script executes after this is evaluated
 static STATIC_DIR: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/../../typescript/vscode-ext/packages/web-panel/dist");
 

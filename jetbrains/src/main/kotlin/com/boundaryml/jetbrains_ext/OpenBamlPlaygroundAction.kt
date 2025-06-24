@@ -15,8 +15,8 @@ class OpenBamlPlaygroundAction : LSPCommandAction() {
 
         val args: List<Any> = command.arguments
 
-        val ls = getLanguageServer(e)?.server ?: return
         toolWindow?.show {
+            val ls = getLanguageServer(e)?.server ?: return@show
             ls.workspaceService.executeCommand(
                 ExecuteCommandParams("baml.changeFunction", args)
             )

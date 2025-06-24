@@ -13,10 +13,10 @@ class RunBamlTestAction : LSPCommandAction() {
         val toolWindow = ToolWindowManager.getInstance(project)
             .getToolWindow("BAML Playground")
 
-        val args: List<Any> = command.arguments          // e.g. ["myTestName"]
-        val ls = getLanguageServer(e)?.server ?: return
+        val args: List<Any> = command.arguments
 
         toolWindow?.show {
+            val ls = getLanguageServer(e)?.server ?: return@show
             ls.workspaceService.executeCommand(
                 ExecuteCommandParams("baml.runTest", args)
             )

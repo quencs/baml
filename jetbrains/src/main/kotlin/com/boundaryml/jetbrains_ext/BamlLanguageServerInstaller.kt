@@ -25,6 +25,29 @@ class BamlLanguageServerInstaller : LanguageServerInstallerBase() {
     private val bamlCacheDir: Path = Path.of(System.getProperty("user.home"), ".baml/jetbrains")
     private val breadcrumbFile: Path = bamlCacheDir.resolve("baml-cli-installed.txt")
 
+    companion object {
+        /** arch, platform, extension (zip|tar.gz) */
+        @JvmStatic
+        fun getPlatformTriple(): Triple<String, String, String> {
+            val os   = System.getProperty("os.name").lowercase()
+            val arch = System.getProperty("os.arch").lowercase()
+
+            val releaseArch = when {
+                arch.contains("aarch64") || arch.contains("arm64") -> "aarch64"
+                arch.contains("x86_64") || arch.contains("amd64")  -> "x86_64"
+                else -> error("Unsupported arch: $arch")
+            }
+            val releasePlatform = when {
+                os.contains("mac")   -> "apple-darwin"
+                os.contains("win")   -> "pc-windows-msvc"
+                os.contains("linux") -> "unknown-linux-gnu"
+                else -> error("Unsupported OS: $os")
+            }
+            val ext = if (releasePlatform == "pc-windows-msvc") "zip" else "tar.gz"
+            return Triple(releaseArch, releasePlatform, ext)
+        }
+    }
+
     override fun checkServerInstalled(indicator: ProgressIndicator): Boolean {
         super.progress("Checking if BAML CLI is installed...", indicator)
         ProgressManager.checkCanceled()
@@ -88,31 +111,6 @@ class BamlLanguageServerInstaller : LanguageServerInstallerBase() {
             // TODO: fallback to latest downloaded version
             "0.89.0"
         }
-    }
-
-    private fun getPlatformTriple(): Triple<String, String, String> {
-        val os = System.getProperty("os.name").lowercase()
-        val arch = System.getProperty("os.arch").lowercase()
-
-        val releaseArch = when {
-            arch.contains("aarch64") || arch.contains("arm64") -> "aarch64"
-            arch.contains("x86_64") || arch.contains("amd64") -> "x86_64"
-            else -> throw IllegalArgumentException("Unsupported architecture: $arch")
-        }
-
-        val releasePlatform = when {
-            os.contains("mac") -> "apple-darwin"
-            os.contains("win") -> "pc-windows-msvc"
-            os.contains("linux") -> "unknown-linux-gnu"
-            else -> throw IllegalArgumentException("Unsupported platform: $os")
-        }
-
-        val extension = when (releasePlatform) {
-            "pc-windows-msvc" -> "zip"
-            else -> "tar.gz"
-        }
-
-        return Triple(releaseArch, releasePlatform, extension)
     }
 
     private fun downloadFile(artifactName: String, extension: String, version: String, indicator: ProgressIndicator): Path {

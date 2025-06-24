@@ -22,6 +22,6 @@ class BamlLanguageServerFactory : LanguageServerFactory {
 
     // If you need to expose a custom server API
 //    override fun getServerInterface(): Class<out LanguageServer> {
-//        return BamlCustomServerAPI::class.java
+//        return BamlCustomServerAPI.kt::class.java
 //    }
 }
