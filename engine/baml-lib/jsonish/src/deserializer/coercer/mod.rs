@@ -244,6 +244,10 @@ impl std::fmt::Display for ParsingError {
 impl std::error::Error for ParsingError {}
 
 pub trait TypeCoercer {
+    type TargetMeta;
+    type ParsedMeta;
+    type ParsedValue;
+
     fn coerce(
         &self,
         ctx: &ParsingContext,
