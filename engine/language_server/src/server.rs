@@ -9,8 +9,6 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 use log::info;
 use lsp_server::Message;
@@ -22,6 +20,7 @@ use lsp_types::{
     WorkspaceClientCapabilities, WorkspaceFoldersServerCapabilities, WorkspaceServerCapabilities,
 };
 use schedule::Task;
+use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 use self::{
@@ -418,7 +417,7 @@ impl Server {
                 loop {
                     // Check if port is available before attempting to bind
                     let port_available =
-                    { std::net::TcpListener::bind(("127.0.0.1", playground_port)).is_ok() };
+                        { std::net::TcpListener::bind(("127.0.0.1", playground_port)).is_ok() };
 
                     if port_available {
                         // Port is available, start the server

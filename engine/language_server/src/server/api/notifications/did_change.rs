@@ -3,7 +3,6 @@ use std::{collections::HashMap, time::Instant};
 use lsp_types::{
     notification::DidChangeTextDocument, DidChangeTextDocumentParams, PublishDiagnosticsParams,
 };
-use std::collections::HashMap;
 
 use crate::{
     playground::broadcast_project_update,
