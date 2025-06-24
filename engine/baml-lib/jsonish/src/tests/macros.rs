@@ -55,7 +55,7 @@ macro_rules! test_deserializer {
 
             let value = result.unwrap();
             log::trace!("Score: {}", value.score());
-            assert_eq!(value.field_type(), &target_type);
+            assert_eq!(value.r#type().map_meta(|_| ()), &target_type.map_meta(|_| ()));
             let value: BamlValue = value.into();
             log::info!("{}", value);
             let json_value = json!(value);

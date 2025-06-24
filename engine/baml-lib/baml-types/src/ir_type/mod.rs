@@ -379,6 +379,77 @@ impl<T> TypeGeneric<T> {
         }
     }
 
+    pub fn map_meta<F, U>(&self, f: F) -> TypeGeneric<U>
+    where
+        F: Fn(&T) -> U + Copy,
+    {
+        match self {
+            TypeGeneric::Class {
+                meta,
+                name,
+                mode,
+                dynamic,
+            } => TypeGeneric::Class {
+                meta: f(meta),
+                name: name.clone(),
+                mode: mode.clone(),
+                dynamic: dynamic.clone(),
+            },
+            TypeGeneric::Arrow(arrow_generic, meta) => TypeGeneric::Arrow(
+                Box::new(ArrowGeneric {
+                    param_types: arrow_generic
+                        .param_types
+                        .iter()
+                        .map(|t| t.map_meta(f))
+                        .collect(),
+                    return_type: arrow_generic.return_type.map_meta(f),
+                }),
+                f(meta),
+            ),
+            TypeGeneric::Primitive(type_value, meta) => {
+                TypeGeneric::Primitive(type_value.clone(), f(meta))
+            }
+            TypeGeneric::Enum {
+                meta,
+                name,
+                dynamic,
+            } => TypeGeneric::Enum {
+                meta: f(meta),
+                name: name.clone(),
+                dynamic: dynamic.clone(),
+            },
+            TypeGeneric::Literal(literal_value, meta) => {
+                TypeGeneric::Literal(literal_value.clone(), f(meta))
+            }
+            TypeGeneric::List(inner, meta) => {
+                TypeGeneric::List(Box::new(inner.map_meta(f)), f(meta))
+            }
+            TypeGeneric::Map(key_type, item_type, meta) => TypeGeneric::Map(
+                Box::new(key_type.map_meta(f)),
+                Box::new(item_type.map_meta(f)),
+                f(meta),
+            ),
+            TypeGeneric::RecursiveTypeAlias { meta, name } => TypeGeneric::RecursiveTypeAlias {
+                meta: f(meta),
+                name: name.clone(),
+            },
+            TypeGeneric::Tuple(inner, meta) => {
+                TypeGeneric::Tuple(inner.iter().map(|t| t.map_meta(f)).collect(), f(meta))
+            }
+            TypeGeneric::Union(union_type_generic, meta) => TypeGeneric::Union(
+                UnionTypeGeneric {
+                    types: union_type_generic
+                        .types
+                        .iter()
+                        .map(|t| t.map_meta(f))
+                        .collect(),
+                    null_type: Box::new(union_type_generic.null_type.map_meta(f)),
+                },
+                f(meta),
+            ),
+        }
+    }
+
     pub fn set_meta(&mut self, meta: T) {
         match self {
             TypeGeneric::Class { meta: m, .. } => *m = meta,
