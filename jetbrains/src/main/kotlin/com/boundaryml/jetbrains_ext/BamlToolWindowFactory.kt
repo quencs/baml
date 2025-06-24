@@ -59,6 +59,11 @@ class BamlToolWindowFactory : ToolWindowFactory {
             loadHTML(PLACEHOLDER_HTML.trimIndent())
         }
 
+        // show browser in a tool window
+        val panel = JPanel(BorderLayout()).apply { add(browser.component, BorderLayout.CENTER) }
+        val content = ContentFactory.getInstance().createContent(panel, null, false)
+        toolWindow.contentManager.addContent(content)
+
         val savedPort = project.getService(BamlGetPortService::class.java).port
         if (savedPort != null) {
             // LS was up before the tool-window opened
@@ -74,11 +79,6 @@ class BamlToolWindowFactory : ToolWindowFactory {
                 }
             )
         }
-
-        // show browser in a tool window
-        val panel = JPanel(BorderLayout()).apply { add(browser.component, BorderLayout.CENTER) }
-        val content = ContentFactory.getInstance().createContent(panel, null, false)
-        toolWindow.contentManager.addContent(content)
 
         Disposer.register(toolWindow.disposable, browser)
     }
