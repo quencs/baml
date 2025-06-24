@@ -1,7 +1,9 @@
 use std::collections::VecDeque;
 
 use anyhow::Result;
+use baml_types::{BamlMap, CompletionState, FieldType, LiteralValue, TypeValue};
 
+use super::{ParsingContext, ParsingError, TypeCoercer};
 use crate::{
     deserializer::{
         deserialize_flags::{DeserializerConditions, Flag},
@@ -9,9 +11,6 @@ use crate::{
     },
     jsonish,
 };
-use baml_types::{BamlMap, CompletionState, FieldType, LiteralValue, TypeValue};
-
-use super::{ParsingContext, ParsingError, TypeCoercer};
 
 pub(super) fn coerce_map(
     ctx: &ParsingContext,
@@ -20,7 +19,7 @@ pub(super) fn coerce_map(
 ) -> Result<BamlValueWithFlags, ParsingError> {
     log::debug!(
         "scope: {scope} :: coercing to: {name} (current: {current})",
-        name = map_target.to_string(),
+        name = map_target,
         scope = ctx.display_scope(),
         current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
     );
@@ -29,7 +28,7 @@ pub(super) fn coerce_map(
         return Err(ctx.error_unexpected_null(map_target));
     };
 
-    let FieldType::Map(key_type, value_type) = map_target else {
+    let FieldType::Map(key_type, value_type, _) = map_target else {
         return Err(ctx.error_unexpected_type(map_target, value));
     };
 
@@ -40,17 +39,17 @@ pub(super) fn coerce_map(
     // this logic and skip the loops & allocs in the the union branch.
     match key_type.as_ref() {
         // String, enum or just one literal string, OK.
-        FieldType::Primitive(TypeValue::String)
-        | FieldType::Enum(_)
-        | FieldType::Literal(LiteralValue::String(_)) => {}
+        FieldType::Primitive(TypeValue::String, _)
+        | FieldType::Enum { .. }
+        | FieldType::Literal(LiteralValue::String(_), _) => {}
 
         // For unions we need to check if all the items are literal strings.
-        FieldType::Union(items) => {
-            let mut queue = VecDeque::from_iter(items.iter());
+        FieldType::Union(items, _) => {
+            let mut queue = VecDeque::from_iter(items.iter_include_null());
             while let Some(item) = queue.pop_front() {
                 match item {
-                    FieldType::Literal(LiteralValue::String(_)) => continue,
-                    FieldType::Union(nested) => queue.extend(nested.iter()),
+                    FieldType::Literal(LiteralValue::String(_), _) => continue,
+                    FieldType::Union(nested, _) => queue.extend(nested.iter_include_null()),
                     other => return Err(ctx.error_map_must_have_supported_key(other)),
                 }
             }

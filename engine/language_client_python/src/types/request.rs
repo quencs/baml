@@ -4,9 +4,8 @@ use pyo3::{
     Py, PyObject, PyResult, Python,
 };
 
-use crate::errors::BamlError;
-
 use super::log_collector::serde_value_to_py;
+use crate::errors::BamlError;
 
 crate::lang_wrapper!(
     HTTPRequest,
@@ -34,7 +33,7 @@ impl HTTPRequest {
             "HTTPRequest(url={}, method={}, headers={}, body={})",
             self.inner.url,
             self.inner.method,
-            serde_json::to_string_pretty(&self.inner.headers).unwrap(),
+            serde_json::to_string_pretty(&self.inner.headers()).unwrap(),
             serde_json::to_string_pretty(&self.inner.body.as_serde_value()).unwrap()
         )
     }
@@ -52,7 +51,7 @@ impl HTTPRequest {
     #[getter]
     pub fn headers<'py>(&self, py: Python<'py>) -> PyResult<Py<PyDict>> {
         let dict = PyDict::new(py);
-        for (k, v) in &self.inner.headers {
+        for (k, v) in self.inner.headers() {
             // serde_json::Value::to_string includes quotes around the
             // string, we only want the string content not the quotes.
             dict.set_item(k, v)?;

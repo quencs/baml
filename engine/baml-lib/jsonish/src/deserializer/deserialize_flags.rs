@@ -1,5 +1,6 @@
-use super::{coercer::ParsingError, types::BamlValueWithFlags};
 use baml_types::{Constraint, ConstraintLevel, JinjaExpression};
+
+use super::{coercer::ParsingError, types::BamlValueWithFlags};
 
 #[derive(Debug, Clone)]
 pub enum Flag {
@@ -51,7 +52,7 @@ pub enum Flag {
 
     /// Completion state for the top-level node of the value is Incomplete.
     Incomplete,
-    Pending
+    Pending,
 }
 
 #[derive(Clone)]
@@ -120,13 +121,15 @@ impl DeserializerConditions {
     }
 }
 
-pub fn constraint_results(flags: &Vec<Flag>) -> Vec<(String, JinjaExpression, bool)> {
-    flags.iter().filter_map(|flag| match flag {
-        Flag::ConstraintResults(cs) => Some(cs.clone()),
-        _ => None,
-    })
-    .flatten()
-    .collect()
+pub fn constraint_results(flags: &[Flag]) -> Vec<(String, JinjaExpression, bool)> {
+    flags
+        .iter()
+        .filter_map(|flag| match flag {
+            Flag::ConstraintResults(cs) => Some(cs.clone()),
+            _ => None,
+        })
+        .flatten()
+        .collect()
 }
 
 impl std::fmt::Debug for DeserializerConditions {

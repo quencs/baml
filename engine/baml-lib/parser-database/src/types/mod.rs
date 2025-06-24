@@ -1,33 +1,57 @@
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    hash::Hash,
+    ops::Deref,
+};
+
 use baml_derive::BamlHash;
-use ouroboros::self_referencing;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::hash::Hash;
-use std::ops::Deref;
-
-use crate::types::configurations::visit_test_case;
-use crate::{coerce, ParserDatabase, Tarjan};
-use crate::{context::Context, DatamodelError};
-
-use baml_types::Constraint;
-use baml_types::{StringOr, UnresolvedValue};
+use baml_types::{Constraint, StringOr, UnresolvedValue};
 use indexmap::IndexMap;
-use internal_baml_diagnostics::{Diagnostics, Span};
-use internal_baml_prompt_parser::ast::{ChatBlock, PrinterBlock, Variable};
-use internal_baml_schema_ast::ast::{
+use internal_baml_ast::ast::{
     self, BlockArgs, Expression, FieldId, FieldType, RawString, TypeAliasId, TypeBuilderBlock,
     ValExpId, WithIdentifier, WithName, WithSpan,
 };
+use internal_baml_diagnostics::{Diagnostics, Span};
+use internal_baml_prompt_parser::ast::{ChatBlock, PrinterBlock, Variable};
 use internal_llm_client::{ClientProvider, PropertyHandler, UnresolvedClientProperty};
+use ouroboros::self_referencing;
+
+use crate::{
+    coerce, context::Context, types::configurations::visit_test_case, DatamodelError,
+    ParserDatabase, Tarjan,
+};
 
 mod configurations;
 mod prompt;
-mod types;
 
-pub use crate::attributes::Attributes;
-pub(crate) use types::EnumAttributes;
-pub(crate) use types::*;
+#[derive(Debug, Default, Clone)]
+pub struct EnumAttributes {
+    pub value_serializers: HashMap<FieldId, Attributes>,
+
+    pub serializer: Option<Attributes>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ClassAttributes {
+    pub field_serilizers: HashMap<FieldId, Attributes>,
+
+    pub serilizer: Option<Attributes>,
+}
+
+impl ClassAttributes {
+    pub fn extend_serializer(&mut self, other: &Option<Attributes>) {
+        let new_serializer = match (self.serilizer.as_mut(), other) {
+            (Some(self_attrs), Some(other_attrs)) => Some(self_attrs.combine(other_attrs)),
+            (Some(self_attrs), None) => Some(self_attrs.clone()),
+            (None, Some(other_attrs)) => Some(other_attrs.clone()),
+            (None, None) => None,
+        };
+        self.serilizer = new_serializer;
+    }
+}
 
 use self::configurations::visit_retry_policy;
+pub use crate::attributes::Attributes;
 
 pub(super) fn resolve_types(ctx: &mut Context<'_>) {
     for (top_id, top) in ctx.ast.iter_tops() {
@@ -84,10 +108,13 @@ pub(super) fn resolve_type_aliases(ctx: &mut Context<'_>) {
 
     // Resolve type aliases.
     // Cycles are already computed so this should not stack overflow.
-    for alias_id in ctx.types.type_alias_dependencies.keys() {
+    let mut aliases = ctx.types.type_alias_dependencies.keys().collect::<Vec<_>>();
+    aliases.sort_by_cached_key(|id| ctx.ast[**id].name().to_string());
+
+    for alias_id in aliases {
         // We can ignore the error here because it's already reported in the
         // diagnostics at [`visit_type_alias`].
-        if let Ok(resolved) = resolve_type_alias(&ctx.ast[*alias_id].value, &ctx) {
+        if let Ok(resolved) = resolve_type_alias(&ctx.ast[*alias_id].value, ctx) {
             ctx.types.resolved_type_aliases.insert(*alias_id, resolved);
         }
     }

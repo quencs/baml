@@ -84,7 +84,8 @@ impl InitArgs {
             "Created new BAML project in {} for {}",
             baml_src.display(),
             match output_type {
-                GeneratorOutputType::PythonPydanticV1 | GeneratorOutputType::PythonPydantic => "Python clients".to_string(),
+                GeneratorOutputType::PythonPydanticV1 | GeneratorOutputType::PythonPydantic =>
+                    "Python clients".to_string(),
                 GeneratorOutputType::Typescript => "TypeScript clients".to_string(),
                 GeneratorOutputType::RubySorbet => "Ruby clients".to_string(),
                 GeneratorOutputType::OpenApi => match &self.openapi_client_type {
@@ -98,7 +99,8 @@ impl InitArgs {
         baml_log::info!(
             "Follow instructions at https://docs.boundaryml.com/docs/get-started/quickstart/{}",
             match output_type {
-                GeneratorOutputType::PythonPydanticV1 | GeneratorOutputType::PythonPydantic => "python",
+                GeneratorOutputType::PythonPydanticV1 | GeneratorOutputType::PythonPydantic =>
+                    "python",
                 GeneratorOutputType::Typescript => "typescript",
                 GeneratorOutputType::RubySorbet => "ruby",
                 GeneratorOutputType::OpenApi => "openapi",
@@ -182,12 +184,12 @@ fn generate_main_baml_content(
             openapi_generate_command.trim_start()
         )
     } else if matches!(output_type, GeneratorOutputType::Go) {
-        format!(
+        String::from(
             r#"
     // 'baml-cli generate' will run this after generating go code
     // This command will be run from within $output_dir/baml_client
     on_generate "gofmt -w . && goimports -w ."
-    "#
+    "#,
         )
     } else {
         "".to_string()
@@ -257,8 +259,9 @@ generator target {{
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn test_generate_content_pydantic() {

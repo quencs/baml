@@ -2,7 +2,6 @@ mod array_helper;
 mod coerce_array;
 mod coerce_literal;
 mod coerce_map;
-mod coerce_optional;
 mod coerce_primitive;
 mod coerce_union;
 mod field_type;
@@ -12,15 +11,12 @@ mod match_string;
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
-
 use baml_types::{BamlValue, Constraint, JinjaExpression};
+use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, FieldType};
 use internal_baml_jinja::types::OutputFormatContent;
 
-use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, FieldType};
-
-use crate::jsonish;
-
 use super::types::BamlValueWithFlags;
+use crate::jsonish;
 
 pub struct ParsingContext<'a> {
     pub scope: Vec<String>,
@@ -187,8 +183,8 @@ impl ParsingContext<'_> {
             reason: format!(
                 "Expected {}, got {:?}.",
                 match target {
-                    FieldType::Enum(_) => format!("{} enum value", target),
-                    FieldType::Class(_) => format!("{}", target),
+                    FieldType::Enum { .. } => format!("{} enum value", target),
+                    FieldType::Class { .. } => format!("{}", target),
                     _ => format!("{target}"),
                 },
                 got
@@ -270,14 +266,14 @@ pub fn run_user_checks(
     baml_value: &BamlValue,
     type_: &FieldType,
 ) -> Result<Vec<(Constraint, bool)>> {
-    match type_ {
-        FieldType::WithMetadata { constraints, .. } => constraints
-            .iter()
-            .map(|constraint| {
-                let result = evaluate_predicate(baml_value, &constraint.expression)?;
-                Ok((constraint.clone(), result))
-            })
-            .collect::<Result<Vec<_>>>(),
-        _ => Ok(vec![]),
-    }
+    let res = type_
+        .meta()
+        .constraints
+        .iter()
+        .map(|constraint| {
+            let result = evaluate_predicate(baml_value, &constraint.expression)?;
+            Ok((constraint.clone(), result))
+        })
+        .collect::<Result<Vec<_>>>();
+    res
 }

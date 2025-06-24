@@ -16,32 +16,30 @@ mod test_partials;
 mod test_streaming;
 mod test_unions;
 
-use indexmap::{IndexMap, IndexSet};
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
 };
 
-use crate::deserializer::deserialize_flags::Flag;
-use crate::deserializer::semantic_streaming::validate_streaming_state;
-use crate::{BamlValueWithFlags, ResponseBamlValue};
 use anyhow::Result;
 use baml_types::{
     BamlValue, BamlValueWithMeta, CompletionState, EvaluationContext, FieldType, JinjaExpression,
-    ResponseCheck, StreamingBehavior,
+    ResponseCheck,
 };
-use internal_baml_core::ir::repr::IntermediateRepr;
-use internal_baml_jinja::types::{Class, Enum, Name, OutputFormatContent};
-
+use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::{
     ast::Field,
     internal_baml_diagnostics::SourceFile,
-    ir::{ClassWalker, EnumWalker, IRHelper, TypeValue},
+    ir::{repr::IntermediateRepr, ClassWalker, EnumWalker, IRHelper, TypeValue},
     validate,
 };
+use internal_baml_jinja::types::{Class, Enum, Name, OutputFormatContent};
 use serde_json::json;
 
-use crate::from_str;
+use crate::{
+    deserializer::{deserialize_flags::Flag, semantic_streaming::validate_streaming_state},
+    from_str, BamlValueWithFlags, ResponseBamlValue,
+};
 
 const EMPTY_FILE: &str = r#"
 "#;
@@ -50,7 +48,7 @@ test_deserializer!(
     test_string_from_string,
     EMPTY_FILE,
     r#"hello"#,
-    FieldType::Primitive(TypeValue::String),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "hello"
 );
 
@@ -58,7 +56,7 @@ test_deserializer!(
     test_string_from_string_with_quotes,
     EMPTY_FILE,
     r#""hello""#,
-    FieldType::Primitive(TypeValue::String),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "\"hello\""
 );
 
@@ -66,7 +64,7 @@ test_deserializer!(
     test_string_from_object,
     EMPTY_FILE,
     r#"{"hi":    "hello"}"#,
-    FieldType::Primitive(TypeValue::String),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     r#"{"hi":    "hello"}"#
 );
 
@@ -74,7 +72,7 @@ test_deserializer!(
     test_string_from_obj_and_string,
     EMPTY_FILE,
     r#"The output is: {"hello": "world"}"#,
-    FieldType::Primitive(TypeValue::String),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "The output is: {\"hello\": \"world\"}"
 );
 
@@ -82,7 +80,7 @@ test_deserializer!(
     test_string_from_list,
     EMPTY_FILE,
     r#"["hello", "world"]"#,
-    FieldType::Primitive(TypeValue::String),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "[\"hello\", \"world\"]"
 );
 
@@ -90,7 +88,7 @@ test_deserializer!(
     test_string_from_int,
     EMPTY_FILE,
     r#"1"#,
-    FieldType::Primitive(TypeValue::String),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     "1"
 );
 
@@ -112,7 +110,7 @@ test_deserializer!(
         "blah": "blah"
       }
     ]"#,
-    FieldType::Primitive(TypeValue::String),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     r#"Some preview text
 
     JSON Output:
@@ -150,7 +148,7 @@ test_deserializer!(
     ]
     ```
     "#,
-    FieldType::Primitive(TypeValue::String),
+    FieldType::Primitive(TypeValue::String, Default::default()),
     r#"Hello there.
     
     JSON Output:
@@ -189,7 +187,7 @@ test_deserializer!(
     }
 
   "#,
-    FieldType::Class("Foo".to_string()),
+    FieldType::class("Foo"),
     json!({"id": null })
 );
 
@@ -207,7 +205,7 @@ test_deserializer!(
       }
 
     "#,
-    FieldType::Class("Foo".to_string()),
+    FieldType::class("Foo"),
     json!({"id": r#"{{hi} there"# })
 );
 
@@ -332,7 +330,7 @@ test_deserializer!(
         ]
       }
     "#,
-    FieldType::Class("BookAnalysis".to_string()),
+    FieldType::class("BookAnalysis"),
     json!({
       "bookNames": ["brave new world", "the lord of the rings", "three body problem", "stormlight archive"],
       "popularityOverTime": [
@@ -445,7 +443,7 @@ test_deserializer!(
       ]
     }
   "#,
-    FieldType::Class("BookAnalysis".to_string()),
+    FieldType::class("BookAnalysis"),
     json!({
       "bookNames": ["brave new world", "the lord of the rings"],
       "popularityOverTime": [
@@ -500,7 +498,7 @@ test_deserializer!(
     "four": "four"
   }
   "#,
-    FieldType::Class("OrderedClass".to_string()),
+    FieldType::class("OrderedClass"),
     json!({
       "one": "one",
       "two": "two",
@@ -520,7 +518,7 @@ test_deserializer!(
     "four": "four"
   }
     "#,
-    FieldType::Class("OrderedClass".to_string()),
+    FieldType::class("OrderedClass"),
     json!({
       "one": "one",
       "two": "two",

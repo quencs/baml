@@ -1,45 +1,50 @@
 //! Scheduling, I/O, and API endpoints.
 
-use log::info;
-use lsp_types::{
-    WorkspaceClientCapabilities, WorkspaceFoldersServerCapabilities, WorkspaceServerCapabilities,
-};
-use std::num::NonZeroUsize;
 // The new PanicInfoHook name requires MSRV >= 1.82
 #[allow(deprecated)]
 use std::panic::PanicInfo;
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::{
+    num::NonZeroUsize,
+    path::PathBuf,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::sync::RwLock;
+use serde::{Deserialize, Serialize};
 
+use log::info;
 use lsp_server::Message;
 use lsp_types::{
     notification::DidChangeTextDocument, ClientCapabilities, CodeLensOptions, CompletionOptions,
     DiagnosticOptions, DiagnosticServerCapabilities, FileSystemWatcher, HoverProviderCapability,
     InitializeParams, MessageType, SaveOptions, ServerCapabilities, TextDocumentSyncCapability,
     TextDocumentSyncKind, TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Url,
+    WorkspaceClientCapabilities, WorkspaceFoldersServerCapabilities, WorkspaceServerCapabilities,
 };
 use schedule::Task;
+use tokio::sync::RwLock;
 
-use self::connection::{Connection, ConnectionInitializer};
-use self::schedule::event_loop_thread;
-use crate::baml_project::file_utils::{find_baml_src, find_top_level_parent};
-
-use crate::session::{AllSettings, ClientSettings, Session};
-use crate::PositionEncoding;
+use self::{
+    connection::{Connection, ConnectionInitializer},
+    schedule::event_loop_thread,
+};
+use crate::{
+    baml_project::file_utils::{find_baml_src, find_top_level_parent},
+    session::{AllSettings, ClientSettings, Session},
+    PositionEncoding,
+};
 
 pub mod api;
 pub mod client;
 pub mod connection;
 mod schedule;
 
-use crate::message::try_show_message;
 pub(crate) use connection::ClientSender;
 
-use crate::playground::{PlaygroundServer, PlaygroundState};
-
-use serde::{Deserialize, Serialize};
+use crate::{
+    message::try_show_message,
+    playground::{PlaygroundServer, PlaygroundState},
+};
 
 pub type Result<T> = std::result::Result<T, api::Error>;
 
@@ -255,7 +260,7 @@ impl Server {
         session.reload(Some(notifier.clone()))?;
         let mut scheduler =
             schedule::Scheduler::new(&mut session, worker_threads, connection.make_sender());
-        Self::try_register_capabilities(&_client_capabilities, &mut scheduler);
+        Self::try_register_capabilities(_client_capabilities, &mut scheduler);
 
         for msg in connection.incoming() {
             if connection.handle_shutdown(&msg)? {
@@ -412,12 +417,8 @@ impl Server {
             rt.spawn(async move {
                 loop {
                     // Check if port is available before attempting to bind
-                    let port_available = {
-                        match std::net::TcpListener::bind(("127.0.0.1", playground_port)) {
-                            Ok(_) => true,
-                            Err(_) => false,
-                        }
-                    };
+                    let port_available =
+                    { std::net::TcpListener::bind(("127.0.0.1", playground_port)).is_ok() };
 
                     if port_available {
                         // Port is available, start the server

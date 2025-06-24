@@ -1,4 +1,19 @@
+// use rustc_hash::FxHashSet;
+// use std::sync::Arc;
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    hash::{Hash, Hasher},
+    io,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time::Instant,
+};
+
 use anyhow::Context;
+use baml_lsp_types::{
+    BamlFunction, BamlGeneratorConfig, BamlParam, BamlParentFunction, BamlSpan, BamlTestCase,
+    SymbolLocation,
+};
 use baml_runtime::{
     // internal::llm_client::LLMResponse,
     BamlRuntime,
@@ -7,35 +22,21 @@ use baml_runtime::{
     // RenderedPrompt,
     // runtime::InternalBamlRuntime
 };
-use baml_types::{BamlMediaType, TypeValue};
-use baml_types::{BamlValue, GeneratorOutputType};
+use baml_types::{BamlMediaType, BamlValue, GeneratorOutputType, TypeValue};
 use file_utils::gather_files;
-use internal_baml_codegen::version_check::{check_version, GeneratorType, VersionCheckMode};
-use internal_baml_codegen::GenerateOutput;
+use internal_baml_codegen::{
+    version_check::{check_version, GeneratorType, VersionCheckMode},
+    GenerateOutput,
+};
 use internal_baml_diagnostics::Diagnostics;
 use lsp_server::Notification;
-
-use baml_lsp_types::{
-    BamlFunction, BamlGeneratorConfig, BamlParam, BamlParentFunction, BamlSpan, BamlTestCase,
-    SymbolLocation,
-};
 use lsp_types::{
     Diagnostic, DiagnosticSeverity, Hover, HoverContents, Position, Range, TextDocumentItem,
 };
 use position_utils::get_word_at_position;
 use semver::Version;
-// use rustc_hash::FxHashSet;
-use std::collections::{hash_map::DefaultHasher, HashMap};
-use std::io;
-use std::path::{Path, PathBuf};
-// use std::sync::Arc;
-use std::time::Instant;
 
-use crate::server::client::Notifier;
-use crate::{version, DocumentKey, TextDocument};
-use std::str::FromStr;
-
-use std::hash::{Hash, Hasher};
+use crate::{server::client::Notifier, version, DocumentKey, TextDocument};
 
 pub mod file_utils;
 pub mod position_utils;
@@ -132,7 +133,7 @@ impl BamlProject {
 
         check_version(
             &generator_config.version,
-            &version(),
+            version(),
             generator_type,
             version_check_mode,
             generator_language,
@@ -561,8 +562,7 @@ impl BamlRuntimeExt for BamlRuntime {
                     args = f
                         .inputs()
                         .iter()
-                        .map(|(k, t)| get_dummy_field(2, k, t))
-                        .filter_map(|x| x) // Add this line to filter out None values
+                        .filter_map(|(k, t)| get_dummy_field(2, k, t))
                         .collect::<Vec<_>>()
                         .join("\n")
                 );
@@ -579,12 +579,11 @@ impl BamlRuntimeExt for BamlRuntime {
                         let inputs = f
                             .inputs()
                             .iter()
-                            .map(|(k, t)| get_dummy_field(2, k, t))
-                            .filter_map(|x| x) // Add this line to filter out None values
+                            .filter_map(|(k, t)| get_dummy_field(2, k, t))
                             .collect::<Vec<_>>()
                             .join(",");
 
-                        format!("({}) -> {}", inputs, f.output().to_string())
+                        format!("({}) -> {}", inputs, f.output())
                     },
                     test_snippet: snippet,
                     test_cases: f
@@ -1069,7 +1068,7 @@ impl Project {
     //     self.current_runtime = None;
     // }
 
-    /// Saves a file and marks the runtime as stale.
+    // /// Saves a file and marks the runtime as stale.
     // pub fn save_file<P: AsRef<Path>, S: AsRef<str>>(&mut self, file_path: P, content: S) {
     //     self.baml_project
     //         .save_file(file_path.as_ref().to_str().unwrap(), content.as_ref());
@@ -1342,7 +1341,7 @@ fn get_dummy_value(
 ) -> Option<String> {
     let indent_str = "  ".repeat(indent);
     match t {
-        baml_runtime::FieldType::Primitive(t) => {
+        baml_runtime::FieldType::Primitive(t, _) => {
             let dummy = match t {
                 TypeValue::String => {
                     if allow_multiline {
@@ -1368,11 +1367,11 @@ fn get_dummy_value(
 
             Some(dummy)
         }
-        baml_runtime::FieldType::Literal(_) => None,
-        baml_runtime::FieldType::Enum(_) => None,
-        baml_runtime::FieldType::Class(_) => None,
-        baml_runtime::FieldType::RecursiveTypeAlias(_) => None,
-        baml_runtime::FieldType::List(item) => {
+        baml_runtime::FieldType::Literal(_, _) => None,
+        baml_runtime::FieldType::Enum { .. } => None,
+        baml_runtime::FieldType::Class { .. } => None,
+        baml_runtime::FieldType::RecursiveTypeAlias { .. } => None,
+        baml_runtime::FieldType::List(item, _) => {
             let dummy = get_dummy_value(indent + 1, allow_multiline, item);
             // Repeat it 2 times
             match dummy {
@@ -1390,7 +1389,7 @@ fn get_dummy_value(
                 _ => None,
             }
         }
-        baml_runtime::FieldType::Map(k, v) => {
+        baml_runtime::FieldType::Map(k, v, _) => {
             let dummy_k = get_dummy_value(indent, false, k);
             let dummy_v = get_dummy_value(indent + 1, allow_multiline, v);
             match (dummy_k, dummy_v) {
@@ -1409,11 +1408,12 @@ fn get_dummy_value(
                 _ => None,
             }
         }
-        baml_runtime::FieldType::Union(fields) => fields
+        baml_runtime::FieldType::Union(fields, _) => fields
+            .iter_include_null()
             .iter()
             .filter_map(|f| get_dummy_value(indent, allow_multiline, f))
             .next(),
-        baml_runtime::FieldType::Tuple(vals) => {
+        baml_runtime::FieldType::Tuple(vals, _) => {
             let dummy = vals
                 .iter()
                 .filter_map(|f| get_dummy_value(0, false, f))
@@ -1421,19 +1421,12 @@ fn get_dummy_value(
                 .join(", ");
             Some(format!("({},)", dummy))
         }
-        baml_runtime::FieldType::Optional(_) => None,
-        baml_runtime::FieldType::WithMetadata { base, .. } => {
-            get_dummy_value(indent, allow_multiline, base)
-        }
-        baml_runtime::FieldType::Arrow(_) => None,
+        baml_runtime::FieldType::Arrow(_, _) => None,
     }
 }
 
 fn get_dummy_field(indent: usize, name: &str, t: &baml_runtime::FieldType) -> Option<String> {
     let indent_str = "  ".repeat(indent);
     let dummy = get_dummy_value(indent, true, t);
-    match dummy {
-        Some(dummy) => Some(format!("{indent_str}{name} {dummy}")),
-        _ => None,
-    }
+    dummy.map(|dummy| format!("{indent_str}{name} {dummy}"))
 }

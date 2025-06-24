@@ -1,5 +1,19 @@
 use std::{collections::HashMap, sync::Arc};
 
+use anyhow::{Context, Result};
+use aws_smithy_runtime_api::client::orchestrator::HttpRequest;
+use baml_types::{
+    tracing::events::{HTTPBody, HTTPRequest, HTTPResponse, TraceEvent},
+    BamlMap,
+};
+use bytes::Bytes;
+use http::Response as HttpResponse;
+use internal_baml_jinja::{RenderedChatMessage, RenderedPrompt};
+pub use internal_llm_client::ResponseType;
+use reqwest::{header::HeaderMap, Response, StatusCode};
+use serde::de::DeserializeOwned;
+use serde_json::json;
+
 use crate::{
     internal::llm_client::{
         traits::{HttpContext, WithClient},
@@ -7,19 +21,6 @@ use crate::{
     },
     tracingv2::storage::storage::BAML_TRACER,
 };
-use anyhow::{Context, Result};
-use aws_smithy_runtime_api::client::orchestrator::HttpRequest;
-use baml_types::tracing::events::{HTTPBody, HTTPRequest, HTTPResponse, TraceEvent};
-use baml_types::BamlMap;
-use internal_baml_jinja::{RenderedChatMessage, RenderedPrompt};
-pub use internal_llm_client::ResponseType;
-use reqwest::{header::HeaderMap, Response, StatusCode};
-
-use serde::de::DeserializeOwned;
-use serde_json::json;
-
-use bytes::Bytes;
-use http::Response as HttpResponse;
 
 #[derive(Debug)]
 pub struct LoggedHttpResponse {
@@ -127,12 +128,12 @@ async fn log_http_response(
 ) {
     let event = TraceEvent::new_raw_llm_response(
         runtime_context.runtime_context().call_id_stack.clone(),
-        Arc::new(HTTPResponse {
-            request_id: runtime_context.http_request_id().clone(),
+        Arc::new(HTTPResponse::new(
+            runtime_context.http_request_id().clone(),
             status,
             headers,
             body,
-        }),
+        )),
     );
     BAML_TRACER.lock().unwrap().put(Arc::new(event));
 }
@@ -183,20 +184,19 @@ pub(crate) async fn build_and_log_outbound_request(
     {
         let event = TraceEvent::new_raw_llm_request(
             runtime_context.runtime_context().call_id_stack.clone(),
-            Arc::new(HTTPRequest {
-                id: runtime_context.http_request_id().clone(),
-                url: built_req.url().to_string(),
-                method: built_req.method().to_string(),
-                headers: json_headers(built_req.headers()),
-                body: HTTPBody::new(
+            Arc::new(HTTPRequest::new(
+                runtime_context.http_request_id().clone(),
+                built_req.url().to_string(),
+                built_req.method().to_string(),
+                json_headers(built_req.headers()),
+                HTTPBody::new(
                     built_req
                         .body()
-                        .map(reqwest::Body::as_bytes)
-                        .flatten()
+                        .and_then(reqwest::Body::as_bytes)
                         .unwrap_or_default()
                         .into(),
                 ),
-            }),
+            )),
         );
         BAML_TRACER.lock().unwrap().put(Arc::new(event));
     }
@@ -243,13 +243,13 @@ pub async fn execute_request(
                         // Note, Wasm can't use :? for some reason (it makes it so the error looks like garbage). But only doing to_string also makes it so that the full error is not shown. E.g. DNS errors only say "error sending request for url".
                         format!(
                             "{}\n\nIf you haven't yet, try enabling the proxy (See API Keys button)",
-                            e.to_string()
+                            e
                         )
                     }
                 },
                 code: e
                     .status()
-                    .map_or(ErrorCode::Other(2), |s| ErrorCode::from_status(s)),
+                    .map_or(ErrorCode::Other(2), ErrorCode::from_status),
             }));
         }
     };
@@ -408,7 +408,7 @@ pub async fn make_parsed_request(
             start_time: system_now,
             request_options: client.request_options().clone(),
             latency: instant_now.elapsed(),
-            message: format!("Failed to parse JSON: {}", e.to_string()),
+            message: format!("Failed to parse JSON: {e}"),
             code: ErrorCode::from_status(response.status),
         })
     });
@@ -439,8 +439,7 @@ pub async fn make_parsed_request(
             latency: instant_now.elapsed(),
             message: format!(
                 "Request failed with status code: {}. {}",
-                response.status,
-                response_body.to_string()
+                response.status, response_body
             ),
             code: ErrorCode::from_status(response.status),
         });

@@ -1,6 +1,6 @@
+use std::collections::{HashMap, VecDeque};
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::collections::VecDeque;
 use tokio::sync::broadcast;
 
 // Note: the name add_project should match exactly to the

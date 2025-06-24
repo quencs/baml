@@ -1,11 +1,11 @@
+use std::{borrow::Cow, iter::Iterator, ops::Index};
+
 use colored::{ColoredString, Colorize};
 
 use crate::{
     pretty_print::{pretty_print, DiagnosticColorer},
     Span,
 };
-use std::iter::Iterator;
-use std::{borrow::Cow, ops::Index};
 
 #[derive(Debug, Clone)]
 pub struct DatamodelError {
@@ -580,7 +580,7 @@ impl DatamodelError {
     ) -> DatamodelError {
         let names = valid_clients
             .iter()
-            .map(|s| s.to_string())
+            .map(String::to_owned)
             .collect::<Vec<_>>();
         let close_names = sort_by_match(client_name, &names, Some(10));
 

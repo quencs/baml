@@ -1,5 +1,4 @@
 use super::*;
-
 use crate::helpers::load_test_ir;
 
 const NUMBERS: &str = r#"
@@ -383,7 +382,7 @@ test_partial_deserializer_streaming!(
     test_todo_tools_message,
     TODO_TOOLS_EXAMPLE,
     r#"{"type": "message_to_user", "message": "Hello us"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::class("MessageToUser"),
         FieldType::class("AdjustItem"),
         FieldType::class("AddItem"),
@@ -399,7 +398,7 @@ test_partial_deserializer_streaming_failure!(
     test_todo_tools_adjust_item,
     TODO_TOOLS_EXAMPLE,
     r#"{"type": "adjust_item", "item_id": 1, "title": "New Title"#,
-    FieldType::Union(vec![
+    FieldType::union(vec![
         FieldType::class("MessageToUser"),
         FieldType::class("AdjustItem"),
         FieldType::class("AddItem"),

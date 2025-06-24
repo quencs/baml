@@ -1,17 +1,24 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
-use lsp_types::notification::DidChangeTextDocument;
-use lsp_types::{DidChangeTextDocumentParams, PublishDiagnosticsParams};
+use lsp_types::{
+    notification::DidChangeTextDocument, DidChangeTextDocumentParams, PublishDiagnosticsParams,
+};
 use std::collections::HashMap;
 
-use crate::playground::broadcast_project_update;
-use crate::server::api::diagnostics::publish_diagnostics;
-use crate::server::api::traits::{NotificationHandler, SyncNotificationHandler};
-use crate::server::api::ResultExt;
-use crate::server::client::{Notifier, Requester};
-use crate::server::Result;
-use crate::session::Session;
-use crate::DocumentKey;
+use crate::{
+    playground::broadcast_project_update,
+    server::{
+        api::{
+            diagnostics::publish_diagnostics,
+            traits::{NotificationHandler, SyncNotificationHandler},
+            ResultExt,
+        },
+        client::{Notifier, Requester},
+        Result,
+    },
+    session::Session,
+    DocumentKey,
+};
 
 pub(crate) struct DidChangeTextDocumentHandler;
 
@@ -47,7 +54,7 @@ impl SyncNotificationHandler for DidChangeTextDocumentHandler {
 
         let project = project.unwrap();
         let document_key =
-            DocumentKey::from_url(&project.lock().unwrap().root_path(), &url).internal_error()?;
+            DocumentKey::from_url(project.lock().unwrap().root_path(), &url).internal_error()?;
 
         session
             .update_text_document(

@@ -1,19 +1,18 @@
 use std::{
     collections::HashMap,
+    fmt,
     sync::{Arc, Mutex},
 };
 
 use anyhow::{Context, Result};
 use baml_ids::FunctionCallId;
 use baml_types::{tracing::events::TraceEvent, BamlValue};
-use std::fmt;
 
+use super::runtime_context::BamlSrcReader;
 use crate::{
     client_registry::ClientRegistry, tracing::BamlTracer, tracingv2::storage::storage::BAML_TRACER,
     type_builder::TypeBuilder, CallCtx, RuntimeContext,
 };
-
-use super::runtime_context::BamlSrcReader;
 pub type BamlContext = (
     uuid::Uuid,
     String,
@@ -109,7 +108,7 @@ impl RuntimeContextManager {
                 let mut all_tags = self.global_tags.lock().unwrap().clone();
                 let ctx = self.context.lock().unwrap();
                 if let Some((.., ctx_tags, _)) = ctx.last() {
-                    all_tags.extend(ctx_tags.into_iter().map(|(k, v)| (k.clone(), v.clone())));
+                    all_tags.extend(ctx_tags.iter().map(|(k, v)| (k.clone(), v.clone())));
                 }
                 all_tags
             };
@@ -151,10 +150,14 @@ impl RuntimeContextManager {
         let call = uuid::Uuid::new_v4();
         let call_id = FunctionCallId::new();
         let mut ctx = self.context.lock().unwrap();
-        ctx.push((call, name.to_string(), last_tags.clone(), call_id));
+        ctx.push((call, name.to_string(), last_tags.clone(), call_id.clone()));
 
-        let call_stack = ctx.iter().map(|(.., call_id)| call_id.clone()).collect();
-        log::trace!("Entering with: {:#?}", ctx);
+        let call_stack = ctx
+            .iter()
+            .map(|(.., call_id)| call_id.clone())
+            .collect::<Vec<_>>();
+
+        // log::info!("Entering with: {:#?}", ctx);
         let mut last_tags = last_tags;
         for (k, v) in self.global_tags.lock().unwrap().iter() {
             last_tags.entry(k.clone()).or_insert_with(|| v.clone());
@@ -168,7 +171,7 @@ impl RuntimeContextManager {
         let mut ctx = self.context.lock().unwrap();
         log::trace!("Exiting: {:#?}", ctx);
 
-        let prev = ctx
+        let tracing_v1_call_stack = ctx
             .iter()
             .map(|(call, name, _, call_id)| CallCtx {
                 call_id: *call,
@@ -183,7 +186,7 @@ impl RuntimeContextManager {
             tags.entry(k.clone()).or_insert_with(|| v.clone());
         }
 
-        Some((id, prev, tags))
+        Some((id, tracing_v1_call_stack, tags))
     }
 
     pub fn create_ctx(
@@ -216,7 +219,7 @@ impl RuntimeContextManager {
             let ctx = self.context.lock().unwrap();
             let ctx = ctx.last();
             if let Some((.., ctx_tags, _)) = ctx {
-                tags.extend(ctx_tags.into_iter().map(|(k, v)| (k.clone(), v.clone())));
+                tags.extend(ctx_tags.iter().map(|(k, v)| (k.clone(), v.clone())));
             }
             tags
         };

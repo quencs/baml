@@ -6,16 +6,17 @@ mod minijinja;
 pub mod tracing;
 
 pub mod baml_value;
-mod field_type;
 mod generator;
+pub mod ir_type;
 mod value_expr;
 
 pub use baml_value::{BamlValue, BamlValueWithMeta, Completion, CompletionState};
 pub use constraint::*;
-pub use field_type::{
-    Arrow, FieldType, HasFieldType, LiteralValue, StreamingBehavior, ToUnionName, TypeValue,
-};
 pub use generator::{GeneratorDefaultClientMode, GeneratorOutputType};
+pub use ir_type::{
+    type_meta, Arrow, FieldType, HasFieldType, LiteralValue, StreamingMode, ToUnionName, TypeValue,
+    UnionType, UnionTypeView,
+};
 pub use map::Map as BamlMap;
 pub use media::{BamlMedia, BamlMediaContent, BamlMediaType, MediaBase64, MediaFile, MediaUrl};
 pub use minijinja::JinjaExpression;

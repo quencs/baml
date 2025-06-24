@@ -1,29 +1,26 @@
 pub mod api_wrapper;
 
-use crate::on_log_event::LogEventCallbackSync;
-use crate::tracingv2::storage::storage::{Collector, BAML_TRACER};
-use crate::InnerTraceStats;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    time::SystemTime,
+};
+
+use ::tracing as rust_tracing;
 use anyhow::{Context, Result};
-use baml_types::tracing::events::{EvaluationContext, FunctionStart, TraceData, TraceEvent};
-use baml_types::{BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta};
+use baml_types::{
+    tracing::events::{EvaluationContext, FunctionStart, FunctionType, TraceData, TraceEvent},
+    BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta,
+};
 use cfg_if::cfg_if;
 use colored::{ColoredString, Colorize};
 use internal_baml_core::ir::ir_helpers::infer_type;
 use internal_baml_jinja::RenderedPrompt;
-use serde::Serialize;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::time::SystemTime;
-use tracing::Instrument;
-
 use jsonish::ResponseBamlValue;
+use serde::Serialize;
+use tracing::Instrument;
 use uuid::Uuid;
-
-use crate::{
-    client_registry::ClientRegistry, internal::llm_client::LLMResponse,
-    tracing::api_wrapper::core_types::Role, type_builder::TypeBuilder, CallCtx, FunctionResult,
-    RuntimeContext, RuntimeContextManager, TestResponse, TraceStats,
-};
+use valuable::Valuable;
 
 use self::api_wrapper::{
     core_types::{
@@ -33,8 +30,16 @@ use self::api_wrapper::{
     },
     APIWrapper,
 };
-use ::tracing as rust_tracing;
-use valuable::Valuable;
+use crate::{
+    client_registry::ClientRegistry,
+    internal::llm_client::LLMResponse,
+    on_log_event::LogEventCallbackSync,
+    tracing::api_wrapper::core_types::Role,
+    tracingv2::storage::storage::{Collector, BAML_TRACER},
+    type_builder::TypeBuilder,
+    CallCtx, FunctionResult, InnerTraceStats, RuntimeContext, RuntimeContextManager, TestResponse,
+    TraceStats,
+};
 
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
@@ -157,7 +162,7 @@ impl Visualize for FunctionResult {
                     if let Some(max_size) = max_chunk_size.maybe_truncate_to(json_str.len()) {
                         s.push(truncate_string(&json_str, max_size).to_string());
                     } else {
-                        s.push(json_str);
+                        s.push(json_str.to_string());
                     }
                 }
             }
@@ -224,7 +229,7 @@ impl baml_log::Loggable for BamlEventLoggable<'_> {
         let function_name = format!("Function {}", self.function_name).purple();
         match self.data.as_ref() {
             Ok(response) => {
-                let response = response.visualize(max_message_length.clone());
+                let response = response.visualize(*max_message_length);
                 format!("{}:\n{}", function_name, response)
             }
             Err(error) => {
@@ -280,9 +285,7 @@ impl BamlEventLoggable<'_> {
                             .result_with_constraints()
                             .as_ref()
                             .and_then(|r| r.as_ref().ok())
-                            .map(|v| {
-                                serde_json::to_value(&v.serialize_final()).unwrap_or_default()
-                            }),
+                            .map(|v| serde_json::to_value(v.serialize_final()).unwrap_or_default()),
                         error: None,
                     },
                     LLMResponse::LLMFailure(err) => BamlEventJson {
@@ -402,6 +405,8 @@ impl BamlTracer {
         ctx: &RuntimeContextManager,
         params: &BamlMap<String, BamlValue>,
         is_baml_function: bool,
+        is_stream: bool,
+        // baml_src_hash: Option<String>,
         collectors: Option<Vec<Arc<Collector>>>,
     ) -> TracingCall {
         self.trace_stats.guard().start();
@@ -443,8 +448,8 @@ impl BamlTracer {
                 .iter()
                 .map(|(k, v)| {
                     let field_type = infer_type(v).unwrap_or_else(|| {
-                        log::debug!("Failed to infer FieldType for BamlValue in tracing. Defaulting to Null.");
-                        baml_types::FieldType::Primitive(baml_types::TypeValue::Null)
+                        log::warn!("Failed to infer FieldType for BamlValue in tracing. Defaulting to Null.");
+                        baml_types::FieldType::Primitive(baml_types::TypeValue::Null, Default::default())
                     });
                     (
                         k.clone(),
@@ -455,11 +460,16 @@ impl BamlTracer {
             EvaluationContext {
                 tags: global_tags
                     .into_iter()
-                    .chain(last_tags.into_iter())
+                    .chain(last_tags)
                     .map(|(k, v)| (k, serde_json::to_value(v).unwrap_or_default()))
                     .collect(),
             },
-            is_baml_function,
+            if is_baml_function {
+                FunctionType::BamlLlm
+            } else {
+                FunctionType::Native
+            },
+            is_stream,
         );
         BAML_TRACER.lock().unwrap().put(Arc::new(trace_event));
 
@@ -507,6 +517,8 @@ impl BamlTracer {
         ctx: &RuntimeContextManager,
         response: Option<BamlValue>,
     ) -> Result<uuid::Uuid> {
+        use baml_types::type_meta::base::TypeMeta;
+
         let guard = self.trace_stats.guard();
         let Some((call_id, event_chain, global_and_user_tags)) = ctx.exit() else {
             anyhow::bail!(
@@ -545,9 +557,11 @@ impl BamlTracer {
                 log::warn!(
                     "Failed to infer FieldType for BamlValue in tracing. Defaulting to Null."
                 );
-                baml_types::FieldType::Primitive(baml_types::TypeValue::Null)
+                baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
             }),
-            None => baml_types::FieldType::Primitive(baml_types::TypeValue::Null),
+            None => {
+                baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
+            }
         };
         let baml_value_with_meta: BamlValueWithMeta<baml_types::FieldType> =
             BamlValueWithMeta::with_const_meta(
@@ -689,9 +703,9 @@ impl BamlTracer {
         env_vars: &std::collections::HashMap<String, String>,
     ) -> bool {
         // Try to create a new APIWrapper from the env vars
-        if let Ok(new_api_wrapper) = crate::tracing::api_wrapper::APIWrapper::from_env_vars(
-            env_vars.iter().map(|(k, v)| (k, v)),
-        ) {
+        if let Ok(new_api_wrapper) =
+            crate::tracing::api_wrapper::APIWrapper::from_env_vars(env_vars.iter())
+        {
             // Compare the config in the current APIWrapper to the new one
             self.options.config == new_api_wrapper.config
         } else {
@@ -700,7 +714,7 @@ impl BamlTracer {
     }
 
     pub fn tracing_project_id(&self) -> Option<String> {
-        self.options.project_id().map(|s| s.to_string())
+        self.options.project_id().map(str::to_string)
     }
 }
 
@@ -893,7 +907,7 @@ impl<T: ToLogSchema> ToLogSchema for Result<T> {
         match self {
             Ok(r) => r.to_log_schema(api, event_chain, tags, call),
             Err(e) => LogSchema {
-                project_id: api.project_id().map(|s| s.to_string()),
+                project_id: api.project_id().map(str::to_string),
                 event_type: api_wrapper::core_types::EventType::FuncCode,
                 root_event_id: event_chain.first().map(|s| s.call_id).unwrap().to_string(),
                 event_id: event_chain.last().map(|s| s.call_id).unwrap().to_string(),
@@ -925,7 +939,7 @@ impl ToLogSchema for Option<BamlValue> {
         call: TracingCall,
     ) -> LogSchema {
         LogSchema {
-            project_id: api.project_id().map(|s| s.to_string()),
+            project_id: api.project_id().map(str::to_string),
             event_type: api_wrapper::core_types::EventType::FuncCode,
             root_event_id: event_chain.first().map(|s| s.call_id).unwrap().to_string(),
             event_id: event_chain.last().map(|s| s.call_id).unwrap().to_string(),
@@ -969,7 +983,7 @@ impl ToLogSchema for FunctionResult {
         call: TracingCall,
     ) -> LogSchema {
         LogSchema {
-            project_id: api.project_id().map(|s| s.to_string()),
+            project_id: api.project_id().map(str::to_string),
             event_type: api_wrapper::core_types::EventType::FuncLlm,
             root_event_id: event_chain.first().map(|s| s.call_id).unwrap().to_string(),
             event_id: event_chain.last().map(|s| s.call_id).unwrap().to_string(),

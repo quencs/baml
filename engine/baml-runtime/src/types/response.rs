@@ -1,14 +1,14 @@
+use anyhow::Result;
+use baml_types::{BamlValue, BamlValueWithMeta};
+use colored::*;
+use jsonish::{
+    deserializer::deserialize_flags::Flag, BamlValueWithFlags, ResponseBamlValue, SerializeMode,
+};
+
 pub use crate::internal::llm_client::LLMResponse;
 use crate::{
     errors::ExposedError, internal::llm_client::orchestrator::OrchestrationScope,
     test_constraints::TestConstraintsResult,
-};
-use anyhow::Result;
-use colored::*;
-
-use baml_types::{BamlValue, BamlValueWithMeta};
-use jsonish::{
-    deserializer::deserialize_flags::Flag, BamlValueWithFlags, ResponseBamlValue, SerializeMode,
 };
 
 #[derive(Debug)]
@@ -259,9 +259,9 @@ impl TestResponse {
                 let err = parsed.as_ref().unwrap_err();
                 match err.downcast_ref::<crate::errors::ExposedError>() {
                     Some(ExposedError::FinishReasonError { .. }) => {
-                        TestStatus::Fail(TestFailReason::TestFinishReasonFailed(&err))
+                        TestStatus::Fail(TestFailReason::TestFinishReasonFailed(err))
                     }
-                    _ => TestStatus::Fail(TestFailReason::TestParseFailure(&err)),
+                    _ => TestStatus::Fail(TestFailReason::TestParseFailure(err)),
                 }
             }
         } else {

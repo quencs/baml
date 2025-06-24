@@ -1,16 +1,22 @@
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use anyhow::{anyhow, Result};
-use baml_types::expr::Builtin;
-use baml_types::BamlMap;
 use baml_types::{
-    expr::{self, Expr, ExprMetadata, Name, VarIndex},
-    Arrow, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType, JinjaExpression, Resolvable,
-    StreamingBehavior, StringOr, TypeValue, UnresolvedValue,
+    baml_value::TypeLookups,
+    expr::{self, Builtin, Expr, ExprMetadata, Name, VarIndex},
+    ir_type::ArrowGeneric,
+    type_meta, Arrow, BamlMap, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType,
+    JinjaExpression, Resolvable, StringOr, TypeValue, UnionType, UnresolvedValue,
 };
 use either::Either;
 use indexmap::{IndexMap, IndexSet};
+use internal_baml_ast::ast::{
+    self, Attribute, FieldArity, SubType, ValExpId, WithAttributes, WithIdentifier, WithName,
+    WithSpan,
+};
 use internal_baml_diagnostics::{Diagnostics, Span};
 use internal_baml_parser_database::{
     walkers::{
@@ -20,18 +26,14 @@ use internal_baml_parser_database::{
     },
     Attributes, ParserDatabase, PromptAst, RetryPolicyStrategy, TypeWalker,
 };
-
-use internal_baml_schema_ast::ast::{
-    self, Attribute, FieldArity, SubType, ValExpId, WithAttributes, WithIdentifier, WithName,
-    WithSpan,
-};
 use internal_llm_client::{ClientProvider, ClientSpec, UnresolvedClientProperty};
 use serde::Serialize;
 
-use crate::validate::validation_pipeline::validations::expr_typecheck::infer_types_in_context;
-use crate::Configuration;
-
 use super::builtin::{builtin_classes, builtin_generic_fn, builtin_ir, is_builtin_identifier};
+use crate::{
+    validate::validation_pipeline::validations::expr_typecheck::infer_types_in_context,
+    Configuration,
+};
 
 /// This class represents the intermediate representation of the BAML AST.
 /// It is a representation of the BAML AST that is easier to work with than the
@@ -52,13 +54,87 @@ pub struct IntermediateRepr {
     /// Strongly connected components of the dependency graph (finite cycles).
     pub finite_recursive_cycles: Vec<IndexSet<String>>,
 
-    /// Type alias cycles introduced by lists and maps.
+    /// Type alias cycles introduced by lists and maps and unions.
     ///
     /// These are the only allowed cycles, because lists and maps introduce a
     /// level of indirection that makes the cycle finite.
     pub structural_recursive_alias_cycles: Vec<IndexMap<String, FieldType>>,
 
     pub configuration: Configuration,
+
+    // only constructed after the first pass
+    pub pass2_repr: Pass2Repr,
+}
+
+#[derive(Default, Debug)]
+pub struct Pass2Repr {
+    classes_with_attributes: BamlMap<String, NodeAttributes>,
+    enums_with_attributes: BamlMap<String, NodeAttributes>,
+    resolved_type_aliases: BamlMap<String, FieldType>,
+}
+
+impl Pass2Repr {
+    fn update_type(&self, type_generic: &mut FieldType) {
+        use baml_types::ir_type::TypeGeneric;
+        match type_generic {
+            TypeGeneric::Enum {
+                name,
+                dynamic,
+                meta,
+            } => {
+                if let Some(attributes) = self.enums_with_attributes.get(name) {
+                    *dynamic |= attributes.dynamic();
+                    meta.streaming_behavior = meta
+                        .streaming_behavior
+                        .combine(&attributes.streaming_behavior());
+                    meta.constraints.extend(attributes.constraints.clone());
+                }
+            }
+            TypeGeneric::Class {
+                name,
+                mode,
+                dynamic,
+                meta,
+            } => {
+                if let Some(attributes) = self.classes_with_attributes.get(name) {
+                    *dynamic |= attributes.dynamic();
+                    meta.streaming_behavior = meta
+                        .streaming_behavior
+                        .combine(&attributes.streaming_behavior());
+                    meta.constraints.extend(attributes.constraints.clone());
+                }
+            }
+            TypeGeneric::Primitive(..)
+            | TypeGeneric::Literal(..)
+            | TypeGeneric::RecursiveTypeAlias { .. } => {}
+            TypeGeneric::List(element, _) => {
+                self.update_type(element);
+            }
+            TypeGeneric::Map(key, value, _) => {
+                self.update_type(key);
+                self.update_type(value);
+            }
+            TypeGeneric::Tuple(type_generics, _) => {
+                type_generics.iter_mut().for_each(|t| self.update_type(t))
+            }
+            TypeGeneric::Arrow(arrow_generic, _) => {
+                self.update_type(&mut arrow_generic.return_type)
+            }
+            TypeGeneric::Union(union_type_generic, _) => union_type_generic
+                .iter_skip_null_mut()
+                .iter_mut()
+                .for_each(|t| self.update_type(t)),
+        }
+    }
+}
+
+impl TypeLookups for IntermediateRepr {
+    fn expand_recursive_type(&self, name: &str) -> anyhow::Result<&FieldType> {
+        match self.pass2_repr.resolved_type_aliases.get(name) {
+            Some(ty) => Ok(ty),
+            None => anyhow::bail!("Type alias not found: {name}"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -155,10 +231,13 @@ impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
             .ok_or(anyhow::anyhow!(
                 "Expression functions must have a return type"
             ))?;
-        let lambda_type = FieldType::Arrow(Box::new(Arrow {
-            param_types: arg_types,
-            return_type: return_type.clone(),
-        }));
+        let lambda_type = FieldType::Arrow(
+            Box::new(ArrowGeneric {
+                param_types: arg_types,
+                return_type: return_type.clone(),
+            }),
+            Default::default(),
+        );
         let expr_fn = ExprFunction {
             name: self.expr_fn().name.to_string(),
             inputs: args,
@@ -242,41 +321,29 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
         match self {
             ast::Expression::BoolValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::Bool(
                 *val,
-                (span.clone(), Some(FieldType::Primitive(TypeValue::Bool))),
+                (span.clone(), Some(FieldType::bool())),
             ))),
             ast::Expression::NumericValue(val, span) => val
                 .parse::<i64>()
                 .map(|v| {
                     Expr::Atom(BamlValueWithMeta::Int(
                         v,
-                        (span.clone(), Some(FieldType::Primitive(TypeValue::Int))),
+                        (span.clone(), Some(FieldType::int())),
                     ))
                 })
-                .or_else(|_| {
-                    val.parse::<f64>()
-                        .map(|v| {
-                            Expr::Atom(BamlValueWithMeta::Float(
-                                v,
-                                (span.clone(), Some(FieldType::Primitive(TypeValue::Float))),
-                            ))
-                        })
-                        .or_else(|_| Err(anyhow!("Invalid numeric value: {}", val)))
-                }),
+                .map_err(|_| anyhow!("Invalid numeric value: {}", val)),
             ast::Expression::StringValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::String(
                 val.to_string(),
-                (span.clone(), Some(FieldType::Primitive(TypeValue::String))),
+                (span.clone(), Some(FieldType::string())),
             ))),
             ast::Expression::RawStringValue(val) => Ok(Expr::Atom(BamlValueWithMeta::String(
                 val.value().to_string(),
-                (
-                    val.span().clone(),
-                    Some(FieldType::Primitive(TypeValue::String)),
-                ),
+                (val.span().clone(), Some(FieldType::string())),
             ))),
             ast::Expression::JinjaExpressionValue(val, span) => {
                 Ok(Expr::Atom(BamlValueWithMeta::String(
                     val.to_string(),
-                    (span.clone(), Some(FieldType::Primitive(TypeValue::String))),
+                    (span.clone(), Some(FieldType::string())),
                 )))
             }
             ast::Expression::Array(vals, span) => {
@@ -284,17 +351,15 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .iter()
                     .map(|v| v.repr(db))
                     .collect::<Result<Vec<_>>>()?;
-                let mut item_types = new_items
+                let item_types = new_items
                     .iter()
                     .filter_map(|v| v.meta().1.clone())
                     .collect::<Vec<_>>();
-                item_types.dedup();
-                let item_type = match item_types.len() {
+                let list_type = match item_types.len() {
                     0 => None,
-                    1 => Some(item_types[0].clone()),
-                    _ => Some(FieldType::Union(item_types)),
+                    1 => Some(item_types[0].clone().as_list()),
+                    _ => Some(FieldType::union(item_types).as_list()),
                 };
-                let list_type = item_type.map(|t| FieldType::List(Box::new(t)));
                 Ok(Expr::List(new_items, (span.clone(), list_type)))
             }
             ast::Expression::Map(vals, span) => {
@@ -302,19 +367,20 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .iter()
                     .map(|(k, v)| v.repr(db).map(|v2| (k.to_string(), v2)))
                     .collect::<Result<IndexMap<_, _>>>()?;
-                let mut item_types = new_items
+                let item_types = new_items
                     .iter()
                     .filter_map(|v| v.1.meta().1.clone())
                     .collect::<Vec<_>>();
-                item_types.dedup();
-                let item_type = match item_types.len() {
-                    0 => None,
-                    1 => Some(item_types[0].clone()),
-                    _ => Some(FieldType::Union(item_types)),
+
+                let item_type = if item_types.is_empty() {
+                    None
+                } else {
+                    Some(FieldType::union(item_types))
                 };
+
                 // TODO: Is this correct?
-                let key_type = FieldType::Primitive(TypeValue::String);
-                let map_type = item_type.map(|t| FieldType::Map(Box::new(key_type), Box::new(t)));
+                let key_type = FieldType::string();
+                let map_type = item_type.map(|t| FieldType::map(key_type, t));
                 Ok(Expr::Map(new_items, (span.clone(), map_type)))
             }
             ast::Expression::Identifier(id) => Ok(Expr::FreeVar(
@@ -400,10 +466,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     name: class_name.name().to_string(),
                     fields: new_fields,
                     spread,
-                    meta: (
-                        span.clone(),
-                        Some(FieldType::Class(class_name.name().to_string())),
-                    ),
+                    meta: (span.clone(), Some(FieldType::class(class_name.name()))),
                 })
             }
             ast::Expression::ExprBlock(block, span) => {
@@ -419,7 +482,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                 Ok(Expr::If(
                     Arc::new(cond),
                     Arc::new(then),
-                    else_.map(|e| Arc::new(e)),
+                    else_.map(Arc::new),
                     (span.clone(), None),
                 ))
             }
@@ -466,6 +529,7 @@ impl IntermediateRepr {
             retry_policies: vec![],
             template_strings: vec![],
             configuration: Configuration::new(),
+            pass2_repr: Pass2Repr::default(),
         }
     }
 
@@ -539,6 +603,34 @@ impl IntermediateRepr {
 
     pub fn walk_functions(&self) -> impl ExactSizeIterator<Item = Walker<'_, &Node<Function>>> {
         self.functions.iter().map(|e| Walker { ir: self, item: e })
+    }
+
+    pub fn walk_all_unions(&self) -> impl Iterator<Item = &FieldType> {
+        // finding types used in classes
+        let class_fields = self
+            .classes
+            .iter()
+            .flat_map(|c| c.elem.static_fields.iter().map(|f| &f.elem.r#type.elem));
+
+        // finding types used in type aliases
+        let type_alias_fields = self.type_aliases.iter().map(|c| &c.elem.r#type.elem);
+
+        // finding types used in functions
+        let function_fields = self.functions.iter().flat_map(|f| {
+            f.elem
+                .inputs
+                .iter()
+                .map(|(_, t)| t)
+                .chain(std::iter::once(&f.elem.output))
+        });
+
+        let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
+
+        // also then flatten the types so any inner types are also included
+        fn is_union(t: &FieldType) -> bool {
+            matches!(t, FieldType::Union(..))
+        }
+        all_types.flat_map(|t| t.find_if(&is_union))
     }
 
     // TODO: This is a quick workaround in order to make expr_fns compatible
@@ -664,6 +756,7 @@ impl IntermediateRepr {
                 .map(|e| e.node(db))
                 .collect::<Result<Vec<_>>>()?,
             configuration,
+            pass2_repr: Pass2Repr::default(),
         };
 
         // Sort each item by name.
@@ -686,7 +779,95 @@ impl IntermediateRepr {
         repr.classes
             .retain(|c| !is_builtin_identifier(&c.elem.name));
 
+        repr.distribute_attributes();
+
         Ok(repr)
+    }
+
+    fn set_pass2_repr(&mut self) {
+        let default_streaming_behavior = type_meta::base::StreamingBehavior::default();
+        let classes_with_attributes = self
+            .classes
+            .iter()
+            .filter_map(|c| {
+                if c.attributes.dynamic()
+                    || c.attributes.streaming_behavior() != default_streaming_behavior
+                    || !c.attributes.constraints.is_empty()
+                {
+                    Some((c.elem.name.clone(), c.attributes.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect::<BamlMap<_, _>>();
+        let enums_with_attributes = self
+            .enums
+            .iter()
+            .filter_map(|e| {
+                if e.attributes.dynamic()
+                    || e.attributes.streaming_behavior() != default_streaming_behavior
+                    || !e.attributes.constraints.is_empty()
+                {
+                    Some((e.elem.name.clone(), e.attributes.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect::<BamlMap<_, _>>();
+
+        self.pass2_repr.classes_with_attributes = classes_with_attributes;
+        self.pass2_repr.enums_with_attributes = enums_with_attributes;
+        self.pass2_repr.resolved_type_aliases = self
+            .structural_recursive_alias_cycles
+            .iter()
+            .flat_map(|i| i.iter())
+            .map(|(name, type_)| (name.clone(), type_.clone()))
+            .collect();
+    }
+
+    /// Modifies the type to inject any block level attributes that are present on the class or enum.
+    pub fn finalize_type(&self, type_generic: &mut FieldType) {
+        self.pass2_repr.update_type(type_generic);
+    }
+
+    /// Some block_types like enums and classes may have attributes on them.
+    /// Every reference to them MUST also maintain that attribute.
+    fn distribute_attributes(&mut self) {
+        // first store all types that have block level attributes
+        self.set_pass2_repr();
+
+        // Now for every type every used in the IR, inject block level attributes
+        // from the types that have them.
+
+        // finding types used in classes
+        let class_fields = self.classes.iter_mut().flat_map(|c| {
+            c.elem
+                .static_fields
+                .iter_mut()
+                .map(|f| &mut f.elem.r#type.elem)
+        });
+
+        // finding types used in type aliases
+        let type_alias_fields = self
+            .structural_recursive_alias_cycles
+            .iter_mut()
+            .flat_map(|c| c.iter_mut().map(|(_, t)| t));
+
+        // finding types used in functions
+        let function_fields = self.functions.iter_mut().flat_map(|f| {
+            f.elem
+                .inputs
+                .iter_mut()
+                .map(|(_, t)| t)
+                .chain(std::iter::once(&mut f.elem.output))
+        });
+
+        let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
+
+        // distribute attributes to all types
+        all_types.for_each(|t| {
+            self.pass2_repr.update_type(t);
+        });
     }
 
     /// TODO: #1343 Temporary solution until we implement scoping in the AST.
@@ -858,10 +1039,7 @@ pub struct NodeAttributes {
 }
 
 fn is_some_true(maybe_value: Option<&UnresolvedValue<()>>) -> bool {
-    match maybe_value {
-        Some(Resolvable::Bool(true, _)) => true,
-        _ => false,
-    }
+    matches!(maybe_value, Some(Resolvable::Bool(true, _)))
 }
 
 impl NodeAttributes {
@@ -885,8 +1063,8 @@ impl NodeAttributes {
         is_some_true(self.get("skip"))
     }
 
-    pub fn streaming_behavior(&self) -> StreamingBehavior {
-        StreamingBehavior {
+    pub fn streaming_behavior(&self) -> type_meta::base::StreamingBehavior {
+        type_meta::base::StreamingBehavior {
             needed: is_some_true(self.get("stream.not_null")),
             done: is_some_true(self.get("stream.done")),
             state: is_some_true(self.get("stream.with_state")),
@@ -985,7 +1163,7 @@ fn to_ir_attributes(
         streaming_state,
     ]
     .into_iter()
-    .filter_map(|s| s)
+    .flatten()
     .collect();
 
     (meta, constraints.clone())
@@ -1018,7 +1196,7 @@ pub trait WithRepr<T> {
 fn type_with_arity(t: FieldType, arity: &FieldArity) -> FieldType {
     match arity {
         FieldArity::Required => t,
-        FieldArity::Optional => FieldType::Optional(Box::new(t)),
+        FieldArity::Optional => t.as_optional(),
     }
 }
 
@@ -1062,8 +1240,7 @@ impl WithRepr<FieldType> for ast::FieldType {
         if self
             .attributes()
             .iter()
-            .find(|Attribute { name, .. }| name.name() == "stream.done")
-            .is_some()
+            .any(|Attribute { name, .. }| name.name() == "stream.done")
         {
             let val: UnresolvedValue<()> = Resolvable::Bool(true, ());
             meta.insert("stream.done".to_string(), val);
@@ -1071,11 +1248,18 @@ impl WithRepr<FieldType> for ast::FieldType {
         if self
             .attributes()
             .iter()
-            .find(|Attribute { name, .. }| name.name() == "stream.with_state")
-            .is_some()
+            .any(|Attribute { name, .. }| name.name() == "stream.with_state")
         {
             let val: UnresolvedValue<()> = Resolvable::Bool(true, ());
             meta.insert("stream.with_state".to_string(), val);
+        }
+        if self
+            .attributes()
+            .iter()
+            .any(|Attribute { name, .. }| name.name() == "stream.not_null")
+        {
+            let val: UnresolvedValue<()> = Resolvable::Bool(true, ());
+            meta.insert("stream.not_null".to_string(), val);
         }
 
         let mut symbol_spans = HashMap::new();
@@ -1124,20 +1308,20 @@ impl WithRepr<FieldType> for ast::FieldType {
         let attributes = WithRepr::attributes(self, db);
         let has_constraints = !attributes.constraints.is_empty();
         let streaming_behavior = attributes.streaming_behavior();
-        let has_special_streaming_behavior = streaming_behavior != StreamingBehavior::default();
-        let base = match self {
+        let has_special_streaming_behavior = streaming_behavior != Default::default();
+        let mut base = match self {
             ast::FieldType::Primitive(arity, typeval, ..) => {
-                let repr = FieldType::Primitive(*typeval);
+                let repr = FieldType::Primitive(*typeval, Default::default());
                 if arity.is_optional() {
-                    FieldType::Optional(Box::new(repr))
+                    repr.as_optional()
                 } else {
                     repr
                 }
             }
             ast::FieldType::Literal(arity, literal_value, ..) => {
-                let repr = FieldType::Literal(literal_value.clone());
+                let repr = FieldType::Literal(literal_value.clone(), Default::default());
                 if arity.is_optional() {
-                    FieldType::Optional(Box::new(repr))
+                    repr.as_optional()
                 } else {
                     repr
                 }
@@ -1145,34 +1329,39 @@ impl WithRepr<FieldType> for ast::FieldType {
             ast::FieldType::Symbol(arity, idn, ..) => type_with_arity(
                 match db.find_type(idn) {
                     Some(TypeWalker::Class(class_walker)) => {
-                        let base_class = FieldType::Class(class_walker.name().to_string());
+                        let mut base_class = FieldType::class(class_walker.name());
                         match class_walker.get_constraints(SubType::Class) {
                             Some(constraints) if !constraints.is_empty() => {
-                                FieldType::WithMetadata {
-                                    base: Box::new(base_class),
+                                base_class.set_meta(type_meta::base::TypeMeta {
                                     constraints,
                                     streaming_behavior: streaming_behavior.clone(),
-                                }
+                                });
+                                base_class
                             }
                             _ => base_class,
                         }
                     }
                     Some(TypeWalker::Enum(enum_walker)) => {
-                        let base_type = FieldType::Enum(enum_walker.name().to_string());
+                        let mut base_type = FieldType::r#enum(enum_walker.name());
                         match enum_walker.get_constraints(SubType::Enum) {
                             Some(constraints) if !constraints.is_empty() => {
-                                FieldType::WithMetadata {
-                                    base: Box::new(base_type),
+                                base_type.set_meta(type_meta::base::TypeMeta {
                                     constraints,
                                     streaming_behavior: streaming_behavior.clone(),
-                                }
+                                });
+                                base_type
                             }
                             _ => base_type,
                         }
                     }
                     Some(TypeWalker::TypeAlias(alias_walker)) => {
                         if db.is_recursive_type_alias(&alias_walker.id) {
-                            FieldType::RecursiveTypeAlias(alias_walker.name().to_string())
+                            let resolved = alias_walker.resolved();
+                            // TODO: use resolved in some way
+                            FieldType::RecursiveTypeAlias {
+                                name: alias_walker.name().to_string(),
+                                meta: Default::default(),
+                            }
                         } else {
                             alias_walker.resolved().to_owned().repr(db)?
                         }
@@ -1189,7 +1378,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ),
             ast::FieldType::List(arity, ft, dims, ..) => {
                 // NB: potential bug: this hands back a 1D list when dims == 0
-                let mut repr = FieldType::List(Box::new(ft.repr(db)?));
+                let mut repr = FieldType::List(Box::new(ft.repr(db)?), Default::default());
 
                 for _ in 1u32..*dims {
                     repr = FieldType::list(repr);
@@ -1203,8 +1392,11 @@ impl WithRepr<FieldType> for ast::FieldType {
             }
             ast::FieldType::Map(arity, kv, ..) => {
                 // NB: we can't just unpack (*kv) into k, v because that would require a move/copy
-                let mut repr =
-                    FieldType::Map(Box::new((kv).0.repr(db)?), Box::new((kv).1.repr(db)?));
+                let mut repr = FieldType::Map(
+                    Box::new((kv).0.repr(db)?),
+                    Box::new((kv).1.repr(db)?),
+                    Default::default(),
+                );
 
                 if arity.is_optional() {
                     repr = FieldType::optional(repr);
@@ -1217,24 +1409,30 @@ impl WithRepr<FieldType> for ast::FieldType {
                 let mut types = t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?;
 
                 if arity.is_optional() {
-                    types.push(FieldType::Primitive(baml_types::TypeValue::Null));
+                    types.push(FieldType::Primitive(
+                        baml_types::TypeValue::Null,
+                        Default::default(),
+                    ));
                 }
 
-                FieldType::Union(types)
+                FieldType::union(types)
             }
             ast::FieldType::Tuple(arity, t, ..) => type_with_arity(
-                FieldType::Tuple(t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?),
+                FieldType::Tuple(
+                    t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?,
+                    Default::default(),
+                ),
                 arity,
             ),
         };
 
         let use_metadata = has_constraints || has_special_streaming_behavior;
         let with_constraints = if use_metadata {
-            FieldType::WithMetadata {
-                base: Box::new(base.clone()),
+            base.set_meta(type_meta::base::TypeMeta {
                 constraints: attributes.constraints,
-                streaming_behavior,
-            }
+                streaming_behavior: streaming_behavior.clone(),
+            });
+            base
         } else {
             base
         };
@@ -1642,8 +1840,8 @@ impl ExprFunction {
                             };
                             annotate_variable(target, r#type.clone(), body)
                         });
-                let res = Expr::Lambda(*arity, Arc::new(new_body), meta.clone());
-                res
+
+                Expr::Lambda(*arity, Arc::new(new_body), meta.clone())
             }
             // TODO: Handle other cases - traverse the tree.
             // It seems like only Expr::Lambda is admissable as an ExprBody's expr field?
@@ -1741,14 +1939,13 @@ pub fn annotate_variable(
                     )
                 })
                 .collect();
-            let new_spread = match spread {
-                None => None,
-                Some(expr) => Some(Box::new(annotate_variable(
+            let new_spread = spread.as_ref().map(|expr| {
+                Box::new(annotate_variable(
                     target,
                     r#type.clone(),
                     expr.as_ref().clone(),
-                ))),
-            };
+                ))
+            });
             Expr::ClassConstructor {
                 name: name.clone(),
                 fields: new_fields,
@@ -1796,7 +1993,7 @@ pub fn annotate_variable(
             Expr::If(
                 Arc::new(new_cond),
                 Arc::new(new_then),
-                new_else.map(|e| Arc::new(e)),
+                new_else.map(Arc::new),
                 meta.clone(),
             )
         }
@@ -1879,6 +2076,8 @@ impl WithRepr<Function> for FunctionWalker<'_> {
 
         for arg in self.walk_input_args().chain(self.walk_output_args()) {
             let node_attrs = WithRepr::attributes(arg.field_type(), db);
+
+            #[allow(clippy::map_entry)] // can't use map.entry() without cloning spans here
             for (symbol, mut spans) in node_attrs.symbol_spans {
                 if !symbol_spans.contains_key(&symbol) {
                     symbol_spans.insert(symbol, spans);
@@ -2179,13 +2378,32 @@ impl WithRepr<Prompt> for PromptAst<'_> {
 pub fn make_test_ir(source_code: &str) -> anyhow::Result<IntermediateRepr> {
     let (ir, diagnostics) = make_test_ir_and_diagnostics(source_code)?;
     if diagnostics.has_errors() {
+        Err(anyhow::anyhow!(
+            "Source code was invalid: \n{:?}",
+            diagnostics.errors()
+        ))
+    } else {
+        Ok(ir)
+    }
+}
+
+pub fn make_test_ir_from_dir(dir: &std::path::PathBuf) -> anyhow::Result<IntermediateRepr> {
+    // load all *.baml files in the directory
+    let files = std::fs::read_dir(dir)?
+        .filter_map(|file| file.ok())
+        .filter(|file| file.path().extension().is_some_and(|ext| ext == "baml"))
+        .map(|file| file.path())
+        .map(|path| Ok((path.clone(), std::fs::read_to_string(path)?).into()))
+        .collect::<Result<Vec<_>>>()?;
+
+    let (ir, diagnostics) = make_test_ir_and_diagnostics_from_dir(dir, files)?;
+    if diagnostics.has_errors() {
         return Err(anyhow::anyhow!(
             "Source code was invalid: \n{:?}",
             diagnostics.errors()
         ));
-    } else {
-        Ok(ir)
     }
+    Ok(ir)
 }
 
 /// Generate an IntermediateRepr from a single block of BAML source code.
@@ -2194,10 +2412,11 @@ pub fn make_test_ir(source_code: &str) -> anyhow::Result<IntermediateRepr> {
 pub fn make_test_ir_and_diagnostics(
     source_code: &str,
 ) -> anyhow::Result<(IntermediateRepr, Diagnostics)> {
-    use crate::validate;
-    use crate::ValidatedSchema;
-    use internal_baml_diagnostics::SourceFile;
     use std::path::PathBuf;
+
+    use internal_baml_diagnostics::SourceFile;
+
+    use crate::{validate, ValidatedSchema};
 
     let path: PathBuf = "fake_file.baml".into();
     let source_file: SourceFile = (path.clone(), source_code).into();
@@ -2210,19 +2429,26 @@ pub fn make_test_ir_and_diagnostics(
     Ok((ir, diagnostics))
 }
 
-/// Pull out `StreamingBehavior` from `NodeAttributes`.
-fn streaming_behavior_from_attributes(attributes: &NodeAttributes) -> StreamingBehavior {
-    fn is_some_true(maybe_value: Option<&UnresolvedValue<()>>) -> bool {
-        match maybe_value {
-            Some(Resolvable::Bool(true, _)) => true,
-            _ => false,
-        }
-    }
-    StreamingBehavior {
-        done: is_some_true(attributes.get("stream.done")),
-        state: is_some_true(attributes.get("stream.with_state")),
-        needed: is_some_true(attributes.get("stream.not_null")),
-    }
+/// Generate an IntermediateRepr from a single block of BAML source code.
+/// This is useful for generating IR test fixtures. Also return the
+/// `Diagnostics`.
+fn make_test_ir_and_diagnostics_from_dir(
+    root_dir: &std::path::Path,
+    source_code: Vec<internal_baml_diagnostics::SourceFile>,
+) -> anyhow::Result<(IntermediateRepr, Diagnostics)> {
+    use std::path::PathBuf;
+
+    use internal_baml_diagnostics::SourceFile;
+
+    use crate::{validate, ValidatedSchema};
+
+    let validated_schema: ValidatedSchema = validate(root_dir, source_code);
+    let diagnostics = validated_schema.diagnostics;
+    let ir = IntermediateRepr::from_parser_database(
+        &validated_schema.db,
+        validated_schema.configuration,
+    )?;
+    Ok((ir, diagnostics))
 }
 
 // Specialize generics.
@@ -2333,10 +2559,13 @@ pub fn initial_context(ir: &IntermediateRepr) -> HashMap<Name, Expr<ExprMetadata
             .map(|arg| arg.1.clone())
             .collect::<Vec<_>>();
         let body_type = llm_function.elem.output.clone();
-        let lambda_type = FieldType::Arrow(Box::new(Arrow {
-            param_types: params_type,
-            return_type: body_type,
-        }));
+        let lambda_type = FieldType::Arrow(
+            Box::new(ArrowGeneric {
+                param_types: params_type,
+                return_type: body_type,
+            }),
+            Default::default(),
+        );
         ctx.insert(
             llm_function.elem.name.clone(),
             Expr::LLMFunction(
@@ -2485,8 +2714,7 @@ mod tests {
         match foo.walk_fields().collect::<Vec<_>>().as_slice() {
             [field1, field2, field3] => {
                 let type1 = &field1.item.elem.r#type;
-                assert!(field1.streaming_behavior().needed);
-                assert!(type1.attributes.get("stream.not_null").is_none());
+                assert!(type1.attributes.streaming_behavior().needed);
                 let type2 = &field2.item.elem.r#type;
                 assert!(!field2.streaming_behavior().state);
                 assert!(type2.attributes.get("stream.with_state").is_some());
@@ -2531,7 +2759,7 @@ mod tests {
         let class = ir.find_class("Test").unwrap();
         let alias = class.find_field("field").unwrap();
 
-        assert_eq!(*alias.r#type(), FieldType::Primitive(TypeValue::Int));
+        assert_eq!(*alias.r#type(), FieldType::int());
     }
 
     #[test]
@@ -2552,15 +2780,7 @@ mod tests {
         let class = ir.find_class("Test").unwrap();
         let alias = class.find_field("field").unwrap();
 
-        let FieldType::WithMetadata {
-            base, constraints, ..
-        } = alias.r#type()
-        else {
-            panic!(
-                "expected resolved constrained type, found {:?}",
-                alias.r#type()
-            );
-        };
+        let type_meta::base::TypeMeta { constraints, .. } = alias.r#type().meta();
 
         assert_eq!(constraints.len(), 3);
 
@@ -2572,6 +2792,84 @@ mod tests {
 
         assert_eq!(constraints[2].level, ConstraintLevel::Check);
         assert_eq!(constraints[2].label, Some("gt_ten".to_string()));
+    }
+
+    #[test]
+    fn test_recursive_type_resolution_consistency() {
+        for _ in 0..1000 {
+            let ir = make_test_ir(
+                r##"
+                type MyUnion = Recursive1 | Nonrecursive1 | Nonrecursive2
+                type Recursive1 = int | Recursive1[]
+                type Nonrecursive1 = int | null
+                type Nonrecursive2 = (null | string) | null | (null | null)
+                type MyUnion2 = Recursive1 | Nonrecursive1 | Nonrecursive2
+                class UseMyUnion {
+                    u MyUnion
+                    u2 MyUnion2
+                }
+            "##,
+            )
+            .unwrap();
+
+            let class = ir.find_class("UseMyUnion").unwrap();
+            let field1 = class.find_field("u").unwrap();
+            let field1_type = &field1.elem().r#type.elem;
+
+            let field2 = class.find_field("u2").unwrap();
+            let field2_type = &field2.elem().r#type.elem;
+
+            // Both fields should have consistent type resolution for Recursive1
+            assert_eq!(
+                field1_type.to_string(),
+                "(Recursive1 | int | string | null)", // Union3IntOrRecursive1OrString
+                "field1 type resolution is inconsistent"
+            );
+            assert_eq!(
+                field2_type.to_string(),
+                "(Recursive1 | int | string | null)", // Union3IntOrRecursive1OrString
+                "field2 type resolution is inconsistent"
+            );
+        }
+    }
+
+    #[test]
+    fn test_recursive_type_resolution_consistency_with_different_top_level_names() {
+        for _ in 0..1000 {
+            let ir = make_test_ir(
+                r##"
+                type ZMyUnion = Recursive1 | Nonrecursive1 | Nonrecursive2
+                type Recursive1 = int | Recursive1[]
+                type Nonrecursive1 = int | null
+                type Nonrecursive2 = (null | string) | null | (null | null)
+                type MyUnion2 = Recursive1 | Nonrecursive1 | Nonrecursive2
+                class UseMyUnion {
+                    u ZMyUnion
+                    u2 MyUnion2
+                }
+            "##,
+            )
+            .unwrap();
+
+            let class = ir.find_class("UseMyUnion").unwrap();
+            let field1 = class.find_field("u").unwrap();
+            let field1_type = &field1.elem().r#type.elem;
+
+            let field2 = class.find_field("u2").unwrap();
+            let field2_type = &field2.elem().r#type.elem;
+
+            // Both fields should have consistent type resolution for Recursive1
+            assert_eq!(
+                field1_type.to_string(),
+                "(int | Recursive1[] | string | null)", // Union3IntOrRecursive1OrString
+                "field1 type resolution is inconsistent"
+            );
+            assert_eq!(
+                field2_type.to_string(),
+                "(Recursive1 | int | string | null)", // Union3IntOrRecursive1OrString
+                "field2 type resolution is inconsistent"
+            );
+        }
     }
 
     #[test]

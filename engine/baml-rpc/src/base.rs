@@ -1,9 +1,11 @@
-use serde::{Deserialize, Serialize};
-use serde::{Deserializer, Serializer};
 use std::time::Duration;
-use time::OffsetDateTime;
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use time::OffsetDateTime;
+use ts_rs::TS;
+
+#[derive(Debug, Clone, TS)]
+#[ts(export, type = "number")]
 pub struct EpochMsTimestamp(time::OffsetDateTime);
 
 impl From<time::OffsetDateTime> for EpochMsTimestamp {

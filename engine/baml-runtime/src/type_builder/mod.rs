@@ -1,7 +1,9 @@
-use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::{
+    fmt,
+    sync::{Arc, Mutex},
+};
 
-use baml_types::{BamlValue, EvaluationContext, FieldType, StreamingBehavior};
+use baml_types::{BamlValue, EvaluationContext, FieldType};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::{
     internal_baml_parser_database::ParserDatabase, ir::repr::TypeBuilderEntry,
@@ -55,7 +57,7 @@ impl<T: Meta> From<&Arc<Mutex<T>>> for PropertyAttributes {
             skip,
             meta: properties,
             constraints: Vec::new(),
-            streaming_behavior: StreamingBehavior::default(),
+            streaming_behavior: Default::default(),
         }
     }
 }
@@ -406,6 +408,12 @@ impl TypeAliasBuilder {
     }
 }
 
+impl Default for TypeAliasBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl std::fmt::Debug for TypeBuilder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Start the debug printout with the struct name
@@ -586,14 +594,14 @@ impl TypeBuilder {
     /// `type_builder.add_baml("BAML CODE")`
     pub fn add_baml(&self, baml: &str, rt: &crate::BamlRuntime) -> anyhow::Result<()> {
         use internal_baml_core::{
+            internal_baml_ast::parse_type_builder_contents_from_str,
             internal_baml_diagnostics::{Diagnostics, SourceFile},
-            internal_baml_schema_ast::parse_type_builder_contents_from_str,
             ir::repr::IntermediateRepr,
             run_validation_pipeline_on_db, validate_type_builder_entries,
         };
 
         let path = std::path::PathBuf::from("TypeBuilder::add_baml");
-        let source = SourceFile::from((path.clone().into(), baml));
+        let source = SourceFile::from((path.clone(), baml));
 
         let mut diagnostics = Diagnostics::new(path);
         diagnostics.set_source(&source);
@@ -950,7 +958,7 @@ mod tests {
   Classes: [
     Address {
       street string (alias=String("streetAddress"), description=String("Street address including number")),
-      unit int? (description=String("Apartment/unit number if applicable")),
+      unit (int | null) (description=String("Apartment/unit number if applicable")),
       tags string[] (alias=String("labels")),
       is_primary bool,
       coordinates float (skip=Bool(true))

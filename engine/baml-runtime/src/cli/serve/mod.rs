@@ -2,11 +2,8 @@ mod arg_validation;
 mod error;
 mod json_response;
 mod ping;
-use error::BamlError;
-use indexmap::IndexMap;
-use internal_baml_codegen::GeneratorArgs;
-use json_response::Json;
-use std::collections::HashMap;
+use core::pin::Pin;
+use std::{collections::HashMap, path::PathBuf, sync::Arc, task::Poll};
 
 use anyhow::{Context, Result};
 use arg_validation::BamlServeValidate;
@@ -25,14 +22,18 @@ use axum_extra::{
     TypedHeader,
 };
 use baml_types::{
-    expr::Expr, expr::ExprMetadata, BamlValue, GeneratorDefaultClientMode, GeneratorOutputType,
+    expr::{Expr, ExprMetadata},
+    BamlValue, GeneratorDefaultClientMode, GeneratorOutputType,
 };
-use core::pin::Pin;
+use error::BamlError;
 use futures::Stream;
+use generators_lib::GeneratorArgs;
+use generators_openapi::OpenApiSchema;
+use indexmap::IndexMap;
+use json_response::Json;
 use jsonish::ResponseBamlValue;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{path::PathBuf, sync::Arc, task::Poll};
 use tokio::{net::TcpListener, sync::RwLock};
 use tokio_stream::StreamExt;
 
@@ -40,7 +41,6 @@ use crate::{
     client_registry::ClientRegistry, errors::ExposedError, internal::llm_client::LLMResponse,
     BamlRuntime, FunctionResult, RuntimeContextManager,
 };
-use internal_baml_codegen::openapi::OpenApiSchema;
 
 #[derive(clap::Args, Clone, Debug)]
 pub struct ServeArgs {
@@ -330,17 +330,24 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
             Err(e) => return e.into_response(),
         };
 
-        let client_registry = b_options.clone().and_then(|options| options.client_registry);
+        let client_registry = b_options
+            .clone()
+            .and_then(|options| options.client_registry);
 
         let locked = self.b.read().await;
         let env_vars: HashMap<String, String> = b_options
             .as_ref()
-            .map_or_else(
-                || std::env::vars().collect(),
-                |options| options.env(),
-            );
+            .map_or_else(|| std::env::vars().collect(), |options| options.env());
         let (result, _trace_id) = locked
-            .call_function(b_fn, &args, &Default::default(), None, client_registry.as_ref(), None, env_vars)
+            .call_function(
+                b_fn,
+                &args,
+                &Default::default(),
+                None,
+                client_registry.as_ref(),
+                None,
+                env_vars,
+            )
             .await;
 
         match result {
@@ -419,15 +426,14 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
             Err(e) => return e.into_response(),
         };
 
-        let client_registry = b_options.clone().and_then(|options| options.client_registry);
+        let client_registry = b_options
+            .clone()
+            .and_then(|options| options.client_registry);
 
         tokio::spawn(async move {
             let env_vars: HashMap<String, String> = b_options
                 .as_ref()
-                .map_or_else(
-                    || std::env::vars().collect(),
-                    |options| options.env(),
-                );
+                .map_or_else(|| std::env::vars().collect(), |options| options.env());
 
             let result_stream = self.b.read().await.stream_function(
                 b_fn,
@@ -608,14 +614,7 @@ Tip: test that the server is up using `curl http://localhost:{}/_debug/ping`
         .map_err(|_| BamlError::InternalError {
             message: "Failed to make placeholder generator".to_string(),
         })?;
-        let schema: OpenApiSchema = (locked.inner.ir.as_ref(), &fake_generator)
-            .try_into()
-            .map_err(|e| {
-                log::warn!("Failed to generate openapi schema: {}", e);
-                BamlError::InternalError {
-                    message: "Failed to generate openapi schema".to_string(),
-                }
-            })?;
+        let schema: OpenApiSchema = OpenApiSchema::from_ir(locked.inner.ir.as_ref());
         serde_json::to_string(&schema).map_err(|e| {
             log::warn!("Failed to serialize openapi schema: {}", e);
             BamlError::InternalError {
@@ -704,9 +703,8 @@ mod tests {
     use baml_types::BamlMap;
     use internal_llm_client::{ClientProvider, OpenAIClientProviderVariant};
 
-    use crate::client_registry::ClientProperty;
-
     use super::*;
+    use crate::client_registry::ClientProperty;
 
     #[test]
     fn test_parse_baml_options() {

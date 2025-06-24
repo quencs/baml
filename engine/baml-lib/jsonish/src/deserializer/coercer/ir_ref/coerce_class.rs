@@ -1,16 +1,17 @@
 use anyhow::Result;
-use baml_types::{BamlMap, Constraint, StreamingBehavior};
+use baml_types::{BamlMap, Constraint};
 use internal_baml_core::ir::FieldType;
 use internal_baml_jinja::types::{Class, Name};
 
+use super::ParsingContext;
 use crate::deserializer::{
-    coercer::field_type::validate_asserts,
-    coercer::{array_helper, run_user_checks, DefaultValue, ParsingError, TypeCoercer},
+    coercer::{
+        array_helper, field_type::validate_asserts, run_user_checks, DefaultValue, ParsingError,
+        TypeCoercer,
+    },
     deserialize_flags::{DeserializerConditions, Flag},
     types::BamlValueWithFlags,
 };
-
-use super::ParsingContext;
 
 // Name, type, description, streaming_needed.
 type FieldValue = (Name, FieldType, Option<String>, bool);
@@ -61,7 +62,7 @@ impl TypeCoercer for Class {
         let (constraints, streaming_behavior) = ctx
             .of
             .find_class(self.name.real_name())
-            .map_or((vec![], StreamingBehavior::default()), |class| {
+            .map_or((vec![], Default::default()), |class| {
                 (class.constraints.clone(), class.streaming_behavior.clone())
             });
 
@@ -327,11 +328,13 @@ impl TypeCoercer for Class {
                                         .iter()
                                         .find(|(name, ..)| name.real_name() == k)
                                         .map(|f| f.1.clone().as_optional())
-                                        .expect(&format!(
-                                            "Field {} not found in class {}",
-                                            k,
-                                            self.name.real_name()
-                                        )),
+                                        .unwrap_or_else(|| {
+                                            panic!(
+                                                "Field {} not found in class {}",
+                                                k,
+                                                self.name.real_name()
+                                            )
+                                        }),
                                     DeserializerConditions::new().with_flag(Flag::Incomplete),
                                 ),
                             ),
@@ -342,11 +345,13 @@ impl TypeCoercer for Class {
                                         .iter()
                                         .find(|(name, ..)| name.real_name() == k)
                                         .map(|f| f.1.clone().as_optional())
-                                        .expect(&format!(
-                                            "Field {} not found in class {}",
-                                            k,
-                                            self.name.real_name()
-                                        )),
+                                        .unwrap_or_else(|| {
+                                            panic!(
+                                                "Field {} not found in class {}",
+                                                k,
+                                                self.name.real_name()
+                                            )
+                                        }),
                                     DeserializerConditions::new()
                                         .with_flag(Flag::DefaultButHadUnparseableValue(e))
                                         .with_flag(Flag::Incomplete),
@@ -396,16 +401,16 @@ pub fn apply_constraints(
     scope: Vec<String>,
     mut value: BamlValueWithFlags,
     constraints: Vec<Constraint>,
-    streaming_behavior: StreamingBehavior,
+    streaming_behavior: baml_types::type_meta::base::StreamingBehavior,
 ) -> Result<BamlValueWithFlags, ParsingError> {
     if constraints.is_empty() {
         Ok(value)
     } else {
-        let constrained_class = FieldType::WithMetadata {
-            base: Box::new(class_type.clone()),
+        let mut constrained_class = class_type.clone();
+        constrained_class.set_meta(baml_types::type_meta::base::TypeMeta {
             constraints,
             streaming_behavior,
-        };
+        });
         let constraint_results = run_user_checks(&value.clone().into(), &constrained_class)
             .map_err(|e| ParsingError {
                 reason: format!("Failed to evaluate constraints: {:?}", e),

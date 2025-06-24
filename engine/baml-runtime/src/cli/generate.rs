@@ -1,7 +1,9 @@
-use crate::{baml_src_files, BamlRuntime};
+use std::path::PathBuf;
+
 use anyhow::{Context, Result};
 use internal_baml_core::configuration::GeneratorDefaultClientMode;
-use std::path::PathBuf;
+
+use crate::{baml_src_files, BamlRuntime};
 
 #[derive(clap::Args, Debug)]
 pub struct GenerateArgs {
@@ -50,7 +52,8 @@ impl GenerateArgs {
                     // this has no meaning
                     GeneratorDefaultClientMode::Sync
                 }
-                internal_baml_core::configuration::GeneratorOutputType::PythonPydantic | internal_baml_core::configuration::GeneratorOutputType::PythonPydanticV1 => {
+                internal_baml_core::configuration::GeneratorOutputType::PythonPydantic
+                | internal_baml_core::configuration::GeneratorOutputType::PythonPydanticV1 => {
                     // TODO: Consider changing this default to sync
                     GeneratorDefaultClientMode::Async
                 }
@@ -74,7 +77,7 @@ impl GenerateArgs {
             let generate_output = runtime
                 .generate_client(
                     &client_type,
-                    &internal_baml_codegen::GeneratorArgs::new(
+                    &generators_lib::GeneratorArgs::new(
                         output_dir_relative_to_baml_src.join("baml_client"),
                         &self.from,
                         all_files.iter(),

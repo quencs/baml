@@ -1,7 +1,7 @@
-use crate::BamlValueWithFlags;
-use baml_types::LiteralValue;
+use baml_types::{type_meta::base::TypeMeta, LiteralValue};
 
 use super::*;
+use crate::BamlValueWithFlags;
 
 test_deserializer!(
     test_map,
@@ -188,7 +188,7 @@ test_deserializer!(
   }
   "#,
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::Enum("Key".to_string()), FieldType::string()),
+  FieldType::map(FieldType::r#enum("Key"), FieldType::string()),
   {"A": "one", "B": "two"}
 );
 
@@ -201,7 +201,7 @@ test_partial_deserializer_streaming!(
   }
   "#,
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::Enum("Key".to_string()), FieldType::string()),
+    FieldType::map(FieldType::r#enum("Key"), FieldType::string()),
   {"A": "one", "B": "two"}
 );
 
@@ -209,9 +209,9 @@ test_partial_deserializer_streaming!(
   test_map_with_literal_keys_streaming,
   "",
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::Union(vec![
-    FieldType::Literal(LiteralValue::String("A".to_string())),
-    FieldType::Literal(LiteralValue::String("B".to_string())),
+  FieldType::map(FieldType::union(vec![
+    FieldType::Literal(LiteralValue::String("A".to_string()), TypeMeta::default()),
+    FieldType::Literal(LiteralValue::String("B".to_string()), TypeMeta::default()),
   ]), FieldType::string()),
   {"A": "one", "B": "two"}
 );
