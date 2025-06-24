@@ -13,7 +13,6 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.MessageDigest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNamingStrategy
 import java.util.zip.ZipInputStream
 
 class BamlLanguageServerInstaller : LanguageServerInstallerBase() {
@@ -104,6 +103,7 @@ class BamlLanguageServerInstaller : LanguageServerInstallerBase() {
                 ignoreUnknownKeys = true
             }
             val release = jsonParser.decodeFromString<GitHubRelease>(jsonText)
+
             release.tagName.removePrefix("v")
         } catch (e: Exception) {
             super.progress("GitHub fetch failed, falling back to local cache...", indicator)
