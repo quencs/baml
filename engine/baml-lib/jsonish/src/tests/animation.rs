@@ -1,5 +1,5 @@
 use baml_types::{
-    type_meta::base::{StreamingBehavior, TypeMeta},
+    type_meta::nonstreaming::{StreamingBehavior, TypeMeta},
     FieldType,
 };
 use internal_baml_core::ir::repr::make_test_ir;

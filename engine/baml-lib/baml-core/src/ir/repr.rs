@@ -785,7 +785,7 @@ impl IntermediateRepr {
     }
 
     fn set_pass2_repr(&mut self) {
-        let default_streaming_behavior = type_meta::base::StreamingBehavior::default();
+        let default_streaming_behavior = type_meta::nonstreaming::StreamingBehavior::default();
         let classes_with_attributes = self
             .classes
             .iter()
@@ -1063,8 +1063,8 @@ impl NodeAttributes {
         is_some_true(self.get("skip"))
     }
 
-    pub fn streaming_behavior(&self) -> type_meta::base::StreamingBehavior {
-        type_meta::base::StreamingBehavior {
+    pub fn streaming_behavior(&self) -> type_meta::nonstreaming::StreamingBehavior {
+        type_meta::nonstreaming::StreamingBehavior {
             needed: is_some_true(self.get("stream.not_null")),
             done: is_some_true(self.get("stream.done")),
             state: is_some_true(self.get("stream.with_state")),
@@ -1332,7 +1332,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                         let mut base_class = FieldType::class(class_walker.name());
                         match class_walker.get_constraints(SubType::Class) {
                             Some(constraints) if !constraints.is_empty() => {
-                                base_class.set_meta(type_meta::base::TypeMeta {
+                                base_class.set_meta(type_meta::nonstreaming::TypeMeta {
                                     constraints,
                                     streaming_behavior: streaming_behavior.clone(),
                                 });
@@ -1345,7 +1345,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                         let mut base_type = FieldType::r#enum(enum_walker.name());
                         match enum_walker.get_constraints(SubType::Enum) {
                             Some(constraints) if !constraints.is_empty() => {
-                                base_type.set_meta(type_meta::base::TypeMeta {
+                                base_type.set_meta(type_meta::nonstreaming::TypeMeta {
                                     constraints,
                                     streaming_behavior: streaming_behavior.clone(),
                                 });
@@ -1428,7 +1428,7 @@ impl WithRepr<FieldType> for ast::FieldType {
 
         let use_metadata = has_constraints || has_special_streaming_behavior;
         let with_constraints = if use_metadata {
-            base.set_meta(type_meta::base::TypeMeta {
+            base.set_meta(type_meta::nonstreaming::TypeMeta {
                 constraints: attributes.constraints,
                 streaming_behavior: streaming_behavior.clone(),
             });
@@ -2780,7 +2780,7 @@ mod tests {
         let class = ir.find_class("Test").unwrap();
         let alias = class.find_field("field").unwrap();
 
-        let type_meta::base::TypeMeta { constraints, .. } = alias.r#type().meta();
+        let type_meta::nonstreaming::TypeMeta { constraints, .. } = alias.r#type().meta();
 
         assert_eq!(constraints.len(), 3);
 

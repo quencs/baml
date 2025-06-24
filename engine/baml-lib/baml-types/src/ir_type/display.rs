@@ -105,7 +105,7 @@ impl std::fmt::Display for TypeGeneric<type_meta::Base> {
                 " @{constraint_level}({constraint_name}, {{{{..}}}} )"
             ));
         }
-        let type_meta::base::StreamingBehavior {
+        let type_meta::nonstreaming::StreamingBehavior {
             done,
             needed,
             state,

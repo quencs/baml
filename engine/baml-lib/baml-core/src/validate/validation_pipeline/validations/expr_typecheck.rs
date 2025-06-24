@@ -4,7 +4,7 @@ use anyhow::Result;
 use baml_types::{
     expr::{Expr, ExprMetadata, VarIndex},
     ir_type::ArrowGeneric,
-    type_meta::base::TypeMeta,
+    type_meta::nonstreaming::TypeMeta,
     Arrow, BamlValueWithMeta, FieldType, TypeValue,
 };
 use internal_baml_diagnostics::{DatamodelError, Diagnostics, Span};

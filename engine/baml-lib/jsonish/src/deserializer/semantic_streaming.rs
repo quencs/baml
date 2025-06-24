@@ -341,7 +341,7 @@ fn completion_state(flags: &[Flag]) -> CompletionState {
 
 #[cfg(test)]
 mod tests {
-    use baml_types::type_meta::base::TypeMeta;
+    use baml_types::type_meta::nonstreaming::TypeMeta;
     use internal_baml_core::ir::repr::make_test_ir;
 
     use super::*;

@@ -1,4 +1,4 @@
-use baml_types::{type_meta::base::TypeMeta, LiteralValue};
+use baml_types::{type_meta::nonstreaming::TypeMeta, LiteralValue};
 
 use super::*;
 

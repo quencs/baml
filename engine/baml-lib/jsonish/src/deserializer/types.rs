@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use baml_types::ir_type::TypeGeneric;
-use baml_types::type_meta::{base::TypeMeta, stream::TypeMetaStreaming};
+use baml_types::type_meta::{ir, nonstreaming, parse, stream};
 use baml_types::{
     BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, Constraint, FieldType, JinjaExpression,
 };
@@ -16,33 +16,10 @@ use super::{
     score::WithScore,
 };
 
-/// Type Metadata useful during parsing.
-/// We store either regular TypeMeta or TypeMetaStreaming, depending on whether
-/// we are performing a final or partial parse.
-///
-/// The `ParseMeta` type is used temporarily, during parsing, before
-/// the resulting BamlValue has its original type restored.
-///
-/// Going through this monomorphic intermediare makes it easier to write jsonish
-/// deserializors without becoming too generic.
-#[derive(Clone, Debug)]
-pub struct ParseMeta {
-    meta: Either<TypeMeta, TypeMetaStreaming>,
-}
-
-impl ParseMeta {
-    pub fn constraints(&self) -> &Vec<Constraint> {
-        match &self.meta {
-            Either::Left(TypeMeta { constraints, .. }) => &constraints,
-            Either::Right(TypeMetaStreaming { constraints, .. }) => &constraints,
-        }
-    }
-}
-
 /// Representation of BAML values used during parsing.
 #[derive(Clone, Debug)]
 pub struct BamlValueWithFlags(
-    pub BamlValueWithMeta<(TypeGeneric<ParseMeta>, DeserializerConditions)>,
+    pub BamlValueWithMeta<(TypeGeneric<parse::TypeMeta>, DeserializerConditions)>,
 );
 
 // /// Representation of BAML values after parsing in final (non-streaming) mode.
@@ -63,11 +40,11 @@ impl BamlValueWithFlags {
         }
     }
 
-    pub fn r#type(&self) -> &TypeGeneric<ParseMeta> {
+    pub fn r#type(&self) -> &TypeGeneric<parse::TypeMeta> {
         &self.0.meta().0
     }
 
-    pub fn with_target(self, target: TypeGeneric<ParseMeta>) -> Self {
+    pub fn with_target(self, target: TypeGeneric<parse::TypeMeta>) -> Self {
         let mut r = self;
         r.0.meta_mut().0 = target;
         r

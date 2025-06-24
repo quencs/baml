@@ -432,7 +432,7 @@ fn first_failing_assert_nested<'a>(
 #[cfg(test)]
 mod tests {
     use baml_types::{
-        type_meta::base::{StreamingBehavior, TypeMeta},
+        type_meta::nonstreaming::{StreamingBehavior, TypeMeta},
         JinjaExpression,
     };
 

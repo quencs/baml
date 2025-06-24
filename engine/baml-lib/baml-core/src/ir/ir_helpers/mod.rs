@@ -1505,7 +1505,7 @@ mod tests {
 #[cfg(test)]
 mod subtype_tests {
     use baml_types::{
-        type_meta::base::{StreamingBehavior, TypeMeta},
+        type_meta::nonstreaming::{StreamingBehavior, TypeMeta},
         BamlMediaType,
     };
     use minijinja::machinery::ast::Expr;

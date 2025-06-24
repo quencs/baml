@@ -3,8 +3,8 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::Result;
 use baml_types::{
-    type_meta::base::StreamingBehavior, BamlValueWithMeta, EvaluationContext, JinjaExpression,
-    ResponseCheck,
+    type_meta::nonstreaming::StreamingBehavior, BamlValueWithMeta, EvaluationContext,
+    JinjaExpression, ResponseCheck,
 };
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::{

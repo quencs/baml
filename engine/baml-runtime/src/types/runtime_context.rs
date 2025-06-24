@@ -22,7 +22,7 @@ pub struct PropertyAttributes {
     pub(crate) skip: Option<bool>,
     pub(crate) meta: IndexMap<String, BamlValue>,
     pub(crate) constraints: Vec<baml_types::Constraint>,
-    pub(crate) streaming_behavior: baml_types::type_meta::base::StreamingBehavior,
+    pub(crate) streaming_behavior: baml_types::type_meta::nonstreaming::StreamingBehavior,
 }
 
 #[derive(Debug)]

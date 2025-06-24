@@ -1,7 +1,7 @@
 use baml_types::{
     baml_value::TypeLookups,
     ir_type::{Type, TypeStreaming},
-    type_meta::{base::TypeMeta, stream::TypeMetaStreaming},
+    type_meta::{nonstreaming::TypeMeta, stream::TypeMetaStreaming},
     BamlMediaType, ConstraintLevel, TypeValue,
 };
 

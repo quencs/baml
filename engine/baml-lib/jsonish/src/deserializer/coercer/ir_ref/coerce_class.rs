@@ -401,13 +401,13 @@ pub fn apply_constraints(
     scope: Vec<String>,
     mut value: BamlValueWithFlags,
     constraints: Vec<Constraint>,
-    streaming_behavior: baml_types::type_meta::base::StreamingBehavior,
+    streaming_behavior: baml_types::type_meta::nonstreaming::StreamingBehavior,
 ) -> Result<BamlValueWithFlags, ParsingError> {
     if constraints.is_empty() {
         Ok(value)
     } else {
         let mut constrained_class = class_type.clone();
-        constrained_class.set_meta(baml_types::type_meta::base::TypeMeta {
+        constrained_class.set_meta(baml_types::type_meta::nonstreaming::TypeMeta {
             constraints,
             streaming_behavior,
         });

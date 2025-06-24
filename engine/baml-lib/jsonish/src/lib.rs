@@ -7,6 +7,7 @@ pub mod deserializer;
 use std::collections::HashMap;
 pub mod jsonish;
 
+use baml_types::ir_type::{ir, nonstreaming, streaming};
 use baml_types::{
     BamlValue, BamlValueWithMeta, Completion, CompletionState, FieldType, HasFieldType,
     JinjaExpression, ResponseCheck,
@@ -193,44 +194,53 @@ fn serialize_with_meta<S: Serializer, T: Serialize>(
     }
 }
 
+pub fn from_str_streaming(
+    of: &OutputFormatContent,
+    target: &TypeGeneric<streaming::TypeMeta>,
+    raw_string: &str,
+) -> Result<BamlValueWithFlags> {
+}
+
 pub fn from_str(
     of: &OutputFormatContent,
     target: &FieldType,
     raw_string: &str,
     allow_partials: bool,
 ) -> Result<BamlValueWithFlags> {
-    if matches!(target, FieldType::Primitive(TypeValue::String, _)) {
-        return Ok(BamlValueWithFlags::String(
-            (raw_string.to_string(), target).into(),
-        ));
-    }
-
-    // When the schema is just a string, i should really just return the raw_string w/o parsing it.
-    let value = jsonish::parse(raw_string, jsonish::ParseOptions::default())?;
-
-    // Pick the schema that is the most specific.
-    log::debug!("Parsed JSONish (step 1 of parsing): {:#?}", value);
-    let ctx = ParsingContext::new(of, allow_partials);
-
-    // Determine the best way to get the desired schema from the parsed schema.
-
-    // Lets try to now coerce the value into the expected schema.
-    let parsed_value: BamlValueWithFlags = match target.coerce(&ctx, target, Some(&value)) {
-        Ok(v) => {
-            if v.conditions()
-                .flags()
-                .iter()
-                .any(|f| matches!(f, Flag::InferedObject(jsonish::Value::String(_, _))))
-            {
-                anyhow::bail!("Failed to coerce value: {:?}", v.conditions().flags());
-            }
-
-            Ok::<BamlValueWithFlags, anyhow::Error>(v)
-        }
-        Err(e) => anyhow::bail!("Failed to coerce value: {}", e),
-    }?;
-
-    Ok(parsed_value)
+    todo!()
+    //     if matches!(target, FieldType::Primitive(TypeValue::String, _)) {
+    //         return Ok(BamlValueWithFlags(BamlValueWithMeta::String(
+    //             raw_string.to_string(),
+    //             (target, DeserializerConditions::default()),
+    //         )));
+    //     }
+    //
+    //     // When the schema is just a string, i should really just return the raw_string w/o parsing it.
+    //     let value = jsonish::parse(raw_string, jsonish::ParseOptions::default())?;
+    //
+    //     // Pick the schema that is the most specific.
+    //     log::debug!("Parsed JSONish (step 1 of parsing): {:#?}", value);
+    //     let ctx = ParsingContext::new(of, allow_partials);
+    //
+    //     // Determine the best way to get the desired schema from the parsed schema.
+    //
+    //     // Lets try to now coerce the value into the expected schema.
+    //     let parsed_value: BamlValueWithFlags = match target.coerce(&ctx, target, Some(&value)) {
+    //         Ok(v) => {
+    //             if v.conditions()
+    //                 .flags()
+    //                 .iter()
+    //                 .any(|f| matches!(f, Flag::InferedObject(jsonish::Value::String(_, _))))
+    //             {
+    //                 anyhow::bail!("Failed to coerce value: {:?}", v.conditions().flags());
+    //             }
+    //
+    //             Ok::<BamlValueWithFlags, anyhow::Error>(v)
+    //         }
+    //         Err(e) => anyhow::bail!("Failed to coerce value: {}", e),
+    //     }?;
+    //
+    //     Ok(parsed_value)
 }
 
 impl ResponseBamlValue {

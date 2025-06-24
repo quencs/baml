@@ -525,7 +525,7 @@ fn partialize(r#type: &Type, lookup: &impl TypeLookups) -> TypeStreaming {
     // suitable for recursive use. We only wrap the outermost `FieldType` in
     // `StreamingType`.
     fn partialize_helper(r#type: &Type, lookup: &impl TypeLookups) -> TypeStreaming {
-        let type_meta::base::StreamingBehavior {
+        let type_meta::nonstreaming::StreamingBehavior {
             done,
             needed,
             state,
@@ -648,8 +648,8 @@ fn partialize(r#type: &Type, lookup: &impl TypeLookups) -> TypeStreaming {
     fn inherent_streaming_behavior(
         field_type: &FieldType,
         lookup: &impl TypeLookups,
-    ) -> type_meta::base::StreamingBehavior {
-        type StreamingBehavior = type_meta::base::StreamingBehavior;
+    ) -> type_meta::nonstreaming::StreamingBehavior {
+        type StreamingBehavior = type_meta::nonstreaming::StreamingBehavior;
         match field_type {
             FieldType::Primitive(type_value, _) => match type_value {
                 TypeValue::Bool | TypeValue::Float | TypeValue::Int => StreamingBehavior {
@@ -683,7 +683,7 @@ fn partialize(r#type: &Type, lookup: &impl TypeLookups) -> TypeStreaming {
 }
 
 impl TypeGeneric<type_meta::Base> {
-    pub fn streaming_behavior(&self) -> &type_meta::base::StreamingBehavior {
+    pub fn streaming_behavior(&self) -> &type_meta::nonstreaming::StreamingBehavior {
         &self.meta().streaming_behavior
     }
 
@@ -709,7 +709,7 @@ impl TypeGeneric<type_meta::Base> {
                         matches!(c.level, ConstraintLevel::Check | ConstraintLevel::Assert)
                     });
 
-                let type_meta::base::StreamingBehavior {
+                let type_meta::nonstreaming::StreamingBehavior {
                     done,
                     needed,
                     state,
@@ -976,7 +976,7 @@ mod tests {
         }
 
         let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
-        let streaming_behavior = type_meta::base::StreamingBehavior::default();
+        let streaming_behavior = type_meta::nonstreaming::StreamingBehavior::default();
 
         let cases = vec![
             TestCase {
@@ -1011,7 +1011,7 @@ mod tests {
                     vec![FieldType::int(), FieldType::float()],
                     type_meta::Base {
                         constraints: vec![],
-                        streaming_behavior: type_meta::base::StreamingBehavior {
+                        streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                             done: true,
                             ..Default::default()
                         },
@@ -1021,14 +1021,14 @@ mod tests {
                     vec![
                         FieldType::int_with_meta(type_meta::Base {
                             constraints: vec![],
-                            streaming_behavior: type_meta::base::StreamingBehavior {
+                            streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                                 done: true,
                                 ..Default::default()
                             },
                         }),
                         FieldType::float_with_meta(type_meta::Base {
                             constraints: vec![],
-                            streaming_behavior: type_meta::base::StreamingBehavior {
+                            streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                                 done: true,
                                 ..Default::default()
                             },
@@ -1036,7 +1036,7 @@ mod tests {
                     ],
                     type_meta::Base {
                         constraints: vec![],
-                        streaming_behavior: type_meta::base::StreamingBehavior {
+                        streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                             done: true,
                             ..Default::default()
                         },
@@ -1047,7 +1047,7 @@ mod tests {
                 name: "(A|B)@stream.not_null => (A@stream.not_null|B@stream.not_null)@stream.not_null",
                 input: make_union(vec![FieldType::int(), FieldType::string()], type_meta::Base {
                     constraints: vec![],
-                    streaming_behavior: type_meta::base::StreamingBehavior {
+                    streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                         needed: true,
                         ..Default::default()
                     },
@@ -1055,21 +1055,21 @@ mod tests {
                 expected: make_union(vec![
                     FieldType::int_with_meta(type_meta::Base {
                         constraints: vec![],
-                        streaming_behavior: type_meta::base::StreamingBehavior {
+                        streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                             needed: true,
                             ..Default::default()
                         },
                     }),
                     FieldType::string_with_meta(type_meta::Base {
                         constraints: vec![],
-                        streaming_behavior: type_meta::base::StreamingBehavior {
+                        streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                             needed: true,
                             ..Default::default()
                         },
                     }),
                 ], type_meta::Base {
                     constraints: vec![],
-                    streaming_behavior: type_meta::base::StreamingBehavior {
+                    streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                         needed: true,
                         ..Default::default()
                     },
@@ -1079,7 +1079,7 @@ mod tests {
                 name: "(A|B)@stream.with_state => (A|B)@stream.with_state",
                 input: make_union(vec![FieldType::int(), FieldType::string()], type_meta::Base {
                     constraints: vec![],
-                    streaming_behavior: type_meta::base::StreamingBehavior {
+                    streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
@@ -1089,7 +1089,7 @@ mod tests {
                     FieldType::string(),
                 ], type_meta::Base {
                     constraints: vec![],
-                    streaming_behavior: type_meta::base::StreamingBehavior {
+                    streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
@@ -1099,26 +1099,26 @@ mod tests {
                 name: "(A@stream_with_state | B@stream_with_state) => (A@stream_with_state | B@stream_with_state)",
                 input: make_union(vec![FieldType::int_with_meta(type_meta::Base {
                     constraints: vec![],
-                    streaming_behavior: type_meta::base::StreamingBehavior {
+                    streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
                 }), FieldType::string_with_meta(type_meta::Base {
                     constraints: vec![],
-                    streaming_behavior: type_meta::base::StreamingBehavior {
+                    streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
                 })], Default::default()),
                 expected: make_union(vec![FieldType::int_with_meta(type_meta::Base {
                     constraints: vec![],
-                    streaming_behavior: type_meta::base::StreamingBehavior {
+                    streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
                 }), FieldType::string_with_meta(type_meta::Base {
                     constraints: vec![],
-                    streaming_behavior: type_meta::base::StreamingBehavior {
+                    streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
@@ -1171,7 +1171,7 @@ mod tests {
     fn partialize_primitive_with_streaming() {
         // int@stream.with_state => stream.int | null @stream.with_state @stream.not_null
         let int = FieldType::int_with_meta(type_meta::Base {
-            streaming_behavior: type_meta::base::StreamingBehavior {
+            streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                 state: true,
                 needed: false,
                 done: false,
@@ -1202,7 +1202,7 @@ mod tests {
     #[test]
     fn parialize_primitive_needed_field_with_streaming() {
         let int = FieldType::int_with_meta(type_meta::Base {
-            streaming_behavior: type_meta::base::StreamingBehavior {
+            streaming_behavior: type_meta::nonstreaming::StreamingBehavior {
                 state: true,
                 needed: true,
                 done: false,

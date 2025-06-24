@@ -517,7 +517,7 @@ impl BamlTracer {
         ctx: &RuntimeContextManager,
         response: Option<BamlValue>,
     ) -> Result<uuid::Uuid> {
-        use baml_types::type_meta::base::TypeMeta;
+        use baml_types::type_meta::nonstreaming::TypeMeta;
 
         let guard = self.trace_stats.guard();
         let Some((call_id, event_chain, global_and_user_tags)) = ctx.exit() else {

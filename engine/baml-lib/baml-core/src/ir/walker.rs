@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use baml_types::{
-    type_meta::base::StreamingBehavior, BamlValue, EvaluationContext, UnresolvedValue,
+    type_meta::nonstreaming::StreamingBehavior, BamlValue, EvaluationContext, UnresolvedValue,
 };
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_ast::ast::WithIdentifier;

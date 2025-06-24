@@ -51,7 +51,7 @@ pub struct Class {
     pub fields: Vec<(Name, FieldType, Option<String>, bool)>,
     pub constraints: Vec<Constraint>,
     // We use this for parsing
-    pub streaming_behavior: type_meta::base::StreamingBehavior,
+    pub streaming_behavior: type_meta::nonstreaming::StreamingBehavior,
 }
 
 #[derive(Debug, Clone)]

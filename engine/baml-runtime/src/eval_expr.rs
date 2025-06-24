@@ -7,7 +7,7 @@ use std::{
 use anyhow::{anyhow, Context};
 use baml_types::{
     expr::{Builtin, Expr, ExprMetadata, Name, VarIndex},
-    type_meta::base::TypeMeta,
+    type_meta::nonstreaming::TypeMeta,
     Arrow, BamlMap, BamlValue, BamlValueWithMeta, EvaluationContext, FieldType, TypeValue,
 };
 use futures::{
