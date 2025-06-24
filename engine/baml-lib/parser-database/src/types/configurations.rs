@@ -1,17 +1,18 @@
-use baml_types::Constraint;
-use baml_types::UnresolvedValue;
-use internal_baml_diagnostics::{DatamodelError, DatamodelWarning, Span};
-use internal_baml_schema_ast::ast::{
-    Attribute, ValExpId, ValueExprBlock, WithIdentifier, WithName, WithSpan,
-};
-use regex::Regex;
 use std::{collections::HashSet, ops::Deref};
 
-use crate::attributes::constraint::attribute_as_constraint;
-use crate::{coerce, coerce_array, coerce_expression::coerce_map, context::Context};
+use baml_types::{Constraint, UnresolvedValue};
+use internal_baml_ast::ast::{
+    Attribute, ValExpId, ValueExprBlock, WithIdentifier, WithName, WithSpan,
+};
+use internal_baml_diagnostics::{DatamodelError, DatamodelWarning, Span};
+use regex::Regex;
 
 use super::{
     Attributes, ContantDelayStrategy, ExponentialBackoffStrategy, RetryPolicy, RetryPolicyStrategy,
+};
+use crate::{
+    attributes::constraint::attribute_as_constraint, coerce, coerce_array,
+    coerce_expression::coerce_map, context::Context,
 };
 
 fn dedent(s: &str) -> String {
@@ -114,7 +115,7 @@ pub(crate) fn visit_retry_policy<'db>(
 
 fn visit_strategy(
     field_span: &Span,
-    val: Vec<((&str, &Span), &internal_baml_schema_ast::ast::Expression)>,
+    val: Vec<((&str, &Span), &internal_baml_ast::ast::Expression)>,
     diagnostics: &mut internal_baml_diagnostics::Diagnostics,
 ) -> Option<RetryPolicyStrategy> {
     let mut r#type = None;

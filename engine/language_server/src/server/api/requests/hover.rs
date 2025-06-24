@@ -1,9 +1,16 @@
-use crate::server::api::traits::{RequestHandler, SyncRequestHandler};
-use crate::server::api::ResultExt;
-use crate::server::client::Requester;
-use crate::server::{client::Notifier, Result};
-use crate::{DocumentKey, Session};
 use lsp_types::{self as types, request as req, HoverParams, TextDocumentItem};
+
+use crate::{
+    server::{
+        api::{
+            traits::{RequestHandler, SyncRequestHandler},
+            ResultExt,
+        },
+        client::{Notifier, Requester},
+        Result,
+    },
+    DocumentKey, Session,
+};
 
 pub(crate) struct Hover;
 
@@ -31,7 +38,7 @@ impl SyncRequestHandler for Hover {
             .expect("Ensured that a project db exists");
 
         let document_key =
-            DocumentKey::from_url(project.lock().unwrap().root_path(), &url).internal_error()?;
+            DocumentKey::from_url(project.lock().unwrap().root_path(), url).internal_error()?;
 
         let text_document_item = match project
             .lock()

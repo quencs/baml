@@ -1,15 +1,21 @@
-use crate::baml_project::Project;
-use crate::server::api::traits::{RequestHandler, SyncRequestHandler};
-use crate::server::api::ResultExt;
-use crate::server::client::Requester;
-use crate::server::{client::Notifier, Result};
-use crate::DocumentKey;
-use crate::Session;
+use std::{collections::HashMap, path::PathBuf};
+
 use baml_lsp_types::BamlSpan;
 use baml_runtime::InternalRuntimeInterface;
 use lsp_types::{request, CodeLensParams, Command, Position, Range};
-use std::collections::HashMap;
-use std::path::PathBuf;
+
+use crate::{
+    baml_project::Project,
+    server::{
+        api::{
+            traits::{RequestHandler, SyncRequestHandler},
+            ResultExt,
+        },
+        client::{Notifier, Requester},
+        Result,
+    },
+    DocumentKey, Session,
+};
 
 pub struct CodeLens;
 
@@ -78,7 +84,7 @@ impl SyncRequestHandler for CodeLens {
 
         let mut function_lenses: Vec<lsp_types::CodeLens> = project_lock
             .list_functions()
-            .unwrap_or(vec![])
+            .unwrap_or_default()
             .iter()
             .filter(|func| doc_matches(&func.span, &project_lock))
             .map(|func| {
@@ -104,7 +110,7 @@ impl SyncRequestHandler for CodeLens {
 
         let test_case_lenses: Vec<lsp_types::CodeLens> = project_lock
             .list_testcases()
-            .unwrap_or(vec![])
+            .unwrap_or_default()
             .iter()
             .filter(|testcase| doc_matches(&testcase.span, &project_lock))
             .map(|testcase| {

@@ -5,19 +5,24 @@
 //! for a single FunctionCallId, even if multiple Collectors or FunctionLogs want it.
 //! It uses manual reference counting (`inc_ref` / `dec_ref`) to free memory for
 //! a FunctionCallId as soon as there are no more "owners."
-use baml_ids::{FunctionCallId, HttpRequestId};
-use baml_types::tracing::events::{
-    FunctionEnd, FunctionStart, HTTPRequest, HTTPResponse, LoggedLLMRequest, LoggedLLMResponse,
-    TraceData, TraceEvent,
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    hash::Hash,
+    sync::{Arc, Mutex},
 };
-use baml_types::HasFieldType;
+
+use baml_ids::{FunctionCallId, HttpRequestId};
+use baml_types::{
+    tracing::events::{
+        FunctionEnd, FunctionStart, HTTPRequest, HTTPResponse, LoggedLLMRequest, LoggedLLMResponse,
+        TraceData, TraceEvent,
+    },
+    HasFieldType,
+};
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use serde::Serialize;
-use std::collections::{HashMap, HashSet};
-use std::fmt;
-use std::hash::Hash;
-use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 use super::interface::TraceEventWithMeta;
@@ -64,9 +69,7 @@ impl TraceStorage {
         *count += 1;
 
         // Ensure call_map has an entry for the ID; create if not present.
-        self.call_map
-            .entry(function_id.clone())
-            .or_insert_with(Vec::new);
+        self.call_map.entry(function_id.clone()).or_default();
     }
 
     /// Decrease the reference count for the given FunctionCallId,
@@ -176,7 +179,7 @@ fn build_function_log(
     let guard = events; // A reference to the vector.
 
     let mut function_start: Option<&FunctionStart<_>> = None;
-    let mut function_end: Option<&FunctionEnd<_>> = None;
+    // let mut function_end: Option<&FunctionEnd<_>> = None;
 
     let mut function_start_time: Option<i64> = None;
     let mut function_end_time: Option<i64> = None;
@@ -202,7 +205,7 @@ fn build_function_log(
                 }
             }
             TraceData::FunctionEnd(end) => {
-                function_end = Some(end);
+                // function_end = Some(end);
                 function_end_time = Some(time_ms);
             }
 
