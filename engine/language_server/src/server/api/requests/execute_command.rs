@@ -67,8 +67,8 @@ impl SyncRequestHandler for ExecuteCommand {
                     }
                 }
             }
-        } else if params.command == "baml.openBamlPanel" {
-            // First (and only) argument is the JSON object you put in the lens
+        } else if params.command == "baml.changeFunction" {
+            // Logic for getting the function can be improved
             if let Some(state) = &session.playground_state {
                 if let Some(function_name) = params
                     .arguments

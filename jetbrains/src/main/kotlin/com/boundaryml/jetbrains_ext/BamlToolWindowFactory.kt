@@ -48,7 +48,7 @@ class BamlToolWindowFactory : ToolWindowFactory {
                 <!DOCTYPE html>
                 <html lang="en">
                   <head><meta charset="UTF-8"/><title>Loading…</title></head>
-                  <body><div id="root">Loading BAML applications…</div></body>
+                  <body><div id="root">Loading BAML application…</div></body>
                 </html>
                 """.trimIndent()
             )

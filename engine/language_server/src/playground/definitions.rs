@@ -32,17 +32,35 @@ pub struct PlaygroundState {
     pub tx: broadcast::Sender<String>,
     // Keep a reference to the receiver to prevent the channel from being closed
     _rx: broadcast::Receiver<String>,
+    /// Key = root_path, value = last selected function for that project
+    last_function: tokio::sync::RwLock<HashMap<String, String>>,
 }
 
 impl PlaygroundState {
     pub fn new() -> Self {
         let (tx, rx) = broadcast::channel(100);
-        Self { tx, _rx: rx }
+        Self {
+            tx,
+            _rx: rx,
+            last_function: tokio::sync::RwLock::new(HashMap::new()),
+        }
     }
 
     pub fn broadcast_update(&self, msg: String) -> anyhow::Result<()> {
         let n = self.tx.send(msg)?;
         tracing::debug!("broadcast sent to {n} receivers");
         Ok(())
+    }
+
+    pub async fn set_last_function(&self, root: String, func: String) {
+        self.last_function.write().await.insert(root, func);
+    }
+
+    pub async fn get_last_function(&self, root: &str) -> Option<String> {
+        self.last_function.read().await.get(root).cloned()
+    }
+
+    pub async fn get_all_root_paths_with_functions(&self) -> Vec<String> {
+        self.last_function.read().await.keys().cloned().collect()
     }
 }

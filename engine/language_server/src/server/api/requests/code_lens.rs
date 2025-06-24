@@ -121,7 +121,6 @@ impl SyncRequestHandler for CodeLens {
         //                                 &state,
         //                                 &root_path,
         //                                 function_name,
-        //                                 HashMap::new(), // We don't need the files map anymore
         //                             )
         //                             .await;
         //                         });

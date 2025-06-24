@@ -1,14 +1,25 @@
 package com.boundaryml.jetbrains_ext
 
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.wm.ToolWindowManager
+import com.redhat.devtools.lsp4ij.commands.LSPCommandAction
+import org.eclipse.lsp4j.ExecuteCommandParams
+import com.redhat.devtools.lsp4ij.commands.LSPCommand
+import com.intellij.openapi.actionSystem.AnActionEvent
 
+class OpenBamlPlaygroundAction : LSPCommandAction() {
 
-class OpenBamlPlaygroundAction : AnAction() {
-
-    override fun actionPerformed(e: AnActionEvent) {
+    override fun commandPerformed(command: LSPCommand, e: AnActionEvent) {
         val project = e.project ?: return
-        ToolWindowManager.getInstance(project).getToolWindow("BAML Playground")?.show()
+        val toolWindow = ToolWindowManager.getInstance(project)
+            .getToolWindow("BAML Playground")
+
+        val args: List<Any> = command.arguments
+
+        val ls = getLanguageServer(e)?.server ?: return
+        toolWindow?.show {
+            ls.workspaceService.executeCommand(
+                ExecuteCommandParams("baml.changeFunction", args)
+            )
+        }
     }
 }
