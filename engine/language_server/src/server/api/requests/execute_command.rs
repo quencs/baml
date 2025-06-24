@@ -90,6 +90,51 @@ impl SyncRequestHandler for ExecuteCommand {
                     }
                 }
             }
+        } else if params.command == "baml.runTest" {
+            // Logic for running a test
+            if let Some(state) = &session.playground_state {
+                if let Some(args) = params.arguments.first().and_then(|arg| arg.as_object()) {
+                    if let (Some(test_case_name), Some(function_name), Some(project_id)) = (
+                        args.get("testCaseName").and_then(|v| v.as_str()),
+                        args.get("functionName").and_then(|v| v.as_str()),
+                        args.get("projectId").and_then(|v| v.as_str()),
+                    ) {
+                        tracing::info!(
+                            "Broadcasting test run for: {} in function: {}",
+                            test_case_name,
+                            function_name
+                        );
+
+                        // First, set the selected function
+                        let state_clone = state.clone();
+                        let func_name = function_name.to_string();
+                        let project_path = project_id.to_string();
+                        if let Some(runtime) = &session.playground_runtime {
+                            runtime.spawn(async move {
+                                let _ = crate::playground::broadcast_function_change(
+                                    &state_clone,
+                                    &project_path,
+                                    func_name,
+                                )
+                                .await;
+                            });
+                        }
+
+                        // Then, broadcast the test run
+                        let state_clone = state.clone();
+                        let test_name = test_case_name.to_string();
+                        if let Some(runtime) = &session.playground_runtime {
+                            runtime.spawn(async move {
+                                // Wait a bit for the function change to be processed
+                                sleep(Duration::from_millis(100)).await;
+                                let _ =
+                                    crate::playground::broadcast_test_run(&state_clone, test_name)
+                                        .await;
+                            });
+                        }
+                    }
+                }
+            }
         } else {
             return Err(crate::server::api::Error {
                 code: ErrorCode::MethodNotFound,

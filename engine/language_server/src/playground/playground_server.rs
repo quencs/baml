@@ -199,3 +199,20 @@ pub async fn broadcast_function_change(
     }
     Ok(())
 }
+
+// Helper function to broadcast test runs
+pub async fn broadcast_test_run(
+    state: &Arc<RwLock<PlaygroundState>>,
+    test_name: String,
+) -> Result<()> {
+    tracing::debug!("Broadcasting test run for: {}", test_name);
+
+    // broadcast to all connected clients
+    let run_test_msg = FrontendMessage::run_test { test_name };
+
+    let msg_str = serde_json::to_string(&run_test_msg)?;
+    if let Err(e) = state.read().await.broadcast_update(msg_str) {
+        tracing::error!("Failed to broadcast test run: {}", e);
+    }
+    Ok(())
+}
