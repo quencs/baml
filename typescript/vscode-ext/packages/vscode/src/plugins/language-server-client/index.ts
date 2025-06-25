@@ -38,6 +38,8 @@ let bamlOutputChannel: OutputChannel
 // Variable to store the path of the currently executing CLI
 let currentExecutingCliPath: string | null = null
 
+let playgroundPort: number | null = null
+
 const isDebugMode = () => process.env.VSCODE_DEBUG_MODE === 'true'
 const isE2ETestOnPullRequest = () => process.env.PRISMA_USE_LOCAL_LS === 'true'
 
@@ -95,6 +97,50 @@ export const requestBamlCLIVersion = async (): Promise<string | undefined> => {
     return version as string
   } catch (e) {
     console.error('Failed to get BAML CLI version from LSP:', e)
+  }
+}
+
+export const viewFunctionInPlayground = async (args?: {
+  projectId?: string
+  functionName?: string
+  implName?: string
+  showTests?: boolean
+}): Promise<void> => {
+  if (!clientReady) {
+    console.warn('Client not ready for viewFunctionInPlayground request')
+    return
+  }
+  try {
+    console.log('Sending changeFunction command to LSP:', args)
+    await client.sendRequest('workspace/executeCommand', {
+      command: 'baml.changeFunction',
+      arguments: [args],
+    })
+  } catch (e) {
+    console.error('Failed to change function in playground:', e)
+    throw e // Re-throw to let caller handle
+  }
+}
+
+export const runTestInPlayground = async (args?: {
+  projectId?: string
+  functionName?: string
+  testCaseName?: string
+  [key: string]: any
+}): Promise<void> => {
+  if (!clientReady) {
+    console.warn('Client not ready for runTestInPlayground request')
+    return
+  }
+  try {
+    console.log('Sending runTest command to LSP:', args)
+    await client.sendRequest('workspace/executeCommand', {
+      command: 'baml.runTest',
+      arguments: [args],
+    })
+  } catch (e) {
+    console.error('Failed to run test in playground:', e)
+    throw e // Re-throw to let caller handle
   }
 }
 
@@ -164,6 +210,10 @@ const sleep = (time: number) => {
       resolve(true)
     }, time)
   })
+}
+
+export function getPlaygroundPort(): number | null {
+  return playgroundPort
 }
 
 export const registerClientEventHandlers = (client: LanguageClient, context: ExtensionContext) => {
@@ -292,6 +342,11 @@ export const registerClientEventHandlers = (client: LanguageClient, context: Ext
 
   client.onRequest('runtime_updated', handleRuntimeUpdated)
   client.onNotification('runtime_updated', handleRuntimeUpdated)
+
+  client.onNotification('baml/port', (params: { port: number }) => {
+    playgroundPort = params.port
+    console.log('Received playground port from LSP:', playgroundPort)
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   client.onNotification('baml_src_generator_version', async (payload: { version: string; root_path: string }) => {

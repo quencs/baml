@@ -61,6 +61,12 @@ pub async fn start_client_connection(
         state.tx.subscribe()
     };
 
+    // Mark client as connected
+    {
+        let mut st = state.write().await;
+        st.mark_client_connected();
+    }
+
     // Send initial project state using the helper
     send_all_projects_to_client(&mut ws_tx, &session).await;
 
@@ -70,9 +76,10 @@ pub async fn start_client_connection(
         let buffered_events = st.drain_event_buffer();
         for event in buffered_events.clone() {
             let _ = ws_tx.send(Message::text(event)).await;
+            // Add configurable delay between buffered events
+            tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
         }
         tracing::info!("Sent {} buffered events", buffered_events.len());
-        st.mark_first_client_connected();
     }
     // --- END BUFFERED EVENTS ---
 
@@ -86,11 +93,17 @@ pub async fn start_client_connection(
                         Ok(msg) => {
                             if msg.is_close() {
                                 tracing::info!("Client disconnected");
+                                // Mark client as disconnected
+                                let mut st = state.write().await;
+                                st.mark_client_disconnected();
                                 break;
                             }
                         }
                         Err(e) => {
                             tracing::error!("WebSocket error: {}", e);
+                            // Mark client as disconnected on error
+                            let mut st = state.write().await;
+                            st.mark_client_disconnected();
                             break;
                         }
                     }
@@ -99,10 +112,18 @@ pub async fn start_client_connection(
                 Ok(msg) = rx.recv() => {
                     if let Err(e) = ws_tx.send(Message::text(msg)).await {
                         tracing::error!("Failed to send broadcast message: {}", e);
+                        // Mark client as disconnected on send error
+                        let mut st = state.write().await;
+                        st.mark_client_disconnected();
                         break;
                     }
                 }
-                else => break,
+                else => {
+                    // Mark client as disconnected when loop ends
+                    let mut st = state.write().await;
+                    st.mark_client_disconnected();
+                    break;
+                }
             }
         }
     });

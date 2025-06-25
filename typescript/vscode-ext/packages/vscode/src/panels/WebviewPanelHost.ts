@@ -19,7 +19,7 @@ import {
 import { type Config, adjectives, animals, colors, uniqueNamesGenerator } from 'unique-names-generator'
 import { URI } from 'vscode-uri'
 import { getCurrentOpenedFile } from '../helpers/get-open-file'
-import { bamlConfig, requestDiagnostics } from '../plugins/language-server-client'
+import { bamlConfig, requestDiagnostics, getPlaygroundPort } from '../plugins/language-server-client'
 import TelemetryReporter from '../telemetryReporter'
 import { exec, fork } from 'child_process'
 import { promisify } from 'util'
@@ -78,8 +78,163 @@ export class WebviewPanelHost {
     // the panel or when the panel is closed programmatically)
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
 
-    // Set the HTML content for the webview panel
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri)
+    const playgroundPort = 3030
+    if (playgroundPort) {
+      // Add 3 second delay for debugging
+      setTimeout(() => {
+        // Use the same CSP approach as SimpleBrowser
+        const nonce = getNonce()
+
+        this._panel.webview.html = `<!DOCTYPE html>
+          <html>
+          <head>
+              <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+              
+              <meta http-equiv="Content-Security-Policy" content="
+                  default-src 'none';
+                  font-src data:;
+                  style-src ${this._panel.webview.cspSource} 'unsafe-inline';
+                  script-src 'nonce-${nonce}';
+                  frame-src *;
+                  ">
+              
+              <style>
+                  body, html {
+                      margin: 0;
+                      padding: 0;
+                      width: 100%;
+                      height: 100vh;
+                      overflow: hidden;
+                      background: #1e1e1e;
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  }
+                  .header {
+                      background: #252526;
+                      color: #cccccc;
+                      padding: 8px 16px;
+                      border-bottom: 1px solid #3e3e42;
+                      font-size: 12px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                  }
+                  .header-title {
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                  }
+                  .status-indicator {
+                      width: 8px;
+                      height: 8px;
+                      border-radius: 50%;
+                      background: #16c60c;
+                      animation: pulse 2s infinite;
+                  }
+                  @keyframes pulse {
+                      0% { opacity: 1; }
+                      50% { opacity: 0.5; }
+                      100% { opacity: 1; }
+                  }
+                  .iframe-container {
+                      height: calc(100vh - 33px);
+                      position: relative;
+                  }
+                  iframe {
+                      width: 100%;
+                      height: 100%;
+                      border: none;
+                      display: block;
+                  }
+                  .loading {
+                      position: absolute;
+                      top: 50%;
+                      left: 50%;
+                      transform: translate(-50%, -50%);
+                      color: #cccccc;
+                      text-align: center;
+                      transition: opacity 0.3s ease;
+                  }
+                  .hidden {
+                      opacity: 0;
+                      pointer-events: none;
+                  }
+                  .port-info {
+                      background: #3e3e42;
+                      padding: 2px 8px;
+                      border-radius: 3px;
+                      font-size: 11px;
+                      opacity: 0.8;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <div class="header-title">
+                      <div class="status-indicator"></div>
+                      <span>BAML Playground (LSP Mode)</span>
+                  </div>
+                  <div class="port-info">Port: ${playgroundPort}</div>
+              </div>
+              <div class="iframe-container">
+                  <div class="loading" id="loading">
+                      <p>Connecting to Language Server Playground...</p>
+                      <p style="font-size: 12px; opacity: 0.7;">http://localhost:${playgroundPort}</p>
+                  </div>
+                  <iframe 
+                      id="playground"
+                      sandbox="allow-scripts allow-forms allow-same-origin allow-downloads"
+                      src="http://localhost:${playgroundPort}/"
+                  ></iframe>
+              </div>
+              
+              <script nonce="${nonce}">
+                  const iframe = document.getElementById('playground');
+                  const loading = document.getElementById('loading');
+                  
+                  // Hide loading indicator when iframe loads
+                  iframe.addEventListener('load', () => {
+                      loading.classList.add('hidden');
+                  });
+                  
+                  // Handle navigation attempts (optional)
+                  iframe.addEventListener('error', () => {
+                      loading.innerHTML = '<p style="color: #f48771;">Failed to connect to LSP playground server</p><p style="font-size: 12px;">Make sure the language server is running on port ${playgroundPort}</p>';
+                      loading.classList.remove('hidden');
+                  });
+              </script>
+          </body>
+          </html>`
+      }, 3000) // 3 second delay for debugging
+
+      // Show loading message immediately
+      this._panel.webview.html = `<!DOCTYPE html>
+          <html>
+          <head>
+              <style>
+                  body {
+                      background: #1e1e1e;
+                      color: #cccccc;
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      height: 100vh;
+                      margin: 0;
+                  }
+              </style>
+          </head>
+          <body>
+              <div>
+                  <h2>🔧 LSP-Based BAML Playground</h2>
+                  <p>Starting Language Server Protocol connection...</p>
+                  <p style="font-size: 14px; opacity: 0.7;">Waiting 3 seconds for server to initialize (debug delay)</p>
+                  <p style="font-size: 12px; opacity: 0.5;">Target port: ${playgroundPort}</p>
+              </div>
+          </body>
+          </html>`
+    } else {
+      this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri)
+    }
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview)

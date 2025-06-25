@@ -4,8 +4,8 @@ import axios from 'axios'
 import glooLens from './LanguageToBamlCodeLensProvider'
 import { WebviewPanelHost, openPlaygroundConfig } from './panels/WebviewPanelHost'
 import plugins from './plugins'
-import { requestBamlCLIVersion, requestDiagnostics } from './plugins/language-server-client'
-import { telemetry } from './plugins/language-server-client'
+import { requestBamlCLIVersion, requestDiagnostics, getPlaygroundPort } from './plugins/language-server-client'
+import { telemetry, viewFunctionInPlayground, runTestInPlayground } from './plugins/language-server-client'
 import cors from 'cors'
 import { createProxyMiddleware } from 'http-proxy-middleware'
 
@@ -137,21 +137,31 @@ export function activate(context: vscode.ExtensionContext) {
 
   const bamlPlaygroundCommand = vscode.commands.registerCommand(
     'baml.openBamlPanel',
-    (args?: { projectId?: string; functionName?: string; implName?: string; showTests?: boolean }) => {
+    async (args?: { projectId?: string; functionName?: string; implName?: string; showTests?: boolean }) => {
       const config = vscode.workspace.getConfiguration()
       config.update('baml.bamlPanelOpen', true, vscode.ConfigurationTarget.Global)
-
       WebviewPanelHost.render(context.extensionUri, getPort, telemetry)
+
       if (telemetry) {
         telemetry.sendTelemetryEvent({
           event: 'baml.openBamlPanel',
           properties: {},
         })
       }
-      // sends project files as well to webview
-      requestDiagnostics()
 
       openPlaygroundConfig.lastOpenedFunction = args?.functionName ?? 'default'
+
+      // Call the LSP to change function if a function name is provided
+      if (args?.functionName) {
+        try {
+          await viewFunctionInPlayground(args)
+        } catch (error) {
+          console.error('Failed to notify LSP of function change:', error)
+          // Continue execution even if LSP notification fails
+        }
+      }
+
+      // Still send to the webview for immediate UI update
       WebviewPanelHost.currentPanel?.postMessage('select_function', {
         root_path: 'default',
         function_name: args?.functionName ?? 'default',
@@ -163,7 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const bamlTestcaseCommand = vscode.commands.registerCommand(
     'baml.runBamlTest',
-    (args?: {
+    async (args?: {
       projectId: string
       functionName?: string
       implName?: string
@@ -176,6 +186,16 @@ export function activate(context: vscode.ExtensionContext) {
           event: 'baml.runBamlTest',
           properties: {},
         })
+      }
+
+      // Call the LSP to run test if test case name is provided
+      if (args?.testCaseName && args?.functionName && args?.projectId) {
+        try {
+          await runTestInPlayground(args)
+        } catch (error) {
+          console.error('Failed to notify LSP of test run:', error)
+          // Continue execution even if LSP notification fails
+        }
       }
 
       // sends project files as well to webview
