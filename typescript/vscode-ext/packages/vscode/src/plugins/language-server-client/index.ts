@@ -313,7 +313,6 @@ export const registerClientEventHandlers = (client: LanguageClient, context: Ext
     console.log('Received baml_settings_updated from LSP:', config)
     BAML_CONFIG_SINGLETON.config = config.config
     BAML_CONFIG_SINGLETON.cliVersion = config.cliVersion
-    WebviewPanelHost.currentPanel?.postMessage('baml_settings_updated', BAML_CONFIG_SINGLETON)
   })
 
   const handleRuntimeUpdated = (params: { root_path: string; files: Record<string, string> }) => {
@@ -324,11 +323,7 @@ export const registerClientEventHandlers = (client: LanguageClient, context: Ext
         const currentFilePath = URI.parse(activeEditor.document.uri.toString()).fsPath
         const rootPathUri = URI.file(params.root_path).fsPath
         if (currentFilePath.startsWith(rootPathUri)) {
-          console.log('Forwarding runtime_updated to WebviewPanelHost')
-          WebviewPanelHost.currentPanel?.postMessage('add_project', {
-            ...params,
-            root_path: URI.file(params.root_path).toString(),
-          })
+          console.log('Runtime updated for active editor')
         } else {
           console.log('runtime_updated ignored: root path does not match active editor', currentFilePath, rootPathUri)
         }

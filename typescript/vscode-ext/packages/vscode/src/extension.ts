@@ -2,12 +2,16 @@
 import * as vscode from 'vscode'
 import axios from 'axios'
 import glooLens from './LanguageToBamlCodeLensProvider'
-import { WebviewPanelHost, openPlaygroundConfig } from './panels/WebviewPanelHost'
+import { WebviewPanelHost } from './panels/WebviewPanelHost'
 import plugins from './plugins'
 import { requestBamlCLIVersion, requestDiagnostics, getPlaygroundPort } from './plugins/language-server-client'
 import { telemetry, viewFunctionInPlayground, runTestInPlayground } from './plugins/language-server-client'
 import cors from 'cors'
 import { createProxyMiddleware } from 'http-proxy-middleware'
+import { Socket } from 'net'
+import { type Express } from 'express'
+import StatusBarPanel from './panels/StatusBarPanel'
+import TelemetryReporter from './telemetryReporter'
 
 const outputChannel = vscode.window.createOutputChannel('baml')
 const diagnosticsCollection = vscode.languages.createDiagnosticCollection('baml-diagnostics')
@@ -19,10 +23,6 @@ let glowOffDecoration: vscode.TextEditorDecorationType | null = null
 let isGlowOn: boolean = true
 let animationTimer: NodeJS.Timeout | null = null
 let highlightRanges: vscode.Range[] = []
-
-import type { Express } from 'express'
-import StatusBarPanel from './panels/StatusBarPanel'
-import { Socket } from 'net'
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('BAML extension activating')
@@ -39,9 +39,6 @@ export function activate(context: vscode.ExtensionContext) {
   app.use(cors())
   const server = app.listen(0, () => {
     console.log('Server started on port ' + getPort())
-    WebviewPanelHost.currentPanel?.postMessage('port_number', {
-      port: getPort(),
-    })
   })
 
   const getPort = () => {
@@ -149,8 +146,6 @@ export function activate(context: vscode.ExtensionContext) {
         })
       }
 
-      openPlaygroundConfig.lastOpenedFunction = args?.functionName ?? 'default'
-
       // Call the LSP to change function if a function name is provided
       if (args?.functionName) {
         try {
@@ -160,12 +155,6 @@ export function activate(context: vscode.ExtensionContext) {
           // Continue execution even if LSP notification fails
         }
       }
-
-      // Still send to the webview for immediate UI update
-      WebviewPanelHost.currentPanel?.postMessage('select_function', {
-        root_path: 'default',
-        function_name: args?.functionName ?? 'default',
-      })
 
       console.info('Opening BAML panel')
     },
@@ -200,16 +189,6 @@ export function activate(context: vscode.ExtensionContext) {
 
       // sends project files as well to webview
       requestDiagnostics()
-
-      openPlaygroundConfig.lastOpenedFunction = args?.functionName ?? 'default'
-      WebviewPanelHost.currentPanel?.postMessage('select_function', {
-        root_path: 'default',
-        function_name: args?.functionName ?? 'default',
-      })
-
-      WebviewPanelHost.currentPanel?.postMessage('run_test', {
-        test_name: args?.testCaseName ?? 'default',
-      })
 
       console.info('Opening BAML panel')
     },
@@ -286,14 +265,7 @@ export function activate(context: vscode.ExtensionContext) {
         const text = editor.document.getText()
 
         // TODO: buggy when used with multiple functions, needs a fix.
-        WebviewPanelHost.currentPanel?.postMessage('update_cursor', {
-          cursor: {
-            fileName: name,
-            fileText: text,
-            line: position.line + 1,
-            column: position.character,
-          },
-        })
+        // Cursor position tracking removed since we're using iframe approach
       }
     }
   })
