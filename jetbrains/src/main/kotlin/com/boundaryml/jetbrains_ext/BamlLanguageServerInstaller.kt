@@ -162,7 +162,14 @@ class BamlLanguageServerInstaller : LanguageServerInstallerBase() {
                     TarArchiveInputStream(gzipIn).use { tarIn ->
                         var entry: TarArchiveEntry? = tarIn.nextTarEntry
                         while (entry != null) {
-                            val outPath = destDir.resolve(entry.name)
+                            val sanitizedName = sanitizePath(entry.name)
+                            val outPath = destDir.resolve(sanitizedName)
+                            
+                            // Ensure the resolved path is within the destination directory
+                            if (!outPath.startsWith(destDir)) {
+                                throw SecurityException("Archive entry path would escape destination directory: ${entry.name}")
+                            }
+                            
                             if (entry.isDirectory) {
                                 Files.createDirectories(outPath)
                             } else {
@@ -178,7 +185,14 @@ class BamlLanguageServerInstaller : LanguageServerInstallerBase() {
             ZipInputStream(Files.newInputStream(archivePath)).use { zipIn ->
                 var entry = zipIn.nextEntry
                 while (entry != null) {
-                    val outPath = destDir.resolve(entry.name)
+                    val sanitizedName = sanitizePath(entry.name)
+                    val outPath = destDir.resolve(sanitizedName)
+                    
+                    // Ensure the resolved path is within the destination directory
+                    if (!outPath.startsWith(destDir)) {
+                        throw SecurityException("Archive entry path would escape destination directory: ${entry.name}")
+                    }
+                    
                     if (entry.isDirectory) {
                         Files.createDirectories(outPath)
                     } else {
@@ -191,6 +205,11 @@ class BamlLanguageServerInstaller : LanguageServerInstallerBase() {
         } else {
             throw IllegalArgumentException("Unsupported archive extension: $extension")
         }
+    }
+
+    private fun sanitizePath(path: String): String {
+        // Normalize the path and remove any ".." components
+        return Path.of(path).normalize().toString().replace("..", "")
     }
 
     private fun setExecutable(file: Path) {
