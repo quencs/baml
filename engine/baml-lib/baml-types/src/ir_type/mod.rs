@@ -974,171 +974,134 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn simplify_union_constraints_convertered() {
-    //     struct TestCase {
-    //         name: &'static str,
-    //         input: TypeIR,
-    //         expected: TypeNonStreaming,
-    //     }
+    #[test]
+    fn simplify_union_constraints_convertered() {
+        struct TestCase {
+            name: &'static str,
+            input: TypeIR,
+            expected: TypeNonStreaming,
+        }
 
-    //     let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
-    //     let streaming_behavior = type_meta::base::StreamingBehavior::default();
+        let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
 
-    //     let cases = vec![
-    //         TestCase {
-    //             name: "(A|B)(@check(A, {..})) => (A@check(A, {..})|B@check(B, {..}))",
-    //             input: make_union(
-    //                 vec![TypeIR::int(), TypeIR::float()],
-    //                 type_meta::NonStreaming {
-    //                     constraints: vec![constraint.clone()],
-    //                 },
-    //             ),
-    //             expected: make_union(
-    //                 vec![
-    //                     TypeIR::int_with_meta(type_meta::NonStreaming {
-    //                         constraints: vec![constraint.clone()],
-    //                     }),
-    //                     TypeIR::float_with_meta(type_meta::NonStreaming {
-    //                         constraints: vec![constraint.clone()],
-    //                     }),
-    //                 ],
-    //                 type_meta::IR {
-    //                     constraints: vec![],
-    //                     streaming_behavior: Default::default(),
-    //                 },
-    //             ),
-    //         },
-    //         TestCase {
-    //             name: "(A|B)@stream.done => (A@stream.done|B@stream.done)@stream.done",
-    //             input: make_union(
-    //                 vec![TypeIR::int(), TypeIR::float()],
-    //                 type_meta::IR {
-    //                     constraints: vec![],
-    //                     streaming_behavior: type_meta::base::StreamingBehavior {
-    //                         done: true,
-    //                         ..Default::default()
-    //                     },
-    //                 },
-    //             ),
-    //             expected: make_union(
-    //                 vec![
-    //                     TypeIR::int_with_meta(type_meta::IR {
-    //                         constraints: vec![],
-    //                         streaming_behavior: type_meta::base::StreamingBehavior {
-    //                             done: true,
-    //                             ..Default::default()
-    //                         },
-    //                     }),
-    //                     TypeIR::float_with_meta(type_meta::IR {
-    //                         constraints: vec![],
-    //                         streaming_behavior: type_meta::base::StreamingBehavior {
-    //                             done: true,
-    //                             ..Default::default()
-    //                         },
-    //                     }),
-    //                 ],
-    //                 type_meta::IR {
-    //                     constraints: vec![],
-    //                     streaming_behavior: type_meta::base::StreamingBehavior {
-    //                         done: true,
-    //                         ..Default::default()
-    //                     },
-    //                 },
-    //             ),
-    //         },
-    //         TestCase {
-    //             name: "(A|B)@stream.not_null => (A@stream.not_null|B@stream.not_null)@stream.not_null",
-    //             input: make_union(vec![TypeIR::int(), TypeIR::string()], type_meta::IR {
-    //                 constraints: vec![],
-    //                 streaming_behavior: type_meta::base::StreamingBehavior {
-    //                     needed: true,
-    //                     ..Default::default()
-    //                 },
-    //             }),
-    //             expected: make_union(vec![
-    //                 TypeIR::int_with_meta(type_meta::IR {
-    //                     constraints: vec![],
-    //                     streaming_behavior: type_meta::base::StreamingBehavior {
-    //                         needed: true,
-    //                         ..Default::default()
-    //                     },
-    //                 }),
-    //                 TypeIR::string_with_meta(type_meta::IR {
-    //                     constraints: vec![],
-    //                     streaming_behavior: type_meta::base::StreamingBehavior {
-    //                         needed: true,
-    //                         ..Default::default()
-    //                     },
-    //                 }),
-    //             ], type_meta::IR {
-    //                 constraints: vec![],
-    //                 streaming_behavior: type_meta::base::StreamingBehavior {
-    //                     needed: true,
-    //                     ..Default::default()
-    //                 },
-    //             }),
-    //         },
-    //         TestCase {
-    //             name: "(A|B)@stream.with_state => (A|B)@stream.with_state",
-    //             input: make_union(vec![TypeIR::int(), TypeIR::string()], type_meta::IR {
-    //                 constraints: vec![],
-    //                 streaming_behavior: type_meta::base::StreamingBehavior {
-    //                     state: true,
-    //                     ..Default::default()
-    //                 },
-    //             }),
-    //             expected: make_union(vec![
-    //                 TypeIR::int(),
-    //                 TypeIR::string(),
-    //             ], type_meta::IR {
-    //                 constraints: vec![],
-    //                 streaming_behavior: type_meta::base::StreamingBehavior {
-    //                     state: true,
-    //                     ..Default::default()
-    //                 },
-    //             }),
-    //         },
-    //         TestCase{
-    //             name: "(A@stream_with_state | B@stream_with_state) => (A@stream_with_state | B@stream_with_state)",
-    //             input: make_union(vec![TypeIR::int_with_meta(type_meta::IR {
-    //                 constraints: vec![],
-    //                 streaming_behavior: type_meta::base::StreamingBehavior {
-    //                     state: true,
-    //                     ..Default::default()
-    //                 },
-    //             }), TypeIR::string_with_meta(type_meta::IR {
-    //                 constraints: vec![],
-    //                 streaming_behavior: type_meta::base::StreamingBehavior {
-    //                     state: true,
-    //                     ..Default::default()
-    //                 },
-    //             })], Default::default()),
-    //             expected: make_union(vec![TypeIR::int_with_meta(type_meta::IR {
-    //                 constraints: vec![],
-    //                 streaming_behavior: type_meta::base::StreamingBehavior {
-    //                     state: true,
-    //                     ..Default::default()
-    //                 },
-    //             }), TypeIR::string_with_meta(type_meta::IR {
-    //                 constraints: vec![],
-    //                 streaming_behavior: type_meta::base::StreamingBehavior {
-    //                     state: true,
-    //                     ..Default::default()
-    //                 },
-    //             })], Default::default())
-    //         },
-    //     ];
+        let cases = vec![
+            TestCase {
+                name: "(A|B)(@check(A, {..})) => (A@check(A, {..})|B@check(B, {..}))",
+                input: make_union(
+                    vec![TypeIR::int(), TypeIR::float()],
+                    type_meta::IR {
+                        constraints: vec![constraint.clone()],
+                        streaming_behavior: Default::default(),
+                    },
+                ),
+                expected: make_union(
+                    vec![
+                        TypeNonStreaming::int_with_meta(type_meta::NonStreaming {
+                            constraints: vec![constraint.clone()],
+                        }),
+                        TypeNonStreaming::float_with_meta(type_meta::NonStreaming {
+                            constraints: vec![constraint.clone()],
+                        }),
+                    ],
+                    type_meta::NonStreaming {
+                        constraints: vec![],
+                    },
+                ),
+            },
+            TestCase {
+                name: "(A|B)@stream.done => (A@stream.done|B@stream.done)@stream.done",
+                input: make_union(
+                    vec![TypeIR::int(), TypeIR::float()],
+                    type_meta::IR {
+                        constraints: vec![],
+                        streaming_behavior: type_meta::base::StreamingBehavior {
+                            done: true,
+                            ..Default::default()
+                        },
+                    },
+                ),
+                expected: make_union(
+                    vec![
+                        TypeNonStreaming::int_with_meta(type_meta::NonStreaming {
+                            constraints: vec![],
+                        }),
+                        TypeNonStreaming::float_with_meta(type_meta::NonStreaming {
+                            constraints: vec![],
+                        }),
+                    ],
+                    type_meta::NonStreaming {
+                        constraints: vec![],
+                    },
+                ),
+            },
+            TestCase {
+                name: "(A|B)@stream.not_null => (A@stream.not_null|B@stream.not_null)@stream.not_null",
+                input: make_union(vec![TypeIR::int(), TypeIR::string()], type_meta::IR {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        needed: true,
+                        ..Default::default()
+                    },
+                }),
+                expected: make_union(vec![
+                    TypeNonStreaming::int_with_meta(type_meta::NonStreaming {
+                        constraints: vec![],
+                    }),
+                    TypeNonStreaming::string_with_meta(type_meta::NonStreaming {
+                        constraints: vec![],
+                    }),
+                ], type_meta::NonStreaming {
+                    constraints: vec![],
+                }),
+            },
+            TestCase {
+                name: "(A|B)@stream.with_state => (A|B)@stream.with_state",
+                input: make_union(vec![TypeIR::int(), TypeIR::string()], type_meta::IR {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                }),
+                expected: make_union(vec![
+                    TypeNonStreaming::int(),
+                    TypeNonStreaming::string(),
+                ], type_meta::NonStreaming {
+                    constraints: vec![],
+                }),
+            },
+            TestCase{
+                name: "(A@stream_with_state | B@stream_with_state) => (A@stream_with_state | B@stream_with_state)",
+                input: make_union(vec![TypeIR::int_with_meta(type_meta::IR {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                }), TypeIR::string_with_meta(type_meta::IR {
+                    constraints: vec![],
+                    streaming_behavior: type_meta::base::StreamingBehavior {
+                        state: true,
+                        ..Default::default()
+                    },
+                })], Default::default()),
+                expected: make_union(vec![TypeNonStreaming::int_with_meta(type_meta::NonStreaming {
+                    constraints: vec![],
+                }), TypeNonStreaming::string_with_meta(type_meta::NonStreaming {
+                    constraints: vec![],
+                })], Default::default())
+            },
+        ];
 
-    //     for case in cases {
-    //         let actual = case.input.simplify();
-    //         assert_eq!(
-    //             actual, case.expected,
-    //             "\n\nFailed test: {}\nInput: {}\nActual: {}\nExpected: {}\n",
-    //             case.name, case.input, actual, case.expected
-    //         );
-    //     }
-    // }
+        for case in cases {
+            let actual = converters::non_streaming::from_type_ir(&case.input, &TestLookup);
+            assert_eq!(
+                actual, case.expected,
+                "\n\nFailed test: {}\nInput: {}\nActual: {:?}\nExpected: {:?}\n",
+                case.name, case.input, actual, case.expected
+            );
+        }
+    }
 
     #[test]
     fn flatten_base_case() {
