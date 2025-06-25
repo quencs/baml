@@ -346,6 +346,14 @@ export const registerClientEventHandlers = (client: LanguageClient, context: Ext
   client.onNotification('baml/port', (params: { port: number }) => {
     playgroundPort = params.port
     console.log('Received playground port from LSP:', playgroundPort)
+
+    // Update the webview panel if it exists
+    if (WebviewPanelHost.currentPanel) {
+      console.log('Updating existing webview panel with port:', playgroundPort)
+      WebviewPanelHost.currentPanel.updatePlaygroundPort(playgroundPort)
+    } else {
+      console.log('No webview panel exists yet, port will be used when panel is created')
+    }
   })
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
