@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use baml_types::{
     baml_value::TypeLookups,
     expr::{self, Builtin, Expr, ExprMetadata, Name, VarIndex},
-    ir_type::ArrowGeneric,
+    ir_type::{ArrowGeneric, TypeNonStreaming, TypeStreaming},
     type_meta, Arrow, BamlMap, BamlValueWithMeta, Constraint, ConstraintLevel, JinjaExpression,
     Resolvable, StringOr, TypeIR, TypeValue, UnionType, UnresolvedValue,
 };
@@ -602,7 +602,7 @@ impl IntermediateRepr {
         self.functions.iter().map(|e| Walker { ir: self, item: e })
     }
 
-    pub fn walk_all_unions(&self) -> impl Iterator<Item = &TypeIR> {
+    pub fn walk_all_non_streaming_unions(&self) -> impl Iterator<Item = TypeNonStreaming> {
         // finding types used in classes
         let class_fields = self
             .classes
@@ -624,10 +624,52 @@ impl IntermediateRepr {
         let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
 
         // also then flatten the types so any inner types are also included
-        fn is_union(t: &TypeIR) -> bool {
-            matches!(t, TypeIR::Union(..))
+        fn is_union(t: &TypeNonStreaming) -> bool {
+            matches!(t, TypeNonStreaming::Union(..))
         }
-        all_types.flat_map(|t| t.find_if(&is_union))
+
+        let mut res = vec![];
+        all_types.for_each(|t| {
+            let found = t.to_non_streaming_type(self);
+            res.extend(found.find_if(&is_union).into_iter().cloned());
+        });
+
+        res.into_iter()
+    }
+
+    pub fn walk_all_streaming_unions(&self) -> impl Iterator<Item = TypeStreaming> {
+        // finding types used in classes
+        let class_fields = self
+            .classes
+            .iter()
+            .flat_map(|c| c.elem.static_fields.iter().map(|f| &f.elem.r#type.elem));
+
+        // finding types used in type aliases
+        let type_alias_fields = self.type_aliases.iter().map(|c| &c.elem.r#type.elem);
+
+        // finding types used in functions
+        let function_fields = self.functions.iter().flat_map(|f| {
+            f.elem
+                .inputs
+                .iter()
+                .map(|(_, t)| t)
+                .chain(std::iter::once(&f.elem.output))
+        });
+
+        let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
+
+        // also then flatten the types so any inner types are also included
+        fn is_union(t: &TypeStreaming) -> bool {
+            matches!(t, TypeStreaming::Union(..))
+        }
+
+        let mut res = vec![];
+        all_types.for_each(|t| {
+            let found = t.to_streaming_type(self);
+            res.extend(found.find_if(&is_union).into_iter().cloned());
+        });
+
+        res.into_iter()
     }
 
     // TODO: This is a quick workaround in order to make expr_fns compatible

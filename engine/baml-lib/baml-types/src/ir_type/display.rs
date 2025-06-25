@@ -1,4 +1,4 @@
-use super::{type_meta, ConstraintLevel, TypeGeneric, TypeStreaming};
+use super::{type_meta, ConstraintLevel, TypeGeneric, TypeNonStreaming, TypeStreaming};
 use crate::ir_type::UnionTypeViewGeneric;
 
 impl std::fmt::Display for TypeStreaming {
@@ -71,6 +71,84 @@ impl std::fmt::Display for TypeStreaming {
             TypeStreaming::Map(k, v, _) => write!(f, "map<{k}, {v}>"),
             TypeStreaming::List(t, _) => write!(f, "{t}[]"),
             TypeStreaming::Arrow(arrow, _) => write!(
+                f,
+                "({}) -> {}",
+                arrow
+                    .param_types
+                    .iter()
+                    .map(|t| t.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                arrow.return_type
+            ),
+        }?;
+
+        write!(f, "{}", metadata_display_fmt)
+    }
+}
+
+impl std::fmt::Display for TypeNonStreaming {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut metadata_display_fmt = String::new();
+
+        for constraint in &self.meta().constraints {
+            // " @check( the_name, {{..}} )"
+            let constraint_level = match constraint.level {
+                ConstraintLevel::Assert => "assert",
+                ConstraintLevel::Check => "check",
+            };
+            let constraint_name = match &constraint.label {
+                None => "".to_string(),
+                Some(label) => format!("{}, ", label),
+            };
+            metadata_display_fmt.push_str(&format!(
+                " @{constraint_level}({constraint_name}, {{{{..}}}} )"
+            ));
+        }
+
+        match self {
+            TypeNonStreaming::Enum { name, .. }
+            | TypeNonStreaming::Class { name, .. }
+            | TypeNonStreaming::RecursiveTypeAlias { name, .. } => write!(f, "{name}"),
+            TypeNonStreaming::Primitive(t, _) => write!(f, "{t}"),
+            TypeNonStreaming::Literal(v, _) => write!(f, "{v}"),
+            TypeNonStreaming::Union(choices, _) => {
+                let view = choices.view();
+                let res = match view {
+                    UnionTypeViewGeneric::Null => "null".to_string(),
+                    UnionTypeViewGeneric::Optional(field_type) => {
+                        format!("{} | null", field_type)
+                    }
+                    UnionTypeViewGeneric::OneOf(field_types) => field_types
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" | "),
+                    UnionTypeViewGeneric::OneOfOptional(field_types) => {
+                        let not_null_choices_str = field_types
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(" | ");
+                        format!("{} | null", not_null_choices_str)
+                    }
+                };
+                write!(f, "({res})")
+            }
+            TypeNonStreaming::Tuple(choices, _) => {
+                write!(
+                    f,
+                    "({})",
+                    choices
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            TypeNonStreaming::Map(k, v, _) => write!(f, "map<{k}, {v}>"),
+            TypeNonStreaming::List(t, _) => write!(f, "{t}[]"),
+            TypeNonStreaming::Arrow(arrow, _) => write!(
                 f,
                 "({}) -> {}",
                 arrow

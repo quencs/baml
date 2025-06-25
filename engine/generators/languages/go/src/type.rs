@@ -185,7 +185,11 @@ impl TypeGo {
                 match lookup.expand_recursive_type(name) {
                     Ok(expansion) => {
                         if package == &Package::types() {
-                            crate::ir_to_go::type_to_go(expansion, lookup).zero_value(pkg)
+                            crate::ir_to_go::type_to_go(
+                                &expansion.to_non_streaming_type(lookup),
+                                lookup,
+                            )
+                            .zero_value(pkg)
                         } else {
                             crate::ir_to_go::stream_type_to_go(
                                 &expansion.to_streaming_type(lookup),

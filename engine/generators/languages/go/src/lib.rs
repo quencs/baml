@@ -76,8 +76,8 @@ impl LanguageFeatures for GoLanguageFeatures {
             .collect::<Vec<_>>();
         let unions = {
             let mut unions = ir
-                .walk_all_unions()
-                .filter_map(|t| ir_to_go::unions::ir_union_to_go(t, &pkg))
+                .walk_all_non_streaming_unions()
+                .filter_map(|t| ir_to_go::unions::ir_union_to_go(&t, &pkg))
                 .collect::<Vec<_>>();
             // dedup by name!
             unions.sort_by_key(|u| u.name.clone());
@@ -108,8 +108,8 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         let unions = {
             let mut unions = ir
-                .walk_all_unions()
-                .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(t, &pkg))
+                .walk_all_streaming_unions()
+                .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(&t, &pkg))
                 .collect::<Vec<_>>();
             // dedup by name!
             unions.sort_by_key(|u| u.name.clone());

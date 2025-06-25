@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use baml_types::{
-    ir_type::{TypeIR, TypeValue, UnionTypeViewGeneric},
+    ir_type::{TypeNonStreaming, TypeValue, UnionTypeViewGeneric},
     BamlMediaType, Constraint, ConstraintLevel, LiteralValue,
 };
 use indexmap::{IndexMap, IndexSet};
@@ -137,9 +137,9 @@ impl TypeOpenApi {
     }
 }
 
-pub fn convert_ir_type(ir: &IntermediateRepr, ty: &TypeIR) -> TypeOpenApi {
+pub fn convert_ir_type(ir: &IntermediateRepr, ty: &TypeNonStreaming) -> TypeOpenApi {
     let meta_enum: Option<Vec<String>> = match ty {
-        TypeIR::Enum { name, .. } => ir.find_enum(name).ok().map(|e| {
+        TypeNonStreaming::Enum { name, .. } => ir.find_enum(name).ok().map(|e| {
             e.item
                 .elem
                 .values
@@ -149,11 +149,6 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &TypeIR) -> TypeOpenApi {
         }),
         _ => None,
     };
-    let meta_enum = None;
-    // let meta_const = match ty {
-    //     TypeIR::Literal(literal, _) => Some(literal.to_string()),
-    //     _ => None,
-    // };
     let meta_const = None;
     let meta = OpenApiMeta {
         nullable: ty.is_optional(),
@@ -163,7 +158,7 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &TypeIR) -> TypeOpenApi {
     };
     let meta_copy = meta.clone();
     let base_rep = match ty {
-        TypeIR::Primitive(inner, _) => match inner {
+        TypeNonStreaming::Primitive(inner, _) => match inner {
             TypeValue::String => TypeOpenApi::Inline {
                 r#type: TypePrimitive::String,
                 meta: meta_copy,
@@ -195,21 +190,21 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &TypeIR) -> TypeOpenApi {
                 }
             }
         },
-        TypeIR::Class { name, .. } => TypeOpenApi::Ref {
+        TypeNonStreaming::Class { name, .. } => TypeOpenApi::Ref {
             r#ref: format!("#/components/schemas/{}", name),
             meta: meta_copy,
         },
-        TypeIR::List(inner, _) => TypeOpenApi::Inline {
+        TypeNonStreaming::List(inner, _) => TypeOpenApi::Inline {
             r#type: TypePrimitive::Array {
                 items: Box::new(convert_ir_type(ir, inner)),
             },
             meta: meta_copy,
         },
-        TypeIR::Enum { name, .. } => TypeOpenApi::Ref {
+        TypeNonStreaming::Enum { name, .. } => TypeOpenApi::Ref {
             r#ref: format!("#/components/schemas/{}", name),
             meta: meta_copy,
         },
-        TypeIR::Literal(literal, _) => TypeOpenApi::Inline {
+        TypeNonStreaming::Literal(literal, _) => TypeOpenApi::Inline {
             r#type: match literal {
                 LiteralValue::String(_) => TypePrimitive::String,
                 LiteralValue::Int(_) => TypePrimitive::Integer,
@@ -217,8 +212,8 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &TypeIR) -> TypeOpenApi {
             },
             meta: meta_copy,
         },
-        TypeIR::Arrow(_, _) => panic!("Arrow types are not supported in code generation"),
-        TypeIR::Union(inner, _) => match inner.view() {
+        TypeNonStreaming::Arrow(_, _) => panic!("Arrow types are not supported in code generation"),
+        TypeNonStreaming::Union(inner, _) => match inner.view() {
             UnionTypeViewGeneric::Null => TypeOpenApi::Inline {
                 r#type: TypePrimitive::Null,
                 meta: meta_copy,
@@ -236,7 +231,7 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &TypeIR) -> TypeOpenApi {
                 }
             }
         },
-        TypeIR::Map(_key_type, value_type, _) => TypeOpenApi::Inline {
+        TypeNonStreaming::Map(_key_type, value_type, _) => TypeOpenApi::Inline {
             r#type: TypePrimitive::Object {
                 properties: IndexMap::new(),
                 required: IndexSet::new(),
@@ -246,8 +241,8 @@ pub fn convert_ir_type(ir: &IntermediateRepr, ty: &TypeIR) -> TypeOpenApi {
             },
             meta: meta_copy,
         },
-        TypeIR::Tuple(..) => panic!("Tuple types are not supported in code generation"),
-        TypeIR::RecursiveTypeAlias { .. } => TypeOpenApi::AnyValue {
+        TypeNonStreaming::Tuple(..) => panic!("Tuple types are not supported in code generation"),
+        TypeNonStreaming::RecursiveTypeAlias { .. } => TypeOpenApi::AnyValue {
             any_value: IndexMap::new(),
             meta: meta_copy,
         },

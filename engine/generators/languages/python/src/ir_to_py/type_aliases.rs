@@ -8,7 +8,10 @@ pub fn ir_type_alias_to_py<'a>(
 ) -> TypeAliasPy<'a> {
     TypeAliasPy {
         name: alias.elem.name.clone(),
-        type_: ir_to_py::type_to_py(&alias.elem.r#type.elem, pkg.lookup()),
+        type_: ir_to_py::type_to_py(
+            &alias.elem.r#type.elem.to_non_streaming_type(pkg.lookup()),
+            pkg.lookup(),
+        ),
         docstring: alias
             .elem
             .docstring

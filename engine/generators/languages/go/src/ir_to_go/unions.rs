@@ -1,14 +1,17 @@
-use baml_types::{ir_type::TypeStreaming, ToUnionName, TypeIR};
+use baml_types::{
+    ir_type::{TypeNonStreaming, TypeStreaming},
+    ToUnionName,
+};
 
 use crate::{package::CurrentRenderPackage, r#type::TypeGo};
 
 pub fn ir_union_to_go<'a>(
-    union: &TypeIR,
+    union: &TypeNonStreaming,
     pkg: &'a CurrentRenderPackage,
 ) -> Option<crate::generated_types::UnionGo<'a>> {
     let go_type = crate::ir_to_go::type_to_go(union, pkg.lookup());
     if let TypeGo::Union { name, .. } = go_type {
-        let TypeIR::Union(union_type_generic, _) = union else {
+        let TypeNonStreaming::Union(union_type_generic, _) = union else {
             panic!("ir_union_to_go expects a union. Got: {}", union);
         };
         let variants = union_type_generic
@@ -36,10 +39,9 @@ pub fn ir_union_to_go<'a>(
 }
 
 pub fn ir_union_to_go_stream<'a>(
-    union: &TypeIR,
+    stream_union: &TypeStreaming,
     pkg: &'a CurrentRenderPackage,
 ) -> Option<crate::generated_types::UnionGo<'a>> {
-    let stream_union = union.to_streaming_type(pkg.lookup());
     let go_type = crate::ir_to_go::stream_type_to_go(&stream_union, pkg.lookup());
     if let TypeGo::Union { name, .. } = go_type {
         let TypeStreaming::Union(union_type_generic, _) = stream_union else {
@@ -60,8 +62,8 @@ pub fn ir_union_to_go_stream<'a>(
         Some(crate::generated_types::UnionGo {
             name,
             // TODO: switch to stream_union.to_union_name()
-            cffi_name: union.to_union_name(),
-            docstring: Some(format!("Generated from: {}", union)),
+            cffi_name: stream_union.to_union_name(),
+            docstring: Some(format!("Generated from: {}", stream_union)),
             variants,
             pkg,
         })

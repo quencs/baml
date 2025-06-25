@@ -18,7 +18,10 @@ pub fn ir_function_to_rb(function: &FunctionNode, pkg: &CurrentRenderPackage) ->
                 .iter()
                 .map(|(name, field_type)| FunctionArgRb {
                     name: name.clone(),
-                    type_: type_to_rb(field_type, pkg.lookup()),
+                    type_: type_to_rb(
+                        &field_type.to_non_streaming_type(pkg.lookup()),
+                        pkg.lookup(),
+                    ),
                     default_value: None,
                 })
                 .collect::<Vec<_>>();
@@ -33,7 +36,10 @@ pub fn ir_function_to_rb(function: &FunctionNode, pkg: &CurrentRenderPackage) ->
                 });
             args
         },
-        return_type: type_to_rb(function.elem.output(), pkg.lookup()),
+        return_type: type_to_rb(
+            &function.elem.output().to_non_streaming_type(pkg.lookup()),
+            pkg.lookup(),
+        ),
         stream_return_type: stream_type_to_rb(
             &function.elem.output().to_streaming_type(pkg.lookup()),
             pkg.lookup(),

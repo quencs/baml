@@ -8,7 +8,10 @@ pub fn ir_type_alias_to_ts<'a>(
 ) -> TypeAliasTS<'a> {
     TypeAliasTS {
         name: alias.elem.name.clone(),
-        target_type: ir_to_ts::type_to_ts(&alias.elem.r#type.elem, pkg.lookup()),
+        target_type: ir_to_ts::type_to_ts(
+            &alias.elem.r#type.elem.to_non_streaming_type(pkg.lookup()),
+            pkg.lookup(),
+        ),
         docstring: alias
             .elem
             .docstring

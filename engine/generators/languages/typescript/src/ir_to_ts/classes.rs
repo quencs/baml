@@ -46,7 +46,10 @@ pub fn ir_class_to_ts_stream<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -
 fn ir_field_to_ts<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldTS<'a> {
     FieldTS {
         name: field.elem.name.clone(),
-        r#type: super::type_to_ts(&field.elem.r#type.elem, pkg.lookup()),
+        r#type: super::type_to_ts(
+            &field.elem.r#type.elem.to_non_streaming_type(pkg.lookup()),
+            pkg.lookup(),
+        ),
         docstring: field
             .elem
             .docstring
