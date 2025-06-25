@@ -64,7 +64,7 @@ pub struct Signature {
 #[derive(Clone)]
 pub struct TypeNodeSignature {
     pub signature: Signature,
-    pub field_type: Arc<baml_types::FieldType>,
+    pub field_type: Arc<baml_types::TypeIR>,
 }
 
 #[derive(Clone)]
@@ -340,7 +340,7 @@ impl IRSignature {
                     (
                         TypeNodeSignature {
                             signature: Signature::new_class(class_walker.name(), &shallow_hash)?,
-                            field_type: Arc::new(baml_types::FieldType::class(class_walker.name())),
+                            field_type: Arc::new(baml_types::TypeIR::class(class_walker.name())),
                         },
                         ClassSignatureDetails {
                             fields: Arc::new(
@@ -370,7 +370,7 @@ impl IRSignature {
                     (
                         TypeNodeSignature {
                             signature: Signature::new_enum(enum_walker.name(), &shallow_hash)?,
-                            field_type: Arc::new(baml_types::FieldType::r#enum(enum_walker.name())),
+                            field_type: Arc::new(baml_types::TypeIR::r#enum(enum_walker.name())),
                         },
                         EnumSignatureDetails {
                             values: Arc::new(

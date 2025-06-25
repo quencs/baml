@@ -22,7 +22,7 @@ impl<'a> Walker<'a, &'a ExprFunctionNode> {
         self.elem().name.as_str()
     }
 
-    pub fn inputs(&self) -> &'a Vec<(String, baml_types::FieldType)> {
+    pub fn inputs(&self) -> &'a Vec<(String, baml_types::TypeIR)> {
         self.elem().inputs()
     }
 
@@ -127,11 +127,11 @@ impl<'a> Walker<'a, &'a FunctionNode> {
         &self.item.elem
     }
 
-    pub fn output(&self) -> &'a baml_types::FieldType {
+    pub fn output(&self) -> &'a baml_types::TypeIR {
         self.elem().output()
     }
 
-    pub fn inputs(&self) -> &'a Vec<(String, baml_types::FieldType)> {
+    pub fn inputs(&self) -> &'a Vec<(String, baml_types::TypeIR)> {
         self.elem().inputs()
     }
 
@@ -351,7 +351,7 @@ impl<'a> Walker<'a, &'a Class> {
         self.item.attributes.span.as_ref()
     }
 
-    pub fn inputs(&self) -> &'a Vec<(String, baml_types::FieldType)> {
+    pub fn inputs(&self) -> &'a Vec<(String, baml_types::TypeIR)> {
         self.elem().inputs()
     }
 }
@@ -445,7 +445,7 @@ impl<'a> Walker<'a, &'a Field> {
         &self.elem().name
     }
 
-    pub fn r#type(&'a self) -> &'a baml_types::FieldType {
+    pub fn r#type(&'a self) -> &'a baml_types::TypeIR {
         &self.elem().r#type.elem
     }
 

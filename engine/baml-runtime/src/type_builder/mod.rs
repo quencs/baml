@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use baml_types::{BamlValue, EvaluationContext, FieldType};
+use baml_types::{BamlValue, EvaluationContext, TypeIR};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::{
     internal_baml_parser_database::ParserDatabase, ir::repr::TypeBuilderEntry,
@@ -69,13 +69,13 @@ pub struct ClassBuilder {
 impl_meta!(ClassBuilder);
 
 pub struct ClassPropertyBuilder {
-    r#type: Arc<Mutex<Option<FieldType>>>,
+    r#type: Arc<Mutex<Option<TypeIR>>>,
     meta: MetaData,
 }
 impl_meta!(ClassPropertyBuilder);
 
 impl ClassPropertyBuilder {
-    pub fn r#type(&self, r#type: FieldType) -> &Self {
+    pub fn r#type(&self, r#type: TypeIR) -> &Self {
         *self.r#type.lock().unwrap() = Some(r#type);
         self
     }
@@ -389,7 +389,7 @@ impl fmt::Display for TypeBuilder {
 }
 
 pub struct TypeAliasBuilder {
-    target: Arc<Mutex<Option<FieldType>>>,
+    target: Arc<Mutex<Option<TypeIR>>>,
     meta: MetaData,
 }
 impl_meta!(TypeAliasBuilder);
@@ -402,7 +402,7 @@ impl TypeAliasBuilder {
         }
     }
 
-    pub fn target(&self, target: FieldType) -> &Self {
+    pub fn target(&self, target: TypeIR) -> &Self {
         *self.target.lock().unwrap() = Some(target);
         self
     }
@@ -452,7 +452,7 @@ pub struct TypeBuilder {
     classes: Arc<Mutex<IndexMap<String, Arc<Mutex<ClassBuilder>>>>>,
     enums: Arc<Mutex<IndexMap<String, Arc<Mutex<EnumBuilder>>>>>,
     type_aliases: Arc<Mutex<IndexMap<String, Arc<Mutex<TypeAliasBuilder>>>>>,
-    recursive_type_aliases: Arc<Mutex<Vec<IndexMap<String, FieldType>>>>,
+    recursive_type_aliases: Arc<Mutex<Vec<IndexMap<String, TypeIR>>>>,
     recursive_classes: Arc<Mutex<Vec<IndexSet<String>>>>,
 
     parser_database: ParserDatabase,
@@ -506,7 +506,7 @@ impl TypeBuilder {
         )
     }
 
-    pub fn recursive_type_aliases(&self) -> Arc<Mutex<Vec<IndexMap<String, FieldType>>>> {
+    pub fn recursive_type_aliases(&self) -> Arc<Mutex<Vec<IndexMap<String, TypeIR>>>> {
         Arc::clone(&self.recursive_type_aliases)
     }
 
@@ -662,9 +662,9 @@ impl TypeBuilder {
     ) -> (
         IndexMap<String, RuntimeClassOverride>,
         IndexMap<String, RuntimeEnumOverride>,
-        IndexMap<String, FieldType>,
+        IndexMap<String, TypeIR>,
         Vec<IndexSet<String>>,
-        Vec<IndexMap<String, FieldType>>,
+        Vec<IndexMap<String, TypeIR>>,
     ) {
         log::debug!("Converting types to overrides");
         let cls = self
@@ -782,7 +782,7 @@ mod tests {
             cls.property("name")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::string())
+                .r#type(TypeIR::string())
                 .with_meta("alias", BamlValue::String("username".to_string()))
                 .with_meta(
                     "description",
@@ -793,7 +793,7 @@ mod tests {
             cls.property("age")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::int())
+                .r#type(TypeIR::int())
                 .with_meta(
                     "description",
                     BamlValue::String("User's age in years".to_string()),
@@ -803,7 +803,7 @@ mod tests {
             cls.property("email")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::string());
+                .r#type(TypeIR::string());
         }
 
         // Add an enum with values and metadata
@@ -869,7 +869,7 @@ mod tests {
                 .property("street")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::string())
+                .r#type(TypeIR::string())
                 .with_meta("alias", BamlValue::String("streetAddress".to_string()))
                 .with_meta(
                     "description",
@@ -881,7 +881,7 @@ mod tests {
                 .property("unit")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::int().as_optional())
+                .r#type(TypeIR::int().as_optional())
                 .with_meta(
                     "description",
                     BamlValue::String("Apartment/unit number if applicable".to_string()),
@@ -892,7 +892,7 @@ mod tests {
                 .property("tags")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::string().as_list())
+                .r#type(TypeIR::string().as_list())
                 .with_meta("alias", BamlValue::String("labels".to_string()));
 
             // Boolean with no metadata
@@ -900,14 +900,14 @@ mod tests {
                 .property("is_primary")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::bool());
+                .r#type(TypeIR::bool());
 
             // Float with skip metadata
             address
                 .property("coordinates")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::float())
+                .r#type(TypeIR::float())
                 .with_meta("skip", BamlValue::Bool(true));
         }
 
@@ -1024,7 +1024,7 @@ mod tests {
             node.property("child")
                 .lock()
                 .unwrap()
-                .r#type(FieldType::class("Node"))
+                .r#type(TypeIR::class("Node"))
                 .with_meta(
                     "description",
                     BamlValue::String("recursive self reference".to_string()),
@@ -1064,7 +1064,7 @@ mod tests {
         // The child's field type should exactly be a recursive reference to 'Node'
         assert_eq!(
             child_field_type,
-            &FieldType::class("Node"),
+            &TypeIR::class("Node"),
             "The 'child' field is not correctly set as a recursive reference to 'Node'"
         );
     }

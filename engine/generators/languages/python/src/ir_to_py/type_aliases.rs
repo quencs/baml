@@ -22,7 +22,7 @@ pub fn ir_type_alias_to_py_stream<'a>(
     alias: &TypeAlias,
     pkg: &'a CurrentRenderPackage,
 ) -> TypeAliasPy<'a> {
-    let partialized = alias.elem.r#type.elem.partialize(pkg.lookup());
+    let partialized = alias.elem.r#type.elem.to_streaming_type(pkg.lookup());
     TypeAliasPy {
         name: alias.elem.name.clone(),
         type_: ir_to_py::stream_type_to_py(&partialized, pkg.lookup()),

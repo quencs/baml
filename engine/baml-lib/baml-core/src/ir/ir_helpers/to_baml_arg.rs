@@ -2,8 +2,8 @@ use core::result::Result;
 use std::path::PathBuf;
 
 use baml_types::{
-    BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType,
-    LiteralValue, TypeValue,
+    BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel,
+    LiteralValue, TypeIR, TypeValue,
 };
 
 use super::{scope_diagnostics::ScopeStack, IRHelper, IRHelperExtended};
@@ -41,37 +41,35 @@ impl ArgCoercer {
     pub fn coerce_arg(
         &self,
         ir: &IntermediateRepr,
-        field_type: &FieldType,
+        field_type: &TypeIR,
         value: &BamlValue, // original value passed in by user
         scope: &mut ScopeStack,
-    ) -> Result<BamlValueWithMeta<FieldType>, ArgCoerceError> {
+    ) -> Result<BamlValueWithMeta<TypeIR>, ArgCoerceError> {
         let metadata = field_type.meta();
 
         let value = match field_type {
-            FieldType::Primitive(t, _) => match (t, value) {
+            TypeIR::Primitive(t, _) => match (t, value) {
                 (TypeValue::String, BamlValue::String(v)) => {
-                    Ok(BamlValueWithMeta::String(v.clone(), FieldType::string()))
+                    Ok(BamlValueWithMeta::String(v.clone(), TypeIR::string()))
                 }
                 (TypeValue::String, v) if self.allow_implicit_cast_to_string => match v {
-                    BamlValue::Int(i) => Ok(BamlValueWithMeta::String(
-                        i.to_string(),
-                        FieldType::string(),
-                    )),
-                    BamlValue::Float(f) => Ok(BamlValueWithMeta::String(
-                        f.to_string(),
-                        FieldType::string(),
-                    )),
+                    BamlValue::Int(i) => {
+                        Ok(BamlValueWithMeta::String(i.to_string(), TypeIR::string()))
+                    }
+                    BamlValue::Float(f) => {
+                        Ok(BamlValueWithMeta::String(f.to_string(), TypeIR::string()))
+                    }
                     BamlValue::Bool(true) => Ok(BamlValueWithMeta::String(
                         "true".to_string(),
-                        FieldType::string(),
+                        TypeIR::string(),
                     )),
                     BamlValue::Bool(false) => Ok(BamlValueWithMeta::String(
                         "false".to_string(),
-                        FieldType::string(),
+                        TypeIR::string(),
                     )),
                     BamlValue::Null => Ok(BamlValueWithMeta::String(
                         "null".to_string(),
-                        FieldType::string(),
+                        TypeIR::string(),
                     )),
                     _ => {
                         scope.push_error(format!("Expected type {:?}, got `{}`", t, value));
@@ -79,25 +77,23 @@ impl ArgCoercer {
                     }
                 },
                 (TypeValue::Int, BamlValue::Int(v)) => {
-                    Ok(BamlValueWithMeta::Int(*v, FieldType::int()))
+                    Ok(BamlValueWithMeta::Int(*v, TypeIR::int()))
                 }
                 (TypeValue::Float, BamlValue::Int(val)) => {
-                    Ok(BamlValueWithMeta::Float(*val as f64, FieldType::float()))
+                    Ok(BamlValueWithMeta::Float(*val as f64, TypeIR::float()))
                 }
                 (TypeValue::Float, BamlValue::Float(v)) => {
-                    Ok(BamlValueWithMeta::Float(*v, FieldType::float()))
+                    Ok(BamlValueWithMeta::Float(*v, TypeIR::float()))
                 }
                 (TypeValue::Bool, BamlValue::Bool(v)) => {
-                    Ok(BamlValueWithMeta::Bool(*v, FieldType::bool()))
+                    Ok(BamlValueWithMeta::Bool(*v, TypeIR::bool()))
                 }
-                (TypeValue::Null, BamlValue::Null) => {
-                    Ok(BamlValueWithMeta::Null(FieldType::null()))
-                }
+                (TypeValue::Null, BamlValue::Null) => Ok(BamlValueWithMeta::Null(TypeIR::null())),
                 (TypeValue::Media(BamlMediaType::Image), BamlValue::Media(v)) => {
-                    Ok(BamlValueWithMeta::Media(v.clone(), FieldType::image()))
+                    Ok(BamlValueWithMeta::Media(v.clone(), TypeIR::image()))
                 }
                 (TypeValue::Media(BamlMediaType::Audio), BamlValue::Media(v)) => {
-                    Ok(BamlValueWithMeta::Media(v.clone(), FieldType::audio()))
+                    Ok(BamlValueWithMeta::Media(v.clone(), TypeIR::audio()))
                 }
                 (TypeValue::Media(media_type), BamlValue::Map(kv)) => {
                     let mime_type = match kv.get("media_type") {
@@ -179,7 +175,7 @@ impl ArgCoercer {
                     Err(ArgCoerceError)
                 }
             },
-            FieldType::Enum { name, .. } => match value {
+            TypeIR::Enum { name, .. } => match value {
                 BamlValue::String(s) => {
                     if let Ok(e) = ir.find_enum(name) {
                         if e.walk_values().any(|v| v.item.elem.0 == *s)
@@ -188,7 +184,7 @@ impl ArgCoercer {
                             Ok(BamlValueWithMeta::Enum(
                                 name.to_string(),
                                 s.to_string(),
-                                FieldType::r#enum(name),
+                                TypeIR::r#enum(name),
                             ))
                         } else {
                             scope.push_error(format!(
@@ -210,29 +206,29 @@ impl ArgCoercer {
                 BamlValue::Enum(n, s) if n == name => Ok(BamlValueWithMeta::Enum(
                     name.to_string(),
                     s.to_string(),
-                    FieldType::r#enum(name),
+                    TypeIR::r#enum(name),
                 )),
                 _ => {
                     scope.push_error(format!("Invalid enum {}: Got `{}`", name, value));
                     Err(ArgCoerceError)
                 }
             },
-            FieldType::Literal(literal, _) => match (literal, value) {
+            TypeIR::Literal(literal, _) => match (literal, value) {
                 (LiteralValue::Int(lit), BamlValue::Int(v)) if lit == v => {
-                    Ok(BamlValueWithMeta::Int(*v, FieldType::literal_int(*lit)))
+                    Ok(BamlValueWithMeta::Int(*v, TypeIR::literal_int(*lit)))
                 }
                 (LiteralValue::String(lit), BamlValue::String(v)) if lit == v => Ok(
-                    BamlValueWithMeta::String(v.clone(), FieldType::literal_string(lit.clone())),
+                    BamlValueWithMeta::String(v.clone(), TypeIR::literal_string(lit.clone())),
                 ),
                 (LiteralValue::Bool(lit), BamlValue::Bool(v)) if lit == v => {
-                    Ok(BamlValueWithMeta::Bool(*v, FieldType::literal_bool(*lit)))
+                    Ok(BamlValueWithMeta::Bool(*v, TypeIR::literal_bool(*lit)))
                 }
                 _ => {
                     scope.push_error(format!("Expected literal {:?}, got `{}`", literal, value));
                     Err(ArgCoerceError)
                 }
             },
-            FieldType::Class { name, .. } => match value {
+            TypeIR::Class { name, .. } => match value {
                 BamlValue::Class(_, obj) | BamlValue::Map(obj) => match ir.find_class(name) {
                     Ok(c) => {
                         let mut fields = BamlMap::new();
@@ -272,7 +268,7 @@ impl ArgCoercer {
                         Ok(BamlValueWithMeta::Class(
                             name.to_string(),
                             fields,
-                            FieldType::class(name),
+                            TypeIR::class(name),
                         ))
                     }
                     Err(_) => {
@@ -285,7 +281,7 @@ impl ArgCoercer {
                     Err(ArgCoerceError)
                 }
             },
-            FieldType::RecursiveTypeAlias { name, .. } => {
+            TypeIR::RecursiveTypeAlias { name, .. } => {
                 let mut maybe_coerced = None;
                 // TODO: Fix this O(n)
                 for cycle in ir.structural_recursive_alias_cycles() {
@@ -303,7 +299,7 @@ impl ArgCoercer {
                     }
                 }
             }
-            FieldType::List(item, _) => match value {
+            TypeIR::List(item, _) => match value {
                 BamlValue::List(arr) => {
                     let mut items = Vec::new();
                     for v in arr {
@@ -318,11 +314,11 @@ impl ArgCoercer {
                     Err(ArgCoerceError)
                 }
             },
-            FieldType::Tuple(_, _) => {
+            TypeIR::Tuple(_, _) => {
                 scope.push_error("Tuples are not yet supported".to_string());
                 Err(ArgCoerceError)
             }
-            FieldType::Map(k, v, _) => match value {
+            TypeIR::Map(k, v, _) => match value {
                 BamlValue::Map(kv) => {
                     let mut map = BamlMap::new();
                     for (key, value) in kv {
@@ -345,7 +341,7 @@ impl ArgCoercer {
                     Err(ArgCoerceError)
                 }
             },
-            FieldType::Union(options, _) => {
+            TypeIR::Union(options, _) => {
                 let mut first_good_result = Err(ArgCoerceError);
                 for option in options.iter_include_null() {
                     let mut scope = ScopeStack::new();
@@ -363,7 +359,7 @@ impl ArgCoercer {
                     first_good_result
                 }
             }
-            FieldType::Arrow(_, _) => {
+            TypeIR::Arrow(_, _) => {
                 scope.push_error(String::from(
                     "A json value may not be coerced into a function type",
                 ));
@@ -395,7 +391,7 @@ impl ArgCoercer {
 fn first_failing_assert_nested<'a>(
     ir: &'a IntermediateRepr,
     baml_value: &BamlValue,
-    field_type: &'a FieldType,
+    field_type: &'a TypeIR,
 ) -> anyhow::Result<Option<Constraint>> {
     let value_with_types = ir.distribute_type(baml_value.clone(), field_type.clone())?;
     let first_failure = value_with_types
@@ -458,7 +454,7 @@ mod tests {
         )
         .unwrap();
         let value = BamlValue::Int(1);
-        let type_ = FieldType::Primitive(
+        let type_ = TypeIR::Primitive(
             TypeValue::Int,
             TypeMeta {
                 constraints: vec![Constraint {

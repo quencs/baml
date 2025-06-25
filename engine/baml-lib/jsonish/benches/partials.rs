@@ -1,4 +1,4 @@
-use baml_types::FieldType;
+use baml_types::TypeIR;
 use criterion::Criterion;
 use internal_baml_jinja::types::Builder;
 use jsonish::from_str;
@@ -42,7 +42,7 @@ pub fn bench_partials(c: &mut Criterion) {
     let mut group = c.benchmark_group("partials");
 
     // Test partial parsing of a deeply nested object
-    let target = FieldType::class("NestedObject");
+    let target = TypeIR::class("NestedObject");
     let of = Builder::new(target.clone()).build();
 
     group.bench_function("partial_nested_shallow", |b| {
@@ -78,7 +78,7 @@ pub fn bench_partials(c: &mut Criterion) {
     });
 
     // Test partial with optional fields
-    let target = FieldType::class("ComplexPartial");
+    let target = TypeIR::class("ComplexPartial");
     let of = Builder::new(target.clone()).build();
 
     group.bench_function("partial_with_optional", |b| {

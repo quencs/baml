@@ -1,7 +1,7 @@
 mod render_output_format;
 pub(crate) mod scoped_ir;
 use anyhow::Result;
-use baml_types::{BamlValue, FieldType, TypeValue};
+use baml_types::{BamlValue, TypeIR, TypeValue};
 use internal_baml_core::{
     error_unsupported,
     ir::{
@@ -26,7 +26,7 @@ pub struct PromptRenderer {
     pub function_name: String,
     pub client_spec: ClientSpec,
     pub output_defs: OutputFormatContent,
-    pub output_type: FieldType,
+    pub output_type: TypeIR,
 }
 
 impl PromptRenderer {
@@ -59,7 +59,7 @@ impl PromptRenderer {
             function_name: "fake".into(),
             client_spec: ClientSpec::Named("fake".into()),
             output_defs: OutputFormatContent::mk_fake(),
-            output_type: FieldType::Primitive(TypeValue::String, Default::default()),
+            output_type: TypeIR::Primitive(TypeValue::String, Default::default()),
         }
     }
 

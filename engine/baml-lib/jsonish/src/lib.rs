@@ -8,8 +8,8 @@ use std::collections::HashMap;
 pub mod jsonish;
 
 use baml_types::{
-    BamlValue, BamlValueWithMeta, Completion, CompletionState, FieldType, HasFieldType,
-    JinjaExpression, ResponseCheck,
+    BamlValue, BamlValueWithMeta, Completion, CompletionState, HasFieldType, JinjaExpression,
+    ResponseCheck, TypeIR,
 };
 pub use deserializer::types::BamlValueWithFlags;
 use deserializer::{
@@ -35,17 +35,17 @@ pub struct ResponseValueMeta(
     pub Vec<Flag>,
     pub Vec<ResponseCheck>,
     pub Completion,
-    pub FieldType,
+    pub TypeIR,
 );
 
-impl From<FieldType> for ResponseValueMeta {
-    fn from(field_type: FieldType) -> Self {
+impl From<TypeIR> for ResponseValueMeta {
+    fn from(field_type: TypeIR) -> Self {
         ResponseValueMeta(vec![], vec![], Completion::default(), field_type)
     }
 }
 
 impl baml_types::HasFieldType for ResponseValueMeta {
-    fn field_type(&self) -> &FieldType {
+    fn field_type(&self) -> &TypeIR {
         &self.3
     }
 }
@@ -195,11 +195,11 @@ fn serialize_with_meta<S: Serializer, T: Serialize>(
 
 pub fn from_str(
     of: &OutputFormatContent,
-    target: &FieldType,
+    target: &TypeIR,
     raw_string: &str,
     allow_partials: bool,
 ) -> Result<BamlValueWithFlags> {
-    if matches!(target, FieldType::Primitive(TypeValue::String, _)) {
+    if matches!(target, TypeIR::Primitive(TypeValue::String, _)) {
         return Ok(BamlValueWithFlags::String(
             (raw_string.to_string(), target).into(),
         ));

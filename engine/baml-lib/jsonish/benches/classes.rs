@@ -1,4 +1,4 @@
-use baml_types::FieldType;
+use baml_types::TypeIR;
 use criterion::Criterion;
 use internal_baml_jinja::types::Builder;
 use jsonish::from_str;
@@ -6,7 +6,7 @@ use jsonish::from_str;
 pub fn bench_complex_classes(c: &mut Criterion) {
     let mut group = c.benchmark_group("complex_classes");
 
-    let target = FieldType::class("Book");
+    let target = TypeIR::class("Book");
     let of = Builder::new(target.clone()).build();
 
     group.bench_function("full_book", |b| {

@@ -227,7 +227,7 @@ fn relevant_data_models<'a>(
     let mut classes = Vec::new();
     let mut recursive_classes = IndexSet::new();
     let mut structural_recursive_aliases = IndexMap::new();
-    let mut stack: Vec<baml_types::FieldType> = vec![output.clone()];
+    let mut stack: Vec<baml_types::TypeIR> = vec![output.clone()];
 
     // start.extend(ctx.type_alias_overrides.values().cloned());
 

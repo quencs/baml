@@ -1,6 +1,6 @@
 mod validate_reserved_names;
 
-use baml_types::{BamlMap, FieldType};
+use baml_types::{BamlMap, TypeIR};
 use indexmap::map::IndexedEntry;
 use internal_baml_ast::ast::{ConfigBlockProperty, Expression, Field, WithIdentifier};
 use internal_baml_diagnostics::Span;

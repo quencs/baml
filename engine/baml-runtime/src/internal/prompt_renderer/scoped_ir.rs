@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_types::{BamlMap, BamlValue, BamlValueWithMeta, FieldType, LiteralValue, TypeValue};
+use baml_types::{BamlMap, BamlValue, BamlValueWithMeta, LiteralValue, TypeIR, TypeValue};
 use internal_baml_core::ir::{
     ir_helpers::{infer_type, infer_type_with_meta, item_type, map_types},
     IRHelper, IRHelperExtended, IRSemanticStreamingHelper,
@@ -83,7 +83,7 @@ impl IRSemanticStreamingHelper for ScopedIr<'_> {
         Ok(result)
     }
 
-    fn class_fields(&self, class_name: &str) -> Result<BamlMap<String, FieldType>> {
+    fn class_fields(&self, class_name: &str) -> Result<BamlMap<String, TypeIR>> {
         let class_type = &self.find_class(class_name)?;
 
         let result = match class_type {
@@ -150,7 +150,7 @@ impl IRSemanticStreamingHelper for ScopedIr<'_> {
         Ok(result)
     }
 
-    fn get_all_recursive_aliases(&self, alias_name: &str) -> impl Iterator<Item = &FieldType> {
+    fn get_all_recursive_aliases(&self, alias_name: &str) -> impl Iterator<Item = &TypeIR> {
         self.ctx
             .recursive_type_alias_overrides
             .iter()
@@ -160,7 +160,7 @@ impl IRSemanticStreamingHelper for ScopedIr<'_> {
 }
 
 impl IRHelperExtended for ScopedIr<'_> {
-    fn recursive_alias_definition(&self, alias_name: &str) -> Option<&FieldType> {
+    fn recursive_alias_definition(&self, alias_name: &str) -> Option<&TypeIR> {
         match self
             .ctx
             .recursive_type_alias_overrides

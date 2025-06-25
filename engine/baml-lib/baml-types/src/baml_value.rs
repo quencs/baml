@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use serde::{de::Visitor, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{
-    ir_type::{FieldType, UnionTypeViewGeneric},
+    ir_type::{TypeIR, UnionTypeViewGeneric},
     media::BamlMediaType,
     BamlMap, BamlMedia, HasFieldType, LiteralValue, ResponseCheck, TypeValue,
 };
@@ -350,7 +350,7 @@ pub enum BamlValueWithMeta<T> {
 }
 
 pub trait TypeLookups: Sized {
-    fn expand_recursive_type(&self, type_alias: &str) -> anyhow::Result<&FieldType>;
+    fn expand_recursive_type(&self, type_alias: &str) -> anyhow::Result<&TypeIR>;
 }
 
 impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
@@ -361,24 +361,22 @@ impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
     ///
     /// If the value is a union of `int` and `string`, and the value is a `string`,
     /// this will return `string`.
-    pub fn real_type(&self, lookup: &impl TypeLookups) -> FieldType {
+    pub fn real_type(&self, lookup: &impl TypeLookups) -> TypeIR {
         let field_type = self.field_type();
 
         let field_type = match field_type {
-            FieldType::RecursiveTypeAlias { name, .. } => {
-                lookup.expand_recursive_type(name).unwrap()
-            }
+            TypeIR::RecursiveTypeAlias { name, .. } => lookup.expand_recursive_type(name).unwrap(),
             _ => field_type,
         };
 
-        if let FieldType::Union(options, _) = field_type {
+        if let TypeIR::Union(options, _) = field_type {
             return match options.view() {
-                UnionTypeViewGeneric::Null => FieldType::null(),
+                UnionTypeViewGeneric::Null => TypeIR::null(),
                 UnionTypeViewGeneric::Optional(field_type) => {
                     if self.is_type(field_type, lookup) {
                         field_type.clone()
                     } else {
-                        FieldType::null()
+                        TypeIR::null()
                     }
                 }
                 UnionTypeViewGeneric::OneOf(field_types) => field_types
@@ -389,7 +387,7 @@ impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
                 UnionTypeViewGeneric::OneOfOptional(field_types) => field_types
                     .into_iter()
                     .find(|t| self.is_type(t, lookup))
-                    .map_or_else(FieldType::null, |t| t.clone()),
+                    .map_or_else(TypeIR::null, |t| t.clone()),
             };
         }
         field_type.clone()
@@ -397,7 +395,7 @@ impl<T: crate::HasFieldType> BamlValueWithMeta<T> {
 }
 
 impl<T: crate::HasFieldType> crate::HasFieldType for BamlValueWithMeta<T> {
-    fn field_type(&self) -> &crate::FieldType {
+    fn field_type(&self) -> &crate::TypeIR {
         self.meta().field_type()
     }
 }
@@ -409,26 +407,24 @@ impl<T> BamlValueWithMeta<T> {
     }
 
     // TODO: This will fail for type aliases?
-    fn is_type(&self, field_type: &FieldType, lookup: &impl TypeLookups) -> bool {
+    fn is_type(&self, field_type: &TypeIR, lookup: &impl TypeLookups) -> bool {
         let field_type = match field_type {
-            FieldType::RecursiveTypeAlias { name, .. } => {
-                lookup.expand_recursive_type(name).unwrap()
-            }
+            TypeIR::RecursiveTypeAlias { name, .. } => lookup.expand_recursive_type(name).unwrap(),
             _ => field_type,
         };
 
-        let handle_composite = |field_type: &FieldType| match field_type {
-            FieldType::Union(options, _) => match options.view() {
-                UnionTypeViewGeneric::Null => self.is_type(&FieldType::null(), lookup),
+        let handle_composite = |field_type: &TypeIR| match field_type {
+            TypeIR::Union(options, _) => match options.view() {
+                UnionTypeViewGeneric::Null => self.is_type(&TypeIR::null(), lookup),
                 UnionTypeViewGeneric::Optional(field_type) => {
-                    self.is_type(field_type, lookup) || self.is_type(&FieldType::null(), lookup)
+                    self.is_type(field_type, lookup) || self.is_type(&TypeIR::null(), lookup)
                 }
                 UnionTypeViewGeneric::OneOf(field_types) => {
                     field_types.iter().any(|t| self.is_type(t, lookup))
                 }
                 UnionTypeViewGeneric::OneOfOptional(field_types) => {
                     field_types.iter().any(|t| self.is_type(t, lookup))
-                        || self.is_type(&FieldType::null(), lookup)
+                        || self.is_type(&TypeIR::null(), lookup)
                 }
             },
             _ => false,
@@ -436,53 +432,53 @@ impl<T> BamlValueWithMeta<T> {
 
         match self {
             BamlValueWithMeta::String(val, _) => match field_type {
-                FieldType::Literal(LiteralValue::String(lit), _) => val == lit,
-                FieldType::Primitive(TypeValue::String, _) => true,
+                TypeIR::Literal(LiteralValue::String(lit), _) => val == lit,
+                TypeIR::Primitive(TypeValue::String, _) => true,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Int(val, _) => match field_type {
-                FieldType::Literal(LiteralValue::Int(lit), _) => val == lit,
-                FieldType::Primitive(TypeValue::Int, _) => true,
+                TypeIR::Literal(LiteralValue::Int(lit), _) => val == lit,
+                TypeIR::Primitive(TypeValue::Int, _) => true,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Float(_, _) => match field_type {
-                FieldType::Primitive(TypeValue::Float, _) => true,
+                TypeIR::Primitive(TypeValue::Float, _) => true,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Bool(val, _) => match field_type {
-                FieldType::Literal(LiteralValue::Bool(lit), _) => val == lit,
-                FieldType::Primitive(TypeValue::Bool, _) => true,
+                TypeIR::Literal(LiteralValue::Bool(lit), _) => val == lit,
+                TypeIR::Primitive(TypeValue::Bool, _) => true,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Map(index_map, _) => match field_type {
-                FieldType::Map(_, value_type, _) => {
+                TypeIR::Map(_, value_type, _) => {
                     // TODO: Check key type
                     index_map.iter().all(|(_, v)| v.is_type(value_type, lookup))
                 }
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::List(baml_value_with_metas, _) => match field_type {
-                FieldType::List(item_type, _) => baml_value_with_metas
+                TypeIR::List(item_type, _) => baml_value_with_metas
                     .iter()
                     .all(|v| v.is_type(item_type, lookup)),
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Media(baml_media, _) => match field_type {
-                FieldType::Primitive(TypeValue::Media(media_type), _) => {
+                TypeIR::Primitive(TypeValue::Media(media_type), _) => {
                     &baml_media.media_type == media_type
                 }
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Enum(enum_name, _, _) => match field_type {
-                FieldType::Enum { name: enm, .. } => enum_name == enm,
+                TypeIR::Enum { name: enm, .. } => enum_name == enm,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Class(cls_name, _cls_fields, _) => match field_type {
-                FieldType::Class { name: cls, .. } => cls_name == cls,
+                TypeIR::Class { name: cls, .. } => cls_name == cls,
                 _ => handle_composite(field_type),
             },
             BamlValueWithMeta::Null(_) => match field_type {
-                FieldType::Primitive(TypeValue::Null, _) => true,
+                TypeIR::Primitive(TypeValue::Null, _) => true,
                 _ => handle_composite(field_type),
             },
         }
@@ -547,14 +543,14 @@ impl<T> BamlValueWithMeta<T> {
 
     pub fn with_default_meta(value: &BamlValue) -> BamlValueWithMeta<T>
     where
-        T: From<FieldType> + HasFieldType,
+        T: From<TypeIR> + HasFieldType,
     {
         use BamlValueWithMeta::*;
         match value {
-            BamlValue::String(s) => String(s.clone(), T::from(FieldType::string())),
-            BamlValue::Int(i) => Int(*i, T::from(FieldType::int())),
-            BamlValue::Float(f) => Float(*f, T::from(FieldType::float())),
-            BamlValue::Bool(b) => Bool(*b, T::from(FieldType::bool())),
+            BamlValue::String(s) => String(s.clone(), T::from(TypeIR::string())),
+            BamlValue::Int(i) => Int(*i, T::from(TypeIR::int())),
+            BamlValue::Float(f) => Float(*f, T::from(TypeIR::float())),
+            BamlValue::Bool(b) => Bool(*b, T::from(TypeIR::bool())),
             BamlValue::Map(entries) => {
                 let entries: BamlMap<std::string::String, BamlValueWithMeta<T>> = entries
                     .iter()
@@ -562,7 +558,7 @@ impl<T> BamlValueWithMeta<T> {
                     .collect();
                 let value_types = entries.values().map(|v| v.field_type()).collect::<Vec<_>>();
                 let field_type =
-                    FieldType::union(value_types.into_iter().map(|v| v.to_owned()).collect());
+                    TypeIR::union(value_types.into_iter().map(|v| v.to_owned()).collect());
 
                 Map(entries, T::from(field_type.simplify()))
             }
@@ -571,26 +567,26 @@ impl<T> BamlValueWithMeta<T> {
                     items.iter().map(|i| Self::with_default_meta(i)).collect();
                 let items_types = items.iter().map(|i| i.field_type()).collect::<Vec<_>>();
                 let field_type =
-                    FieldType::union(items_types.into_iter().map(|v| v.to_owned()).collect());
+                    TypeIR::union(items_types.into_iter().map(|v| v.to_owned()).collect());
                 List(items, T::from(field_type.simplify()))
             }
             BamlValue::Media(m) => Media(
                 m.clone(),
                 T::from(match m.media_type {
-                    BamlMediaType::Image => FieldType::image(),
-                    BamlMediaType::Audio => FieldType::audio(),
+                    BamlMediaType::Image => TypeIR::image(),
+                    BamlMediaType::Audio => TypeIR::audio(),
                 }),
             ),
-            BamlValue::Enum(n, v) => Enum(n.clone(), v.clone(), T::from(FieldType::r#enum(n))),
+            BamlValue::Enum(n, v) => Enum(n.clone(), v.clone(), T::from(TypeIR::r#enum(n))),
             BamlValue::Class(name, items) => {
                 let items: BamlMap<std::string::String, BamlValueWithMeta<T>> = items
                     .iter()
                     .map(|(k, v)| (k.clone(), Self::with_default_meta(v)))
                     .collect();
 
-                Class(name.clone(), items, T::from(FieldType::class(name)))
+                Class(name.clone(), items, T::from(TypeIR::class(name)))
             }
-            BamlValue::Null => Null(T::from(FieldType::null())),
+            BamlValue::Null => Null(T::from(TypeIR::null())),
         }
     }
 

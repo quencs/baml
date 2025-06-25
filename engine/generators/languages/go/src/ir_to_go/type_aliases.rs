@@ -22,7 +22,7 @@ pub fn ir_type_alias_to_go_stream<'a>(
     alias: &TypeAlias,
     pkg: &'a CurrentRenderPackage,
 ) -> TypeAliasGo<'a> {
-    let partialized = alias.elem.r#type.elem.partialize(pkg.lookup());
+    let partialized = alias.elem.r#type.elem.to_streaming_type(pkg.lookup());
     TypeAliasGo {
         name: alias.elem.name.clone(),
         type_: ir_to_go::stream_type_to_go(&partialized, pkg.lookup()),

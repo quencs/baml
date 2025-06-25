@@ -16,7 +16,7 @@ pub fn ir_function_to_ts(function: &FunctionNode, pkg: &CurrentRenderPackage) ->
             .collect(),
         return_type: type_to_ts(function.elem.output(), pkg.lookup()),
         stream_return_type: stream_type_to_ts(
-            &function.elem.output().partialize(pkg.lookup()),
+            &function.elem.output().to_streaming_type(pkg.lookup()),
             pkg.lookup(),
         ),
     }

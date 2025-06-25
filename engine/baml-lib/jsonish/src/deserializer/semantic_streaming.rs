@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 use anyhow::{Context, Error};
 use baml_types::{
-    BamlMap, BamlValueWithMeta, Completion, CompletionState, FieldType, ResponseCheck, TypeValue,
+    BamlMap, BamlValueWithMeta, Completion, CompletionState, ResponseCheck, TypeIR, TypeValue,
 };
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::{
@@ -37,7 +37,7 @@ pub fn validate_streaming_state(
     allow_partials: bool,
 ) -> Result<BamlValueWithMeta<Completion>, StreamingError> {
     let baml_value_with_meta_flags: BamlValueWithMeta<Vec<Flag>> = baml_value.clone().into();
-    let typed_baml_value: BamlValueWithMeta<(Vec<Flag>, FieldType)> =
+    let typed_baml_value: BamlValueWithMeta<(Vec<Flag>, TypeIR)> =
         ir.distribute_type_with_meta(baml_value_with_meta_flags, baml_value.field_type().clone())?;
     let baml_value_with_streaming_state_and_behavior =
         typed_baml_value.map_meta(|(flags, r#type)| (completion_state(flags), r#type));
@@ -64,7 +64,7 @@ pub fn validate_streaming_state(
 ///                   see a false, all child nodes will also get false).
 fn process_node(
     ir: &impl IRHelperExtended,
-    value: BamlValueWithMeta<(CompletionState, &FieldType)>,
+    value: BamlValueWithMeta<(CompletionState, &TypeIR)>,
     allow_partials: bool,
     _depth: usize,
 ) -> Result<BamlValueWithMeta<Completion>, StreamingError> {
@@ -224,9 +224,9 @@ fn process_node(
 
 /// Extract the field names from a field_type that is expected to be a `Class`.
 /// If it is not a known class, return no field names.
-fn type_field_names(ir: &impl IRHelperExtended, field_type: &FieldType) -> IndexSet<String> {
+fn type_field_names(ir: &impl IRHelperExtended, field_type: &TypeIR) -> IndexSet<String> {
     match field_type {
-        FieldType::Class {
+        TypeIR::Class {
             name: class_name, ..
         } => ir.class_field_names(class_name).unwrap_or_default(),
         _ => IndexSet::new(),
@@ -272,12 +272,12 @@ fn needed_fields(
 /// in a streamed value.
 fn required_done<T>(
     ir: &impl IRHelperExtended,
-    field_type: &FieldType,
+    field_type: &TypeIR,
     value: &BamlValueWithMeta<T>,
 ) -> bool {
     let metadata = field_type.meta();
     let type_implies_done = match field_type {
-        FieldType::Primitive(tv, _) => match tv {
+        TypeIR::Primitive(tv, _) => match tv {
             TypeValue::String => false,
             TypeValue::Int => true,
             TypeValue::Float => true,
@@ -285,18 +285,18 @@ fn required_done<T>(
             TypeValue::Bool => true,
             TypeValue::Null => true,
         },
-        FieldType::Literal { .. } => true,
-        FieldType::List(_, _) => false,
-        FieldType::Map(_, _, _) => false,
-        FieldType::Enum {
+        TypeIR::Literal { .. } => true,
+        TypeIR::List(_, _) => false,
+        TypeIR::Map(_, _, _) => false,
+        TypeIR::Enum {
             name: _,
             dynamic: _,
             meta: _,
         } => true,
-        FieldType::Tuple(_, _) => false,
-        FieldType::RecursiveTypeAlias { .. } => false,
-        FieldType::Class { .. } => false,
-        FieldType::Union(options, _) => {
+        TypeIR::Tuple(_, _) => false,
+        TypeIR::RecursiveTypeAlias { .. } => false,
+        TypeIR::Class { .. } => false,
+        TypeIR::Union(options, _) => {
             let view = options.iter_skip_null();
             // Determining whether a union requires done is complicated.
             // If all the variants are required to be done, then the union
@@ -323,7 +323,7 @@ fn required_done<T>(
                 variant_required_done && value_unifies_with_variant
             })
         }
-        FieldType::Arrow(_, _) => false, // TODO: Error? Arrow shouldn't appear here.
+        TypeIR::Arrow(_, _) => false, // TODO: Error? Arrow shouldn't appear here.
     };
 
     type_implies_done || metadata.streaming_behavior.done
@@ -349,7 +349,7 @@ mod tests {
 
     fn mk_null() -> BamlValueWithFlags {
         BamlValueWithFlags::Null(
-            FieldType::Primitive(TypeValue::Null, TypeMeta::default()),
+            TypeIR::Primitive(TypeValue::Null, TypeMeta::default()),
             DeserializerConditions::default(),
         )
     }
@@ -357,14 +357,14 @@ mod tests {
     fn mk_string(s: &str) -> BamlValueWithFlags {
         BamlValueWithFlags::String(ValueWithFlags {
             value: s.to_string(),
-            target: FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+            target: TypeIR::Primitive(TypeValue::String, TypeMeta::default()),
             flags: DeserializerConditions::default(),
         })
     }
     fn mk_float(s: f64) -> BamlValueWithFlags {
         BamlValueWithFlags::Float(ValueWithFlags {
             value: s,
-            target: FieldType::Primitive(TypeValue::Float, TypeMeta::default()),
+            target: TypeIR::Primitive(TypeValue::Float, TypeMeta::default()),
             flags: DeserializerConditions::default(),
         })
     }
@@ -381,7 +381,7 @@ mod tests {
         fn mk_list(items: Vec<BamlValueWithFlags>) -> BamlValueWithFlags {
             BamlValueWithFlags::List(
                 DeserializerConditions::default(),
-                FieldType::recursive_type_alias("A").as_list(),
+                TypeIR::recursive_type_alias("A").as_list(),
                 items,
             )
         }
@@ -422,14 +422,14 @@ mod tests {
         let value = BamlValueWithFlags::Class(
             "Info".to_string(),
             DeserializerConditions::default(),
-            FieldType::class("Info"),
+            TypeIR::class("Info"),
             vec![
                 (
                     "name".to_string(),
                     BamlValueWithFlags::Class(
                         "Name".to_string(),
                         DeserializerConditions::default(),
-                        FieldType::class("Name"),
+                        TypeIR::class("Name"),
                         vec![
                             ("first".to_string(), mk_string("Greg")),
                             ("last".to_string(), mk_string("Hale")),
@@ -445,7 +445,7 @@ mod tests {
             .into_iter()
             .collect(),
         );
-        let field_type = FieldType::class("Info");
+        let field_type = TypeIR::class("Info");
 
         let res = validate_streaming_state(&ir, &value, true).unwrap();
 

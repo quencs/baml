@@ -34,7 +34,7 @@ crate::lang_wrapper!(
 
 // Thread-safe wrapper for FieldType
 // Core type system representation with thread-safety guarantees
-crate::lang_wrapper!(FieldType, baml_types::FieldType, sync_thread_safe);
+crate::lang_wrapper!(FieldType, baml_types::TypeIR, sync_thread_safe);
 
 // Implement Default for TypeBuilder to allow easy instantiation
 // This enables idiomatic Rust usage while maintaining TypeScript compatibility
@@ -91,47 +91,47 @@ impl TypeBuilder {
 
     #[napi]
     pub fn string(&self) -> FieldType {
-        baml_types::FieldType::string().into()
+        baml_types::TypeIR::string().into()
     }
 
     #[napi]
     pub fn literal_string(&self, value: String) -> FieldType {
-        baml_types::FieldType::literal_string(value).into()
+        baml_types::TypeIR::literal_string(value).into()
     }
 
     #[napi]
     pub fn literal_int(&self, value: i64) -> FieldType {
-        baml_types::FieldType::literal_int(value).into()
+        baml_types::TypeIR::literal_int(value).into()
     }
 
     #[napi]
     pub fn literal_bool(&self, value: bool) -> FieldType {
-        baml_types::FieldType::literal_bool(value).into()
+        baml_types::TypeIR::literal_bool(value).into()
     }
 
     #[napi]
     pub fn int(&self) -> FieldType {
-        baml_types::FieldType::int().into()
+        baml_types::TypeIR::int().into()
     }
 
     #[napi]
     pub fn float(&self) -> FieldType {
-        baml_types::FieldType::float().into()
+        baml_types::TypeIR::float().into()
     }
 
     #[napi]
     pub fn bool(&self) -> FieldType {
-        baml_types::FieldType::bool().into()
+        baml_types::TypeIR::bool().into()
     }
 
     #[napi]
     pub fn null(&self) -> FieldType {
-        baml_types::FieldType::null().into()
+        baml_types::TypeIR::null().into()
     }
 
     #[napi]
     pub fn map(&self, key: &FieldType, value: &FieldType) -> FieldType {
-        baml_types::FieldType::map(
+        baml_types::TypeIR::map(
             key.inner.lock().unwrap().clone(),
             value.inner.lock().unwrap().clone(),
         )
@@ -140,7 +140,7 @@ impl TypeBuilder {
 
     #[napi]
     pub fn union(&self, types: Vec<&FieldType>) -> FieldType {
-        baml_types::FieldType::union(
+        baml_types::TypeIR::union(
             types
                 .iter()
                 .map(|t| t.inner.lock().unwrap().clone())
@@ -195,7 +195,7 @@ impl EnumBuilder {
 
     #[napi]
     pub fn field(&self) -> FieldType {
-        baml_types::FieldType::r#enum(&self.name).into()
+        baml_types::TypeIR::r#enum(&self.name).into()
     }
 }
 
@@ -237,7 +237,7 @@ impl EnumValueBuilder {
 impl ClassBuilder {
     #[napi]
     pub fn field(&self) -> FieldType {
-        baml_types::FieldType::class(&self.name).into()
+        baml_types::TypeIR::class(&self.name).into()
     }
 
     #[napi]

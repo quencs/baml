@@ -1,14 +1,14 @@
-use baml_types::{ir_type::TypeStreaming, FieldType, ToUnionName};
+use baml_types::{ir_type::TypeStreaming, ToUnionName, TypeIR};
 
 use crate::{package::CurrentRenderPackage, r#type::TypeGo};
 
 pub fn ir_union_to_go<'a>(
-    union: &FieldType,
+    union: &TypeIR,
     pkg: &'a CurrentRenderPackage,
 ) -> Option<crate::generated_types::UnionGo<'a>> {
     let go_type = crate::ir_to_go::type_to_go(union, pkg.lookup());
     if let TypeGo::Union { name, .. } = go_type {
-        let FieldType::Union(union_type_generic, _) = union else {
+        let TypeIR::Union(union_type_generic, _) = union else {
             panic!("ir_union_to_go expects a union. Got: {}", union);
         };
         let variants = union_type_generic
@@ -36,10 +36,10 @@ pub fn ir_union_to_go<'a>(
 }
 
 pub fn ir_union_to_go_stream<'a>(
-    union: &FieldType,
+    union: &TypeIR,
     pkg: &'a CurrentRenderPackage,
 ) -> Option<crate::generated_types::UnionGo<'a>> {
-    let stream_union = union.partialize(pkg.lookup());
+    let stream_union = union.to_streaming_type(pkg.lookup());
     let go_type = crate::ir_to_go::stream_type_to_go(&stream_union, pkg.lookup());
     if let TypeGo::Union { name, .. } = go_type {
         let TypeStreaming::Union(union_type_generic, _) = stream_union else {

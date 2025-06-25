@@ -1,18 +1,18 @@
 use super::*;
 
-test_deserializer!(test_null, EMPTY_FILE, "null", FieldType::null(), null);
+test_deserializer!(test_null, EMPTY_FILE, "null", TypeIR::null(), null);
 test_deserializer!(
     test_null_1,
     EMPTY_FILE,
     "null",
-    FieldType::string().as_optional(),
+    TypeIR::string().as_optional(),
     null
 );
 test_deserializer!(
     test_null_2,
     EMPTY_FILE,
     "Null",
-    FieldType::string().as_optional(),
+    TypeIR::string().as_optional(),
     // This is a string, not null
     "Null"
 );
@@ -21,31 +21,31 @@ test_deserializer!(
     test_null_3,
     EMPTY_FILE,
     "None",
-    FieldType::string().as_optional(),
+    TypeIR::string().as_optional(),
     // This is a string, not null
     "None"
 );
 
-test_deserializer!(test_number, EMPTY_FILE, "12111", FieldType::int(), 12111);
-test_deserializer!(test_number_2, EMPTY_FILE, "12,111", FieldType::int(), 12111);
+test_deserializer!(test_number, EMPTY_FILE, "12111", TypeIR::int(), 12111);
+test_deserializer!(test_number_2, EMPTY_FILE, "12,111", TypeIR::int(), 12111);
 test_deserializer!(
     test_string,
     EMPTY_FILE,
     r#""hello""#,
-    FieldType::string(),
+    TypeIR::string(),
     "\"hello\""
 );
 
-test_deserializer!(test_bool, EMPTY_FILE, "true", FieldType::bool(), true);
-test_deserializer!(test_bool_2, EMPTY_FILE, "True", FieldType::bool(), true);
-test_deserializer!(test_bool_3, EMPTY_FILE, "false", FieldType::bool(), false);
-test_deserializer!(test_bool_4, EMPTY_FILE, "False", FieldType::bool(), false);
+test_deserializer!(test_bool, EMPTY_FILE, "true", TypeIR::bool(), true);
+test_deserializer!(test_bool_2, EMPTY_FILE, "True", TypeIR::bool(), true);
+test_deserializer!(test_bool_3, EMPTY_FILE, "false", TypeIR::bool(), false);
+test_deserializer!(test_bool_4, EMPTY_FILE, "False", TypeIR::bool(), false);
 
 test_deserializer!(
     test_bool_wrapped,
     EMPTY_FILE,
     "The answer is true",
-    FieldType::bool().as_list(),
+    TypeIR::bool().as_list(),
     [true]
 );
 
@@ -53,7 +53,7 @@ test_deserializer!(
     test_bool_wrapped_mismatched_case,
     EMPTY_FILE,
     "The answer is True",
-    FieldType::bool().as_list(),
+    TypeIR::bool().as_list(),
     [true]
 );
 
@@ -61,7 +61,7 @@ test_deserializer!(
     test_bool_wrapped_mismatched_case_preceded_by_text,
     EMPTY_FILE,
     "The tax return you provided has section for dependents.\n\nAnswer: **True**",
-    FieldType::bool(),
+    TypeIR::bool(),
     true
 );
 
@@ -69,7 +69,7 @@ test_deserializer!(
     test_bool_mismatched_case_followed_by_text,
     EMPTY_FILE,
     r#"False.\n\nThe statement "2 + 2 = 5" is mathematically incorrect. The correct sum of 2 + 2 is 4, not 5."#,
-    FieldType::bool(),
+    TypeIR::bool(),
     false
 );
 
@@ -77,21 +77,21 @@ test_failing_deserializer!(
     test_ambiguous_bool,
     EMPTY_FILE,
     "The answer is true or false",
-    FieldType::bool()
+    TypeIR::bool()
 );
 
 test_failing_deserializer!(
     test_elaborate_ambiguous_bool,
     EMPTY_FILE,
     r#"False. The statement "2 + 2 = 5" is not accurate according to basic arithmetic. In standard arithmetic, the sum of 2 and 2 is equal to 4, not 5. Therefore, the statement does not hold true."#,
-    FieldType::bool()
+    TypeIR::bool()
 );
 
 test_deserializer!(
     test_float,
     EMPTY_FILE,
     "12111.123",
-    FieldType::float(),
+    TypeIR::float(),
     12111.123
 );
 
@@ -99,7 +99,7 @@ test_deserializer!(
     test_float_comma_us,
     EMPTY_FILE,
     "12,111.123",
-    FieldType::float(),
+    TypeIR::float(),
     12111.123
 );
 
@@ -116,17 +116,17 @@ test_deserializer!(
     test_float_comma_german2,
     EMPTY_FILE,
     "12.11.",
-    FieldType::float(),
+    TypeIR::float(),
     12.11
 );
 
-test_deserializer!(test_float_1, EMPTY_FILE, "1/5", FieldType::float(), 0.2);
+test_deserializer!(test_float_1, EMPTY_FILE, "1/5", TypeIR::float(), 0.2);
 
 test_deserializer!(
     test_array,
     EMPTY_FILE,
     r#"[1, 2, 3]"#,
-    FieldType::int().as_list(),
+    TypeIR::int().as_list(),
     [1, 2, 3]
 );
 
@@ -134,7 +134,7 @@ test_deserializer!(
     test_array_1,
     EMPTY_FILE,
     r#"[1, 2, 3]"#,
-    FieldType::string().as_list(),
+    TypeIR::string().as_list(),
     ["1", "2", "3"]
 );
 
@@ -142,7 +142,7 @@ test_deserializer!(
     test_array_3,
     EMPTY_FILE,
     r#"[1, 2, 3]"#,
-    FieldType::float().as_list(),
+    TypeIR::float().as_list(),
     [1., 2., 3.]
 );
 
@@ -150,7 +150,7 @@ test_deserializer!(
     test_string_to_float_from_comma_separated,
     "",
     "1 cup unsalted butter, room temperature",
-    FieldType::float(),
+    TypeIR::float(),
     1.0
 );
 
@@ -162,7 +162,7 @@ test_deserializer!(
     }
     "#,
     r#"{"key": "value"}"#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {"key": "value"}
 );
 
@@ -174,7 +174,7 @@ test_deserializer!(
     }
     "#,
     r#"{"key": [1, 2, 3]}"#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {"key":  [1, 2, 3]}
 );
 
@@ -187,7 +187,7 @@ test_deserializer!(
     }
     "#,
     r#" { "key" : [ 1 , 2 , 3 ] } "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {"key":  [1, 2, 3]}
 );
 
@@ -200,7 +200,7 @@ test_deserializer!(
   }
   "#,
     r#"prefix { "key" : [ 1 , 2 , 3 ] } suffix"#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {"key":  [1, 2, 3]}
 );
 
@@ -213,7 +213,7 @@ test_deserializer!(
   }
   "#,
   r#"{"key": "value1"} {"key": "value2"}"#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value1"}
 );
 
@@ -225,7 +225,7 @@ test_deserializer!(
   }
   "#,
   r#"{"key": "value1"} {"key": "value2"}"#,
-  FieldType::class("Test").as_list(),
+  TypeIR::class("Test").as_list(),
   [{"key": "value1"}, {"key": "value2"}]
 );
 
@@ -238,7 +238,7 @@ test_deserializer!(
   }
   "#,
   r#"prefix {"key": "value1"} some random text {"key": "value2"} suffix"#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value1"}
 );
 
@@ -250,7 +250,7 @@ test_deserializer!(
   }
   "#,
   r#"prefix {"key": "value1"} some random text {"key": "value2"} suffix"#,
-  FieldType::class("Test").as_list(),
+  TypeIR::class("Test").as_list(),
   [{"key": "value1"}, {"key": "value2"}]
 );
 
@@ -260,7 +260,7 @@ test_deserializer!(
     test_trailing_comma_array_2,
     EMPTY_FILE,
     r#"[1, 2, 3,]"#,
-    FieldType::int().as_list(),
+    TypeIR::int().as_list(),
     [1, 2, 3]
 );
 
@@ -268,7 +268,7 @@ test_deserializer!(
     test_trailing_comma_array_3,
     EMPTY_FILE,
     r#"[1, 2, 3,]"#,
-    FieldType::string().as_list(),
+    TypeIR::string().as_list(),
     ["1", "2", "3"]
 );
 
@@ -280,7 +280,7 @@ test_deserializer!(
     }
     "#,
     r#"{"key": "value",}"#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {"key": "value"}
 );
 
@@ -289,7 +289,7 @@ test_deserializer!(
     test_invalid_array,
     EMPTY_FILE,
     r#"[1, 2, 3"#,
-    FieldType::int().as_list(),
+    TypeIR::int().as_list(),
     [1, 2, 3]
 );
 
@@ -301,7 +301,7 @@ test_deserializer!(
   }
   "#,
   r#"{"key": [1, 2, 3"#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": [1, 2, 3]}
 );
 
@@ -310,7 +310,7 @@ test_deserializer!(
     test_incomplete_string,
     EMPTY_FILE,
     r#""hello"#,
-    FieldType::string(),
+    TypeIR::string(),
     "\"hello"
 );
 
@@ -322,7 +322,7 @@ test_deserializer!(
     }
     "#,
     r#"{"key": "value"#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {"key": "value"}
 );
 
@@ -331,7 +331,7 @@ test_deserializer!(
     test_prefixed_incompleted_string,
     EMPTY_FILE,
     r#"prefix "hello"#,
-    FieldType::string(),
+    TypeIR::string(),
     "prefix \"hello"
 );
 
@@ -349,7 +349,7 @@ test_deserializer!(
     }
     "#,
     r#"{"key": "value", "array": [1, 2, 3], "object": {"key": "value"}}"#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {"key": "value", "array": [1, 2, 3], "object": {"key": "value"}}
 );
 
@@ -378,7 +378,7 @@ test_deserializer!(
   }
   ```
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value", "array": [1, 2, 3], "object": {"key": "value"}}
 );
 
@@ -412,7 +412,7 @@ test_deserializer!(
   ["1", "2"]
   ```
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value", "array": [1, 2, 3], "object": {"key": "value"}}
 );
 
@@ -446,7 +446,7 @@ test_deserializer!(
   ["1", "2"]
   ```
   "#,
-    FieldType::int().as_list(),
+    TypeIR::int().as_list(),
     [1, 2]
 );
 
@@ -475,7 +475,7 @@ test_deserializer!(
   }
   ```
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value", "array": [1, 2, 3], "object": {"key": "value"}}
 );
 
@@ -504,7 +504,7 @@ test_deserializer!(
   }
   ```
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value", "array": [1, 2, 3, "somet\"string with quotes"], "object": {"key": "value"}}
 );
 
@@ -533,7 +533,7 @@ test_deserializer!(
   }
   ```
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value", "array": [1, 2, 3, "some stinrg'   with quotes"], "object": {"key": "value"}}
 );
 
@@ -562,7 +562,7 @@ test_deserializer!(
   }
   ```
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value", "array": [1, 2, 3, "some stinrg'   with quotes"], "object": {"key": "value"}}
 );
 
@@ -588,7 +588,7 @@ test_deserializer!(
     }
   }
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "value with space", "array": [1, 2, 3], "object": {"key": "value"}}
 );
 
@@ -617,7 +617,7 @@ lines",
     }
   }
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"key": "test a long\nthing with new\n\nlines", "array": [1, 2, 3], "object": {"key": "value"}}
 );
 
@@ -641,7 +641,7 @@ Frag 6, the rest, of the sentence. Then i would quote something "like this" or t
 Then would add a summary of sorts.
   }
   "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "my_field_0": true,
       "my_field_1": "**First fragment, Another fragment**\n\nFrag 2, frag 3. Frag 4, Frag 5, Frag 5.\n\nFrag 6, the rest, of the sentence. Then i would quote something \"like this\" or this.\n\nThen would add a summary of sorts."
@@ -660,7 +660,7 @@ test_deserializer!(
   }
   "#,
     r#"{" answer ": {" content ": 78.54}}"#,
-    FieldType::string(),
+    TypeIR::string(),
     r#"{" answer ": {" content ": 78.54}}"#
 );
 
@@ -678,7 +678,7 @@ test_deserializer!(
   }
   "#,
   r#"{" answer ": {" content ": 78.54}}"#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {"answer": {"content": 78.54}}
 );
 
@@ -799,7 +799,7 @@ test_partial_deserializer!(
 "field36": null
 }
 }"#, 
-FieldType::class("Test"),
+TypeIR::class("Test"),
 {
   "foo1": {
     "field1": "Something horrible has happened!!",
@@ -880,7 +880,7 @@ JSON Output:
 ]
 ```
   "#.trim(),
-  FieldType::class("Test").as_list(),
+  TypeIR::class("Test").as_list(),
   [{
       "id": "CH1_Welcome",
       "English": "Welcome to Arcadian Atlas",
@@ -932,7 +932,7 @@ repleta de monstros e perigos!"""
   }
 ]
   "#.trim(),
-  FieldType::class("Test").as_list(),
+  TypeIR::class("Test").as_list(),
   [{
       "id": "CH1_Welcome",
       "English": "Welcome to Arcadian Atlas",
@@ -1004,7 +1004,7 @@ Here are the seven creative headings along with their descriptions and Python fu
   ]
 }
   "#.trim(),
-  baml_types::FieldType::class("Headings"),
+  baml_types::TypeIR::class("Headings"),
 
   {
     "headings": [
@@ -1033,7 +1033,7 @@ test_deserializer!(
   ]
 }
   "#.trim(),
-  baml_types::FieldType::class("Headings"),
+  baml_types::TypeIR::class("Headings"),
 
   {
     "headings": [

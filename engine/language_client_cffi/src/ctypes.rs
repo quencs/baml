@@ -488,7 +488,7 @@ where
     let target_type = value.field_type().simplify();
 
     let target_type = match &target_type {
-        baml_types::FieldType::RecursiveTypeAlias { name, .. } => {
+        baml_types::TypeIR::RecursiveTypeAlias { name, .. } => {
             use baml_types::baml_value::TypeLookups;
 
             ir.ir()
@@ -498,7 +498,7 @@ where
         _ => &target_type,
     };
 
-    if let baml_types::FieldType::Union(options, _) = target_type {
+    if let baml_types::TypeIR::Union(options, _) = target_type {
         let mut options_vec = vec![];
         for t in options.iter_include_null() {
             options_vec.push(field_type_to_cffi_value_holder(t, builder));
@@ -544,16 +544,16 @@ where
 }
 
 fn field_type_to_cffi_value_holder<'a, 'b>(
-    field_type: &'a baml_types::FieldType,
+    field_type: &'a baml_types::TypeIR,
     builder: &'a mut flatbuffers::FlatBufferBuilder<'b>,
 ) -> flatbuffers::WIPOffset<CFFIFieldTypeHolder<'b>>
 where
 {
     let (field_type_union, field_type_union_value) = match field_type {
-        baml_types::FieldType::Primitive(type_value, _) => {
+        baml_types::TypeIR::Primitive(type_value, _) => {
             return type_value_to_cffi(type_value, builder)
         }
-        baml_types::FieldType::Enum { name: e, .. } => {
+        baml_types::TypeIR::Enum { name: e, .. } => {
             let enum_name = builder.create_string(e);
             let enum_type = CFFIFieldTypeEnum::create(
                 builder,
@@ -566,7 +566,7 @@ where
                 enum_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Literal(literal_value, _) => {
+        baml_types::TypeIR::Literal(literal_value, _) => {
             let literal_value = literal_value_to_cffi(literal_value, builder);
             let literal_type = CFFIFieldTypeLiteral::create(builder, &literal_value);
             (
@@ -574,7 +574,7 @@ where
                 literal_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Class { name: cls, .. } => {
+        baml_types::TypeIR::Class { name: cls, .. } => {
             // TODO: figure out if we need to allow partials here
             let name = create_cffi_type_name(cls, builder, false);
             let class_type =
@@ -584,7 +584,7 @@ where
                 class_type.as_union_value(),
             )
         }
-        baml_types::FieldType::List(field_type, _) => {
+        baml_types::TypeIR::List(field_type, _) => {
             let list_type = field_type_to_cffi_value_holder(field_type, builder);
             let element_type = CFFIFieldTypeList::create(
                 builder,
@@ -597,7 +597,7 @@ where
                 element_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Map(key_type, value_type, _) => {
+        baml_types::TypeIR::Map(key_type, value_type, _) => {
             let key_type = field_type_to_cffi_value_holder(key_type, builder);
             let value_type = field_type_to_cffi_value_holder(value_type, builder);
             let map_type = CFFIFieldTypeMap::create(
@@ -612,7 +612,7 @@ where
                 map_type.as_union_value(),
             )
         }
-        baml_types::FieldType::Union(field_types, _) => {
+        baml_types::TypeIR::Union(field_types, _) => {
             let mut options_vec = vec![];
             for t in field_types.iter_include_null() {
                 options_vec.push(field_type_to_cffi_value_holder(t, builder));
@@ -629,7 +629,7 @@ where
                 value_union_variant.as_union_value(),
             )
         }
-        baml_types::FieldType::RecursiveTypeAlias { name, .. } => {
+        baml_types::TypeIR::RecursiveTypeAlias { name, .. } => {
             let name = builder.create_string(name);
             let type_alias = CFFIFieldTypeTypeAlias::create(
                 builder,
@@ -640,8 +640,8 @@ where
                 type_alias.as_union_value(),
             )
         }
-        baml_types::FieldType::Tuple(_, _) => unimplemented!("Tuple is not supported"),
-        baml_types::FieldType::Arrow(_, _) => unimplemented!("Functions are not supported."),
+        baml_types::TypeIR::Tuple(_, _) => unimplemented!("Tuple is not supported"),
+        baml_types::TypeIR::Arrow(_, _) => unimplemented!("Functions are not supported."),
     };
 
     CFFIFieldTypeHolder::create(

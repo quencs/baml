@@ -1,4 +1,4 @@
-use baml_types::FieldType;
+use baml_types::TypeIR;
 use criterion::Criterion;
 use internal_baml_jinja::types::Builder;
 use jsonish::{from_str, helpers::common::UNION_SCHEMA, jsonish as internal_jsonish};
@@ -6,11 +6,11 @@ use jsonish::{from_str, helpers::common::UNION_SCHEMA, jsonish as internal_jsoni
 pub fn bench_unions(c: &mut Criterion) {
     let mut group = c.benchmark_group("unions");
 
-    let target = FieldType::union(vec![
-        FieldType::class("VideoContent"),
-        FieldType::class("TextContent"),
-        FieldType::class("ImageContent"),
-        FieldType::class("AudioContent"),
+    let target = TypeIR::union(vec![
+        TypeIR::class("VideoContent"),
+        TypeIR::class("TextContent"),
+        TypeIR::class("ImageContent"),
+        TypeIR::class("AudioContent"),
     ]);
     let ir = jsonish::helpers::load_test_ir(UNION_SCHEMA);
     let of = jsonish::helpers::render_output_format(&ir, &target, &Default::default()).unwrap();
@@ -52,7 +52,7 @@ pub fn bench_unions(c: &mut Criterion) {
         })
     });
 
-    let target = FieldType::recursive_type_alias("JSONValue");
+    let target = TypeIR::recursive_type_alias("JSONValue");
     let of = jsonish::helpers::render_output_format(&ir, &target, &Default::default()).unwrap();
 
     group.bench_function("json_value_jsonish_only", |b| {

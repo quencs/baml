@@ -1,5 +1,5 @@
 use anyhow::Result;
-use baml_types::FieldType;
+use baml_types::TypeIR;
 use internal_baml_jinja::types::Enum;
 
 use super::ParsingContext;
@@ -34,7 +34,7 @@ impl TypeCoercer for Enum {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
         log::debug!(

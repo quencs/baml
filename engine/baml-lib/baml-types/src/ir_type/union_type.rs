@@ -21,26 +21,26 @@ impl<T: std::fmt::Debug + Default> UnionTypeGeneric<T> {
     }
 }
 
-impl TypeGeneric<type_meta::Base> {
-    pub fn union(choices: Vec<TypeGeneric<type_meta::Base>>) -> TypeGeneric<type_meta::Base> {
-        TypeGeneric::Union(UnionTypeGeneric::new(choices), type_meta::Base::default()).simplify()
+impl TypeGeneric<type_meta::IR> {
+    pub fn union(choices: Vec<TypeGeneric<type_meta::IR>>) -> TypeGeneric<type_meta::IR> {
+        TypeGeneric::Union(UnionTypeGeneric::new(choices), type_meta::IR::default()).simplify()
     }
 
     pub fn union_with_meta(
-        choices: Vec<TypeGeneric<type_meta::Base>>,
-        meta: type_meta::Base,
-    ) -> TypeGeneric<type_meta::Base> {
+        choices: Vec<TypeGeneric<type_meta::IR>>,
+        meta: type_meta::IR,
+    ) -> TypeGeneric<type_meta::IR> {
         TypeGeneric::Union(unsafe { UnionTypeGeneric::new_unsafe(choices) }, meta).simplify()
     }
 
-    pub fn optional(inner: TypeGeneric<type_meta::Base>) -> TypeGeneric<type_meta::Base> {
+    pub fn optional(inner: TypeGeneric<type_meta::IR>) -> TypeGeneric<type_meta::IR> {
         if inner.is_null() {
             return inner;
         }
         TypeGeneric::union(vec![inner, TypeGeneric::null()])
     }
 
-    pub fn as_optional(self) -> TypeGeneric<type_meta::Base> {
+    pub fn as_optional(self) -> TypeGeneric<type_meta::IR> {
         TypeGeneric::optional(self)
     }
 }

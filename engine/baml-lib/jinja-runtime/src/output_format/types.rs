@@ -1,7 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
-use baml_types::{ir_type::UnionTypeViewGeneric, type_meta, Constraint, FieldType, TypeValue};
+use baml_types::{ir_type::UnionTypeViewGeneric, type_meta, Constraint, TypeIR, TypeValue};
 use indexmap::{IndexMap, IndexSet};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -48,7 +48,7 @@ pub struct Enum {
 pub struct Class {
     pub name: Name,
     // fields have name, type, description, and streaming_needed.
-    pub fields: Vec<(Name, FieldType, Option<String>, bool)>,
+    pub fields: Vec<(Name, TypeIR, Option<String>, bool)>,
     pub constraints: Vec<Constraint>,
     // We use this for parsing
     pub streaming_behavior: type_meta::base::StreamingBehavior,
@@ -59,8 +59,8 @@ pub struct OutputFormatContent {
     pub enums: Arc<IndexMap<String, Enum>>,
     pub classes: Arc<IndexMap<String, Class>>,
     pub recursive_classes: Arc<IndexSet<String>>,
-    pub structural_recursive_aliases: Arc<IndexMap<String, FieldType>>,
-    pub target: FieldType,
+    pub structural_recursive_aliases: Arc<IndexMap<String, TypeIR>>,
+    pub target: TypeIR,
 }
 
 /// Builder for [`OutputFormatContent`].
@@ -70,12 +70,12 @@ pub struct Builder {
     /// Order matters for this one.
     recursive_classes: IndexSet<String>,
     /// Recursive aliases introduced maps and lists.
-    structural_recursive_aliases: IndexMap<String, FieldType>,
-    target: FieldType,
+    structural_recursive_aliases: IndexMap<String, TypeIR>,
+    target: TypeIR,
 }
 
 impl Builder {
-    pub fn new(target: FieldType) -> Self {
+    pub fn new(target: TypeIR) -> Self {
         Self {
             enums: vec![],
             classes: vec![],
@@ -102,13 +102,13 @@ impl Builder {
 
     pub fn structural_recursive_aliases(
         mut self,
-        structural_recursive_aliases: IndexMap<String, FieldType>,
+        structural_recursive_aliases: IndexMap<String, TypeIR>,
     ) -> Self {
         self.structural_recursive_aliases = structural_recursive_aliases;
         self
     }
 
-    pub fn target(mut self, target: FieldType) -> Self {
+    pub fn target(mut self, target: TypeIR) -> Self {
         self.target = target;
         self
     }
@@ -351,7 +351,7 @@ struct RenderCtx {
 }
 
 impl OutputFormatContent {
-    pub fn target(target: FieldType) -> Builder {
+    pub fn target(target: TypeIR) -> Builder {
         Builder::new(target)
     }
 
@@ -366,30 +366,26 @@ impl OutputFormatContent {
             classes: Arc::new(IndexMap::new()),
             recursive_classes: Arc::new(IndexSet::new()),
             structural_recursive_aliases: Arc::new(IndexMap::new()),
-            target: FieldType::Primitive(TypeValue::String, Default::default()),
+            target: TypeIR::Primitive(TypeValue::String, Default::default()),
         }
     }
 
     fn prefix(&self, options: &RenderOptions, render_state: &RenderCtx) -> Option<String> {
         fn auto_prefix(
-            ft: &FieldType,
+            ft: &TypeIR,
             options: &RenderOptions,
             render_state: &RenderCtx,
             _output_format_content: &OutputFormatContent,
         ) -> Option<String> {
             match ft {
-                FieldType::Primitive(TypeValue::String, _) => None,
-                FieldType::Primitive(p, _) => Some(format!(
+                TypeIR::Primitive(TypeValue::String, _) => None,
+                TypeIR::Primitive(p, _) => Some(format!(
                     "Answer as {article} ",
                     article = indefinite_article_a_or_an(&p.to_string())
                 )),
-                FieldType::Literal(_, _) => {
-                    Some(String::from("Answer using this specific value:\n"))
-                }
-                FieldType::Enum { .. } => {
-                    Some(String::from("Answer with any of the categories:\n"))
-                }
-                FieldType::Class { name: cls, .. } => {
+                TypeIR::Literal(_, _) => Some(String::from("Answer using this specific value:\n")),
+                TypeIR::Enum { .. } => Some(String::from("Answer with any of the categories:\n")),
+                TypeIR::Class { name: cls, .. } => {
                     let type_prefix = match &options.hoisted_class_prefix {
                         RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
                         _ => RenderOptions::DEFAULT_TYPE_PREFIX_IN_RENDER_MESSAGE,
@@ -404,7 +400,7 @@ impl OutputFormatContent {
 
                     Some(format!("Answer in JSON using this {type_prefix}:{end}"))
                 }
-                FieldType::RecursiveTypeAlias { .. } => {
+                TypeIR::RecursiveTypeAlias { .. } => {
                     let type_prefix = match &options.hoisted_class_prefix {
                         RenderSetting::Always(prefix) if !prefix.is_empty() => prefix,
                         _ => RenderOptions::DEFAULT_TYPE_PREFIX_IN_RENDER_MESSAGE,
@@ -412,10 +408,10 @@ impl OutputFormatContent {
 
                     Some(format!("Answer in JSON using this {type_prefix}: "))
                 }
-                FieldType::List(_, _) => Some(String::from(
+                TypeIR::List(_, _) => Some(String::from(
                     "Answer with a JSON Array using this schema:\n",
                 )),
-                FieldType::Union(items, _) => match items.view() {
+                TypeIR::Union(items, _) => match items.view() {
                     UnionTypeViewGeneric::Null => Some(String::from("Answer ONLY with null:\n")),
                     UnionTypeViewGeneric::Optional(_) => {
                         Some(String::from("Answer in JSON using this schema:\n"))
@@ -427,11 +423,9 @@ impl OutputFormatContent {
                         Some(String::from("Answer in JSON using any of these schemas:\n"))
                     }
                 },
-                FieldType::Map(_, _, _) => {
-                    Some(String::from("Answer in JSON using this schema:\n"))
-                }
-                FieldType::Tuple(_, _) => None,
-                FieldType::Arrow(_, _) => None, // TODO: Error? Arrow shouldn't appear here.
+                TypeIR::Map(_, _, _) => Some(String::from("Answer in JSON using this schema:\n")),
+                TypeIR::Tuple(_, _) => None,
+                TypeIR::Arrow(_, _) => None, // TODO: Error? Arrow shouldn't appear here.
             }
         }
 
@@ -577,11 +571,11 @@ impl OutputFormatContent {
     fn render_possibly_hoisted_type(
         &self,
         options: &RenderOptions,
-        field_type: &FieldType,
+        field_type: &TypeIR,
         render_ctx: &RenderCtx,
     ) -> Result<String, minijinja::Error> {
         match field_type {
-            FieldType::Class {
+            TypeIR::Class {
                 name: nested_class, ..
             } if render_ctx.hoisted_classes.contains(nested_class) => Ok(nested_class.to_owned()),
 
@@ -596,11 +590,11 @@ impl OutputFormatContent {
     fn inner_type_render(
         &self,
         options: &RenderOptions,
-        field: &FieldType,
+        field: &TypeIR,
         render_ctx: &RenderCtx,
     ) -> Result<String, minijinja::Error> {
         Ok(match field {
-            FieldType::Primitive(t, _) => match t {
+            TypeIR::Primitive(t, _) => match t {
                 TypeValue::String => "string".to_string(),
                 TypeValue::Int => "int".to_string(),
                 TypeValue::Float => "float".to_string(),
@@ -613,8 +607,8 @@ impl OutputFormatContent {
                     ))
                 }
             },
-            FieldType::Literal(v, _) => v.to_string(),
-            FieldType::Enum { name: e, .. } => {
+            TypeIR::Literal(v, _) => v.to_string(),
+            TypeIR::Enum { name: e, .. } => {
                 let Some(enm) = self.enums.get(e) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -632,7 +626,7 @@ impl OutputFormatContent {
                         .join(&options.or_splitter)
                 }
             }
-            FieldType::Class { name: cls, .. } => {
+            TypeIR::Class { name: cls, .. } => {
                 let Some(class) = self.classes.get(cls) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -658,13 +652,13 @@ impl OutputFormatContent {
                 }
                 .to_string()
             }
-            FieldType::RecursiveTypeAlias { name, .. } => name.to_owned(),
-            FieldType::List(inner, _) => {
+            TypeIR::RecursiveTypeAlias { name, .. } => name.to_owned(),
+            TypeIR::List(inner, _) => {
                 let is_hoisted = match inner.as_ref() {
-                    FieldType::Class {
+                    TypeIR::Class {
                         name: nested_class, ..
                     } => render_ctx.hoisted_classes.contains(nested_class),
-                    FieldType::RecursiveTypeAlias { name, .. } => {
+                    TypeIR::RecursiveTypeAlias { name, .. } => {
                         self.structural_recursive_aliases.contains_key(name)
                     }
                     _ => false,
@@ -674,40 +668,40 @@ impl OutputFormatContent {
 
                 if !is_hoisted
                     && match inner.as_ref() {
-                        FieldType::Primitive(_, _) => false,
-                        FieldType::Enum { .. } => inner_str.len() > 15,
-                        FieldType::Union(items, _) => {
+                        TypeIR::Primitive(_, _) => false,
+                        TypeIR::Enum { .. } => inner_str.len() > 15,
+                        TypeIR::Union(items, _) => {
                             items.iter_include_null().iter().all(|t| !t.is_primitive())
                         }
                         _ => true,
                     }
                 {
                     format!("[\n  {}\n]", inner_str.replace('\n', "\n  "))
-                } else if matches!(inner.as_ref(), FieldType::Union(_, _)) {
+                } else if matches!(inner.as_ref(), TypeIR::Union(_, _)) {
                     format!("({})[]", inner_str)
                 } else {
                     format!("{}[]", inner_str)
                 }
             }
-            FieldType::Union(items, _) => items
+            TypeIR::Union(items, _) => items
                 .iter_include_null()
                 .iter()
                 .map(|t| self.render_possibly_hoisted_type(options, t, render_ctx))
                 .collect::<Result<Vec<_>, minijinja::Error>>()?
                 .join(&options.or_splitter),
-            FieldType::Tuple(_, _) => {
+            TypeIR::Tuple(_, _) => {
                 return Err(minijinja::Error::new(
                     minijinja::ErrorKind::BadSerialization,
                     "Tuple type is not supported in outputs",
                 ))
             }
-            FieldType::Map(key_type, value_type, _) => MapRender {
+            TypeIR::Map(key_type, value_type, _) => MapRender {
                 style: &options.map_style,
                 key_type: self.render_possibly_hoisted_type(options, key_type, render_ctx)?,
                 value_type: self.render_possibly_hoisted_type(options, value_type, render_ctx)?,
             }
             .to_string(),
-            FieldType::Arrow(_, _) => {
+            TypeIR::Arrow(_, _) => {
                 return Err(minijinja::Error::new(
                     minijinja::ErrorKind::BadSerialization,
                     "Arrow type is not supported in LLM function outputs",
@@ -789,8 +783,8 @@ impl OutputFormatContent {
         let prefix = self.prefix(&options, &render_ctx);
 
         let mut message = match &self.target {
-            FieldType::Primitive(TypeValue::String, _) if prefix.is_none() => None,
-            FieldType::Enum { name: e, .. } => {
+            TypeIR::Primitive(TypeValue::String, _) if prefix.is_none() => None,
+            TypeIR::Enum { name: e, .. } => {
                 let Some(enm) = self.enums.get(e) else {
                     return Err(minijinja::Error::new(
                         minijinja::ErrorKind::BadSerialization,
@@ -805,7 +799,7 @@ impl OutputFormatContent {
 
         // Top level recursive classes will just use their name instead of the
         // entire schema which should already be hoisted.
-        if let FieldType::Class { name: class, .. } = &self.target {
+        if let TypeIR::Class { name: class, .. } = &self.target {
             if render_ctx.hoisted_classes.contains(class) {
                 message = Some(class.to_owned());
             }
@@ -813,7 +807,7 @@ impl OutputFormatContent {
 
         // Top level hoisted enums will just use their name instead of the
         // entire schema which should already be hoisted.
-        let target_is_hoisted_enum = if let FieldType::Enum {
+        let target_is_hoisted_enum = if let TypeIR::Enum {
             name: enum_name, ..
         } = &self.target
         {
@@ -831,7 +825,7 @@ impl OutputFormatContent {
 
         for class_name in &render_ctx.hoisted_classes {
             let schema =
-                self.inner_type_render(&options, &FieldType::class(class_name), &render_ctx)?;
+                self.inner_type_render(&options, &TypeIR::class(class_name), &render_ctx)?;
 
             class_definitions.push(match &options.hoisted_class_prefix {
                 RenderSetting::Always(prefix) if !prefix.is_empty() => {
@@ -915,15 +909,11 @@ impl OutputFormatContent {
 #[cfg(test)]
 impl OutputFormatContent {
     pub fn new_array() -> Self {
-        Self::target(FieldType::List(
-            Box::new(FieldType::string()),
-            Default::default(),
-        ))
-        .build()
+        Self::target(TypeIR::List(Box::new(TypeIR::string()), Default::default())).build()
     }
 
     pub fn new_string() -> Self {
-        Self::target(FieldType::string()).build()
+        Self::target(TypeIR::string()).build()
     }
 }
 
@@ -940,7 +930,7 @@ impl OutputFormatContent {
             .ok_or_else(|| anyhow::anyhow!("Class {name} not found"))
     }
 
-    pub fn find_recursive_alias_target(&self, name: &str) -> Result<&FieldType> {
+    pub fn find_recursive_alias_target(&self, name: &str) -> Result<&TypeIR> {
         self.structural_recursive_aliases
             .get(name)
             .ok_or_else(|| anyhow::anyhow!("Recursive alias {name} not found"))
@@ -962,14 +952,14 @@ mod tests {
 
     #[test]
     fn render_int() {
-        let content = OutputFormatContent::target(FieldType::int()).build();
+        let content = OutputFormatContent::target(TypeIR::int()).build();
         let rendered = content.render(RenderOptions::default()).unwrap();
         assert_eq!(rendered, Some("Answer as an int".into()));
     }
 
     #[test]
     fn render_float() {
-        let content = OutputFormatContent::target(FieldType::float()).build();
+        let content = OutputFormatContent::target(TypeIR::float()).build();
         let rendered = content.render(RenderOptions::default()).unwrap();
         assert_eq!(rendered, Some("Answer as a float".into()));
     }
@@ -996,7 +986,7 @@ mod tests {
             constraints: Vec::new(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::r#enum("Color"))
+        let content = OutputFormatContent::target(TypeIR::r#enum("Color"))
             .enums(enums)
             .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
@@ -1020,13 +1010,13 @@ Color
             fields: vec![
                 (
                     Name::new("name".to_string()),
-                    FieldType::string(),
+                    TypeIR::string(),
                     Some("The person's name".to_string()),
                     false,
                 ),
                 (
                     Name::new("age".to_string()),
-                    FieldType::int(),
+                    TypeIR::int(),
                     Some("The person's age".to_string()),
                     false,
                 ),
@@ -1035,7 +1025,7 @@ Color
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::class("Person"))
+        let content = OutputFormatContent::target(TypeIR::class("Person"))
             .classes(classes)
             .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
@@ -1060,23 +1050,23 @@ Color
             fields: vec![
                 (
                     Name::new("school".to_string()),
-                    FieldType::optional(FieldType::string()),
+                    TypeIR::optional(TypeIR::string()),
                     Some("111\n  ".to_string()),
                     false,
                 ),
                 (
                     Name::new("degree".to_string()),
-                    FieldType::string(),
+                    TypeIR::string(),
                     Some("2222222".to_string()),
                     false,
                 ),
-                (Name::new("year".to_string()), FieldType::int(), None, false),
+                (Name::new("year".to_string()), TypeIR::int(), None, false),
             ],
             constraints: Vec::new(),
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::class("Education"))
+        let content = OutputFormatContent::target(TypeIR::class("Education"))
             .classes(classes)
             .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
@@ -1116,7 +1106,7 @@ Color
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::r#enum("Enm"),
+                TypeIR::r#enum("Enm"),
                 None,
                 false,
             )],
@@ -1124,7 +1114,7 @@ Color
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::class("Output"))
+        let content = OutputFormatContent::target(TypeIR::class("Output"))
             .enums(enums)
             .classes(classes)
             .build();
@@ -1172,7 +1162,7 @@ Answer in JSON using this schema:
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::r#enum("Enm"),
+                TypeIR::r#enum("Enm"),
                 None,
                 false,
             )],
@@ -1180,7 +1170,7 @@ Answer in JSON using this schema:
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::class("Output"))
+        let content = OutputFormatContent::target(TypeIR::class("Output"))
             .enums(enums)
             .classes(classes)
             .build();
@@ -1224,7 +1214,7 @@ Answer in JSON using this schema:
             name: Name::new("Output".to_string()),
             fields: vec![(
                 Name::new("output".to_string()),
-                FieldType::r#enum("Enm"),
+                TypeIR::r#enum("Enm"),
                 None,
                 false,
             )],
@@ -1232,7 +1222,7 @@ Answer in JSON using this schema:
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::class("Output"))
+        let content = OutputFormatContent::target(TypeIR::class("Output"))
             .enums(enums)
             .classes(classes)
             .build();
@@ -1270,13 +1260,13 @@ Answer in JSON using this schema:
                 fields: vec![
                     (
                         Name::new("description".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
                     (
                         Name::new("severity".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
@@ -1289,13 +1279,13 @@ Answer in JSON using this schema:
                 fields: vec![
                     (
                         Name::new("title".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
                     (
                         Name::new("description".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
@@ -1308,13 +1298,13 @@ Answer in JSON using this schema:
                 fields: vec![
                     (
                         Name::new("module".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
                     (
                         Name::new("format".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
@@ -1324,10 +1314,10 @@ Answer in JSON using this schema:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::union(vec![
-            FieldType::class("Bug"),
-            FieldType::class("Enhancement"),
-            FieldType::class("Documentation"),
+        let content = OutputFormatContent::target(TypeIR::union(vec![
+            TypeIR::class("Bug"),
+            TypeIR::class("Enhancement"),
+            TypeIR::class("Documentation"),
         ]))
         .classes(classes)
         .build();
@@ -1359,20 +1349,15 @@ r#"Answer in JSON using any of these schemas:
                 fields: vec![
                     (
                         Name::new("category".to_string()),
-                        FieldType::union(vec![
-                            FieldType::class("Bug"),
-                            FieldType::class("Enhancement"),
-                            FieldType::class("Documentation"),
+                        TypeIR::union(vec![
+                            TypeIR::class("Bug"),
+                            TypeIR::class("Enhancement"),
+                            TypeIR::class("Documentation"),
                         ]),
                         None,
                         false,
                     ),
-                    (
-                        Name::new("date".to_string()),
-                        FieldType::string(),
-                        None,
-                        false,
-                    ),
+                    (Name::new("date".to_string()), TypeIR::string(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
@@ -1382,13 +1367,13 @@ r#"Answer in JSON using any of these schemas:
                 fields: vec![
                     (
                         Name::new("description".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
                     (
                         Name::new("severity".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
@@ -1401,13 +1386,13 @@ r#"Answer in JSON using any of these schemas:
                 fields: vec![
                     (
                         Name::new("title".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
                     (
                         Name::new("description".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
@@ -1420,13 +1405,13 @@ r#"Answer in JSON using any of these schemas:
                 fields: vec![
                     (
                         Name::new("module".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
                     (
                         Name::new("format".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
@@ -1436,7 +1421,7 @@ r#"Answer in JSON using any of these schemas:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("Issue"))
+        let content = OutputFormatContent::target(TypeIR::class("Issue"))
             .classes(classes)
             .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
@@ -1467,10 +1452,10 @@ r#"Answer in JSON using this schema:
         let classes = vec![Class {
             name: Name::new("Node".to_string()),
             fields: vec![
-                (Name::new("data".to_string()), FieldType::int(), None, false),
+                (Name::new("data".to_string()), TypeIR::int(), None, false),
                 (
                     Name::new("next".to_string()),
-                    FieldType::optional(FieldType::class("Node")),
+                    TypeIR::optional(TypeIR::class("Node")),
                     None,
                     false,
                 ),
@@ -1479,7 +1464,7 @@ r#"Answer in JSON using this schema:
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::class("Node"))
+        let content = OutputFormatContent::target(TypeIR::class("Node"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(["Node".to_string()]))
             .build();
@@ -1504,10 +1489,10 @@ Answer in JSON using this schema: Node"#
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -1520,18 +1505,18 @@ Answer in JSON using this schema: Node"#
                 fields: vec![
                     (
                         Name::new("head".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
-                    (Name::new("len".to_string()), FieldType::int(), None, false),
+                    (Name::new("len".to_string()), TypeIR::int(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("LinkedList"))
+        let content = OutputFormatContent::target(TypeIR::class("LinkedList"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(["Node".to_string()]))
             .build();
@@ -1561,7 +1546,7 @@ Answer in JSON using this schema:
                 name: Name::new("A".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::class("B"),
+                    TypeIR::class("B"),
                     None,
                     false,
                 )],
@@ -1572,7 +1557,7 @@ Answer in JSON using this schema:
                 name: Name::new("B".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::class("C"),
+                    TypeIR::class("C"),
                     None,
                     false,
                 )],
@@ -1583,7 +1568,7 @@ Answer in JSON using this schema:
                 name: Name::new("C".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::optional(FieldType::class("A")),
+                    TypeIR::optional(TypeIR::class("A")),
                     None,
                     false,
                 )],
@@ -1592,7 +1577,7 @@ Answer in JSON using this schema:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("A"))
+        let content = OutputFormatContent::target(TypeIR::class("A"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["A", "B", "C"].map(ToString::to_string),
@@ -1627,7 +1612,7 @@ Answer in JSON using this schema: A"#
                 name: Name::new("A".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::class("B"),
+                    TypeIR::class("B"),
                     None,
                     false,
                 )],
@@ -1638,7 +1623,7 @@ Answer in JSON using this schema: A"#
                 name: Name::new("B".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::class("C"),
+                    TypeIR::class("C"),
                     None,
                     false,
                 )],
@@ -1649,7 +1634,7 @@ Answer in JSON using this schema: A"#
                 name: Name::new("C".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::optional(FieldType::class("A")),
+                    TypeIR::optional(TypeIR::class("A")),
                     None,
                     false,
                 )],
@@ -1661,24 +1646,19 @@ Answer in JSON using this schema: A"#
                 fields: vec![
                     (
                         Name::new("pointer".to_string()),
-                        FieldType::class("A"),
+                        TypeIR::class("A"),
                         None,
                         false,
                     ),
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
-                    (
-                        Name::new("field".to_string()),
-                        FieldType::bool(),
-                        None,
-                        false,
-                    ),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
+                    (Name::new("field".to_string()), TypeIR::bool(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("NonRecursive"))
+        let content = OutputFormatContent::target(TypeIR::class("NonRecursive"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["A", "B", "C"].map(ToString::to_string),
@@ -1719,13 +1699,13 @@ Answer in JSON using this schema:
                 fields: vec![
                     (
                         Name::new("pointer".to_string()),
-                        FieldType::class("B"),
+                        TypeIR::class("B"),
                         None,
                         false,
                     ),
                     (
                         Name::new("nested".to_string()),
-                        FieldType::class("Nested"),
+                        TypeIR::class("Nested"),
                         None,
                         false,
                     ),
@@ -1737,7 +1717,7 @@ Answer in JSON using this schema:
                 name: Name::new("B".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::class("C"),
+                    TypeIR::class("C"),
                     None,
                     false,
                 )],
@@ -1748,7 +1728,7 @@ Answer in JSON using this schema:
                 name: Name::new("C".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::optional(FieldType::class("A")),
+                    TypeIR::optional(TypeIR::class("A")),
                     None,
                     false,
                 )],
@@ -1760,17 +1740,12 @@ Answer in JSON using this schema:
                 fields: vec![
                     (
                         Name::new("pointer".to_string()),
-                        FieldType::class("A"),
+                        TypeIR::class("A"),
                         None,
                         false,
                     ),
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
-                    (
-                        Name::new("field".to_string()),
-                        FieldType::bool(),
-                        None,
-                        false,
-                    ),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
+                    (Name::new("field".to_string()), TypeIR::bool(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
@@ -1778,20 +1753,15 @@ Answer in JSON using this schema:
             Class {
                 name: Name::new("Nested".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
-                    (
-                        Name::new("field".to_string()),
-                        FieldType::bool(),
-                        None,
-                        false,
-                    ),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
+                    (Name::new("field".to_string()), TypeIR::bool(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("NonRecursive"))
+        let content = OutputFormatContent::target(TypeIR::class("NonRecursive"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["A", "B", "C"].map(ToString::to_string),
@@ -1834,10 +1804,10 @@ Answer in JSON using this schema:
             Class {
                 name: Name::new("Tree".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("children".to_string()),
-                        FieldType::class("Forest"),
+                        TypeIR::class("Forest"),
                         None,
                         false,
                     ),
@@ -1849,7 +1819,7 @@ Answer in JSON using this schema:
                 name: Name::new("Forest".to_string()),
                 fields: vec![(
                     Name::new("trees".to_string()),
-                    FieldType::list(FieldType::class("Tree")),
+                    TypeIR::list(TypeIR::class("Tree")),
                     None,
                     false,
                 )],
@@ -1858,7 +1828,7 @@ Answer in JSON using this schema:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("Tree"))
+        let content = OutputFormatContent::target(TypeIR::class("Tree"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["Tree", "Forest"].map(ToString::to_string),
@@ -1889,10 +1859,10 @@ Answer in JSON using this schema: Tree"#
             name: Name::new("SelfReferential".to_string()),
             fields: vec![(
                 Name::new("recursion".to_string()),
-                FieldType::union(vec![
-                    FieldType::int(),
-                    FieldType::string(),
-                    FieldType::optional(FieldType::class("SelfReferential")),
+                TypeIR::union(vec![
+                    TypeIR::int(),
+                    TypeIR::string(),
+                    TypeIR::optional(TypeIR::class("SelfReferential")),
                 ]),
                 None,
                 false,
@@ -1901,7 +1871,7 @@ Answer in JSON using this schema: Tree"#
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::class("SelfReferential"))
+        let content = OutputFormatContent::target(TypeIR::class("SelfReferential"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["SelfReferential"].map(ToString::to_string),
@@ -1927,10 +1897,10 @@ Answer in JSON using this schema: SelfReferential"#
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -1941,10 +1911,10 @@ Answer in JSON using this schema: SelfReferential"#
             Class {
                 name: Name::new("Tree".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("children".to_string()),
-                        FieldType::list(FieldType::class("Tree")),
+                        TypeIR::list(TypeIR::class("Tree")),
                         None,
                         false,
                     ),
@@ -1954,9 +1924,9 @@ Answer in JSON using this schema: SelfReferential"#
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::union(vec![
-            FieldType::class("Node"),
-            FieldType::class("Tree"),
+        let content = OutputFormatContent::target(TypeIR::union(vec![
+            TypeIR::class("Node"),
+            TypeIR::class("Tree"),
         ]))
         .classes(classes)
         .recursive_classes(IndexSet::from_iter(
@@ -1992,14 +1962,14 @@ Node or Tree"#
                 fields: vec![
                     (
                         Name::new("data_type".to_string()),
-                        FieldType::union(vec![FieldType::class("Node"), FieldType::class("Tree")]),
+                        TypeIR::union(vec![TypeIR::class("Node"), TypeIR::class("Tree")]),
                         None,
                         false,
                     ),
-                    (Name::new("len".to_string()), FieldType::int(), None, false),
+                    (Name::new("len".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("description".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
@@ -2010,10 +1980,10 @@ Node or Tree"#
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2024,10 +1994,10 @@ Node or Tree"#
             Class {
                 name: Name::new("Tree".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("children".to_string()),
-                        FieldType::list(FieldType::class("Tree")),
+                        TypeIR::list(TypeIR::class("Tree")),
                         None,
                         false,
                     ),
@@ -2037,7 +2007,7 @@ Node or Tree"#
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("DataType"))
+        let content = OutputFormatContent::target(TypeIR::class("DataType"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["Node", "Tree"].map(ToString::to_string),
@@ -2074,10 +2044,10 @@ Answer in JSON using this schema:
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2088,10 +2058,10 @@ Answer in JSON using this schema:
             Class {
                 name: Name::new("Tree".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("children".to_string()),
-                        FieldType::list(FieldType::class("Tree")),
+                        TypeIR::list(TypeIR::class("Tree")),
                         None,
                         false,
                     ),
@@ -2102,23 +2072,18 @@ Answer in JSON using this schema:
             Class {
                 name: Name::new("NonRecursive".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
-                    (
-                        Name::new("tag".to_string()),
-                        FieldType::string(),
-                        None,
-                        false,
-                    ),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
+                    (Name::new("tag".to_string()), TypeIR::string(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::union(vec![
-            FieldType::class("Node"),
-            FieldType::class("Tree"),
-            FieldType::class("NonRecursive"),
+        let content = OutputFormatContent::target(TypeIR::union(vec![
+            TypeIR::class("Node"),
+            TypeIR::class("Tree"),
+            TypeIR::class("NonRecursive"),
         ]))
         .classes(classes)
         .recursive_classes(IndexSet::from_iter(
@@ -2157,18 +2122,18 @@ Node or Tree or {
                 fields: vec![
                     (
                         Name::new("data_type".to_string()),
-                        FieldType::union(vec![
-                            FieldType::class("Node"),
-                            FieldType::class("Tree"),
-                            FieldType::class("NonRecursive"),
+                        TypeIR::union(vec![
+                            TypeIR::class("Node"),
+                            TypeIR::class("Tree"),
+                            TypeIR::class("NonRecursive"),
                         ]),
                         None,
                         false,
                     ),
-                    (Name::new("len".to_string()), FieldType::int(), None, false),
+                    (Name::new("len".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("description".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
@@ -2179,10 +2144,10 @@ Node or Tree or {
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2193,10 +2158,10 @@ Node or Tree or {
             Class {
                 name: Name::new("Tree".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("children".to_string()),
-                        FieldType::list(FieldType::class("Tree")),
+                        TypeIR::list(TypeIR::class("Tree")),
                         None,
                         false,
                     ),
@@ -2207,20 +2172,15 @@ Node or Tree or {
             Class {
                 name: Name::new("NonRecursive".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
-                    (
-                        Name::new("tag".to_string()),
-                        FieldType::string(),
-                        None,
-                        false,
-                    ),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
+                    (Name::new("tag".to_string()), TypeIR::string(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("DataType"))
+        let content = OutputFormatContent::target(TypeIR::class("DataType"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["Node", "Tree"].map(ToString::to_string),
@@ -2261,7 +2221,7 @@ Answer in JSON using this schema:
                 name: Name::new("A".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::class("B"),
+                    TypeIR::class("B"),
                     None,
                     false,
                 )],
@@ -2272,7 +2232,7 @@ Answer in JSON using this schema:
                 name: Name::new("B".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::class("C"),
+                    TypeIR::class("C"),
                     None,
                     false,
                 )],
@@ -2283,7 +2243,7 @@ Answer in JSON using this schema:
                 name: Name::new("C".to_string()),
                 fields: vec![(
                     Name::new("pointer".to_string()),
-                    FieldType::optional(FieldType::class("A")),
+                    TypeIR::optional(TypeIR::class("A")),
                     None,
                     false,
                 )],
@@ -2295,24 +2255,19 @@ Answer in JSON using this schema:
                 fields: vec![
                     (
                         Name::new("pointer".to_string()),
-                        FieldType::class("A"),
+                        TypeIR::class("A"),
                         None,
                         false,
                     ),
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
-                    (
-                        Name::new("field".to_string()),
-                        FieldType::bool(),
-                        None,
-                        false,
-                    ),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
+                    (Name::new("field".to_string()), TypeIR::bool(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("NonRecursive"))
+        let content = OutputFormatContent::target(TypeIR::class("NonRecursive"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["A", "B", "C"].map(ToString::to_string),
@@ -2353,10 +2308,10 @@ Answer in JSON using this interface:
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2367,10 +2322,10 @@ Answer in JSON using this interface:
             Class {
                 name: Name::new("Tree".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("children".to_string()),
-                        FieldType::list(FieldType::class("Tree")),
+                        TypeIR::list(TypeIR::class("Tree")),
                         None,
                         false,
                     ),
@@ -2380,9 +2335,9 @@ Answer in JSON using this interface:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::union(vec![
-            FieldType::union(vec![FieldType::class("Node"), FieldType::int()]),
-            FieldType::union(vec![FieldType::string(), FieldType::class("Tree")]),
+        let content = OutputFormatContent::target(TypeIR::union(vec![
+            TypeIR::union(vec![TypeIR::class("Node"), TypeIR::int()]),
+            TypeIR::union(vec![TypeIR::string(), TypeIR::class("Tree")]),
         ]))
         .classes(classes)
         .recursive_classes(IndexSet::from_iter(
@@ -2416,10 +2371,10 @@ Node or int or string or Tree"#
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2430,10 +2385,10 @@ Node or int or string or Tree"#
             Class {
                 name: Name::new("Tree".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("children".to_string()),
-                        FieldType::list(FieldType::class("Tree")),
+                        TypeIR::list(TypeIR::class("Tree")),
                         None,
                         false,
                     ),
@@ -2446,27 +2401,22 @@ Node or int or string or Tree"#
                 fields: vec![
                     (
                         Name::new("the_union".to_string()),
-                        FieldType::union(vec![
-                            FieldType::union(vec![FieldType::class("Node"), FieldType::int()]),
-                            FieldType::union(vec![FieldType::string(), FieldType::class("Tree")]),
+                        TypeIR::union(vec![
+                            TypeIR::union(vec![TypeIR::class("Node"), TypeIR::int()]),
+                            TypeIR::union(vec![TypeIR::string(), TypeIR::class("Tree")]),
                         ]),
                         None,
                         false,
                     ),
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
-                    (
-                        Name::new("field".to_string()),
-                        FieldType::bool(),
-                        None,
-                        false,
-                    ),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
+                    (Name::new("field".to_string()), TypeIR::bool(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("NonRecursive"))
+        let content = OutputFormatContent::target(TypeIR::class("NonRecursive"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(
                 ["Node", "Tree"].map(ToString::to_string),
@@ -2502,10 +2452,10 @@ Answer in JSON using this schema:
         let classes = vec![Class {
             name: Name::new("Node".to_string()),
             fields: vec![
-                (Name::new("data".to_string()), FieldType::int(), None, false),
+                (Name::new("data".to_string()), TypeIR::int(), None, false),
                 (
                     Name::new("next".to_string()),
-                    FieldType::optional(FieldType::class("Node")),
+                    TypeIR::optional(TypeIR::class("Node")),
                     None,
                     false,
                 ),
@@ -2514,7 +2464,7 @@ Answer in JSON using this schema:
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::list(FieldType::class("Node")))
+        let content = OutputFormatContent::target(TypeIR::list(TypeIR::class("Node")))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(["Node".to_string()]))
             .build();
@@ -2540,7 +2490,7 @@ Node[]"#
             name: Name::new("RecursiveMap".to_string()),
             fields: vec![(
                 Name::new("data".to_string()),
-                FieldType::map(FieldType::string(), FieldType::class("RecursiveMap")),
+                TypeIR::map(TypeIR::string(), TypeIR::class("RecursiveMap")),
                 None,
                 false,
             )],
@@ -2548,7 +2498,7 @@ Node[]"#
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::class("RecursiveMap"))
+        let content = OutputFormatContent::target(TypeIR::class("RecursiveMap"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(["RecursiveMap".to_string()]))
             .build();
@@ -2573,7 +2523,7 @@ Answer in JSON using this schema: RecursiveMap"#
                 name: Name::new("RecursiveMap".to_string()),
                 fields: vec![(
                     Name::new("data".to_string()),
-                    FieldType::map(FieldType::string(), FieldType::class("RecursiveMap")),
+                    TypeIR::map(TypeIR::string(), TypeIR::class("RecursiveMap")),
                     None,
                     false,
                 )],
@@ -2584,7 +2534,7 @@ Answer in JSON using this schema: RecursiveMap"#
                 name: Name::new("NonRecursive".to_string()),
                 fields: vec![(
                     Name::new("rec_map".to_string()),
-                    FieldType::class("RecursiveMap"),
+                    TypeIR::class("RecursiveMap"),
                     None,
                     false,
                 )],
@@ -2593,7 +2543,7 @@ Answer in JSON using this schema: RecursiveMap"#
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("NonRecursive"))
+        let content = OutputFormatContent::target(TypeIR::class("NonRecursive"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(["RecursiveMap".to_string()]))
             .build();
@@ -2619,10 +2569,10 @@ Answer in JSON using this schema:
         let classes = vec![Class {
             name: Name::new("Node".to_string()),
             fields: vec![
-                (Name::new("data".to_string()), FieldType::int(), None, false),
+                (Name::new("data".to_string()), TypeIR::int(), None, false),
                 (
                     Name::new("next".to_string()),
-                    FieldType::optional(FieldType::class("Node")),
+                    TypeIR::optional(TypeIR::class("Node")),
                     None,
                     false,
                 ),
@@ -2631,13 +2581,11 @@ Answer in JSON using this schema:
             streaming_behavior: Default::default(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::map(
-            FieldType::string(),
-            FieldType::class("Node"),
-        ))
-        .classes(classes)
-        .recursive_classes(IndexSet::from_iter(["Node".to_string()]))
-        .build();
+        let content =
+            OutputFormatContent::target(TypeIR::map(TypeIR::string(), TypeIR::class("Node")))
+                .classes(classes)
+                .recursive_classes(IndexSet::from_iter(["Node".to_string()]))
+                .build();
         let rendered = content.render(RenderOptions::default()).unwrap();
         #[rustfmt::skip]
         assert_eq!(
@@ -2661,7 +2609,7 @@ map<string, Node>"#
                 name: Name::new("MapWithRecValue".to_string()),
                 fields: vec![(
                     Name::new("data".to_string()),
-                    FieldType::map(FieldType::string(), FieldType::class("Node")),
+                    TypeIR::map(TypeIR::string(), TypeIR::class("Node")),
                     None,
                     false,
                 )],
@@ -2671,10 +2619,10 @@ map<string, Node>"#
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2684,7 +2632,7 @@ map<string, Node>"#
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("MapWithRecValue"))
+        let content = OutputFormatContent::target(TypeIR::class("MapWithRecValue"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(["Node".to_string()]))
             .build();
@@ -2713,10 +2661,7 @@ Answer in JSON using this schema:
                 name: Name::new("MapWithRecValue".to_string()),
                 fields: vec![(
                     Name::new("data".to_string()),
-                    FieldType::map(
-                        FieldType::string(),
-                        FieldType::optional(FieldType::class("Node")),
-                    ),
+                    TypeIR::map(TypeIR::string(), TypeIR::optional(TypeIR::class("Node"))),
                     None,
                     false,
                 )],
@@ -2726,10 +2671,10 @@ Answer in JSON using this schema:
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2739,7 +2684,7 @@ Answer in JSON using this schema:
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("MapWithRecValue"))
+        let content = OutputFormatContent::target(TypeIR::class("MapWithRecValue"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(["Node".to_string()]))
             .build();
@@ -2767,10 +2712,10 @@ Answer in JSON using this schema:
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2783,23 +2728,23 @@ Answer in JSON using this schema:
                 fields: vec![
                     (
                         Name::new("field".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::map(
-            FieldType::string(),
-            FieldType::union(vec![
-                FieldType::class("Node"),
-                FieldType::int(),
-                FieldType::class("NonRecursive"),
+        let content = OutputFormatContent::target(TypeIR::map(
+            TypeIR::string(),
+            TypeIR::union(vec![
+                TypeIR::class("Node"),
+                TypeIR::int(),
+                TypeIR::class("NonRecursive"),
             ]),
         ))
         .classes(classes)
@@ -2831,12 +2776,12 @@ map<string, Node or int or {
                 name: Name::new("MapWithRecUnion".to_string()),
                 fields: vec![(
                     Name::new("data".to_string()),
-                    FieldType::map(
-                        FieldType::string(),
-                        FieldType::union(vec![
-                            FieldType::class("Node"),
-                            FieldType::int(),
-                            FieldType::class("NonRecursive"),
+                    TypeIR::map(
+                        TypeIR::string(),
+                        TypeIR::union(vec![
+                            TypeIR::class("Node"),
+                            TypeIR::int(),
+                            TypeIR::class("NonRecursive"),
                         ]),
                     ),
                     None,
@@ -2848,10 +2793,10 @@ map<string, Node or int or {
             Class {
                 name: Name::new("Node".to_string()),
                 fields: vec![
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                     (
                         Name::new("next".to_string()),
-                        FieldType::optional(FieldType::class("Node")),
+                        TypeIR::optional(TypeIR::class("Node")),
                         None,
                         false,
                     ),
@@ -2864,18 +2809,18 @@ map<string, Node or int or {
                 fields: vec![
                     (
                         Name::new("field".to_string()),
-                        FieldType::string(),
+                        TypeIR::string(),
                         None,
                         false,
                     ),
-                    (Name::new("data".to_string()), FieldType::int(), None, false),
+                    (Name::new("data".to_string()), TypeIR::int(), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("MapWithRecUnion"))
+        let content = OutputFormatContent::target(TypeIR::class("MapWithRecUnion"))
             .classes(classes)
             .recursive_classes(IndexSet::from_iter(["Node".to_string()]))
             .build();
@@ -2903,12 +2848,12 @@ Answer in JSON using this schema:
     #[test]
     fn render_simple_recursive_aliases() {
         let content =
-            OutputFormatContent::target(FieldType::recursive_type_alias("RecursiveMapAlias"))
+            OutputFormatContent::target(TypeIR::recursive_type_alias("RecursiveMapAlias"))
                 .structural_recursive_aliases(IndexMap::from([(
                     "RecursiveMapAlias".to_string(),
-                    FieldType::map(
-                        FieldType::string(),
-                        FieldType::recursive_type_alias("RecursiveMapAlias"),
+                    TypeIR::map(
+                        TypeIR::string(),
+                        TypeIR::recursive_type_alias("RecursiveMapAlias"),
                     ),
                 )]))
                 .build();
@@ -2926,13 +2871,13 @@ Answer in JSON using this schema: RecursiveMapAlias"#
 
     #[test]
     fn render_recursive_alias_cycle() {
-        let content = OutputFormatContent::target(FieldType::recursive_type_alias("A"))
+        let content = OutputFormatContent::target(TypeIR::recursive_type_alias("A"))
             .structural_recursive_aliases(IndexMap::from([
-                ("A".to_string(), FieldType::recursive_type_alias("B")),
-                ("B".to_string(), FieldType::recursive_type_alias("C")),
+                ("A".to_string(), TypeIR::recursive_type_alias("B")),
+                ("B".to_string(), TypeIR::recursive_type_alias("C")),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::recursive_type_alias("A")),
+                    TypeIR::list(TypeIR::recursive_type_alias("A")),
                 ),
             ]))
             .build();
@@ -2952,13 +2897,13 @@ Answer in JSON using this schema: A"#
 
     #[test]
     fn render_recursive_alias_cycle_with_hoist_prefix() {
-        let content = OutputFormatContent::target(FieldType::recursive_type_alias("A"))
+        let content = OutputFormatContent::target(TypeIR::recursive_type_alias("A"))
             .structural_recursive_aliases(IndexMap::from([
-                ("A".to_string(), FieldType::recursive_type_alias("B")),
-                ("B".to_string(), FieldType::recursive_type_alias("C")),
+                ("A".to_string(), TypeIR::recursive_type_alias("B")),
+                ("B".to_string(), TypeIR::recursive_type_alias("C")),
                 (
                     "C".to_string(),
-                    FieldType::list(FieldType::recursive_type_alias("A")),
+                    TypeIR::list(TypeIR::recursive_type_alias("A")),
                 ),
             ]))
             .build();
@@ -2983,60 +2928,35 @@ Answer in JSON using this type: A"#
         let classes = vec![
             Class {
                 name: Name::new("A".to_string()),
-                fields: vec![(Name::new("prop".to_string()), FieldType::int(), None, false)],
+                fields: vec![(Name::new("prop".to_string()), TypeIR::int(), None, false)],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("B".to_string()),
-                fields: vec![(
-                    Name::new("prop".to_string()),
-                    FieldType::string(),
-                    None,
-                    false,
-                )],
+                fields: vec![(Name::new("prop".to_string()), TypeIR::string(), None, false)],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("C".to_string()),
-                fields: vec![(
-                    Name::new("prop".to_string()),
-                    FieldType::float(),
-                    None,
-                    false,
-                )],
+                fields: vec![(Name::new("prop".to_string()), TypeIR::float(), None, false)],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Ret".to_string()),
                 fields: vec![
-                    (
-                        Name::new("a".to_string()),
-                        FieldType::class("A"),
-                        None,
-                        false,
-                    ),
-                    (
-                        Name::new("b".to_string()),
-                        FieldType::class("B"),
-                        None,
-                        false,
-                    ),
-                    (
-                        Name::new("c".to_string()),
-                        FieldType::class("C"),
-                        None,
-                        false,
-                    ),
+                    (Name::new("a".to_string()), TypeIR::class("A"), None, false),
+                    (Name::new("b".to_string()), TypeIR::class("B"), None, false),
+                    (Name::new("c".to_string()), TypeIR::class("C"), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("Ret"))
+        let content = OutputFormatContent::target(TypeIR::class("Ret"))
             .classes(classes)
             .build();
         let rendered = content
@@ -3074,60 +2994,35 @@ Answer in JSON using this schema:
         let classes = vec![
             Class {
                 name: Name::new("A".to_string()),
-                fields: vec![(Name::new("prop".to_string()), FieldType::int(), None, false)],
+                fields: vec![(Name::new("prop".to_string()), TypeIR::int(), None, false)],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("B".to_string()),
-                fields: vec![(
-                    Name::new("prop".to_string()),
-                    FieldType::string(),
-                    None,
-                    false,
-                )],
+                fields: vec![(Name::new("prop".to_string()), TypeIR::string(), None, false)],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("C".to_string()),
-                fields: vec![(
-                    Name::new("prop".to_string()),
-                    FieldType::float(),
-                    None,
-                    false,
-                )],
+                fields: vec![(Name::new("prop".to_string()), TypeIR::float(), None, false)],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
             Class {
                 name: Name::new("Ret".to_string()),
                 fields: vec![
-                    (
-                        Name::new("a".to_string()),
-                        FieldType::class("A"),
-                        None,
-                        false,
-                    ),
-                    (
-                        Name::new("b".to_string()),
-                        FieldType::class("B"),
-                        None,
-                        false,
-                    ),
-                    (
-                        Name::new("c".to_string()),
-                        FieldType::class("C"),
-                        None,
-                        false,
-                    ),
+                    (Name::new("a".to_string()), TypeIR::class("A"), None, false),
+                    (Name::new("b".to_string()), TypeIR::class("B"), None, false),
+                    (Name::new("c".to_string()), TypeIR::class("C"), None, false),
                 ],
                 constraints: Vec::new(),
                 streaming_behavior: Default::default(),
             },
         ];
 
-        let content = OutputFormatContent::target(FieldType::class("Ret"))
+        let content = OutputFormatContent::target(TypeIR::class("Ret"))
             .classes(classes)
             .build();
         let rendered = content
@@ -3183,7 +3078,7 @@ Answer in JSON using this schema: Ret"#
             constraints: Vec::new(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::r#enum("EnumOutput"))
+        let content = OutputFormatContent::target(TypeIR::r#enum("EnumOutput"))
             .enums(enums)
             .build();
 
@@ -3244,7 +3139,7 @@ Answer in JSON using this schema: Ret"#
             constraints: Vec::new(),
         }];
 
-        let content = OutputFormatContent::target(FieldType::r#enum("EnumOutput"))
+        let content = OutputFormatContent::target(TypeIR::r#enum("EnumOutput"))
             .enums(enums)
             .build();
 

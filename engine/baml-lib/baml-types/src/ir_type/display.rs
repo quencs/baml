@@ -87,7 +87,7 @@ impl std::fmt::Display for TypeStreaming {
     }
 }
 
-impl std::fmt::Display for TypeGeneric<type_meta::Base> {
+impl std::fmt::Display for TypeGeneric<type_meta::IR> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut metadata_display_fmt = String::new();
 

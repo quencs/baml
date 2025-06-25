@@ -35,7 +35,7 @@ pub fn ir_function_to_py(function: &FunctionNode, pkg: &CurrentRenderPackage) ->
         },
         return_type: type_to_py(function.elem.output(), pkg.lookup()),
         stream_return_type: stream_type_to_py(
-            &function.elem.output().partialize(pkg.lookup()),
+            &function.elem.output().to_streaming_type(pkg.lookup()),
             pkg.lookup(),
         ),
     }

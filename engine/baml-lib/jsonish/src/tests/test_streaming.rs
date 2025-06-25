@@ -11,7 +11,7 @@ test_partial_deserializer_streaming!(
     test_number_list,
     NUMBERS,
     "{'nums': [1,2",
-    FieldType::class("Foo"),
+    TypeIR::class("Foo"),
     {"nums": [1]}
 );
 
@@ -26,7 +26,7 @@ test_partial_deserializer_streaming!(
     test_number_list_state_incomplete,
     NUMBERS_STATE,
     "{'nums': [1,2",
-    FieldType::class("Foo"),
+    TypeIR::class("Foo"),
     {"nums": {"value": [1], "state": "Incomplete"}, "bar": {"value": null, "state": "Pending"}}
 );
 
@@ -41,7 +41,7 @@ test_partial_deserializer_streaming_failure!(
     test_toplevel_done,
     TOPLEVEL_DONE,
     "{'nums': [1,2]",
-    FieldType::class("Foo")
+    TypeIR::class("Foo")
 );
 
 const NESTED_DONE: &str = r#"
@@ -63,7 +63,7 @@ test_partial_deserializer_streaming!(
       {'nums': [1, 2]},
       {'nums': [3, 4]
   "#,
-  FieldType::class("Bar"),
+  TypeIR::class("Bar"),
   {"foos": [ {"nums": [1, 2]}]}
 );
 
@@ -88,7 +88,7 @@ test_partial_deserializer_streaming!(
       {'nums': [1, 2]},
       {'nums': [3, 4]
   "#,
-  FieldType::class("Bar"),
+  TypeIR::class("Bar"),
   {"message": "Hello", "foos": [ {"nums": [1, 2]}]}
 );
 
@@ -108,7 +108,7 @@ test_partial_deserializer_streaming!(
   NEEDED_FIELD,
   // r#"{"foos": [{"my_int": 1, "my_string": "hi"}, {"my_int": 10,"#,
   r#"{"foos": [{"my_int": 1, "my"#,
-  FieldType::class("Bar"),
+  TypeIR::class("Bar"),
   {"foos": []}
 );
 
@@ -123,7 +123,7 @@ test_partial_deserializer_streaming!(
   test_done_field,
   DONE_FIELD,
   r#"{"foo": ""#,
-  FieldType::class("Foo"),
+  TypeIR::class("Foo"),
   {"foo": null, "bar": null}
 );
 
@@ -174,7 +174,7 @@ const MEMORY_PAYLOAD: &str = r#"
       "metadata": [
         "metadata1",
         42,
-        3.14
+        3.12
       ]
     },
     {
@@ -194,7 +194,7 @@ const MEMORY_PAYLOAD: &str = r#"
       "metadata": [
         "additional info",
         100,
-        2.718
+        2.715
       ]
     },
     {
@@ -257,7 +257,7 @@ test_partial_deserializer_streaming!(
     test_memory,
     MEMORY_TEST,
     MEMORY_PAYLOAD,
-    FieldType::class("TestMemoryOutput"),
+    TypeIR::class("TestMemoryOutput"),
     {
       "items": [
         {
@@ -272,7 +272,7 @@ test_partial_deserializer_streaming!(
           "metadata": [
             "metadata1",
             42,
-            3.14
+            3.12
           ]
         },
         {
@@ -292,7 +292,7 @@ test_partial_deserializer_streaming!(
           "metadata": [
             "additional info",
             100,
-            2.718
+            2.715
           ]
         },
         {
@@ -382,11 +382,11 @@ test_partial_deserializer_streaming!(
     test_todo_tools_message,
     TODO_TOOLS_EXAMPLE,
     r#"{"type": "message_to_user", "message": "Hello us"#,
-    FieldType::union(vec![
-        FieldType::class("MessageToUser"),
-        FieldType::class("AdjustItem"),
-        FieldType::class("AddItem"),
-        FieldType::class("GetLastItemId"),
+    TypeIR::union(vec![
+        TypeIR::class("MessageToUser"),
+        TypeIR::class("AdjustItem"),
+        TypeIR::class("AddItem"),
+        TypeIR::class("GetLastItemId"),
     ]),
     {
         "type": "message_to_user",
@@ -398,10 +398,10 @@ test_partial_deserializer_streaming_failure!(
     test_todo_tools_adjust_item,
     TODO_TOOLS_EXAMPLE,
     r#"{"type": "adjust_item", "item_id": 1, "title": "New Title"#,
-    FieldType::union(vec![
-        FieldType::class("MessageToUser"),
-        FieldType::class("AdjustItem"),
-        FieldType::class("AddItem"),
-        FieldType::class("GetLastItemId"),
+    TypeIR::union(vec![
+        TypeIR::class("MessageToUser"),
+        TypeIR::class("AdjustItem"),
+        TypeIR::class("AddItem"),
+        TypeIR::class("GetLastItemId"),
     ])
 );

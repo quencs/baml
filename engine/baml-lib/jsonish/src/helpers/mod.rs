@@ -133,7 +133,7 @@ fn relevant_data_models<'a>(
     let mut classes: Vec<Class> = Vec::new();
     let mut recursive_classes = IndexSet::new();
     let mut structural_recursive_aliases = IndexMap::new();
-    let mut start: Vec<baml_types::FieldType> = vec![output.clone()];
+    let mut start: Vec<baml_types::TypeIR> = vec![output.clone()];
 
     while let Some(output) = start.pop() {
         match &output {

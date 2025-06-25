@@ -57,7 +57,7 @@ fn ir_field_to_go<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldGo<'
 }
 
 fn ir_field_to_go_stream<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldGo<'a> {
-    let partialized = field.elem.r#type.elem.partialize(pkg.lookup());
+    let partialized = field.elem.r#type.elem.to_streaming_type(pkg.lookup());
 
     FieldGo {
         name: field.elem.name.clone(),

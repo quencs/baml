@@ -123,7 +123,7 @@ test_partial_deserializer!(
     }
     ```
     "#,
-    FieldType::class("BookAnalysis"),
+    TypeIR::class("BookAnalysis"),
     {
       "bookNames": [
         "brave new world",
@@ -214,7 +214,7 @@ test_partial_deserializer!(
         "scores": [
           {"year": 1950, "score": 70},
   "#,
-  FieldType::class("BookAnalysis"),
+  TypeIR::class("BookAnalysis"),
   {
     "bookNames": [
       "brave new world",
@@ -289,7 +289,7 @@ test_partial_deserializer!(
   test_partial_choppy,
   CHOPPY_BAML_FILE,
   TRIMMED_CHOPPY_RESULT,
-  FieldType::class("GraphJson"),
+  TypeIR::class("GraphJson"),
   {
     "vertices": [
       {
@@ -314,7 +314,7 @@ test_partial_deserializer!(
   test_partial_choppy_union,
   CHOPPY_BAML_FILE,
   TRIMMED_CHOPPY_RESULT,
-  FieldType::union(vec![FieldType::class("GraphJson"), FieldType::class("GraphJson").as_list(), FieldType::class("Error")]),
+  TypeIR::union(vec![TypeIR::class("GraphJson"), TypeIR::class("GraphJson").as_list(), TypeIR::class("Error")]),
   {
     "vertices": [
       {
@@ -339,7 +339,7 @@ test_partial_deserializer!(
   test_partial_choppy_union_2,
   CHOPPY_BAML_FILE,
   TRIMMED_CHOPPY_RESULT,
-  FieldType::union(vec![FieldType::class("GraphJson"), FieldType::class("ErrorBasic")]),
+  TypeIR::union(vec![TypeIR::class("GraphJson"), TypeIR::class("ErrorBasic")]),
   {
     "vertices": [
       {

@@ -188,7 +188,7 @@ impl TypeGo {
                             crate::ir_to_go::type_to_go(expansion, lookup).zero_value(pkg)
                         } else {
                             crate::ir_to_go::stream_type_to_go(
-                                &expansion.partialize(lookup),
+                                &expansion.to_streaming_type(lookup),
                                 lookup,
                             )
                             .zero_value(pkg)

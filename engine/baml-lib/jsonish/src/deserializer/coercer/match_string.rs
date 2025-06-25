@@ -5,7 +5,7 @@
 use std::{cmp::Ordering, collections::HashMap};
 
 use anyhow::Result;
-use baml_types::{FieldType, TypeValue};
+use baml_types::{TypeIR, TypeValue};
 
 use super::ParsingContext;
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
 /// Heuristic match of different possible values against an input string.
 pub(super) fn match_string(
     parsing_context: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     value: Option<&jsonish::Value>,
     // List of (name, [aliases]) tuples.
     candidates: &[(&str, Vec<String>)],
@@ -102,7 +102,7 @@ fn strip_punctuation(s: &str) -> String {
 /// Multiple results will yield an error.
 fn try_match_only_once(
     parsing_context: &ParsingContext<'_>,
-    target: &FieldType,
+    target: &TypeIR,
     string_match: &str,
     flags: DeserializerConditions,
 ) -> Result<ValueWithFlags<String>, ParsingError> {

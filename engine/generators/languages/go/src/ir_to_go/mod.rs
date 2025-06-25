@@ -1,6 +1,6 @@
 use baml_types::{
     baml_value::TypeLookups,
-    ir_type::{Type, TypeStreaming},
+    ir_type::{TypeIR, TypeStreaming},
     type_meta::{base::TypeMeta, stream::TypeMetaStreaming},
     BamlMediaType, ConstraintLevel, TypeValue,
 };
@@ -141,8 +141,8 @@ pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookup
     type_go
 }
 
-pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
-    use Type as T;
+pub(crate) fn type_to_go(field: &TypeIR, _lookup: &impl TypeLookups) -> TypeGo {
+    use TypeIR as T;
     let recursive_fn = |field| type_to_go(field, _lookup);
     let meta = meta_to_go(field.meta());
 

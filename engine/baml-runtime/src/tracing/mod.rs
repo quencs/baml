@@ -449,7 +449,7 @@ impl BamlTracer {
                 .map(|(k, v)| {
                     let field_type = infer_type(v).unwrap_or_else(|| {
                         log::warn!("Failed to infer FieldType for BamlValue in tracing. Defaulting to Null.");
-                        baml_types::FieldType::Primitive(baml_types::TypeValue::Null, Default::default())
+                        baml_types::TypeIR::Primitive(baml_types::TypeValue::Null, Default::default())
                     });
                     (
                         k.clone(),
@@ -557,13 +557,11 @@ impl BamlTracer {
                 log::warn!(
                     "Failed to infer FieldType for BamlValue in tracing. Defaulting to Null."
                 );
-                baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
+                baml_types::TypeIR::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
             }),
-            None => {
-                baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
-            }
+            None => baml_types::TypeIR::Primitive(baml_types::TypeValue::Null, TypeMeta::default()),
         };
-        let baml_value_with_meta: BamlValueWithMeta<baml_types::FieldType> =
+        let baml_value_with_meta: BamlValueWithMeta<baml_types::TypeIR> =
             BamlValueWithMeta::with_const_meta(
                 response.as_ref().unwrap_or(&baml_types::BamlValue::Null),
                 field_type_for_meta,

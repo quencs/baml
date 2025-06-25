@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use baml_types::{
-    BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, Constraint, FieldType, JinjaExpression,
+    BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, Constraint, JinjaExpression, TypeIR,
 };
 use serde_json::json;
 use strsim::jaro;
@@ -22,23 +22,23 @@ pub enum BamlValueWithFlags {
     Bool(ValueWithFlags<bool>),
     List(
         DeserializerConditions,
-        baml_types::FieldType,
+        baml_types::TypeIR,
         Vec<BamlValueWithFlags>,
     ),
     Map(
         DeserializerConditions,
-        baml_types::FieldType,
+        baml_types::TypeIR,
         BamlMap<String, (DeserializerConditions, BamlValueWithFlags)>,
     ),
-    Enum(String, baml_types::FieldType, ValueWithFlags<String>),
+    Enum(String, baml_types::TypeIR, ValueWithFlags<String>),
     Class(
         String,
         DeserializerConditions,
-        baml_types::FieldType,
+        baml_types::TypeIR,
         BamlMap<String, BamlValueWithFlags>,
     ),
-    Null(baml_types::FieldType, DeserializerConditions),
-    Media(baml_types::FieldType, ValueWithFlags<BamlMedia>),
+    Null(baml_types::TypeIR, DeserializerConditions),
+    Media(baml_types::TypeIR, ValueWithFlags<BamlMedia>),
 }
 
 impl BamlValueWithFlags {
@@ -50,7 +50,7 @@ impl BamlValueWithFlags {
         }
     }
 
-    pub fn field_type(&self) -> &baml_types::FieldType {
+    pub fn field_type(&self) -> &baml_types::TypeIR {
         match self {
             BamlValueWithFlags::String(v) => &v.target,
             BamlValueWithFlags::Int(v) => &v.target,
@@ -65,7 +65,7 @@ impl BamlValueWithFlags {
         }
     }
 
-    pub fn with_target(self, target: &baml_types::FieldType) -> Self {
+    pub fn with_target(self, target: &baml_types::TypeIR) -> Self {
         match self {
             BamlValueWithFlags::String(v) => BamlValueWithFlags::String(v.with_target(target)),
             BamlValueWithFlags::Int(v) => BamlValueWithFlags::Int(v.with_target(target)),
@@ -142,8 +142,8 @@ impl BamlValueWithFlags {
     }
 }
 
-impl From<BamlValueWithFlags> for BamlValueWithMeta<FieldType> {
-    fn from(baml_value: BamlValueWithFlags) -> BamlValueWithMeta<FieldType> {
+impl From<BamlValueWithFlags> for BamlValueWithMeta<TypeIR> {
+    fn from(baml_value: BamlValueWithFlags) -> BamlValueWithMeta<TypeIR> {
         let field_type = baml_value.field_type().clone();
         match baml_value {
             BamlValueWithFlags::String(v) => BamlValueWithMeta::String(v.value, field_type),
@@ -376,12 +376,12 @@ impl BamlValueWithFlags {
 #[derive(Debug, Clone)]
 pub struct ValueWithFlags<T> {
     pub value: T,
-    pub target: baml_types::FieldType,
+    pub target: baml_types::TypeIR,
     pub flags: DeserializerConditions,
 }
 
 impl<T> ValueWithFlags<T> {
-    pub fn with_target(self, target: &baml_types::FieldType) -> Self {
+    pub fn with_target(self, target: &baml_types::TypeIR) -> Self {
         ValueWithFlags {
             value: self.value,
             target: target.clone(),
@@ -394,8 +394,8 @@ impl<T> ValueWithFlags<T> {
     }
 }
 
-impl<T> From<(T, &baml_types::FieldType)> for ValueWithFlags<T> {
-    fn from((value, target): (T, &baml_types::FieldType)) -> Self {
+impl<T> From<(T, &baml_types::TypeIR)> for ValueWithFlags<T> {
+    fn from((value, target): (T, &baml_types::TypeIR)) -> Self {
         ValueWithFlags {
             value,
             target: target.clone(),
@@ -404,8 +404,8 @@ impl<T> From<(T, &baml_types::FieldType)> for ValueWithFlags<T> {
     }
 }
 
-impl<T> From<(T, &baml_types::FieldType, &[Flag])> for ValueWithFlags<T> {
-    fn from((value, target, flags): (T, &baml_types::FieldType, &[Flag])) -> Self {
+impl<T> From<(T, &baml_types::TypeIR, &[Flag])> for ValueWithFlags<T> {
+    fn from((value, target, flags): (T, &baml_types::TypeIR, &[Flag])) -> Self {
         let flags = flags
             .iter()
             .fold(DeserializerConditions::new(), |acc, flag| {
@@ -419,8 +419,8 @@ impl<T> From<(T, &baml_types::FieldType, &[Flag])> for ValueWithFlags<T> {
     }
 }
 
-impl<T> From<(T, &baml_types::FieldType, Flag)> for ValueWithFlags<T> {
-    fn from((value, target, flag): (T, &baml_types::FieldType, Flag)) -> Self {
+impl<T> From<(T, &baml_types::TypeIR, Flag)> for ValueWithFlags<T> {
+    fn from((value, target, flag): (T, &baml_types::TypeIR, Flag)) -> Self {
         ValueWithFlags {
             value,
             target: target.clone(),
@@ -429,8 +429,8 @@ impl<T> From<(T, &baml_types::FieldType, Flag)> for ValueWithFlags<T> {
     }
 }
 
-impl<T> From<(T, &baml_types::FieldType, DeserializerConditions)> for ValueWithFlags<T> {
-    fn from((value, target, flags): (T, &baml_types::FieldType, DeserializerConditions)) -> Self {
+impl<T> From<(T, &baml_types::TypeIR, DeserializerConditions)> for ValueWithFlags<T> {
+    fn from((value, target, flags): (T, &baml_types::TypeIR, DeserializerConditions)) -> Self {
         ValueWithFlags {
             value,
             target: target.clone(),

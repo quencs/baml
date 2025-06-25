@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use baml_types::{Constraint, ConstraintLevel, FieldType};
+use baml_types::{Constraint, ConstraintLevel, TypeIR};
 use indexmap::IndexMap;
 use internal_baml_core::{
     configuration::{GeneratorDefaultClientMode, GeneratorOutputType, ModuleFormat},
@@ -228,7 +228,7 @@ impl TypeCheckAttributes {
 /// We will need to construct two district support types:
 /// `Classes_a` and `Classes_a_b`.
 pub fn type_check_attributes(ir: &IntermediateRepr) -> HashSet<TypeCheckAttributes> {
-    let mut all_types_in_ir: Vec<&FieldType> = Vec::new();
+    let mut all_types_in_ir: Vec<&TypeIR> = Vec::new();
     for class in ir.walk_classes() {
         for field in class.item.elem.static_fields.iter() {
             let field_type = &field.elem.r#type.elem;
@@ -250,7 +250,7 @@ pub fn type_check_attributes(ir: &IntermediateRepr) -> HashSet<TypeCheckAttribut
 }
 
 /// The set of Check names associated with a type.
-fn field_type_attributes(field_type: &FieldType) -> Option<TypeCheckAttributes> {
+fn field_type_attributes(field_type: &TypeIR) -> Option<TypeCheckAttributes> {
     let check_names =
         TypeCheckAttributes(
             field_type

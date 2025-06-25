@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use anyhow::{Context, Result};
 use baml_types::{
     tracing::events::{FunctionEnd, FunctionStart, TraceData, TraceEvent},
-    BamlMap, BamlValue, BamlValueWithMeta, Constraint, EvaluationContext, FieldType,
+    BamlMap, BamlValue, BamlValueWithMeta, Constraint, EvaluationContext, TypeIR,
 };
 use indexmap::IndexMap;
 use internal_baml_core::{
@@ -50,7 +50,7 @@ pub(crate) struct PreparedFunction<'ir> {
 
 pub(crate) struct PreparedFunctionArgs {
     pub value: IndexMap<String, BamlValue>,
-    pub value2: IndexMap<String, BamlValueWithMeta<FieldType>>,
+    pub value2: IndexMap<String, BamlValueWithMeta<TypeIR>>,
 }
 
 pub(crate) enum PrepareFunctionError {

@@ -57,7 +57,7 @@ fn ir_field_to_py<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldPy<'
 }
 
 fn ir_field_to_py_stream<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldPy<'a> {
-    let partialized = field.elem.r#type.elem.partialize(pkg.lookup());
+    let partialized = field.elem.r#type.elem.to_streaming_type(pkg.lookup());
     FieldPy {
         name: field.elem.name.clone(),
         r#type: super::stream_type_to_py(&partialized, pkg.lookup()),

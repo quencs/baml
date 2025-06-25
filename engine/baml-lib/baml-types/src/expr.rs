@@ -7,7 +7,7 @@ use std::{
 use internal_baml_diagnostics::Span;
 use itertools::join;
 
-use crate::{ir_type::FieldType, BamlMap, BamlValueWithMeta};
+use crate::{ir_type::TypeIR, BamlMap, BamlValueWithMeta};
 
 /// A BAML expression term.
 /// T is the type of the metadata.
@@ -30,7 +30,7 @@ pub enum Expr<T> {
     Lambda(usize, Arc<Expr<T>>, T), // number of parameters, body, metadata
     App {
         func: Arc<Expr<T>>,
-        type_args: Vec<FieldType>,
+        type_args: Vec<TypeIR>,
         args: Arc<Expr<T>>,
         meta: T,
     },
@@ -80,7 +80,7 @@ impl VarIndex {
 }
 
 /// The metadata used during parsing, typechecking and evaluation of BAML expressions.
-pub type ExprMetadata = (Span, Option<FieldType>);
+pub type ExprMetadata = (Span, Option<TypeIR>);
 
 impl<T: Clone + std::fmt::Debug> Expr<T> {
     pub fn meta(&self) -> &T {

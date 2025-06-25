@@ -8,7 +8,7 @@ use anyhow::{anyhow, Context};
 use baml_types::{
     expr::{Builtin, Expr, ExprMetadata, Name, VarIndex},
     type_meta::base::TypeMeta,
-    Arrow, BamlMap, BamlValue, BamlValueWithMeta, EvaluationContext, FieldType, TypeValue,
+    Arrow, BamlMap, BamlValue, BamlValueWithMeta, EvaluationContext, TypeIR, TypeValue,
 };
 use futures::{
     channel::mpsc,
@@ -335,7 +335,7 @@ async fn beta_reduce<'a>(
 
                     // Builtin meta should be set.
                     let arrow = match builtin_meta.1.as_ref() {
-                        Some(FieldType::Arrow(arrow, _)) => arrow,
+                        Some(TypeIR::Arrow(arrow, _)) => arrow,
 
                         other => {
                             return Err(anyhow!(
@@ -534,7 +534,7 @@ async fn beta_reduce<'a>(
 
 async fn eval_args(
     env: &EvalEnv<'_>,
-    args: &Vec<Expr<(internal_baml_core::ast::Span, Option<FieldType>)>>,
+    args: &Vec<Expr<(internal_baml_core::ast::Span, Option<TypeIR>)>>,
 ) -> anyhow::Result<Vec<BamlValue>> {
     let mut evaluated_args: Vec<BamlValue> = Vec::new();
     for arg in args {
@@ -585,7 +585,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
             Expr::Atom(value) => {
                 return Ok(ExprEvalResult::Value {
                     value: value.clone().map_meta(|_| ()),
-                    field_type: FieldType::Primitive(TypeValue::Null, TypeMeta::default()), // TODO: get the actual type
+                    field_type: TypeIR::Primitive(TypeValue::Null, TypeMeta::default()), // TODO: get the actual type
                 });
             }
             Expr::List(items, meta) => {
@@ -602,7 +602,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
                     field_type: meta
                         .1
                         .clone()
-                        .unwrap_or(FieldType::Primitive(TypeValue::Null, TypeMeta::default())), // TODO: get the actual type
+                        .unwrap_or(TypeIR::Primitive(TypeValue::Null, TypeMeta::default())), // TODO: get the actual type
                 });
             }
             Expr::Map(items, meta) => {
@@ -619,7 +619,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
                     field_type: meta
                         .1
                         .clone()
-                        .unwrap_or(FieldType::Primitive(TypeValue::Null, TypeMeta::default())), // TODO: get the actual type
+                        .unwrap_or(TypeIR::Primitive(TypeValue::Null, TypeMeta::default())), // TODO: get the actual type
                 });
             }
             Expr::ClassConstructor {
@@ -656,7 +656,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
                 let val = BamlValueWithMeta::Class(name.clone(), spread_fields, ());
                 return Ok(ExprEvalResult::Value {
                     value: val,
-                    field_type: FieldType::class(name),
+                    field_type: TypeIR::class(name),
                 });
             }
             Expr::LLMFunction(_, _, _) => {
@@ -718,7 +718,7 @@ pub async fn eval_to_value_or_llm_call<'a>(
 pub enum ExprEvalResult {
     Value {
         value: BamlValueWithMeta<()>,
-        field_type: FieldType,
+        field_type: TypeIR,
     },
     LLMCall {
         name: String,

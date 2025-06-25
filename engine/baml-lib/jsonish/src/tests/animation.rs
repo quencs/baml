@@ -1,6 +1,6 @@
 use baml_types::{
     type_meta::base::{StreamingBehavior, TypeMeta},
-    FieldType,
+    TypeIR,
 };
 use internal_baml_core::ir::repr::make_test_ir;
 
@@ -25,7 +25,7 @@ pub fn make_test_data1() {
     )
     .unwrap();
 
-    let mut target_type = FieldType::class("PersonAssignment");
+    let mut target_type = TypeIR::class("PersonAssignment");
     target_type.set_meta(TypeMeta {
         constraints: vec![],
         streaming_behavior: StreamingBehavior {
