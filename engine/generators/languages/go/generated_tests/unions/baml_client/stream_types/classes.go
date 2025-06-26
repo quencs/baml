@@ -44,6 +44,9 @@ func (c *ExistingSystemComponent) Decode(holder *cffi.CFFIValueClass) {
 
 		case "id":
 			c.Id = func(param *cffi.CFFIValueHolder) *int64 {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *int64\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *int64 {
 					if result == nil {
@@ -55,6 +58,9 @@ func (c *ExistingSystemComponent) Decode(holder *cffi.CFFIValueClass) {
 
 		case "name":
 			c.Name = func(param *cffi.CFFIValueHolder) *string {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *string\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *string {
 					if result == nil {
@@ -66,6 +72,9 @@ func (c *ExistingSystemComponent) Decode(holder *cffi.CFFIValueClass) {
 
 		case "type":
 			c.Type = func(param *cffi.CFFIValueHolder) *string {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *string\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *string {
 					if result == nil {
@@ -77,6 +86,9 @@ func (c *ExistingSystemComponent) Decode(holder *cffi.CFFIValueClass) {
 
 		case "category":
 			c.Category = func(param *cffi.CFFIValueHolder) *Union2KresourceOrKservice {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *Union2KresourceOrKservice\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *Union2KresourceOrKservice {
 					if result == nil {
@@ -88,6 +100,9 @@ func (c *ExistingSystemComponent) Decode(holder *cffi.CFFIValueClass) {
 
 		case "explanation":
 			c.Explanation = func(param *cffi.CFFIValueHolder) *string {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *string\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *string {
 					if result == nil {
@@ -151,6 +166,9 @@ func (c *UseMyUnion) Decode(holder *cffi.CFFIValueClass) {
 
 		case "u":
 			c.U = func(param *cffi.CFFIValueHolder) *Union3IntOrRecursive1OrString {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *Union3IntOrRecursive1OrString\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *Union3IntOrRecursive1OrString {
 					if result == nil {

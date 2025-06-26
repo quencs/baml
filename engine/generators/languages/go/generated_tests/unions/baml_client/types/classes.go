@@ -111,6 +111,9 @@ func (c *UseMyUnion) Decode(holder *cffi.CFFIValueClass) {
 
 		case "u":
 			c.U = func(param *cffi.CFFIValueHolder) *Union3IntOrRecursive1OrString {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *Union3IntOrRecursive1OrString\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *Union3IntOrRecursive1OrString {
 					if result == nil {

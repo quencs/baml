@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 )
@@ -170,6 +171,58 @@ func decodeUnionValue(valueUnion *cffi.CFFIValueUnionVariant) any {
 	typeName := valueUnion.Name
 	namespace := typeName.Namespace.String()
 	unionName := string(typeName.Name)
+	
+	// === DECODE LOGGING START ===
+	fmt.Printf("\n=== UNION DECODE ===\n")
+	fmt.Printf("Type: %s.%s\n", namespace, unionName)
+	fmt.Printf("Variant: %s\n", valueUnion.VariantName)
+	
+	// Show field types to identify union structure
+	var fieldTypeStrs []string
+	var isOptionalPattern bool = false
+	for _, ft := range valueUnion.FieldTypes {
+		if ft.GetClassType() != nil {
+			fieldTypeStrs = append(fieldTypeStrs, ft.GetClassType().Name.Name)
+		} else if ft.GetNullType() != nil {
+			fieldTypeStrs = append(fieldTypeStrs, "null")
+		} else if ft.GetStringType() != nil {
+			fieldTypeStrs = append(fieldTypeStrs, "string")
+		} else if ft.GetIntType() != nil {
+			fieldTypeStrs = append(fieldTypeStrs, "int")
+		} else {
+			fieldTypeStrs = append(fieldTypeStrs, "?")
+		}
+	}
+	
+	// Check if this is an optional pattern (T | null)
+	if len(valueUnion.FieldTypes) == 2 {
+		hasNull := false
+		hasNonNull := false
+		for _, ft := range valueUnion.FieldTypes {
+			if ft.GetNullType() != nil {
+				hasNull = true
+			} else {
+				hasNonNull = true
+			}
+		}
+		isOptionalPattern = hasNull && hasNonNull
+	}
+	
+	fmt.Printf("Union structure: (%s)\n", strings.Join(fieldTypeStrs, " | "))
+	if isOptionalPattern {
+		fmt.Printf("Pattern: Optional type (T | null)\n")
+	}
+	fmt.Printf("===================\n\n")
+	// === DECODE LOGGING END ===
+	
+	// For optional patterns (T | null), decode the inner value directly
+	// These shouldn't be looked up as union types
+	if isOptionalPattern {
+		fmt.Printf("Handling as optional type, decoding inner value\n")
+		value := valueUnion.Value
+		return Decode(value)
+	}
+	
 	found, ok := typeMap[namespace+"."+unionName]
 	if !ok {
 		// This is a fully dynamic union, so we

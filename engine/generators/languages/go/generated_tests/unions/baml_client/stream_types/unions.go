@@ -41,6 +41,9 @@ func (u *Union2IntOrListRecursive1) Decode(holder *cffi.CFFIValueUnionVariant) {
 		u.variant = "ListRecursive1"
 		value := baml.DecodeList(valueHolder, func(inner *cffi.CFFIValueHolder) *Recursive1 {
 			return func(param *cffi.CFFIValueHolder) *Recursive1 {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *Recursive1\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *Recursive1 {
 					if result == nil {

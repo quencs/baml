@@ -41,6 +41,9 @@ func (c *Example) Decode(holder *cffi.CFFIValueClass) {
 
 		case "a":
 			c.A = func(param *cffi.CFFIValueHolder) *int64 {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *int64\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *int64 {
 					if result == nil {
@@ -52,6 +55,9 @@ func (c *Example) Decode(holder *cffi.CFFIValueClass) {
 
 		case "b":
 			c.B = func(param *cffi.CFFIValueHolder) *string {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *string\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *string {
 					if result == nil {
@@ -111,6 +117,9 @@ func (c *Example2) Decode(holder *cffi.CFFIValueClass) {
 
 		case "item":
 			c.Item = func(param *cffi.CFFIValueHolder) *Example {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *Example\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *Example {
 					if result == nil {
@@ -122,6 +131,9 @@ func (c *Example2) Decode(holder *cffi.CFFIValueClass) {
 
 		case "element":
 			c.Element = func(param *cffi.CFFIValueHolder) *string {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *string\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *string {
 					if result == nil {
@@ -133,6 +145,9 @@ func (c *Example2) Decode(holder *cffi.CFFIValueClass) {
 
 		case "element2":
 			c.Element2 = func(param *cffi.CFFIValueHolder) *string {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *string\n")
+				fmt.Printf("===================\n")
 				decoded := baml.Decode(param)
 				return func(result any) *string {
 					if result == nil {
