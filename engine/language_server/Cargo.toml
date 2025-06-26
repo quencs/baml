@@ -76,6 +76,7 @@ warp = "0.3"
 futures-util = "0.3"
 include_dir = "0.7"
 mime_guess = "2.0.4"
+base64 = "0.21"
 
 webbrowser = "0.8"
 

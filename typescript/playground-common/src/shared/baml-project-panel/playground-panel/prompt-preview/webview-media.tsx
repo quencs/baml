@@ -33,7 +33,7 @@ export const WebviewMedia: React.FC<WebviewMediaProps> = ({ bamlMediaType, media
 
     switch (media.type) {
       case wasm.WasmChatMessagePartMediaType.File:
-        return `${media.content}`
+        return media.content
       case wasm.WasmChatMessagePartMediaType.Url:
         return media.content
       case wasm.WasmChatMessagePartMediaType.Error:
@@ -64,16 +64,8 @@ export const WebviewMedia: React.FC<WebviewMediaProps> = ({ bamlMediaType, media
     const img = e.currentTarget
     const { naturalWidth, naturalHeight } = img
     let size = 'Unknown'
-    if (mediaUrl?.startsWith('data:')) {
-      const base64Length = mediaUrl.split(',')[1]?.length
-      const sizeInBytes = base64Length ? base64Length * 0.75 : 0
-      size =
-        sizeInBytes > 1048576 ? `${(sizeInBytes / 1048576).toFixed(2)} MB` : `${(sizeInBytes / 1024).toFixed(2)} KB`
-    } else {
-      const sizeInBytes = naturalWidth * naturalHeight * 4
-      size =
-        sizeInBytes > 1048576 ? `${(sizeInBytes / 1048576).toFixed(2)} MB` : `${(sizeInBytes / 1024).toFixed(2)} KB`
-    }
+    const sizeInBytes = naturalWidth * naturalHeight * 4
+    size = sizeInBytes > 1048576 ? `${(sizeInBytes / 1048576).toFixed(2)} MB` : `${(sizeInBytes / 1024).toFixed(2)} KB`
     setImageStats({ width: naturalWidth, height: naturalHeight, size })
   }
 

@@ -6,10 +6,14 @@ use include_dir::{include_dir, Dir};
 use mime_guess::from_path;
 use tokio::sync::RwLock;
 use warp::{http::Response, ws::Message, Filter};
+use serde_json::Value;
+use base64::engine::general_purpose;
+use base64::Engine as _;
 
 use crate::{
     playground::definitions::{FrontendMessage, PlaygroundState},
     session::Session,
+    playground::playground_server_rpc::handle_rpc_websocket,
 };
 
 /// Embed at compile time everything in dist/
@@ -138,15 +142,32 @@ pub fn create_server_routes(
     session: Arc<Session>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     // WebSocket handler with error handling
+    let ws_state = state.clone();
+    let ws_session = session.clone();
     let ws_route = warp::path("ws")
         .and(warp::ws())
         .map(move |ws: warp::ws::Ws| {
-            let state = state.clone();
-            let session = session.clone();
+            let state = ws_state.clone();
+            let session = ws_session.clone();
             ws.on_upgrade(move |socket| async move {
                 start_client_connection(socket, state, session).await;
             })
         });
+    
+    tracing::info!("Setting up RPC websocket...");
+    // RPC WebSocket handler
+    let rpc_session = session.clone();
+    let rpc_route = warp::path("rpc")
+        .and(warp::ws())
+        .map(move |ws: warp::ws::Ws| {
+            let session = rpc_session.clone();
+            ws.on_upgrade(move |socket| async move {
+                handle_rpc_websocket(socket, session).await;
+            })
+        });
+
+    // Static file serving for user files (e.g., images, data)
+    let static_files = warp::path("static").and(warp::fs::dir("."));
 
     // Static file serving needed to serve the frontend files
     let spa =
@@ -171,7 +192,11 @@ pub fn create_server_routes(
                 }
             });
 
-    ws_route.or(spa).with(warp::log("playground-server"))
+    ws_route
+        .or(rpc_route)
+        .or(static_files)
+        .or(spa)
+        .with(warp::log("playground-server"))
 }
 
 // Helper function to broadcast project updates with better error handling

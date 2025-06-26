@@ -53,7 +53,7 @@ const functionsAreStaleAtom = atom((get) => {
 
 const isEmbed = typeof window !== 'undefined' && window.location.href.includes('embed')
 
-export const isSidebarOpenAtom = atomWithStorage('isSidebarOpen', isEmbed ? false : vscode.isVscode() ? true : false)
+export const isSidebarOpenAtom = atomWithStorage('isSidebarOpen', isEmbed ? true : false)
 
 export default function CustomSidebar({ isEmbed = false }: { isEmbed?: boolean }) {
   const functions = useAtomValue(functionsAtom)

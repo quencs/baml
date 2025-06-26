@@ -148,11 +148,6 @@ export const showEnvDialogAtom = atom(
     const hasShownDialog = get(hasShownEnvDialogAtom)
     if (hasShownDialog) return envDialogOpen
 
-    // if we are in vscode, we don't want to show the dialog
-    if (!vscode.isVscode()) {
-      return false
-    }
-
     return hasMissingVars
   },
   (get, set, value: boolean) => {
@@ -165,8 +160,6 @@ export const showEnvDialogAtom = atom(
 
 export const areEnvVarsMissingAtom = atom((get) => {
   const requiredVars = get(requiredEnvVarsAtom)
-  const isVscode = vscode.isVscode()
-  if (!isVscode) return false
   const envVars = get(envVarsAtom)
   return requiredVars.length > 0 && requiredVars.every((key) => !envVars[key])
 })

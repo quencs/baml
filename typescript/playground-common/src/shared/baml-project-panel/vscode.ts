@@ -44,25 +44,47 @@ const isRpcResponse = (eventData: unknown): eventData is RpcResponse => {
  * enabled by acquireVsCodeApi.
  */
 class VSCodeAPIWrapper {
-  private readonly vsCodeApi: WebviewApi<unknown> | undefined
-
+  private ws: WebSocket | undefined
+  private wsReady: Promise<void> | undefined
+  private wsReadyResolve: (() => void) | undefined
   private rpcTable: Map<number, { resolve: (resp: unknown) => void }>
   private rpcId: number
+  public isConnected: boolean = false
+  public onOpen?: () => void
 
   constructor() {
-    // Check if the acquireVsCodeApi function exists in the current development
-    // context (i.e. VS Code development window or web browser)
-    if (typeof acquireVsCodeApi === 'function' && typeof window !== 'undefined') {
-      this.vsCodeApi = acquireVsCodeApi()
-      window.addEventListener('message', this.listenForRpcResponses.bind(this))
+    if (typeof window !== 'undefined') {
+      // Use robust WebSocket setup like EventListener
+      const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+      const host = window.location.host
+      const url = `${scheme}://${host}/rpc`
+      this.wsReady = new Promise((resolve) => (this.wsReadyResolve = resolve))
+      this.ws = new WebSocket(url)
+      this.ws.onopen = () => {
+        console.log('RPC WebSocket Opened')
+        this.isConnected = true
+        this.wsReadyResolve?.()
+        if (this.onOpen) this.onOpen()
+      }
+      this.ws.onclose = () => {
+        console.log('RPC WebSocket Closed')
+        this.isConnected = false
+      }
+      this.ws.onerror = (e) => {
+        console.error('RPC WebSocket error', e)
+        this.isConnected = false
+      }
+      this.ws.onmessage = (event) => {
+        console.log('RPC WebSocket message received:', event.data)
+        let data = event.data
+        try {
+          data = JSON.parse(event.data)
+        } catch {}
+        this.listenForRpcResponses({ data })
+      }
     }
-
     this.rpcTable = new Map()
     this.rpcId = 0
-  }
-
-  public isVscode() {
-    return this.vsCodeApi !== undefined
   }
 
   public async readFile(path: string): Promise<Uint8Array> {
@@ -73,7 +95,6 @@ class VSCodeAPIWrapper {
     }
     if (uri.contents) {
       const contents = uri.contents
-      // throw new Error(`not implemented: ${Array.isArray(contents)}: \n ${JSON.stringify(contents)}`)
       return decodeBuffer(contents)
     }
 
@@ -173,57 +194,22 @@ class VSCodeAPIWrapper {
     }
   }
 
-  /**
-   * Post a message (i.e. send arbitrary data) to the owner of the webview.
-   *
-   * @remarks When running webview code inside a web browser, postMessage will instead
-   * log the given message to the console.
-   *
-   * @param message Abitrary data (must be JSON serializable) to send to the extension context.
-   */
   public postMessage(message: unknown) {
-    if (this.vsCodeApi) {
-      this.vsCodeApi.postMessage(message)
-    } else {
-      window.postMessage(message)
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message))
+    } else if (this.ws && this.wsReady) {
+      this.wsReady.then(() => this.ws!.send(JSON.stringify(message)))
     }
   }
 
-  /**
-   * Get the persistent state stored for this webview.
-   *
-   * @remarks When running webview source code inside a web browser, getState will retrieve state
-   * from local storage (https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage).
-   *
-   * @return The current state or `undefined` if no state has been set.
-   */
   public getState(): unknown | undefined {
-    if (this.vsCodeApi) {
-      return this.vsCodeApi.getState()
-    } else {
-      const state = localStorage.getItem('vscodeState')
-      return state ? JSON.parse(state) : undefined
-    }
+    const state = localStorage.getItem('vscodeState')
+    return state ? JSON.parse(state) : undefined
   }
 
-  /**
-   * Set the persistent state stored for this webview.
-   *
-   * @remarks When running webview source code inside a web browser, setState will set the given
-   * state using local storage (https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage).
-   *
-   * @param newState New persisted state. This must be a JSON serializable object. Can be retrieved
-   * using {@link getState}.
-   *
-   * @return The new state.
-   */
   public setState<T extends unknown | undefined>(newState: T): T {
-    if (this.vsCodeApi) {
-      return this.vsCodeApi.setState(newState)
-    } else {
-      localStorage.setItem('vscodeState', JSON.stringify(newState))
-      return newState
-    }
+    localStorage.setItem('vscodeState', JSON.stringify(newState))
+    return newState
   }
 }
 
