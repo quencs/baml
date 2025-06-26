@@ -291,7 +291,9 @@ where
         };
 
         let holder = value.maybe_wrap_union(holder, lookup);
-        value.maybe_wrap_stream_state(holder, lookup)
+        let holder = value.maybe_wrap_stream_state(holder, lookup);
+        println!("encoded: {:?}", holder);
+        holder
     }
 }
 

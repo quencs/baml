@@ -356,6 +356,10 @@ pub trait TypeLookups: Sized {
     fn expand_recursive_type(&self, type_alias: &str) -> anyhow::Result<&TypeIR>;
 }
 
+pub trait TypeLookupsMeta<T>: TypeLookups {
+    fn expand_recursive_type(&self, type_alias: &str) -> anyhow::Result<TypeGeneric<T>>;
+}
+
 pub trait TypeQuery<T> {
     fn real_type(&self, lookup: &impl TypeLookups) -> TypeGeneric<T>;
     fn is_type(&self, field_type: &TypeGeneric<T>, lookup: &impl TypeLookups) -> bool;

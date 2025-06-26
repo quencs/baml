@@ -9,7 +9,7 @@ enum TestEnum {
   C @alias("k11") @description(#"
     User is sad
   "#)
-  D @alias("k44") @description(
+  D @alias("D") @description(
     User is confused
   )
   E @description(
@@ -26,7 +26,7 @@ enum TestEnum {
 }
 
 function FnTestAliasedEnumOutput(input: string) -> TestEnum {
-  client "openai/gpt-4o"
+  client "ollama/phi4:latest"
   prompt #"
     Classify the user input into the following category
       
@@ -41,7 +41,7 @@ function FnTestAliasedEnumOutput(input: string) -> TestEnum {
 }
 
 function ConsumeTestEnum(input: TestEnum) -> TestEnum {
-  client "openai/gpt-4o"
+  client "ollama/phi4:latest"
   prompt #"
     Return back to me verbatim:
     

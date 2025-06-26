@@ -149,10 +149,11 @@ func decodeEnumValue(valueEnum *cffi.CFFIValueEnum) any {
 	}
 
 	typeName := valueEnum.Name
-	namespace := string(typeName.Namespace)
+	namespace := typeName.Namespace.String()
 	enumName := string(typeName.Name)
 	found, ok := typeMap[namespace+"."+enumName]
 	if !ok {
+		fmt.Printf("decodeEnumValue: enum not found, namespace=%s, enumName=%s, typeMap=%+v\n", namespace, enumName, typeMap)
 		return &DynamicEnum{Name: enumName, Value: string(valueEnum.Value)}
 	}
 	enum := reflect.New(found)
@@ -167,7 +168,7 @@ func decodeUnionValue(valueUnion *cffi.CFFIValueUnionVariant) any {
 	}
 
 	typeName := valueUnion.Name
-	namespace := string(typeName.Namespace)
+	namespace := typeName.Namespace.String()
 	unionName := string(typeName.Name)
 	found, ok := typeMap[namespace+"."+unionName]
 	if !ok {
@@ -348,6 +349,8 @@ func convertFieldTypeToGoType(fieldType *cffi.CFFIFieldTypeHolder) reflect.Type 
 }
 
 func Decode(holder *cffi.CFFIValueHolder) any {
+
+	fmt.Printf("Decode: holder=%+v\n", holder)
 
 	value := holder.Value
 
