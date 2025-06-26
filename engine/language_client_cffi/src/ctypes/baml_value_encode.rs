@@ -117,10 +117,19 @@ where
 
             let variant_name = options[value_type_index].to_union_name();
 
+            // TODO: Do we need to consider recursive type aliases here?
+            let variant_mode = match self.field_type() {
+                TypeGeneric::Class { mode, .. } => match mode {
+                    baml_types::StreamingMode::NonStreaming => CffiTypeNamespace::Types,
+                    baml_types::StreamingMode::Streaming => CffiTypeNamespace::StreamTypes,
+                },
+                _ => CffiTypeNamespace::StreamTypes,
+            };
+
             let union_variant = CffiValueUnionVariant {
                 name: Some(create_cffi_type_name(
                     &target_type.to_union_name(),
-                    CffiTypeNamespace::Types,
+                    variant_mode,
                 )),
                 variant_name,
                 field_types: options
