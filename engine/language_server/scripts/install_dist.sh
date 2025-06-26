@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# This script is needed as the language_server embeds the web-panel dist
-# directory in the playground_server.rs file. It builds all of the dependencies
-# for it as well as the web-panel itself. 
+# This script installs dependencies for the frontend and builds it so that it
+# appears under dist. This is needed as playground_server_helpers.rs embeds the dist
+# directory.
 
 # Exit on error
 set -e
