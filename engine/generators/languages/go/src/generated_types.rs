@@ -140,7 +140,6 @@ pub(crate) fn render_go_types_utils(_pkg: &CurrentRenderPackage) -> Result<Strin
 ///     "encoding/json"
 ///     "fmt"
 ///
-///     flatbuffers "github.com/google/flatbuffers/go"
 ///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 ///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 /// )
@@ -166,64 +165,6 @@ pub(crate) fn render_go_types<T: askama::Template>(
     GoTypes { items }.render()
 }
 
-const STREAM_STATE_GO: &str = r#"
-type StreamStateType string
-
-const (
-    StreamStatePending    StreamStateType = "Pending"
-    StreamStateIncomplete StreamStateType = "Incomplete"
-    StreamStateComplete   StreamStateType = "Complete"
-)
-
-// Values returns all allowed values for the AliasedEnum type.
-func (StreamStateType) Values() []StreamStateType {
-    return []StreamStateType{
-        StreamStatePending,
-        StreamStateIncomplete,
-        StreamStateComplete,
-    }
-}
-
-// IsValid checks whether the given AliasedEnum value is valid.
-func (e StreamStateType) IsValid() bool {
-
-    for _, v := range e.Values() {
-        if e == v {
-            return true
-        }
-    }
-    return false
-
-}
-
-// MarshalJSON customizes JSON marshaling for AliasedEnum.
-func (e StreamStateType) MarshalJSON() ([]byte, error) {
-    if !e.IsValid() {
-        return nil, fmt.Errorf("invalid StreamStateType: %q", e)
-    }
-    return json.Marshal(string(e))
-}
-
-// UnmarshalJSON customizes JSON unmarshaling for AliasedEnum.
-func (e *StreamStateType) UnmarshalJSON(data []byte) error {
-    var s string
-    if err := json.Unmarshal(data, &s); err != nil {
-        return err
-    }
-    *e = StreamStateType(s)
-    if !e.IsValid() {
-        return fmt.Errorf("invalid StreamStateType: %q", s)
-    }
-    return nil
-}
-
-
-type StreamState[T any] struct {
-    Value T `json:"value"`
-    State StreamStateType `json:"state"`    
-}
-"#;
-
 /// A list of types in Go.
 ///
 /// ```askama
@@ -233,12 +174,9 @@ type StreamState[T any] struct {
 ///     "encoding/json"
 ///     "fmt"
 ///
-///     flatbuffers "github.com/google/flatbuffers/go"
 ///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 ///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 /// )
-///
-/// {{ STREAM_STATE_GO }}
 ///
 /// ```
 ///
@@ -262,7 +200,6 @@ pub(crate) fn render_go_stream_types_utils(
 ///     "encoding/json"
 ///     "fmt"
 ///
-///     flatbuffers "github.com/google/flatbuffers/go"
 ///     baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 ///     "github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
 ///

@@ -1,4 +1,4 @@
-use baml_types::{type_meta::base::TypeMeta, LiteralValue};
+use baml_types::{ir_type::UnionConstructor, type_meta::base::TypeMeta, LiteralValue};
 
 use super::*;
 use crate::BamlValueWithFlags;

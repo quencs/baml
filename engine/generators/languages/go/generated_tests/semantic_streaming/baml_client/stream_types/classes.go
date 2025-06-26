@@ -18,7 +18,6 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 
 	"semantic_streaming/baml_client/types"
 )
@@ -28,35 +27,103 @@ type ClassWithBlockDone struct {
 	S_20_words  *string `json:"s_20_words"`
 }
 
-func (c *ClassWithBlockDone) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "stream_types" {
-		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
+func (c *ClassWithBlockDone) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "ClassWithBlockDone" {
-		panic(fmt.Sprintf("expected ClassWithBlockDone, got %s", string(typeName.Name())))
+	if typeName.Name != "ClassWithBlockDone" {
+		panic(fmt.Sprintf("expected ClassWithBlockDone, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "i_16_digits":
-				c.I_16_digits = func(param *cffi.CFFIValueHolder) *int64 {
-					decoded := baml.Decode(param)
-					return func(result any) *int64 {
-						if result == nil {
-							return nil
-						}
-						return (result).(*int64)
-					}(decoded)
-				}(valueHolder)
+		case "i_16_digits":
+			c.I_16_digits = func(param *cffi.CFFIValueHolder) *int64 {
+				decoded := baml.Decode(param)
+				return func(result any) *int64 {
+					if result == nil {
+						return nil
+					}
+					return (result).(*int64)
+				}(decoded)
+			}(valueHolder)
 
-			case "s_20_words":
-				c.S_20_words = func(param *cffi.CFFIValueHolder) *string {
+		case "s_20_words":
+			c.S_20_words = func(param *cffi.CFFIValueHolder) *string {
+				decoded := baml.Decode(param)
+				return func(result any) *string {
+					if result == nil {
+						return nil
+					}
+					return (result).(*string)
+				}(decoded)
+			}(valueHolder)
+
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
+		}
+	}
+
+}
+
+func (c ClassWithBlockDone) Encode() (*cffi.CFFIValueHolder, error) {
+	fields := map[string]any{}
+
+	fields["i_16_digits"] = c.I_16_digits
+
+	fields["s_20_words"] = c.S_20_words
+
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
+}
+
+func (c ClassWithBlockDone) BamlTypeName() string {
+	return "ClassWithBlockDone"
+}
+
+func (u ClassWithBlockDone) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_STREAM_TYPES,
+		Name:      "ClassWithBlockDone",
+	}
+}
+
+type ClassWithoutDone struct {
+	I_16_digits *int64                    `json:"i_16_digits"`
+	S_20_words  baml.StreamState[*string] `json:"s_20_words"`
+}
+
+func (c *ClassWithoutDone) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
+	}
+	if typeName.Name != "ClassWithoutDone" {
+		panic(fmt.Sprintf("expected ClassWithoutDone, got %s", typeName.Name))
+	}
+
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
+
+		case "i_16_digits":
+			c.I_16_digits = func(param *cffi.CFFIValueHolder) *int64 {
+				decoded := baml.Decode(param)
+				return func(result any) *int64 {
+					if result == nil {
+						return nil
+					}
+					return (result).(*int64)
+				}(decoded)
+			}(valueHolder)
+
+		case "s_20_words":
+			c.S_20_words = baml.DecodeStreamingState(valueHolder, func(inner *cffi.CFFIValueHolder) *string {
+				return func(param *cffi.CFFIValueHolder) *string {
 					decoded := baml.Decode(param)
 					return func(result any) *string {
 						if result == nil {
@@ -64,107 +131,35 @@ func (c *ClassWithBlockDone) Decode(holder cffi.CFFIValueClass) {
 						}
 						return (result).(*string)
 					}(decoded)
-				}(valueHolder)
+				}(inner)
+			})
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c ClassWithBlockDone) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ClassWithoutDone) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["i_16_digits"] = c.I_16_digits
 
 	fields["s_20_words"] = c.S_20_words
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
-}
-
-func (c ClassWithBlockDone) BamlTypeName() string {
-	return "ClassWithBlockDone"
-}
-
-func (u ClassWithBlockDone) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("ClassWithBlockDone")
-	namespaceOffset := builder.CreateString("stream_types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
-}
-
-type ClassWithoutDone struct {
-	I_16_digits *int64               `json:"i_16_digits"`
-	S_20_words  StreamState[*string] `json:"s_20_words"`
-}
-
-func (c *ClassWithoutDone) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "stream_types" {
-		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
-	}
-	if string(typeName.Name()) != "ClassWithoutDone" {
-		panic(fmt.Sprintf("expected ClassWithoutDone, got %s", string(typeName.Name())))
-	}
-
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
-
-			case "i_16_digits":
-				c.I_16_digits = func(param *cffi.CFFIValueHolder) *int64 {
-					decoded := baml.Decode(param)
-					return func(result any) *int64 {
-						if result == nil {
-							return nil
-						}
-						return (result).(*int64)
-					}(decoded)
-				}(valueHolder)
-
-			case "s_20_words":
-				c.S_20_words = func(param *cffi.CFFIValueHolder) StreamState[*string] {
-					decoded := baml.Decode(param)
-					return func(result any) StreamState[*string] {
-						if result == nil {
-							return StreamState[*string]{Value: nil, State: StreamStatePending}
-						}
-						return (result).(StreamState[*string])
-					}(decoded)
-				}(valueHolder)
-
-			}
-		}
-	}
-
-}
-
-func (c ClassWithoutDone) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	fields := map[string]any{}
-
-	fields["i_16_digits"] = c.I_16_digits
-
-	fields["s_20_words"] = c.S_20_words
-
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c ClassWithoutDone) BamlTypeName() string {
 	return "ClassWithoutDone"
 }
 
-func (u ClassWithoutDone) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("ClassWithoutDone")
-	namespaceOffset := builder.CreateString("stream_types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u ClassWithoutDone) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_STREAM_TYPES,
+		Name:      "ClassWithoutDone",
+	}
 }
 
 type SemanticContainer struct {
@@ -178,101 +173,100 @@ type SemanticContainer struct {
 	Final_string             *string                  `json:"final_string"`
 }
 
-func (c *SemanticContainer) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "stream_types" {
-		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
+func (c *SemanticContainer) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "SemanticContainer" {
-		panic(fmt.Sprintf("expected SemanticContainer, got %s", string(typeName.Name())))
+	if typeName.Name != "SemanticContainer" {
+		panic(fmt.Sprintf("expected SemanticContainer, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "sixteen_digit_number":
-				c.Sixteen_digit_number = func(param *cffi.CFFIValueHolder) *int64 {
-					decoded := baml.Decode(param)
-					return func(result any) *int64 {
-						if result == nil {
-							return nil
-						}
-						return (result).(*int64)
-					}(decoded)
-				}(valueHolder)
+		case "sixteen_digit_number":
+			c.Sixteen_digit_number = func(param *cffi.CFFIValueHolder) *int64 {
+				decoded := baml.Decode(param)
+				return func(result any) *int64 {
+					if result == nil {
+						return nil
+					}
+					return (result).(*int64)
+				}(decoded)
+			}(valueHolder)
 
-			case "string_with_twenty_words":
-				c.String_with_twenty_words = func(param *cffi.CFFIValueHolder) *string {
-					decoded := baml.Decode(param)
-					return func(result any) *string {
-						if result == nil {
-							return nil
-						}
-						return (result).(*string)
-					}(decoded)
-				}(valueHolder)
+		case "string_with_twenty_words":
+			c.String_with_twenty_words = func(param *cffi.CFFIValueHolder) *string {
+				decoded := baml.Decode(param)
+				return func(result any) *string {
+					if result == nil {
+						return nil
+					}
+					return (result).(*string)
+				}(decoded)
+			}(valueHolder)
 
-			case "class_1":
-				c.Class_1 = func(param *cffi.CFFIValueHolder) *ClassWithoutDone {
-					decoded := baml.Decode(param)
-					return func(result any) *ClassWithoutDone {
-						if result == nil {
-							return nil
-						}
-						return (result).(*ClassWithoutDone)
-					}(decoded)
-				}(valueHolder)
+		case "class_1":
+			c.Class_1 = func(param *cffi.CFFIValueHolder) *ClassWithoutDone {
+				decoded := baml.Decode(param)
+				return func(result any) *ClassWithoutDone {
+					if result == nil {
+						return nil
+					}
+					return (result).(*ClassWithoutDone)
+				}(decoded)
+			}(valueHolder)
 
-			case "class_2":
-				c.Class_2 = func(param *cffi.CFFIValueHolder) *ClassWithBlockDone {
-					decoded := baml.Decode(param)
-					return func(result any) *ClassWithBlockDone {
-						if result == nil {
-							return nil
-						}
-						return (result).(*ClassWithBlockDone)
-					}(decoded)
-				}(valueHolder)
+		case "class_2":
+			c.Class_2 = func(param *cffi.CFFIValueHolder) *ClassWithBlockDone {
+				decoded := baml.Decode(param)
+				return func(result any) *ClassWithBlockDone {
+					if result == nil {
+						return nil
+					}
+					return (result).(*ClassWithBlockDone)
+				}(decoded)
+			}(valueHolder)
 
-			case "class_done_needed":
-				c.Class_done_needed = *baml.Decode(valueHolder).(*types.ClassWithBlockDone)
+		case "class_done_needed":
+			c.Class_done_needed = *baml.Decode(valueHolder).(*types.ClassWithBlockDone)
 
-			case "class_needed":
-				c.Class_needed = *baml.Decode(valueHolder).(*ClassWithoutDone)
+		case "class_needed":
+			c.Class_needed = *baml.Decode(valueHolder).(*ClassWithoutDone)
 
-			case "three_small_things":
-				c.Three_small_things = func(param *cffi.CFFIValueHolder) *[]*SmallThing {
-					decoded := baml.Decode(param)
-					return func(result any) *[]*SmallThing {
-						if result == nil {
-							return nil
-						}
-						return (result).(*[]*SmallThing)
-					}(decoded)
-				}(valueHolder)
+		case "three_small_things":
+			c.Three_small_things = func(param *cffi.CFFIValueHolder) *[]*SmallThing {
+				decoded := baml.Decode(param)
+				return func(result any) *[]*SmallThing {
+					if result == nil {
+						return nil
+					}
+					return (result).(*[]*SmallThing)
+				}(decoded)
+			}(valueHolder)
 
-			case "final_string":
-				c.Final_string = func(param *cffi.CFFIValueHolder) *string {
-					decoded := baml.Decode(param)
-					return func(result any) *string {
-						if result == nil {
-							return nil
-						}
-						return (result).(*string)
-					}(decoded)
-				}(valueHolder)
+		case "final_string":
+			c.Final_string = func(param *cffi.CFFIValueHolder) *string {
+				decoded := baml.Decode(param)
+				return func(result any) *string {
+					if result == nil {
+						return nil
+					}
+					return (result).(*string)
+				}(decoded)
+			}(valueHolder)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c SemanticContainer) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SemanticContainer) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["sixteen_digit_number"] = c.Sixteen_digit_number
@@ -291,20 +285,18 @@ func (c SemanticContainer) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueU
 
 	fields["final_string"] = c.Final_string
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c SemanticContainer) BamlTypeName() string {
 	return "SemanticContainer"
 }
 
-func (u SemanticContainer) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("SemanticContainer")
-	namespaceOffset := builder.CreateString("stream_types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u SemanticContainer) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_STREAM_TYPES,
+		Name:      "SemanticContainer",
+	}
 }
 
 type SmallThing struct {
@@ -312,61 +304,58 @@ type SmallThing struct {
 	I_8_digits  *int64 `json:"i_8_digits"`
 }
 
-func (c *SmallThing) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "stream_types" {
-		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
+func (c *SmallThing) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "SmallThing" {
-		panic(fmt.Sprintf("expected SmallThing, got %s", string(typeName.Name())))
+	if typeName.Name != "SmallThing" {
+		panic(fmt.Sprintf("expected SmallThing, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "i_16_digits":
-				c.I_16_digits = *baml.Decode(valueHolder).(*int64)
+		case "i_16_digits":
+			c.I_16_digits = *baml.Decode(valueHolder).(*int64)
 
-			case "i_8_digits":
-				c.I_8_digits = func(param *cffi.CFFIValueHolder) *int64 {
-					decoded := baml.Decode(param)
-					return func(result any) *int64 {
-						if result == nil {
-							return nil
-						}
-						return (result).(*int64)
-					}(decoded)
-				}(valueHolder)
+		case "i_8_digits":
+			c.I_8_digits = func(param *cffi.CFFIValueHolder) *int64 {
+				decoded := baml.Decode(param)
+				return func(result any) *int64 {
+					if result == nil {
+						return nil
+					}
+					return (result).(*int64)
+				}(decoded)
+			}(valueHolder)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c SmallThing) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SmallThing) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["i_16_digits"] = c.I_16_digits
 
 	fields["i_8_digits"] = c.I_8_digits
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c SmallThing) BamlTypeName() string {
 	return "SmallThing"
 }
 
-func (u SmallThing) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("SmallThing")
-	namespaceOffset := builder.CreateString("stream_types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u SmallThing) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_STREAM_TYPES,
+		Name:      "SmallThing",
+	}
 }

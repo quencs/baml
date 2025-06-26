@@ -13,7 +13,7 @@ use internal_llm_client::ClientSpec;
 use crate::ir::{
     jinja_helpers::render_expression,
     repr::{self, ExprFunction, FunctionConfig, Node, TypeBuilderEntry, WithRepr},
-    Class, Client, Enum, EnumValue, ExprFunctionNode, Field, FieldType, Function, FunctionNode,
+    Class, Client, Enum, EnumValue, ExprFunctionNode, Field, TypeIR, Function, FunctionNode,
     IRHelper, Impl, IntermediateRepr, RetryPolicy, TemplateString, TestCase, TypeAlias, Walker,
 };
 
@@ -290,7 +290,7 @@ impl<'a> Walker<'a, (&'a FunctionNode, &'a TestCase)> {
     }
 
     // TODO: #1343 Temporary solution until we implement scoping in the AST.
-    pub fn type_builder_recursive_aliases(&self) -> &[IndexMap<String, FieldType>] {
+    pub fn type_builder_recursive_aliases(&self) -> &[IndexMap<String, TypeIR>] {
         &self.item.1.elem.type_builder.recursive_aliases
     }
 

@@ -6,6 +6,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use baml_types::{
+    ir_type::{TypeGeneric, UnionConstructor},
     BamlMap, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel, LiteralValue, TypeIR,
     TypeValue, UnionType,
 };
@@ -975,30 +976,32 @@ fn distribute_infer_class<T: Clone + std::fmt::Debug>(
     ))
 }
 
-pub fn infer_type(value: &BamlValue) -> Option<TypeIR> {
+pub fn infer_type<Meta: Default + std::cmp::PartialEq + std::fmt::Debug>(
+    value: &BamlValue,
+) -> Option<TypeGeneric<Meta>>
+where
+    TypeGeneric<Meta>: UnionConstructor<Meta>,
+{
     let ret = match value {
-        BamlValue::Int(_) => Some(TypeIR::Primitive(TypeValue::Int, Default::default())),
-        BamlValue::Bool(_) => Some(TypeIR::Primitive(TypeValue::Bool, Default::default())),
-        BamlValue::Float(_) => Some(TypeIR::Primitive(TypeValue::Float, Default::default())),
-        BamlValue::String(_) => Some(TypeIR::Primitive(TypeValue::String, Default::default())),
-        BamlValue::Null => Some(TypeIR::Primitive(TypeValue::Null, Default::default())),
+        BamlValue::Int(_) => Some(TypeGeneric::Primitive(TypeValue::Int, Default::default())),
+        BamlValue::Bool(_) => Some(TypeGeneric::Primitive(TypeValue::Bool, Default::default())),
+        BamlValue::Float(_) => Some(TypeGeneric::Primitive(TypeValue::Float, Default::default())),
+        BamlValue::String(_) => Some(TypeGeneric::Primitive(
+            TypeValue::String,
+            Default::default(),
+        )),
+        BamlValue::Null => Some(TypeGeneric::Primitive(TypeValue::Null, Default::default())),
         BamlValue::Map(pairs) => {
             let v_tys = pairs
                 .iter()
-                .filter_map(|(_, v)| infer_type(v))
-                .dedup()
+                .filter_map(|(_, v)| infer_type::<Meta>(v))
                 .collect::<Vec<_>>();
-            let k_ty = TypeIR::Primitive(TypeValue::String, Default::default());
+            let k_ty = TypeGeneric::Primitive(TypeValue::String, Meta::default());
             let v_ty = match v_tys.len() {
                 0 => None,
-                1 => Some(v_tys[0].clone()),
-                _ => Some(TypeIR::union(v_tys)),
+                _ => Some(TypeGeneric::union(v_tys)),
             }?;
-            Some(TypeIR::Map(
-                Box::new(k_ty),
-                Box::new(v_ty),
-                Default::default(),
-            ))
+            Some(TypeGeneric::map(k_ty, v_ty))
         }
         BamlValue::List(items) => {
             let item_tys = items
@@ -1008,21 +1011,20 @@ pub fn infer_type(value: &BamlValue) -> Option<TypeIR> {
                 .collect::<Vec<_>>();
             let item_ty = match item_tys.len() {
                 0 => None,
-                1 => Some(item_tys[0].clone()),
-                _ => Some(TypeIR::union(item_tys)),
+                _ => Some(TypeGeneric::union(item_tys)),
             }?;
-            Some(TypeIR::List(Box::new(item_ty), Default::default()))
+            Some(TypeGeneric::List(Box::new(item_ty), Default::default()))
         }
-        BamlValue::Media(m) => Some(TypeIR::Primitive(
+        BamlValue::Media(m) => Some(TypeGeneric::Primitive(
             TypeValue::Media(m.media_type),
             Default::default(),
         )),
-        BamlValue::Enum(enum_name, _) => Some(TypeIR::Enum {
+        BamlValue::Enum(enum_name, _) => Some(TypeGeneric::Enum {
             name: enum_name.clone(),
             dynamic: false,
             meta: Default::default(),
         }),
-        BamlValue::Class(class_name, _) => Some(TypeIR::Class {
+        BamlValue::Class(class_name, _) => Some(TypeGeneric::Class {
             name: class_name.clone(),
             mode: baml_types::ir_type::StreamingMode::NonStreaming,
             dynamic: false,
@@ -1149,10 +1151,9 @@ mod tests {
     #[test]
     fn infer_list() {
         let my_list = mk_list_1();
-        assert_eq!(
-            infer_type(&my_list).unwrap(),
-            TypeIR::List(Box::new(int_type()), Default::default())
-        );
+        let actual = infer_type(&my_list).unwrap();
+        let expected = int_type().as_list();
+        assert_eq!(actual, expected, "{} != {}", actual, expected);
     }
 
     #[test]

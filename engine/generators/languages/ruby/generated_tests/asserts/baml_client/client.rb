@@ -49,7 +49,7 @@ module BamlClient
           varargs: T.untyped,
 
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(T.nilable(BamlClient::Types::Person))}
+      ).returns(BamlClient::Types::Person)}
       def PersonTest(
           *varargs,
 
@@ -68,7 +68,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(T.nilable(BamlClient::Types::Person))
+          parsed.cast_to(BamlClient::Types::Person)
       end
 
   end
@@ -85,7 +85,7 @@ module BamlClient
           varargs: T.untyped,
 
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(BamlClient::StreamTypes::Person), T.nilable(BamlClient::Types::Person)])}
+      ).returns(Baml::BamlStream[T.nilable(BamlClient::StreamTypes::Person), BamlClient::Types::Person])}
       def PersonTest(
           *varargs,
 
@@ -101,7 +101,7 @@ module BamlClient
 
           })
 
-          Baml::BamlStream[T.nilable(BamlClient::StreamTypes::Person), T.nilable(BamlClient::Types::Person)].new(
+          Baml::BamlStream[T.nilable(BamlClient::StreamTypes::Person), BamlClient::Types::Person].new(
               ffi_stream: result,
               ctx_manager: ctx
           )

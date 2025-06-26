@@ -941,6 +941,8 @@ impl OutputFormatContent {
 mod tests {
     use std::vec;
 
+    use baml_types::ir_type::UnionConstructor;
+
     use super::*;
 
     #[test]

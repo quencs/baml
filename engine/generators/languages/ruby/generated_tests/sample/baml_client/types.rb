@@ -44,16 +44,16 @@ module BamlClient
 
   class Example < T::Struct
       include Baml::Sorbet::Struct
-      const :a, T.nilable(Integer)
-      const :b, T.nilable(String)
+      const :a, Integer
+      const :b, String
   end
 
 
   class Example2 < T::Struct
       include Baml::Sorbet::Struct
-      const :item, T.nilable(Example)
-      const :element, T.nilable(String)
-      const :element2, T.nilable(String)
+      const :item, Example
+      const :element, String
+      const :element2, String
   end
 
   # #########################################################################

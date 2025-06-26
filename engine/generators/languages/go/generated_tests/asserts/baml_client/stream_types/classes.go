@@ -18,7 +18,6 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type Person struct {
@@ -26,69 +25,66 @@ type Person struct {
 	Age  *int64  `json:"age"`
 }
 
-func (c *Person) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "stream_types" {
-		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
+func (c *Person) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "Person" {
-		panic(fmt.Sprintf("expected Person, got %s", string(typeName.Name())))
+	if typeName.Name != "Person" {
+		panic(fmt.Sprintf("expected Person, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "name":
-				c.Name = func(param *cffi.CFFIValueHolder) *string {
-					decoded := baml.Decode(param)
-					return func(result any) *string {
-						if result == nil {
-							return nil
-						}
-						return (result).(*string)
-					}(decoded)
-				}(valueHolder)
+		case "name":
+			c.Name = func(param *cffi.CFFIValueHolder) *string {
+				decoded := baml.Decode(param)
+				return func(result any) *string {
+					if result == nil {
+						return nil
+					}
+					return (result).(*string)
+				}(decoded)
+			}(valueHolder)
 
-			case "age":
-				c.Age = func(param *cffi.CFFIValueHolder) *int64 {
-					decoded := baml.Decode(param)
-					return func(result any) *int64 {
-						if result == nil {
-							return nil
-						}
-						return (result).(*int64)
-					}(decoded)
-				}(valueHolder)
+		case "age":
+			c.Age = func(param *cffi.CFFIValueHolder) *int64 {
+				decoded := baml.Decode(param)
+				return func(result any) *int64 {
+					if result == nil {
+						return nil
+					}
+					return (result).(*int64)
+				}(decoded)
+			}(valueHolder)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c Person) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Person) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["name"] = c.Name
 
 	fields["age"] = c.Age
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c Person) BamlTypeName() string {
 	return "Person"
 }
 
-func (u Person) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("Person")
-	namespaceOffset := builder.CreateString("stream_types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u Person) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_STREAM_TYPES,
+		Name:      "Person",
+	}
 }

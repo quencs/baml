@@ -1,4 +1,4 @@
-use baml_types::TypeIR;
+use baml_types::{ir_type::UnionConstructor, TypeIR};
 use criterion::Criterion;
 use internal_baml_jinja::types::Builder;
 use jsonish::{from_str, helpers::common::UNION_SCHEMA, jsonish as internal_jsonish};

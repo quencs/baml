@@ -44,8 +44,8 @@ module BamlClient
 
   class SimpleClass < T::Struct
       include Baml::Sorbet::Struct
-      const :digits, T.nilable(Integer)
-      const :words, T.nilable(String)
+      const :digits, Integer
+      const :words, String
   end
 
   # #########################################################################

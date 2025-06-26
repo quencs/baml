@@ -44,35 +44,35 @@ module BamlClient
 
   class ClassWithBlockDone < T::Struct
       include Baml::Sorbet::Struct
-      const :i_16_digits, T.nilable(Integer)
-      const :s_20_words, T.nilable(String)
+      const :i_16_digits, Integer
+      const :s_20_words, String
   end
 
 
   class ClassWithoutDone < T::Struct
       include Baml::Sorbet::Struct
-      const :i_16_digits, T.nilable(Integer)
-      const :s_20_words, T.nilable(String)
+      const :i_16_digits, Integer
+      const :s_20_words, String
   end
 
 
   class SemanticContainer < T::Struct
       include Baml::Sorbet::Struct
-      const :sixteen_digit_number, T.nilable(Integer)
-      const :string_with_twenty_words, T.nilable(String)
-      const :class_1, T.nilable(ClassWithoutDone)
-      const :class_2, T.nilable(ClassWithBlockDone)
-      const :class_done_needed, T.nilable(ClassWithBlockDone)
-      const :class_needed, T.nilable(ClassWithoutDone)
-      const :three_small_things, T.nilable(T::Array[T.nilable(SmallThing)])
-      const :final_string, T.nilable(String)
+      const :sixteen_digit_number, Integer
+      const :string_with_twenty_words, String
+      const :class_1, ClassWithoutDone
+      const :class_2, ClassWithBlockDone
+      const :class_done_needed, ClassWithBlockDone
+      const :class_needed, ClassWithoutDone
+      const :three_small_things, T::Array[SmallThing]
+      const :final_string, String
   end
 
 
   class SmallThing < T::Struct
       include Baml::Sorbet::Struct
-      const :i_16_digits, T.nilable(Integer)
-      const :i_8_digits, T.nilable(Integer)
+      const :i_16_digits, Integer
+      const :i_8_digits, Integer
   end
 
   # #########################################################################

@@ -18,7 +18,7 @@ use baml_types::{
         FunctionEnd, FunctionStart, HTTPRequest, HTTPResponse, LoggedLLMRequest, LoggedLLMResponse,
         TraceData, TraceEvent,
     },
-    HasFieldType,
+    HasType,
 };
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;

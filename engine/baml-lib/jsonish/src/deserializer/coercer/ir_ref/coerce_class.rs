@@ -1,6 +1,6 @@
 use anyhow::Result;
 use baml_types::{BamlMap, Constraint};
-use internal_baml_core::ir::FieldType;
+use internal_baml_core::ir::TypeIR;
 use internal_baml_jinja::types::{Class, Name};
 
 use super::ParsingContext;
@@ -14,13 +14,13 @@ use crate::deserializer::{
 };
 
 // Name, type, description, streaming_needed.
-type FieldValue = (Name, FieldType, Option<String>, bool);
+type FieldValue = (Name, TypeIR, Option<String>, bool);
 
 impl TypeCoercer for Class {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
         log::debug!(
@@ -397,7 +397,7 @@ impl TypeCoercer for Class {
 }
 
 pub fn apply_constraints(
-    class_type: &FieldType,
+    class_type: &TypeIR,
     scope: Vec<String>,
     mut value: BamlValueWithFlags,
     constraints: Vec<Constraint>,

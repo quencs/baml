@@ -8,7 +8,7 @@ use std::collections::HashMap;
 pub mod jsonish;
 
 use baml_types::{
-    BamlValue, BamlValueWithMeta, Completion, CompletionState, HasFieldType, JinjaExpression,
+    type_meta, BamlValue, BamlValueWithMeta, Completion, CompletionState, HasType, JinjaExpression,
     ResponseCheck, TypeIR,
 };
 pub use deserializer::types::BamlValueWithFlags;
@@ -44,7 +44,7 @@ impl From<TypeIR> for ResponseValueMeta {
     }
 }
 
-impl baml_types::HasFieldType for ResponseValueMeta {
+impl baml_types::HasType<type_meta::IR> for ResponseValueMeta {
     fn field_type(&self) -> &TypeIR {
         &self.3
     }

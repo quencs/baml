@@ -20,15 +20,15 @@ import (
 )
 
 var typeMap = map[string]reflect.Type{
-	"types.ExistingSystemComponent":        reflect.TypeOf(types.ExistingSystemComponent{}),
-	"stream_types.ExistingSystemComponent": reflect.TypeOf(stream_types.ExistingSystemComponent{}),
-	"types.UseMyUnion":                     reflect.TypeOf(types.UseMyUnion{}),
-	"stream_types.UseMyUnion":              reflect.TypeOf(stream_types.UseMyUnion{}),
+	"TYPES.ExistingSystemComponent":        reflect.TypeOf(types.ExistingSystemComponent{}),
+	"STREAM_TYPES.ExistingSystemComponent": reflect.TypeOf(stream_types.ExistingSystemComponent{}),
+	"TYPES.UseMyUnion":                     reflect.TypeOf(types.UseMyUnion{}),
+	"STREAM_TYPES.UseMyUnion":              reflect.TypeOf(stream_types.UseMyUnion{}),
 
-	"types.Union__List__Recursive1__int":                  reflect.TypeOf(types.Union2IntOrListRecursive1{}),
-	"stream_types.Union__List__Recursive1__int":           reflect.TypeOf(stream_types.Union2IntOrListRecursive1{}),
-	"types.Union__string_resource__string_service":        reflect.TypeOf(types.Union2KresourceOrKservice{}),
-	"stream_types.Union__string_resource__string_service": reflect.TypeOf(stream_types.Union2KresourceOrKservice{}),
-	"types.Union__Recursive1__int__string":                reflect.TypeOf(types.Union3IntOrRecursive1OrString{}),
-	"stream_types.Union__Recursive1__int__string":         reflect.TypeOf(stream_types.Union3IntOrRecursive1OrString{}),
+	"TYPES.Union__List__Recursive1__int":                  reflect.TypeOf(types.Union2IntOrListRecursive1{}),
+	"STREAM_TYPES.Union__List__Recursive1__int":           reflect.TypeOf(stream_types.Union2IntOrListRecursive1{}),
+	"TYPES.Union__string_resource__string_service":        reflect.TypeOf(types.Union2KresourceOrKservice{}),
+	"STREAM_TYPES.Union__string_resource__string_service": reflect.TypeOf(stream_types.Union2KresourceOrKservice{}),
+	"TYPES.Union__Recursive1__int__string":                reflect.TypeOf(types.Union3IntOrRecursive1OrString{}),
+	"STREAM_TYPES.Union__Recursive1__int__string":         reflect.TypeOf(stream_types.Union3IntOrRecursive1OrString{}),
 }

@@ -282,7 +282,7 @@ impl TypeGo {
                 t = inner.serialize_type(pkg),
                 casted = inner.decode_from_any("inner", pkg)
             ),
-            TypeGo::Map(_key, value, meta) if !meta.is_optional() => format!(
+            TypeGo::Map(key, value, meta) if !meta.is_optional() => format!(
                 "baml.DecodeMap({param}, func(inner *cffi.CFFIValueHolder) {t} {{
                 return {casted}
             }})",
@@ -322,7 +322,17 @@ impl TypeGo {
     }
 
     pub fn decode_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        if self.meta().is_optional() {
+        if self.meta().wrap_stream_state {
+            let mut without_stream_state = self.clone();
+            without_stream_state.meta_mut().wrap_stream_state = false;
+            format!(
+                "baml.DecodeStreamingState({param}, func(inner *cffi.CFFIValueHolder) {t} {{
+                return {casted}
+            }})",
+                t = without_stream_state.serialize_type(pkg),
+                casted = without_stream_state.decode_from_any("inner", pkg)
+            )
+        } else if self.meta().is_optional() {
             format!(
                 r#"
                 func(param *cffi.CFFIValueHolder) {t} {{
@@ -419,7 +429,7 @@ impl SerializeType for TypeGo {
 }
 
 impl SerializeType for MediaTypeGo {
-    fn serialize_type(&self, _pkg: &CurrentRenderPackage) -> String {
+    fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         match self {
             MediaTypeGo::Image => "any".to_string(), // format!("{}Image", Package::imported_base().relative_from(pkg)),
             MediaTypeGo::Audio => "any".to_string(), // format!("{}Audio", Package::imported_base().relative_from(pkg)),

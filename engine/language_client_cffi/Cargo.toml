@@ -13,9 +13,6 @@ license-file.workspace = true
 # for more information.
 crate-type = ["cdylib", "staticlib"]
 
-[lints.clippy]
-not_unsafe_ptr_arg_deref = "allow"
-
 [dependencies]
 libc = "0.2.2"
 baml-cli.workspace = true
@@ -31,10 +28,11 @@ tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["full"] }
 once_cell.workspace = true
 anyhow.workspace = true
-flatbuffers = "25.2.10"
 env_logger.workspace = true
+prost = "0.14"
 
 [build-dependencies]
 cbindgen = "0.28.0"
-flatc-rust = "0.2.0"
-flatc = "0.2.2"
+prost-build = "0.14.1"
+protoc-bin-vendored = "3"
+protoc = "2"

@@ -61,7 +61,6 @@ pub fn ir_union_to_go_stream<'a>(
             .collect::<Vec<_>>();
         Some(crate::generated_types::UnionGo {
             name,
-            // TODO: switch to stream_union.to_union_name()
             cffi_name: stream_union.to_union_name(),
             docstring: Some(format!("Generated from: {}", stream_union)),
             variants,

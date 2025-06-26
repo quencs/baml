@@ -19,7 +19,6 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type TestEnum string
@@ -80,28 +79,26 @@ func (e *TestEnum) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (e *TestEnum) Decode(holder cffi.CFFIValueEnum) {
-	name := holder.Name(nil)
-	if string(name.Name()) != "TestEnum" && string(name.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types.TestEnum, got %s.%s", string(name.Namespace()), string(name.Name())))
+func (e *TestEnum) Decode(holder *cffi.CFFIValueEnum) {
+	name := holder.Name
+	if name.Name != "TestEnum" && name.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected types.TestEnum, got %s.%s", string(name.Namespace.String()), string(name.Name)))
 	}
-	value := string(holder.Value())
+	value := holder.Value
 	*e = TestEnum(value)
 }
 
-func (e TestEnum) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-	return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
+func (e TestEnum) Encode() (*cffi.CFFIValueHolder, error) {
+	return baml.EncodeEnum(e.BamlEncodeName, string(e), false)
 }
 
 func (e TestEnum) BamlTypeName() string {
 	return "TestEnum"
 }
 
-func (u TestEnum) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("TestEnum")
-	namespaceOffset := builder.CreateString("types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u TestEnum) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Name:      "TestEnum",
+		Namespace: cffi.CFFITypeNamespace_TYPES,
+	}
 }

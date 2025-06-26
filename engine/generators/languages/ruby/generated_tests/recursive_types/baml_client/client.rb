@@ -47,9 +47,9 @@ module BamlClient
 
       sig {params(
           varargs: T.untyped,
-          x: T.nilable(Integer),
+          x: Integer,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(T.nilable(BamlClient::Types::JSON))}
+      ).returns(BamlClient::Types::JSON)}
       def Foo(
           *varargs,
           x:,
@@ -68,13 +68,13 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(T.nilable(BamlClient::Types::JSON))
+          parsed.cast_to(BamlClient::Types::JSON)
       end
       sig {params(
           varargs: T.untyped,
-          x: T.nilable(BamlClient::Types::JSON),
+          x: BamlClient::Types::JSON,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(T.nilable(BamlClient::Types::JSON))}
+      ).returns(BamlClient::Types::JSON)}
       def JsonInput(
           *varargs,
           x:,
@@ -93,7 +93,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(T.nilable(BamlClient::Types::JSON))
+          parsed.cast_to(BamlClient::Types::JSON)
       end
 
   end
@@ -108,9 +108,9 @@ module BamlClient
 
       sig {params(
           varargs: T.untyped,
-          x: T.nilable(Integer),
+          x: Integer,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[BamlClient::StreamTypes::JSON, T.nilable(BamlClient::Types::JSON)])}
+      ).returns(Baml::BamlStream[BamlClient::StreamTypes::JSON, BamlClient::Types::JSON])}
       def Foo(
           *varargs,
           x:,
@@ -126,16 +126,16 @@ module BamlClient
               x: x,
           })
 
-          Baml::BamlStream[BamlClient::StreamTypes::JSON, T.nilable(BamlClient::Types::JSON)].new(
+          Baml::BamlStream[BamlClient::StreamTypes::JSON, BamlClient::Types::JSON].new(
               ffi_stream: result,
               ctx_manager: ctx
           )
       end
       sig {params(
           varargs: T.untyped,
-          x: T.nilable(BamlClient::Types::JSON),
+          x: BamlClient::Types::JSON,
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[BamlClient::StreamTypes::JSON, T.nilable(BamlClient::Types::JSON)])}
+      ).returns(Baml::BamlStream[BamlClient::StreamTypes::JSON, BamlClient::Types::JSON])}
       def JsonInput(
           *varargs,
           x:,
@@ -151,7 +151,7 @@ module BamlClient
               x: x,
           })
 
-          Baml::BamlStream[BamlClient::StreamTypes::JSON, T.nilable(BamlClient::Types::JSON)].new(
+          Baml::BamlStream[BamlClient::StreamTypes::JSON, BamlClient::Types::JSON].new(
               ffi_stream: result,
               ctx_manager: ctx
           )

@@ -4,7 +4,7 @@ use anyhow::Result;
 use baml_types::BamlValue;
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::{
-    repr::IntermediateRepr, ClassWalker, EnumWalker, FieldType, IRHelper, IRHelperExtended,
+    repr::IntermediateRepr, ClassWalker, EnumWalker, TypeIR, IRHelper, IRHelperExtended,
 };
 use internal_baml_jinja::types::{Class, Enum, Name, OutputFormatContent};
 
@@ -16,7 +16,7 @@ use crate::{
 pub fn render_output_format(
     ir: &IntermediateRepr,
     ctx: &RuntimeContext,
-    output: &FieldType,
+    output: &TypeIR,
 ) -> Result<OutputFormatContent> {
     let (enums, classes, recursive_classes, structural_recursive_aliases) =
         relevant_data_models(ir, output, ctx)?;
@@ -75,7 +75,7 @@ fn find_new_class_field(
     class_walker: &Result<ClassWalker<'_>>,
     overrides: &RuntimeClassOverride,
     _ctx: &RuntimeContext,
-) -> Result<(Name, FieldType, Option<String>, bool)> {
+) -> Result<(Name, TypeIR, Option<String>, bool)> {
     let Some(field_overrides) = overrides.new_fields.get(field_name) else {
         anyhow::bail!("Class {} does not have a field: {}", class_name, field_name);
     };
@@ -106,7 +106,7 @@ fn find_existing_class_field(
     class_walker: &Result<ClassWalker<'_>>,
     overrides: &Option<&RuntimeClassOverride>,
     ctx: &RuntimeContext,
-) -> Result<(Name, FieldType, Option<String>, bool)> {
+) -> Result<(Name, TypeIR, Option<String>, bool)> {
     let Ok(class_walker) = class_walker else {
         anyhow::bail!("Class {} does not exist", class_name);
     };
@@ -214,13 +214,13 @@ fn find_enum_value(
 // Should be refactored.
 fn relevant_data_models<'a>(
     ir: &'a IntermediateRepr,
-    output: &'a FieldType,
+    output: &'a TypeIR,
     ctx: &RuntimeContext,
 ) -> Result<(
     Vec<Enum>,
     Vec<Class>,
     IndexSet<String>,
-    IndexMap<String, FieldType>,
+    IndexMap<String, TypeIR>,
 )> {
     let mut checked_types = HashSet::new();
     let mut enums = Vec::new();
@@ -235,7 +235,7 @@ fn relevant_data_models<'a>(
 
     while let Some(output) = stack.pop() {
         match &output {
-            FieldType::Enum {
+            TypeIR::Enum {
                 name: enm,
                 dynamic: _,
                 meta: ref metadata,
@@ -282,12 +282,12 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::List(inner, _) => {
+            TypeIR::List(inner, _) => {
                 if !checked_types.contains(&inner.to_string()) {
                     stack.push(inner.as_ref().clone());
                 }
             }
-            FieldType::Map(k, ref v, _) => {
+            TypeIR::Map(k, ref v, _) => {
                 if checked_types.insert(output.to_string()) {
                     if !checked_types.contains(&k.to_string()) {
                         stack.push(k.as_ref().clone());
@@ -297,7 +297,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Tuple(ref options, _) => {
+            TypeIR::Tuple(ref options, _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options {
                         if !checked_types.contains(&inner.to_string()) {
@@ -306,7 +306,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Union(ref options, _) => {
+            TypeIR::Union(ref options, _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options.iter_include_null() {
                         if !checked_types.contains(&inner.to_string()) {
@@ -315,7 +315,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Class {
+            TypeIR::Class {
                 name: cls,
                 mode: _,
                 dynamic: _,
@@ -404,7 +404,7 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::RecursiveTypeAlias { name, .. } => {
+            TypeIR::RecursiveTypeAlias { name, .. } => {
                 // TODO: Same O(n) problem as above.
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if cycle.contains_key(name) {
@@ -433,9 +433,9 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Literal(_, _) => {}
-            FieldType::Primitive(_, _) => {}
-            FieldType::Arrow(_, _) => {}
+            TypeIR::Literal(_, _) => {}
+            TypeIR::Primitive(_, _) => {}
+            TypeIR::Arrow(_, _) => {}
         }
     }
 
@@ -476,7 +476,7 @@ mod tests {
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .unwrap();
 
-        let field_type = FieldType::r#enum("Foo");
+        let field_type = TypeIR::r#enum("Foo");
         let render_output =
             render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
 
@@ -535,7 +535,7 @@ class Resume {
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .unwrap();
 
-        let field_type = FieldType::class("Resume");
+        let field_type = TypeIR::class("Resume");
         let render_output =
             render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
 
@@ -633,7 +633,7 @@ class Resume {
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .unwrap();
 
-        let field_type = FieldType::class("Resume");
+        let field_type = TypeIR::class("Resume");
         let render_output =
             render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
 
@@ -704,7 +704,7 @@ Answer in JSON using this schema:
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .expect("Should create context");
 
-        let field_type = FieldType::class("Foo");
+        let field_type = TypeIR::class("Foo");
         let render_output =
             render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
 
@@ -713,7 +713,7 @@ Answer in JSON using this schema:
             foo.fields[0].0,
             Name::new_with_alias("bar".to_string(), Some("a".to_string()))
         );
-        assert_eq!(foo.fields[0].1, FieldType::r#string());
+        assert_eq!(foo.fields[0].1, TypeIR::r#string());
         assert_eq!(foo.fields[0].2, Some("d".to_string()));
     }
 }

@@ -1,5 +1,5 @@
 use baml_runtime::type_builder::{self, WithMeta};
-use baml_types::BamlValue;
+use baml_types::{ir_type::UnionConstructor, BamlValue};
 use pyo3::{
     prelude::PyAnyMethods,
     pymethods,

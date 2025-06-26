@@ -1,4 +1,4 @@
-use baml_types::TypeIR;
+use baml_types::{ir_type::UnionConstructor, TypeIR};
 
 use super::*;
 

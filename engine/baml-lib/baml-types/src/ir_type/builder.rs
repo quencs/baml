@@ -1,6 +1,6 @@
 use super::{BamlMediaType, StreamingMode, TypeGeneric, TypeValue};
 
-impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
+impl<T: Default> TypeGeneric<T> {
     pub fn string() -> Self {
         TypeGeneric::Primitive(TypeValue::String, T::default())
     }

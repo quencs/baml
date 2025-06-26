@@ -49,19 +49,19 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         let pkg = package::CurrentRenderPackage::new("baml_client", ir.clone());
         let file_map = args.file_map_as_json_string()?;
-        let _ = collector.add_file("baml_source_map.go", render_source_files(file_map)?);
-        let _ = collector.add_file("runtime.go", render_runtime_code(&pkg)?);
+        collector.add_file("baml_source_map.go", render_source_files(file_map)?);
+        collector.add_file("runtime.go", render_runtime_code(&pkg)?);
         let functions = ir
             .functions
             .iter()
             .map(|f| ir_to_go::functions::ir_function_to_go(f, &pkg))
             .collect::<Vec<_>>();
-        let _ = collector.add_file(
+        collector.add_file(
             "functions.go",
             render_functions(&functions, &pkg, go_mod_name)?,
         );
 
-        let _ = collector.add_file(
+        collector.add_file(
             "functions_stream.go",
             render_functions_stream(&functions, &pkg, go_mod_name)?,
         );

@@ -1,15 +1,15 @@
 use anyhow::Result;
-use internal_baml_core::ir::FieldType;
+use internal_baml_core::ir::TypeIR;
 
 use super::{ParsingContext, ParsingError, TypeCoercer};
 use crate::deserializer::types::BamlValueWithFlags;
 
 pub fn coerce_alias(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithFlags, ParsingError> {
-    assert!(matches!(target, FieldType::RecursiveTypeAlias { .. }));
+    assert!(matches!(target, TypeIR::RecursiveTypeAlias { .. }));
     log::debug!(
         "scope: {scope} :: coercing to: {name} (current: {current})",
         name = target,
@@ -17,7 +17,7 @@ pub fn coerce_alias(
         current = value.map(|v| v.r#type()).unwrap_or("<null>".into())
     );
 
-    let FieldType::RecursiveTypeAlias { name: alias, .. } = target else {
+    let TypeIR::RecursiveTypeAlias { name: alias, .. } = target else {
         unreachable!("coerce_alias");
     };
 

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use baml_types::tracing::events::TraceEvent;
+use baml_types::{ir_type::TypeNonStreaming, tracing::events::TraceEvent};
 
-pub type TraceEventWithMeta = TraceEvent<'static, baml_types::TypeIR>;
+pub type TraceEventWithMeta = TraceEvent<'static, TypeNonStreaming>;
 
 pub trait Storage {
     fn put(&self, event: Arc<TraceEventWithMeta>);

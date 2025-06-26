@@ -47,9 +47,9 @@ module BamlClient
 
       sig {params(
           varargs: T.untyped,
-          x: T.nilable(T::Array[T.nilable(BamlClient::Types::ExistingSystemComponent)]),
+          x: T::Array[BamlClient::Types::ExistingSystemComponent],
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(T.nilable(T::Array[T.nilable(String)]))}
+      ).returns(T::Array[String])}
       def JsonInput(
           *varargs,
           x:,
@@ -68,7 +68,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(T.nilable(T::Array[T.nilable(String)]))
+          parsed.cast_to(T::Array[String])
       end
 
   end
@@ -83,9 +83,9 @@ module BamlClient
 
       sig {params(
           varargs: T.untyped,
-          x: T.nilable(T::Array[T.nilable(BamlClient::Types::ExistingSystemComponent)]),
+          x: T::Array[BamlClient::Types::ExistingSystemComponent],
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T::Array[String], T.nilable(T::Array[T.nilable(String)])])}
+      ).returns(Baml::BamlStream[T::Array[String], T::Array[String]])}
       def JsonInput(
           *varargs,
           x:,
@@ -101,7 +101,7 @@ module BamlClient
               x: x,
           })
 
-          Baml::BamlStream[T::Array[String], T.nilable(T::Array[T.nilable(String)])].new(
+          Baml::BamlStream[T::Array[String], T::Array[String]].new(
               ffi_stream: result,
               ctx_manager: ctx
           )

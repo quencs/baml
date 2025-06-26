@@ -1,14 +1,14 @@
 use std::any::Any;
 
 use anyhow::Result;
-use internal_baml_core::{ast::Field, ir::FieldType};
+use internal_baml_core::{ast::Field, ir::TypeIR};
 
 use super::{ParsingContext, ParsingError};
 use crate::deserializer::{deserialize_flags::Flag, types::BamlValueWithFlags};
 
 pub fn coerce_array_to_singular(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     items: &[&crate::jsonish::Value],
     coercion: &dyn (Fn(&crate::jsonish::Value) -> Result<BamlValueWithFlags, ParsingError>),
 ) -> Result<BamlValueWithFlags, ParsingError> {
@@ -25,7 +25,7 @@ pub fn coerce_array_to_singular(
 
 pub(super) fn pick_best(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     res: &[Result<BamlValueWithFlags, ParsingError>],
 ) -> Result<BamlValueWithFlags, ParsingError> {
     let Some(first) = res.first() else {
@@ -130,7 +130,7 @@ pub(super) fn pick_best(
                 // If matching on a union, and one of the choices is picking an object that only
                 // had a single string coerced from JSON, prefer the other one
                 // (since string cost is low, its better to pick the other one if possible)
-                if matches!(target, FieldType::Union(_, _)) {
+                if matches!(target, TypeIR::Union(_, _)) {
                     let a_is_coerced_string = a_props.len() == 1
                         && a_props.iter().all(|(_, cond)| {
                             matches!(cond, BamlValueWithFlags::String(..))
@@ -242,7 +242,7 @@ pub(super) fn pick_best(
         Some(&(i, _, _, v)) => {
             let mut v = v.clone();
             if res.len() > 1 {
-                v.add_flag(if matches!(target, FieldType::Union(_, _)) {
+                v.add_flag(if matches!(target, TypeIR::Union(_, _)) {
                     Flag::UnionMatch(i, res.to_vec())
                 } else {
                     Flag::FirstMatch(i, res.to_vec())

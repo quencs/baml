@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use baml_types::{BamlValue, Constraint, JinjaExpression};
-use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, FieldType};
+use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, TypeIR};
 use internal_baml_jinja::types::OutputFormatContent;
 
 use super::types::BamlValueWithFlags;
@@ -72,7 +72,7 @@ impl ParsingContext<'_> {
 
     pub(crate) fn error_too_many_matches<T: std::fmt::Display>(
         &self,
-        target: &FieldType,
+        target: &TypeIR,
         options: impl IntoIterator<Item = T>,
     ) -> ParsingError {
         ParsingError {
@@ -103,7 +103,7 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_unexpected_empty_array(&self, target: &FieldType) -> ParsingError {
+    pub(crate) fn error_unexpected_empty_array(&self, target: &TypeIR) -> ParsingError {
         ParsingError {
             reason: format!("Expected {}, got empty array", target),
             scope: self.scope.clone(),
@@ -111,7 +111,7 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_unexpected_null(&self, target: &FieldType) -> ParsingError {
+    pub(crate) fn error_unexpected_null(&self, target: &TypeIR) -> ParsingError {
         ParsingError {
             reason: format!("Expected {}, got null", target),
             scope: self.scope.clone(),
@@ -135,7 +135,7 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_map_must_have_supported_key(&self, key_type: &FieldType) -> ParsingError {
+    pub(crate) fn error_map_must_have_supported_key(&self, key_type: &TypeIR) -> ParsingError {
         ParsingError {
             reason: format!(
                 "Maps may only have strings, enums or literal strings for keys, but got {key_type}"
@@ -176,15 +176,15 @@ impl ParsingContext<'_> {
 
     pub(crate) fn error_unexpected_type<T: std::fmt::Display + std::fmt::Debug>(
         &self,
-        target: &FieldType,
+        target: &TypeIR,
         got: &T,
     ) -> ParsingError {
         ParsingError {
             reason: format!(
                 "Expected {}, got {:?}.",
                 match target {
-                    FieldType::Enum { .. } => format!("{} enum value", target),
-                    FieldType::Class { .. } => format!("{}", target),
+                    TypeIR::Enum { .. } => format!("{} enum value", target),
+                    TypeIR::Class { .. } => format!("{}", target),
                     _ => format!("{target}"),
                 },
                 got
@@ -247,7 +247,7 @@ pub trait TypeCoercer {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError>;
 }
@@ -264,7 +264,7 @@ pub trait DefaultValue {
 /// see `first_failing_assert_nested`.
 pub fn run_user_checks(
     baml_value: &BamlValue,
-    type_: &FieldType,
+    type_: &TypeIR,
 ) -> Result<Vec<(Constraint, bool)>> {
     let res = type_
         .meta()

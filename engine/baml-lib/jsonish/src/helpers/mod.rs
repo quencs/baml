@@ -11,7 +11,7 @@ use internal_baml_core::{
     ast::Field,
     internal_baml_diagnostics::SourceFile,
     ir::{
-        repr::IntermediateRepr, ClassWalker, EnumWalker, FieldType, IRHelper, IRHelperExtended,
+        repr::IntermediateRepr, ClassWalker, EnumWalker, TypeIR, IRHelper, IRHelperExtended,
         TypeValue,
     },
     validate,
@@ -46,7 +46,7 @@ pub fn load_test_ir(file_content: &str) -> IntermediateRepr {
 
 pub fn render_output_format(
     ir: &IntermediateRepr,
-    output: &FieldType,
+    output: &TypeIR,
     env_values: &EvaluationContext<'_>,
 ) -> Result<OutputFormatContent> {
     let (enums, classes, recursive_classes, structural_recursive_aliases) =
@@ -65,7 +65,7 @@ fn find_existing_class_field(
     field_name: &str,
     class_walker: &Result<ClassWalker<'_>>,
     env_values: &EvaluationContext<'_>,
-) -> Result<(Name, FieldType, Option<String>, bool)> {
+) -> Result<(Name, TypeIR, Option<String>, bool)> {
     let Ok(class_walker) = class_walker else {
         anyhow::bail!("Class {} does not exist", class_name);
     };
@@ -120,13 +120,13 @@ fn find_enum_value(
 // get a collision that results in some type not getting put onto the stack?
 fn relevant_data_models<'a>(
     ir: &'a IntermediateRepr,
-    output: &'a FieldType,
+    output: &'a TypeIR,
     env_values: &EvaluationContext<'_>,
 ) -> Result<(
     Vec<Enum>,
     Vec<Class>,
     IndexSet<String>,
-    IndexMap<String, FieldType>,
+    IndexMap<String, TypeIR>,
 )> {
     let mut checked_types: HashSet<String> = HashSet::new();
     let mut enums = Vec::new();
@@ -137,7 +137,7 @@ fn relevant_data_models<'a>(
 
     while let Some(output) = start.pop() {
         match &output {
-            FieldType::Enum {
+            TypeIR::Enum {
                 name,
                 dynamic,
                 meta,
@@ -163,12 +163,12 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::List(inner, _) => {
+            TypeIR::List(inner, _) => {
                 if !checked_types.contains(&inner.to_string()) {
                     start.push(inner.as_ref().clone());
                 }
             }
-            FieldType::Map(k, v, _) => {
+            TypeIR::Map(k, v, _) => {
                 if checked_types.insert(output.to_string()) {
                     if !checked_types.contains(&k.to_string()) {
                         start.push(k.as_ref().clone());
@@ -178,7 +178,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Tuple(options, _) => {
+            TypeIR::Tuple(options, _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options {
                         if !checked_types.contains(&inner.to_string()) {
@@ -187,7 +187,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Union(options, _) => {
+            TypeIR::Union(options, _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options.iter_include_null() {
                         if !checked_types.contains(&inner.to_string()) {
@@ -196,7 +196,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Class {
+            TypeIR::Class {
                 name,
                 mode,
                 dynamic,
@@ -247,7 +247,7 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::RecursiveTypeAlias { name, .. } => {
+            TypeIR::RecursiveTypeAlias { name, .. } => {
                 // TODO: Same O(n) problem as above.
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if cycle.contains_key(name) {
@@ -257,9 +257,9 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Literal(_, _) => {}
-            FieldType::Primitive(_, _) => {}
-            FieldType::Arrow(_, _) => {}
+            TypeIR::Literal(_, _) => {}
+            TypeIR::Primitive(_, _) => {}
+            TypeIR::Arrow(_, _) => {}
         }
     }
 
@@ -282,7 +282,7 @@ pub fn parsed_value_to_response(
     let meta_flags: BamlValueWithMeta<Vec<Flag>> = baml_value.clone().into();
     let baml_value_with_meta: BamlValueWithMeta<Vec<(String, JinjaExpression, bool)>> =
         baml_value.clone().into();
-    let meta_field_type: BamlValueWithMeta<FieldType> = baml_value.clone().into();
+    let meta_field_type: BamlValueWithMeta<TypeIR> = baml_value.clone().into();
 
     let value_with_response_checks: BamlValueWithMeta<Vec<ResponseCheck>> = baml_value_with_meta
         .map_meta(|cs| {
@@ -328,7 +328,7 @@ mod tests {
         "#,
         );
         let output =
-            render_output_format(&ir, &FieldType::class("Foo"), &EvaluationContext::default())
+            render_output_format(&ir, &TypeIR::class("Foo"), &EvaluationContext::default())
                 .expect("Rendering should work");
         let foo = output.classes.get("Foo").expect("Exists");
         assert_eq!(foo.fields.len(), 1);

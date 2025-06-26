@@ -5,7 +5,7 @@ pub mod coerce_enum;
 use core::panic;
 
 use anyhow::Result;
-use internal_baml_core::ir::FieldType;
+use internal_baml_core::ir::TypeIR;
 
 use super::{ParsingContext, ParsingError};
 use crate::deserializer::{coercer::TypeCoercer, types::BamlValueWithFlags};
@@ -20,7 +20,7 @@ impl TypeCoercer for IrRef<'_> {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
         match self {

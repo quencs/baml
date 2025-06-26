@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use baml_types::{
     baml_value::TypeLookups,
     expr::{self, Builtin, Expr, ExprMetadata, Name, VarIndex},
-    ir_type::{ArrowGeneric, TypeNonStreaming, TypeStreaming},
+    ir_type::{ArrowGeneric, TypeNonStreaming, TypeStreaming, UnionConstructor},
     type_meta, Arrow, BamlMap, BamlValueWithMeta, Constraint, ConstraintLevel, JinjaExpression,
     Resolvable, StringOr, TypeIR, TypeValue, UnionType, UnresolvedValue,
 };
@@ -354,7 +354,6 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .collect::<Vec<_>>();
                 let list_type = match item_types.len() {
                     0 => None,
-                    1 => Some(item_types[0].clone().as_list()),
                     _ => Some(TypeIR::union(item_types).as_list()),
                 };
                 Ok(Expr::List(new_items, (span.clone(), list_type)))

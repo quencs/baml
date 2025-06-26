@@ -29,9 +29,9 @@ impl std::fmt::Display for TypeStreaming {
         }
 
         match self {
-            TypeStreaming::Enum { name, .. }
-            | TypeStreaming::Class { name, .. }
-            | TypeStreaming::RecursiveTypeAlias { name, .. } => write!(f, "{name}"),
+            TypeStreaming::Enum { name, .. } => write!(f, "{name}"),
+            TypeStreaming::Class { name, mode, .. } => write!(f, "{mode}.{name}"),
+            TypeStreaming::RecursiveTypeAlias { name, .. } => write!(f, "{name}"),
             TypeStreaming::Primitive(t, _) => write!(f, "{t}"),
             TypeStreaming::Literal(v, _) => write!(f, "{v}"),
             TypeStreaming::Union(choices, _) => {

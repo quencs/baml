@@ -1,7 +1,7 @@
 // This file provides the native bindings between our Rust implementation and TypeScript
 // We use NAPI-RS to expose Rust functionality to JavaScript/TypeScript
 use baml_runtime::type_builder::{self, WithMeta};
-use baml_types::BamlValue;
+use baml_types::{ir_type::UnionConstructor, BamlValue};
 use napi_derive::napi;
 
 // Create TypeScript-compatible wrappers for our Rust types
