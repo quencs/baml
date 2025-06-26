@@ -169,10 +169,23 @@ fn process_node(
             let derived_present_nonnull_fields: HashSet<String> = new_fields
                 .iter()
                 .filter_map(|(field_name, field_value)| {
-                    if matches!(field_value, BamlValueWithMeta::Null(_)) {
-                        None
-                    } else {
-                        Some(field_name.to_string())
+                    // Check if this field is required to be non-null
+                    let is_needed_field = needed_fields.contains(field_name);
+                    
+                    match field_value {
+                        BamlValueWithMeta::Null(_) => None,
+                        BamlValueWithMeta::Class(_, class_fields, _) if is_needed_field => {
+                            // For needed fields, a class is considered "null" if all its fields are null
+                            let all_fields_null = class_fields.values().all(|field| {
+                                matches!(field, BamlValueWithMeta::Null(_))
+                            });
+                            if all_fields_null {
+                                None
+                            } else {
+                                Some(field_name.to_string())
+                            }
+                        }
+                        _ => Some(field_name.to_string())
                     }
                 })
                 .collect();
