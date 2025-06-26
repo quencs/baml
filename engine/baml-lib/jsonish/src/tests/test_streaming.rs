@@ -510,3 +510,27 @@ test_partial_deserializer_streaming!(
         "final_string": "end"
     }
 );
+
+// Test for union types with @stream.not_null
+const UNION_NOT_NULL_TEST: &str = r#"
+class Foo {
+  y (string | null) @stream.not_null
+}
+"#;
+
+// This test should fail because y is null but marked as @stream.not_null
+test_partial_deserializer_streaming_failure!(
+    test_union_not_null_with_null_value,
+    UNION_NOT_NULL_TEST,
+    r#"{"y": null}"#,
+    TypeIR::class("Foo")
+);
+
+// This test should succeed because y has a non-null value
+test_partial_deserializer_streaming!(
+    test_union_not_null_with_string_value,
+    UNION_NOT_NULL_TEST,
+    r#"{"y": "hello"}"#,
+    TypeIR::class("Foo"),
+    {"y": "hello"}
+);
