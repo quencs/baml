@@ -47,9 +47,9 @@ module BamlClient
 
       sig {params(
           varargs: T.untyped,
-          input: BamlClient::Types::TestEnum,
+          input: T.nilable(BamlClient::Types::TestEnum),
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(BamlClient::Types::TestEnum)}
+      ).returns(T.nilable(BamlClient::Types::TestEnum))}
       def ConsumeTestEnum(
           *varargs,
           input:,
@@ -68,13 +68,13 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(BamlClient::Types::TestEnum)
+          parsed.cast_to(T.nilable(BamlClient::Types::TestEnum))
       end
       sig {params(
           varargs: T.untyped,
-          input: String,
+          input: T.nilable(String),
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(BamlClient::Types::TestEnum)}
+      ).returns(T.nilable(BamlClient::Types::TestEnum))}
       def FnTestAliasedEnumOutput(
           *varargs,
           input:,
@@ -93,7 +93,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(BamlClient::Types::TestEnum)
+          parsed.cast_to(T.nilable(BamlClient::Types::TestEnum))
       end
 
   end
@@ -108,9 +108,9 @@ module BamlClient
 
       sig {params(
           varargs: T.untyped,
-          input: BamlClient::Types::TestEnum,
+          input: T.nilable(BamlClient::Types::TestEnum),
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::TestEnum), BamlClient::Types::TestEnum])}
+      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::TestEnum), T.nilable(BamlClient::Types::TestEnum)])}
       def ConsumeTestEnum(
           *varargs,
           input:,
@@ -126,16 +126,16 @@ module BamlClient
               input: input,
           })
 
-          Baml::BamlStream[T.nilable(BamlClient::Types::TestEnum), BamlClient::Types::TestEnum].new(
+          Baml::BamlStream[T.nilable(BamlClient::Types::TestEnum), T.nilable(BamlClient::Types::TestEnum)].new(
               ffi_stream: result,
               ctx_manager: ctx
           )
       end
       sig {params(
           varargs: T.untyped,
-          input: String,
+          input: T.nilable(String),
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::TestEnum), BamlClient::Types::TestEnum])}
+      ).returns(Baml::BamlStream[T.nilable(BamlClient::Types::TestEnum), T.nilable(BamlClient::Types::TestEnum)])}
       def FnTestAliasedEnumOutput(
           *varargs,
           input:,
@@ -151,7 +151,7 @@ module BamlClient
               input: input,
           })
 
-          Baml::BamlStream[T.nilable(BamlClient::Types::TestEnum), BamlClient::Types::TestEnum].new(
+          Baml::BamlStream[T.nilable(BamlClient::Types::TestEnum), T.nilable(BamlClient::Types::TestEnum)].new(
               ffi_stream: result,
               ctx_manager: ctx
           )

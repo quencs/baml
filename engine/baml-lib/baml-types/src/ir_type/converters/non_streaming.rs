@@ -14,9 +14,7 @@ pub fn from_type_ir(r#type: &TypeIR, _lookup: &impl TypeLookups) -> TypeNonStrea
         constraints: r#type.meta().constraints.clone(),
     };
 
-    // Streaming behavior of the type, without regard to the `@stream` annotations.
-    // (That annotation will be handled later in this function).
-    let mut base_type_streaming = match r#type {
+    match r#type {
         TypeIR::Primitive(type_value, _) => match type_value {
             TypeValue::Null => TypeNonStreaming::Primitive(TypeValue::Null, meta),
             TypeValue::Int => TypeNonStreaming::Primitive(TypeValue::Int, meta),
@@ -75,7 +73,7 @@ pub fn from_type_ir(r#type: &TypeIR, _lookup: &impl TypeLookups) -> TypeNonStrea
             meta,
         ),
         TypeIR::Union(union_type, _) => {
-            let variants = union_type.iter_skip_null();
+            let variants = union_type.iter_include_null();
             let variants = variants
                 .into_iter()
                 .cloned()
@@ -86,26 +84,5 @@ pub fn from_type_ir(r#type: &TypeIR, _lookup: &impl TypeLookups) -> TypeNonStrea
                 meta,
             )
         }
-    };
-    if base_type_streaming.is_optional() {
-        // Needed streaming types, and streaming types that are optional, need
-        // no further processing to add optionality.
-        base_type_streaming
-    } else {
-        // Currently base_type_streaming has the interesting metadata.
-        // In the union we create to make base_type_streaming optional,
-        // we want that inner metadata to be default, our outer union to
-        // have the metadata. So we create a new default metadata and swap
-        // its memory with that of the inner base_type.
-        let meta = base_type_streaming.meta().clone();
-        *base_type_streaming.meta_mut() = Default::default();
-        let mut optional_value = TypeNonStreaming::Union(
-            unsafe {
-                UnionTypeGeneric::new_unsafe(vec![base_type_streaming, TypeNonStreaming::null()])
-            },
-            Default::default(),
-        );
-        *optional_value.meta_mut() = meta;
-        optional_value
     }
 }

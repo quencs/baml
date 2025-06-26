@@ -47,9 +47,9 @@ module BamlClient
 
       sig {params(
           varargs: T.untyped,
-          x: Integer,
+          x: T.nilable(Integer),
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(T.any(BamlClient::Types::Example, BamlClient::Types::Example2))}
+      ).returns(T.nilable(T.any(T.nilable(BamlClient::Types::Example), T.nilable(BamlClient::Types::Example2))))}
       def Bar(
           *varargs,
           x:,
@@ -68,13 +68,13 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(T.any(BamlClient::Types::Example, BamlClient::Types::Example2))
+          parsed.cast_to(T.nilable(T.any(T.nilable(BamlClient::Types::Example), T.nilable(BamlClient::Types::Example2))))
       end
       sig {params(
           varargs: T.untyped,
-          x: Integer,
+          x: T.nilable(Integer),
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(T.any(BamlClient::Types::Example2, BamlClient::Types::Example))}
+      ).returns(T.nilable(T.any(T.nilable(BamlClient::Types::Example2), T.nilable(BamlClient::Types::Example))))}
       def Foo(
           *varargs,
           x:,
@@ -93,7 +93,7 @@ module BamlClient
           parsed = result.parsed_using_types(BamlClient::Types, BamlClient::PartialTypes, false)
           # for sorbet we need to cast to the return type since parsed is now the right value
           # We just need to tell sorbet that the return type is the right type
-          parsed.cast_to(T.any(BamlClient::Types::Example2, BamlClient::Types::Example))
+          parsed.cast_to(T.nilable(T.any(T.nilable(BamlClient::Types::Example2), T.nilable(BamlClient::Types::Example))))
       end
 
   end
@@ -108,9 +108,9 @@ module BamlClient
 
       sig {params(
           varargs: T.untyped,
-          x: Integer,
+          x: T.nilable(Integer),
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example, BamlClient::StreamTypes::Example2)), T.any(BamlClient::Types::Example, BamlClient::Types::Example2)])}
+      ).returns(Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example, BamlClient::StreamTypes::Example2)), T.nilable(T.any(T.nilable(BamlClient::Types::Example), T.nilable(BamlClient::Types::Example2)))])}
       def Bar(
           *varargs,
           x:,
@@ -126,16 +126,16 @@ module BamlClient
               x: x,
           })
 
-          Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example, BamlClient::StreamTypes::Example2)), T.any(BamlClient::Types::Example, BamlClient::Types::Example2)].new(
+          Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example, BamlClient::StreamTypes::Example2)), T.nilable(T.any(T.nilable(BamlClient::Types::Example), T.nilable(BamlClient::Types::Example2)))].new(
               ffi_stream: result,
               ctx_manager: ctx
           )
       end
       sig {params(
           varargs: T.untyped,
-          x: Integer,
+          x: T.nilable(Integer),
           baml_options: T::Hash[Symbol, T.any(BamlClient::TypeBuilder, Baml::ClientRegistry, T.any(Baml::Collector, T::Array[Baml::Collector]), T::Hash[Symbol, String])]
-      ).returns(Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example2, BamlClient::StreamTypes::Example)), T.any(BamlClient::Types::Example2, BamlClient::Types::Example)])}
+      ).returns(Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example2, BamlClient::StreamTypes::Example)), T.nilable(T.any(T.nilable(BamlClient::Types::Example2), T.nilable(BamlClient::Types::Example)))])}
       def Foo(
           *varargs,
           x:,
@@ -151,7 +151,7 @@ module BamlClient
               x: x,
           })
 
-          Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example2, BamlClient::StreamTypes::Example)), T.any(BamlClient::Types::Example2, BamlClient::Types::Example)].new(
+          Baml::BamlStream[T.nilable(T.any(BamlClient::StreamTypes::Example2, BamlClient::StreamTypes::Example)), T.nilable(T.any(T.nilable(BamlClient::Types::Example2), T.nilable(BamlClient::Types::Example)))].new(
               ffi_stream: result,
               ctx_manager: ctx
           )

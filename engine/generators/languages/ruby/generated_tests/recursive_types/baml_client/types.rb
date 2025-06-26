@@ -44,7 +44,7 @@ module BamlClient
 
   class UseMyUnion < T::Struct
       include Baml::Sorbet::Struct
-      const :u, T.nilable(T.any(Recursive1, Integer, String))
+      const :u, T.nilable(T.any(T.nilable(Recursive1), T.nilable(Integer), T.nilable(String)))
   end
 
   # #########################################################################
@@ -52,19 +52,19 @@ module BamlClient
   # #########################################################################
 
 
-  JSON = T.type_alias{ T.nilable(T.any(String, Integer, Float, T::Hash[String, T.anything], T::Array[T.anything])) }
+  JSON = T.type_alias{ T.nilable(T.any(T.nilable(String), T.nilable(Integer), T.nilable(Float), T.nilable(T::Hash[T.nilable(String), T.nilable(T.anything)]), T.nilable(T::Array[T.nilable(T.anything)]))) }
 
 
-  MyUnion = T.type_alias{ T.nilable(T.any(Recursive1, Integer, String)) }
+  MyUnion = T.type_alias{ T.nilable(T.any(T.nilable(Recursive1), T.nilable(Integer), T.nilable(String))) }
 
 
-  Nonrecursive1 = T.type_alias{ T.nilable(Integer) }
+  Nonrecursive1 = T.type_alias{ T.nilable(T.nilable(Integer)) }
 
 
-  Nonrecursive2 = T.type_alias{ T.nilable(String) }
+  Nonrecursive2 = T.type_alias{ T.nilable(T.nilable(String)) }
 
 
-  Recursive1 = T.type_alias{ T.any(Integer, T::Array[T.anything]) }
+  Recursive1 = T.type_alias{ T.nilable(T.any(T.nilable(Integer), T.nilable(T::Array[T.nilable(T.anything)]))) }
 
 
   end

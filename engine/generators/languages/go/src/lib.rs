@@ -148,7 +148,7 @@ impl LanguageFeatures for GoLanguageFeatures {
 }
 
 #[cfg(test)]
-mod generated_tests {
+mod go_tests {
     use test_harness::{create_code_gen_test_suites, TestLanguageFeatures};
 
     impl TestLanguageFeatures for crate::GoLanguageFeatures {

@@ -52,7 +52,10 @@ pub fn ir_type_alias_to_ts_interface<'a>(
     match &alias.elem.r#type.elem {
         TypeGeneric::Map(_, value_type, _) => Some(TypeAliasInterfaceTS {
             name: alias.elem.name.clone(),
-            value_type: ir_to_ts::type_to_ts(value_type, pkg.lookup()),
+            value_type: ir_to_ts::type_to_ts(
+                &value_type.to_non_streaming_type(pkg.lookup()),
+                pkg.lookup(),
+            ),
             docstring: alias
                 .elem
                 .docstring
@@ -67,7 +70,10 @@ pub fn ir_type_alias_to_ts_interface<'a>(
                     // Found a map in the union - create an interface that extends the union but as an index signature
                     return Some(TypeAliasInterfaceTS {
                         name: alias.elem.name.clone(),
-                        value_type: ir_to_ts::type_to_ts(&alias.elem.r#type.elem, pkg.lookup()),
+                        value_type: ir_to_ts::type_to_ts(
+                            &value_type.to_non_streaming_type(pkg.lookup()),
+                            pkg.lookup(),
+                        ),
                         docstring: alias
                             .elem
                             .docstring
@@ -90,7 +96,7 @@ pub fn ir_type_alias_to_ts_interface_stream<'a>(
 ) -> Option<TypeAliasInterfaceTS<'a>> {
     use baml_types::ir_type::TypeGeneric;
 
-    let partialized = alias.elem.r#type.elem.partialize(pkg.lookup());
+    let partialized = alias.elem.r#type.elem.to_streaming_type(pkg.lookup());
     match &partialized {
         TypeGeneric::Map(_, value_type, _) => Some(TypeAliasInterfaceTS {
             name: alias.elem.name.clone(),

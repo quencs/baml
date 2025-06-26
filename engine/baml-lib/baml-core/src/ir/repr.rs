@@ -1027,7 +1027,7 @@ impl IntermediateRepr {
     }
 
     /// Checks if a self-referencing type alias can be safely converted to an interface
-    fn can_convert_self_referencing_alias_to_interface(&self, field_type: &FieldType) -> bool {
+    fn can_convert_self_referencing_alias_to_interface(&self, field_type: &TypeIR) -> bool {
         use baml_types::ir_type::TypeGeneric;
 
         match field_type {
@@ -1049,8 +1049,8 @@ impl IntermediateRepr {
     fn should_extract_as_typescript_interface(
         &self,
         alias_name: &str,
-        field_type: &FieldType,
-        cycle: &IndexMap<String, FieldType>,
+        field_type: &TypeIR,
+        cycle: &IndexMap<String, TypeIR>,
     ) -> bool {
         use baml_types::ir_type::TypeGeneric;
 
@@ -1093,10 +1093,10 @@ impl IntermediateRepr {
     }
 
     /// Checks if a type directly references itself (causing immediate circular reference)
-    fn type_directly_references_self(&self, field_type: &FieldType, alias_name: &str) -> bool {
+    fn type_directly_references_self(&self, field_type: &TypeIR, alias_name: &str) -> bool {
         use baml_types::ir_type::TypeGeneric;
 
-        fn check_type_inner(field_type: &FieldType, alias_name: &str) -> bool {
+        fn check_type_inner(field_type: &TypeIR, alias_name: &str) -> bool {
             match field_type {
                 TypeGeneric::RecursiveTypeAlias { name, .. } => name == alias_name,
 
@@ -1121,12 +1121,12 @@ impl IntermediateRepr {
     /// Checks if a type references any members of the given cycle
     fn type_references_cycle_members(
         &self,
-        field_type: &FieldType,
-        cycle: &IndexMap<String, FieldType>,
+        field_type: &TypeIR,
+        cycle: &IndexMap<String, TypeIR>,
     ) -> bool {
         use baml_types::ir_type::TypeGeneric;
 
-        fn check_cycle_inner(field_type: &FieldType, cycle: &IndexMap<String, FieldType>) -> bool {
+        fn check_cycle_inner(field_type: &TypeIR, cycle: &IndexMap<String, TypeIR>) -> bool {
             match field_type {
                 TypeGeneric::RecursiveTypeAlias { name, .. } => cycle.contains_key(name),
 

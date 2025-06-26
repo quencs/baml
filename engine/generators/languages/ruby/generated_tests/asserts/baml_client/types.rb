@@ -44,8 +44,8 @@ module BamlClient
 
   class Person < T::Struct
       include Baml::Sorbet::Struct
-      const :name, String
-      const :age, Integer
+      const :name, T.nilable(String)
+      const :age, T.nilable(Integer)
   end
 
   # #########################################################################
