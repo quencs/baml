@@ -64,7 +64,7 @@ fn compile_expression(
 }
 
 /// Generate bytecode.
-pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Function>, Vec<Value>)> {
+pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)> {
     // eprintln!("{:#?}", ast.ast);
 
     let mut resolved_globals = HashMap::new();
@@ -76,8 +76,8 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Function>, Vec<Value>
 
     eprintln!("{:#?}", resolved_globals);
 
-    let mut functions = Vec::with_capacity(resolved_globals.len());
     let mut globals = Vec::with_capacity(resolved_globals.len());
+    let mut objects = Vec::with_capacity(resolved_globals.len());
 
     for function in ast.walk_expr_fns() {
         let mut bytecode = Bytecode::new();
@@ -124,12 +124,11 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Function>, Vec<Value>
             kind: FunctionKind::Exec,
         };
 
-        functions.push(function.clone());
-
-        globals.push(Value::Object(Object::Function(function)));
+        globals.push(Value::Object(objects.len()));
+        objects.push(Object::Function(function));
     }
 
-    Ok((functions, globals))
+    Ok((objects, globals))
 }
 
 #[cfg(test)]
@@ -165,15 +164,23 @@ mod tests {
             }
         ")?;
 
-        let (functions, globals) = compile(ast)?;
+        let (objects, globals) = compile(ast)?;
+
+        let Object::Function(main) = &objects[0] else {
+            return Err(anyhow::anyhow!("Main function not found"));
+        };
+
+        let Object::Function(two) = &objects[1] else {
+            return Err(anyhow::anyhow!("Two function not found"));
+        };
 
         assert_eq!(
-            functions[0].bytecode.instructions,
+            main.bytecode.instructions,
             vec![Instruction::LoadConst(0), Instruction::Return]
         );
 
         assert_eq!(
-            functions[1].bytecode.instructions,
+            two.bytecode.instructions,
             vec![
                 Instruction::LoadGlobal(0),
                 Instruction::Call(0),
