@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "cargo build",
     "clean": "cargo clean && git clean -fdf .turbo node_modules target",
-    "typecheck": "cargo check",
+    "typecheck": "cargo build",
     "build": "cargo build",
     "release": "cargo build --release",
     "format": "cargo fmt",

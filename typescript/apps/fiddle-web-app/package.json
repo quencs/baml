@@ -5,8 +5,8 @@
   "packageManager": "pnpm@9.12.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev.skip": "next dev",
+    "build.skip": "next build",
     "release": "next build",
     "start": "next start",
     "lint": "next lint",

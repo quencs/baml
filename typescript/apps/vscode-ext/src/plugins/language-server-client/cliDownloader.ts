@@ -547,8 +547,9 @@ function _getBundledCliPath(context: ExtensionContext): string | null {
 
   // 1. Check Development Override Path first
   const devServerPath = context.asAbsolutePath(
-    path.join('vscode', 'server', executableName),
+    path.join('dist', executableName),
   );
+  console.log('devServerPath', devServerPath);
   if (fs.existsSync(devServerPath)) {
     console.log(
       'Found bundled CLI at development override path:',
@@ -567,7 +568,7 @@ function _getBundledCliPath(context: ExtensionContext): string | null {
   // 2. Check Standard Bundled Path if targetTriple is known
   if (targetTriple) {
     const primaryBundledPath = context.asAbsolutePath(
-      path.join('vscode', 'server', targetTriple, executableName),
+      path.join('dist', targetTriple, executableName),
     );
     console.log(`Checking standard bundled path: ${primaryBundledPath}`);
 
@@ -586,7 +587,7 @@ function _getBundledCliPath(context: ExtensionContext): string | null {
     if (platform === 'linux' && targetTriple.endsWith('-gnu')) {
       const muslTargetTriple = targetTriple.replace('-gnu', '-musl');
       const muslBundledPath = context.asAbsolutePath(
-        path.join('vscode', 'server', muslTargetTriple, executableName),
+        path.join('dist', muslTargetTriple, executableName),
       );
       console.log(`Checking Linux MUSL fallback path: ${muslBundledPath}`);
       if (fs.existsSync(muslBundledPath)) {

@@ -158,7 +158,7 @@
     "vscode:package": "vsce package --no-dependencies",
     "vscode:publish": "vsce publish --no-dependencies",
     "clean": "git clean -xdf baml-*.vsix .turbo dist out node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false && pnpm run copy-baml-cli"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.830.0",

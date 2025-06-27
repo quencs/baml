@@ -42,11 +42,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@gloo-ai/baml-schema-wasm-web': path.resolve(
         __dirname,
-        '../../packages/baml-schema-wasm-web/dist',
+        '../../../engine/baml-schema-wasm/web/dist',
       ),
       baml_wasm_web: path.resolve(
         __dirname,
-        '../../packages/baml-schema-wasm-web/dist',
+        '../../../engine/baml-schema-wasm/web/dist',
       ),
     },
   },

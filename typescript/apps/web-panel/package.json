@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "pnpm run typecheck && pnpm vite build",
-    "release": "pnpm run typecheck && pnpm vite build",
+    "build": "pnpm run typecheck && vite build",
+    "release": "pnpm run typecheck && NODE_ENV=production vite build",
     "preview": "NODE_ENV=development vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "clean": "git clean -xdf .turbo dist out node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc"
   },
   "dependencies": {
     "@baml/playground-common": "workspace:*",
@@ -29,8 +29,8 @@
     "@types/react-dom": "19.1.6",
     "@vitejs/plugin-react": "4.5.2",
     "rimraf": "6.0.1",
-    "vite": "6.3.5",
-    "vite-plugin-top-level-await": "1.5.0",
+    "vite": "6.0.6",
+    "vite-plugin-top-level-await": "1.4.0",
     "vite-plugin-wasm": "3.3.0"
   },
   "preview": false
