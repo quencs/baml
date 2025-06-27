@@ -38,7 +38,7 @@ pub(crate) enum Commands {
     #[command(about = "Deploy a BAML project to Boundary Cloud", hide = true)]
     Deploy(crate::deploy::DeployArgs),
 
-    #[command(about = "Format BAML source files", name = "fmt", hide = true)]
+    #[command(about = "Format BAML source files", name = "fmt")]
     Format(crate::format::FormatArgs),
 
     #[command(about = "Run BAML tests")]

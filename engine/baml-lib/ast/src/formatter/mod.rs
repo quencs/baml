@@ -17,12 +17,14 @@ use pretty::RcDoc;
 use regex::Regex;
 
 use crate::parser::{BAMLParser, Rule};
+use crate::ast::{WithIdentifier, WithAttributes, WithName};
 
 pub struct FormatOptions {
     pub indent_width: isize,
     pub fail_on_unhandled_rule: bool,
 }
 
+/// Format a schema from source string (legacy method)
 pub fn format_schema(source: &str, format_options: FormatOptions) -> Result<String> {
     let ignore_directive_regex = Regex::new(r"(?i)baml-format\s*:\s*ignore")?;
     if ignore_directive_regex.is_match(source) {
@@ -43,6 +45,21 @@ pub fn format_schema(source: &str, format_options: FormatOptions) -> Result<Stri
     let doc = formatter.schema_to_doc(schema_pair.into_inner())?;
     let mut w = Vec::new();
     doc.render(10, &mut w)
+        .map_err(|_| anyhow!("Failed to render doc"))?;
+    String::from_utf8(w).map_err(|_| anyhow!("Failed to convert to string"))
+}
+
+/// Format a schema from AST (new preferred method)
+#[allow(dead_code)]
+pub fn format_schema_ast(ast: &crate::ast::Ast, format_options: FormatOptions) -> Result<String> {
+    let formatter = AstFormatter {
+        indent_width: format_options.indent_width,
+        fail_on_unhandled_rule: format_options.fail_on_unhandled_rule,
+    };
+
+    let doc = formatter.ast_to_doc(ast)?;
+    let mut w = Vec::new();
+    doc.render(80, &mut w)
         .map_err(|_| anyhow!("Failed to render doc"))?;
     String::from_utf8(w).map_err(|_| anyhow!("Failed to convert to string"))
 }
@@ -412,4 +429,332 @@ impl Formatter {
 
 fn pair_to_doc_text<'a>(pair: Pair<'a, Rule>) -> RcDoc<'a, ()> {
     RcDoc::text(pair.as_str().trim())
+}
+
+/// New AST-based formatter that takes a parsed AST and formats it to a string
+#[allow(dead_code)]
+struct AstFormatter {
+    indent_width: isize,
+    fail_on_unhandled_rule: bool,
+}
+
+#[allow(dead_code)]
+impl AstFormatter {
+    fn ast_to_doc<'a>(&self, ast: &'a crate::ast::Ast) -> Result<RcDoc<'a, ()>> {
+        let mut docs = Vec::new();
+        
+        for top in &ast.tops {
+            match self.top_to_doc(top) {
+                Ok(doc) => docs.push(doc),
+                Err(e) => {
+                    if self.fail_on_unhandled_rule {
+                        return Err(e);
+                    }
+                    // For unhandled cases, we can't fall back to original source
+                    // since we only have the AST, so we'll emit a placeholder
+                    docs.push(RcDoc::text(format!("// TODO: Format {}", top.get_type())));
+                }
+            }
+        }
+        
+        if docs.is_empty() {
+            return Ok(RcDoc::nil());
+        }
+        
+        // Join all top-level items with double newlines
+        let mut result = docs[0].clone();
+        for doc in docs.iter().skip(1) {
+            result = result
+                .append(RcDoc::hardline())
+                .append(RcDoc::hardline())
+                .append(doc.clone());
+        }
+        
+        // Ensure file ends with newline
+        Ok(result.append(RcDoc::hardline()))
+    }
+    
+    fn top_to_doc<'a>(&self, top: &'a crate::ast::Top) -> Result<RcDoc<'a, ()>> {
+        use crate::ast::Top;
+        
+        match top {
+            Top::Class(class) => self.class_to_doc(class),
+            Top::Enum(enum_def) => self.enum_to_doc(enum_def),
+            Top::Function(func) => self.function_to_doc(func),
+            Top::Client(client) => self.client_to_doc(client),
+            Top::Generator(gen) => self.generator_to_doc(gen),
+            Top::TestCase(test) => self.test_case_to_doc(test),
+            Top::RetryPolicy(retry) => self.retry_policy_to_doc(retry),
+            Top::TypeAlias(alias) => self.type_alias_to_doc(alias),
+            Top::TemplateString(template) => self.template_string_to_doc(template),
+            Top::TopLevelAssignment(assignment) => self.top_level_assignment_to_doc(assignment),
+            Top::ExprFn(expr_fn) => self.expr_fn_to_doc(expr_fn),
+        }
+    }
+    
+    fn class_to_doc<'a>(&self, class: &'a crate::ast::TypeExpressionBlock) -> Result<RcDoc<'a, ()>> {
+        let mut doc = RcDoc::text("class")
+            .append(RcDoc::space())
+            .append(RcDoc::text(class.identifier().name()));
+        
+        // Handle attributes if any
+        for attr in &class.attributes {
+            doc = doc.append(RcDoc::space()).append(self.attribute_to_doc(attr)?);
+        }
+        
+        doc = doc.append(RcDoc::space()).append(RcDoc::text("{"));
+        
+        // Handle fields
+        let field_docs: Result<Vec<_>> = class.iter_fields()
+            .map(|(_, field)| self.field_to_doc(field))
+            .collect();
+        let field_docs = field_docs?;
+        
+        if !field_docs.is_empty() {
+            let fields_doc = field_docs
+                .into_iter()
+                .fold(RcDoc::hardline(), |acc, field_doc| {
+                    acc.append(field_doc).append(RcDoc::hardline())
+                });
+            doc = doc.append(fields_doc.nest(self.indent_width));
+        }
+        
+        doc = doc.append(RcDoc::text("}"));
+        Ok(doc)
+    }
+    
+    fn enum_to_doc<'a>(&self, enum_def: &'a crate::ast::TypeExpressionBlock) -> Result<RcDoc<'a, ()>> {
+        let mut doc = RcDoc::text("enum")
+            .append(RcDoc::space())
+            .append(RcDoc::text(enum_def.identifier().name()));
+        
+        // Handle attributes if any
+        for attr in &enum_def.attributes {
+            doc = doc.append(RcDoc::space()).append(self.attribute_to_doc(attr)?);
+        }
+        
+        doc = doc.append(RcDoc::space()).append(RcDoc::text("{"));
+        
+        // Handle enum values
+        let field_docs: Result<Vec<_>> = enum_def.iter_fields()
+            .map(|(_, field)| Ok(RcDoc::text(field.identifier().name())))
+            .collect();
+        let field_docs = field_docs?;
+        
+        if !field_docs.is_empty() {
+            let fields_doc = field_docs
+                .into_iter()
+                .fold(RcDoc::hardline(), |acc, field_doc| {
+                    acc.append(field_doc).append(RcDoc::hardline())
+                });
+            doc = doc.append(fields_doc.nest(self.indent_width));
+        }
+        
+        doc = doc.append(RcDoc::text("}"));
+        Ok(doc)
+    }
+    
+    fn field_to_doc<'a>(&self, field: &'a crate::ast::Field<crate::ast::FieldType>) -> Result<RcDoc<'a, ()>> {
+        let mut doc = RcDoc::text(field.identifier().name());
+        
+        if let Some(field_type) = &field.expr {
+            doc = doc.append(RcDoc::space()).append(self.field_type_to_doc(field_type)?);
+        }
+        
+        // Handle field attributes
+        for attr in &field.attributes {
+            doc = doc.append(RcDoc::space()).append(self.attribute_to_doc(attr)?);
+        }
+        
+        Ok(doc)
+    }
+    
+    fn field_type_to_doc<'a>(&self, field_type: &'a crate::ast::FieldType) -> Result<RcDoc<'a, ()>> {
+        use crate::ast::FieldType;
+        
+        match field_type {
+            FieldType::Symbol(_, ident, _) => Ok(RcDoc::text(ident.name())),
+            FieldType::Primitive(_, type_val, _, _) => Ok(RcDoc::text(format!("{}", type_val))),
+            FieldType::Literal(_, literal_val, _, _) => Ok(RcDoc::text(format!("{}", literal_val))),
+            FieldType::Union(_, types, _, _) => {
+                let type_docs: Result<Vec<_>> = types.iter()
+                    .map(|t| self.field_type_to_doc(t))
+                    .collect();
+                let type_docs = type_docs?;
+                Ok(RcDoc::intersperse(type_docs, RcDoc::text(" | ")))
+            }
+            FieldType::List(_, inner, _, _, _) => {
+                Ok(self.field_type_to_doc(inner)?.append(RcDoc::text("[]")))
+            }
+            FieldType::Tuple(_, types, _, _) => {
+                let type_docs: Result<Vec<_>> = types.iter()
+                    .map(|t| self.field_type_to_doc(t))
+                    .collect();
+                let type_docs = type_docs?;
+                Ok(RcDoc::text("(").append(RcDoc::intersperse(type_docs, RcDoc::text(", "))).append(RcDoc::text(")")))
+            }
+            FieldType::Map(_, key_val, _, _) => {
+                let key_doc = self.field_type_to_doc(&key_val.0)?;
+                let val_doc = self.field_type_to_doc(&key_val.1)?;
+                Ok(RcDoc::text("map<").append(key_doc).append(RcDoc::text(", ")).append(val_doc).append(RcDoc::text(">")))
+            }
+        }
+    }
+    
+    fn attribute_to_doc<'a>(&self, attr: &'a crate::ast::Attribute) -> Result<RcDoc<'a, ()>> {
+        let mut doc = RcDoc::text("@@").append(RcDoc::text(attr.name.name()));
+        
+        if !attr.arguments.arguments.is_empty() {
+            doc = doc.append(RcDoc::text("("));
+            let arg_docs: Result<Vec<_>> = attr.arguments.arguments.iter()
+                .map(|arg| self.argument_to_doc(arg))
+                .collect();
+            let arg_docs = arg_docs?;
+            doc = doc.append(RcDoc::intersperse(arg_docs, RcDoc::text(", ")));
+            doc = doc.append(RcDoc::text(")"));
+        }
+        
+        Ok(doc)
+    }
+    
+    fn argument_to_doc<'a>(&self, arg: &'a crate::ast::Argument) -> Result<RcDoc<'a, ()>> {
+        // Arguments only have a value field, not Named/Unnamed variants
+        self.expression_to_doc(&arg.value)
+    }
+    
+    fn expression_to_doc<'a>(&self, expr: &'a crate::ast::Expression) -> Result<RcDoc<'a, ()>> {
+        use crate::ast::Expression;
+        
+        match expr {
+            Expression::StringValue(s, _) => Ok(RcDoc::text(format!("\"{}\"", s))),
+            Expression::NumericValue(n, _) => Ok(RcDoc::text(n)),
+            Expression::BoolValue(b, _) => Ok(RcDoc::text(if *b { "true" } else { "false" })),
+            Expression::Identifier(ident) => Ok(RcDoc::text(ident.name())),
+            _ => {
+                if self.fail_on_unhandled_rule {
+                    return Err(anyhow!("Unhandled expression type"));
+                }
+                Ok(RcDoc::text("/* unhandled expression */"))
+            }
+        }
+    }
+    
+    // Implementations for value expression blocks
+    fn function_to_doc<'a>(&self, func: &'a crate::ast::ValueExprBlock) -> Result<RcDoc<'a, ()>> {
+        self.value_expr_block_to_doc(func, "function")
+    }
+    
+    fn client_to_doc<'a>(&self, client: &'a crate::ast::ValueExprBlock) -> Result<RcDoc<'a, ()>> {
+        self.value_expr_block_to_doc(client, "client")
+    }
+    
+    fn generator_to_doc<'a>(&self, gen: &'a crate::ast::ValueExprBlock) -> Result<RcDoc<'a, ()>> {
+        self.value_expr_block_to_doc(gen, "generator")
+    }
+    
+    fn test_case_to_doc<'a>(&self, test: &'a crate::ast::ValueExprBlock) -> Result<RcDoc<'a, ()>> {
+        self.value_expr_block_to_doc(test, "test")
+    }
+    
+    fn retry_policy_to_doc<'a>(&self, retry: &'a crate::ast::ValueExprBlock) -> Result<RcDoc<'a, ()>> {
+        self.value_expr_block_to_doc(retry, "retry_policy")
+    }
+    
+    fn value_expr_block_to_doc<'a>(&self, block: &'a crate::ast::ValueExprBlock, block_type: &'a str) -> Result<RcDoc<'a, ()>> {
+        let mut doc = RcDoc::text(block_type)
+            .append(RcDoc::space())
+            .append(RcDoc::text(block.identifier().name()));
+        
+        // Handle input parameters
+        if let Some(input) = block.input() {
+            doc = doc.append(self.block_args_to_doc(input)?);
+        }
+        
+        // Handle output type (for functions)
+        if let Some(output) = block.output() {
+            doc = doc.append(RcDoc::text(" -> ")).append(self.block_arg_to_doc(output)?);
+        }
+        
+        doc = doc.append(RcDoc::space()).append(RcDoc::text("{"));
+        
+        // Handle fields/properties
+        let field_docs: Result<Vec<_>> = block.iter_fields()
+            .map(|(_, field)| self.value_field_to_doc(field))
+            .collect();
+        let field_docs = field_docs?;
+        
+        if !field_docs.is_empty() {
+            let fields_doc = field_docs
+                .into_iter()
+                .fold(RcDoc::hardline(), |acc, field_doc| {
+                    acc.append(field_doc).append(RcDoc::hardline())
+                });
+            doc = doc.append(fields_doc.nest(self.indent_width));
+        }
+        
+        doc = doc.append(RcDoc::text("}"));
+        Ok(doc)
+    }
+    
+    fn block_args_to_doc<'a>(&self, args: &'a crate::ast::BlockArgs) -> Result<RcDoc<'a, ()>> {
+        let arg_docs: Result<Vec<_>> = args.iter_args()
+            .map(|(_, (name, arg))| {
+                Ok(RcDoc::text(name.name())
+                    .append(RcDoc::text(": "))
+                    .append(self.block_arg_to_doc(arg)?))
+            })
+            .collect();
+        let arg_docs = arg_docs?;
+        
+        Ok(RcDoc::text("(")
+            .append(RcDoc::intersperse(arg_docs, RcDoc::text(", ")))
+            .append(RcDoc::text(")")))
+    }
+    
+    fn block_arg_to_doc<'a>(&self, arg: &'a crate::ast::BlockArg) -> Result<RcDoc<'a, ()>> {
+        self.field_type_to_doc(&arg.field_type)
+    }
+    
+    fn value_field_to_doc<'a>(&self, field: &'a crate::ast::Field<crate::ast::Expression>) -> Result<RcDoc<'a, ()>> {
+        let mut doc = RcDoc::text(field.identifier().name());
+        
+        if let Some(expr) = &field.expr {
+            doc = doc.append(RcDoc::space()).append(self.expression_to_doc(expr)?);
+        }
+        
+        // Handle field attributes
+        for attr in &field.attributes {
+            doc = doc.append(RcDoc::space()).append(self.attribute_to_doc(attr)?);
+        }
+        
+        Ok(doc)
+    }
+    
+    fn type_alias_to_doc<'a>(&self, _alias: &'a crate::ast::Assignment) -> Result<RcDoc<'a, ()>> {
+        if self.fail_on_unhandled_rule {
+            return Err(anyhow!("Type alias formatting not implemented"));
+        }
+        Ok(RcDoc::text("// TODO: Format type alias"))
+    }
+    
+    fn template_string_to_doc<'a>(&self, _template: &'a crate::ast::TemplateString) -> Result<RcDoc<'a, ()>> {
+        if self.fail_on_unhandled_rule {
+            return Err(anyhow!("Template string formatting not implemented"));
+        }
+        Ok(RcDoc::text("// TODO: Format template string"))
+    }
+    
+    fn top_level_assignment_to_doc<'a>(&self, _assignment: &'a crate::ast::TopLevelAssignment) -> Result<RcDoc<'a, ()>> {
+        if self.fail_on_unhandled_rule {
+            return Err(anyhow!("Top level assignment formatting not implemented"));
+        }
+        Ok(RcDoc::text("// TODO: Format top level assignment"))
+    }
+    
+    fn expr_fn_to_doc<'a>(&self, _expr_fn: &'a crate::ast::ExprFn) -> Result<RcDoc<'a, ()>> {
+        if self.fail_on_unhandled_rule {
+            return Err(anyhow!("Expr function formatting not implemented"));
+        }
+        Ok(RcDoc::text("// TODO: Format expr function"))
+    }
 }
