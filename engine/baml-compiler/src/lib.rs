@@ -91,9 +91,15 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Function>, Vec<Value>
             compile_expression(&statement.body, &locals, &resolved_globals, &mut bytecode);
 
             let local_index = locals.len() + 1;
-            bytecode
-                .instructions
-                .push(Instruction::StoreVar(local_index));
+
+            // We don't need to emit this because when the expression is
+            // executed and leaves the value on top of the stack, that index in
+            // the stack will be the index of the local variable. It's already
+            // "stored".
+
+            // bytecode
+            //     .instructions
+            //     .push(Instruction::StoreVar(local_index));
 
             locals.insert(statement.identifier.to_string(), local_index);
         }

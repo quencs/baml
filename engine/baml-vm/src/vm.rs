@@ -90,8 +90,13 @@ pub struct Frame {
 
     /// Instruction pointer (IP) or program counter (PC).
     ///
-    /// Points to the next instruction that the VM will execute.
-    pub instruction_ptr: usize,
+    /// Points to the next instruction that the VM will execute. It is of type
+    /// [`isize`] because some jumps can create negative offsets (for loops)
+    /// and it's easier to operate on an [`isize`] and cast it to [`usize`]
+    /// only once (when we index into [`Bytecode::instructions`]). However,
+    /// this number should never be negative, otherwise indexing into the
+    /// instruction vec will panic.
+    pub instruction_ptr: isize,
 
     /// Local variables offset in the eval stack.
     pub locals_offset: usize,
@@ -245,13 +250,16 @@ impl Vm {
         };
 
         loop {
-            // Set to one by default and increment if we're executing a jump
-            // instruction.
-            let mut instruction_offset = 1;
+            // Current instruction pointer.
+            let instruction_ptr = frame.instruction_ptr;
+
+            // Move the frame's IP to the next instruction. We'll deal with
+            // jump offsets later.
+            frame.instruction_ptr += 1;
 
             eprintln!(
                 "{}",
-                frame.function.bytecode.instructions[frame.instruction_ptr]
+                frame.function.bytecode.instructions[instruction_ptr as usize]
             );
             eprintln!(
                 "[{}]",
@@ -262,7 +270,7 @@ impl Vm {
                     .join(", ")
             );
 
-            match frame.function.bytecode.instructions[frame.instruction_ptr] {
+            match frame.function.bytecode.instructions[instruction_ptr as usize] {
                 Instruction::LoadConst(index) => {
                     let value = &frame.function.bytecode.constants[index];
                     self.stack.push(value.clone());
@@ -283,13 +291,17 @@ impl Vm {
                 }
 
                 Instruction::Jump(offset) => {
-                    instruction_offset = offset;
+                    // Reassign the frame's IP to the new instruction.
+                    // Remember that offset can be negative here, so even though
+                    // we're adding it can still jump backwards.
+                    frame.instruction_ptr = instruction_ptr + offset;
                 }
 
                 Instruction::JumpIfFalse(offset) => match self.stack.last() {
+                    // Reassign only if the top of the stack is false.
                     Some(Value::Bool(value)) => {
                         if !value {
-                            instruction_offset = offset;
+                            frame.instruction_ptr = instruction_ptr + offset;
                         }
                     }
 
@@ -367,9 +379,6 @@ impl Vm {
                     frame = previous_frame;
                 }
             }
-
-            // Move to next instruction.
-            frame.instruction_ptr = (frame.instruction_ptr as isize + instruction_offset) as usize;
         }
     }
 }

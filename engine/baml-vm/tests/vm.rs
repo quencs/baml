@@ -38,9 +38,11 @@ fn simple_function_call() -> anyhow::Result<()> {
 
     let (mut functions, globals) = baml_compiler::compile(ast)?;
 
+    eprintln!("{:#?}", functions);
+
     let mut vm = Vm {
         frames: vec![],
-        stack: vec![Value::Object(Object::Function(functions[0].clone()))],
+        stack: vec![Value::Object(Object::Function(functions[1].clone()))],
         objects: functions
             .iter()
             .map(|f| Object::Function(f.clone()))
@@ -82,7 +84,7 @@ fn function_call_with_parameters() -> anyhow::Result<()> {
 
     let mut vm = Vm {
         frames: vec![],
-        stack: vec![Value::Object(Object::Function(functions[0].clone()))],
+        stack: vec![Value::Object(Object::Function(functions[1].clone()))],
         objects: functions
             .iter()
             .map(|f| Object::Function(f.clone()))
