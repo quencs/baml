@@ -30,7 +30,7 @@ use crate::vm::Value;
 ///
 /// Instead store the state or complex structure in the [`Vm`] struct and find a
 /// way to reference it with very simple instructions.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Instruction {
     /// Loads a constant from the bytecode's constant pool.
     ///

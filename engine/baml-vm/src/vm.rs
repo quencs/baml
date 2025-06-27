@@ -33,6 +33,12 @@ pub struct Function {
     pub kind: FunctionKind,
 }
 
+impl std::fmt::Display for Function {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<fn {}>", self.name)
+    }
+}
+
 /// Any data that the Baml program can reference.
 ///
 /// VM should own objects and give references to them to the running Baml
@@ -44,6 +50,15 @@ pub enum Object {
     // TODO: Classes, instances, etc.
 }
 
+impl std::fmt::Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Object::Function(function) => write!(f, "{function}"),
+            Object::String(string) => write!(f, "{string}"),
+        }
+    }
+}
+
 /// Runtime values.
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -52,6 +67,18 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     Object(Object),
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Null => write!(f, "null"),
+            Value::Int(int) => write!(f, "{int}"),
+            Value::Float(float) => write!(f, "{float}"),
+            Value::Bool(bool) => write!(f, "{bool}"),
+            Value::Object(object) => write!(f, "{object}"),
+        }
+    }
 }
 
 /// Call frame.
@@ -221,6 +248,19 @@ impl Vm {
             // Set to one by default and increment if we're executing a jump
             // instruction.
             let mut instruction_offset = 1;
+
+            eprintln!(
+                "{}",
+                frame.function.bytecode.instructions[frame.instruction_ptr]
+            );
+            eprintln!(
+                "[{}]",
+                self.stack
+                    .iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
 
             match frame.function.bytecode.instructions[frame.instruction_ptr] {
                 Instruction::LoadConst(index) => {
