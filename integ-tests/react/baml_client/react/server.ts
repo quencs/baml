@@ -1302,6 +1302,24 @@ export const LiteralUnionsTest = async (
 };
 
 /**
+ * Executes the "LongQuestion" BAML action.
+ *
+ * This server action calls the underlying BAML function "LongQuestion"
+ * with the specified parameters.
+ *
+ * @param { string } prompt - Input parameter.
+ *
+ * @returns {Promise<UniverseQuestion>} A promise that resolves with the result of the action.
+ */
+export const LongQuestion = async (
+  prompt: string,
+): Promise<UniverseQuestion> => {
+  return b.LongQuestion(
+    prompt,
+  );
+};
+
+/**
  * Executes the "MakeBlockConstraint" BAML action.
  *
  * This server action calls the underlying BAML function "MakeBlockConstraint"

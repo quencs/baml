@@ -53,6 +53,7 @@
     "@xyflow/react": "12.7.0",
     "anser": "2.3.2",
     "codemirror-copilot": "0.0.7",
+    "date-fns": "4.1.0",
     "dotenv": "16.5.0",
     "hast-util-has-property": "3.0.0",
     "he": "1.2.0",

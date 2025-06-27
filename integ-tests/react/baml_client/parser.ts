@@ -1407,6 +1407,26 @@ export class LlmResponseParser {
     }
   }
   
+  LongQuestion(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
+  ): UniverseQuestion {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.parseLlmResponse(
+        "LongQuestion",
+        llmResponse,
+        false,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as UniverseQuestion
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   MakeBlockConstraint(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
@@ -5108,6 +5128,26 @@ export class LlmStreamParser {
         __baml_options__?.clientRegistry,
         env,
       ) as (1 | true | "string output")
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  LongQuestion(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
+  ): partial_types.UniverseQuestion {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.parseLlmResponse(
+        "LongQuestion",
+        llmResponse,
+        true,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as partial_types.UniverseQuestion
     } catch (error) {
       throw toBamlError(error);
     }

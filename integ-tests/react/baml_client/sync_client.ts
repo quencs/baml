@@ -1811,6 +1811,31 @@ export class BamlSyncClient {
     }
   }
   
+  LongQuestion(
+      prompt: string,
+      __baml_options__?: BamlCallOptions
+  ): UniverseQuestion {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = this.runtime.callFunctionSync(
+        "LongQuestion",
+        {
+          "prompt": prompt
+        },
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return raw.parsed(false) as UniverseQuestion
+    } catch (error: any) {
+      throw toBamlError(error);
+    }
+  }
+  
   MakeBlockConstraint(
       
       __baml_options__?: BamlCallOptions

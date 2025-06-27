@@ -7,10 +7,10 @@ import { cn } from '@baml/ui/lib/utils';
 import { useAtomValue } from 'jotai';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import { testCaseResponseAtom, TestState, DoneTestStatusType } from '../../../atoms';
-import { RenderPromptPart } from '../../render-text';
-import type { TestHistoryEntry, TestHistoryRun } from '../atoms';
-import { TestResultStats } from './TestResultStats';
+import { testCaseResponseAtom, TestState, DoneTestStatusType } from '../../../../atoms';
+import { RenderPromptPart } from '../../../render-text';
+import type { TestHistoryEntry, TestHistoryRun } from '../../atoms';
+import { TestResultStats } from './test-result-stats';
 
 // Constants
 const TRUNCATE_LENGTH = 100;
@@ -330,4 +330,3 @@ export const TestResultView = ({ run }: { run: TestHistoryRun }) => {
     </div>
   );
 };
-

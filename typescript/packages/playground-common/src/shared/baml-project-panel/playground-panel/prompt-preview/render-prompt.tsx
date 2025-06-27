@@ -8,7 +8,7 @@ export const RenderPrompt: React.FC<{
   const chat = prompt.as_chat() ?? [];
 
   return (
-    <div className="h-full space-y-4">
+    <div className="flex flex-col gap-y-4">
       {chat.map((p, partIndex) => (
         <CollapsibleMessage
           key={`${partIndex}-${p.role}`}

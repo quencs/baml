@@ -1809,6 +1809,31 @@ export class BamlAsyncClient {
     }
   }
   
+  async LongQuestion(
+      prompt: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<UniverseQuestion> {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = await this.runtime.callFunction(
+        "LongQuestion",
+        {
+          "prompt": prompt
+        },
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return raw.parsed(false) as UniverseQuestion
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   async MakeBlockConstraint(
       
       __baml_options__?: BamlCallOptions
@@ -6855,6 +6880,37 @@ class BamlStreamClient {
         raw,
         (a): (1 | true | "string output") => a,
         (a): 1 | true | "string output" => a,
+        this.ctxManager.cloneContext(),
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  LongQuestion(
+      prompt: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
+  ): BamlStream<partial_types.UniverseQuestion, UniverseQuestion> {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = this.runtime.streamFunction(
+        "LongQuestion",
+        {
+          "prompt": prompt
+        },
+        undefined,
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return new BamlStream<partial_types.UniverseQuestion, UniverseQuestion>(
+        raw,
+        (a): partial_types.UniverseQuestion => a,
+        (a): UniverseQuestion => a,
         this.ctxManager.cloneContext(),
       )
     } catch (error) {

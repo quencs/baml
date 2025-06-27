@@ -6,7 +6,7 @@ import { ExternalLinkIcon, ImageIcon, Music } from 'lucide-react';
 import { useState } from 'react';
 import useSWR from 'swr';
 import { wasmAtom } from '../../atoms';
-import { showTokenCountsAtom } from './render-text';
+import { showTokensAtom } from './render-text';
 
 interface WebviewMediaProps {
   bamlMediaType: 'image' | 'audio';
@@ -18,7 +18,7 @@ export const WebviewMedia: React.FC<WebviewMediaProps> = ({
   media,
 }) => {
   const wasm = useAtomValue(wasmAtom);
-  const showTokenCounts = useAtomValue(showTokenCountsAtom);
+  const isDebugMode = useAtomValue(showTokensAtom);
   const [imageStats, setImageStats] = useState<{
     width: number;
     height: number;
@@ -82,7 +82,7 @@ export const WebviewMedia: React.FC<WebviewMediaProps> = ({
 
   return (
     <div className="w-full">
-      {showTokenCounts && bamlMediaType === 'image' && (
+      {isDebugMode && bamlMediaType === 'image' && (
         <div className="flex flex-row gap-4 justify-start items-center px-3 py-2 text-xs border-b border-border bg-muted text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <span className="text-muted-foreground/60">Dimensions:</span>

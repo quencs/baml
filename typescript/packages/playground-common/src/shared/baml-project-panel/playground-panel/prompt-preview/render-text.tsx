@@ -7,8 +7,8 @@ import { displaySettingsAtom } from '../preview-toolbar';
 import { getHighlightedParts } from './highlight-utils';
 import { TokenEncoderCache } from './render-tokens';
 
-export const showTokenCountsAtom = atom(
-  (get) => get(displaySettingsAtom).showTokenCounts,
+export const showTokensAtom = atom(
+  (get) => get(displaySettingsAtom).showTokens,
 );
 
 const HighlightedText: React.FC<{
@@ -48,12 +48,12 @@ export const RenderPromptPart: React.FC<{
   model?: string;
   provider?: string;
 }> = ({ text, highlightChunks = [], model, provider }) => {
-  const isDebugMode = useAtomValue(showTokenCountsAtom);
+  const showTokens = useAtomValue(showTokensAtom);
   // const currentClient = useAtomValue(currentClientsAtom)
   // this causes weird scroll issues
 
   const tokenizer = useMemo(() => {
-    if (!isDebugMode) return undefined;
+    if (!showTokens) return undefined;
 
     // TODO! Change this to the appropriate tokenizer!
     const encodingName = TokenEncoderCache.getEncodingNameForModel(
@@ -65,7 +65,7 @@ export const RenderPromptPart: React.FC<{
 
     const enc = TokenEncoderCache.INSTANCE.getEncoder(encodingName);
     return { enc, tokens: enc.encode(text) };
-  }, [text, isDebugMode, model, provider]);
+  }, [text, showTokens, model, provider]);
 
   // Only compute highlighted text if we're not tokenizing
   const renderContent = useMemo(() => {
@@ -81,7 +81,13 @@ export const RenderPromptPart: React.FC<{
               className={cn(
                 'text-white',
                 // Uncomment and use these classes if you want to color-code tokens
-                // ['bg-fuchsia-800', 'bg-emerald-700', 'bg-yellow-600', 'bg-red-700', 'bg-cyan-700'][i % 5]
+                [
+                  'bg-fuchsia-800',
+                  'bg-emerald-700',
+                  'bg-yellow-600',
+                  'bg-red-700',
+                  'bg-cyan-700',
+                ][i % 5],
               )}
             >
               {token}
@@ -97,7 +103,7 @@ export const RenderPromptPart: React.FC<{
 
   return (
     <div className="flex flex-col">
-      <div className="relative p-3 bg-card group max-h-[600px] overflow-y-auto overflow-x-hidden">
+      <div className="relative px-3 pb-3 pt-2 bg-card group max-h-[600px] overflow-y-auto overflow-x-hidden">
         <div className="absolute right-2 top-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <CopyButton text={text} size="sm" variant="secondary" />
         </div>

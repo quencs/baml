@@ -260,13 +260,14 @@ export const functionTestSnippetAtom = atomFamily((functionName: string) =>
 );
 
 export const testCaseResponseAtom = atomFamily(
-  (params: { functionName: string; testName: string }) =>
+  (params: { functionName?: string; testName?: string }) =>
     atom((get) => {
       const allTestCaseResponse = get(runningTestsAtom);
       const testCaseResponse = allTestCaseResponse.find(
         (t) =>
           t.functionName === params.functionName &&
           t.testName === params.testName,
+        undefined,
       );
       return testCaseResponse?.state;
     }),

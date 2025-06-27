@@ -4,9 +4,9 @@ import { TooltipContent, TooltipProvider } from '@baml/ui/tooltip';
 import { useAtomValue } from 'jotai';
 import { useAtom } from 'jotai';
 import { Play } from 'lucide-react';
-import { selectedHistoryIndexAtom, testHistoryAtom } from '../atoms';
-import { useRunBamlTests } from '../test-runner';
-import { ViewSelector } from './ViewSelector';
+import { selectedHistoryIndexAtom, testHistoryAtom } from '../../atoms';
+import { useRunBamlTests } from '../../test-runner';
+import { ViewSelector } from '../ViewSelector';
 
 export const TestMenu = () => {
   const [selectedHistoryIndex] = useAtom(selectedHistoryIndexAtom);

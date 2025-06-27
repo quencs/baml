@@ -8,7 +8,7 @@ import type {
   WasmChatMessage,
   WasmTestCase,
 } from '@gloo-ai/baml-schema-wasm-web';
-import { ChevronsUpDown } from 'lucide-react';
+import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { getFirstLine } from './highlight-utils';
 import { PromptStats } from './prompt-stats';
@@ -55,10 +55,14 @@ export const CollapsibleMessage: React.FC<CollapsibleMessageProps> = ({
               <div className="text-xs text-muted-foreground">
                 {part.role.charAt(0).toUpperCase() + part.role.slice(1)}
               </div>
-              <ChevronsUpDown className="size-4 ml-4 flex-shrink-0" />
+              {open ? (
+                <ChevronUp className="size-4 ml-4 flex-shrink-0" />
+              ) : (
+                <ChevronDown className="size-4 ml-4 flex-shrink-0" />
+              )}
             </div>
             {!open && firstLine && (
-              <div className="text-sm truncate whitespace-nowrap w-full text-left">
+              <div className="text-xs truncate whitespace-nowrap w-full text-left font-mono mt-2">
                 {firstLine}
               </div>
             )}

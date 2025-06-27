@@ -42,7 +42,7 @@ const isVSCodeEnvironment =
   typeof window !== 'undefined' && !('vscode' in window);
 
 export const displaySettingsAtom = atom({
-  showTokenCounts: true,
+  showTokens: false,
   showClientCallGraph: false,
   showParallelTests: false,
 });
@@ -56,7 +56,7 @@ const RunButton: React.FC<{ className?: string }> = ({ className }) => {
       variant="default"
       size="xs"
       className={cn(
-        'items-center text-white bg-purple-500 hover:bg-purple-700 disabled:bg-muted disabled:text-muted-foreground dark:bg-purple-600 dark:text-foreground dark:hover:bg-purple-800 gap-2',
+        'items-center bg-purple-500 hover:bg-purple-700 disabled:bg-muted disabled:text-muted-foreground dark:bg-purple-600 text-white dark:hover:bg-purple-800 gap-2',
         className,
       )}
       disabled={isRunning || selected === undefined}

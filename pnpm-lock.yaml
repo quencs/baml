@@ -580,6 +580,9 @@ importers:
       codemirror-copilot:
         specifier: 0.0.7
         version: 0.0.7(@codemirror/state@6.5.2)(@codemirror/view@6.37.2)
+      date-fns:
+        specifier: 4.1.0
+        version: 4.1.0
       dotenv:
         specifier: 16.5.0
         version: 16.5.0
