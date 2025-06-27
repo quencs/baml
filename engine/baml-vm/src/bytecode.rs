@@ -28,8 +28,8 @@ use crate::vm::Value;
 /// }
 /// ```
 ///
-/// Instead store the state or complex structure in the [`Vm`] struct and find a
-/// way to reference it with very simple instructions.
+/// Instead store the state or complex structure in the [`crate::Vm`] struct and
+/// find a way to reference it with very simple instructions.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Instruction {
     /// Loads a constant from the bytecode's constant pool.
@@ -41,16 +41,16 @@ pub enum Instruction {
     /// Loads a variable from the frame's local variable slots.
     ///
     /// Format: `LOAD_VAR i` where `i` is the index of the variable in the
-    /// [`Frame::locals`] array.
+    /// [`crate::Frame::locals`] array.
     LoadVar(usize),
 
     /// Stores a value in the frame's local variable slots.
     ///
     /// Format: `STORE_VAR i` where `i` is the index of the variable in the
-    /// [`Frame::locals`] array.
+    /// [`crate::Frame::locals`] array.
     StoreVar(usize),
 
-    /// Pop the top of [`Vm::stack`] (the evaluation stack).
+    /// Pop the top of [`crate::Vm::stack`] (the evaluation stack).
     Pop,
 
     /// Jump to another instruction.
@@ -59,17 +59,17 @@ pub enum Instruction {
     /// to the target instruction (can be negative to jump backwards).
     Jump(isize),
 
-    /// Jump to another instruction if the top of [`Vm::stack`] is false.
+    /// Jump to another instruction if the top of [`crate::Vm::stack`] is false.
     ///
     /// Format: `JUMP_IF_FALSE o` where `o` is the offset from the current
     /// instruction to the target instruction (can be negative to jump
     /// backwards).
     JumpIfFalse(isize),
 
-    /// Load a global variable from the [`Vm::globals`] array.
+    /// Load a global variable from the [`crate::Vm::globals`] array.
     ///
     /// Format: `LOAD_GLOBAL i` where `i` is the index of the global variable
-    /// in the [`Vm::globals`] array.
+    /// in the [`crate::Vm::globals`] array.
     ///
     /// Note that functions are also globals and can be passed around and stored
     /// in local variables, so we need to load their name in the stack before we
@@ -79,7 +79,7 @@ pub enum Instruction {
     /// Store a value in a global variable.
     ///
     /// Format: `STORE_GLOBAL i` where `i` is the index of the global variable
-    /// in the [`Vm::globals`] array.
+    /// in the [`crate::Vm::globals`] array.
     StoreGlobal(usize),
 
     /// Call a function.
@@ -116,6 +116,8 @@ impl std::fmt::Display for Instruction {
 }
 
 /// Executable bytecode.
+///
+/// Contains the instructions to run and all the associated constants.
 #[derive(Clone, Debug)]
 pub struct Bytecode {
     /// Sequence of instructions.

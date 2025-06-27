@@ -3,7 +3,7 @@
 //! These tests need the compiler crate to go from source to bytecode, that's
 //! why they're not placed in the source vm module.
 
-use baml_vm::{Frame, Object, Value, Vm};
+use baml_vm::{Frame, Value, Vm};
 use internal_baml_parser_database::ParserDatabase;
 
 pub fn ast(source: &str) -> anyhow::Result<ParserDatabase> {

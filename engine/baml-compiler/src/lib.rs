@@ -1,3 +1,14 @@
+//! Baml bytecode compiler.
+//!
+//! This crate is concerned with generating VM bytecode from a Baml AST. For now
+//! it is pretty straightforward to go from AST to bytecode, but in the future
+//! we might need more tree transformations to generate our bytecode.
+//! Specifically, read about how Rust handles [HIR] (High Level IR) and [MIR]
+//! (Mid Level IR):
+//!
+//! [HIR]: https://rustc-dev-guide.rust-lang.org/hir.html
+//! [MIR]: https://rustc-dev-guide.rust-lang.org/mir/index.html
+
 use std::collections::HashMap;
 
 use baml_vm::{Bytecode, Function, FunctionKind, Instruction, Object, Value};
@@ -7,18 +18,19 @@ use internal_baml_parser_database::{ast::Expression, ParserDatabase};
 /// Generate bytecode for an expression.
 fn compile_expression(
     expression: &Expression,
-    locals: &HashMap<String, usize>,
+    resolved_locals: &HashMap<String, usize>,
     resolved_globals: &HashMap<String, usize>,
     bytecode: &mut Bytecode,
 ) {
     match expression {
-        Expression::BoolValue(bool, span) => {
+        // Constants.
+        Expression::BoolValue(bool, _span) => {
             bytecode.constants.push(Value::Bool(*bool));
             bytecode
                 .instructions
                 .push(Instruction::LoadConst(bytecode.constants.len() - 1));
         }
-        Expression::NumericValue(num, span) => {
+        Expression::NumericValue(num, _span) => {
             bytecode
                 .constants
                 .push(Value::Int(num.parse::<i64>().unwrap()));
@@ -26,32 +38,38 @@ fn compile_expression(
                 .instructions
                 .push(Instruction::LoadConst(bytecode.constants.len() - 1));
         }
-        Expression::StringValue(string, span) => todo!(),
+        Expression::StringValue(string, _span) => todo!(),
         Expression::RawStringValue(raw_string) => todo!(),
+
+        // Variables.
         Expression::Identifier(identifier) => {
             bytecode
                 .instructions
-                .push(Instruction::LoadVar(locals[identifier.name()]));
+                .push(Instruction::LoadVar(resolved_locals[identifier.name()]));
         }
+
+        // Compound objects.
         Expression::Array(expressions, span) => todo!(),
         Expression::Map(items, span) => todo!(),
-        Expression::JinjaExpressionValue(jinja_expression, span) => todo!(),
+        Expression::ClassConstructor(class_constructor, span) => todo!(),
+
+        // Functions.
         Expression::Lambda(arguments_list, expression_block, span) => todo!(),
         Expression::App(app) => {
-            eprintln!("{app:#?}");
             bytecode
                 .instructions
                 .push(Instruction::LoadGlobal(resolved_globals[app.name.name()]));
 
             for arg in &app.args {
-                compile_expression(arg, locals, resolved_globals, bytecode);
+                compile_expression(arg, resolved_locals, resolved_globals, bytecode);
             }
 
+            // Call the function.
             bytecode
                 .instructions
                 .push(Instruction::Call(app.args.len()));
         }
-        Expression::ClassConstructor(class_constructor, span) => todo!(),
+        Expression::JinjaExpressionValue(jinja_expression, span) => todo!(),
         Expression::ExprBlock(expression_block, span) => todo!(),
         Expression::If(expression, expression1, expression2, span) => todo!(),
         Expression::ForLoop {
@@ -74,23 +92,28 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
         resolved_globals.insert(function.name().to_string(), i);
     }
 
-    eprintln!("{:#?}", resolved_globals);
-
     let mut globals = Vec::with_capacity(resolved_globals.len());
     let mut objects = Vec::with_capacity(resolved_globals.len());
 
     for function in ast.walk_expr_fns() {
         let mut bytecode = Bytecode::new();
-        let mut locals = HashMap::new();
+        let mut resolved_locals = HashMap::new();
 
+        // Resolve parameters.
         for param in &function.args().args {
-            locals.insert(param.0.to_string(), locals.len() + 1);
+            resolved_locals.insert(param.0.to_string(), resolved_locals.len() + 1);
         }
 
+        // Resolve rest of locals.
         for statement in function.expr_fn().body.stmts.iter() {
-            compile_expression(&statement.body, &locals, &resolved_globals, &mut bytecode);
+            compile_expression(
+                &statement.body,
+                &resolved_locals,
+                &resolved_globals,
+                &mut bytecode,
+            );
 
-            let local_index = locals.len() + 1;
+            let local_index = resolved_locals.len() + 1;
 
             // We don't need to emit this because when the expression is
             // executed and leaves the value on top of the stack, that index in
@@ -101,21 +124,19 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
             //     .instructions
             //     .push(Instruction::StoreVar(local_index));
 
-            locals.insert(statement.identifier.to_string(), local_index);
+            resolved_locals.insert(statement.identifier.to_string(), local_index);
         }
 
-        eprintln!("{:#?}", locals);
-
+        // Compile the return expression.
         compile_expression(
             &function.expr_fn().body.expr,
-            &locals,
+            &resolved_locals,
             &resolved_globals,
             &mut bytecode,
         );
-        bytecode.instructions.push(Instruction::Return);
 
-        eprintln!("==== {} ====", function.name());
-        eprintln!("{}", bytecode);
+        // Pop off the stack.
+        bytecode.instructions.push(Instruction::Return);
 
         let function = Function {
             name: function.name().to_string(),
@@ -124,6 +145,7 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
             kind: FunctionKind::Exec,
         };
 
+        // Add the function to the globals and objects pools.
         globals.push(Value::Object(objects.len()));
         objects.push(Object::Function(function));
     }
@@ -184,7 +206,6 @@ mod tests {
             vec![
                 Instruction::LoadGlobal(0),
                 Instruction::Call(0),
-                Instruction::StoreVar(1),
                 Instruction::LoadVar(1),
                 Instruction::Return,
             ]
