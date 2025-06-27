@@ -1,0 +1,145 @@
+//! Instruction set and bytecode representation.
+
+use crate::vm::Value;
+
+/// Individual bytecode instruction.
+///
+/// For faster iteration we'll start with an in-memory data structure that
+/// represents the bytecode instead of real binary instructions since getting
+/// those to work correctly is much harder (unsafe Rust, pointer arithmetic).
+///
+/// We do need to respect some sort of "instruction format" however. In
+/// stack-based VMs some instructions don't take any arguments (for example,
+/// the `ADD` instruction would grab its operands from the evaluation stack),
+/// but some others such as `LOAD_CONST` need to know which constant to load,
+/// so they take an unsigned integer as an argument (the index of the constant
+/// in the constant pool). Same goes for jump instructions, we need to know the
+/// offset.
+///
+/// We are not limited to one single argument, we can have variable-length
+/// instructions in the VM, but we do have to keep the arguments limited to
+/// "bytes" (unsigned integers, signed integers, etc). Use the arguments to
+/// index into runtime structures such as constant pools, object pools, etc.
+/// Don't embed complex data structures in an instruction. Avoid this:
+///
+/// ```ignore
+/// enum Instruction {
+///     MySuperDuperInstruction(HashMap<String, Vec<Function>>)
+/// }
+/// ```
+///
+/// Instead store the state or complex structure in the [`Vm`] struct and find a
+/// way to reference it with very simple instructions.
+#[derive(Clone, Debug)]
+pub enum Instruction {
+    /// Loads a constant from the bytecode's constant pool.
+    ///
+    /// Format: `LOAD_CONST i` where `i` is the index of the constant in the
+    /// [`Bytecode::constants`] pool.
+    LoadConst(usize),
+
+    /// Loads a variable from the frame's local variable slots.
+    ///
+    /// Format: `LOAD_VAR i` where `i` is the index of the variable in the
+    /// [`Frame::locals`] array.
+    LoadVar(usize),
+
+    /// Stores a value in the frame's local variable slots.
+    ///
+    /// Format: `STORE_VAR i` where `i` is the index of the variable in the
+    /// [`Frame::locals`] array.
+    StoreVar(usize),
+
+    /// Pop the top of [`Vm::stack`] (the evaluation stack).
+    Pop,
+
+    /// Jump to another instruction.
+    ///
+    /// Format: `JUMP o` where `o` is the offset from the current instruction
+    /// to the target instruction (can be negative to jump backwards).
+    Jump(isize),
+
+    /// Jump to another instruction if the top of [`Vm::stack`] is false.
+    ///
+    /// Format: `JUMP_IF_FALSE o` where `o` is the offset from the current
+    /// instruction to the target instruction (can be negative to jump
+    /// backwards).
+    JumpIfFalse(isize),
+
+    /// Load a global variable from the [`Vm::globals`] array.
+    ///
+    /// Format: `LOAD_GLOBAL i` where `i` is the index of the global variable
+    /// in the [`Vm::globals`] array.
+    ///
+    /// Note that functions are also globals and can be passed around and stored
+    /// in local variables, so we need to load their name in the stack before we
+    /// call the function.
+    LoadGlobal(usize),
+
+    /// Store a value in a global variable.
+    ///
+    /// Format: `STORE_GLOBAL i` where `i` is the index of the global variable
+    /// in the [`Vm::globals`] array.
+    StoreGlobal(usize),
+
+    /// Call a function.
+    ///
+    /// Format: `CALL n` where `n` is the number of arguments passed to the
+    /// function.
+    ///
+    /// Arguments are pushed onto the eval stack and the name of the function
+    /// is right below them.
+    Call(usize),
+
+    /// Return from a function.
+    ///
+    /// No arguments needed, result is stored in the eval stack and the VM
+    /// simply has to clean up the call stack and continue execution.
+    Return,
+}
+
+impl std::fmt::Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Instruction::LoadConst(i) => write!(f, "LOAD_CONST {i}"),
+            Instruction::LoadVar(i) => write!(f, "LOAD_VAR {i}"),
+            Instruction::StoreVar(i) => write!(f, "STORE_VAR {i}"),
+            Instruction::Pop => f.write_str("POP"),
+            Instruction::Jump(o) => write!(f, "JUMP {o}"),
+            Instruction::JumpIfFalse(o) => write!(f, "JUMP_IF_FALSE {o}"),
+            Instruction::LoadGlobal(i) => write!(f, "LOAD_GLOBAL {i}"),
+            Instruction::StoreGlobal(i) => write!(f, "STORE_GLOBAL {i}"),
+            Instruction::Call(n) => write!(f, "CALL {n}"),
+            Instruction::Return => f.write_str("RETURN"),
+        }
+    }
+}
+
+/// Executable bytecode.
+#[derive(Clone, Debug)]
+pub struct Bytecode {
+    /// Sequence of instructions.
+    pub instructions: Vec<Instruction>,
+
+    /// Constant pool.
+    pub constants: Vec<Value>,
+}
+
+impl Bytecode {
+    pub fn new() -> Self {
+        Self {
+            instructions: Vec::new(),
+            constants: Vec::new(),
+        }
+    }
+}
+
+impl std::fmt::Display for Bytecode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for instruction in &self.instructions {
+            writeln!(f, "{instruction}")?;
+        }
+
+        Ok(())
+    }
+}

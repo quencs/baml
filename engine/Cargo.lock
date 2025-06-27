@@ -925,7 +925,10 @@ dependencies = [
 name = "baml-compiler"
 version = "0.90.1"
 dependencies = [
+ "anyhow",
  "baml-vm",
+ "internal-baml-core",
+ "internal-baml-diagnostics",
  "internal-baml-parser-database",
 ]
 
@@ -1301,6 +1304,13 @@ dependencies = [
 [[package]]
 name = "baml-vm"
 version = "0.90.1"
+dependencies = [
+ "anyhow",
+ "baml-compiler",
+ "internal-baml-core",
+ "internal-baml-diagnostics",
+ "internal-baml-parser-database",
+]
 
 [[package]]
 name = "baml_cffi"
