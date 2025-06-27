@@ -62,11 +62,11 @@ pub async fn handle_rpc_websocket(ws: WebSocket, session: Arc<Session>) {
                         let _ = ws_tx.send(Message::text(response.to_string())).await;
                     }
                     "GET_PLAYGROUND_PORT" => {
-                        let port = session.baml_settings.playground_port.unwrap_or(3030);
+                        let playground_port = session.baml_settings.playground_port.unwrap_or(3030);
                         let response = serde_json::json!({
                             "rpcMethod": "GET_PLAYGROUND_PORT",
                             "rpcId": rpc_id,
-                            "data": { "port": port }
+                            "data": { "port": playground_port }
                         });
                         let _ = ws_tx.send(Message::text(response.to_string())).await;
                     }

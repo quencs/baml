@@ -1,15 +1,10 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import * as vscode from 'vscode'
-import axios from 'axios'
 import glooLens from './LanguageToBamlCodeLensProvider'
 import { WebviewPanelHost } from './panels/WebviewPanelHost'
 import plugins from './plugins'
 import { requestBamlCLIVersion, requestDiagnostics, getPlaygroundPort } from './plugins/language-server-client'
 import { telemetry, viewFunctionInPlayground, runTestInPlayground } from './plugins/language-server-client'
-import cors from 'cors'
-import { createProxyMiddleware } from 'http-proxy-middleware'
-import { Socket } from 'net'
-import { type Express } from 'express'
 import StatusBarPanel from './panels/StatusBarPanel'
 import TelemetryReporter from './telemetryReporter'
 
@@ -17,7 +12,6 @@ const outputChannel = vscode.window.createOutputChannel('baml')
 const diagnosticsCollection = vscode.languages.createDiagnosticCollection('baml-diagnostics')
 const LANG_NAME = 'Baml'
 
-let server: any
 let glowOnDecoration: vscode.TextEditorDecorationType | null = null
 let glowOffDecoration: vscode.TextEditorDecorationType | null = null
 let isGlowOn: boolean = true
@@ -35,102 +29,11 @@ export function activate(context: vscode.ExtensionContext) {
   createDecorations()
   startAnimation()
 
-  const app: Express = require('express')()
-  app.use(cors())
-  const server = app.listen(0, () => {
-    console.log('Server started on port ' + getPort())
-  })
-
+  // Wrapper function to handle null case from getPlaygroundPort
   const getPort = () => {
-    const addr = server.address()
-    if (addr === null) {
-      vscode.window.showErrorMessage(
-        'Failed to start BAML extension server. Please try reloading the window, or restarting VSCode.',
-      )
-      console.error('Failed to start BAML extension server. Please try reloading the window, or restarting VSCode.')
-      return 0
-    }
-    if (typeof addr === 'string') {
-      return parseInt(addr)
-    }
-    return addr.port
+    const port = getPlaygroundPort()
+    return port ?? 3030 // Default to 3030 if null
   }
-
-  app.use(
-    createProxyMiddleware({
-      changeOrigin: true, // leave prependPath = true (default)
-      /** Inspect and (maybe) rewrite the path. */
-      pathRewrite: (path, req) => {
-        // If the path looks like an image (xyz.png …) and it's a GET → blank it.
-        if (/\.[a-z0-9]+$/i.test(path) && req.method === 'GET') {
-          console.log('[PROXY] Image request detected, clearing path:', path)
-          return ''
-        }
-
-        // Remove trailing slash so we don't end up with "//".
-        const out = path.endsWith('/') ? path.slice(0, -1) : path
-        return out
-      },
-
-      /** Dynamically choose target and massage req.url. */
-      router: (req) => {
-        const raw = req.headers['baml-original-url']
-        if (typeof raw !== 'string') {
-          throw new Error('missing baml-original-url header')
-        }
-
-        // Clean up headers the upstream may reject
-        delete req.headers['baml-original-url']
-        delete req.headers['origin']
-
-        // Strip trailing slash on header value, then parse
-        const cleanRaw = raw.endsWith('/') ? raw.slice(0, -1) : raw
-        const url = new URL(cleanRaw)
-
-        // Base path to prepend *if necessary*
-        const basePath = url.pathname.replace(/\/$/, '') // '/compat/v1' → '/compat/v1'
-        if (!req.url) {
-          throw new Error('missing req.url')
-        }
-
-        // Guard against double-prefixing
-        if (basePath && !req.url.startsWith(basePath)) {
-          // Ensure there's exactly one slash between basePath and existing path
-          req.url = basePath + (req.url.startsWith('/') ? '' : '/') + req.url
-        }
-
-        console.log('[PROXY]', req.method, req.url, '→', url.origin)
-
-        // Tell HPM to proxy to the origin only (scheme + host)
-        return url.origin // e.g. "https://api.llama.com"
-      },
-
-      logger: console,
-
-      on: {
-        /** Add CORS header. */
-        proxyRes: (proxyRes, req) => {
-          proxyRes.headers['access-control-allow-origin'] = '*'
-          console.log('[PROXY]', req.method, req.url, '←', proxyRes.statusCode)
-        },
-
-        /** Robust error reporter with type-guard. */
-        error: (err, req, res) => {
-          console.error('[PROXY ERROR]', req.method, req.url, ':', err.message)
-
-          if ('writeHead' in res) {
-            const svr = res
-            if (!svr.headersSent) {
-              svr.writeHead(500, { 'content-type': 'application/json' })
-            }
-            svr.end(JSON.stringify({ error: err.message }))
-          } else if (res instanceof Socket) {
-            res.destroy()
-          }
-        },
-      },
-    }),
-  )
 
   const bamlPlaygroundCommand = vscode.commands.registerCommand(
     'baml.openBamlPanel',
@@ -317,7 +220,7 @@ export function deactivate(): void {
       void plugin.deactivate()
     }
   }
-  server?.close()
+  // server?.close()
 }
 
 // Create our two decoration states

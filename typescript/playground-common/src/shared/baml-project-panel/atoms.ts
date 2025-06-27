@@ -167,7 +167,7 @@ const playgroundPortAtom = unwrap(
 export const proxyUrlAtom = atom((get) => {
   const vscodeSettings = get(vscodeSettingsAtom)
   const port = get(playgroundPortAtom)
-  const proxyUrl = port && port !== 0 ? `http://localhost:${port}` : undefined
+  const proxyUrl = port && port !== 0 ? `http://localhost:${port + 1}` : undefined
   const proxyEnabled = !!vscodeSettings?.enablePlaygroundProxy
   return {
     proxyEnabled,
@@ -296,7 +296,8 @@ const defaultEnvKeyValues: [string, string][] = (() => {
   } else {
     console.log('Not running in a Next.js environment, set default value')
     // Not running in a Next.js environment, set default value
-    return [['BOUNDARY_PROXY_URL', 'http://localhost:0000']]
+    // The proxy is now handled by the LSP, so we'll use a placeholder that will be replaced
+    return [['BOUNDARY_PROXY_URL', 'http://localhost:3031']]
   }
 })()
 export const envKeyValueStorage = atomWithStorage<[string, string][]>(
