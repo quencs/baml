@@ -1,9 +1,8 @@
 import {
   type Disposable,
-  Uri,
+  type Uri,
   ViewColumn,
   type WebviewPanel,
-  window,
   workspace,
 } from 'vscode';
 import * as vscode from 'vscode';
@@ -310,7 +309,7 @@ export class WebviewPanelHost {
                 </div>
                 <iframe
                     id="playground"
-                    sandbox="allow-scripts allow-forms allow-same-origin allow-downloads"
+                    sandbox="allow-scripts allow-forms allow-same-origin"
                     src="http://localhost:${this._playgroundPort}/"
                 ></iframe>
             </div>
@@ -322,6 +321,7 @@ export class WebviewPanelHost {
                 // Hide loading indicator when iframe loads
                 iframe.addEventListener('load', () => {
                     loading.classList.add('hidden');
+                    sendVSCodeVars(); // Send theme vars on load
                 });
 
                 // Handle navigation attempts (optional)
@@ -329,6 +329,46 @@ export class WebviewPanelHost {
                     loading.innerHTML = '<p style="color: #f87171;">Failed to connect to playground server</p><p style="font-size: 12px;">Make sure the language server is running on port ${this._playgroundPort}</p>';
                     loading.classList.remove('hidden');
                 });
+
+                // --- THEME SYNC LOGIC ---
+                function sendVSCodeVars() {
+                    if (!iframe.contentWindow) return;
+                    const styles = getComputedStyle(document.documentElement);
+                    // Add more vars as needed
+                    const vars = {
+                        '--vscode-editor-background': styles.getPropertyValue('--vscode-editor-background'),
+                        '--vscode-editor-foreground': styles.getPropertyValue('--vscode-editor-foreground'),
+                        '--vscode-editorWidget-background': styles.getPropertyValue('--vscode-editorWidget-background'),
+                        '--vscode-editorWidget-foreground': styles.getPropertyValue('--vscode-editorWidget-foreground'),
+                        '--vscode-sideBar-background': styles.getPropertyValue('--vscode-sideBar-background'),
+                        '--vscode-sideBar-foreground': styles.getPropertyValue('--vscode-sideBar-foreground'),
+                        '--vscode-panel-background': styles.getPropertyValue('--vscode-panel-background'),
+                        '--vscode-panel-foreground': styles.getPropertyValue('--vscode-panel-foreground'),
+                        // ... add more as needed
+                    };
+                    iframe.contentWindow.postMessage({ type: 'vscode-theme', vars }, '*');
+                }
+
+                // MutationObserver for style changes
+                const observer = new MutationObserver(() => {
+                    sendVSCodeVars();
+                });
+                observer.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['style'],
+                    subtree: false,
+                });
+
+                // Fallback polling for theme changes
+                let lastBg = '';
+                setInterval(() => {
+                    const bg = getComputedStyle(document.documentElement).getPropertyValue('--vscode-editor-background');
+                    if (bg !== lastBg) {
+                        lastBg = bg;
+                        sendVSCodeVars();
+                    }
+                }, 500);
+                // --- END THEME SYNC LOGIC ---
             </script>
         </body>
         </html>`;
@@ -356,14 +396,14 @@ export class WebviewPanelHost {
       }
     } else {
       // If a webview panel does not already exist create and show a new one
-      const panel = window.createWebviewPanel(
+      const panel = vscode.window.createWebviewPanel(
         // Panel view type
         'showHelloWorld',
         // Panel title
         'BAML Playground',
         // The editor column the panel should be displayed in
         // process.env.VSCODE_DEBUG_MODE === 'true' ? ViewColumn.Two : ViewColumn.Beside,
-        { viewColumn: ViewColumn.Beside, preserveFocus: true },
+        { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
 
         // Extra panel configurations
         {
@@ -373,8 +413,8 @@ export class WebviewPanelHost {
           // Restrict the webview to only load resources from the `out` and `web-panel/dist` directories
           localResourceRoots: [
             ...(vscode.workspace.workspaceFolders ?? []).map((f) => f.uri),
-            Uri.joinPath(extensionUri, 'out'),
-            Uri.joinPath(extensionUri, 'playground/dist'),
+            vscode.Uri.joinPath(extensionUri, 'out'),
+            vscode.Uri.joinPath(extensionUri, 'playground/dist'),
           ],
           retainContextWhenHidden: true,
           enableCommandUris: true,

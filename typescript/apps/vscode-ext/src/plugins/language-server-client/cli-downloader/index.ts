@@ -109,7 +109,7 @@ export async function resolveCliPath(
   const packageJson = await import('../../../../package.json');
   const bundledVersion = packageJson.version as string;
 
-  // Cache bundled CLI if available
+  // Always use CLI from node_modules/@baml/cli/bin if present
   const bundledCliActualPath = getBundledCliPath(context);
   if (bundledCliActualPath) {
     await cacheBundledCli(
@@ -118,6 +118,10 @@ export async function resolveCliPath(
       bundledVersion,
       bamlOutputChannel,
     );
+    bamlOutputChannel.appendLine(
+      `Using CLI from node_modules: ${bundledCliActualPath}`,
+    );
+    return bundledCliActualPath;
   }
 
   // Check if requested version matches bundled version
