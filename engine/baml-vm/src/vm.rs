@@ -309,16 +309,17 @@ impl Vm {
             frame.instruction_ptr += 1;
 
             eprintln!(
-                "{}",
-                function.bytecode.instructions[instruction_ptr as usize]
-            );
-            eprintln!(
                 "[{}]",
                 self.stack
                     .iter()
                     .map(|v| v.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
+            );
+
+            eprintln!(
+                "{}",
+                function.bytecode.instructions[instruction_ptr as usize]
             );
 
             match function.bytecode.instructions[instruction_ptr as usize] {

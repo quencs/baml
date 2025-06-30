@@ -23,7 +23,7 @@ pub fn ast(source: &str) -> anyhow::Result<ParserDatabase> {
 }
 
 #[test]
-fn simple_function_call() -> anyhow::Result<()> {
+fn function_call_without_parameters() -> anyhow::Result<()> {
     let ast = ast("
         fn two() -> int {
             let v = 2;
@@ -90,12 +90,90 @@ fn function_call_with_parameters() -> anyhow::Result<()> {
         locals_offset: 0,
     });
 
-    let expected = Value::Int(1);
     let result = vm.exec().unwrap();
 
     assert!(
-        matches!(&result, expected),
-        "Expected {expected:?}, got {result:?}"
+        matches!(&result, Value::Int(1)),
+        "Expected {expected:?}, got {result:?}",
+        expected = Value::Int(1),
+    );
+
+    Ok(())
+}
+
+#[test]
+fn exec_if_branch() -> anyhow::Result<()> {
+    let ast = ast("
+        fn run_if(b: bool) -> int {
+            if b { 1 } else { 2 }
+        }
+
+        fn main() -> int {
+            let a = run_if(true);
+            a
+        }
+    ")?;
+
+    let (objects, globals) = baml_compiler::compile(ast)?;
+
+    let mut vm = Vm {
+        frames: vec![],
+        stack: vec![Value::Object(1)],
+        objects,
+        globals,
+    };
+
+    vm.frames.push(Frame {
+        function: 1,
+        instruction_ptr: 0,
+        locals_offset: 0,
+    });
+
+    let result = vm.exec().unwrap();
+
+    assert!(
+        matches!(&result, Value::Int(1)),
+        "Expected {expected:?}, got {result:?}",
+        expected = Value::Int(1),
+    );
+
+    Ok(())
+}
+
+#[test]
+fn exec_else_branch() -> anyhow::Result<()> {
+    let ast = ast("
+        fn run_if(b: bool) -> int {
+            if b { 1 } else { 2 }
+        }
+
+        fn main() -> int {
+            let a = run_if(false);
+            a
+        }
+    ")?;
+
+    let (objects, globals) = baml_compiler::compile(ast)?;
+
+    let mut vm = Vm {
+        frames: vec![],
+        stack: vec![Value::Object(1)],
+        objects,
+        globals,
+    };
+
+    vm.frames.push(Frame {
+        function: 1,
+        instruction_ptr: 0,
+        locals_offset: 0,
+    });
+
+    let result = vm.exec().unwrap();
+
+    assert!(
+        matches!(&result, Value::Int(2)),
+        "Expected {expected:?}, got {result:?}",
+        expected = Value::Int(2),
     );
 
     Ok(())

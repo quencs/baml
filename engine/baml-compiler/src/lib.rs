@@ -16,6 +16,13 @@ use internal_baml_core::ast::WithName;
 use internal_baml_parser_database::{ast::Expression, ParserDatabase};
 
 /// Generate bytecode for an expression.
+///
+/// # Dev notes
+///
+/// Be cautious with "abstractions" here. It's better to be explicit so that
+/// we can see exactly what instructions are being emitted in each scenario. We
+/// should not create `emit_some_crazy_stuff` functions unless they can be
+/// reused many times.
 fn compile_expression(
     expression: &Expression,
     resolved_locals: &HashMap<String, usize>,
@@ -71,7 +78,49 @@ fn compile_expression(
         }
         Expression::JinjaExpressionValue(jinja_expression, span) => todo!(),
         Expression::ExprBlock(expression_block, span) => todo!(),
-        Expression::If(expression, expression1, expression2, span) => todo!(),
+        Expression::If(condition, r#if, r#else, _span) => {
+            // First, compile the condition. This will leave the end result of
+            // the condition on top of the stack.
+            compile_expression(condition, resolved_locals, resolved_globals, bytecode);
+
+            // Skip the `if { ... }` branch when condition is false. We'll patch
+            // this offset later when we know how many instructions to jump
+            // over, so we'll store a reference to this instruction.
+            bytecode.instructions.push(Instruction::JumpIfFalse(0));
+            let skip_if = bytecode.instructions.len() - 1;
+
+            // In case we execute the `if { ... }` branch, prepend a POP to
+            // discard the condition value, we don't need it anymore.
+            bytecode.instructions.push(Instruction::Pop);
+
+            // Compile the `if { ... }` branch.
+            compile_expression(r#if, resolved_locals, resolved_globals, bytecode);
+
+            // Now skip the potential `else { ... }` branch. We'll patch the
+            // jump later.
+            bytecode.instructions.push(Instruction::Jump(0));
+            let skip_else = bytecode.instructions.len() - 1;
+
+            // We now know where the `if { ... }` branch ends so we can patch
+            // the JUMP_IF_FALSE instruction above.
+            let offset = (bytecode.instructions.len() - skip_if) as isize;
+            bytecode.instructions[skip_if] = Instruction::JumpIfFalse(offset);
+
+            // This is either the start of the `else { ... }` branch or the
+            // start of whatever code we have after an `if { ... }` branch
+            // without an `else` statement. Either way, we still have to discard
+            // the condition value.
+            bytecode.instructions.push(Instruction::Pop);
+
+            // Compile the `else { ... }` branch if it exists.
+            if let Some(r#else) = r#else {
+                compile_expression(r#else, resolved_locals, resolved_globals, bytecode);
+            }
+
+            // Patch the skip else jump.
+            let offset = (bytecode.instructions.len() - skip_else) as isize;
+            bytecode.instructions[skip_else] = Instruction::Jump(offset);
+        }
         Expression::ForLoop {
             identifier,
             iterator,
@@ -174,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compile() -> anyhow::Result<()> {
+    fn call_function() -> anyhow::Result<()> {
         let ast = ast("
             fn two() -> int {
                 2
@@ -207,6 +256,37 @@ mod tests {
                 Instruction::LoadGlobal(0),
                 Instruction::Call(0),
                 Instruction::LoadVar(1),
+                Instruction::Return,
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn if_else_statement() -> anyhow::Result<()> {
+        let ast = ast("
+            fn main(b: bool) -> int {
+                if b { 1 } else { 2 }
+            }
+        ")?;
+
+        let (objects, globals) = compile(ast)?;
+
+        let Object::Function(main) = &objects[0] else {
+            return Err(anyhow::anyhow!("Main function not found"));
+        };
+
+        assert_eq!(
+            main.bytecode.instructions,
+            vec![
+                Instruction::LoadVar(1),
+                Instruction::JumpIfFalse(4),
+                Instruction::Pop,
+                Instruction::LoadConst(0),
+                Instruction::Jump(3),
+                Instruction::Pop,
+                Instruction::LoadConst(1),
                 Instruction::Return,
             ]
         );
