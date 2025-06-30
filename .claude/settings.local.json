@@ -16,9 +16,9 @@
       "Bash(node_modules/.bin/baml-cli:*)",
       "Bash(node:*)",
       "Bash(chmod:*)",
-      "Bash(/Users/seawatts/src/github.com/boundaryml/baml-update-playground-clean/typescript/apps/vscode-ext/node_modules/@baml/cli/bin/baml-cli --version)",
       "Bash(timeout:*)",
-      "Bash(gtimeout:*)"
+      "Bash(gtimeout:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }
