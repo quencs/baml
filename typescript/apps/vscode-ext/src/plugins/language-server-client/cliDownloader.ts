@@ -545,7 +545,24 @@ function _getBundledCliPath(context: ExtensionContext): string | null {
 
   console.log(`Trying to find bundled CLI for triple: ${targetTriple}`);
 
-  // 1. Check Development Override Path first
+  // 1. Check node_modules/.bin first (workspace development)
+  const nodeModulesBinPath = context.asAbsolutePath(
+    path.join('node_modules', '@baml', 'cli', 'bin', 'baml-cli'),
+  );
+  console.log('nodeModulesBinPath', nodeModulesBinPath);
+  if (fs.existsSync(nodeModulesBinPath)) {
+    console.log('Found CLI in node_modules/@baml/cli/bin:', nodeModulesBinPath);
+    if (_ensureExecutablePermissions(nodeModulesBinPath)) {
+      return nodeModulesBinPath;
+    }
+    console.error(
+      `CLI found in node_modules/@baml/cli/bin but failed to set permissions: ${nodeModulesBinPath}`,
+    );
+    // Don't proceed with this path if permissions fail
+    return null;
+  }
+
+  // 2. Check Development Override Path (legacy dist/baml-cli)
   const devServerPath = context.asAbsolutePath(
     path.join('dist', executableName),
   );
@@ -565,7 +582,7 @@ function _getBundledCliPath(context: ExtensionContext): string | null {
     return null;
   }
 
-  // 2. Check Standard Bundled Path if targetTriple is known
+  // 3. Check Standard Bundled Path if targetTriple is known
   if (targetTriple) {
     const primaryBundledPath = context.asAbsolutePath(
       path.join('dist', targetTriple, executableName),
@@ -583,7 +600,7 @@ function _getBundledCliPath(context: ExtensionContext): string | null {
       // Fall through to potentially check MUSL if Linux
     }
 
-    // 3. Linux MUSL Fallback (only if primary GNU path failed or permissions failed)
+    // 4. Linux MUSL Fallback (only if primary GNU path failed or permissions failed)
     if (platform === 'linux' && targetTriple.endsWith('-gnu')) {
       const muslTargetTriple = targetTriple.replace('-gnu', '-musl');
       const muslBundledPath = context.asAbsolutePath(

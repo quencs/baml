@@ -8,7 +8,17 @@
       "Bash(pnpm build:*)",
       "Bash(pushd:*)",
       "Bash(popd:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pnpm:*)",
+      "Bash(rm:*)",
+      "Bash(dist/baml-cli --version)",
+      "Bash(cargo:*)",
+      "Bash(node_modules/.bin/baml-cli:*)",
+      "Bash(node:*)",
+      "Bash(chmod:*)",
+      "Bash(/Users/seawatts/src/github.com/boundaryml/baml-update-playground-clean/typescript/apps/vscode-ext/node_modules/@baml/cli/bin/baml-cli --version)",
+      "Bash(timeout:*)",
+      "Bash(gtimeout:*)"
     ],
     "deny": []
   }

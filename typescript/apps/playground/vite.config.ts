@@ -18,7 +18,6 @@ export default defineConfig({
   ],
   // root: path.resolve(process.cwd(), './src'),
   server: {
-    port: 5173,
     strictPort: true, // Allow fallback to next available port
     host: true,
     cors: {

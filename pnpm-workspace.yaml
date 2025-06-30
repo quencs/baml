@@ -4,3 +4,4 @@ packages:
   - typescript/workspace-tools/*
   - engine/*
   - engine/baml-schema-wasm/*
+  - fern

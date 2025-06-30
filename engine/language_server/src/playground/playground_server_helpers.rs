@@ -22,7 +22,7 @@ use crate::{
 /// WARNING: this is a relative path, will easily break if file structure changes
 /// WARNING: works as a macro so any build script executes after this is evaluated
 static STATIC_DIR: Dir<'_> =
-    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/apps/web-panel/dist");
+    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/apps/playground/dist");
 
 /// Helper to send all projects/files to a websocket client
 pub async fn send_all_projects_to_client(

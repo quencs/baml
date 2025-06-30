@@ -374,7 +374,7 @@ export class WebviewPanelHost {
           localResourceRoots: [
             ...(vscode.workspace.workspaceFolders ?? []).map((f) => f.uri),
             Uri.joinPath(extensionUri, 'out'),
-            Uri.joinPath(extensionUri, 'web-panel/dist'),
+            Uri.joinPath(extensionUri, 'playground/dist'),
           ],
           retainContextWhenHidden: true,
           enableCommandUris: true,

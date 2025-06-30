@@ -94,8 +94,7 @@ jobs:
         with:
           cache: "pnpm"
           node-version: 20
-          cache-dependency-path: |
-            typescript/**/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       # This step extracts and copies ONLY the single downloaded binary for the current matrix target
       - name: Extract and copy binary for ${{ matrix.code-target }}
@@ -176,16 +175,10 @@ jobs:
           ls -l "$dest_path"
 
       - name: Install Dependencies
-        # Install deps in the context of the specific extension package
         run: pnpm install --frozen-lockfile
-        working-directory: typescript/apps/vscode-ext
 
-      - name: Build Typescript Project (Common Code & WASM)
-        # This might be redundant if it doesn't change per target,
-        # but safer to run it. Consider optimizing if slow.
-        # Run from root to build dependencies correctly.
-        run: pnpm run build
-        working-directory: typescript/
+      - name: Build all packages
+        run: pnpm build
 
       # For dev mode we generate a binary in this directory which we should clean out.
       - name: Remove debug CLI builds

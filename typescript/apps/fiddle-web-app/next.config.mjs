@@ -3,7 +3,7 @@ const nextConfig = {
   transpilePackages: [
     'jotai-devtools',
     '@baml/playground-common',
-    // '@gloo-ai/baml-schema-wasm-web',
+    '@gloo-ai/baml-schema-wasm-web',
     '@baml/common',
     '@baml/ui',
     '@baml/codemirror-lang-baml',
