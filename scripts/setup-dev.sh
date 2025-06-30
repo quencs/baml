@@ -40,24 +40,14 @@ else
     echo -e "${GREEN}✅ wasm-bindgen-cli already installed${NC}"
 fi
 
-# Add wasm32 target if not already added
-if ! rustup target list --installed | grep -q "wasm32-unknown-unknown"; then
-    echo -e "${YELLOW}🎯 Adding wasm32-unknown-unknown target...${NC}"
-    rustup target add wasm32-unknown-unknown
-    echo -e "${GREEN}✅ wasm32 target added${NC}"
+# Install wasm-pack if not already installed (needed for building Rust WASM packages)
+if ! command -v wasm-pack &> /dev/null; then
+    echo -e "${YELLOW}📦 Installing wasm-pack...${NC}"
+    cargo install wasm-pack
+    echo -e "${GREEN}✅ wasm-pack installed${NC}"
 else
-    echo -e "${GREEN}✅ wasm32 target already installed${NC}"
+    echo -e "${GREEN}✅ wasm-pack already installed${NC}"
 fi
-
-# Install Node dependencies
-echo -e "${YELLOW}📦 Installing Node dependencies...${NC}"
-pnpm install
-echo -e "${GREEN}✅ Node dependencies installed${NC}"
-
-# Build the CLI once to ensure it's available
-echo -e "${YELLOW}🔨 Building BAML CLI...${NC}"
-(cd engine/cli && cargo build)
-echo -e "${GREEN}✅ BAML CLI built${NC}"
 
 echo ""
 echo -e "${GREEN}🎉 Development environment setup complete!${NC}"

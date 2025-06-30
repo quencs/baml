@@ -1,10 +1,9 @@
 {
   "private": true,
   "scripts": {
-    "setup:dev": "bash ./scripts/setup-dev.sh",
     "clean": "git clean -xdf .turbo node_modules",
     "clean:ws": "turbo clean",
-    "build": "pnpm i && turbo run build",
+    "build": "turbo run build",
     "build:playground": "turbo build --force --filter=@baml/playground",
     "dev": "turbo run dev",
     "dev:all": "turbo run dev --parallel --filter=@baml/cli --filter=@baml/language-server --filter=baml-extension --filter=@baml/playground",
@@ -19,7 +18,8 @@
     "format": "biome check",
     "format:ci": "biome ci",
     "format:fix": "biome check --write",
-    "docker-build": "bash build-docker.sh"
+    "docker-build": "bash build-docker.sh",
+    "postinstall": "./scripts/setup-dev.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
