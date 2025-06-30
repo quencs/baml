@@ -7,9 +7,9 @@
     "./*": "./bindings/*.ts"
   },
   "scripts": {
-    "dev": "cargo build && tsc --watch",
-    "build": "cargo build && cargo test && tsc",
-    "release": "cargo build --release && cargo test && tsc",
+    "dev": "cargo test && tsc --watch",
+    "build": "cargo test && tsc",
+    "release": "cargo test && tsc",
     "typecheck": "cargo test && tsc --noEmit --emitDeclarationOnly false",
     "clean": "git clean -fdf .turbo node_modules target",
     "format": "cargo fmt",

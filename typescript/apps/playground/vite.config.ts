@@ -1,7 +1,6 @@
 import * as path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import topLevelAwait from 'vite-plugin-top-level-await';
 import wasm from 'vite-plugin-wasm';
 
 const isWatchMode = process.argv.includes('--watch');
@@ -14,7 +13,7 @@ export default defineConfig({
       },
     }),
     wasm(),
-    topLevelAwait(),
+    // topLevelAwait(),
   ],
   // root: path.resolve(process.cwd(), './src'),
   server: {
