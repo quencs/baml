@@ -17,7 +17,7 @@ class Item {
   price float
   quantity int @description("If not specified, assume 1")
 }
- 
+
 // This is our LLM function we can call in Python or Typescript
 // the receipt can be an image OR text here!
 function ExtractReceipt(receipt: image | string) -> Receipt {
@@ -171,7 +171,7 @@ client<llm> GPT4 {
     model gpt-4
     api_key env.OPENAI_API_KEY
   }
-} 
+}
 
 client<llm> GPT4o {
   provider openai
@@ -180,7 +180,7 @@ client<llm> GPT4o {
     model gpt-4o
     api_key env.OPENAI_API_KEY
   }
-} 
+}
 
 retry_policy CustomRetry {
   max_retries 3
@@ -257,7 +257,7 @@ class WeatherAPI {
 }
 
 function UseTool(user_message: string) -> WeatherAPI {
-  client GPT4o 
+  client GPT4o
   prompt #"
     Extract the info from this message
     ---
@@ -292,8 +292,8 @@ class SendEmail {
 }
 
 function ChooseOneTool(user_message: string) -> WeatherAPI2 | SendEmail {
-  client GPT4o  
-  prompt #" 
+  client GPT4o
+  prompt #"
     Choose the right schema that contains all the information in this message:
     ---
     {{ user_message }}
@@ -303,7 +303,7 @@ function ChooseOneTool(user_message: string) -> WeatherAPI2 | SendEmail {
     {{ ctx.output_format }}
 
     JSON:
-  "# 
+  "#
 }
 
 test TestOneFunc {
@@ -326,8 +326,8 @@ test TestOneFunc2 {
 
 
 function ChooseNTools(user_message: string) -> (WeatherAPI2 | SendEmail)[] {
-  client GPT4o  
-  prompt #" 
+  client GPT4o
+  prompt #"
     Choose the right schema(s) that contains all the information in this message:
     ---
     {{ user_message }}
@@ -337,7 +337,7 @@ function ChooseNTools(user_message: string) -> (WeatherAPI2 | SendEmail)[] {
     {{ ctx.output_format }}
 
     JSON:
-  "# 
+  "#
 }
 
 test TestNTools {
@@ -350,7 +350,7 @@ test TestNTools {
     "#
   }
 }
- 
+
 // BAML supports multi-modal inputs!
 
 // How to call this BAML function in python or Typescript: https://docs.boundaryml.com/docs/snippets/supported-types#image
@@ -361,7 +361,7 @@ function AudioInput(audioInput: audio) -> string {
     {{ _.role("user") }}
 
    Does this sound like a roar? Yes or no? One word no other characters.
-    
+
     {{ audioInput }}
   "#
 }
@@ -370,10 +370,10 @@ function AudioInput(audioInput: audio) -> string {
 test TestURLAudioInput{
   functions [AudioInput]
   args {
-    audioInput { 
+    audioInput {
       url https://actions.google.com/sounds/v1/emergency/beeper_emergency_call.ogg
     }
-  }  
+  }
 }
 
 
@@ -477,7 +477,7 @@ class OMessage {
 // This will be available as an enum in your Python and Typescript code.
 // inputs can be more complex than just a string
 function ClassifyMessageUsingOllama(message: OMessage) -> OCategory {
-  client Llama3 
+  client Llama3
   // client Mistral
   // client Gemma2
   // client Phi3

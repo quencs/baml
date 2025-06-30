@@ -1,22 +1,28 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use base64::engine::general_purpose;
+use base64::Engine as _;
 use futures_util::{SinkExt, StreamExt};
 use include_dir::{include_dir, Dir};
 use mime_guess::from_path;
+use serde_json::Value;
 use tokio::sync::RwLock;
 use warp::{http::Response, ws::Message, Filter};
 
 use crate::{
     playground::definitions::{FrontendMessage, PlaygroundState},
+    playground::playground_server_rpc::handle_rpc_websocket,
     session::Session,
 };
 
 /// Embed at compile time everything in dist/
-// WARNING: this is a relative path, will easily break if file structure changes
-// WARNING: works as a macro so any build script executes after this is evaluated
+/// NOTE: If this line is throwing an ERROR then the script in language_server/scripts/install.sh
+/// needs to be ran.
+/// WARNING: this is a relative path, will easily break if file structure changes
+/// WARNING: works as a macro so any build script executes after this is evaluated
 static STATIC_DIR: Dir<'_> =
-    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/vscode-ext/packages/web-panel/dist");
+    include_dir!("$CARGO_MANIFEST_DIR/../../typescript/apps/playground/dist");
 
 /// Helper to send all projects/files to a websocket client
 pub async fn send_all_projects_to_client(
@@ -61,6 +67,12 @@ pub async fn start_client_connection(
         state.tx.subscribe()
     };
 
+    // Mark client as connected
+    {
+        let mut st = state.write().await;
+        st.mark_client_connected();
+    }
+
     // Send initial project state using the helper
     send_all_projects_to_client(&mut ws_tx, &session).await;
 
@@ -70,9 +82,10 @@ pub async fn start_client_connection(
         let buffered_events = st.drain_event_buffer();
         for event in buffered_events.clone() {
             let _ = ws_tx.send(Message::text(event)).await;
+            // Add configurable delay between buffered events
+            tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
         }
         tracing::info!("Sent {} buffered events", buffered_events.len());
-        st.mark_first_client_connected();
     }
     // --- END BUFFERED EVENTS ---
 
@@ -86,11 +99,17 @@ pub async fn start_client_connection(
                         Ok(msg) => {
                             if msg.is_close() {
                                 tracing::info!("Client disconnected");
+                                // Mark client as disconnected
+                                let mut st = state.write().await;
+                                st.mark_client_disconnected();
                                 break;
                             }
                         }
                         Err(e) => {
                             tracing::error!("WebSocket error: {}", e);
+                            // Mark client as disconnected on error
+                            let mut st = state.write().await;
+                            st.mark_client_disconnected();
                             break;
                         }
                     }
@@ -99,10 +118,18 @@ pub async fn start_client_connection(
                 Ok(msg) = rx.recv() => {
                     if let Err(e) = ws_tx.send(Message::text(msg)).await {
                         tracing::error!("Failed to send broadcast message: {}", e);
+                        // Mark client as disconnected on send error
+                        let mut st = state.write().await;
+                        st.mark_client_disconnected();
                         break;
                     }
                 }
-                else => break,
+                else => {
+                    // Mark client as disconnected when loop ends
+                    let mut st = state.write().await;
+                    st.mark_client_disconnected();
+                    break;
+                }
             }
         }
     });
@@ -115,15 +142,32 @@ pub fn create_server_routes(
     session: Arc<Session>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     // WebSocket handler with error handling
+    let ws_state = state.clone();
+    let ws_session = session.clone();
     let ws_route = warp::path("ws")
         .and(warp::ws())
         .map(move |ws: warp::ws::Ws| {
-            let state = state.clone();
-            let session = session.clone();
+            let state = ws_state.clone();
+            let session = ws_session.clone();
             ws.on_upgrade(move |socket| async move {
                 start_client_connection(socket, state, session).await;
             })
         });
+
+    tracing::info!("Setting up RPC websocket...");
+    // RPC WebSocket handler
+    let rpc_session = session.clone();
+    let rpc_route = warp::path("rpc")
+        .and(warp::ws())
+        .map(move |ws: warp::ws::Ws| {
+            let session = rpc_session.clone();
+            ws.on_upgrade(move |socket| async move {
+                handle_rpc_websocket(socket, session).await;
+            })
+        });
+
+    // Static file serving for user files (e.g., images, data)
+    let static_files = warp::path("static").and(warp::fs::dir("."));
 
     // Static file serving needed to serve the frontend files
     let spa =
@@ -148,7 +192,11 @@ pub fn create_server_routes(
                 }
             });
 
-    ws_route.or(spa).with(warp::log("playground-server"))
+    ws_route
+        .or(rpc_route)
+        .or(static_files)
+        .or(spa)
+        .with(warp::log("playground-server"))
 }
 
 // Helper function to broadcast project updates with better error handling
