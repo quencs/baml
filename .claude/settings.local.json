@@ -18,7 +18,8 @@
       "Bash(chmod:*)",
       "Bash(timeout:*)",
       "Bash(gtimeout:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npx vitest run:*)"
     ],
     "deny": []
   }

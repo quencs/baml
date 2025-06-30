@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { type ExtensionContext, type OutputChannel } from 'vscode';
-import { resolveCliPath, downloadCli, type CliVersion } from '../index';
-import * as path from 'node:path';
 import * as os from 'node:os';
+import * as path from 'node:path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ExtensionContext, OutputChannel } from 'vscode';
+import { type CliVersion, downloadCli, resolveCliPath } from '../index';
 
 // Mock all external dependencies
 vi.mock('vscode');
@@ -18,11 +18,11 @@ describe('CLI Downloader Integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockContext = {
       asAbsolutePath: vi.fn((p: string) => path.join('/mock/extension', p)),
     } as any;
-    
+
     mockOutputChannel = {
       appendLine: vi.fn(),
     } as any;
@@ -56,7 +56,7 @@ describe('CLI Downloader Integration', () => {
         platform: 'darwin',
         version: '1.0.0',
       };
-      
+
       expect(cliVersion).toBeDefined();
     });
   });

@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm build:playground && cargo watch -x build",
-    "build:playground": "cd ../../typescript/apps/playground && pnpm build",
+    "dev": "cargo watch -x build",
     "clean": "cargo clean && git clean -fdf .turbo node_modules target",
     "typecheck": "cargo check",
     "build": "cargo build",

@@ -1,13 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import os from 'node:os';
 import path from 'node:path';
-import { type ExtensionContext } from 'vscode';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ExtensionContext } from 'vscode';
 import {
-  getInstallPath,
   cliBinaryArtifactName,
   downloadedCliPath,
-  checkIfDownloadedCliExists,
-  ensureInstallPathExists,
+  getInstallPath,
 } from '../paths';
 
 vi.mock('node:os');
@@ -34,9 +32,9 @@ describe('paths', () => {
         platform: 'darwin',
         version: '1.2.3',
       };
-      
+
       expect(cliBinaryArtifactName(cliVersion)).toBe(
-        'baml-cli-1.2.3-x86_64-apple-darwin'
+        'baml-cli-1.2.3-x86_64-apple-darwin',
       );
     });
 
@@ -46,9 +44,9 @@ describe('paths', () => {
         platform: 'win32',
         version: '2.0.0',
       };
-      
+
       expect(cliBinaryArtifactName(cliVersion)).toBe(
-        'baml-cli-2.0.0-x86_64-pc-windows-msvc'
+        'baml-cli-2.0.0-x86_64-pc-windows-msvc',
       );
     });
   });
@@ -57,33 +55,35 @@ describe('paths', () => {
     it('should generate correct path for macOS', () => {
       vi.mocked(os.homedir).mockReturnValue('/Users/test');
       vi.mocked(os.platform).mockReturnValue('darwin' as any);
-      
+
       const cliVersion = {
         architecture: 'arm64',
         platform: 'darwin',
         version: '1.0.0',
       };
-      
+
       const result = downloadedCliPath(mockContext, cliVersion);
       expect(result).toBe(
-        '/Users/test/.baml/baml-cli-1.0.0-aarch64-apple-darwin-baml-cli'
+        '/Users/test/.baml/baml-cli-1.0.0-aarch64-apple-darwin-baml-cli',
       );
     });
 
     it('should generate correct path for Windows', () => {
       vi.mocked(os.homedir).mockReturnValue('C:\\Users\\test');
       vi.mocked(os.platform).mockReturnValue('win32' as any);
-      
+
       const cliVersion = {
         architecture: 'x64',
         platform: 'win32',
         version: '1.0.0',
       };
-      
+
       const result = downloadedCliPath(mockContext, cliVersion);
-      expect(result).toBe(
-        'C:\\Users\\test\\.baml\\baml-cli-1.0.0-x86_64-pc-windows-msvc-baml-cli.exe'
-      );
+      // On all platforms, path.join uses forward slashes on Unix-like systems
+      // In the actual runtime on Windows, this would be correct, but in test environment
+      // running on Unix, path.join will use forward slashes
+      const expectedPath = path.join('C:\\Users\\test', '.baml', 'baml-cli-1.0.0-x86_64-pc-windows-msvc-baml-cli.exe');
+      expect(result).toBe(expectedPath);
     });
   });
 });
