@@ -202,25 +202,26 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
     Ok((objects, globals))
 }
 
+/// For tests.
+///
+/// We reuse this in the VM.
+pub fn ast(source: &str) -> anyhow::Result<ParserDatabase> {
+    let path = std::path::PathBuf::from("test.baml");
+    let source_file = internal_baml_diagnostics::SourceFile::from((path.clone(), source));
+
+    let validated_schema = internal_baml_core::validate(&path, vec![source_file]);
+
+    if validated_schema.diagnostics.has_errors() {
+        let errors = validated_schema.diagnostics.to_pretty_string();
+        anyhow::bail!("{}", errors);
+    }
+
+    Ok(validated_schema.db)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    pub fn ast(source: &str) -> anyhow::Result<ParserDatabase> {
-        let path = std::path::PathBuf::from("test.baml");
-        let source_file = internal_baml_diagnostics::SourceFile::from((path.clone(), source));
-
-        let validated_schema = internal_baml_core::validate(&path, vec![source_file]);
-
-        if validated_schema.diagnostics.has_errors() {
-            return Err(anyhow::anyhow!(
-                "{}",
-                validated_schema.diagnostics.to_pretty_string()
-            ));
-        }
-
-        Ok(validated_schema.db)
-    }
 
     #[test]
     fn call_function() -> anyhow::Result<()> {

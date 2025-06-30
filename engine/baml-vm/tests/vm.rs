@@ -3,24 +3,8 @@
 //! These tests need the compiler crate to go from source to bytecode, that's
 //! why they're not placed in the source vm module.
 
+use baml_compiler::ast;
 use baml_vm::{Frame, Value, Vm};
-use internal_baml_parser_database::ParserDatabase;
-
-pub fn ast(source: &str) -> anyhow::Result<ParserDatabase> {
-    let path = std::path::PathBuf::from("test.baml");
-    let source_file = internal_baml_diagnostics::SourceFile::from((path.clone(), source));
-
-    let validated_schema = internal_baml_core::validate(&path, vec![source_file]);
-
-    if validated_schema.diagnostics.has_errors() {
-        return Err(anyhow::anyhow!(
-            "{}",
-            validated_schema.diagnostics.to_pretty_string()
-        ));
-    }
-
-    Ok(validated_schema.db)
-}
 
 #[test]
 fn function_call_without_parameters() -> anyhow::Result<()> {
