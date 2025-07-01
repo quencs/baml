@@ -46,7 +46,23 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, runtime_api::BamlValue<'a>> for BamlV
             BamlValueWithMeta::Null(_) => baml_rpc::runtime_api::ValueContent::Null,
         };
 
-        baml_rpc::runtime_api::BamlValue { type_ref, value }
+        baml_rpc::runtime_api::BamlValue {
+            metadata: runtime_api::ValueMetadata {
+                type_index: match &type_ref {
+                    baml_rpc::TypeReferenceWithMetadata::Union { union_type, .. } => match value {
+                        baml_rpc::runtime_api::ValueContent::Null => runtime_api::TypeIndex::Null,
+                        _ => {
+                            baml_log::warn!("Union type index is not set! Please talk to vbv about how to fix this.");
+                            runtime_api::TypeIndex::Index(0)
+                        }
+                    },
+                    _ => runtime_api::TypeIndex::NotUnion,
+                },
+                type_ref,
+                check_results: None,
+            },
+            value,
+        }
     }
 }
 
@@ -60,7 +76,9 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType {
                 baml_types::TypeValue::Int => TypeReference::int(),
                 baml_types::TypeValue::Float => TypeReference::float(),
                 baml_types::TypeValue::Bool => TypeReference::bool(),
-                baml_types::TypeValue::Null => TypeReference::null(),
+                baml_types::TypeValue::Null => {
+                    TypeReference::union(vec![TypeReference::string()], true)
+                }
                 baml_types::TypeValue::Media(baml_media_type) => {
                     TypeReference::media(match baml_media_type {
                         baml_types::BamlMediaType::Image => MediaTypeDefinition::Image,
@@ -92,10 +110,11 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType {
             ),
             baml_types::FieldType::Union(field_types, _) => TypeReference::union(
                 field_types
-                    .iter_include_null()
+                    .iter_skip_null()
                     .into_iter()
                     .map(|t| t.to_rpc_event(lookup))
                     .collect(),
+                field_types.is_optional(),
             ),
             baml_types::FieldType::Tuple(field_types, _) => {
                 TypeReference::tuple(field_types.iter().map(|t| t.to_rpc_event(lookup)).collect())
