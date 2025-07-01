@@ -53,21 +53,34 @@ if [ "$SKIP_RUST" = false ]; then
         # Fix HOME directory issue in containerized environments (like Vercel)
         # where $HOME might not match the effective user's home directory
         ORIGINAL_HOME=$HOME
+        CARGO_HOME=""
         if [ "$HOME" != "$(eval echo ~$(whoami))" ]; then
             echo -e "${YELLOW}🔧 Detected containerized environment, adjusting HOME directory...${NC}"
-            export HOME=$(eval echo ~$(whoami))
+            ADJUSTED_HOME=$(eval echo ~$(whoami))
+            export HOME=$ADJUSTED_HOME
             echo -e "${YELLOW}   Changed HOME from $ORIGINAL_HOME to $HOME${NC}"
+            CARGO_HOME="$ADJUSTED_HOME/.cargo"
         fi
 
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.85.0
-        source $HOME/.cargo/env
+        
+        # Source cargo environment from the correct location
+        if [ -n "$CARGO_HOME" ]; then
+            source $CARGO_HOME/env
+        else
+            source $HOME/.cargo/env
+        fi
         
         # Ensure the default toolchain is properly set
         rustup default 1.85.0
 
-        # Restore original HOME if it was changed
+        # Restore original HOME if it was changed, but keep CARGO_HOME accessible
         if [ "$ORIGINAL_HOME" != "$HOME" ]; then
             export HOME=$ORIGINAL_HOME
+            # Ensure .cargo is accessible from the original HOME
+            if [ -n "$CARGO_HOME" ] && [ ! -d "$HOME/.cargo" ]; then
+                ln -sf "$CARGO_HOME" "$HOME/.cargo"
+            fi
             echo -e "${YELLOW}🔧 Restored HOME to $HOME${NC}"
         fi
 

@@ -7,7 +7,17 @@ export PATH="/vercel/.cargo/bin:$PATH"
 # Skip Rust installation in setup-dev.sh since we handled it above
 bash ../../../scripts/setup-dev.sh --skip-pnpm --skip-cargo-watch
 
-source $HOME/.cargo/env
+# Try to source cargo environment from multiple possible locations
+if [ -f "$HOME/.cargo/env" ]; then
+    source $HOME/.cargo/env
+elif [ -f "/vercel/.cargo/env" ]; then
+    source /vercel/.cargo/env
+elif [ -f "$(eval echo ~$(whoami))/.cargo/env" ]; then
+    source "$(eval echo ~$(whoami))/.cargo/env"
+fi
+
+# Ensure PATH includes cargo
+export PATH="$HOME/.cargo/bin:/vercel/.cargo/bin:$(eval echo ~$(whoami))/.cargo/bin:$PATH"
 
 # Ensure rustup has a default toolchain configured
 if ! rustup show active-toolchain &> /dev/null; then
