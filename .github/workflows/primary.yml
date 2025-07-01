@@ -153,7 +153,7 @@ jobs:
         - name: Install Node dependencies
           run: pnpm install --frozen-lockfile
         - name: Build WASM packages
-          run: pnpm turbo release--filter='@gloo-ai/baml-schema-wasm...'
+          run: pnpm turbo release --filter='@gloo-ai/baml-schema-wasm...'
   build:
     runs-on: ubuntu-latest
     steps:
