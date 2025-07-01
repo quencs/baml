@@ -50,12 +50,14 @@ impl<'g> Compiler<'g> {
     /// Compile AST function into VM function.
     pub fn compile(mut self, function: &ast::ExprFn) -> anyhow::Result<Function> {
         // Resolve parameters.
-        for param in &function.args.args {
+        for (param_name, _) in &function.args.args {
+            // Note the len() + 1 here. The first local is the function itself,
+            // arguments start at index 1.
             self.locals
-                .insert(param.0.to_string(), self.locals.len() + 1);
+                .insert(param_name.to_string(), self.locals.len() + 1);
         }
 
-        // Resolve rest of locals.
+        // Compile expressions and resolve rest of locals.
         for statement in function.body.stmts.iter() {
             self.compile_expression(&statement.body);
 
