@@ -192,6 +192,18 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
             arity: function.args().args.len(),
             bytecode,
             kind: FunctionKind::Exec,
+
+            local_var_names: {
+                let mut names = Vec::with_capacity(resolved_locals.len() + 1);
+                names.push(format!("<fn {}>", function.name()));
+                names.resize_with(names.capacity(), String::new);
+
+                for (name, index) in &resolved_locals {
+                    names[*index] = name.to_string();
+                }
+
+                names
+            },
         };
 
         // Add the function to the globals and objects pools.
