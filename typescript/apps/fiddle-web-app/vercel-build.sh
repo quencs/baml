@@ -2,12 +2,21 @@
 set -x
 set -e
 
-bash ../../../scripts/setup-dev.sh
+# Install Rust in a Vercel-friendly way
+if ! command -v cargo &> /dev/null; then
+    echo "Installing Rust for Vercel environment..."
+    # Fix HOME directory for Rust installer in Vercel
+    export HOME=/root
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    # Restore HOME for Vercel
+    export HOME=/vercel
+fi
 
-export PATH="/vercel/.cargo/bin:$PATH"
+export PATH="/root/.cargo/bin:$PATH"
+source /root/.cargo/env
 
-source $HOME/.cargo/env
-
+# Skip Rust installation in setup-dev.sh since we handled it above
+bash ../../../scripts/setup-dev.sh --skip-pnpm --skip-cargo-watch --skip-rust
 # clang --version
 #llvm-config --version
 # g++ --version
@@ -22,7 +31,7 @@ rustup target add wasm32-unknown-unknown
 
 cd ../../
 
-pnpm build:fiddle-web-app
+pnpm build:fiddle-web-app --force
 
 ls -l
 ls -l /vercel/output

@@ -3,6 +3,8 @@ packages:
   - typescript/packages/*
   - typescript/workspace-tools/*
   - integ-tests/react
+  - integ-tests/typescript
+  - integ-tests/typescript-esm
   - engine/*
   - engine/baml-schema-wasm/*
   - fern

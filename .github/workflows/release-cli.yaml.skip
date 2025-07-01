@@ -4,6 +4,9 @@ on:
   release:
     types: [published, unpublished, created, edited, prereleased]
 
+permissions:
+  contents: read
+
 jobs:
   build-cli:
     uses: ./.github/workflows/release/cli.reusable.yaml

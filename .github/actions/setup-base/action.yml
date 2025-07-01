@@ -81,6 +81,11 @@ runs:
         cache: pnpm
         cache-dependency-path: pnpm-lock.yaml
 
+    - if: ${{ inputs.setup-node == 'true' }}
+      name: Install turbo globally
+      run: pnpm install -g turbo
+      shell: bash
+
     - if: ${{ inputs.publish-npm == 'true' }}
       name: Setup NPM
       uses: pnpm/action-setup@v4

@@ -1,5 +1,5 @@
 {
-  "name": "baml-esm-repro",
+  "name": "@baml/integ-tests-typescript-esm",
   "version": "1.0.0",
   "type": "module",
   "scripts": {

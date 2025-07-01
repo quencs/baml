@@ -8,46 +8,118 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Parse command line arguments
+SKIP_PNPM=false
+SKIP_CARGO_WATCH=false
+SKIP_RUST=false
+
+for arg in "$@"; do
+    case $arg in
+        --skip-pnpm)
+            SKIP_PNPM=true
+            shift
+            ;;
+        --skip-cargo-watch)
+            SKIP_CARGO_WATCH=true
+            shift
+            ;;
+        --skip-rust)
+            SKIP_RUST=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo "Options:"
+            echo "  --skip-pnpm         Skip pnpm installation"
+            echo "  --skip-cargo-watch  Skip cargo-watch installation"
+            echo "  --skip-rust         Skip Rust/Cargo installation"
+            echo "  --help, -h          Show this help message"
+            exit 0
+            ;;
+        *)
+            # Unknown option
+            echo "Unknown option: $arg"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 # Check if cargo is installed
-if ! command -v cargo &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Rust/Cargo is not installed. Installing Rust...${NC}"
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    source $HOME/.cargo/env
-    echo -e "${GREEN}✅ Rust installed successfully${NC}"
+if [ "$SKIP_RUST" = false ]; then
+    if ! command -v cargo &> /dev/null; then
+        echo -e "${YELLOW}⚠️  Rust/Cargo is not installed. Installing Rust...${NC}"
+
+        # Fix HOME directory issue in containerized environments (like Vercel)
+        # where $HOME might not match the effective user's home directory
+        ORIGINAL_HOME=$HOME
+        if [ "$HOME" != "$(eval echo ~$(whoami))" ]; then
+            echo -e "${YELLOW}🔧 Detected containerized environment, adjusting HOME directory...${NC}"
+            export HOME=$(eval echo ~$(whoami))
+            echo -e "${YELLOW}   Changed HOME from $ORIGINAL_HOME to $HOME${NC}"
+        fi
+
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source $HOME/.cargo/env
+
+        # Restore original HOME if it was changed
+        if [ "$ORIGINAL_HOME" != "$HOME" ]; then
+            export HOME=$ORIGINAL_HOME
+            echo -e "${YELLOW}🔧 Restored HOME to $HOME${NC}"
+        fi
+
+        echo -e "${GREEN}✅ Rust installed successfully${NC}"
+    else
+        echo -e "${GREEN}✅ Rust/Cargo already installed${NC}"
+    fi
+else
+    echo -e "${YELLOW}⏭️  Skipping Rust installation${NC}"
 fi
 
 # Check if pnpm is installed
-if ! command -v pnpm &> /dev/null; then
-    echo -e "${YELLOW}⚠️  pnpm is not installed. Installing pnpm...${NC}"
-    npm install -g pnpm
-    echo -e "${GREEN}✅ pnpm installed successfully${NC}"
+if [ "$SKIP_PNPM" = false ]; then
+    if ! command -v pnpm &> /dev/null; then
+        echo -e "${YELLOW}⚠️  pnpm is not installed. Installing pnpm...${NC}"
+        npm install -g pnpm
+        echo -e "${GREEN}✅ pnpm installed successfully${NC}"
+    fi
+else
+    echo -e "${YELLOW}⏭️  Skipping pnpm installation${NC}"
 fi
 
 # Install cargo-watch if not already installed
-if ! command -v cargo-watch &> /dev/null; then
-    echo -e "${YELLOW}📦 Installing cargo-watch for Rust hot reloading...${NC}"
-    cargo install cargo-watch
-    echo -e "${GREEN}✅ cargo-watch installed${NC}"
+if [ "$SKIP_CARGO_WATCH" = false ]; then
+    if ! command -v cargo-watch &> /dev/null; then
+        echo -e "${YELLOW}📦 Installing cargo-watch for Rust hot reloading...${NC}"
+        cargo install cargo-watch
+        echo -e "${GREEN}✅ cargo-watch installed${NC}"
+    else
+        echo -e "${GREEN}✅ cargo-watch already installed${NC}"
+    fi
 else
-    echo -e "${GREEN}✅ cargo-watch already installed${NC}"
+    echo -e "${YELLOW}⏭️  Skipping cargo-watch installation${NC}"
 fi
 
 # Install wasm-bindgen-cli if not already installed (needed for WASM builds)
-if ! command -v wasm-bindgen &> /dev/null; then
-    echo -e "${YELLOW}📦 Installing wasm-bindgen-cli...${NC}"
-    cargo install wasm-bindgen-cli --version 0.2.92
-    echo -e "${GREEN}✅ wasm-bindgen-cli installed${NC}"
-else
-    echo -e "${GREEN}✅ wasm-bindgen-cli already installed${NC}"
-fi
+if [ "$SKIP_RUST" = false ]; then
+    if ! command -v wasm-bindgen &> /dev/null; then
+        echo -e "${YELLOW}📦 Installing wasm-bindgen-cli...${NC}"
+        cargo install wasm-bindgen-cli --version 0.2.92
+        echo -e "${GREEN}✅ wasm-bindgen-cli installed${NC}"
+    else
+        echo -e "${GREEN}✅ wasm-bindgen-cli already installed${NC}"
+    fi
 
-# Install wasm-pack if not already installed (needed for building Rust WASM packages)
-if ! command -v wasm-pack &> /dev/null; then
-    echo -e "${YELLOW}📦 Installing wasm-pack...${NC}"
-    cargo install wasm-pack
-    echo -e "${GREEN}✅ wasm-pack installed${NC}"
+    # Install wasm-pack if not already installed (needed for building Rust WASM packages)
+    if ! command -v wasm-pack &> /dev/null; then
+        echo -e "${YELLOW}📦 Installing wasm-pack...${NC}"
+        cargo install wasm-pack
+        echo -e "${GREEN}✅ wasm-pack installed${NC}"
+    else
+        echo -e "${GREEN}✅ wasm-pack already installed${NC}"
+    fi
 else
-    echo -e "${GREEN}✅ wasm-pack already installed${NC}"
+    echo -e "${YELLOW}⏭️  Skipping WASM tools installation (Rust installation was skipped)${NC}"
 fi
 
 echo ""

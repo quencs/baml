@@ -5,7 +5,6 @@
 
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
-@plugin "@githubocto/tailwind-vscode";
 
 @custom-variant dark (&:is(.dark *));
 

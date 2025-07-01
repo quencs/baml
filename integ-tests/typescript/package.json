@@ -1,5 +1,5 @@
 {
-  "name": "typescript",
+  "name": "@baml/integ-tests-typescript",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
