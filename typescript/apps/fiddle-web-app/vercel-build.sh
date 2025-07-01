@@ -2,8 +2,6 @@
 set -x
 set -e
 
-export PATH="/vercel/.cargo/bin:$PATH"
-
 # Skip Rust installation in setup-dev.sh since we handled it above
 bash ../../../scripts/setup-dev.sh --skip-pnpm --skip-cargo-watch
 
