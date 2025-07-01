@@ -10,16 +10,17 @@ NC='\033[0m' # No Color
 
 # Check if cargo is installed
 if ! command -v cargo &> /dev/null; then
-    echo "❌ Rust/Cargo is not installed. Please install Rust first:"
-    echo "   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-    exit 1
+    echo -e "${YELLOW}⚠️  Rust/Cargo is not installed. Installing Rust...${NC}"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source $HOME/.cargo/env
+    echo -e "${GREEN}✅ Rust installed successfully${NC}"
 fi
 
 # Check if pnpm is installed
 if ! command -v pnpm &> /dev/null; then
-    echo "❌ pnpm is not installed. Please install pnpm first:"
-    echo "   npm install -g pnpm"
-    exit 1
+    echo -e "${YELLOW}⚠️  pnpm is not installed. Installing pnpm...${NC}"
+    npm install -g pnpm
+    echo -e "${GREEN}✅ pnpm installed successfully${NC}"
 fi
 
 # Install cargo-watch if not already installed
