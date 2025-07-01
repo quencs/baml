@@ -5,6 +5,7 @@
     "clean:ws": "turbo clean",
     "build": "turbo run build",
     "build:playground": "turbo build --force --filter=@baml/playground",
+    "build:fiddle-web-app": "turbo build --force --filter=@baml/fiddle-web-app",
     "dev": "turbo run dev",
     "dev:all": "turbo run dev --parallel --filter=@baml/cli --filter=@baml/language-server --filter=baml-extension --filter=@baml/playground",
     "dev:vscode": "turbo run dev --filter=baml-extension",
