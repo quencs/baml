@@ -1,0 +1,34 @@
+name: Lint
+
+on:
+  workflow_call: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'true'
+          setup-rust: 'true'
+          setup-wasm-tools: 'true'
+          install-pnpm-deps: 'true'
+      
+      - name: Check TypeScript formatting
+        run: pnpm format:ci
+      
+      - name: Build playground
+        run: pnpm build:playground
+      
+      - name: Check Rust formatting
+        run: cargo fmt --check -- --config imports_granularity="Crate" --config group_imports="StdExternalCrate"
+        working-directory: engine
+      
+      - name: Check Rust linting
+        run: RUSTFLAGS="-A unused -D warnings" cargo clippy
+        working-directory: engine
+      
+      - name: Check Rust WASM linting
+        run: RUSTFLAGS="-A unused -D warnings" cargo clippy --target wasm32-unknown-unknown
+        working-directory: engine/baml-schema-wasm

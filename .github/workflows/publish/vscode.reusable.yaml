@@ -1,0 +1,67 @@
+name: Publish VSCode Extension
+
+on:
+  workflow_call:
+    inputs:
+      is_release_tag:
+        description: "Whether this is a release tag"
+        type: string
+        required: true
+      force_publish:
+        description: "Force publish to marketplaces"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  publish-to-open-vsx:
+    environment: release
+    runs-on: ubuntu-latest
+    if: ${{ (inputs.is_release_tag == 'true') || inputs.force_publish }}
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'true'
+          install-pnpm-deps: 'true'
+
+      - name: Download VSIX artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: baml-vscode-vsix-*
+          path: vsix-artifacts
+          merge-multiple: true
+
+      - name: List downloaded VSIXs
+        run: ls -l vsix-artifacts/
+
+      - name: Publish to Open VSX
+        run: npx ovsx publish --packagePath ./vsix-artifacts/*.vsix
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+  publish-to-vscode-marketplace:
+    environment: release
+    runs-on: ubuntu-latest
+    if: ${{ (inputs.is_release_tag == 'true') || inputs.force_publish }}
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'true'
+          install-pnpm-deps: 'true'
+
+      - name: Download VSIX artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: baml-vscode-vsix-*
+          path: vsix-artifacts
+          merge-multiple: true
+
+      - name: List downloaded VSIXs
+        run: ls -al vsix-artifacts/
+
+      - name: Publish to VSCode Marketplace
+        run: npx @vscode/vsce publish --packagePath ./vsix-artifacts/*.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCODE_PAT }}

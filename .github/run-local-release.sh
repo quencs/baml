@@ -291,19 +291,21 @@ build_typescript_release() {
         npm install -g @napi-rs/cli
     fi
 
-    # Build native bindings
+    # Build native bindings for current platform
     print_step "Building TypeScript native bindings"
-    pnpm build:release
+    pnpm build:napi-release
 
-    # Create npm package structure
-    print_step "Preparing npm package"
-    pnpm napi create-npm-dirs || npm run napi create-npm-dirs || true
+    # Build TypeScript files
+    print_step "Building TypeScript files"
+    cd ../..
+    pnpm --filter=@baml/language-client-typescript build:ts_build
 
     # Copy built artifacts
-    mkdir -p ../../artifacts/typescript
-    cp -r npm/* ../../artifacts/typescript/ 2>/dev/null || true
-
-    cd ../..
+    mkdir -p artifacts/typescript
+    cp engine/language_client_typescript/*.node artifacts/typescript/ 2>/dev/null || true
+    cp engine/language_client_typescript/*.js artifacts/typescript/ 2>/dev/null || true
+    cp engine/language_client_typescript/*.d.ts artifacts/typescript/ 2>/dev/null || true
+    cp engine/language_client_typescript/package.json artifacts/typescript/ 2>/dev/null || true
 
     print_success "TypeScript release built"
 }

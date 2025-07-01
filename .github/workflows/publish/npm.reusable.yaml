@@ -1,0 +1,33 @@
+name: Publish to NPM
+
+on:
+  workflow_call: {}
+
+jobs:
+  publish-to-npm:
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'true'
+          install-pnpm-deps: 'true'
+          publish-npm: 'true'
+
+      - name: Download bindings artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bindings-*
+          path: engine/language_client_typescript/artifacts
+
+      - name: Create npm directories
+        run: pnpm --filter=@baml/language-client-typescript napi create-npm-dirs
+
+      - name: Move artifacts
+        run: pnpm --filter=@baml/language-client-typescript artifacts
+
+      - name: Publish to NPM
+        run: |
+          cd engine/language_client_typescript
+          npm publish --access public

@@ -1,0 +1,38 @@
+name: Publish to RubyGems
+
+on:
+  workflow_call: {}
+
+jobs:
+  publish-to-rubygems:
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'false'
+          setup-rust: 'false'
+          setup-mise: 'true'
+          install-pnpm-deps: 'false'
+      
+      - name: Configure RubyGems credentials
+        uses: rubygems/configure-rubygems-credentials@main
+        with:
+          role-to-assume: rg_oidc_akr_p6x4xz53qtk948na3bgy
+      
+      - name: Download gem artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gem-*
+          path: engine/language_client_ruby/pkg/
+          merge-multiple: true
+      
+      - name: Publish gems
+        working-directory: engine/language_client_ruby
+        run: |
+          set -euxo pipefail
+          find pkg
+          for i in $(ls pkg/*.gem); do
+            gem push $i
+          done

@@ -1,0 +1,42 @@
+name: Publish to PyPI
+
+on:
+  workflow_call: {}
+
+jobs:
+  publish-to-pypi:
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'false'
+          setup-rust: 'false'
+          setup-python: 'true'
+          python-version: '3.8'
+          install-pnpm-deps: 'false'
+      
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+      
+      - name: Verify wheel count
+        run: |
+          set -euo pipefail
+          ls dist/
+          wheel_count=$(ls dist/*.whl 2>/dev/null | wc -l)
+          if [ "$wheel_count" -lt 8 ]; then
+            echo "Error: Expected at least 8 wheels, but found $wheel_count"
+            exit 1
+          fi
+          echo "Found $wheel_count wheels"
+      
+      - name: Publish package to PyPI
+        uses: PyO3/maturin-action@v1
+        with:
+          command: upload
+          args: dist/*

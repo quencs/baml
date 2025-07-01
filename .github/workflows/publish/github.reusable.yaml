@@ -1,0 +1,70 @@
+name: Publish to GitHub
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version"
+        type: string
+        required: true
+      is_release_tag:
+        description: "Whether this is a release tag"
+        type: string
+        required: true
+
+jobs:
+  publish-to-github:
+    environment: release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'false'
+          setup-rust: 'false'
+          install-pnpm-deps: 'false'
+      
+      - name: Download CLI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: baml-cli-*
+          path: cli-artifacts
+          merge-multiple: true
+      
+      - name: Download CFFI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: libbaml-cffi-*
+          path: cffi-artifacts
+          merge-multiple: true
+      
+      - name: List downloaded artifacts
+        run: |
+          echo "CLI artifacts:"
+          ls -R cli-artifacts/
+          echo "CFFI artifacts:"
+          ls -R cffi-artifacts/
+      
+      - name: Initialize changelog
+        run: touch CHANGELOG.txt
+      
+      - name: Populate changelog for release
+        run: |
+          awk '/^## \[/{if (p) exit; if ($2 == "[${{ inputs.version }}]") p=1} p' CHANGELOG.md | sed '1d' > CHANGELOG.txt
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ inputs.version }}
+          tag_name: ${{ inputs.version }}
+          body_path: CHANGELOG.txt
+          draft: ${{ inputs.is_release_tag == 'false' }}
+          prerelease: ${{ inputs.is_release_tag == 'false' }}
+          files: |
+            cli-artifacts/**/*
+            cffi-artifacts/**/*
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: false

@@ -1,0 +1,46 @@
+name: BAML Runtime
+
+on:
+  pull_request:
+    branches:
+      - canary
+  push:
+    paths:
+      - "engine/**"
+      - ".github/workflows/primary.yml"
+      - "typescript/**"
+    branches:
+      - canary
+      - greg/lsp
+  # need to run this periodically on the default branch to populate the build cache
+  schedule:
+    # daily at 2am PST
+    - cron: 0 10 * * *
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  repository-projects: read
+
+jobs:
+  lint:
+    uses: ./.github/workflows/ci/lint.reusable.yaml
+
+  test-node-generator:
+    uses: ./.github/workflows/ci/test-node-generator.reusable.yaml
+
+  build:
+    uses: ./.github/workflows/ci/build-root.reusable.yaml
+
+  test-integration:
+    uses: ./.github/workflows/ci/test-integration.reusable.yaml
+
+  build-cli:
+    uses: ./.github/workflows/ci/build-cli.reusable.yaml

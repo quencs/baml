@@ -1,0 +1,67 @@
+name: Test Node Generator
+
+on:
+  workflow_call: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-test-node-generator
+  cancel-in-progress: true
+
+jobs:
+  test_node_generator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup base environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'true'
+          setup-rust: 'true'
+          setup-go: 'true'
+          setup-mise: 'true'
+          install-pnpm-deps: 'true'
+      
+      - name: Build playground
+        run: pnpm build:playground
+      
+      - name: Build language client
+        run: pnpm --filter=@baml/language-client-typescript build:debug
+      
+      - name: Install Node dependencies for integ tests
+        run: pnpm install --frozen-lockfile
+        working-directory: integ-tests/typescript
+      
+      - name: Test Node Generator
+        run: |
+          pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
+        working-directory: integ-tests/typescript
+      
+      - name: Ensure No Changes
+        run: |
+          git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
+      
+      - name: Test Node Generator (1 of 3)
+        run: |
+          pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
+        working-directory: integ-tests/typescript
+      
+      - name: Ensure No Changes (1 of 3)
+        run: |
+          git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
+      
+      - name: Test Node Generator (2 of 3)
+        run: |
+          pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
+        working-directory: integ-tests/typescript
+      
+      - name: Ensure No Changes (2 of 3)
+        run: |
+          git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
+      
+      - name: Test Node Generator (3 of 3)
+        run: |
+          pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
+        working-directory: integ-tests/typescript
+      
+      - name: Ensure No Changes (3 of 3)
+        run: |
+          git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)

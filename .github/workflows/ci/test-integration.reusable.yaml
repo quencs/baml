@@ -1,0 +1,27 @@
+name: Integration Tests
+
+on:
+  workflow_call: {}
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'true'
+          setup-rust: 'true'
+          setup-go: 'true'
+          setup-wasm-tools: 'true'
+          setup-mise: 'true'
+          setup-uv: 'true'
+          install-pnpm-deps: 'true'
+      
+      - name: Build playground
+        run: pnpm build:playground
+      
+      - name: Run Python tests
+        run: |
+          cd integ-tests/python
+          ./run_tests.sh

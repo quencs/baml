@@ -1,0 +1,160 @@
+name: 'Base Setup'
+description: 'Common setup steps for Node.js, Rust, and WASM tools'
+
+inputs:
+  setup-node:
+    description: 'Setup Node.js and pnpm'
+    required: false
+    default: 'true'
+  node-version:
+    description: 'Node.js version'
+    required: false
+    default: '20'
+  setup-rust:
+    description: 'Setup Rust toolchain'
+    required: false
+    default: 'true'
+  setup-wasm-target:
+    description: 'Add wasm32-unknown-unknown target'
+    required: false
+    default: 'true'
+  setup-wasm-tools:
+    description: 'Install wasm-bindgen-cli and wasm-pack'
+    required: false
+    default: 'false'
+  setup-go:
+    description: 'Setup Go'
+    required: false
+    default: 'false'
+  go-version:
+    description: 'Go version'
+    required: false
+    default: '1.21.x'
+  setup-python:
+    description: 'Setup Python'
+    required: false
+    default: 'false'
+  python-version:
+    description: 'Python version'
+    required: false
+    default: '3.13'
+  setup-mise:
+    description: 'Setup mise'
+    required: false
+    default: 'false'
+  setup-uv:
+    description: 'Setup uv for Python'
+    required: false
+    default: 'false'
+  install-pnpm-deps:
+    description: 'Install pnpm dependencies'
+    required: false
+    default: 'true'
+  rust-cache:
+    description: 'Enable Rust cache'
+    required: false
+    default: 'true'
+  publish-npm:
+    description: 'Publish to NPM'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Node.js and pnpm setup
+    - if: ${{ inputs.setup-node == 'true' }}
+      name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9.12.0
+        run_install: false
+
+    - if: ${{ inputs.setup-node == 'true' }}
+      name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+
+    - if: ${{ inputs.publish-npm == 'true' }}
+      name: Setup NPM
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9.12.0
+        run_install: false
+        registry-url: "https://registry.npmjs.org"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    # Rust setup
+    - if: ${{ inputs.setup-rust == 'true' }}
+      name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+
+    - if: ${{ inputs.setup-rust == 'true' && inputs.setup-wasm-target == 'true' }}
+      name: Add WASM target
+      run: rustup target add wasm32-unknown-unknown
+      shell: bash
+
+    - if: ${{ inputs.setup-rust == 'true' && inputs.rust-cache == 'true' }}
+      name: Setup Rust cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: engine
+
+    # WASM tools
+    - if: ${{ inputs.setup-wasm-tools == 'true' }}
+      name: Install wasm-bindgen-cli
+      run: cargo install wasm-bindgen-cli --version 0.2.92
+      shell: bash
+
+    - if: ${{ inputs.setup-wasm-tools == 'true' }}
+      name: Install wasm-pack
+      run: cargo install wasm-pack
+      shell: bash
+
+    # Go setup
+    - if: ${{ inputs.setup-go == 'true' }}
+      name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - if: ${{ inputs.setup-go == 'true' }}
+      name: Install goimports
+      run: go install golang.org/x/tools/cmd/goimports@latest
+      shell: bash
+
+    # Python setup
+    - if: ${{ inputs.setup-python == 'true' }}
+      name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - if: ${{ inputs.setup-python == 'true' }}
+      name: Install ruff
+      run: pip install ruff
+      shell: bash
+
+    - if: ${{ inputs.setup-uv == 'true' }}
+      name: Setup uv
+      uses: astral-sh/setup-uv@v5
+
+    # Mise setup
+    - if: ${{ inputs.setup-mise == 'true' }}
+      name: Setup mise
+      uses: jdx/mise-action@v2
+
+    # Install pnpm dependencies
+    - if: ${{ inputs.install-pnpm-deps == 'true' && inputs.setup-node == 'true' }}
+      name: Install pnpm dependencies
+      run: pnpm install --frozen-lockfile
+      shell: bash

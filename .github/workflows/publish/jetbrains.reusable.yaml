@@ -1,0 +1,43 @@
+name: Publish JetBrains Plugin
+
+on:
+  workflow_call: {}
+
+jobs:
+  publish-to-jetbrains-marketplace:
+    environment: release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./jetbrains
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'false'
+          setup-rust: 'false'
+          install-pnpm-deps: 'false'
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 23
+      
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      
+      - name: Download extension artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: baml-jetbrains-zip-*
+          path: ./jetbrains/build/distributions/
+          merge-multiple: true
+      
+      - name: List downloaded extensions
+        run: ls -al ./jetbrains/build/distributions/
+      
+      - name: Publish to JetBrains Marketplace
+        run: ./gradlew publishPlugin
+        env:
+          INTELLIJ_PLATFORM_PUBLISH_TOKEN: ${{ secrets.SAM_INTELLIJ_PLATFORM_PUBLISH_TOKEN }}

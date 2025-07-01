@@ -1,0 +1,19 @@
+name: Build
+
+on:
+  workflow_call: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup-base
+        with:
+          setup-node: 'true'
+          setup-rust: 'true'
+          setup-wasm-tools: 'true'
+          install-pnpm-deps: 'true'
+
+      - name: Build
+        run: pnpm build
