@@ -23,7 +23,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(cp:*)",
       "Bash(mv:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

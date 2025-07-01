@@ -1,0 +1,136 @@
+name: BAML Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_publish_vscode:
+        description: "Force publish to VSCode Marketplace and Open VSX"
+        type: boolean
+        required: false
+        default: false
+  # need to run this periodically on the default branch to populate the build cache
+  schedule:
+    # daily at 2am PST
+    - cron: 0 10 * * *
+  push:
+    tags:
+      - "test-release/*.*"
+      - "*.*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_string: ${{ steps.set-version.outputs.version }}
+      is_release_tag: ${{ steps.set-version.outputs.is_release_tag }}
+    steps:
+      - name: Set Version Info
+        id: set-version
+        run: |
+          VERSION="0.1.0" # Default version
+          IS_RELEASE="false"
+          REF_NAME="${{ github.ref_name }}"
+          REF_TYPE="${{ github.ref_type }}"
+
+          if [[ "$REF_TYPE" == "branch" ]]; then
+            : # No-op, version remains default
+          elif [[ "$REF_TYPE" == "tag" ]]; then
+            VERSION=$(echo "$REF_NAME" | sed 's|/|-|g')
+            if [[ "$REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              IS_RELEASE="true"
+              VERSION="$REF_NAME"
+            fi
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_release_tag=$IS_RELEASE" >> $GITHUB_OUTPUT
+          echo "Determined version: $VERSION"
+          echo "Is release tag: $IS_RELEASE"
+
+  # Build Jobs
+  build-python:
+    uses: ./.github/workflows/release/python.reusable.yaml
+
+  build-ruby:
+    uses: ./.github/workflows/release/ruby.reusable.yaml
+
+  build-typescript:
+    uses: ./.github/workflows/release/typescript.reusable.yaml
+
+  build-cli:
+    needs: determine-version
+    uses: ./.github/workflows/release/cli.reusable.yaml
+    with:
+      version: ${{ needs.determine-version.outputs.version_string }}
+      package_for_release: true
+
+  build-vscode:
+    needs: [determine-version, build-cli]
+    uses: ./.github/workflows/release/vscode.reusable.yaml
+    with:
+      version: ${{ needs.determine-version.outputs.version_string }}
+      is_release_build: ${{ needs.determine-version.outputs.is_release_tag == 'true' }}
+
+  build-jetbrains:
+    uses: ./.github/workflows/release/jetbrains.reusable.yaml
+
+  # Integration Tests
+  integ-tests:
+    uses: ./.github/workflows/ci/test-integration.reusable.yaml
+
+  # Build Gate
+  all-builds:
+    name: Assert all builds passed
+    runs-on: ubuntu-latest
+    needs:
+      - determine-version
+      - build-python
+      - build-ruby
+      - build-typescript
+      - build-cli
+      - build-vscode
+      - build-jetbrains
+    steps:
+      - run: echo "All builds completed successfully"
+
+  # Publishing Jobs (only run on tags)
+  publish-pypi:
+    needs: [all-builds]
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    uses: ./.github/workflows/publish/pypi.reusable.yaml
+
+  publish-npm:
+    needs: [all-builds]
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    uses: ./.github/workflows/publish/npm.reusable.yaml
+
+  publish-rubygems:
+    needs: [all-builds]
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    uses: ./.github/workflows/publish/rubygems.reusable.yaml
+
+  publish-vscode:
+    needs: [determine-version, all-builds]
+    uses: ./.github/workflows/publish/vscode.reusable.yaml
+    with:
+      is_release_tag: ${{ needs.determine-version.outputs.is_release_tag }}
+      force_publish: ${{ inputs.force_publish_vscode }}
+
+  publish-jetbrains:
+    needs: [determine-version, all-builds]
+    uses: ./.github/workflows/publish/jetbrains.reusable.yaml
+
+  publish-github:
+    needs: [all-builds, determine-version]
+    uses: ./.github/workflows/publish/github.reusable.yaml
+    with:
+      version: ${{ needs.determine-version.outputs.version_string }}
+      is_release_tag: ${{ needs.determine-version.outputs.is_release_tag }}

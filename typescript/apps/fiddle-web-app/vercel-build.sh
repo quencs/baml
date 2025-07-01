@@ -2,17 +2,12 @@
 set -x
 set -e
 
-# Install Rust in a Vercel-friendly way
-if ! command -v cargo &> /dev/null; then
-    echo "Installing Rust for Vercel environment..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y --default-toolchain 1.85.0
-fi
-
 export PATH="/vercel/.cargo/bin:$PATH"
-source $HOME/.cargo/env
 
 # Skip Rust installation in setup-dev.sh since we handled it above
-bash ../../../scripts/setup-dev.sh --skip-pnpm --skip-cargo-watch --skip-rust
+bash ../../../scripts/setup-dev.sh --skip-pnpm --skip-cargo-watch
+
+source $HOME/.cargo/env
 # clang --version
 #llvm-config --version
 # g++ --version

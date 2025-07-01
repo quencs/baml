@@ -42,17 +42,19 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-          cache-dependency-path: |
-            typescript/**/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Install protoc-gen-go
+        run: go install github.com/golang/protobuf/protoc-gen-go@latest
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-      - name: Install Node
+      - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
-        working-directory: typescript
       - name: Check TS Lint
-        run: pnpm biome ci . --organize-imports-enabled=false
-        working-directory: typescript
+        run: pnpm format:ci
       - name: Build web-panel for language server
         run: bash ./scripts/build.sh
         working-directory: engine/language_server
@@ -75,13 +77,17 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.21.x"
+      - name: Install protoc-gen-go
+        run: go install github.com/golang/protobuf/protoc-gen-go@latest
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-          cache-dependency-path: |
-            engine/language_client_typescript/pnpm-lock.yaml
-            integ-tests/typescript/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
@@ -89,46 +95,41 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
-      - name: Install Node
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
-        working-directory: engine/language_client_typescript
       # This step is necessary to guarantee that the language server has a frontend to embed.
       # Is also included in build and integ-tests steps.
       - name: Build web-panel for language server
         run: bash ./scripts/build.sh
         working-directory: engine/language_server
       # ------------------------------------------------------------
-      - name: Build Node
-        run: pnpm build:debug
-        working-directory: engine/language_client_typescript
-      - name: Install Node
-        run: pnpm install --frozen-lockfile
-        working-directory: integ-tests/typescript
+      - name: Build WASM packages
+        run: pnpm turbo build --filter='@gloo-ai/baml-schema-wasm...'
+      - name: Build Node packages
+        run: pnpm turbo build --filter='@boundaryml/baml...'
       - name: Test Node Generator
         run: |
-          pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
-        working-directory: integ-tests/typescript
+          cd integ-tests/typescript && pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
       - name: Ensure No Changes
         run: |
           git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
       - name: Test Node Generator (1 of 3)
         run: |
-          pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
-        working-directory: integ-tests/typescript
+          cd integ-tests/typescript && pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
       - name: Ensure No Changes (1 of 3)
         run: |
           git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
       - name: Test Node Generator (2 of 3)
         run: |
-          pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
-        working-directory: integ-tests/typescript
+          cd integ-tests/typescript && pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
       - name: Ensure No Changes (2 of 3)
         run: |
           git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
       - name: Test Node Generator (3 of 3)
         run: |
-          pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
-        working-directory: integ-tests/typescript
+          cd integ-tests/typescript && pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
       - name: Ensure No Changes (3 of 3)
         run: |
           git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
@@ -137,6 +138,15 @@ jobs:
       steps:
         - uses: actions/checkout@v4
         - uses: jdx/mise-action@v2
+        - uses: pnpm/action-setup@v4
+          with:
+            version: 9.12.0
+            run_install: false
+        - uses: actions/setup-node@v4
+          with:
+            node-version: 20
+            cache: pnpm
+            cache-dependency-path: pnpm-lock.yaml
         - uses: dtolnay/rust-toolchain@stable
           with:
             toolchain: stable
@@ -144,9 +154,12 @@ jobs:
         - uses: Swatinem/rust-cache@v2
           with:
             workspaces: engine
-        - name: Build rust for wasm32
-          run: cargo build --target=wasm32-unknown-unknown
-          working-directory: engine/baml-schema-wasm
+        - name: Install wasm-pack
+          run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        - name: Install Node dependencies
+          run: pnpm install --frozen-lockfile
+        - name: Build WASM packages
+          run: pnpm turbo build --filter='@gloo-ai/baml-schema-wasm...'
   build:
     runs-on: ubuntu-latest
     steps:
@@ -162,6 +175,8 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: '1.24'
+      - name: Install protoc-gen-go
+        run: go install github.com/golang/protobuf/protoc-gen-go@latest
       - name: Install goimports
         run: go install golang.org/x/tools/cmd/goimports@latest
       - uses: actions/setup-python@v4
@@ -169,11 +184,15 @@ jobs:
           python-version: '3.13'
       - name: Install ruff
         run: pip install ruff
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24.2.0'
-      - name: Install prettier
-        run: npm install -g prettier
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       # Ruby is still a wip
       # - uses: ruby/setup-ruby@v1
       #   with:
@@ -188,9 +207,12 @@ jobs:
       #   env:
       #     SRB_YES: "1"
       #   run: bundle exec tapioca init
-      - name: Build web-panel for language server
-        run: bash ./scripts/build.sh
-        working-directory: engine/language_server
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build all packages
+        run: pnpm turbo build
       - name: Test Rust
         # skip doctests & integration tests (the latter require OPENAI_API_KEY and ANTHROPIC_API_KEY to be set)
         run: cargo test --lib
@@ -201,9 +223,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
       - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - uses: actions/setup-go@v5
         with:
           go-version: "1.21.x"
+      - name: Install protoc-gen-go
+        run: go install github.com/golang/protobuf/protoc-gen-go@latest
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
@@ -211,9 +244,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
-      - name: Build web-panel for language server
-        run: bash ./scripts/build.sh
-        working-directory: engine/language_server
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build all packages
+        run: pnpm turbo build
       - name: run python tests
         run: |
           cd integ-tests/python
