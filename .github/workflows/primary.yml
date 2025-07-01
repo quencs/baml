@@ -101,9 +101,9 @@ jobs:
       # Is also included in build and integ-tests steps.
       # ------------------------------------------------------------
       - name: Build WASM packages
-        run: pnpm turbo build --filter='@gloo-ai/baml-schema-wasm...'
+        run: pnpm turbo release --filter='@gloo-ai/baml-schema-wasm...'
       - name: Build Node packages
-        run: pnpm turbo build --filter='@boundaryml/baml...'
+        run: pnpm turbo release --filter='@boundaryml/baml...'
       - name: Test Node Generator
         run: |
           cd integ-tests/typescript && pnpm generate || (echo "::error:: merge canary and run codegen again" && exit 1)
@@ -154,7 +154,7 @@ jobs:
         - name: Install Node dependencies
           run: pnpm install --frozen-lockfile
         - name: Build WASM packages
-          run: pnpm turbo build --filter='@gloo-ai/baml-schema-wasm...'
+          run: pnpm turbo release--filter='@gloo-ai/baml-schema-wasm...'
   build:
     runs-on: ubuntu-latest
     steps:
@@ -207,7 +207,7 @@ jobs:
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
       - name: Build all packages
-        run: pnpm turbo build
+        run: pnpm turbo release --force
       - name: Test Rust
         # skip doctests & integration tests (the latter require OPENAI_API_KEY and ANTHROPIC_API_KEY to be set)
         run: cargo test --lib
@@ -244,7 +244,7 @@ jobs:
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
       - name: Build all packages
-        run: pnpm turbo build
+        run: pnpm turbo release
       - name: run python tests
         run: |
           cd integ-tests/python
