@@ -201,13 +201,13 @@ impl<'g> Compiler<'g> {
 
             // Branching.
             Expression::If(condition, r#if, r#else, _span) => {
-                // First, compile the condition. This will leave the end result of
-                // the condition on top of the stack.
+                // First, compile the condition. This will leave the end result
+                // of the condition on top of the stack.
                 self.compile_expression(condition);
 
-                // Skip the `if { ... }` branch when condition is false. We'll patch
-                // this offset later when we know how many instructions to jump
-                // over, so we'll store a reference to this instruction.
+                // Skip the `if { ... }` branch when condition is false. We'll
+                // patch this offset later when we know how many instructions to
+                // jump over, so we'll store a reference to this instruction.
                 let skip_if = self.emit(Instruction::JumpIfFalse(0));
 
                 // In case we execute the `if { ... }` branch, prepend a POP to
@@ -221,14 +221,14 @@ impl<'g> Compiler<'g> {
                 // jump later.
                 let skip_else = self.emit(Instruction::Jump(0));
 
-                // We now know where the `if { ... }` branch ends so we can patch
-                // the JUMP_IF_FALSE instruction above.
+                // We now know where the `if { ... }` branch ends so we can
+                // patch the JUMP_IF_FALSE instruction above.
                 self.patch_jump(skip_if);
 
                 // This is either the start of the `else { ... }` branch or the
                 // start of whatever code we have after an `if { ... }` branch
-                // without an `else` statement. Either way, we still have to discard
-                // the condition value.
+                // without an `else` statement. Either way, we still have to
+                // discard the condition value.
                 self.emit(Instruction::Pop);
 
                 // Compile the `else { ... }` branch if it exists.
