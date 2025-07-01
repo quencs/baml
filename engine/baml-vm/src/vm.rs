@@ -237,8 +237,6 @@ pub struct Frame {
 /// Other than that, pretty much everything is better in a stack VM, especially
 /// simplicity (we don't even need to figure out which registers to use and when
 /// to use them).
-///
-/// TODO: Explain frames and objects.
 pub struct Vm {
     /// Call stack.
     ///
@@ -319,21 +317,20 @@ impl Vm {
                 let stack = self
                     .stack
                     .iter()
-                    .map(|v| debug::display_value(v, &self.objects))
+                    .map(|v| crate::debug::display_value(v, &self.objects))
                     .collect::<Vec<_>>()
                     .join(", ");
 
                 eprintln!("[{stack}]");
 
-                match debug::display_instruction(
+                let (instruction, metadata) = crate::debug::display_instruction(
                     instruction_ptr,
                     function,
                     &self.objects,
                     &self.globals,
-                ) {
-                    Ok((instruction, metadata)) => eprintln!("{instruction} {metadata}"),
-                    Err(error) => eprintln!("{error}"),
-                }
+                );
+
+                eprintln!("{instruction} {metadata}");
             }
 
             match function.bytecode.instructions[instruction_ptr as usize] {
@@ -487,97 +484,6 @@ impl Vm {
                     }
                 }
             }
-        }
-    }
-}
-
-/// Debugging utilities & helpers.
-///
-/// NOTE: Functions here should not take an entire reference to the [`Vm`]
-/// because then it will be hard to circumvent the borrow checker in the
-/// [`Vm::exec`] loop (which is where we want to use this).
-///
-/// Instead, they take read only references to the parts of the [`Vm`] that they
-/// need, that way inside the loop we can "destructure" the [`Vm`] and let the
-/// compiler know exactly which properties we're using as mutable and which
-/// properties we're using as immutable.
-///
-/// Reference structs can be created if needed:
-///
-/// ```ignore
-/// struct InstructionContext<'vm> {
-///     instruction_ptr: isize,
-///     function: &'vm Function,
-///     objects: &'vm [Object],
-///     globals: &'vm [Value],
-/// }
-///
-/// ```
-mod debug {
-    use super::{Function, Instruction, Object, Value};
-
-    /// Context aware instruction display.
-    ///
-    /// Instructions themselves are kinda "bare". For example, `LOAD_VAR 1`
-    /// means load the local variable at index 1, but what's the name of that
-    /// variable in the user's code? Same with `LOAD_CONST 1`, what's the value
-    /// of the constant at index 1?
-    ///
-    /// This function returns a tuple `(instruction, metadata)` where `metadata`
-    /// is important debug information associated with the `instruction`. In
-    /// the case of `LOAD_VAR` it's the name of the variable, in the case of
-    /// `LOAD_CONST` it's the value of the constant, and so on.
-    ///
-    /// If there's no relevant metadata to attach to the instruction, then this
-    /// function returns an empty string.
-    pub fn display_instruction(
-        instruction_ptr: isize,
-        function: &Function,
-        objects: &[Object],
-        globals: &[Value],
-    ) -> Result<(String, String), String> {
-        let instruction = &function.bytecode.instructions[instruction_ptr as usize];
-
-        let metadata = match instruction {
-            // TODO: For this one we need to add some logic to check if it's
-            // a function or a global variable. In the case of variables, we
-            // have to store the names (potentially in the [`Vm`] struct) and
-            // print it.
-            Instruction::LoadGlobal(index) => {
-                format!("({})", display_value(&globals[*index], objects))
-            }
-
-            // TODO: Same as above.
-            Instruction::StoreGlobal(_) => todo!(),
-
-            Instruction::LoadConst(index) => format!(
-                "({})",
-                display_value(&function.bytecode.constants[*index], objects)
-            ),
-
-            Instruction::LoadVar(index) | Instruction::StoreVar(index) => {
-                format!("({})", function.local_var_names[*index])
-            }
-
-            Instruction::Jump(offset) | Instruction::JumpIfFalse(offset) => {
-                format!("(to {})", instruction_ptr + offset)
-            }
-
-            Instruction::Pop | Instruction::Call(_) | Instruction::Return => String::new(),
-        };
-
-        Ok((instruction.to_string(), metadata))
-    }
-
-    /// Context aware value display.
-    ///
-    /// The default display for objects is just a reference number. If we want
-    /// all the information, we have to dereference the object and call it's
-    /// `to_string` implementation.
-    pub fn display_value(value: &Value, objects: &[Object]) -> String {
-        match value {
-            Value::Object(index) => objects[*index].to_string(),
-            other => other.to_string(),
         }
     }
 }

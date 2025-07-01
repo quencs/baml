@@ -11,6 +11,7 @@
 //! The instructions that the VM runs are defined in [`Instruction`] enum.
 
 mod bytecode;
+pub mod debug;
 mod vm;
 
 pub use bytecode::{Bytecode, Instruction};

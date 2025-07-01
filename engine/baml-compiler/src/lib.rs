@@ -242,7 +242,7 @@ impl<'g> Compiler<'g> {
                 // simply skip the POP above, because the if branch has its
                 // own POP. We can simplify this stuff by creating a specialized
                 // POP_JUMP instruction like Python does, but for now I want
-                // the simples possible VM (very limited instructions).
+                // the simplest possible VM (very limited instructions).
                 self.patch_jump(skip_else);
             }
 
@@ -335,6 +335,11 @@ mod tests {
             vec![Instruction::LoadConst(0), Instruction::Return]
         );
 
+        eprintln!(
+            "{}",
+            baml_vm::debug::display_bytecode(two, &objects, &globals)
+        );
+
         assert_eq!(
             two.bytecode.instructions,
             vec![
@@ -361,6 +366,11 @@ mod tests {
         let Object::Function(main) = &objects[0] else {
             return Err(anyhow::anyhow!("Main function not found"));
         };
+
+        eprintln!(
+            "{}",
+            baml_vm::debug::display_bytecode(main, &objects, &globals)
+        );
 
         assert_eq!(
             main.bytecode.instructions,
