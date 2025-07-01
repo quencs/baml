@@ -238,7 +238,11 @@ impl<'g> Compiler<'g> {
                     self.compile_expression(r#else);
                 }
 
-                // Patch the skip else jump.
+                // Patch the skip else jump. If there's no else, this will
+                // simply skip the POP above, because the if branch has its
+                // own POP. We can simplify this stuff by creating a specialized
+                // POP_JUMP instruction like Python does, but for now I want
+                // the simples possible VM (very limited instructions).
                 self.patch_jump(skip_else);
             }
 
