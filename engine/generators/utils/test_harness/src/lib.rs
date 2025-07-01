@@ -94,7 +94,9 @@ impl<L: TestLanguageFeatures> TestStructure<L> {
                 no_version_check: true,
                 default_client_mode: baml_types::GeneratorDefaultClientMode::Async,
                 on_generate: match L::test_name() {
-                    "go" => vec!["gofmt -w . && goimports -w . && go build".to_string()],
+                    "go" => {
+                        vec!["gofmt -w . && goimports -w . && go mod tidy && go build".to_string()]
+                    }
                     "python" => vec!["ruff check --fix".to_string()],
                     "typescript" => vec!["npx biome check --write .".to_string()],
                     // "ruby" => vec!["bundle install".to_string(), "srb init".to_string(), "srb tc --typed=strict".to_string()],
@@ -159,7 +161,9 @@ impl<L: TestLanguageFeatures> TestStructure<L> {
             no_version_check: true,
             default_client_mode: baml_types::GeneratorDefaultClientMode::Async,
             on_generate: match L::test_name() {
-                "go" => vec!["gofmt -w . && goimports -w . && go build".to_string()],
+                "go" => {
+                    vec!["gofmt -w . && goimports -w . && go mod tidy && go build".to_string()]
+                }
                 "python" => vec!["ruff check --fix".to_string()],
                 "typescript" => vec!["npx biome check --write .".to_string()],
                 // "ruby" => vec!["bundle install".to_string(), "srb init".to_string(), "srb tc --typed=strict".to_string()],

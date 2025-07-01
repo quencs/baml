@@ -13,8 +13,8 @@ use internal_llm_client::ClientSpec;
 use crate::ir::{
     jinja_helpers::render_expression,
     repr::{self, ExprFunction, FunctionConfig, Node, TypeBuilderEntry, WithRepr},
-    Class, Client, Enum, EnumValue, ExprFunctionNode, Field, FieldType, Function, FunctionNode,
-    IRHelper, Impl, IntermediateRepr, RetryPolicy, TemplateString, TestCase, TypeAlias, Walker,
+    Class, Client, Enum, EnumValue, ExprFunctionNode, Field, Function, FunctionNode, IRHelper,
+    Impl, IntermediateRepr, RetryPolicy, TemplateString, TestCase, TypeAlias, TypeIR, Walker,
 };
 
 impl<'a> Walker<'a, &'a ExprFunctionNode> {
@@ -22,7 +22,7 @@ impl<'a> Walker<'a, &'a ExprFunctionNode> {
         self.elem().name.as_str()
     }
 
-    pub fn inputs(&self) -> &'a Vec<(String, baml_types::FieldType)> {
+    pub fn inputs(&self) -> &'a Vec<(String, baml_types::TypeIR)> {
         self.elem().inputs()
     }
 
@@ -127,11 +127,11 @@ impl<'a> Walker<'a, &'a FunctionNode> {
         &self.item.elem
     }
 
-    pub fn output(&self) -> &'a baml_types::FieldType {
+    pub fn output(&self) -> &'a baml_types::TypeIR {
         self.elem().output()
     }
 
-    pub fn inputs(&self) -> &'a Vec<(String, baml_types::FieldType)> {
+    pub fn inputs(&self) -> &'a Vec<(String, baml_types::TypeIR)> {
         self.elem().inputs()
     }
 
@@ -290,7 +290,7 @@ impl<'a> Walker<'a, (&'a FunctionNode, &'a TestCase)> {
     }
 
     // TODO: #1343 Temporary solution until we implement scoping in the AST.
-    pub fn type_builder_recursive_aliases(&self) -> &[IndexMap<String, FieldType>] {
+    pub fn type_builder_recursive_aliases(&self) -> &[IndexMap<String, TypeIR>] {
         &self.item.1.elem.type_builder.recursive_aliases
     }
 
@@ -351,7 +351,7 @@ impl<'a> Walker<'a, &'a Class> {
         self.item.attributes.span.as_ref()
     }
 
-    pub fn inputs(&self) -> &'a Vec<(String, baml_types::FieldType)> {
+    pub fn inputs(&self) -> &'a Vec<(String, baml_types::TypeIR)> {
         self.elem().inputs()
     }
 }
@@ -445,7 +445,7 @@ impl<'a> Walker<'a, &'a Field> {
         &self.elem().name
     }
 
-    pub fn r#type(&'a self) -> &'a baml_types::FieldType {
+    pub fn r#type(&'a self) -> &'a baml_types::TypeIR {
         &self.elem().r#type.elem
     }
 

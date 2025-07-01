@@ -178,7 +178,9 @@ impl aws_smithy_runtime_api::client::interceptors::Intercept for CollectorInterc
             headers,
             HTTPBody::new(request.body().bytes().unwrap_or_default().to_vec()),
         );
-        let event = TraceEvent::new_raw_llm_request(self.call_stack.clone(), Arc::new(request));
+        let call_stack = self.call_stack.clone();
+        let request = Arc::new(request);
+        let event = TraceEvent::new_raw_llm_request(call_stack, request);
         BAML_TRACER.lock().unwrap().put(Arc::new(event));
 
         Ok(())

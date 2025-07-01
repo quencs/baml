@@ -17,7 +17,7 @@ use baml_rpc::{
 };
 use baml_types::{
     tracing::events::{TraceData, TraceEvent},
-    BamlValueWithMeta, FieldType, HasFieldType,
+    BamlValueWithMeta, HasType, TypeIR,
 };
 use futures::StreamExt;
 use http::{HeaderMap, HeaderName, HeaderValue};

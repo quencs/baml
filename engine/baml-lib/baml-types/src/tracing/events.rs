@@ -5,13 +5,13 @@ use baml_ids::{FunctionCallId, FunctionEventId, HttpRequestId};
 use serde::{Deserialize, Serialize};
 
 pub use super::errors::BamlError;
-use crate::{BamlMap, BamlMedia, BamlValueWithMeta, HasFieldType};
+use crate::{type_meta, BamlMap, BamlMedia, BamlValueWithMeta, HasType};
 
 pub type TraceTags = serde_json::Map<String, serde_json::Value>;
 
 // THESE ARE NOT CLONEABLE!!
 #[derive(Debug)]
-pub struct TraceEvent<'a, T: HasFieldType> {
+pub struct TraceEvent<'a, T: HasType<type_meta::NonStreaming>> {
     /*
      * (call_id, function_event_id) is a unique identifier for a log event
      * The query (call_id, *) gets all logs for a function call
@@ -31,7 +31,7 @@ pub struct TraceEvent<'a, T: HasFieldType> {
     pub timestamp: web_time::SystemTime,
 }
 
-impl<'a, T: HasFieldType> TraceEvent<'a, T> {
+impl<'a, T: HasType<type_meta::NonStreaming>> TraceEvent<'a, T> {
     fn from_existing_call(
         call_stack: Vec<FunctionCallId>,
         content: TraceData<'a, T>,
@@ -121,7 +121,7 @@ impl<'a, T: HasFieldType> TraceEvent<'a, T> {
 
 // DO NOT CLONE!
 #[derive(Debug)]
-pub enum TraceData<'a, T: HasFieldType> {
+pub enum TraceData<'a, T: HasType<type_meta::NonStreaming>> {
     // All functions, including non-LLM ones
     // All start events
     FunctionStart(FunctionStart<T>),
@@ -147,7 +147,7 @@ pub enum TraceData<'a, T: HasFieldType> {
     // In the future, we can send more metadata, like parsing information.
 }
 
-impl<T: HasFieldType> TraceData<'_, T> {
+impl<T: HasType<type_meta::NonStreaming>> TraceData<'_, T> {
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::FunctionStart(_) => "FunctionStart",
@@ -179,7 +179,7 @@ pub enum FunctionType {
 }
 
 #[derive(Debug)]
-pub struct FunctionStart<T: HasFieldType> {
+pub struct FunctionStart<T: HasType<type_meta::NonStreaming>> {
     pub name: String,
     pub function_type: FunctionType,
     pub is_stream: bool,
@@ -188,7 +188,7 @@ pub struct FunctionStart<T: HasFieldType> {
 }
 
 #[derive(Debug)]
-pub enum FunctionEnd<'a, T: HasFieldType> {
+pub enum FunctionEnd<'a, T: HasType<type_meta::NonStreaming>> {
     Success(BamlValueWithMeta<T>),
     Error(BamlError<'a>),
 }

@@ -2,7 +2,7 @@ use baml_types::{Constraint, ConstraintLevel, JinjaExpression};
 
 use super::{coercer::ParsingError, types::BamlValueWithFlags};
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum Flag {
     // SingleFromMultiple,
     ObjectFromMarkdown(i32),
@@ -199,7 +199,7 @@ impl std::fmt::Display for Flag {
             Flag::StrMatchOneFromMany(values) => {
                 write!(f, "Enum one from many: ")?;
                 for (value, count) in values {
-                    writeln!(f, "Item {value}: {count}")?;
+                    writeln!(f, "Item {value}: {count:?}")?;
                 }
             }
             Flag::DefaultButHadUnparseableValue(value) => {

@@ -1,23 +1,23 @@
 enum TestEnum {
-  A @alias("k1") @description(#"
+  Angry @alias("k1") @description(#"
     User is angry
   "#)
-  B @alias("k22") @description(#"
+  Happy @alias("k2") @description(#"
     User is happy
   "#)
   // tests whether k1 doesnt incorrectly get matched with k11
-  C @alias("k11") @description(#"
+  Sad @alias("k3") @description(#"
     User is sad
   "#)
-  D @alias("k44") @description(
+  Confused @description(
     User is confused
   )
-  E @description(
+  Excited @alias("k5") @description(
     User is excited
   )
-  F @alias("k5") // only alias
+  Exclamation @alias("k6") // only alias
   
-  G @alias("k6") @description(#"
+  Bored @alias("k7") @description(#"
     User is bored
     With a long description
   "#)
@@ -26,7 +26,7 @@ enum TestEnum {
 }
 
 function FnTestAliasedEnumOutput(input: string) -> TestEnum {
-  client "openai/gpt-4o"
+  client "ollama/phi4:latest"
   prompt #"
     Classify the user input into the following category
       
@@ -41,7 +41,7 @@ function FnTestAliasedEnumOutput(input: string) -> TestEnum {
 }
 
 function ConsumeTestEnum(input: TestEnum) -> TestEnum {
-  client "openai/gpt-4o"
+  client "ollama/phi4:latest"
   prompt #"
     Return back to me verbatim:
     

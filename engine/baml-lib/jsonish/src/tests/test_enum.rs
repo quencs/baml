@@ -22,7 +22,7 @@ test_deserializer!(
     test_enum,
     ENUM_FILE,
     r#"TWO"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -30,7 +30,7 @@ test_deserializer!(
     case_insensitive,
     ENUM_FILE,
     r#"two"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -38,7 +38,7 @@ test_deserializer!(
     with_quotes,
     ENUM_FILE,
     r#""TWO""#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -46,7 +46,7 @@ test_deserializer!(
     from_enum_list_single,
     ENUM_FILE,
     r#"["TWO"]"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -54,7 +54,7 @@ test_deserializer!(
     from_enum_list_multi,
     ENUM_FILE,
     r#"["TWO", "THREE"]"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -62,7 +62,7 @@ test_deserializer!(
     from_string_with_extra_text_after_1,
     ENUM_FILE,
     r#""ONE: The description of k1""#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "ONE"
 );
 
@@ -70,7 +70,7 @@ test_deserializer!(
     from_string_and_case_mismatch,
     ENUM_FILE,
     "The answer is One",
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "ONE"
 );
 
@@ -78,7 +78,7 @@ test_deserializer!(
     from_string_and_case_mismatch_wrapped,
     ENUM_FILE,
     "**one** is the answer",
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "ONE"
 );
 
@@ -86,7 +86,7 @@ test_deserializer!(
     from_string_and_case_mismatch_upper,
     PASCAL_CASE_ENUM_FILE,
     "**ONE** is the answer",
-    FieldType::r#enum("PascalCaseCategory"),
+    TypeIR::r#enum("PascalCaseCategory"),
     "One"
 );
 
@@ -94,7 +94,7 @@ test_deserializer!(
     from_string_with_extra_text_after_2,
     ENUM_FILE,
     r#""ONE - The description of an enum value""#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "ONE"
 );
 
@@ -102,7 +102,7 @@ test_deserializer!(
     case_sensitive_non_ambiguous_match,
     ENUM_FILE,
     r#"TWO" is one of the correct answers."#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -110,28 +110,28 @@ test_failing_deserializer!(
     case_insensitive_ambiguous_match,
     ENUM_FILE,
     r#"Two" is one of the correct answers."#,
-    FieldType::r#enum("Category")
+    TypeIR::r#enum("Category")
 );
 
 test_failing_deserializer!(
     from_string_with_extra_text_after_3,
     ENUM_FILE,
     r#""ONE - is the answer, not TWO""#,
-    FieldType::r#enum("Category")
+    TypeIR::r#enum("Category")
 );
 
 test_failing_deserializer!(
     from_string_with_extra_text_after_4,
     ENUM_FILE,
     r#""ONE. is the answer, not TWO""#,
-    FieldType::r#enum("Category")
+    TypeIR::r#enum("Category")
 );
 
 test_failing_deserializer!(
     from_string_with_extra_text_after_5,
     ENUM_FILE,
     r#""ONE: is the answer, not TWO""#,
-    FieldType::r#enum("Category")
+    TypeIR::r#enum("Category")
 );
 
 const ENUM_FILE_WITH_DESCRIPTIONS: &str = r#"
@@ -147,7 +147,7 @@ test_deserializer!(
     aliases_1,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k1"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "ONE"
 );
 
@@ -155,7 +155,7 @@ test_deserializer!(
     aliases_2,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k-2-3.1_1"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -163,7 +163,7 @@ test_deserializer!(
     aliases_3,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"NUMBER THREE"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "THREE"
 );
 
@@ -171,7 +171,7 @@ test_deserializer!(
     no_punctuation,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"number three"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "THREE"
 );
 
@@ -179,7 +179,7 @@ test_deserializer!(
     no_punctuation_2,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k-2-3 1_1"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -187,7 +187,7 @@ test_deserializer!(
     descriptions,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k1: The description of enum value une"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "ONE"
 );
 
@@ -195,7 +195,7 @@ test_deserializer!(
     descriptions_whitespace,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k-2-3.1_1 The description of enum value deux"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -203,7 +203,7 @@ test_deserializer!(
     descriptions_period,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k-2-3.1_1. The description of enum value deux"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -211,7 +211,7 @@ test_deserializer!(
     alias_with_text,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"I would think k-2-3.1_1 is the best"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -219,7 +219,7 @@ test_deserializer!(
     multi_aliases,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k1 is the best! k-2-3.1_1 is bad. k1!"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "ONE"
 );
 
@@ -227,7 +227,7 @@ test_deserializer!(
     multi_aliases_1,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k1 is ok! k-2-3.1_1 is better. I would advise k-2-3.1_1!"#,
-    FieldType::r#enum("Category"),
+    TypeIR::r#enum("Category"),
     "TWO"
 );
 
@@ -236,14 +236,14 @@ test_failing_deserializer!(
     multi_aliases_2,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"k1 is the best! k-2-3.1_1 is bad. NUMBER_THREE!"#,
-    FieldType::r#enum("Category")
+    TypeIR::r#enum("Category")
 );
 
 test_deserializer!(
     list_of_enums,
     ENUM_FILE_WITH_DESCRIPTIONS,
     r#"["k1", "k-2-3.1_1"]"#,
-    FieldType::list(FieldType::r#enum("Category")),
+    TypeIR::list(TypeIR::r#enum("Category")),
     ["ONE", "TWO"]
 );
 
@@ -255,7 +255,7 @@ test_deserializer!(
 [k1, "k-2-3.1_1", "NUMBER THREE"]
 ```
 "#,
-    FieldType::list(FieldType::r#enum("Category")),
+    TypeIR::list(TypeIR::r#enum("Category")),
     ["ONE", "TWO", "THREE"]
 );
 
@@ -280,7 +280,7 @@ null
 
 This indicates that there is no relevant tax return form type present on the page.
     "#,
-    FieldType::r#enum("TaxReturnFormType").as_optional(),
+    TypeIR::r#enum("TaxReturnFormType").as_optional(),
     null
 );
 
@@ -293,7 +293,7 @@ test_failing_deserializer!(
         }
     "#,
     "The answer is not car or car-2!",
-    FieldType::r#enum("Car")
+    TypeIR::r#enum("Car")
 );
 
 test_deserializer!(
@@ -310,6 +310,23 @@ offers and urgency ($^{$_{Ω}$rel}$), which are common traits of spam messages. 
 
 - **SPAM**
     "#,
-    FieldType::r#enum("MessageType"),
+    TypeIR::r#enum("MessageType"),
+    "SPAM"
+);
+
+test_deserializer!(
+    test_enum_from_string,
+    r#"
+enum MessageType {
+  SPAM @alias("k5")
+  NOT_SPAM @alias("k6")
+}
+    "#,
+    " `k5`\n\nThe category \"k5: User is excited\" is designed to identify and classify user inputs that express strong positive emotions, enthusiasm, or anticipation. This classification applies when the language used by the user conveys an eagerness or thrill about something they are experiencing or expecting.\n\n### Characteristics of Excitement\n- **Emotional Expressions:** The use of exclamation marks, emphatic words like \"amazing,\" \"incredible,\" or \"fantastic.\"\n- **Positive Language:** Use of positive adjectives and adverbs such as \"can't wait,\" \"thrilled,\" \"excited,\" or \"elated.\"\n- **Anticipation:** Statements that show looking forward to an event, result, or item.\n  \n### Examples\n- *\"I can’t wait for the concert tonight! It's going to be amazing!\"*\n- *\"This new game release has me super excited. I've been waiting months for this!\"*\n\n### Long Description:\nWhen a user demonstrates excitement in their communication, it generally reflects an emotional high, eagerness, or intense positivity regarding whatever they are discussing. This could pertain to events like attending a sports game or concert, receiving positive news or achievements, encountering something novel and stimulating (like a new gadget or experience), or anticipating something eagerly awaited.\n\nThe user’s input might include dynamic language that conveys an elevated state of anticipation or satisfaction with an imminent or forthcoming occurrence. Often associated with increased energy levels in the text itself—through phrases like \"so excited!\" or actions (\"counting down until\") — this category taps into the positive psychology aspects, depicting a scenario where the user feels joyous eagerness and anticipatory pleasure.\n\nUnderstanding excitement is crucial because it can drive engagement, motivation, and personal enthusiasm which might influence decision-making and behavior. Recognizing exciting expressions helps in tailoring responses or actions that resonate with the user's emotional state, maintaining an enthusiastic interaction, and potentially amplifying positive outcomes.",
+    {
+        let mut res = TypeIR::r#enum("MessageType");
+        res.meta_mut().streaming_behavior.done = true;
+        res
+    },
     "SPAM"
 );

@@ -1,4 +1,5 @@
-pub type Base = base::TypeMeta;
+pub type IR = base::TypeMeta;
+pub type NonStreaming = non_streaming::TypeMeta;
 pub type Streaming = stream::TypeMetaStreaming;
 
 pub mod base {
@@ -36,6 +37,15 @@ pub mod base {
                 state: self.state || other.state,
             }
         }
+    }
+}
+
+pub mod non_streaming {
+    use crate::Constraint;
+
+    #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
+    pub struct TypeMeta {
+        pub constraints: Vec<Constraint>,
     }
 }
 

@@ -11,11 +11,22 @@ pub fn ir_function_to_ts(function: &FunctionNode, pkg: &CurrentRenderPackage) ->
             .elem
             .inputs()
             .iter()
-            .map(|(name, field_type)| (name.clone(), type_to_ts(field_type, pkg.lookup())))
+            .map(|(name, field_type)| {
+                (
+                    name.clone(),
+                    type_to_ts(
+                        &field_type.to_non_streaming_type(pkg.lookup()),
+                        pkg.lookup(),
+                    ),
+                )
+            })
             .collect(),
-        return_type: type_to_ts(function.elem.output(), pkg.lookup()),
+        return_type: type_to_ts(
+            &function.elem.output().to_non_streaming_type(pkg.lookup()),
+            pkg.lookup(),
+        ),
         stream_return_type: stream_type_to_ts(
-            &function.elem.output().partialize(pkg.lookup()),
+            &function.elem.output().to_streaming_type(pkg.lookup()),
             pkg.lookup(),
         ),
     }

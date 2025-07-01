@@ -15,10 +15,9 @@ import typing_extensions
 from enum import Enum
 
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
-import baml_py
 
 CheckT = typing_extensions.TypeVar('CheckT')
 CheckName = typing_extensions.TypeVar('CheckName', bound=str)
@@ -41,13 +40,13 @@ def all_succeeded(checks: typing.Dict[CheckName, Check]) -> bool:
 # #########################################################################
 
 class TestEnum(str, Enum):
-    A = "A"
-    B = "B"
-    C = "C"
-    D = "D"
-    E = "E"
-    F = "F"
-    G = "G"
+    Angry = "Angry"
+    Happy = "Happy"
+    Sad = "Sad"
+    Confused = "Confused"
+    Excited = "Excited"
+    Exclamation = "Exclamation"
+    Bored = "Bored"
 
 # #########################################################################
 # Generated classes (0)

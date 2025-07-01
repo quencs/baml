@@ -1,11 +1,13 @@
 use std::borrow::Cow;
 
 use baml_rpc::{runtime_api, NarrowingType};
-use baml_types::{BamlValueWithMeta, Constraint, HasFieldType};
+use baml_types::{ir_type::TypeGeneric, type_meta, BamlValueWithMeta, Constraint, HasType};
 
 use super::{IntoRpcEvent, TypeLookup};
 
-impl<'a, T: HasFieldType> IntoRpcEvent<'a, runtime_api::BamlValue<'a>> for BamlValueWithMeta<T> {
+impl<'a, T: HasType<type_meta::NonStreaming>> IntoRpcEvent<'a, runtime_api::BamlValue<'a>>
+    for BamlValueWithMeta<T>
+{
     fn to_rpc_event(&'a self, lookup: &(impl TypeLookup + ?Sized)) -> runtime_api::BamlValue<'a> {
         let type_ref = self.field_type().to_rpc_event(lookup);
         let value = match self {
@@ -66,12 +68,11 @@ impl<'a, T: HasFieldType> IntoRpcEvent<'a, runtime_api::BamlValue<'a>> for BamlV
     }
 }
 
-impl<'a> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType {
+impl<'a> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::ir_type::TypeNonStreaming {
     fn to_rpc_event(&'a self, lookup: &(impl TypeLookup + ?Sized)) -> baml_rpc::TypeReference {
-        let simplified = self.simplify();
         use baml_rpc::{LiteralTypeDefinition, MediaTypeDefinition, TypeMetadata, TypeReference};
-        let mut base_ref = match simplified {
-            baml_types::FieldType::Primitive(type_value, _) => match type_value {
+        let mut base_ref = match self {
+            TypeGeneric::Primitive(type_value, _) => match type_value {
                 baml_types::TypeValue::String => TypeReference::string(),
                 baml_types::TypeValue::Int => TypeReference::int(),
                 baml_types::TypeValue::Float => TypeReference::float(),
@@ -86,29 +87,27 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType {
                     })
                 }
             },
-            baml_types::FieldType::Enum { name, .. } => lookup
+            TypeGeneric::Enum { name, .. } => lookup
                 .type_lookup(name.as_str())
                 .map(TypeReference::enum_type)
                 .unwrap_or(TypeReference::Unknown),
-            baml_types::FieldType::Literal(literal_value, _) => {
-                TypeReference::literal(match literal_value {
-                    baml_types::LiteralValue::String(s) => LiteralTypeDefinition::String(s),
-                    baml_types::LiteralValue::Int(i) => LiteralTypeDefinition::Int(i),
-                    baml_types::LiteralValue::Bool(b) => LiteralTypeDefinition::Bool(b),
-                })
-            }
-            baml_types::FieldType::Class { name, .. } => lookup
+            TypeGeneric::Literal(literal_value, _) => TypeReference::literal(match literal_value {
+                baml_types::LiteralValue::String(s) => LiteralTypeDefinition::String(s.clone()),
+                baml_types::LiteralValue::Int(i) => LiteralTypeDefinition::Int(*i),
+                baml_types::LiteralValue::Bool(b) => LiteralTypeDefinition::Bool(*b),
+            }),
+            TypeGeneric::Class { name, .. } => lookup
                 .type_lookup(name.as_str())
                 .map(TypeReference::class)
                 .unwrap_or(TypeReference::Unknown),
-            baml_types::FieldType::List(field_type, _) => {
+            TypeGeneric::List(field_type, _) => {
                 TypeReference::list(field_type.to_rpc_event(lookup))
             }
-            baml_types::FieldType::Map(field_type, field_type1, _) => TypeReference::map(
+            TypeGeneric::Map(field_type, field_type1, _) => TypeReference::map(
                 field_type.to_rpc_event(lookup),
                 field_type1.to_rpc_event(lookup),
             ),
-            baml_types::FieldType::Union(field_types, _) => TypeReference::union(
+            TypeGeneric::Union(field_types, _) => TypeReference::union(
                 field_types
                     .iter_skip_null()
                     .into_iter()
@@ -116,14 +115,14 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::TypeReference> for baml_types::FieldType {
                     .collect(),
                 field_types.is_optional(),
             ),
-            baml_types::FieldType::Tuple(field_types, _) => {
+            TypeGeneric::Tuple(field_types, _) => {
                 TypeReference::tuple(field_types.iter().map(|t| t.to_rpc_event(lookup)).collect())
             }
-            baml_types::FieldType::RecursiveTypeAlias { name: alias, .. } => lookup
+            TypeGeneric::RecursiveTypeAlias { name: alias, .. } => lookup
                 .type_lookup(alias.as_str())
                 .map(TypeReference::recursive_type_alias)
                 .unwrap_or(TypeReference::Unknown),
-            baml_types::FieldType::Arrow(..) => TypeReference::Unknown,
+            TypeGeneric::Arrow(..) => TypeReference::Unknown,
         };
         if !self.meta().constraints.is_empty() {
             let constraints = self.meta().constraints.clone();

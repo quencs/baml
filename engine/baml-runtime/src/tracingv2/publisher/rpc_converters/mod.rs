@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use baml_ids::FunctionCallId;
 use baml_rpc::{ast::tops::BamlFunctionId, BamlTypeId};
-use baml_types::HasFieldType;
+use baml_types::{type_meta, HasType};
 
 use crate::tracingv2::storage::interface::TraceEventWithMeta;
 
@@ -36,7 +36,7 @@ pub(super) fn to_rpc_event<'a>(
     }
 }
 
-impl<'a, T: HasFieldType> IntoRpcEvent<'a, baml_rpc::runtime_api::TraceData<'a>>
+impl<'a, T: HasType<type_meta::NonStreaming>> IntoRpcEvent<'a, baml_rpc::runtime_api::TraceData<'a>>
     for baml_types::tracing::events::TraceData<'a, T>
 {
     fn to_rpc_event(

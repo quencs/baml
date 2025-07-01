@@ -18,7 +18,6 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type SimpleClass struct {
@@ -26,53 +25,50 @@ type SimpleClass struct {
 	Words  string `json:"words"`
 }
 
-func (c *SimpleClass) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+func (c *SimpleClass) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "SimpleClass" {
-		panic(fmt.Sprintf("expected SimpleClass, got %s", string(typeName.Name())))
+	if typeName.Name != "SimpleClass" {
+		panic(fmt.Sprintf("expected SimpleClass, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "digits":
-				c.Digits = *baml.Decode(valueHolder).(*int64)
+		case "digits":
+			c.Digits = *baml.Decode(valueHolder).(*int64)
 
-			case "words":
-				c.Words = *baml.Decode(valueHolder).(*string)
+		case "words":
+			c.Words = *baml.Decode(valueHolder).(*string)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c SimpleClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SimpleClass) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["digits"] = c.Digits
 
 	fields["words"] = c.Words
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c SimpleClass) BamlTypeName() string {
 	return "SimpleClass"
 }
 
-func (u SimpleClass) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("SimpleClass")
-	namespaceOffset := builder.CreateString("types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u SimpleClass) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_TYPES,
+		Name:      "SimpleClass",
+	}
 }

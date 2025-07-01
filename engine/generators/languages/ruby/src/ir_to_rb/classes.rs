@@ -46,7 +46,10 @@ pub fn ir_class_to_rb_stream<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -
 fn ir_field_to_rb<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldRb<'a> {
     FieldRb {
         name: field.elem.name.clone(),
-        r#type: super::type_to_rb(&field.elem.r#type.elem, pkg.lookup()),
+        r#type: super::type_to_rb(
+            &field.elem.r#type.elem.to_non_streaming_type(pkg.lookup()),
+            pkg.lookup(),
+        ),
         docstring: field
             .elem
             .docstring
@@ -57,7 +60,7 @@ fn ir_field_to_rb<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldRb<'
 }
 
 fn ir_field_to_rb_stream<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldRb<'a> {
-    let partialized = field.elem.r#type.elem.partialize(pkg.lookup());
+    let partialized = field.elem.r#type.elem.to_streaming_type(pkg.lookup());
     FieldRb {
         name: field.elem.name.clone(),
         r#type: super::stream_type_to_rb(&partialized, pkg.lookup()),

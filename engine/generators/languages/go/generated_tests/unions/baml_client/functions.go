@@ -41,7 +41,7 @@ func JsonInput(ctx context.Context, x []types.ExistingSystemComponent, opts ...C
 		args.Collectors = callOpts.collectors
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		panic(err)
 	}

@@ -1,3 +1,5 @@
+use baml_types::ir_type::UnionConstructor;
+
 use super::*;
 use crate::helpers::load_test_ir;
 
@@ -11,7 +13,7 @@ test_partial_deserializer_streaming!(
     test_number_list,
     NUMBERS,
     "{'nums': [1,2",
-    FieldType::class("Foo"),
+    TypeIR::class("Foo"),
     {"nums": [1]}
 );
 
@@ -26,7 +28,7 @@ test_partial_deserializer_streaming!(
     test_number_list_state_incomplete,
     NUMBERS_STATE,
     "{'nums': [1,2",
-    FieldType::class("Foo"),
+    TypeIR::class("Foo"),
     {"nums": {"value": [1], "state": "Incomplete"}, "bar": {"value": null, "state": "Pending"}}
 );
 
@@ -41,7 +43,7 @@ test_partial_deserializer_streaming_failure!(
     test_toplevel_done,
     TOPLEVEL_DONE,
     "{'nums': [1,2]",
-    FieldType::class("Foo")
+    TypeIR::class("Foo")
 );
 
 const NESTED_DONE: &str = r#"
@@ -63,7 +65,7 @@ test_partial_deserializer_streaming!(
       {'nums': [1, 2]},
       {'nums': [3, 4]
   "#,
-  FieldType::class("Bar"),
+  TypeIR::class("Bar"),
   {"foos": [ {"nums": [1, 2]}]}
 );
 
@@ -88,7 +90,7 @@ test_partial_deserializer_streaming!(
       {'nums': [1, 2]},
       {'nums': [3, 4]
   "#,
-  FieldType::class("Bar"),
+  TypeIR::class("Bar"),
   {"message": "Hello", "foos": [ {"nums": [1, 2]}]}
 );
 
@@ -100,6 +102,8 @@ class Foo {
 
 class Bar {
   foos Foo[]
+
+  @@stream.not_null
 }
 "#;
 
@@ -108,7 +112,7 @@ test_partial_deserializer_streaming!(
   NEEDED_FIELD,
   // r#"{"foos": [{"my_int": 1, "my_string": "hi"}, {"my_int": 10,"#,
   r#"{"foos": [{"my_int": 1, "my"#,
-  FieldType::class("Bar"),
+  TypeIR::class("Bar"),
   {"foos": []}
 );
 
@@ -116,15 +120,25 @@ const DONE_FIELD: &str = r#"
 class Foo {
   foo string @stream.done
   bar string
+
+  @@stream.not_null
 }
 "#;
 
 test_partial_deserializer_streaming!(
-  test_done_field,
+  test_done_field_0,
   DONE_FIELD,
   r#"{"foo": ""#,
-  FieldType::class("Foo"),
+  TypeIR::class("Foo"),
   {"foo": null, "bar": null}
+);
+
+test_partial_deserializer_streaming!(
+  test_done_field_1,
+  DONE_FIELD,
+  r#"{"foo": """#,
+  TypeIR::class("Foo"),
+  {"foo": "", "bar": null}
 );
 
 const MEMORY_TEST: &str = r##"
@@ -174,7 +188,7 @@ const MEMORY_PAYLOAD: &str = r#"
       "metadata": [
         "metadata1",
         42,
-        3.14
+        3.12
       ]
     },
     {
@@ -194,7 +208,7 @@ const MEMORY_PAYLOAD: &str = r#"
       "metadata": [
         "additional info",
         100,
-        2.718
+        2.715
       ]
     },
     {
@@ -257,7 +271,7 @@ test_partial_deserializer_streaming!(
     test_memory,
     MEMORY_TEST,
     MEMORY_PAYLOAD,
-    FieldType::class("TestMemoryOutput"),
+    TypeIR::class("TestMemoryOutput"),
     {
       "items": [
         {
@@ -272,7 +286,7 @@ test_partial_deserializer_streaming!(
           "metadata": [
             "metadata1",
             42,
-            3.14
+            3.12
           ]
         },
         {
@@ -292,7 +306,7 @@ test_partial_deserializer_streaming!(
           "metadata": [
             "additional info",
             100,
-            2.718
+            2.715
           ]
         },
         {
@@ -382,11 +396,11 @@ test_partial_deserializer_streaming!(
     test_todo_tools_message,
     TODO_TOOLS_EXAMPLE,
     r#"{"type": "message_to_user", "message": "Hello us"#,
-    FieldType::union(vec![
-        FieldType::class("MessageToUser"),
-        FieldType::class("AdjustItem"),
-        FieldType::class("AddItem"),
-        FieldType::class("GetLastItemId"),
+    TypeIR::union(vec![
+        TypeIR::class("MessageToUser"),
+        TypeIR::class("AdjustItem"),
+        TypeIR::class("AddItem"),
+        TypeIR::class("GetLastItemId"),
     ]),
     {
         "type": "message_to_user",
@@ -398,10 +412,137 @@ test_partial_deserializer_streaming_failure!(
     test_todo_tools_adjust_item,
     TODO_TOOLS_EXAMPLE,
     r#"{"type": "adjust_item", "item_id": 1, "title": "New Title"#,
-    FieldType::union(vec![
-        FieldType::class("MessageToUser"),
-        FieldType::class("AdjustItem"),
-        FieldType::class("AddItem"),
-        FieldType::class("GetLastItemId"),
+    TypeIR::union(vec![
+        TypeIR::class("MessageToUser"),
+        TypeIR::class("AdjustItem"),
+        TypeIR::class("AddItem"),
+        TypeIR::class("GetLastItemId"),
     ])
+);
+
+// Test for @stream.not_null fields receiving null values during streaming
+const STREAM_NOT_NULL_TEST: &str = r#"
+class ClassWithBlockDone {
+    i_16_digits int
+    s_20_words string
+    @@stream.done
+}
+
+class ClassWithoutDone {
+    i_16_digits int
+    s_20_words string @description("A string with 20 words in it") @stream.with_state
+}
+
+class SemanticContainer {
+    sixteen_digit_number int
+    string_with_twenty_words string @stream.done
+    class_1 ClassWithoutDone
+    class_2 ClassWithBlockDone
+    class_done_needed ClassWithBlockDone @stream.not_null
+    class_needed ClassWithoutDone @stream.not_null
+    three_small_things SmallThing[] @description("Should have three items.")
+    final_string string
+}
+
+class SmallThing {
+    i_16_digits int @stream.not_null
+    i_8_digits int
+}
+"#;
+
+// This test simulates the scenario where @stream.not_null fields are null
+// during partial streaming, which should cause validation to fail
+test_partial_deserializer_streaming_failure!(
+    test_stream_not_null_with_partial_data,
+    STREAM_NOT_NULL_TEST,
+    r#"{
+        "sixteen_digit_number": 1234567890123456,
+        "string_with_twenty_words": "This is a string with exactly twenty words in it for testing purposes and validation",
+        "class_1": null,
+        "class_2": null,
+        "class_done_needed": null,
+        "class_needed": null,
+        "three_small_things": [],
+        "final_string": "end"
+    }"#,
+    TypeIR::class("SemanticContainer")
+);
+
+// This test shows that when @stream.not_null fields have values, parsing succeeds
+test_partial_deserializer_streaming!(
+    test_stream_not_null_with_complete_data,
+    STREAM_NOT_NULL_TEST,
+    r#"{
+        "sixteen_digit_number": 12345678,
+        "string_with_twenty_words": "This is a string with exactly twenty words in it for testing purposes and validation",
+        "class_1": {
+            "i_16_digits": 12345678,
+            "s_20_words": "Another string with twenty words"
+        },
+        "class_2": {
+            "i_16_digits": 98765432,
+            "s_20_words": "Yet another string here"
+        },
+        "class_done_needed": {
+            "i_16_digits": 11111111,
+            "s_20_words": "Required class string"
+        },
+        "class_needed": {
+            "i_16_digits": 22222222,
+            "s_20_words": "Another required string"
+        },
+        "three_small_things": [
+            {"i_16_digits": 33333333, "i_8_digits": 12345678}
+        ],
+        "final_string": "end"
+    }"#,
+    TypeIR::class("SemanticContainer"),
+    {
+        "sixteen_digit_number": 12345678,
+        "string_with_twenty_words": "This is a string with exactly twenty words in it for testing purposes and validation",
+        "class_1": {
+            "i_16_digits": 12345678,
+            "s_20_words": {"value": "Another string with twenty words", "state": "Complete"}
+        },
+        "class_2": {
+            "i_16_digits": 98765432,
+            "s_20_words": "Yet another string here"
+        },
+        "class_done_needed": {
+            "i_16_digits": 11111111,
+            "s_20_words": "Required class string"
+        },
+        "class_needed": {
+            "i_16_digits": 22222222,
+            "s_20_words": {"value": "Another required string", "state": "Complete"}
+        },
+        "three_small_things": [
+            {"i_16_digits": 33333333, "i_8_digits": 12345678}
+        ],
+        "final_string": "end"
+    }
+);
+
+// Test for union types with @stream.not_null
+const UNION_NOT_NULL_TEST: &str = r#"
+class Foo {
+  y (string | null) @stream.not_null
+}
+"#;
+
+// This test should fail because y is null but marked as @stream.not_null
+test_partial_deserializer_streaming_failure!(
+    test_union_not_null_with_null_value,
+    UNION_NOT_NULL_TEST,
+    r#"{"y": null}"#,
+    TypeIR::class("Foo")
+);
+
+// This test should succeed because y has a non-null value
+test_partial_deserializer_streaming!(
+    test_union_not_null_with_string_value,
+    UNION_NOT_NULL_TEST,
+    r#"{"y": "hello"}"#,
+    TypeIR::class("Foo"),
+    {"y": "hello"}
 );

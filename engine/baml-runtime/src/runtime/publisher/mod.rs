@@ -9,7 +9,7 @@ use baml_rpc::{
     ast::{ast_node_id::AstNodeId, tops::BamlFunctionId},
     BamlTypeId,
 };
-use baml_types::FieldType;
+use baml_types::ir_type::TypeNonStreaming;
 use cowstr::CowStr;
 use internal_baml_core::ir::ir_hasher;
 use serde::Serialize;
@@ -25,16 +25,16 @@ use super::super::tracingv2::publisher::rpc_converters::IntoRpcEvent;
 #[derive(Serialize)]
 pub struct TypeWithDependencies {
     pub type_id: WithDependency<BamlTypeId>,
-    pub field_type: Arc<FieldType>,
-    pub class_fields: Option<Arc<Vec<(String, Arc<FieldType>)>>>,
+    pub field_type: Arc<TypeNonStreaming>,
+    pub class_fields: Option<Arc<Vec<(String, Arc<TypeNonStreaming>)>>>,
     pub enum_values: Option<Arc<Vec<String>>>,
 }
 
 #[derive(Serialize)]
 pub struct FunctionSignatureWithDependencies {
     pub function_id: WithDependency<BamlFunctionId>,
-    pub inputs: Arc<Vec<(String, FieldType)>>,
-    pub output: Arc<FieldType>,
+    pub inputs: Arc<Vec<(String, TypeNonStreaming)>>,
+    pub output: Arc<TypeNonStreaming>,
 }
 
 #[derive(Default, Serialize)]

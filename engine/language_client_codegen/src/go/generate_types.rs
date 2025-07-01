@@ -1,16 +1,16 @@
-use anyhow::Result;
-use baml_types::{FieldType, LiteralValue, TypeValue, ir_type::UnionTypeViewGeneric};
-use indexmap::IndexSet;
-use itertools::Itertools;
 use std::{borrow::Cow, ops::Index};
 
-use crate::{field_type_attributes, type_check_attributes, TypeCheckAttributes};
-
-use super::{go_language_features::ToGo, ToUnionName};
+use anyhow::Result;
+use baml_types::{ir_type::UnionTypeViewGeneric, FieldType, LiteralValue, TypeValue};
+use indexmap::IndexSet;
 use internal_baml_core::ir::{
     repr::{Docstring, IntermediateRepr, Walker},
     ClassWalker, EnumWalker, IRHelper, IRHelperExtended,
 };
+use itertools::Itertools;
+
+use super::{go_language_features::ToGo, ToUnionName};
+use crate::{field_type_attributes, type_check_attributes, TypeCheckAttributes};
 
 #[derive(askama::Template)]
 #[template(path = "types.go.j2", escape = "none")]
@@ -544,9 +544,7 @@ impl ToTypeReferenceInTypeDefinition for FieldType {
                         Some(Box::new(field_type.to_type_ref_2(ir, module_prefix)))
                     }
                     UnionTypeViewGeneric::OneOf(field_types)
-                    | UnionTypeViewGeneric::OneOfOptional(field_types) => {
-                        None
-                    }
+                    | UnionTypeViewGeneric::OneOfOptional(field_types) => None,
                 },
                 _ => None,
             },
@@ -736,8 +734,9 @@ fn stream_state(base: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use internal_baml_core::ir::repr::{make_test_ir, IntermediateRepr};
+
+    use super::*;
 
     #[test]
     fn test_optional_list() {

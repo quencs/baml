@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use baml_types::{BamlMediaType, FieldType, LiteralValue};
+use baml_types::{BamlMediaType, LiteralValue, TypeIR};
 
 #[derive(Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub enum InterfaceFieldType<'a> {
@@ -22,7 +22,7 @@ pub enum InterfaceFieldType<'a> {
 }
 
 impl<'a> InterfaceFieldType<'a> {
-    pub fn from_field_type(field_type: &'a FieldType) -> Self {
+    pub fn from_field_type(field_type: &'a TypeIR) -> Self {
         Self::from(field_type).simplify()
     }
 
@@ -57,9 +57,9 @@ impl<'a> InterfaceFieldType<'a> {
 }
 
 impl<'a> InterfaceFieldType<'a> {
-    fn from(field_type: &'a FieldType) -> Self {
+    fn from(field_type: &'a TypeIR) -> Self {
         match field_type {
-            FieldType::Primitive(type_value, _) => match type_value {
+            TypeIR::Primitive(type_value, _) => match type_value {
                 baml_types::TypeValue::String => InterfaceFieldType::String,
                 baml_types::TypeValue::Int => InterfaceFieldType::Int,
                 baml_types::TypeValue::Float => InterfaceFieldType::Float,
@@ -69,30 +69,30 @@ impl<'a> InterfaceFieldType<'a> {
                     InterfaceFieldType::Media(baml_media_type)
                 }
             },
-            FieldType::Enum { name, .. } => InterfaceFieldType::Enum(name.as_str()),
-            FieldType::Literal(literal_value, _) => InterfaceFieldType::Literal(literal_value),
-            FieldType::Class { name, .. } => InterfaceFieldType::Class(name.as_str()),
-            FieldType::List(field_type, _) => {
+            TypeIR::Enum { name, .. } => InterfaceFieldType::Enum(name.as_str()),
+            TypeIR::Literal(literal_value, _) => InterfaceFieldType::Literal(literal_value),
+            TypeIR::Class { name, .. } => InterfaceFieldType::Class(name.as_str()),
+            TypeIR::List(field_type, _) => {
                 InterfaceFieldType::List(Box::new(Self::from(field_type)))
             }
-            FieldType::Map(field_type, field_type1, _) => InterfaceFieldType::Map(
+            TypeIR::Map(field_type, field_type1, _) => InterfaceFieldType::Map(
                 Box::new(Self::from(field_type)),
                 Box::new(Self::from(field_type1)),
             ),
-            FieldType::Union(field_types, _) => InterfaceFieldType::Union(
+            TypeIR::Union(field_types, _) => InterfaceFieldType::Union(
                 field_types
                     .iter_include_null()
                     .iter()
                     .map(|ft| Self::from(ft))
                     .collect(),
             ),
-            FieldType::Tuple(field_types, _) => {
+            TypeIR::Tuple(field_types, _) => {
                 InterfaceFieldType::Tuple(field_types.iter().map(Self::from).collect())
             }
-            FieldType::RecursiveTypeAlias { name, .. } => {
+            TypeIR::RecursiveTypeAlias { name, .. } => {
                 InterfaceFieldType::RecursiveTypeAlias(name.as_str())
             }
-            FieldType::Arrow(_, _) => InterfaceFieldType::Unknown,
+            TypeIR::Arrow(_, _) => InterfaceFieldType::Unknown,
         }
     }
 }
@@ -100,7 +100,7 @@ impl<'a> InterfaceFieldType<'a> {
 #[derive(Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 struct ImplementationFieldType {}
 
-impl super::ShallowSignature for FieldType {
+impl super::ShallowSignature for TypeIR {
     fn shallow_hash_prefix(&self) -> &'static str {
         "type_alias"
     }

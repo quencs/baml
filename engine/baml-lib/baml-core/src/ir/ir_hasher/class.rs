@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use baml_types::{Constraint, FieldType, StringOr};
+use baml_types::{Constraint, StringOr, TypeIR};
 
 use super::{super::Class, ShallowSignature};
 
@@ -13,7 +13,7 @@ use super::{super::Class, ShallowSignature};
 struct ClassInterfaceHash<'a> {
     name: &'a str,
     is_dynamic: bool,
-    fields: Vec<(&'a str, &'a FieldType)>,
+    fields: Vec<(&'a str, &'a TypeIR)>,
 }
 
 impl<'a> std::hash::Hash for ClassInterfaceHash<'a> {
@@ -48,7 +48,7 @@ impl<'a> std::hash::Hash for NameForLLM<'a> {
 
 #[derive(Debug)]
 struct ClassImplementationHash<'a> {
-    fields: Vec<(NameForLLM<'a>, &'a FieldType)>,
+    fields: Vec<(NameForLLM<'a>, &'a TypeIR)>,
     constraints: Vec<&'a Constraint>,
 }
 

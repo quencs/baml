@@ -2,8 +2,9 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use baml_types::{
+    ir_type::TypeNonStreaming,
     tracing::events::{FunctionEnd, FunctionStart, TraceData, TraceEvent},
-    BamlValueWithMeta, FieldType,
+    BamlValueWithMeta, TypeIR,
 };
 use internal_baml_core::ir::repr::IntermediateRepr;
 use serde_json::json;
@@ -142,8 +143,8 @@ impl FunctionResultStream {
         let trace_event = TraceEvent::new_function_end(
             call_stack,
             match &res {
-                Ok(result) => Ok(baml_types::BamlValueWithMeta::<FieldType>::Null(
-                    FieldType::null(),
+                Ok(result) => Ok(baml_types::BamlValueWithMeta::<TypeNonStreaming>::Null(
+                    TypeNonStreaming::null(),
                 )),
                 Err(e) => Err(e.to_baml_error()),
             },

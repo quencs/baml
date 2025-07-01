@@ -8,8 +8,8 @@ use std::collections::HashMap;
 pub mod jsonish;
 
 use baml_types::{
-    BamlValue, BamlValueWithMeta, Completion, CompletionState, FieldType, HasFieldType,
-    JinjaExpression, ResponseCheck,
+    type_meta, BamlValue, BamlValueWithMeta, Completion, CompletionState, HasType, JinjaExpression,
+    ResponseCheck, TypeIR,
 };
 pub use deserializer::types::BamlValueWithFlags;
 use deserializer::{
@@ -35,17 +35,17 @@ pub struct ResponseValueMeta(
     pub Vec<Flag>,
     pub Vec<ResponseCheck>,
     pub Completion,
-    pub FieldType,
+    pub TypeIR,
 );
 
-impl From<FieldType> for ResponseValueMeta {
-    fn from(field_type: FieldType) -> Self {
+impl From<TypeIR> for ResponseValueMeta {
+    fn from(field_type: TypeIR) -> Self {
         ResponseValueMeta(vec![], vec![], Completion::default(), field_type)
     }
 }
 
-impl baml_types::HasFieldType for ResponseValueMeta {
-    fn field_type(&self) -> &FieldType {
+impl baml_types::HasType<type_meta::IR> for ResponseValueMeta {
+    fn field_type(&self) -> &TypeIR {
         &self.3
     }
 }
@@ -88,16 +88,34 @@ impl serde::Serialize for SerializeResponseBamlValue<'_> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use BamlValueWithMeta::*;
         let serialize_mode = &self.serialize_mode;
+
         match &self.value {
-            String(s, ref meta) => serialize_with_meta(&s, meta, serialize_mode, serializer),
-            Int(i, ref meta) => serialize_with_meta(&i, meta, serialize_mode, serializer),
-            Float(f, ref meta) => serialize_with_meta(&f, meta, serialize_mode, serializer),
-            Bool(b, ref meta) => serialize_with_meta(&b, meta, serialize_mode, serializer),
-            Media(v, ref meta) => serialize_with_meta(&v, meta, serialize_mode, serializer),
-            Enum(ref _name, v, ref meta) => {
+            String(s, ref meta) => {
+                log::debug!("Serializing string");
+                serialize_with_meta(&s, meta, serialize_mode, serializer)
+            }
+            Int(i, ref meta) => {
+                log::debug!("Serializing int");
+                serialize_with_meta(&i, meta, serialize_mode, serializer)
+            }
+            Float(f, ref meta) => {
+                log::debug!("Serializing float");
+                serialize_with_meta(&f, meta, serialize_mode, serializer)
+            }
+            Bool(b, ref meta) => {
+                log::debug!("Serializing bool");
+                serialize_with_meta(&b, meta, serialize_mode, serializer)
+            }
+            Media(v, ref meta) => {
+                log::debug!("Serializing media");
+                serialize_with_meta(&v, meta, serialize_mode, serializer)
+            }
+            Enum(ref name, v, ref meta) => {
+                log::debug!("Serializing enum {name}");
                 serialize_with_meta(&v, meta, serialize_mode, serializer)
             }
             Map(items, ref meta) => {
+                log::debug!("Serializing map");
                 let new_items = items
                     .into_iter()
                     .map(|(k, v)| {
@@ -113,6 +131,7 @@ impl serde::Serialize for SerializeResponseBamlValue<'_> {
                 serialize_with_meta(&new_items, meta, serialize_mode, serializer)
             }
             List(items, ref meta) => {
+                log::debug!("Serializing list");
                 let new_items = items
                     .iter()
                     .map(|v| SerializeResponseBamlValue {
@@ -122,16 +141,22 @@ impl serde::Serialize for SerializeResponseBamlValue<'_> {
                     .collect::<Vec<_>>();
                 serialize_with_meta(&new_items, meta, serialize_mode, serializer)
             }
-            Class(_name, fields, ref meta) => {
+            Class(name, fields, ref meta) => {
+                log::debug!("Serializing class {name}");
                 let new_fields = fields
                     .into_iter()
                     .map(|(k, v)| {
-                        let subvalue_serialize_mode =
-                            match (&serialize_mode, v.meta().2.required_done) {
-                                (SerializeMode::Final, _) => SerializeMode::Final,
-                                (SerializeMode::Partial, true) => SerializeMode::Final,
-                                (SerializeMode::Partial, false) => SerializeMode::Partial,
-                            };
+                        let subvalue_serialize_mode = match (
+                            &serialize_mode,
+                            v.meta().2.required_done,
+                            v.meta().3.meta().streaming_behavior.state,
+                        ) {
+                            (SerializeMode::Final, ..) => SerializeMode::Final,
+                            (SerializeMode::Partial, _, true) => SerializeMode::Partial,
+                            (SerializeMode::Partial, true, false) => SerializeMode::Final,
+                            (SerializeMode::Partial, false, false) => SerializeMode::Partial,
+                        };
+                        log::debug!("Serializing field {name}.{k} - {subvalue_serialize_mode:?}");
                         (
                             k,
                             SerializeResponseBamlValue {
@@ -143,7 +168,10 @@ impl serde::Serialize for SerializeResponseBamlValue<'_> {
                     .collect::<IndexMap<_, _>>();
                 serialize_with_meta(&new_fields, meta, serialize_mode, serializer)
             }
-            Null(ref meta) => serialize_with_meta(&(), meta, serialize_mode, serializer),
+            Null(ref meta) => {
+                log::debug!("Serializing null");
+                serialize_with_meta(&(), meta, serialize_mode, serializer)
+            }
         }
     }
 }
@@ -175,6 +203,7 @@ fn serialize_with_meta<S: Serializer, T: Serialize>(
 ) -> Result<S::Ok, S::Error> {
     let should_display_stream_state =
         meta.2.display && matches!(serialize_mode, SerializeMode::Partial);
+    log::debug!("Should display stream state: {should_display_stream_state}");
     match (meta.1.len(), should_display_stream_state) {
         (0, false) => value.serialize(serializer),
         (_, false) => ResponseChecksMetadata((value, &meta.1)).serialize(serializer),
@@ -195,22 +224,28 @@ fn serialize_with_meta<S: Serializer, T: Serialize>(
 
 pub fn from_str(
     of: &OutputFormatContent,
-    target: &FieldType,
+    target: &TypeIR,
     raw_string: &str,
-    allow_partials: bool,
+    raw_string_is_done: bool,
 ) -> Result<BamlValueWithFlags> {
-    if matches!(target, FieldType::Primitive(TypeValue::String, _)) {
+    // println!("--------------{raw_string_is_done}-----------------");
+    // println!("from_str target: {raw_string}");
+    if matches!(target, TypeIR::Primitive(TypeValue::String, _)) {
         return Ok(BamlValueWithFlags::String(
             (raw_string.to_string(), target).into(),
         ));
     }
 
     // When the schema is just a string, i should really just return the raw_string w/o parsing it.
-    let value = jsonish::parse(raw_string, jsonish::ParseOptions::default())?;
+    let value = jsonish::parse(
+        raw_string,
+        jsonish::ParseOptions::default(),
+        raw_string_is_done,
+    )?;
 
     // Pick the schema that is the most specific.
-    log::debug!("Parsed JSONish (step 1 of parsing): {value:#?}");
-    let ctx = ParsingContext::new(of, allow_partials);
+    log::debug!("Parsed JSONish (step 1 of parsing) {raw_string_is_done}: {value:#?}");
+    let ctx = ParsingContext::new(of);
 
     // Determine the best way to get the desired schema from the parsed schema.
 
@@ -229,6 +264,12 @@ pub fn from_str(
         }
         Err(e) => anyhow::bail!("Failed to coerce value: {}", e),
     }?;
+
+    log::debug!("Parsed JSONish (step 2 of parsing): {parsed_value:#?}");
+
+    let value: BamlValue = parsed_value.clone().into();
+    // println!("from_str value: {value}");
+    // println!("-------------------------------------------------");
 
     Ok(parsed_value)
 }

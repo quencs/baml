@@ -1,7 +1,7 @@
 mod render_output_format;
 pub(crate) mod scoped_ir;
 use anyhow::Result;
-use baml_types::{BamlValue, FieldType, TypeValue};
+use baml_types::{BamlValue, StreamingMode, TypeIR, TypeValue};
 use internal_baml_core::{
     error_unsupported,
     ir::{
@@ -25,8 +25,14 @@ use crate::{runtime_context::RuntimeClassOverride, RuntimeContext};
 pub struct PromptRenderer {
     pub function_name: String,
     pub client_spec: ClientSpec,
-    pub output_defs: OutputFormatContent,
-    pub output_type: FieldType,
+    non_streaming: TypeDefinitionWrapper,
+    streaming: TypeDefinitionWrapper,
+}
+
+#[derive(Debug)]
+struct TypeDefinitionWrapper {
+    defintions: OutputFormatContent,
+    target: TypeIR,
 }
 
 impl PromptRenderer {
@@ -46,8 +52,24 @@ impl PromptRenderer {
                 Some((Some(client), _)) => ClientSpec::Named(client.clone()),
                 _ => config.client.clone(),
             },
-            output_defs: render_output_format(ir, ctx, &func_v2.output)?,
-            output_type: func_v2.output.clone(),
+            non_streaming: TypeDefinitionWrapper {
+                defintions: render_output_format(
+                    ir,
+                    ctx,
+                    &func_v2.output,
+                    StreamingMode::NonStreaming,
+                )?,
+                target: func_v2.output.clone(),
+            },
+            streaming: TypeDefinitionWrapper {
+                defintions: render_output_format(
+                    ir,
+                    ctx,
+                    &func_v2.output,
+                    StreamingMode::Streaming,
+                )?,
+                target: func_v2.output.to_streaming_type(ir).to_ir_type(),
+            },
         })
     }
 
@@ -58,8 +80,14 @@ impl PromptRenderer {
         PromptRenderer {
             function_name: "fake".into(),
             client_spec: ClientSpec::Named("fake".into()),
-            output_defs: OutputFormatContent::mk_fake(),
-            output_type: FieldType::Primitive(TypeValue::String, Default::default()),
+            non_streaming: TypeDefinitionWrapper {
+                defintions: OutputFormatContent::mk_fake(),
+                target: TypeIR::Primitive(TypeValue::String, Default::default()),
+            },
+            streaming: TypeDefinitionWrapper {
+                defintions: OutputFormatContent::mk_fake(),
+                target: TypeIR::Primitive(TypeValue::String, Default::default()),
+            },
         }
     }
 
@@ -74,15 +102,27 @@ impl PromptRenderer {
         raw_string: &str,
         allow_partials: bool,
     ) -> Result<ResponseBamlValue> {
-        let parsed = jsonish::from_str(
-            &self.output_defs,
-            &self.output_type,
-            raw_string,
-            allow_partials,
-        )?;
+        let (def, target) = if allow_partials {
+            (&self.streaming.defintions, &self.streaming.target)
+        } else {
+            (&self.non_streaming.defintions, &self.non_streaming.target)
+        };
+
+        let parsed = jsonish::from_str(def, target, raw_string, !allow_partials)?;
+
+        // TODO(vbv): We should consider using def here instead of (ir / ctx)
+        // since def has all the context for the mode (streaming / non-streaming)
         let scoped_ir = ScopedIr::new(ir, ctx);
 
-        parsed_value_to_response(&scoped_ir, parsed, allow_partials)
+        parsed_value_to_response(
+            &scoped_ir,
+            parsed,
+            if allow_partials {
+                baml_types::StreamingMode::Streaming
+            } else {
+                baml_types::StreamingMode::NonStreaming
+            },
+        )
     }
 
     pub fn render_prompt(
@@ -106,7 +146,7 @@ impl PromptRenderer {
             RenderContext {
                 client: client_ctx.clone(),
                 tags: ctx.tags.clone(),
-                output_format: self.output_defs.clone(),
+                output_format: self.non_streaming.defintions.clone(),
             },
             &ir.walk_template_strings()
                 .map(|t| TemplateStringMacro {

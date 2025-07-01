@@ -23,8 +23,8 @@ use std::{
 
 use anyhow::Result;
 use baml_types::{
-    BamlValue, BamlValueWithMeta, CompletionState, EvaluationContext, FieldType, JinjaExpression,
-    ResponseCheck,
+    BamlValue, BamlValueWithMeta, CompletionState, EvaluationContext, JinjaExpression,
+    ResponseCheck, TypeIR,
 };
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::{
@@ -48,7 +48,7 @@ test_deserializer!(
     test_string_from_string,
     EMPTY_FILE,
     r#"hello"#,
-    FieldType::Primitive(TypeValue::String, Default::default()),
+    TypeIR::Primitive(TypeValue::String, Default::default()),
     "hello"
 );
 
@@ -56,7 +56,7 @@ test_deserializer!(
     test_string_from_string_with_quotes,
     EMPTY_FILE,
     r#""hello""#,
-    FieldType::Primitive(TypeValue::String, Default::default()),
+    TypeIR::Primitive(TypeValue::String, Default::default()),
     "\"hello\""
 );
 
@@ -64,7 +64,7 @@ test_deserializer!(
     test_string_from_object,
     EMPTY_FILE,
     r#"{"hi":    "hello"}"#,
-    FieldType::Primitive(TypeValue::String, Default::default()),
+    TypeIR::Primitive(TypeValue::String, Default::default()),
     r#"{"hi":    "hello"}"#
 );
 
@@ -72,7 +72,7 @@ test_deserializer!(
     test_string_from_obj_and_string,
     EMPTY_FILE,
     r#"The output is: {"hello": "world"}"#,
-    FieldType::Primitive(TypeValue::String, Default::default()),
+    TypeIR::Primitive(TypeValue::String, Default::default()),
     "The output is: {\"hello\": \"world\"}"
 );
 
@@ -80,7 +80,7 @@ test_deserializer!(
     test_string_from_list,
     EMPTY_FILE,
     r#"["hello", "world"]"#,
-    FieldType::Primitive(TypeValue::String, Default::default()),
+    TypeIR::Primitive(TypeValue::String, Default::default()),
     "[\"hello\", \"world\"]"
 );
 
@@ -88,7 +88,7 @@ test_deserializer!(
     test_string_from_int,
     EMPTY_FILE,
     r#"1"#,
-    FieldType::Primitive(TypeValue::String, Default::default()),
+    TypeIR::Primitive(TypeValue::String, Default::default()),
     "1"
 );
 
@@ -110,7 +110,7 @@ test_deserializer!(
         "blah": "blah"
       }
     ]"#,
-    FieldType::Primitive(TypeValue::String, Default::default()),
+    TypeIR::Primitive(TypeValue::String, Default::default()),
     r#"Some preview text
 
     JSON Output:
@@ -148,7 +148,7 @@ test_deserializer!(
     ]
     ```
     "#,
-    FieldType::Primitive(TypeValue::String, Default::default()),
+    TypeIR::Primitive(TypeValue::String, Default::default()),
     r#"Hello there.
     
     JSON Output:
@@ -187,7 +187,7 @@ test_deserializer!(
     }
 
   "#,
-    FieldType::class("Foo"),
+    TypeIR::class("Foo"),
     json!({"id": null })
 );
 
@@ -205,7 +205,7 @@ test_deserializer!(
       }
 
     "#,
-    FieldType::class("Foo"),
+    TypeIR::class("Foo"),
     json!({"id": r#"{{hi} there"# })
 );
 
@@ -330,7 +330,7 @@ test_deserializer!(
         ]
       }
     "#,
-    FieldType::class("BookAnalysis"),
+    TypeIR::class("BookAnalysis"),
     json!({
       "bookNames": ["brave new world", "the lord of the rings", "three body problem", "stormlight archive"],
       "popularityOverTime": [
@@ -443,7 +443,7 @@ test_deserializer!(
       ]
     }
   "#,
-    FieldType::class("BookAnalysis"),
+    TypeIR::class("BookAnalysis"),
     json!({
       "bookNames": ["brave new world", "the lord of the rings"],
       "popularityOverTime": [
@@ -498,7 +498,7 @@ test_deserializer!(
     "four": "four"
   }
   "#,
-    FieldType::class("OrderedClass"),
+    TypeIR::class("OrderedClass"),
     json!({
       "one": "one",
       "two": "two",
@@ -518,7 +518,7 @@ test_deserializer!(
     "four": "four"
   }
     "#,
-    FieldType::class("OrderedClass"),
+    TypeIR::class("OrderedClass"),
     json!({
       "one": "one",
       "two": "two",

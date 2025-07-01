@@ -398,7 +398,7 @@ fn add_js_suffix_to_imports(content: &str) -> String {
 }
 
 #[cfg(test)]
-mod generated_tests {
+mod typescript_tests {
     use test_harness::{create_code_gen_test_suites, TestLanguageFeatures};
 
     impl TestLanguageFeatures for crate::TsLanguageFeatures {

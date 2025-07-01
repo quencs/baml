@@ -102,6 +102,10 @@ impl ClientRegistry {
         self.primary = Some(primary);
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.clients.is_empty() && self.primary.is_none()
+    }
+
     pub fn to_clients(
         &self,
         ctx: &RuntimeContext,

@@ -8,7 +8,15 @@ use anyhow::Result;
 use baml_runtime::{tracingv2::storage::storage::Collector, BamlRuntime, FunctionResult};
 use once_cell::sync::{Lazy, OnceCell};
 
+use crate::ctypes::EncodeToBuffer;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+pub mod baml {
+    pub mod cffi {
+        include!(concat!(env!("OUT_DIR"), "/baml.cffi.rs"));
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn version() -> *const libc::c_char {
@@ -16,6 +24,7 @@ pub extern "C" fn version() -> *const libc::c_char {
     version.into_raw() as *const libc::c_char
 }
 
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 #[no_mangle]
 pub extern "C" fn create_baml_runtime(
     root_path: *const libc::c_char,
@@ -45,6 +54,7 @@ pub extern "C" fn destroy_baml_runtime(runtime: *const libc::c_void) {
     }
 }
 
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 #[no_mangle]
 pub extern "C" fn invoke_runtime_cli(args: *const *const libc::c_char) -> libc::c_int {
     // Safety: We assume `args` is a valid pointer to a null-terminated array of C strings.
@@ -84,7 +94,7 @@ use std::{ffi::CString, os::raw::c_char};
 use baml_types::BamlValue;
 
 use crate::{
-    ctypes::BamlFunctionArguments,
+    ctypes::{BamlFunctionArguments, DecodeFromBuffer},
     raw_ptr_wrapper::{CollectorWrapper, UsageWrapper},
 };
 
@@ -98,8 +108,17 @@ static ERROR_CALLBACK_FN: OnceCell<CallbackFn> = OnceCell::new();
 
 #[no_mangle]
 extern "C" fn register_callbacks(callback_fn: CallbackFn, error_callback_fn: CallbackFn) {
-    let _ = baml_log::init();
-    let _ = env_logger::try_init_from_env(env_logger::Env::new().filter("BAML_INTERNAL_LOG"));
+    let log_setup = baml_log::init();
+    if let Err(e) = log_setup {
+        eprintln!("Error setting up logging: {e}");
+    }
+    let env = env_logger::Env::new().filter("BAML_INTERNAL_LOG");
+    let log_setup = env_logger::try_init_from_env(env);
+    if let Err(e) = log_setup {
+        eprintln!("Error setting up internal logging: {e}");
+    } else {
+        println!("Internal logging set up");
+    }
 
     // Create a global runtime or pass it along as needed.
     let _ = RESULT_CALLBACK_FN.set(callback_fn);
@@ -123,23 +142,24 @@ fn safe_trigger_callback(
     match result {
         Ok(result) => match result.parsed() {
             Some(Ok(content)) => {
-                let mut builder = flatbuffers::FlatBufferBuilder::new();
-                let content = ctypes::serialize_baml_value_with_meta(
-                    &content.0,
-                    &mut builder,
-                    !is_done,
-                    &runtime.inner,
-                );
+                let buf = if is_done {
+                    let meta = content.0.map_meta(|f| ctypes::EncodeMeta {
+                        field_type: f.3.to_non_streaming_type(runtime.inner.ir.as_ref()),
+                        checks: &f.1,
+                    });
+                    meta.encode_to_c_buffer(runtime.inner.ir.as_ref())
+                } else {
+                    let meta = content.0.map_meta(|f| ctypes::EncodeMeta {
+                        field_type: f.3.to_streaming_type(runtime.inner.ir.as_ref()),
+                        checks: &f.1,
+                    });
+                    meta.encode_to_c_buffer(runtime.inner.ir.as_ref())
+                };
+
                 let is_done_int = if is_done { 1 } else { 0 };
-                callback_fn(
-                    id,
-                    is_done_int,
-                    content.as_ptr() as *const i8,
-                    content.len(),
-                );
+                callback_fn(id, is_done_int, buf.as_ptr() as *const i8, buf.len());
             }
             Some(Err(e)) => {
-                // let c_message = CString::new(e.to_string()).unwrap();
                 let message = e.to_string();
                 error_callback_fn(id, 1, message.as_ptr() as *const i8, message.len());
             }
@@ -196,13 +216,12 @@ fn call_function_from_c_inner(
     };
 
     // Convert keyword arguments.
-    let buffer = unsafe { std::slice::from_raw_parts(encoded_args as *const u8, length) };
     let ctypes::BamlFunctionArguments {
         kwargs,
         client_registry,
         env_vars,
         collectors,
-    } = ctypes::buffer_to_cffi_function_arguments(buffer)?;
+    } = BamlFunctionArguments::from_c_buffer(encoded_args, length)?;
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
 
@@ -264,13 +283,12 @@ fn call_function_stream_from_c_inner(
     };
 
     // Convert keyword arguments.
-    let buffer = unsafe { std::slice::from_raw_parts(encoded_args as *const u8, length) };
     let BamlFunctionArguments {
         kwargs,
         client_registry,
         env_vars,
         collectors,
-    } = ctypes::buffer_to_cffi_function_arguments(buffer)?;
+    } = BamlFunctionArguments::from_c_buffer(encoded_args, length)?;
 
     let ctx = runtime.create_ctx_manager(BamlValue::String("cffi".to_string()), None);
     let mut stream = match runtime.stream_function(
@@ -367,10 +385,7 @@ fn call_collector_function_inner(
                     Ok(null())
                 }
                 "usage" => {
-                    let logs = collector.function_logs();
                     let usage = collector.usage();
-                    println!("logs: {logs:?}");
-                    println!("usage: {usage:?}");
                     Ok(UsageWrapper::from_object(usage).send())
                 }
                 _ => Err(anyhow::anyhow!(
@@ -382,7 +397,6 @@ fn call_collector_function_inner(
         }
         "usage" => {
             let usage = UsageWrapper::from_raw(object, true);
-            println!("usage: {:?}", usage.as_ref());
             match function_name.as_str() {
                 "destroy" => {
                     usage.destroy();

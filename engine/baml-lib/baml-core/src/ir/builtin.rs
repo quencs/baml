@@ -1,6 +1,6 @@
 use baml_types::{
     expr::{Builtin, Expr, ExprMetadata},
-    Arrow, FieldType,
+    Arrow, TypeIR,
 };
 use internal_baml_diagnostics::Span;
 
@@ -70,7 +70,7 @@ pub fn builtin_classes() -> Vec<Node<Class>> {
                 elem: Field {
                     name: String::from("base_url"),
                     r#type: Node {
-                        elem: FieldType::string(),
+                        elem: TypeIR::string(),
                         attributes: NodeAttributes::default(),
                     },
                     docstring: None,
@@ -81,7 +81,7 @@ pub fn builtin_classes() -> Vec<Node<Class>> {
                 elem: Field {
                     name: String::from("headers"),
                     r#type: Node {
-                        elem: FieldType::map(FieldType::string(), FieldType::string()),
+                        elem: TypeIR::map(TypeIR::string(), TypeIR::string()),
                         attributes: NodeAttributes::default(),
                     },
                     docstring: None,
@@ -92,7 +92,7 @@ pub fn builtin_classes() -> Vec<Node<Class>> {
                 elem: Field {
                     name: String::from("query_params"),
                     r#type: Node {
-                        elem: FieldType::map(FieldType::string(), FieldType::string()),
+                        elem: TypeIR::map(TypeIR::string(), TypeIR::string()),
                         attributes: NodeAttributes::default(),
                     },
                     docstring: None,
@@ -123,12 +123,10 @@ pub fn builtin_enums() -> Vec<Node<Enum>> {
 /// return that same type, generics do not appear in function parameters. So
 /// managing this is fairly simple, but will require carrying additional data
 /// when actual user defined generics are introduced.
-pub fn builtin_generic_fn(f: Builtin, return_type: FieldType) -> Expr<ExprMetadata> {
+pub fn builtin_generic_fn(f: Builtin, return_type: TypeIR) -> Expr<ExprMetadata> {
     let signature = match f {
         // fn fetch_value<T>(request: std::Request) -> T
-        Builtin::FetchValue => {
-            FieldType::arrow(vec![FieldType::class(classes::REQUEST)], return_type)
-        }
+        Builtin::FetchValue => TypeIR::arrow(vec![TypeIR::class(classes::REQUEST)], return_type),
     };
 
     Expr::Builtin(f, (Span::fake(), Some(signature)))

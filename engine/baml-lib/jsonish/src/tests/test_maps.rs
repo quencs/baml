@@ -1,4 +1,4 @@
-use baml_types::{type_meta::base::TypeMeta, LiteralValue};
+use baml_types::{ir_type::UnionConstructor, type_meta::base::TypeMeta, LiteralValue};
 
 use super::*;
 use crate::BamlValueWithFlags;
@@ -7,7 +7,7 @@ test_deserializer!(
     test_map,
     "",
     r#"{"a": "b"}"#,
-    FieldType::map(FieldType::string(), FieldType::string()),
+    TypeIR::map(TypeIR::string(), TypeIR::string()),
     {"a": "b"}
 );
 
@@ -15,7 +15,7 @@ test_deserializer!(
     test_map_with_quotes,
     "",
     r#"{"\"a\"": "\"b\""}"#,
-    FieldType::map(FieldType::string(), FieldType::string()),
+    TypeIR::map(TypeIR::string(), TypeIR::string()),
     {"\"a\"": "\"b\""}
 );
 
@@ -23,7 +23,7 @@ test_deserializer!(
     test_map_with_extra_text,
     "",
     r#"{"a": "b"} is the output."#,
-    FieldType::map(FieldType::string(), FieldType::string()),
+    TypeIR::map(TypeIR::string(), TypeIR::string()),
     {"a": "b"}
 );
 
@@ -31,7 +31,7 @@ test_deserializer!(
     test_map_with_invalid_extra_text,
     "",
     r#"{a: b} is the output."#,
-    FieldType::map(FieldType::string(), FieldType::string()),
+    TypeIR::map(TypeIR::string(), TypeIR::string()),
     {"a": "b"}
 );
 
@@ -43,7 +43,7 @@ test_deserializer!(
         b string
     }"#,
     r#"{first: {"a": 1, "b": "hello"}, 'second': {"a": 2, "b": "world"}}"#,
-    FieldType::map(FieldType::string(), FieldType::class("Foo")),
+    TypeIR::map(TypeIR::string(), TypeIR::class("Foo")),
     {"first":{"a": 1, "b": "hello"}, "second":{"a": 2, "b": "world"}}
 );
 
@@ -54,7 +54,7 @@ test_deserializer!(
 {
     "a": "b
 "#,
-    FieldType::map(FieldType::string(), FieldType::string()),
+    TypeIR::map(TypeIR::string(), TypeIR::string()),
     {"a": "b\n"}
 );
 
@@ -67,7 +67,7 @@ test_deserializer!(
         "b": "c",
         "d":
 "#,
-    FieldType::map(FieldType::string(), FieldType::map(FieldType::string(), FieldType::optional(FieldType::string()))),
+    TypeIR::map(TypeIR::string(), TypeIR::map(TypeIR::string(), TypeIR::optional(TypeIR::string()))),
     // NB: we explicitly drop "d" in this scenario, even though the : gives us a signal that it's a key,
     // and we could default to 'null' for the value, because this is reasonable behavior
     {"a": {"b": "c"}}
@@ -81,7 +81,7 @@ test_deserializer!(
     "a
     ": "b"}
 "#,
-    FieldType::map(FieldType::string(), FieldType::string()),
+    TypeIR::map(TypeIR::string(), TypeIR::string()),
     {"a\n    ": "b"}
 );
 
@@ -95,7 +95,7 @@ test_deserializer!(
     null: "n"
 }
 "#,
-    FieldType::map(FieldType::string(), FieldType::string()),
+    TypeIR::map(TypeIR::string(), TypeIR::string()),
     {"5": "b", "2.17": "e", "null": "n"}
 );
 
@@ -120,18 +120,23 @@ fn test_union_of_class_and_map() {
         a string
         b string
     }"#;
-    let target_type = FieldType::union(vec![
-        FieldType::class("Foo"),
-        FieldType::map(FieldType::string(), FieldType::string()),
+    let target_type = TypeIR::union(vec![
+        TypeIR::class("Foo"),
+        TypeIR::map(TypeIR::string(), TypeIR::string()),
     ]);
     let llm_output = r#"{"a": 1, "b": "hello"}"#;
     let expected = json!({"a": "1", "b": "hello"});
 
     let ir = crate::helpers::load_test_ir(file_content);
-    let target =
-        crate::helpers::render_output_format(&ir, &target_type, &Default::default()).unwrap();
+    let target = crate::helpers::render_output_format(
+        &ir,
+        &target_type,
+        &Default::default(),
+        baml_types::StreamingMode::NonStreaming,
+    )
+    .unwrap();
 
-    let result = from_str(&target, &target_type, llm_output, false);
+    let result = from_str(&target, &target_type, llm_output, true);
 
     assert!(result.is_ok(), "Failed to parse: {result:?}");
 
@@ -153,18 +158,23 @@ fn test_union_of_map_and_class() {
         a string
         b string
     }"#;
-    let target_type = FieldType::union(vec![
-        FieldType::map(FieldType::string(), FieldType::string()),
-        FieldType::class("Foo"),
+    let target_type = TypeIR::union(vec![
+        TypeIR::map(TypeIR::string(), TypeIR::string()),
+        TypeIR::class("Foo"),
     ]);
     let llm_output = r#"{"a": 1, "b": "hello"}"#;
     let expected = json!({"a": "1", "b": "hello"});
 
     let ir = crate::helpers::load_test_ir(file_content);
-    let target =
-        crate::helpers::render_output_format(&ir, &target_type, &Default::default()).unwrap();
+    let target = crate::helpers::render_output_format(
+        &ir,
+        &target_type,
+        &Default::default(),
+        baml_types::StreamingMode::NonStreaming,
+    )
+    .unwrap();
 
-    let result = from_str(&target, &target_type, llm_output, false);
+    let result = from_str(&target, &target_type, llm_output, true);
 
     assert!(result.is_ok(), "Failed to parse: {result:?}");
 
@@ -188,7 +198,7 @@ test_deserializer!(
   }
   "#,
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::r#enum("Key"), FieldType::string()),
+  TypeIR::map(TypeIR::r#enum("Key"), TypeIR::string()),
   {"A": "one", "B": "two"}
 );
 
@@ -201,7 +211,7 @@ test_partial_deserializer_streaming!(
   }
   "#,
   r#"{"A": "one", "B": "two"}"#,
-    FieldType::map(FieldType::r#enum("Key"), FieldType::string()),
+    TypeIR::map(TypeIR::r#enum("Key"), TypeIR::string()),
   {"A": "one", "B": "two"}
 );
 
@@ -209,9 +219,9 @@ test_partial_deserializer_streaming!(
   test_map_with_literal_keys_streaming,
   "",
   r#"{"A": "one", "B": "two"}"#,
-  FieldType::map(FieldType::union(vec![
-    FieldType::Literal(LiteralValue::String("A".to_string()), TypeMeta::default()),
-    FieldType::Literal(LiteralValue::String("B".to_string()), TypeMeta::default()),
-  ]), FieldType::string()),
+  TypeIR::map(TypeIR::union(vec![
+    TypeIR::Literal(LiteralValue::String("A".to_string()), TypeMeta::default()),
+    TypeIR::Literal(LiteralValue::String("B".to_string()), TypeMeta::default()),
+  ]), TypeIR::string()),
   {"A": "one", "B": "two"}
 );

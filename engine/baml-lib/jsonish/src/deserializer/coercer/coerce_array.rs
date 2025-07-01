@@ -1,6 +1,6 @@
 use anyhow::Result;
 use baml_types::CompletionState;
-use internal_baml_core::ir::FieldType;
+use internal_baml_core::ir::TypeIR;
 
 use super::{ParsingContext, ParsingError, TypeCoercer};
 use crate::deserializer::{
@@ -10,10 +10,10 @@ use crate::deserializer::{
 
 pub(super) fn coerce_array(
     ctx: &ParsingContext,
-    list_target: &FieldType,
+    list_target: &TypeIR,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithFlags, ParsingError> {
-    assert!(matches!(list_target, FieldType::List(_, _)));
+    assert!(matches!(list_target, TypeIR::List(_, _)));
 
     log::debug!(
         "scope: {scope} :: coercing to: {name} (current: {current})",
@@ -23,7 +23,7 @@ pub(super) fn coerce_array(
     );
 
     let inner = match list_target {
-        FieldType::List(inner, _) => inner,
+        TypeIR::List(inner, _) => inner,
         _ => unreachable!("coerce_array"),
     };
 

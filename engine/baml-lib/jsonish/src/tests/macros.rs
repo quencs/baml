@@ -5,13 +5,26 @@ macro_rules! test_failing_deserializer {
             let ir = crate::helpers::load_test_ir($file_content);
             let mut target_type = $target_type;
             ir.finalize_type(&mut target_type);
-            let target =
-                crate::helpers::render_output_format(&ir, &target_type, &Default::default())
-                    .unwrap();
+            let target = crate::helpers::render_output_format(
+                &ir,
+                &target_type,
+                &Default::default(),
+                baml_types::StreamingMode::NonStreaming,
+            )
+            .unwrap();
 
-            let result = from_str(&target, &target_type, $raw_string, false);
+            log::info!("target: {target}");
+            log::info!("target_type: {target_type}");
 
-            assert!(result.is_err(), "Failed not to parse");
+            let result = from_str(&target, &target_type, $raw_string, true);
+
+            match result {
+                Ok(v) => {
+                    let value: BamlValue = v.into();
+                    assert!(false, "Parsing should have failed: {value}");
+                }
+                Err(e) => {}
+            }
         }
     };
 }
@@ -42,13 +55,13 @@ macro_rules! test_deserializer {
             let ir = crate::helpers::load_test_ir($file_content);
             let mut target_type = $target_type;
             ir.finalize_type(&mut target_type);
-            let target = crate::helpers::render_output_format(&ir, &target_type, &Default::default()).unwrap();
+            let target = crate::helpers::render_output_format(&ir, &target_type, &Default::default(), baml_types::StreamingMode::NonStreaming).unwrap();
 
             let result = from_str(
                 &target,
                 &target_type,
                 $raw_string,
-                false,
+                true,
             );
 
             assert!(result.is_ok(), "Failed to parse: {:?}", result);
@@ -74,11 +87,15 @@ macro_rules! test_deserializer_with_expected_score {
             let ir = crate::helpers::load_test_ir($file_content);
             let mut target_type = $target_type;
             ir.finalize_type(&mut target_type);
-            let target =
-                crate::helpers::render_output_format(&ir, &target_type, &Default::default())
-                    .unwrap();
+            let target = crate::helpers::render_output_format(
+                &ir,
+                &target_type,
+                &Default::default(),
+                baml_types::StreamingMode::NonStreaming,
+            )
+            .unwrap();
 
-            let result = from_str(&target, &target_type, $raw_string, false);
+            let result = from_str(&target, &target_type, $raw_string, true);
 
             assert!(result.is_ok(), "Failed to parse: {:?}", result);
 
@@ -97,13 +114,16 @@ macro_rules! test_partial_deserializer {
             let ir = crate::helpers::load_test_ir($file_content);
             let mut target_type = $target_type;
             ir.finalize_type(&mut target_type);
-            let target = crate::helpers::render_output_format(&ir, &target_type, &Default::default()).unwrap();
+            let target_type = target_type.to_streaming_type(&ir).to_ir_type();
+            let target = crate::helpers::render_output_format(&ir, &target_type, &Default::default(), baml_types::StreamingMode::Streaming).unwrap();
+            log::info!("target: {target}");
+            log::info!("target_type: {target_type}");
 
             let result = from_str(
                 &target,
                 &target_type,
                 $raw_string,
-                true,
+                false,
             );
 
             assert!(result.is_ok(), "Failed to parse: {:?}", result);
@@ -128,13 +148,18 @@ macro_rules! test_partial_deserializer_streaming {
             let ir = crate::helpers::load_test_ir($file_content);
             let mut target_type = $target_type;
             ir.finalize_type(&mut target_type);
-            let target = crate::helpers::render_output_format(&ir, &target_type, &Default::default()).unwrap();
+            let target_type = target_type.to_streaming_type(&ir).to_ir_type();
+            let target = crate::helpers::render_output_format(&ir, &target_type, &Default::default(), baml_types::StreamingMode::Streaming).unwrap();
+            log::debug!("target: {target}");
+            log::debug!("--------------------------------");
+            log::debug!("target_type: {target_type}");
+            log::debug!("--------------------------------");
 
             let parsed = from_str(
                 &target,
                 &target_type,
                 $raw_string,
-                true,
+                false,
             );
 
             // dbg!(&target);
@@ -143,7 +168,7 @@ macro_rules! test_partial_deserializer_streaming {
 
             assert!(parsed.is_ok(), "Failed to parse: {:?}", parsed);
 
-            let result = crate::helpers::parsed_value_to_response(&ir, parsed.unwrap(), true).unwrap();
+            let result = crate::helpers::parsed_value_to_response(&ir, parsed.unwrap(), baml_types::StreamingMode::Streaming).unwrap();
 
             // dbg!(&result);
 
@@ -165,15 +190,24 @@ macro_rules! test_partial_deserializer_streaming_failure {
             let ir = crate::helpers::load_test_ir($file_content);
             let mut target_type = $target_type;
             ir.finalize_type(&mut target_type);
-            let target =
-                crate::helpers::render_output_format(&ir, &target_type, &Default::default())
-                    .unwrap();
+            let target_type = target_type.to_streaming_type(&ir).to_ir_type();
+            let target = crate::helpers::render_output_format(
+                &ir,
+                &target_type,
+                &Default::default(),
+                baml_types::StreamingMode::Streaming,
+            )
+            .unwrap();
 
-            let parsed = from_str(&target, &target_type, $raw_string, true);
+            let parsed = from_str(&target, &target_type, $raw_string, false);
 
             assert!(parsed.is_ok(), "Failed to parse: {:?}", parsed);
 
-            let result = crate::helpers::parsed_value_to_response(&ir, parsed.unwrap(), true);
+            let result = crate::helpers::parsed_value_to_response(
+                &ir,
+                parsed.unwrap(),
+                baml_types::StreamingMode::Streaming,
+            );
 
             assert!(
                 result.is_err(),

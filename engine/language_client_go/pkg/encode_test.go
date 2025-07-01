@@ -28,8 +28,20 @@ func TestEncodeFunctionArguments(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("EncodeFunctionArguments(%v)", test), func(t *testing.T) {
-			_, err := EncodeRoot(test)
+			_, err := EncodeArgs(test)
 			require.NoError(t, err)
 		})
 	}
+
+	test_value := map[string]string{
+		"a": "b",
+		"c": "d",
+		"e": "f",
+	}
+
+	encoded_value, err := encodeValue(test_value)
+	require.NoError(t, err)
+
+	decoded_value := Decode(encoded_value)
+	require.Equal(t, test_value, decoded_value)
 }

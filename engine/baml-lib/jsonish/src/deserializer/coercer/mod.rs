@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use baml_types::{BamlValue, Constraint, JinjaExpression};
-use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, FieldType};
+use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, TypeIR};
 use internal_baml_jinja::types::OutputFormatContent;
 
 use super::types::BamlValueWithFlags;
@@ -22,7 +22,6 @@ pub struct ParsingContext<'a> {
     pub scope: Vec<String>,
     visited: HashSet<(String, jsonish::Value)>,
     pub of: &'a OutputFormatContent,
-    pub allow_partials: bool,
 }
 
 impl ParsingContext<'_> {
@@ -33,12 +32,11 @@ impl ParsingContext<'_> {
         self.scope.join(".")
     }
 
-    pub(crate) fn new(of: &OutputFormatContent, allow_partials: bool) -> ParsingContext<'_> {
+    pub(crate) fn new(of: &OutputFormatContent) -> ParsingContext<'_> {
         ParsingContext {
             scope: Vec::new(),
             visited: HashSet::new(),
             of,
-            allow_partials,
         }
     }
 
@@ -49,7 +47,6 @@ impl ParsingContext<'_> {
             scope: new_scope,
             visited: self.visited.clone(),
             of: self.of,
-            allow_partials: self.allow_partials,
         }
     }
 
@@ -66,13 +63,12 @@ impl ParsingContext<'_> {
             scope: self.scope.clone(),
             visited: new_visited,
             of: self.of,
-            allow_partials: self.allow_partials,
         }
     }
 
     pub(crate) fn error_too_many_matches<T: std::fmt::Display>(
         &self,
-        target: &FieldType,
+        target: &TypeIR,
         options: impl IntoIterator<Item = T>,
     ) -> ParsingError {
         ParsingError {
@@ -103,7 +99,7 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_unexpected_empty_array(&self, target: &FieldType) -> ParsingError {
+    pub(crate) fn error_unexpected_empty_array(&self, target: &TypeIR) -> ParsingError {
         ParsingError {
             reason: format!("Expected {target}, got empty array"),
             scope: self.scope.clone(),
@@ -111,7 +107,7 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_unexpected_null(&self, target: &FieldType) -> ParsingError {
+    pub(crate) fn error_unexpected_null(&self, target: &TypeIR) -> ParsingError {
         ParsingError {
             reason: format!("Expected {target}, got null"),
             scope: self.scope.clone(),
@@ -135,7 +131,7 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_map_must_have_supported_key(&self, key_type: &FieldType) -> ParsingError {
+    pub(crate) fn error_map_must_have_supported_key(&self, key_type: &TypeIR) -> ParsingError {
         ParsingError {
             reason: format!(
                 "Maps may only have strings, enums or literal strings for keys, but got {key_type}"
@@ -176,15 +172,15 @@ impl ParsingContext<'_> {
 
     pub(crate) fn error_unexpected_type<T: std::fmt::Display + std::fmt::Debug>(
         &self,
-        target: &FieldType,
+        target: &TypeIR,
         got: &T,
     ) -> ParsingError {
         ParsingError {
             reason: format!(
                 "Expected {}, got {:?}.",
                 match target {
-                    FieldType::Enum { .. } => format!("{target} enum value"),
-                    FieldType::Class { .. } => format!("{target}"),
+                    TypeIR::Enum { .. } => format!("{target} enum value"),
+                    TypeIR::Class { .. } => format!("{target}"),
                     _ => format!("{target}"),
                 },
                 got
@@ -247,7 +243,7 @@ pub trait TypeCoercer {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError>;
 }
@@ -262,10 +258,7 @@ pub trait DefaultValue {
 ///
 /// For a function that traverses a whole `BamlValue` looking for failed asserts,
 /// see `first_failing_assert_nested`.
-pub fn run_user_checks(
-    baml_value: &BamlValue,
-    type_: &FieldType,
-) -> Result<Vec<(Constraint, bool)>> {
+pub fn run_user_checks(baml_value: &BamlValue, type_: &TypeIR) -> Result<Vec<(Constraint, bool)>> {
     let res = type_
         .meta()
         .constraints

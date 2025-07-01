@@ -38,7 +38,7 @@ type ClientRegistry struct {
 
 type clientProperty struct {
 	provider    string
-	retryPolicy string
+	retryPolicy *string
 	options     map[string]any
 }
 

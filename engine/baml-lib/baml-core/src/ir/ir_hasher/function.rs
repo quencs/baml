@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use baml_types::{FieldType, StringOr};
+use baml_types::{StringOr, TypeIR};
 use internal_llm_client::ClientSpec;
 
 use super::{super::FunctionNode, ShallowSignature};
@@ -13,8 +13,8 @@ use super::{super::FunctionNode, ShallowSignature};
 #[derive(Debug)]
 struct FunctionInterfaceHash<'a> {
     name: &'a str,
-    args: Vec<(&'a str, &'a FieldType)>,
-    return_type: &'a FieldType,
+    args: Vec<(&'a str, &'a TypeIR)>,
+    return_type: &'a TypeIR,
 }
 
 impl<'a> std::hash::Hash for FunctionInterfaceHash<'a> {
@@ -32,8 +32,8 @@ impl<'a> std::hash::Hash for FunctionInterfaceHash<'a> {
 struct FunctionImplementationHash<'a> {
     client: &'a ClientSpec,
     prompt: &'a str,
-    args: Vec<(&'a str, &'a FieldType)>,
-    return_type: &'a FieldType,
+    args: Vec<(&'a str, &'a TypeIR)>,
+    return_type: &'a TypeIR,
 }
 
 impl<'a> std::hash::Hash for FunctionImplementationHash<'a> {

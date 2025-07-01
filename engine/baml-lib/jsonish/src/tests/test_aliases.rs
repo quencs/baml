@@ -1,4 +1,4 @@
-use baml_types::{type_meta::base::TypeMeta, LiteralValue};
+use baml_types::{ir_type::UnionConstructor, type_meta::base::TypeMeta, LiteralValue};
 
 use super::*;
 
@@ -8,7 +8,7 @@ test_deserializer!(
 type A = A[]
     "#,
     "[[], [], [[]]]",
-    FieldType::recursive_type_alias("A"),
+    TypeIR::recursive_type_alias("A"),
     [[], [], [[]]]
 );
 
@@ -18,7 +18,7 @@ test_deserializer!(
 type A = map<string, A>
     "#,
     r#"{"one": {"two": {}}, "three": {"four": {}}}"#,
-    FieldType::recursive_type_alias("A"),
+    TypeIR::recursive_type_alias("A"),
     {
         "one": {"two": {}},
         "three": {"four": {}}
@@ -31,9 +31,9 @@ test_deserializer!(
 type A = map<string, A>
     "#,
     r#"{"one": {"two": {}}, "three": {"four": {}}}"#,
-    FieldType::union(vec![
-        FieldType::recursive_type_alias("A"),
-        FieldType::int(),
+    TypeIR::union(vec![
+        TypeIR::recursive_type_alias("A"),
+        TypeIR::int(),
     ]),
     {
         "one": {"two": {}},
@@ -49,7 +49,7 @@ type B = C
 type C = A[]
     "#,
     "[[], [], [[]]]",
-    FieldType::recursive_type_alias("A"),
+    TypeIR::recursive_type_alias("A"),
     [[], [], [[]]]
 );
 
@@ -66,7 +66,7 @@ type JsonValue = int | float | bool | string | null | JsonValue[] | map<string, 
         "bool": true
     }
     "#,
-    FieldType::recursive_type_alias("JsonValue"),
+    TypeIR::recursive_type_alias("JsonValue"),
     {
         "int": 1,
         "float": 1.0,
@@ -88,7 +88,7 @@ type JsonValue = int | float | bool | string | null | JsonValue[] | map<string, 
         "list": [1, 2, 3]
     }
     "#,
-    FieldType::recursive_type_alias("JsonValue"),
+    TypeIR::recursive_type_alias("JsonValue"),
     {
         "number": 1,
         "string": "test",
@@ -114,7 +114,7 @@ type JsonValue = int | float | bool | string | null | JsonValue[] | map<string, 
         }
     }
     "#,
-    FieldType::recursive_type_alias("JsonValue"),
+    TypeIR::recursive_type_alias("JsonValue"),
     {
         "number": 1,
         "string": "test",
@@ -158,7 +158,7 @@ type JsonValue = int | float | bool | string | null | JsonValue[] | map<string, 
         }
     }
     "#,
-    FieldType::recursive_type_alias("JsonValue"),
+    TypeIR::recursive_type_alias("JsonValue"),
     {
         "number": 1,
         "string": "test",
@@ -206,7 +206,7 @@ type JsonValue = int | float | bool | string | null | JsonValue[] | map<string, 
         }
     ]
     "#,
-    FieldType::recursive_type_alias("JsonValue"),
+    TypeIR::recursive_type_alias("JsonValue"),
     [
         {
             "number": 1,
@@ -231,7 +231,7 @@ type JsonValue = int | float | bool | string | null | JsonValue[] | map<string, 
     r#"
     [[42.1]]
     "#,
-    FieldType::recursive_type_alias("JsonValue"),
+    TypeIR::recursive_type_alias("JsonValue"),
     // [[[[[[[[[[[[[[[[[[[[42]]]]]]]]]]]]]]]]]]]]
     [[42.1]]
 );
@@ -255,7 +255,7 @@ type JsonObject = map<string, JsonValue>
         }
     }
     "#,
-    FieldType::recursive_type_alias("JsonValue"),
+    TypeIR::recursive_type_alias("JsonValue"),
     {
         "number": 1,
         "string": "test",
@@ -300,7 +300,7 @@ type JsonValue = int | float | bool | string | null | JsonValue[] | map<string, 
         }
     }
     "#,
-    FieldType::recursive_type_alias("JsonValue"),
+    TypeIR::recursive_type_alias("JsonValue"),
     {
         "recipe": {
             "name": "Chocolate Chip Cookies",
@@ -338,9 +338,14 @@ type JsonObject = map<string, JsonValue>
     "#,
     );
 
-    let target_type = FieldType::recursive_type_alias("JsonValue");
-    let target =
-        crate::helpers::render_output_format(&ir, &target_type, &Default::default()).unwrap();
+    let target_type = TypeIR::recursive_type_alias("JsonValue");
+    let target = crate::helpers::render_output_format(
+        &ir,
+        &target_type,
+        &Default::default(),
+        baml_types::StreamingMode::NonStreaming,
+    )
+    .unwrap();
 
     let result = from_str(
         &target,
@@ -370,7 +375,7 @@ type JsonObject = map<string, JsonValue>
             ]
         }
     }"#,
-        false,
+        true,
     );
 
     assert!(result.is_ok(), "Failed to parse: {result:?}");

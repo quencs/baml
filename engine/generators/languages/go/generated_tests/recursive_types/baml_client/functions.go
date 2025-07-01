@@ -41,7 +41,7 @@ func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.JSON, erro
 		args.Collectors = callOpts.collectors
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +85,7 @@ func JsonInput(ctx context.Context, x types.JSON, opts ...CallOptionFunc) (types
 		args.Collectors = callOpts.collectors
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		panic(err)
 	}

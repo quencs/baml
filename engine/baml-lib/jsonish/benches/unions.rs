@@ -1,4 +1,4 @@
-use baml_types::FieldType;
+use baml_types::{ir_type::UnionConstructor, TypeIR};
 use criterion::Criterion;
 use internal_baml_jinja::types::Builder;
 use jsonish::{from_str, helpers::common::UNION_SCHEMA, jsonish as internal_jsonish};
@@ -6,19 +6,25 @@ use jsonish::{from_str, helpers::common::UNION_SCHEMA, jsonish as internal_jsoni
 pub fn bench_unions(c: &mut Criterion) {
     let mut group = c.benchmark_group("unions");
 
-    let target = FieldType::union(vec![
-        FieldType::class("VideoContent"),
-        FieldType::class("TextContent"),
-        FieldType::class("ImageContent"),
-        FieldType::class("AudioContent"),
+    let target = TypeIR::union(vec![
+        TypeIR::class("VideoContent"),
+        TypeIR::class("TextContent"),
+        TypeIR::class("ImageContent"),
+        TypeIR::class("AudioContent"),
     ]);
     let ir = jsonish::helpers::load_test_ir(UNION_SCHEMA);
-    let of = jsonish::helpers::render_output_format(&ir, &target, &Default::default()).unwrap();
+    let of = jsonish::helpers::render_output_format(
+        &ir,
+        &target,
+        &Default::default(),
+        baml_types::StreamingMode::NonStreaming,
+    )
+    .unwrap();
 
     // let of = Builder::new(target.clone()).build();
 
     group.bench_function("text_content", |b| {
-        b.iter(|| from_str(&of, &target, r#"{"text": "Hello World"}"#, false))
+        b.iter(|| from_str(&of, &target, r#"{"text": "Hello World"}"#))
     });
 
     group.bench_function("image_content", |b| {
@@ -27,14 +33,13 @@ pub fn bench_unions(c: &mut Criterion) {
                 &of,
                 &target,
                 r#"{"url": "https://example.com/img.jpg", "width": 800, "height": 600}"#,
-                false,
             )
         })
     });
 
     group.bench_function("video_content_jsonish_only", |b| {
         b.iter(|| {
-            internal_jsonish::parse(
+            internal_jsonish::parse_func(
                 r#"{"url": "https://example.com/video.mp4", "duration": 120}"#,
                 internal_jsonish::ParseOptions::default(),
             )
@@ -47,17 +52,22 @@ pub fn bench_unions(c: &mut Criterion) {
                 &of,
                 &target,
                 r#"{"url": "https://example.com/video.mp4", "duration": 120}"#,
-                false,
             )
         })
     });
 
-    let target = FieldType::recursive_type_alias("JSONValue");
-    let of = jsonish::helpers::render_output_format(&ir, &target, &Default::default()).unwrap();
+    let target = TypeIR::recursive_type_alias("JSONValue");
+    let of = jsonish::helpers::render_output_format(
+        &ir,
+        &target,
+        &Default::default(),
+        baml_types::StreamingMode::NonStreaming,
+    )
+    .unwrap();
 
     group.bench_function("json_value_jsonish_only", |b| {
         b.iter(|| {
-            internal_jsonish::parse(
+            internal_jsonish::parse_func(
                 jsonish::helpers::common::JSON_STRING,
                 internal_jsonish::ParseOptions::default(),
             )
@@ -65,7 +75,7 @@ pub fn bench_unions(c: &mut Criterion) {
     });
 
     group.bench_function("json_value", |b| {
-        b.iter(|| from_str(&of, &target, jsonish::helpers::common::JSON_STRING, true))
+        b.iter(|| from_str(&of, &target, jsonish::helpers::common::JSON_STRING))
     });
 
     group.finish();

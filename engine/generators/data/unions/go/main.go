@@ -56,7 +56,6 @@ func main() {
 	// }
 
 	// parsed_data := cffi.CFFIValueHolder{}
-	// flatbuffers.GetRootAs(content_bytes, 0, &parsed_data)
 	// decoded_data := baml.Decode(&parsed_data)
 
 	// fmt.Println(decoded_data)

@@ -1,4 +1,4 @@
-use baml_types::FieldType;
+use baml_types::{ir_type::UnionConstructor, TypeIR};
 
 use super::*;
 
@@ -46,7 +46,7 @@ test_deserializer!(
       route: /
 }  
   "#,
-  FieldType::class("PageTask"),
+  TypeIR::class("PageTask"),
   {
     "type": "page",
     "name": "HomePage",
@@ -68,10 +68,10 @@ test_deserializer!(
       function_signature: async function fetchPosts(page: number, sort: string, filters: object): Promise<PostList>
     }
   ]"#,
-  FieldType::union(vec![
-    FieldType::class("ServerActionTask"),
-    FieldType::class("PageTask"),
-    FieldType::class("ComponentTask"),
+  TypeIR::union(vec![
+    TypeIR::class("ServerActionTask"),
+    TypeIR::class("PageTask"),
+    TypeIR::class("ComponentTask"),
   ]).as_list(),
   [
     {
@@ -100,10 +100,10 @@ test_deserializer!(
       props: {title: string, excerpt: string, author: Author, date: string, onClick: () => void}
     }
   ]"#,
-  FieldType::union(vec![
-    FieldType::class("ServerActionTask"),
-    FieldType::class("PageTask"),
-    FieldType::class("ComponentTask"),
+  TypeIR::union(vec![
+    TypeIR::class("ServerActionTask"),
+    TypeIR::class("PageTask"),
+    TypeIR::class("ComponentTask"),
   ]).as_list(),
   [
     {
@@ -146,10 +146,10 @@ test_deserializer!(
       route: /
     }
   ]"#,
-  FieldType::union(vec![
-    FieldType::class("ServerActionTask"),
-    FieldType::class("PageTask"),
-    FieldType::class("ComponentTask"),
+  TypeIR::union(vec![
+    TypeIR::class("ServerActionTask"),
+    TypeIR::class("PageTask"),
+    TypeIR::class("ComponentTask"),
   ]).as_list(),
   [
     {
@@ -206,10 +206,10 @@ test_deserializer!(
       function_signature: async function fetchPostById(id: string): Promise<Post>
     }
   ]"#,
-  FieldType::union(vec![
-    FieldType::class("ServerActionTask"),
-    FieldType::class("PageTask"),
-    FieldType::class("ComponentTask"),
+  TypeIR::union(vec![
+    TypeIR::class("ServerActionTask"),
+    TypeIR::class("PageTask"),
+    TypeIR::class("ComponentTask"),
   ]).as_list(),
   [
     {
@@ -415,10 +415,10 @@ Actions:
   }
 ]
   "###,
-  FieldType::union(vec![
-    FieldType::class("ServerActionTask"),
-    FieldType::class("PageTask"),
-    FieldType::class("ComponentTask"),
+  TypeIR::union(vec![
+    TypeIR::class("ServerActionTask"),
+    TypeIR::class("PageTask"),
+    TypeIR::class("ComponentTask"),
   ]).as_list(),
   [
     {
