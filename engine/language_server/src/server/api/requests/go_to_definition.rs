@@ -98,7 +98,7 @@ impl SyncRequestHandler for GotoDefinition {
                     range,
                 });
 
-                // Broadcast function change to playground clients
+                #[cfg(feature = "playground-server")]
                 if let Some(state) = &session.playground_state {
                     // Get the first function from the current file if available
                     if let Some(function) = guard

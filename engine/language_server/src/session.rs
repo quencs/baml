@@ -33,6 +33,7 @@ mod settings;
 
 use tokio::sync::{broadcast, RwLock};
 
+#[cfg(feature = "playground-server")]
 use crate::playground::{broadcast_project_update, PlaygroundState};
 
 /// The global state for the LSP
@@ -51,8 +52,10 @@ pub struct Session {
 
     pub baml_settings: BamlSettings,
 
+    #[cfg(feature = "playground-server")]
     pub playground_state: Option<Arc<RwLock<PlaygroundState>>>,
 
+    #[cfg(feature = "playground-server")]
     /// Runtime for the playground server
     pub playground_runtime: Option<tokio::runtime::Runtime>,
 }
@@ -60,8 +63,9 @@ pub struct Session {
 impl Drop for Session {
     fn drop(&mut self) {
         // Shutdown the playground runtime if it exists
+        #[cfg(feature = "playground-server")]
         if let Some(runtime) = self.playground_runtime.take() {
-            runtime.shutdown_timeout(std::time::Duration::from_secs(1));
+            drop(runtime);
         }
     }
 }
@@ -74,7 +78,9 @@ impl Clone for Session {
             position_encoding: self.position_encoding,
             resolved_client_capabilities: self.resolved_client_capabilities.clone(),
             baml_settings: self.baml_settings.clone(),
+            #[cfg(feature = "playground-server")]
             playground_state: self.playground_state.clone(),
+            #[cfg(feature = "playground-server")]
             playground_runtime: None, // Don't clone the runtime
         }
     }
@@ -124,7 +130,9 @@ impl Session {
                 client_capabilities,
             )),
             baml_settings: BamlSettings::default(),
+            #[cfg(feature = "playground-server")]
             playground_state: None,
+            #[cfg(feature = "playground-server")]
             playground_runtime: None,
         })
     }

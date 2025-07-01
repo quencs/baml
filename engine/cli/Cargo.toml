@@ -23,7 +23,7 @@ anyhow.workspace = true
 axum = "0.7.5"
 axum-extra = { version = "0.9.3", features = ["erased-json", "typed-header"] }
 baml-runtime = { path = "../baml-runtime", features = ["internal"] }
-language-server = { path = "../language_server" }
+language-server = { path = "../language_server", optional = false, default-features = false, features = [] }
 baml-types.workspace = true
 baml-log.workspace = true
 base64.workspace = true
@@ -116,6 +116,7 @@ defaults = []
 internal = []
 skip-integ-tests = []
 static-ssl = ["reqwest/native-tls-vendored"]
+playground-server = ["language-server/playground-server"]
 
 [dev-dependencies]
 assert_cmd = "2"

@@ -3,6 +3,7 @@ use std::time::Duration;
 use lsp_server::ErrorCode;
 use lsp_types::{request, ExecuteCommandParams, MessageType};
 use tokio::time::sleep;
+#[cfg(feature = "playground-server")]
 use webbrowser;
 
 // use crate::server::api::DocumentKey;
@@ -29,6 +30,7 @@ impl SyncRequestHandler for ExecuteCommand {
         _requester: &mut Requester,
         params: ExecuteCommandParams,
     ) -> Result<Option<serde_json::Value>> {
+        #[cfg(feature = "playground-server")]
         if params.command == "openPlayground" {
             // Get the playground port from session settings
             let port = session.baml_settings.playground_port.unwrap_or(3030);

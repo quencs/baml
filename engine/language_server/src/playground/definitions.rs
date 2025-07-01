@@ -1,3 +1,5 @@
+#![cfg(feature = "playground-server")]
+
 use std::collections::{HashMap, VecDeque};
 
 use serde::{Deserialize, Serialize};

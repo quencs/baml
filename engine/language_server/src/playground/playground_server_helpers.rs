@@ -1,3 +1,5 @@
+#![cfg(feature = "playground-server")]
+
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use anyhow::Result;

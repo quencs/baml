@@ -43,7 +43,7 @@ export default function EmbedComponent({ bamlContent }: EmbedComponentProps) {
 
   return (
     <div className='flex justify-center items-center w-screen h-screen bg-background'>
-      <EventListener>
+      <EventListener hideLspBanner>
         {/* noop for now -- we dont need to nest all the other components in the EventListener since we use jotaiprovider store and we dont want to rerender needlessly */}
         <div></div>
       </EventListener>

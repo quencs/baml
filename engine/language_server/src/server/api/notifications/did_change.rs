@@ -5,7 +5,6 @@ use lsp_types::{
 };
 
 use crate::{
-    playground::broadcast_project_update,
     server::{
         api::{
             diagnostics::publish_diagnostics,
@@ -18,6 +17,9 @@ use crate::{
     session::Session,
     DocumentKey,
 };
+
+#[cfg(feature = "playground-server")]
+use crate::playground::broadcast_project_update;
 
 pub(crate) struct DidChangeTextDocumentHandler;
 
@@ -64,8 +66,8 @@ impl SyncNotificationHandler for DidChangeTextDocumentHandler {
             )
             .internal_error()?;
 
-        // Broadcast update to playground clients
-        if let Some(state) = &session.playground_state {
+        #[cfg(feature = "playground-server")]
+        {
             let project = project.lock().unwrap();
             let files_map: std::collections::HashMap<String, String> = project
                 .baml_project

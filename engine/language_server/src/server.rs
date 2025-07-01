@@ -40,9 +40,11 @@ mod schedule;
 
 pub(crate) use connection::ClientSender;
 
+#[cfg(feature = "playground-server")]
+use crate::playground::{PlaygroundServer, PlaygroundState};
+
 use crate::{
     message::try_show_message,
-    playground::{PlaygroundServer, PlaygroundState},
 };
 
 pub type Result<T> = std::result::Result<T, api::Error>;
@@ -168,13 +170,18 @@ impl Server {
         let client = client::Client::new(connection.make_sender());
         let notifier = client.notifier();
 
-        // Playground state is initialized here, but server startup is now external
-        let playground_state = Arc::new(RwLock::new(PlaygroundState::new()));
-        session.playground_state = Some(playground_state.clone());
-        let session_arc = Arc::new(session.clone());
-        // Store the runtime in the session
-        session.playground_runtime = Some(rt);
-        session.reload(Some(notifier))?;
+        #[cfg(feature = "playground-server")]
+        {
+            let playground_state = Arc::new(RwLock::new(PlaygroundState::new()));
+            session.playground_state = Some(playground_state.clone());
+            let session_arc = Arc::new(session.clone());
+            session.playground_runtime = Some(rt);
+            session.reload(Some(notifier))?;
+        }
+        #[cfg(not(feature = "playground-server"))]
+        {
+            session.reload(Some(notifier))?;
+        }
 
         let server = Self {
             connection,
@@ -182,6 +189,7 @@ impl Server {
             session,
             client_capabilities,
         };
+        #[cfg(feature = "playground-server")]
         server.start_playground_server();
         Ok(server)
     }
@@ -403,6 +411,7 @@ impl Server {
         }
     }
 
+    #[cfg(feature = "playground-server")]
     fn start_playground_server(&self) {
         if let (Some(playground_state), Some(rt)) = (
             self.session.playground_state.clone(),

@@ -13,11 +13,14 @@ pub(crate) type WorkspaceSettingsMap = FxHashMap<Url, ClientSettings>;
 pub struct BamlSettings {
     pub(crate) cli_path: Option<String>,
     pub(crate) generate_code_on_save: Option<String>,
+    #[cfg(feature = "playground-server")]
     #[serde(default = "default_enable_playground")]
     pub enable_playground: bool,
+    #[cfg(feature = "playground-server")]
     pub playground_port: Option<u16>,
 }
 
+#[cfg(feature = "playground-server")]
 fn default_enable_playground() -> bool {
     true
 }

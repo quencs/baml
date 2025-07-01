@@ -1,3 +1,5 @@
+#![cfg(feature = "playground-server")]
+
 use std::sync::Arc;
 
 use anyhow::Result;

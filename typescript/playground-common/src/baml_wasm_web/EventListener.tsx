@@ -80,10 +80,10 @@ const ErrorCount: React.FC = () => {
 
 export const isConnectedAtom = atom(true)
 
-const ConnectionStatus: React.FC = () => {
+const ConnectionStatus: React.FC<{ hideLspBanner?: boolean }> = ({ hideLspBanner }) => {
   const isConnected = useAtomValue(isConnectedAtom)
 
-  if (isConnected || vscode.isVscode()) return null
+  if (hideLspBanner || isConnected || vscode.isVscode()) return null
 
   return (
     <div className='fixed top-0 left-0 right-0 bg-red-600 text-white p-2 flex items-center justify-between z-50'>
@@ -102,7 +102,7 @@ const ConnectionStatus: React.FC = () => {
 }
 
 // We don't use ASTContext.provider because we should the default value of the context
-export const EventListener: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const EventListener: React.FC<{ children: React.ReactNode; hideLspBanner?: boolean }> = ({ children, hideLspBanner }) => {
   const updateCursor = useSetAtom(updateCursorAtom)
   const setFiles = useSetAtom(filesAtom)
   const debouncedSetFiles = useDebounceCallback(setFiles, 50, true)
@@ -343,7 +343,7 @@ export const EventListener: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <>
-      <ConnectionStatus />
+      <ConnectionStatus hideLspBanner={hideLspBanner} />
       <div className='flex absolute right-2 bottom-2 z-50 flex-row gap-2 text-xs bg-transparent'>
         <div className='pr-4 whitespace-nowrap'>{bamlCliVersion && 'baml-cli ' + bamlCliVersion}</div>
         <ErrorCount /> <span className='text-muted-foreground text-[10px]'>VSCode Runtime Version: {version}</span>

@@ -66,7 +66,7 @@ const ProjectViewImpl = ({ project }: { project: BAMLProject }) => {
     // firefox wont apply the background color for some reason so we forcefully set it.
     <div className='flex relative flex-row w-full h-full main-panel overflow-x-clip overflow-y-clip'>
       <CustomErrorBoundary message='Error loading project'>
-        <EventListener>
+        <EventListener hideLspBanner>
           {/* noop for now -- we dont need to nest all the other components in the EventListener since we use jotaiprovider store and we dont want to rerender needlessly */}
           <div></div>
         </EventListener>
