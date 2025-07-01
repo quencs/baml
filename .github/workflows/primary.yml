@@ -30,7 +30,7 @@ permissions:
   repository-projects: read
 
 jobs:
-  build-wasm-and-packages:
+  build-packages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,19 +55,23 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build WASM packages
-        run: pnpm turbo release --filter='@gloo-ai/baml-schema-wasm...'
-      - name: Build Node packages (including playground)
-        run: pnpm turbo release --filter='@boundaryml/baml...'
-      - name: Upload built playground artifacts
+      - name: Build all packages
+        run: pnpm turbo release
+      - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: playground-dist
-          path: typescript/apps/playground/dist/
+          name: built-packages
+          path: |
+            typescript/apps/playground/dist/
+            engine/baml-schema-wasm/nodejs/
+            engine/baml-schema-wasm/web/
+            engine/language_client_typescript/dist/
+            typescript/packages/*/dist/
+            typescript/apps/*/dist/
           retention-days: 1
 
   lint:
-    needs: build-wasm-and-packages
+    needs: build-packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,11 +92,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-      - name: Download built playground artifacts
+      - name: Download built artifacts
         uses: actions/download-artifact@v4
         with:
-          name: playground-dist
-          path: typescript/apps/playground/dist/
+          name: built-packages
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
       - name: Check TS Lint
@@ -110,7 +113,7 @@ jobs:
         working-directory: engine/baml-schema-wasm
 
   test_node_generator:
-    needs: build-wasm-and-packages
+    needs: build-packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -138,11 +141,10 @@ jobs:
           workspaces: engine
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - name: Download built playground artifacts
+      - name: Download built artifacts
         uses: actions/download-artifact@v4
         with:
-          name: playground-dist
-          path: typescript/apps/playground/dist/
+          name: built-packages
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
       - name: Test Node Generator
@@ -170,35 +172,8 @@ jobs:
         run: |
           git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
 
-  build-wasm:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        - uses: jdx/mise-action@v2
-        - uses: pnpm/action-setup@v4
-          with:
-            version: 9.12.0
-            run_install: false
-        - uses: actions/setup-node@v4
-          with:
-            node-version: 20
-            cache: pnpm
-            cache-dependency-path: pnpm-lock.yaml
-        - uses: dtolnay/rust-toolchain@stable
-          with:
-            toolchain: stable
-        - run: rustup target add wasm32-unknown-unknown
-        - uses: Swatinem/rust-cache@v2
-          with:
-            workspaces: engine
-        - name: Install wasm-pack
-          run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-        - name: Install Node dependencies
-          run: pnpm install --frozen-lockfile
-        - name: Build WASM packages
-          run: pnpm turbo release --filter='@gloo-ai/baml-schema-wasm...'
-
   build:
+    needs: build-packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -247,16 +222,19 @@ jobs:
       #   run: bundle exec tapioca init
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Download built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: built-packages
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build all packages
-        run: pnpm turbo release --force
       - name: Test Rust
         # skip doctests & integration tests (the latter require OPENAI_API_KEY and ANTHROPIC_API_KEY to be set)
         run: cargo test --lib
         working-directory: engine
 
   integ-tests:
+    needs: build-packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -285,10 +263,12 @@ jobs:
           workspaces: engine
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Download built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: built-packages
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build all packages
-        run: pnpm turbo release
       - name: run python tests
         run: |
           cd integ-tests/python
