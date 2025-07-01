@@ -96,6 +96,9 @@ def main(
     allow_dirty: bool = typer.Option(
         False, "--allow-dirty", help="Allow dirty git status"
     ),
+    skip_tags: bool = typer.Option(
+        False, "--skip-tags", help="Skip tags when bumping version"
+    ),
 ) -> None:
     # Replace VersionBumpArgs with direct flag access
     modes = [ts, python, ruby, go, vscode, jetbrains, bump_all]
@@ -111,7 +114,8 @@ def main(
     os.chdir(repo_root)
 
     # Pull latest tags
-    run("git pull --tags")
+    if not skip_tags:
+        run("git pull --tags")
 
     # Check git status
     if run("git diff --quiet", check=False).returncode != 0:
