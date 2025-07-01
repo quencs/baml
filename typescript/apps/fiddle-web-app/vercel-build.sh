@@ -5,11 +5,7 @@ set -e
 # Install Rust in a Vercel-friendly way
 if ! command -v cargo &> /dev/null; then
     echo "Installing Rust for Vercel environment..."
-    # Fix HOME directory for Rust installer in Vercel
-    export HOME=/root
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y --default-toolchain 1.85.0
-    # Restore HOME for Vercel
-    export HOME=/vercel
 fi
 
 export PATH="/vercel/.cargo/bin:$PATH"
