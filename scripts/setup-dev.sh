@@ -61,6 +61,9 @@ if [ "$SKIP_RUST" = false ]; then
 
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.85.0
         source $HOME/.cargo/env
+        
+        # Ensure the default toolchain is properly set
+        rustup default 1.85.0
 
         # Restore original HOME if it was changed
         if [ "$ORIGINAL_HOME" != "$HOME" ]; then

@@ -8,6 +8,12 @@ export PATH="/vercel/.cargo/bin:$PATH"
 bash ../../../scripts/setup-dev.sh --skip-pnpm --skip-cargo-watch
 
 source $HOME/.cargo/env
+
+# Ensure rustup has a default toolchain configured
+if ! rustup show active-toolchain &> /dev/null; then
+    echo "Setting up default Rust toolchain..."
+    rustup default stable
+fi
 # clang --version
 #llvm-config --version
 # g++ --version
