@@ -59,7 +59,7 @@ if [ "$SKIP_RUST" = false ]; then
             echo -e "${YELLOW}   Changed HOME from $ORIGINAL_HOME to $HOME${NC}"
         fi
 
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.85.0
         source $HOME/.cargo/env
 
         # Restore original HOME if it was changed
