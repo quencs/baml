@@ -74,6 +74,10 @@ jobs:
       - uses: jdx/mise-action@v2
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli --version 0.2.92
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
       - uses: astral-sh/setup-uv@v6
       - name: Setup
         run: ${{ matrix._.setup }}
@@ -91,7 +95,7 @@ jobs:
       
       # This step is necessary to guarantee that the language server has a frontend to embed.
       - name: Build web-panel for language server
-        run: bash ./scripts/build.sh
+        run: bash ./scripts/build_dist.sh
         working-directory: engine/language_server
 
       - name: Run all integ tests

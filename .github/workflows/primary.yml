@@ -144,6 +144,10 @@ jobs:
         - uses: Swatinem/rust-cache@v2
           with:
             workspaces: engine
+        - name: Install wasm-bindgen-cli
+          run: cargo install wasm-bindgen-cli --version 0.2.92
+        - name: Install wasm-pack
+          run: cargo install wasm-pack
         - name: Build rust for wasm32
           run: cargo build --target=wasm32-unknown-unknown
           working-directory: engine/baml-schema-wasm
@@ -171,6 +175,10 @@ jobs:
           python-version: '3.13'
       - name: Install ruff
         run: pip install ruff
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli --version 0.2.92
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
       - uses: actions/setup-node@v4
         with:
           node-version: '24.2.0'
