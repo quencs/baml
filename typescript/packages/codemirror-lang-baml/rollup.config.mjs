@@ -17,7 +17,15 @@ export default {
       outDir: 'dist',
       module: 'ESNext',
       target: 'ES2020',
-      moduleResolution: 'node'
+      moduleResolution: 'node',
+      compilerOptions: {
+        moduleResolution: 'node',
+        allowSyntheticDefaultImports: true,
+        esModuleInterop: true,
+        isolatedModules: true,
+        skipLibCheck: true
+      },
+      clean: process.env.CI === 'true'
     })
   ],
 };

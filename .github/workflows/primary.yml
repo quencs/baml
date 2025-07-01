@@ -55,6 +55,8 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
+      - name: Clear Turbo cache in CI
+        run: pnpm turbo daemon stop && rm -rf .turbo || true
       - name: Build all packages
         run: pnpm turbo release
       - name: Upload built artifacts

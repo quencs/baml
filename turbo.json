@@ -21,17 +21,52 @@
     },
     "typecheck": {
       "dependsOn": ["^topo"],
-      "inputs": ["**/*.rs", "**/*.toml", "**/*.j2", "**/*.pest"],
+      "inputs": [
+        "**/*.rs",
+        "**/*.toml",
+        "**/*.j2",
+        "**/*.pest",
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.js",
+        "**/*.jsx",
+        "tsconfig.json",
+        "rollup.config.*"
+      ],
       "outputs": ["node_modules/.cache/tsbuildinfo.json", "target/**"]
     },
     "build": {
       "dependsOn": ["^topo", "^build"],
-      "inputs": ["**/*.rs", "**/*.toml", "**/*.j2", "**/*.pest"],
+      "inputs": [
+        "**/*.rs",
+        "**/*.toml",
+        "**/*.j2",
+        "**/*.pest",
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.js",
+        "**/*.jsx",
+        "tsconfig.json",
+        "rollup.config.*",
+        "package.json"
+      ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "target/**"]
     },
     "release": {
       "dependsOn": ["^topo", "^release"],
-      "inputs": ["**/*.rs", "**/*.toml", "**/*.j2", "**/*.pest"],
+      "inputs": [
+        "**/*.rs",
+        "**/*.toml",
+        "**/*.j2",
+        "**/*.pest",
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.js",
+        "**/*.jsx",
+        "tsconfig.json",
+        "rollup.config.*",
+        "package.json"
+      ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "target/**"]
     }
   }
