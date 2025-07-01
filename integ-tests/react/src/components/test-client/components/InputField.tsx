@@ -1,4 +1,4 @@
-import { Label } from '@/components/ui/label';
+import { Label } from '@baml/ui/label';
 import type { InputFieldConfig } from '@/lib/store';
 import type { ImageSourceType } from '../utils/imageUtils';
 import { ImageInput } from './ImageInput';

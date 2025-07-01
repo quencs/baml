@@ -3,7 +3,7 @@
 import { ExampleSelector } from '@/components/example-selector';
 import { TestClient } from '@/components/test-client';
 import { ModeToggle } from '@/components/theme-toggle';
-import { Button } from '@/components/ui/button';
+import { Button } from '@baml/ui/button';
 import { GithubIcon } from 'lucide-react';
 import Image from 'next/image';
 

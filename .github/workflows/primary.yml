@@ -174,8 +174,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24.2.0'
-      - name: Install prettier
-        run: npm install -g prettier
       # Ruby is still a wip
       # - uses: ruby/setup-ruby@v1
       #   with:
@@ -193,7 +191,7 @@ jobs:
       - name: Build playground
         run: pnpm build:playground
       - name: Test Rust
-        # skip doctests & integration tests (the latter require OPENAI_API_KEY and ANTHROPIC_API_KEY to be set)
+        # skip doctests & integration, tests (the latter require OPENAI_API_KEY and ANTHROPIC_API_KEY to be set)
         run: cargo test --lib
         working-directory: engine
   integ-tests:
