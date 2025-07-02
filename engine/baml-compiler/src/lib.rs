@@ -322,120 +322,114 @@ pub fn ast(source: &str) -> anyhow::Result<ParserDatabase> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn call_function() -> anyhow::Result<()> {
-        let ast = ast("
-            fn two() -> int {
-                2
-            }
+    /// Helper struct for testing bytecode compilation.
+    struct Program {
+        source: &'static str,
+        expected: Vec<(&'static str, Vec<Instruction>)>,
+    }
 
-            fn main() -> int {
-                let a = two();
-                a
-            }
-        ")?;
-
+    /// Helper function to assert that source code compiles to expected bytecode
+    /// instructions.
+    fn assert_compiles(test: Program) -> anyhow::Result<()> {
+        let ast = ast(test.source)?;
         let (objects, globals) = compile(ast)?;
 
-        let Object::Function(main) = &objects[0] else {
-            return Err(anyhow::anyhow!("Main function not found"));
-        };
+        // Create a map of function name to function for easy lookup
+        let functions: std::collections::HashMap<&str, &baml_vm::Function> = objects
+            .iter()
+            .filter_map(|obj| match obj {
+                Object::Function(f) => Some((f.name.as_str(), f)),
+                _ => None,
+            })
+            .collect();
 
-        let Object::Function(two) = &objects[1] else {
-            return Err(anyhow::anyhow!("Two function not found"));
-        };
+        // Check each expected function
+        for (function_name, expected_instructions) in test.expected {
+            let function = functions
+                .get(function_name)
+                .ok_or_else(|| anyhow::anyhow!("function '{}' not found", function_name))?;
 
-        assert_eq!(
-            main.bytecode.instructions,
-            vec![Instruction::LoadConst(0), Instruction::Return]
-        );
-
-        eprintln!(
-            "{}",
-            baml_vm::debug::display_bytecode(two, &objects, &globals)
-        );
-
-        assert_eq!(
-            two.bytecode.instructions,
-            vec![
-                Instruction::LoadGlobal(0),
-                Instruction::Call(0),
-                Instruction::LoadVar(1),
-                Instruction::Return,
-            ]
-        );
+            assert_eq!(
+                function.bytecode.instructions, expected_instructions,
+                "Bytecode mismatch for function '{function_name}'"
+            );
+        }
 
         Ok(())
+    }
+
+    #[test]
+    fn call_function() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: "
+                fn two() -> int {
+                    2
+                }
+
+                fn main() -> int {
+                    let a = two();
+                    a
+                }
+            ",
+            expected: vec![
+                ("two", vec![Instruction::LoadConst(0), Instruction::Return]),
+                (
+                    "main",
+                    vec![
+                        Instruction::LoadGlobal(0),
+                        Instruction::Call(0),
+                        Instruction::LoadVar(1),
+                        Instruction::Return,
+                    ],
+                ),
+            ],
+        })
     }
 
     #[test]
     fn if_else_statement() -> anyhow::Result<()> {
-        let ast = ast("
-            fn main(b: bool) -> int {
-                if b { 1 } else { 2 }
-            }
-        ")?;
-
-        let (objects, globals) = compile(ast)?;
-
-        let Object::Function(main) = &objects[0] else {
-            return Err(anyhow::anyhow!("Main function not found"));
-        };
-
-        eprintln!(
-            "{}",
-            baml_vm::debug::display_bytecode(main, &objects, &globals)
-        );
-
-        assert_eq!(
-            main.bytecode.instructions,
-            vec![
-                Instruction::LoadVar(1),
-                Instruction::JumpIfFalse(4),
-                Instruction::Pop,
-                Instruction::LoadConst(0),
-                Instruction::Jump(3),
-                Instruction::Pop,
-                Instruction::LoadConst(1),
-                Instruction::Return,
-            ]
-        );
-
-        Ok(())
+        assert_compiles(Program {
+            source: "
+                fn main(b: bool) -> int {
+                    if b { 1 } else { 2 }
+                }
+            ",
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadVar(1),
+                    Instruction::JumpIfFalse(4),
+                    Instruction::Pop,
+                    Instruction::LoadConst(0),
+                    Instruction::Jump(3),
+                    Instruction::Pop,
+                    Instruction::LoadConst(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
     }
 
     #[test]
     fn array_constructor() -> anyhow::Result<()> {
-        let ast = ast("
-            fn main() -> int[] {
-                let a = [1, 2, 3];
-                a
-            }
-        ")?;
-
-        let (objects, globals) = compile(ast)?;
-
-        let Object::Function(main) = &objects[0] else {
-            return Err(anyhow::anyhow!("Main function not found"));
-        };
-
-        eprintln!(
-            "{}",
-            baml_vm::debug::display_bytecode(main, &objects, &globals)
-        );
-
-        assert_eq!(
-            main.bytecode.instructions,
-            vec![
-                Instruction::LoadConst(0),
-                Instruction::LoadConst(1),
-                Instruction::LoadConst(2),
-                Instruction::AllocArray(3),
-                Instruction::LoadVar(1),
-                Instruction::Return,
-            ]
-        );
-
-        Ok(())
+        assert_compiles(Program {
+            source: "
+                fn main() -> int[] {
+                    let a = [1, 2, 3];
+                    a
+                }
+            ",
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadConst(1),
+                    Instruction::LoadConst(2),
+                    Instruction::AllocArray(3),
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
     }
 }
