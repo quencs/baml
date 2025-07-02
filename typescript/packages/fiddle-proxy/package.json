@@ -5,8 +5,10 @@
   "main": "index.js",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
-    "start": "node server.js",
-    "clean": "git clean -xdf .turbo node_modules dist"
+    "dev": "tsx server.ts",
+    "clean": "git clean -xdf .turbo node_modules dist",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "release": "echo 'No release needed for fiddle-proxy'"
   },
   "keywords": [],
   "author": "",

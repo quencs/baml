@@ -2,9 +2,11 @@
   "name": "@gloo-ai/baml-schema-wasm-web",
   "version": "0.86.1",
   "description": "The WASM package for baml-fmt",
+  "packageManager": "pnpm@9.12.0",
   "main": "./dist/baml_schema_build.js",
   "scripts": {
-    "clean": "git clean -xdf ./dist"
+    "clean": "git clean -xdf ./dist",
+    "release": "echo 'Built by parent package @gloo-ai/baml-schema-wasm'"
   },
   "exports": {
     ".": {

@@ -15,7 +15,8 @@
     "prebuild": "git clean -xdf dist",
     "dev": "tsc --watch",
     "clean": "git clean -xdf .turbo node_modules dist",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "release": "echo 'No build required for @baml/common'"
   },
   "files": ["dist/**"],
   "devDependencies": {

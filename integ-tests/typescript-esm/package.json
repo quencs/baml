@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "test": "jest",
+    "build": "baml-cli generate --from ../baml_src",
+    "integ-tests": "pnpm test",
     "start": "node ./dist/main.js",
     "build:debug": "cd ../../engine/language_client_typescript && pnpm run build:debug && cd - && pnpm i",
     "generate": "baml-cli generate --from ../baml_src",
+    "release": "echo 'No release needed for integration tests'",
     "typecheck": "tsc --noEmit"
   },
   "engines": {

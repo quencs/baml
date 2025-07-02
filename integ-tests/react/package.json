@@ -15,7 +15,8 @@
     "integ-tests": "infisical run --env=test -- pnpm test -- --silent false --testTimeout 30000 --bail --reporters=default --reporters=jest-html-reporter --reporters=jest-summary-reporter",
     "integ-tests:dotenv": "dotenv -e ../.env -- pnpm test -- --silent false --testTimeout 30000",
     "generate": "baml-cli generate --from ../baml_src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release": "echo 'No release needed for integration tests'"
   },
   "dependencies": {
     "@boundaryml/baml": "workspace:*",

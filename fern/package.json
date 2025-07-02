@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "npx fern docs dev",
-    "preview": "npx fern generate --preview --docs"
+    "preview": "npx fern generate --preview --docs",
+    "release": "echo 'No release needed for fern documentation'"
   },
   "devDependencies": {
     "fern-api": "^0.31.24"

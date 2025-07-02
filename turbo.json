@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["NODE_ENV"],
+  "globalEnv": ["NODE_ENV", "RUSTUP_HOME", "CARGO_HOME", "PATH"],
   "ui": "tui",
   "concurrency": "15",
   "tasks": {

@@ -1,6 +1,10 @@
 {
   "name": "@baml/tsconfig",
+  "packageManager": "pnpm@9.12.0",
   "private": true,
+  "scripts": {
+    "release": "echo 'No build required for @baml/tsconfig'"
+  },
   "version": "0.1.0",
   "type": "module",
   "files": ["*.json"]
