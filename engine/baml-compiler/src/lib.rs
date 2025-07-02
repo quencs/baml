@@ -86,9 +86,12 @@ impl<'g> Compiler<'g> {
             bytecode: self.bytecode,
             kind: FunctionKind::Exec,
 
+            // Debugging stuff.
             local_var_names: {
                 let mut names = Vec::with_capacity(self.locals.len() + 1);
+                // Function is pushed onto the stack.
                 names.push(format!("<fn {}>", function.name));
+                // Locals come after.
                 names.resize_with(names.capacity(), String::new);
 
                 for (name, index) in &self.locals {
@@ -175,7 +178,13 @@ impl<'g> Compiler<'g> {
             }
 
             // Compound objects.
-            Expression::Array(expressions, span) => todo!(),
+            Expression::Array(expressions, span) => {
+                for expression in expressions {
+                    self.compile_expression(expression);
+                }
+
+                self.emit(Instruction::AllocArray(expressions.len()));
+            }
 
             Expression::Map(items, span) => todo!(),
 
@@ -382,6 +391,41 @@ mod tests {
                 Instruction::Jump(3),
                 Instruction::Pop,
                 Instruction::LoadConst(1),
+                Instruction::Return,
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn array_constructor() -> anyhow::Result<()> {
+        let ast = ast("
+            fn main() -> int[] {
+                let a = [1, 2, 3];
+                a
+            }
+        ")?;
+
+        let (objects, globals) = compile(ast)?;
+
+        let Object::Function(main) = &objects[0] else {
+            return Err(anyhow::anyhow!("Main function not found"));
+        };
+
+        eprintln!(
+            "{}",
+            baml_vm::debug::display_bytecode(main, &objects, &globals)
+        );
+
+        assert_eq!(
+            main.bytecode.instructions,
+            vec![
+                Instruction::LoadConst(0),
+                Instruction::LoadConst(1),
+                Instruction::LoadConst(2),
+                Instruction::AllocArray(3),
+                Instruction::LoadVar(1),
                 Instruction::Return,
             ]
         );

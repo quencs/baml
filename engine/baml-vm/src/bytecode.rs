@@ -82,6 +82,13 @@ pub enum Instruction {
     /// in the [`crate::Vm::globals`] array.
     StoreGlobal(usize),
 
+    /// Builds an array and allocates it on the heap.
+    ///
+    /// Format: `ALLOC_ARRAY n` where `n` is the number of elements in the
+    /// array. All elements must be on the stack by the time this instruction is
+    /// executed.
+    AllocArray(usize),
+
     /// Call a function.
     ///
     /// Format: `CALL n` where `n` is the number of arguments passed to the
@@ -109,6 +116,7 @@ impl std::fmt::Display for Instruction {
             Instruction::JumpIfFalse(o) => write!(f, "JUMP_IF_FALSE {o}"),
             Instruction::LoadGlobal(i) => write!(f, "LOAD_GLOBAL {i}"),
             Instruction::StoreGlobal(i) => write!(f, "STORE_GLOBAL {i}"),
+            Instruction::AllocArray(n) => write!(f, "ALLOC_ARRAY {n}"),
             Instruction::Call(n) => write!(f, "CALL {n}"),
             Instruction::Return => f.write_str("RETURN"),
         }

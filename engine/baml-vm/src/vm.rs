@@ -61,9 +61,22 @@ impl std::fmt::Display for Function {
 /// Read [`Vm::objects`] for more information.
 #[derive(Clone, Debug)]
 pub enum Object {
+    /// Function object.
     Function(Function),
+
+    /// Heap allocated string.
+    ///
+    /// TODO: Add [`Vm::strings`] interner to avoid allocating duplicates.
+    /// In Rust it's not easy to implement because [`Vm::objects`] owns the
+    /// strings allocated on heap, but the interner would be something like
+    /// HashSet<&str> and it would store pointers to the strings. That reference
+    /// will cause some lifetime issues because the VM would have pointers to
+    /// itself, so we'd have to figure how to implement it otherwise.
     String(String),
-    // TODO: Classes, instances, etc.
+
+    /// List of values.
+    Array(Vec<Value>),
+    // TODO: Add classes, instances, etc.
 }
 
 impl std::fmt::Display for Object {
@@ -71,6 +84,7 @@ impl std::fmt::Display for Object {
         match self {
             Object::Function(function) => function.fmt(f),
             Object::String(string) => string.fmt(f),
+            Object::Array(array) => std::fmt::Debug::fmt(array, f),
         }
     }
 }
@@ -86,6 +100,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
+
     /// Index into the [`Vm::objects`] vec.
     ///
     /// Strings are also objects, don't add `Value::String`.
@@ -101,6 +116,85 @@ impl std::fmt::Display for Value {
             Value::Bool(bool) => write!(f, "{bool}"),
             Value::Object(object) => write!(f, "{object}"),
         }
+    }
+}
+
+/// Types of values.
+///
+/// Used for checking type errors at runtime. We can probably use some lib
+/// that creates this automatically based on the [`Value`] enum.
+#[derive(Debug)]
+pub enum Type {
+    Int,
+    Float,
+    Bool,
+    Object,
+}
+
+impl Type {
+    /// Get the type of a value.
+    pub fn of(value: &Value) -> Self {
+        match value {
+            Value::Int(_) => Type::Int,
+            Value::Float(_) => Type::Float,
+            Value::Bool(_) => Type::Bool,
+            Value::Object(_) => Type::Object,
+            // TODO: Actually?
+            Value::Null => Type::Object,
+        }
+    }
+}
+
+/// Bug in the VM or somehow invalid source code got compiled and executed.
+///
+/// If the VM throws this it's either a bug in the compiler or in the VM itself.
+#[derive(Debug)]
+pub enum InternalError {
+    /// The number of arguments passed to a function doesn't match the function
+    /// arity.
+    InvalidArgumentCount { expected: usize, got: usize },
+
+    /// Attempt to access a function but object is not of type [`Object::Function`].
+    ///
+    /// TODO: Probably can be turned into [`InternalError::TypeError`] (expected
+    /// function, got something else).
+    InvalidFunctionRef,
+
+    /// Attempt to access the top of the stack but it's empty.
+    UnexpectedEmptyStack,
+
+    /// Attempt to access the top of the stack but it's not the expected type.
+    TypeError { expected: Type, got: Type },
+}
+
+/// Errors that can happen at runtime.
+///
+/// Either logic errors in the user's source code or bugs in our compiler/VM
+/// stack.
+#[derive(Debug)]
+pub enum RuntimeError {
+    /// Ah yes, classic stack overflow.
+    StackOverflow,
+
+    /// VM internal error.
+    InternalError(InternalError),
+}
+
+/// Any kind of virtual machine error.
+#[derive(Debug)]
+pub enum VmError {
+    RuntimeError(RuntimeError),
+}
+
+impl From<InternalError> for VmError {
+    fn from(error: InternalError) -> Self {
+        VmError::RuntimeError(RuntimeError::InternalError(error))
+    }
+}
+
+impl From<RuntimeError> for VmError {
+    fn from(error: RuntimeError) -> Self {
+        VmError::RuntimeError(error)
     }
 }
 
@@ -266,24 +360,6 @@ pub struct Vm {
     pub globals: Vec<Value>,
 }
 
-#[derive(Debug)]
-pub enum RuntimeError {
-    StackOverflow,
-    InvalidArgumentCount { expected: usize, got: usize },
-    InternalError,
-}
-
-#[derive(Debug)]
-pub enum VmError {
-    RuntimeError(RuntimeError),
-}
-
-impl From<RuntimeError> for VmError {
-    fn from(error: RuntimeError) -> Self {
-        VmError::RuntimeError(error)
-    }
-}
-
 impl Vm {
     /// Main VM execution loop.
     ///
@@ -298,9 +374,12 @@ impl Vm {
         // because there's no need to run this on every single iteration. Read
         // the implementations of `Instruction::Call` and `Instruction::Return`
         // below.
+        //
+        // We do run into some issues/boilerplate, take a look at the impl of
+        // `Instruction::AllocArray`. We can write a macro or something.
         let mut function = match &self.objects[frame.function] {
-            Object::Function(function) => function,
-            _ => return Err(VmError::RuntimeError(RuntimeError::InternalError)),
+            Object::Function(f) => f,
+            _ => return Err(InternalError::InvalidFunctionRef.into()),
         };
 
         loop {
@@ -346,7 +425,7 @@ impl Vm {
 
                 Instruction::StoreVar(index) => {
                     let Some(value) = self.stack.last() else {
-                        return Err(VmError::RuntimeError(RuntimeError::InternalError));
+                        return Err(InternalError::UnexpectedEmptyStack.into());
                     };
 
                     self.stack[frame.locals_offset + index] = *value;
@@ -371,12 +450,17 @@ impl Vm {
                         }
                     }
 
-                    // Empty stack, can't execute instruction.
-                    None => return Err(VmError::RuntimeError(RuntimeError::InternalError)),
-
                     // Type error, we don't have "falsey" values in the language
                     // so we should always check booleans.
-                    _ => return Err(VmError::RuntimeError(RuntimeError::InternalError)),
+                    Some(other) => {
+                        return Err(VmError::from(InternalError::TypeError {
+                            expected: Type::Bool,
+                            got: Type::of(other),
+                        }))
+                    }
+
+                    // Empty stack, can't execute instruction.
+                    None => return Err(InternalError::UnexpectedEmptyStack.into()),
                 },
 
                 Instruction::LoadGlobal(index) => {
@@ -387,6 +471,24 @@ impl Vm {
                 Instruction::StoreGlobal(index) => {
                     let value = self.stack.last().unwrap();
                     self.globals[index] = *value;
+                }
+
+                Instruction::AllocArray(n) => {
+                    // Pop all the elements from the stack and create an array.
+                    let array = self.stack.drain(self.stack.len() - n..).collect();
+
+                    // Allocate it on the heap.
+                    self.objects.push(Object::Array(array));
+
+                    // objects.push() above might've reallocated the vector so
+                    // borrow checker complains. Restore the reference.
+                    function = match &self.objects[frame.function] {
+                        Object::Function(f) => f,
+                        _ => return Err(InternalError::InvalidFunctionRef.into()),
+                    };
+
+                    // Push the array object on top of the stack.
+                    self.stack.push(Value::Object(self.objects.len() - 1));
                 }
 
                 Instruction::Call(arg_count) => {
@@ -408,18 +510,21 @@ impl Vm {
 
                     // Get the function object from the stack.
                     let Value::Object(index) = &self.stack[locals_offset] else {
-                        return Err(VmError::RuntimeError(RuntimeError::InternalError));
+                        return Err(VmError::from(InternalError::TypeError {
+                            expected: Type::Object,
+                            got: Type::of(&self.stack[locals_offset]),
+                        }));
                     };
 
                     // Can't call a function if it's not a function ¯\_(ツ)_/¯
                     let Object::Function(callee) = &self.objects[*index] else {
-                        return Err(VmError::RuntimeError(RuntimeError::InternalError));
+                        return Err(InternalError::InvalidFunctionRef.into());
                     };
 
                     // Compiler should have already checked this so we could
                     // skip it but it's an easy and fast check.
                     if arg_count != callee.arity {
-                        return Err(VmError::RuntimeError(RuntimeError::InvalidArgumentCount {
+                        return Err(VmError::from(InternalError::InvalidArgumentCount {
                             expected: callee.arity,
                             got: arg_count,
                         }));
@@ -444,16 +549,16 @@ impl Vm {
                     // code at the beginning of each iteration since it's
                     // totaly unnecessary. The function only changes when the
                     // frame changes.
-                    match &self.objects[frame.function] {
-                        Object::Function(f) => function = f,
-                        _ => return Err(VmError::RuntimeError(RuntimeError::InternalError)),
-                    }
+                    function = match &self.objects[frame.function] {
+                        Object::Function(f) => f,
+                        _ => return Err(InternalError::InvalidFunctionRef.into()),
+                    };
                 }
 
                 Instruction::Return => {
                     // Pop the result from the eval stack.
                     let Some(result) = self.stack.pop() else {
-                        return Err(VmError::RuntimeError(RuntimeError::InternalError));
+                        return Err(InternalError::UnexpectedEmptyStack.into());
                     };
 
                     // Restore the eval stack to the state before the function
@@ -469,7 +574,7 @@ impl Vm {
                         return self
                             .stack
                             .pop()
-                            .ok_or(VmError::RuntimeError(RuntimeError::InternalError));
+                            .ok_or(InternalError::UnexpectedEmptyStack.into());
                     };
 
                     // Resume previous frame execution.
@@ -478,10 +583,10 @@ impl Vm {
                     // Point to the previous frame's function. Read the
                     // implementation of `Instruction::Call` above this one for
                     // more information about this piece.
-                    match &self.objects[frame.function] {
-                        Object::Function(f) => function = f,
-                        _ => return Err(VmError::RuntimeError(RuntimeError::InternalError)),
-                    }
+                    function = match &self.objects[frame.function] {
+                        Object::Function(f) => f,
+                        _ => return Err(InternalError::InvalidFunctionRef.into()),
+                    };
                 }
             }
         }

@@ -70,7 +70,10 @@ pub fn display_instruction(
             format!("(to {})", instruction_ptr + offset)
         }
 
-        Instruction::Pop | Instruction::Call(_) | Instruction::Return => String::new(),
+        Instruction::Pop
+        | Instruction::AllocArray(_)
+        | Instruction::Call(_)
+        | Instruction::Return => String::new(),
     };
 
     (instruction.to_string(), metadata)
@@ -117,7 +120,11 @@ pub fn display_bytecode(function: &Function, objects: &[Object], globals: &[Valu
         return String::new();
     }
 
+    // Row contents. [String, String, String]
     let mut rows = Vec::new();
+    // Char count of the strings above. [usize, usize, usize]
+    let mut chars_count = Vec::new();
+    // Max width of each column. [usize, usize, usize]
     let mut widths = [0; 3];
 
     // Populate all the rows.
@@ -127,10 +134,13 @@ pub fn display_bytecode(function: &Function, objects: &[Object], globals: &[Valu
 
         // Table format is [IP, INSTR, META].
         let row = [instruction_ptr.to_string(), instruction, metadata];
+        let mut char_count = [0, 0, 0];
 
         // Now calculate the max width of each column.
         for (i, col) in row.iter().enumerate() {
             let width = col.chars().count();
+
+            char_count[i] = width;
 
             if width > widths[i] {
                 widths[i] = width;
@@ -138,19 +148,29 @@ pub fn display_bytecode(function: &Function, objects: &[Object], globals: &[Valu
         }
 
         rows.push(row);
+        chars_count.push(char_count);
     }
 
     let mut table = String::new();
 
     // Print the table.
-    for row in &rows {
+    for (row, char_count) in rows.iter().zip(chars_count) {
         for (i, col) in row.iter().enumerate() {
             let mut width = widths[i];
+
+            // First two rows have a margin. Last row doesn't need anything.
             if i < row.len() - 1 {
                 width += COLUMN_MARGIN;
+            } else {
+                width = 0;
             }
 
-            table.push_str(&format!("{col:<width$}"));
+            // Trick to avoid allocating unnecessary strings with format!().
+            // Just use the table buffer directly.
+            table.push_str(col);
+            for _ in char_count[i]..width {
+                table.push(' ');
+            }
         }
 
         table.push('\n');
