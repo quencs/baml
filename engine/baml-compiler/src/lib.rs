@@ -164,7 +164,13 @@ impl<'g> Compiler<'g> {
             }
 
             Expression::NumericValue(num, _span) => {
-                let index = self.add_constant(Value::Int(num.parse::<i64>().unwrap()));
+                let value = num
+                    .parse::<i64>()
+                    .map(Value::Int)
+                    .or_else(|_| num.parse::<f64>().map(Value::Float))
+                    .unwrap_or_else(|_| panic!("failed to parse number: {num}"));
+
+                let index = self.add_constant(value);
                 self.emit(Instruction::LoadConst(index));
             }
 
@@ -281,8 +287,8 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
         resolved_globals.insert(function.name().to_string(), i);
     }
 
-    let mut globals = Vec::with_capacity(resolved_globals.len());
     let mut objects = Vec::with_capacity(resolved_globals.len());
+    let mut globals = Vec::with_capacity(resolved_globals.len());
 
     for function in ast.walk_expr_fns() {
         let function = Compiler::new(&resolved_globals).compile(function.expr_fn())?;
