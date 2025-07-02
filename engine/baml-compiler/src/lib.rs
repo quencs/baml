@@ -349,6 +349,11 @@ mod tests {
                 .get(function_name)
                 .ok_or_else(|| anyhow::anyhow!("function '{}' not found", function_name))?;
 
+            eprintln!(
+                "{}",
+                baml_vm::debug::display_bytecode(function, &objects, &globals)
+            );
+
             assert_eq!(
                 function.bytecode.instructions, expected_instructions,
                 "Bytecode mismatch for function '{function_name}'"
