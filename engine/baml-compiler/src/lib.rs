@@ -350,7 +350,7 @@ mod tests {
                 .ok_or_else(|| anyhow::anyhow!("function '{}' not found", function_name))?;
 
             eprintln!(
-                "{}",
+                "---- fn {function_name}() ----\n{}",
                 baml_vm::debug::display_bytecode(function, &objects, &globals)
             );
 
