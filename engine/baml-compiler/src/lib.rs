@@ -330,8 +330,8 @@ mod tests {
 
     /// Helper function to assert that source code compiles to expected bytecode
     /// instructions.
-    fn assert_compiles(test: Program) -> anyhow::Result<()> {
-        let ast = ast(test.source)?;
+    fn assert_compiles(input: Program) -> anyhow::Result<()> {
+        let ast = ast(input.source)?;
         let (objects, globals) = compile(ast)?;
 
         // Create a map of function name to function for easy lookup
@@ -344,7 +344,7 @@ mod tests {
             .collect();
 
         // Check each expected function
-        for (function_name, expected_instructions) in test.expected {
+        for (function_name, expected_instructions) in input.expected {
             let function = functions
                 .get(function_name)
                 .ok_or_else(|| anyhow::anyhow!("function '{}' not found", function_name))?;
