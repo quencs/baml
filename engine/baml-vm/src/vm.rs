@@ -366,7 +366,16 @@ impl Vm {
     /// Each "cycle" (loop iteration) executes a single instruction.
     pub fn exec(&mut self) -> Result<Value, VmError> {
         // Grab the last frame from the call stack.
+        //
+        // Note that [`Frame`] is [`Copy`], so in case the borrow checker
+        // complains too much and you can't circumvent it then you can make a
+        // local copy of the frame, modify it as needed, and then when we're
+        // done with this frame store it back in the vector to persist changes.
+        // It's a similar trick to what we've implemented in the cycle detection
+        // algorithm. Take a look at the `strong_connect` function in the
+        // `tarjan.rs` file.
         let Some(mut frame) = self.frames.last_mut() else {
+            // This should actually return "Void" or () like Rust.
             return Ok(Value::Null);
         };
 
@@ -473,9 +482,9 @@ impl Vm {
                     self.globals[index] = *value;
                 }
 
-                Instruction::AllocArray(n) => {
+                Instruction::AllocArray(size) => {
                     // Pop all the elements from the stack and create an array.
-                    let array = self.stack.drain(self.stack.len() - n..).collect();
+                    let array = self.stack.drain(self.stack.len() - size..).collect();
 
                     // Allocate it on the heap.
                     self.objects.push(Object::Array(array));
