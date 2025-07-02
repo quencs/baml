@@ -94,7 +94,7 @@ impl std::fmt::Display for Object {
 /// This struct should not contain allocated objects and should be [`Copy`].
 /// Read the documentation of [`Vm::objects`] to understand how allocated
 /// objects work in the virtual machine.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Value {
     Null,
     Int(i64),
@@ -197,6 +197,17 @@ impl From<RuntimeError> for VmError {
         VmError::RuntimeError(error)
     }
 }
+
+impl std::fmt::Display for VmError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Figure out something nicer here.
+        match self {
+            VmError::RuntimeError(error) => write!(f, "{error:?}"),
+        }
+    }
+}
+
+impl std::error::Error for VmError {}
 
 /// Call frame.
 ///
