@@ -178,7 +178,9 @@ impl aws_smithy_runtime_api::client::interceptors::Intercept for CollectorInterc
             headers,
             HTTPBody::new(request.body().bytes().unwrap_or_default().to_vec()),
         );
-        let event = TraceEvent::new_raw_llm_request(self.call_stack.clone(), Arc::new(request));
+        let call_stack = self.call_stack.clone();
+        let request = Arc::new(request);
+        let event = TraceEvent::new_raw_llm_request(call_stack, request);
         BAML_TRACER.lock().unwrap().put(Arc::new(event));
 
         Ok(())
@@ -606,7 +608,7 @@ impl WithStreamChat for AwsClient {
                     start_time: SystemTime::now(),
                     request_options,
                     latency: web_time::Duration::ZERO,
-                    message: format!("{:#?}", e),
+                    message: format!("{e:#?}"),
                     code: ErrorCode::Other(2),
                 }));
             }
@@ -622,7 +624,7 @@ impl WithStreamChat for AwsClient {
                     start_time: SystemTime::now(),
                     request_options,
                     latency: web_time::Duration::ZERO,
-                    message: format!("{:#?}", e),
+                    message: format!("{e:#?}"),
                     code: ErrorCode::Other(2),
                 }))
             }
@@ -651,7 +653,7 @@ impl WithStreamChat for AwsClient {
                     start_time: system_start,
                     request_options,
                     latency: instant_start.elapsed(),
-                    message: format!("{:#?}", e),
+                    message: format!("{e:#?}"),
                     code: match e {
                         SdkError::ConstructionFailure(_) => ErrorCode::Other(2),
                         SdkError::TimeoutError(_) => ErrorCode::Other(2),
@@ -707,7 +709,7 @@ impl WithStreamChat for AwsClient {
                     let mut new_state = initial_state?;
                     match response.stream.recv().await {
                         Ok(Some(message)) => {
-                            log::trace!("Received message: {:#?}", message);
+                            log::trace!("Received message: {message:#?}");
                             match message {
                                 bedrock::types::ConverseStreamOutput::ContentBlockDelta(
                                     content_block_delta,
@@ -767,7 +769,7 @@ impl WithStreamChat for AwsClient {
                                 start_time: new_state.start_time,
                                 request_options: new_state.request_options,
                                 latency: instant_start.elapsed(),
-                                message: format!("Failed to parse event: {:#?}", e),
+                                message: format!("Failed to parse event: {e:#?}"),
                                 code: ErrorCode::Other(2),
                             }),
                             (None, response),
@@ -906,7 +908,7 @@ impl WithChat for AwsClient {
                     start_time: SystemTime::now(),
                     request_options,
                     latency: web_time::Duration::ZERO,
-                    message: format!("{:#?}", e),
+                    message: format!("{e:#?}"),
                     code: ErrorCode::Other(2),
                 })
             }
@@ -922,7 +924,7 @@ impl WithChat for AwsClient {
                     start_time: SystemTime::now(),
                     request_options,
                     latency: web_time::Duration::ZERO,
-                    message: format!("{:#?}", e),
+                    message: format!("{e:#?}"),
                     code: ErrorCode::Other(2),
                 })
             }
@@ -948,7 +950,7 @@ impl WithChat for AwsClient {
                     start_time: system_start,
                     request_options,
                     latency: instant_start.elapsed(),
-                    message: format!("{:#?}", e),
+                    message: format!("{e:#?}"),
                     code: match e {
                         SdkError::ConstructionFailure(_) => ErrorCode::Other(2),
                         SdkError::TimeoutError(_) => ErrorCode::Other(2),
@@ -1016,7 +1018,7 @@ impl WithChat for AwsClient {
                 start_time: system_start,
                 request_options,
                 latency: instant_start.elapsed(),
-                message: format!("{:#?}", e),
+                message: format!("{e:#?}"),
                 code: ErrorCode::Other(200),
             }),
         }

@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use anyhow::Result;
 use baml_types::{BamlMap, Constraint};
-use internal_baml_core::ir::FieldType;
+use internal_baml_core::ir::TypeIR;
 use internal_baml_jinja::types::{Class, Name};
 
 use super::ParsingContext;
@@ -14,13 +16,13 @@ use crate::deserializer::{
 };
 
 // Name, type, description, streaming_needed.
-type FieldValue = (Name, FieldType, Option<String>, bool);
+type FieldValue = (Name, TypeIR, Option<String>, bool);
 
 impl TypeCoercer for Class {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
         log::debug!(
@@ -61,7 +63,7 @@ impl TypeCoercer for Class {
             self.fields.iter().partition(|f| f.1.is_optional());
         let (constraints, streaming_behavior) = ctx
             .of
-            .find_class(self.name.real_name())
+            .find_class(&self.namespace, self.name.real_name())
             .map_or((vec![], Default::default()), |class| {
                 (class.constraints.clone(), class.streaming_behavior.clone())
             });
@@ -210,7 +212,8 @@ impl TypeCoercer for Class {
                             None => Some(BamlValueWithFlags::Null(
                                 t.clone(),
                                 DeserializerConditions::new()
-                                    .with_flag(Flag::OptionalDefaultFromNoValue),
+                                    .with_flag(Flag::OptionalDefaultFromNoValue)
+                                    .with_flag(Flag::Pending),
                             )),
                         };
 
@@ -222,29 +225,10 @@ impl TypeCoercer for Class {
                 } else if let Some(v) = required_values.get(field_name.real_name()) {
                     let next = match v {
                         Some(Ok(_)) => None,
-                        Some(Err(e)) => t.default_value(Some(e)).or_else(|| {
-                            if ctx.allow_partials {
-                                Some(BamlValueWithFlags::Null(
-                                    t.clone().as_optional(),
-                                    DeserializerConditions::new()
-                                        .with_flag(Flag::OptionalDefaultFromNoValue)
-                                        .with_flag(Flag::Pending),
-                                ))
-                            } else {
-                                None
-                            }
-                        }),
-                        None => t.default_value(None).or_else(|| {
-                            if ctx.allow_partials {
-                                Some(BamlValueWithFlags::Null(
-                                    t.clone().as_optional(),
-                                    DeserializerConditions::new()
-                                        .with_flag(Flag::OptionalDefaultFromNoValue)
-                                        .with_flag(Flag::Pending),
-                                ))
-                            } else {
-                                None
-                            }
+                        Some(Err(e)) => t.default_value(Some(e)),
+                        None => t.default_value(None).map(|mut v| {
+                            v.add_flag(Flag::Pending);
+                            v
                         }),
                     };
 
@@ -390,14 +374,14 @@ impl TypeCoercer for Class {
             }
         }
 
-        log::trace!("Completed class: {:#?}", completed_cls);
+        log::trace!("Completed class: {completed_cls:#?}");
 
         array_helper::pick_best(ctx, target, &completed_cls)
     }
 }
 
 pub fn apply_constraints(
-    class_type: &FieldType,
+    class_type: &TypeIR,
     scope: Vec<String>,
     mut value: BamlValueWithFlags,
     constraints: Vec<Constraint>,
@@ -413,7 +397,7 @@ pub fn apply_constraints(
         });
         let constraint_results = run_user_checks(&value.clone().into(), &constrained_class)
             .map_err(|e| ParsingError {
-                reason: format!("Failed to evaluate constraints: {:?}", e),
+                reason: format!("Failed to evaluate constraints: {e:?}"),
                 scope,
                 causes: Vec::new(),
             })?;
@@ -447,13 +431,13 @@ fn update_map<'a>(
     match map.get(key) {
         Some(Some(_)) => {
             // DO NOTHING (keep first value)
-            log::trace!("Duplicate field: {}", key);
+            log::trace!("Duplicate field: {key}");
         }
         Some(None) => {
             map.insert(key.into(), Some(value));
         }
         None => {
-            log::trace!("Field not found: {}", key);
+            log::trace!("Field not found: {key}");
         }
     }
 }

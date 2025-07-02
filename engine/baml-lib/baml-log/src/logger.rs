@@ -539,6 +539,7 @@ pub fn init() -> Result<(), LogError> {
 
     INIT.call_once(|| {
         if let Ok(mut config) = CONFIG.write() {
+            config.reload_from_env();
             config.initialized = true;
         } else {
             result = Err(LogError::LockError);
@@ -772,7 +773,7 @@ pub fn log_event_internal<T: Loggable>(
             }
 
             let json_str = serde_json::to_string(&event_json).unwrap_or_default();
-            let _ = writeln!(io::stdout(), "{}", json_str);
+            let _ = writeln!(io::stdout(), "{json_str}");
         }
     } else {
         // In regular mode, convert payload to a debug string
@@ -781,7 +782,7 @@ pub fn log_event_internal<T: Loggable>(
         let payload_str = if payload_str.contains('\n') {
             payload_str
                 .lines()
-                .map(|line| format!("    {}", line))
+                .map(|line| format!("    {line}"))
                 .collect::<Vec<_>>()
                 .join("\n")
         } else {

@@ -20,6 +20,6 @@ import (
 )
 
 var typeMap = map[string]reflect.Type{
-	"types.Person":        reflect.TypeOf(types.Person{}),
-	"stream_types.Person": reflect.TypeOf(stream_types.Person{}),
+	"TYPES.Person":        reflect.TypeOf(types.Person{}),
+	"STREAM_TYPES.Person": reflect.TypeOf(stream_types.Person{}),
 }

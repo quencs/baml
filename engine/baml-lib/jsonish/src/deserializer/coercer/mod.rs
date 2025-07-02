@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use baml_types::{BamlValue, Constraint, JinjaExpression};
-use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, FieldType};
+use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, TypeIR};
 use internal_baml_jinja::types::OutputFormatContent;
 
 use super::types::BamlValueWithFlags;
@@ -21,8 +21,9 @@ use crate::jsonish;
 pub struct ParsingContext<'a> {
     pub scope: Vec<String>,
     visited: HashSet<(String, jsonish::Value)>,
+    /// THIS IS A TEMPORARY HACK (ask vaibhav)
+    pub do_not_use_mode: baml_types::StreamingMode,
     pub of: &'a OutputFormatContent,
-    pub allow_partials: bool,
 }
 
 impl ParsingContext<'_> {
@@ -33,12 +34,15 @@ impl ParsingContext<'_> {
         self.scope.join(".")
     }
 
-    pub(crate) fn new(of: &OutputFormatContent, allow_partials: bool) -> ParsingContext<'_> {
+    pub(crate) fn new(
+        of: &OutputFormatContent,
+        mode: baml_types::StreamingMode,
+    ) -> ParsingContext<'_> {
         ParsingContext {
             scope: Vec::new(),
             visited: HashSet::new(),
+            do_not_use_mode: mode,
             of,
-            allow_partials,
         }
     }
 
@@ -49,7 +53,7 @@ impl ParsingContext<'_> {
             scope: new_scope,
             visited: self.visited.clone(),
             of: self.of,
-            allow_partials: self.allow_partials,
+            do_not_use_mode: self.do_not_use_mode.clone(),
         }
     }
 
@@ -66,13 +70,13 @@ impl ParsingContext<'_> {
             scope: self.scope.clone(),
             visited: new_visited,
             of: self.of,
-            allow_partials: self.allow_partials,
+            do_not_use_mode: self.do_not_use_mode.clone(),
         }
     }
 
     pub(crate) fn error_too_many_matches<T: std::fmt::Display>(
         &self,
-        target: &FieldType,
+        target: &TypeIR,
         options: impl IntoIterator<Item = T>,
     ) -> ParsingError {
         ParsingError {
@@ -83,7 +87,7 @@ impl ParsingContext<'_> {
                     if acc.is_empty() {
                         return f.to_string();
                     }
-                    format!("{}, {}", acc, f)
+                    format!("{acc}, {f}")
                 })
             ),
             scope: self.scope.clone(),
@@ -103,17 +107,17 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_unexpected_empty_array(&self, target: &FieldType) -> ParsingError {
+    pub(crate) fn error_unexpected_empty_array(&self, target: &TypeIR) -> ParsingError {
         ParsingError {
-            reason: format!("Expected {}, got empty array", target),
+            reason: format!("Expected {target}, got empty array"),
             scope: self.scope.clone(),
             causes: vec![],
         }
     }
 
-    pub(crate) fn error_unexpected_null(&self, target: &FieldType) -> ParsingError {
+    pub(crate) fn error_unexpected_null(&self, target: &TypeIR) -> ParsingError {
         ParsingError {
-            reason: format!("Expected {}, got null", target),
+            reason: format!("Expected {target}, got null"),
             scope: self.scope.clone(),
             causes: vec![],
         }
@@ -135,7 +139,7 @@ impl ParsingContext<'_> {
         }
     }
 
-    pub(crate) fn error_map_must_have_supported_key(&self, key_type: &FieldType) -> ParsingError {
+    pub(crate) fn error_map_must_have_supported_key(&self, key_type: &TypeIR) -> ParsingError {
         ParsingError {
             reason: format!(
                 "Maps may only have strings, enums or literal strings for keys, but got {key_type}"
@@ -162,12 +166,12 @@ impl ParsingContext<'_> {
                 .into_iter()
                 .map(|k| ParsingError {
                     scope: self.scope.clone(),
-                    reason: format!("Missing required field: {}", k),
+                    reason: format!("Missing required field: {k}"),
                     causes: vec![],
                 })
                 .chain(unparsed.into_iter().map(|(k, e)| ParsingError {
                     scope: self.scope.clone(),
-                    reason: format!("Failed to parse field {}: {}", k, e),
+                    reason: format!("Failed to parse field {k}: {e}"),
                     causes: vec![e.clone()],
                 }))
                 .collect(),
@@ -176,15 +180,15 @@ impl ParsingContext<'_> {
 
     pub(crate) fn error_unexpected_type<T: std::fmt::Display + std::fmt::Debug>(
         &self,
-        target: &FieldType,
+        target: &TypeIR,
         got: &T,
     ) -> ParsingError {
         ParsingError {
             reason: format!(
                 "Expected {}, got {:?}.",
                 match target {
-                    FieldType::Enum { .. } => format!("{} enum value", target),
-                    FieldType::Class { .. } => format!("{}", target),
+                    TypeIR::Enum { .. } => format!("{target} enum value"),
+                    TypeIR::Class { .. } => format!("{target}"),
                     _ => format!("{target}"),
                 },
                 got
@@ -196,7 +200,7 @@ impl ParsingContext<'_> {
 
     pub(crate) fn error_internal<T: std::fmt::Display>(&self, error: T) -> ParsingError {
         ParsingError {
-            reason: format!("Internal error: {}", error),
+            reason: format!("Internal error: {error}"),
             scope: self.scope.clone(),
             causes: vec![],
         }
@@ -235,7 +239,7 @@ impl std::fmt::Display for ParsingError {
             self.reason
         )?;
         for cause in &self.causes {
-            write!(f, "\n  - {}", format!("{}", cause).replace("\n", "\n  "))?;
+            write!(f, "\n  - {}", format!("{cause}").replace("\n", "\n  "))?;
         }
         Ok(())
     }
@@ -247,7 +251,7 @@ pub trait TypeCoercer {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError>;
 }
@@ -262,10 +266,7 @@ pub trait DefaultValue {
 ///
 /// For a function that traverses a whole `BamlValue` looking for failed asserts,
 /// see `first_failing_assert_nested`.
-pub fn run_user_checks(
-    baml_value: &BamlValue,
-    type_: &FieldType,
-) -> Result<Vec<(Constraint, bool)>> {
+pub fn run_user_checks(baml_value: &BamlValue, type_: &TypeIR) -> Result<Vec<(Constraint, bool)>> {
     let res = type_
         .meta()
         .constraints

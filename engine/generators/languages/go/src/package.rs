@@ -8,7 +8,7 @@ pub struct Package {
 
 impl Package {
     fn new(package: &str) -> Self {
-        let parts: Vec<_> = package.split('.').map(str::to_string).collect();
+        let parts: Vec<_> = package.split('.').map(|s| s.to_string()).collect();
         if parts.is_empty() {
             panic!("Package cannot be empty");
         }
@@ -48,7 +48,7 @@ impl Package {
     }
 
     pub fn stream_state() -> Package {
-        Package::stream_types()
+        Package::imported_base()
     }
 
     pub fn imported_base() -> Package {
@@ -92,12 +92,21 @@ impl CurrentRenderPackage {
                 *orig = std::sync::Arc::new(Package::new(package));
             }
             Err(e) => {
-                panic!("Failed to get package: {}", e);
+                panic!("Failed to get package: {e}");
             }
         }
     }
 
     pub fn name(&self) -> String {
         self.get().package_path.last().unwrap().clone()
+    }
+
+    pub fn namespace(&self) -> String {
+        // This is always one of two:
+        match self.name().as_str() {
+            "types" => "cffi.CFFITypeNamespace_TYPES".to_string(),
+            "stream_types" => "cffi.CFFITypeNamespace_STREAM_TYPES".to_string(),
+            other => panic!("Invalid package for a namespace call: {other}"),
+        }
     }
 }

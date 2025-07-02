@@ -1,6 +1,6 @@
 use anyhow::Result;
 use baml_types::{BamlMap, CompletionState, Constraint, ConstraintLevel, LiteralValue};
-use internal_baml_core::ir::{FieldType, TypeValue};
+use internal_baml_core::ir::{TypeIR, TypeValue};
 
 use super::{
     array_helper,
@@ -16,11 +16,11 @@ use crate::deserializer::{
     types::BamlValueWithFlags,
 };
 
-impl TypeCoercer for FieldType {
+impl TypeCoercer for TypeIR {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
         let mut result = match value {
@@ -33,16 +33,16 @@ impl TypeCoercer for FieldType {
                 );
                 if matches!(
                     target,
-                    FieldType::Primitive(TypeValue::String, _)
-                        | FieldType::Enum { .. }
-                        | FieldType::Literal(LiteralValue::String(_), _)
+                    TypeIR::Primitive(TypeValue::String, _)
+                        | TypeIR::Enum { .. }
+                        | TypeIR::Literal(LiteralValue::String(_), _)
                 ) {
                     self.coerce(
                         ctx,
                         target,
                         Some(&crate::jsonish::Value::String(
                             primitive.clone(),
-                            CompletionState::Incomplete,
+                            CompletionState::Complete,
                         )),
                     )
                 } else {
@@ -63,7 +63,7 @@ impl TypeCoercer for FieldType {
                 );
                 self.coerce(ctx, target, Some(v)).map(|mut v| {
                     v.add_flag(Flag::ObjectFromMarkdown(
-                        if matches!(target, FieldType::Primitive(TypeValue::String, _)) {
+                        if matches!(target, TypeIR::Primitive(TypeValue::String, _)) {
                             1
                         } else {
                             0
@@ -85,22 +85,22 @@ impl TypeCoercer for FieldType {
                 Ok(v)
             }
             _ => match self {
-                FieldType::Primitive(p, _) => p.coerce(ctx, target, value),
-                FieldType::Enum { name, .. } => IrRef::Enum(name).coerce(ctx, target, value),
-                FieldType::Literal(l, _) => l.coerce(ctx, target, value),
-                FieldType::Class { name, .. } => IrRef::Class(name).coerce(ctx, target, value),
-                FieldType::RecursiveTypeAlias { name, .. } => {
+                TypeIR::Primitive(p, _) => p.coerce(ctx, target, value),
+                TypeIR::Enum { name, .. } => IrRef::Enum(name).coerce(ctx, target, value),
+                TypeIR::Literal(l, _) => l.coerce(ctx, target, value),
+                TypeIR::Class { name, mode, .. } => {
+                    IrRef::Class(name, mode).coerce(ctx, target, value)
+                }
+                TypeIR::RecursiveTypeAlias { name, .. } => {
                     coerce_alias(ctx, self, value).map(|v| v.with_target(target))
                 }
-                FieldType::List(_, _) => {
-                    coerce_array(ctx, self, value).map(|v| v.with_target(target))
-                }
-                FieldType::Union(_, _) => {
+                TypeIR::List(_, _) => coerce_array(ctx, self, value).map(|v| v.with_target(target)),
+                TypeIR::Union(_, _) => {
                     coerce_union(ctx, self, value).map(|v| v.with_target(target))
                 }
-                FieldType::Map(..) => coerce_map(ctx, self, value).map(|v| v.with_target(target)),
-                FieldType::Tuple(_, _) => Err(ctx.error_internal("Tuple not supported")),
-                FieldType::Arrow(_, _) => Err(ctx.error_internal("Arrow type not supported")),
+                TypeIR::Map(..) => coerce_map(ctx, self, value).map(|v| v.with_target(target)),
+                TypeIR::Tuple(_, _) => Err(ctx.error_internal("Tuple not supported")),
+                TypeIR::Arrow(_, _) => Err(ctx.error_internal("Arrow type not supported")),
             },
         };
         if !target.meta().constraints.is_empty() {
@@ -124,7 +124,18 @@ impl TypeCoercer for FieldType {
             }
         }
         if let Some(CompletionState::Incomplete) = value.map(|v| v.completion_state()) {
-            result.iter_mut().for_each(|v| v.add_flag(Flag::Incomplete));
+            match result {
+                Ok(mut v) => {
+                    if self.meta().streaming_behavior.done
+                        && ctx.do_not_use_mode == baml_types::StreamingMode::Streaming
+                    {
+                        return Err(ctx.error_internal("Streaming field is not done"));
+                    }
+                    v.add_flag(Flag::Incomplete);
+                    return Ok(v);
+                }
+                Err(e) => return Err(e),
+            }
         }
         result
     }
@@ -156,7 +167,7 @@ pub fn validate_asserts(constraints: &[(Constraint, bool)]) -> Result<(), Parsin
             causes: vec![],
             reason: format!(
                 "Failed: {}{}",
-                label.as_ref().map_or("".to_string(), |l| format!("{} ", l)),
+                label.as_ref().map_or("".to_string(), |l| format!("{l} ")),
                 expr.0
             ),
             scope: vec![],
@@ -173,7 +184,7 @@ pub fn validate_asserts(constraints: &[(Constraint, bool)]) -> Result<(), Parsin
     }
 }
 
-impl DefaultValue for FieldType {
+impl DefaultValue for TypeIR {
     fn default_value(&self, error: Option<&ParsingError>) -> Option<BamlValueWithFlags> {
         let get_flags = || {
             DeserializerConditions::new().with_flag(error.map_or(Flag::DefaultFromNoValue, |e| {
@@ -182,28 +193,28 @@ impl DefaultValue for FieldType {
         };
 
         let unasserted = match self {
-            FieldType::Enum { .. } => None,
-            FieldType::Literal(_, _) => None,
-            FieldType::Class { .. } => None,
-            FieldType::RecursiveTypeAlias { .. } => None,
-            FieldType::List(_, _) => Some(BamlValueWithFlags::List(
+            TypeIR::Enum { .. } => None,
+            TypeIR::Literal(_, _) => None,
+            TypeIR::Class { .. } => None,
+            TypeIR::RecursiveTypeAlias { .. } => None,
+            TypeIR::List(_, _) => Some(BamlValueWithFlags::List(
                 get_flags(),
                 self.clone(),
                 Vec::new(),
             )),
-            FieldType::Union(items, _) => items
+            TypeIR::Union(items, _) => items
                 .iter_include_null()
                 .iter()
                 .find_map(|i| i.default_value(error)),
-            FieldType::Primitive(TypeValue::Null, _) => {
+            TypeIR::Primitive(TypeValue::Null, _) => {
                 return Some(BamlValueWithFlags::Null(self.clone(), get_flags()))
             }
-            FieldType::Map(..) => Some(BamlValueWithFlags::Map(
+            TypeIR::Map(..) => Some(BamlValueWithFlags::Map(
                 get_flags(),
                 self.clone(),
                 BamlMap::new(),
             )),
-            FieldType::Tuple(v, _) => {
+            TypeIR::Tuple(v, _) => {
                 let default_values: Vec<_> = v.iter().map(|f| f.default_value(error)).collect();
                 if default_values.iter().all(Option::is_some) {
                     Some(BamlValueWithFlags::List(
@@ -215,8 +226,8 @@ impl DefaultValue for FieldType {
                     None
                 }
             }
-            FieldType::Primitive(_, _) => None,
-            FieldType::Arrow(_, _) => None,
+            TypeIR::Primitive(_, _) => None,
+            TypeIR::Arrow(_, _) => None,
         };
 
         // TODO (Greg): Get rid of string-matching for this.

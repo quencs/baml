@@ -5,14 +5,14 @@ pub mod coerce_enum;
 use core::panic;
 
 use anyhow::Result;
-use internal_baml_core::ir::FieldType;
+use internal_baml_core::ir::TypeIR;
 
 use super::{ParsingContext, ParsingError};
 use crate::deserializer::{coercer::TypeCoercer, types::BamlValueWithFlags};
 
 pub(super) enum IrRef<'a> {
     Enum(&'a String),
-    Class(&'a String),
+    Class(&'a String, &'a baml_types::StreamingMode),
     RecursiveAlias(&'a String),
 }
 
@@ -20,7 +20,7 @@ impl TypeCoercer for IrRef<'_> {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
         match self {
@@ -28,7 +28,7 @@ impl TypeCoercer for IrRef<'_> {
                 Ok(e) => e.coerce(ctx, target, value),
                 Err(e) => Err(ctx.error_internal(e.to_string())),
             },
-            IrRef::Class(c) => match ctx.of.find_class(c.as_str()) {
+            IrRef::Class(c, mode) => match ctx.of.find_class(mode, c.as_str()) {
                 Ok(c) => c.coerce(ctx, target, value),
                 Err(e) => Err(ctx.error_internal(e.to_string())),
             },

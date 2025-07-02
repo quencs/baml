@@ -44,6 +44,11 @@ jobs:
           cache: pnpm
           cache-dependency-path: |
             typescript/**/pnpm-lock.yaml
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Install protoc-gen-go
+        run: go install github.com/golang/protobuf/protoc-gen-go@latest
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
@@ -53,6 +58,9 @@ jobs:
       - name: Check TS Lint
         run: pnpm biome ci . --organize-imports-enabled=false
         working-directory: typescript
+      - name: Build web-panel for language server
+        run: bash ./scripts/build.sh
+        working-directory: engine/language_server
       - name: Check Rust Formatter
         # rustfmt can only run unstable features on stable toolchains if passed
         # through CLI. We don't want to download 2 toolchains just for this.
@@ -70,8 +78,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
       - uses: actions/setup-go@v5
-        with:
-          go-version: "1.21.x"
+      - name: Install protoc-gen-go
+        run: go install github.com/golang/protobuf/protoc-gen-go@latest
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -82,12 +90,19 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+      - run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
       - name: Install Node
         run: pnpm install --frozen-lockfile
         working-directory: engine/language_client_typescript
+      # This step is necessary to guarantee that the language server has a frontend to embed.
+      # Is also included in build and integ-tests steps.
+      - name: Build web-panel for language server
+        run: bash ./scripts/build.sh
+        working-directory: engine/language_server
+      # ------------------------------------------------------------
       - name: Build Node
         run: pnpm build:debug
         working-directory: engine/language_client_typescript
@@ -122,6 +137,21 @@ jobs:
       - name: Ensure No Changes (3 of 3)
         run: |
           git diff --exit-code || (echo "::error:: merge canary and run codegen again" && exit 1)
+  build-wasm:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: jdx/mise-action@v2
+        - uses: dtolnay/rust-toolchain@stable
+          with:
+            toolchain: stable
+        - run: rustup target add wasm32-unknown-unknown
+        - uses: Swatinem/rust-cache@v2
+          with:
+            workspaces: engine
+        - name: Build rust for wasm32
+          run: cargo build --target=wasm32-unknown-unknown
+          working-directory: engine/baml-schema-wasm
   build:
     runs-on: ubuntu-latest
     steps:
@@ -130,12 +160,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+      - run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
       - uses: actions/setup-go@v4
         with:
           go-version: '1.24'
+      - name: Install protoc-gen-go
+        run: go install github.com/golang/protobuf/protoc-gen-go@latest
       - name: Install goimports
         run: go install golang.org/x/tools/cmd/goimports@latest
       - uses: actions/setup-python@v4
@@ -148,6 +181,8 @@ jobs:
           node-version: '24.2.0'
       - name: Install prettier
         run: npm install -g prettier
+      - name: Install Biome
+        run: npm install -g @biomejs/biome
       # Ruby is still a wip
       # - uses: ruby/setup-ruby@v1
       #   with:
@@ -162,25 +197,13 @@ jobs:
       #   env:
       #     SRB_YES: "1"
       #   run: bundle exec tapioca init
+      - name: Build web-panel for language server
+        run: bash ./scripts/build.sh
+        working-directory: engine/language_server
       - name: Test Rust
         # skip doctests & integration tests (the latter require OPENAI_API_KEY and ANTHROPIC_API_KEY to be set)
         run: cargo test --lib
         working-directory: engine
-  build-wasm:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-      - run: rustup target add wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: engine
-      - name: Build rust for wasm32
-        run: cargo build --target=wasm32-unknown-unknown
-        working-directory: engine/baml-schema-wasm
   integ-tests:
     runs-on: ubuntu-latest
     steps:
@@ -190,12 +213,18 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.21.x"
+      - name: Install protoc-gen-go
+        run: go install github.com/golang/protobuf/protoc-gen-go@latest
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+      - run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
+      - name: Build web-panel for language server
+        run: bash ./scripts/build.sh
+        working-directory: engine/language_server
       - name: run python tests
         run: |
           cd integ-tests/python

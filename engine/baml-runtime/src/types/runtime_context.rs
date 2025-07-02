@@ -4,7 +4,7 @@ use anyhow::Result;
 use baml_ids::FunctionCallId;
 use baml_types::{BamlValue, EvaluationContext, UnresolvedValue};
 use indexmap::{IndexMap, IndexSet};
-use internal_baml_core::ir::FieldType;
+use internal_baml_core::ir::TypeIR;
 use thiserror::Error;
 
 use crate::{internal::llm_client::llm_provider::LLMProvider, tracing::BamlTracer};
@@ -34,7 +34,7 @@ pub struct RuntimeEnumOverride {
 #[derive(Debug)]
 pub struct RuntimeClassOverride {
     pub(crate) alias: Option<BamlValue>,
-    pub(crate) new_fields: IndexMap<String, (FieldType, PropertyAttributes)>,
+    pub(crate) new_fields: IndexMap<String, (TypeIR, PropertyAttributes)>,
     pub(crate) update_fields: IndexMap<String, PropertyAttributes>,
 }
 
@@ -58,8 +58,8 @@ pub struct RuntimeContext {
     pub client_overrides: Option<(Option<String>, HashMap<String, Arc<LLMProvider>>)>,
     pub class_override: IndexMap<String, RuntimeClassOverride>,
     pub enum_overrides: IndexMap<String, RuntimeEnumOverride>,
-    pub type_alias_overrides: IndexMap<String, FieldType>,
-    pub recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
+    pub type_alias_overrides: IndexMap<String, TypeIR>,
+    pub recursive_type_alias_overrides: Vec<IndexMap<String, TypeIR>>,
     // Only the BAML_TRACER depends on this.
     pub call_id_stack: Vec<FunctionCallId>,
     pub recursive_class_overrides: Vec<IndexSet<String>>,
@@ -85,9 +85,9 @@ impl RuntimeContext {
         client_overrides: Option<(Option<String>, HashMap<String, Arc<LLMProvider>>)>,
         class_override: IndexMap<String, RuntimeClassOverride>,
         enum_overrides: IndexMap<String, RuntimeEnumOverride>,
-        type_alias_overrides: IndexMap<String, FieldType>,
+        type_alias_overrides: IndexMap<String, TypeIR>,
         recursive_class_overrides: Vec<IndexSet<String>>,
-        recursive_type_alias_overrides: Vec<IndexMap<String, FieldType>>,
+        recursive_type_alias_overrides: Vec<IndexMap<String, TypeIR>>,
         call_id_stack: Vec<FunctionCallId>,
     ) -> RuntimeContext {
         RuntimeContext {

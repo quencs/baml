@@ -6,9 +6,12 @@ use itertools::Itertools;
 use crate::{baml_value::TypeLookups, BamlMediaType, ConstraintLevel};
 
 mod builder;
+mod converters;
 mod display;
+mod simplify;
 pub mod type_meta;
 mod union_type;
+pub use union_type::UnionConstructor;
 
 // Types, depending on the context, have different metadata attached to them.
 // When you define a type in BAML you have the IR rep of the type.
@@ -40,7 +43,7 @@ pub enum TypeGeneric<T> {
     Union(UnionTypeGeneric<T>, T),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, strum::Display)]
 pub enum StreamingMode {
     NonStreaming,
     Streaming,
@@ -53,8 +56,8 @@ pub struct UnionTypeGeneric<T> {
 }
 
 /// A convenience type alias for BAML types in the IR.
-pub type Type = TypeGeneric<type_meta::Base>;
-pub type FieldType = Type;
+pub type TypeIR = TypeGeneric<type_meta::IR>;
+pub type TypeNonStreaming = TypeGeneric<type_meta::NonStreaming>;
 pub type TypeStreaming = TypeGeneric<type_meta::Streaming>;
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, Eq, Hash)]
@@ -126,11 +129,11 @@ impl From<&str> for LiteralValue {
 }
 
 impl LiteralValue {
-    pub fn literal_base_type(&self) -> FieldType {
+    pub fn literal_base_type(&self) -> TypeIR {
         match self {
-            Self::String(_) => FieldType::string(),
-            Self::Int(_) => FieldType::int(),
-            Self::Bool(_) => FieldType::bool(),
+            Self::String(_) => TypeIR::string(),
+            Self::Int(_) => TypeIR::int(),
+            Self::Bool(_) => TypeIR::bool(),
         }
     }
 }
@@ -147,7 +150,7 @@ impl std::fmt::Display for LiteralValue {
 
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionType {
-    types: Vec<FieldType>,
+    types: Vec<TypeIR>,
 }
 
 /// A union type may never hold more than 1 null
@@ -157,11 +160,11 @@ pub enum UnionTypeView<'a> {
     /// A union containing only the null type
     Null,
     /// A union containing exactly one non-null type and the null type
-    Optional(&'a FieldType),
+    Optional(&'a TypeIR),
     /// A union containing multiple non-null types with no optional variants
-    OneOf(Vec<&'a FieldType>),
+    OneOf(Vec<&'a TypeIR>),
     /// A union containing multiple types where at least one is optional
-    OneOfOptional(Vec<&'a FieldType>),
+    OneOfOptional(Vec<&'a TypeIR>),
 }
 
 /// A union type may never hold more than 1 null
@@ -190,7 +193,7 @@ enum UnionTypeViewGenericMut<'a, T> {
     OneOfOptional(Vec<&'a mut TypeGeneric<T>>),
 }
 
-impl<'a, T: Default + std::fmt::Debug + Clone> UnionTypeViewGeneric<'a, T> {
+impl<T: Default + std::fmt::Debug + Clone> UnionTypeViewGeneric<'_, T> {
     /// A helper-function for the `FieldType::flatten`.
     /// See `FieldType::flatten` for context.
     fn flatten(&self) -> Vec<TypeGeneric<T>> {
@@ -227,7 +230,7 @@ impl<T> UnionTypeGeneric<T> {
         self.types.push(t);
     }
 
-    pub fn view<'a>(&'a self) -> UnionTypeViewGeneric<'a, T> {
+    pub fn view(&self) -> UnionTypeViewGeneric<'_, T> {
         let non_null_types = self
             .types
             .iter()
@@ -246,7 +249,7 @@ impl<T> UnionTypeGeneric<T> {
         }
     }
 
-    fn view_mut<'a>(&'a mut self) -> UnionTypeViewGenericMut<'a, T> {
+    fn view_mut(&mut self) -> UnionTypeViewGenericMut<'_, T> {
         let num_types = self.types.len();
         let non_null_types = self
             .types
@@ -300,20 +303,32 @@ impl<T> UnionTypeGeneric<T> {
     }
 }
 
-pub trait HasFieldType {
-    fn field_type(&self) -> &FieldType;
+pub trait HasType<T> {
+    fn field_type(&self) -> &TypeGeneric<T>;
 }
 
-impl HasFieldType for FieldType {
-    fn field_type(&self) -> &FieldType {
+impl HasType<type_meta::IR> for TypeIR {
+    fn field_type(&self) -> &TypeIR {
+        self
+    }
+}
+
+impl HasType<type_meta::NonStreaming> for TypeNonStreaming {
+    fn field_type(&self) -> &TypeGeneric<type_meta::NonStreaming> {
+        self
+    }
+}
+
+impl HasType<type_meta::Streaming> for TypeStreaming {
+    fn field_type(&self) -> &TypeGeneric<type_meta::Streaming> {
         self
     }
 }
 
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Arrow {
-    pub param_types: Vec<FieldType>,
-    pub return_type: FieldType,
+    pub param_types: Vec<TypeIR>,
+    pub return_type: TypeIR,
 }
 
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -409,6 +424,71 @@ impl<T> TypeGeneric<T> {
         }
     }
 
+    pub fn map_meta<F, U>(&self, f: F) -> TypeGeneric<U>
+    where
+        F: Fn(&T) -> U + Copy,
+    {
+        match self {
+            TypeGeneric::Class {
+                meta,
+                name,
+                mode,
+                dynamic,
+                ..
+            } => TypeGeneric::Class {
+                meta: f(meta),
+                name: name.clone(),
+                mode: mode.clone(),
+                dynamic: *dynamic,
+            },
+            TypeGeneric::Arrow(arrow, type_metadata_ir) => TypeGeneric::Arrow(
+                Box::new(ArrowGeneric {
+                    param_types: arrow.param_types.iter().map(|t| t.map_meta(f)).collect(),
+                    return_type: arrow.return_type.map_meta(f),
+                }),
+                f(type_metadata_ir),
+            ),
+            TypeGeneric::Primitive(value, type_metadata_ir) => {
+                TypeGeneric::Primitive(*value, f(type_metadata_ir))
+            }
+            TypeGeneric::Enum {
+                meta,
+                name,
+                dynamic,
+            } => TypeGeneric::Enum {
+                meta: f(meta),
+                name: name.clone(),
+                dynamic: *dynamic,
+            },
+            TypeGeneric::Literal(literal_value, type_metadata_ir) => {
+                TypeGeneric::Literal(literal_value.clone(), f(type_metadata_ir))
+            }
+            TypeGeneric::List(inner, type_metadata_ir) => {
+                TypeGeneric::List(Box::new(inner.map_meta(f)), f(type_metadata_ir))
+            }
+            TypeGeneric::Map(field_type, field_type1, type_metadata_ir) => TypeGeneric::Map(
+                Box::new(field_type.map_meta(f)),
+                Box::new(field_type1.map_meta(f)),
+                f(type_metadata_ir),
+            ),
+            TypeGeneric::RecursiveTypeAlias { meta, name } => TypeGeneric::RecursiveTypeAlias {
+                meta: f(meta),
+                name: name.clone(),
+            },
+            TypeGeneric::Tuple(inner, type_metadata_ir) => TypeGeneric::Tuple(
+                inner.iter().map(|t| t.map_meta(f)).collect(),
+                f(type_metadata_ir),
+            ),
+            TypeGeneric::Union(inner, type_metadata_ir) => TypeGeneric::Union(
+                UnionTypeGeneric {
+                    types: inner.types.iter().map(|t| t.map_meta(f)).collect(),
+                    null_type: Box::new(inner.null_type.map_meta(f)),
+                },
+                f(type_metadata_ir),
+            ),
+        }
+    }
+
     pub fn meta_mut(&mut self) -> &mut T {
         match self {
             TypeGeneric::Class { meta, .. } => meta,
@@ -498,7 +578,7 @@ impl<T> TypeGeneric<T> {
     }
 }
 
-impl Type {
+impl TypeIR {
     /// Convert a `FieldType` (a type specified in BAML source code) into
     /// a `StreamingType` (a type that can be used for streaming).
     ///
@@ -515,255 +595,24 @@ impl Type {
     /// We do not explicitly represent @stream.with_state or @stream.checked.
     /// Downstream consumers of `StreamingType` must check these properties
     /// in the metadata.
-    pub fn partialize(&self, lookup: &impl TypeLookups) -> TypeStreaming {
-        partialize(self, lookup)
+    pub fn to_streaming_type(&self, lookup: &impl TypeLookups) -> TypeStreaming {
+        converters::streaming::from_type_ir(self, lookup)
+    }
+
+    pub fn to_non_streaming_type(&self, lookup: &impl TypeLookups) -> TypeNonStreaming {
+        converters::non_streaming::from_type_ir(self, lookup)
     }
 }
 
-fn partialize(r#type: &Type, lookup: &impl TypeLookups) -> TypeStreaming {
-    // This inner worker function goes from `FieldType` to `FieldType` to be
-    // suitable for recursive use. We only wrap the outermost `FieldType` in
-    // `StreamingType`.
-    fn partialize_helper(r#type: &Type, lookup: &impl TypeLookups) -> TypeStreaming {
-        let type_meta::base::StreamingBehavior {
-            done,
-            needed,
-            state,
-        } = r#type
-            .streaming_behavior()
-            .combine(&inherent_streaming_behavior(r#type, lookup));
-
-        // A copy of the metadata to use in the new type.
-        let meta = type_meta::Streaming {
-            streaming_behavior: type_meta::stream::StreamingBehavior { done, state },
-            constraints: r#type.meta().constraints.clone(),
-        };
-
-        // Streaming behavior of the type, without regard to the `@stream` annotations.
-        // (That annotation will be handled later in this function).
-        let mut base_type_streaming = match r#type {
-            FieldType::Primitive(type_value, _) => match type_value {
-                TypeValue::Null => TypeStreaming::Primitive(TypeValue::Null, meta),
-                TypeValue::Int => TypeStreaming::Primitive(TypeValue::Int, meta),
-                TypeValue::Float => TypeStreaming::Primitive(TypeValue::Float, meta),
-                TypeValue::Bool => TypeStreaming::Primitive(TypeValue::Bool, meta),
-                TypeValue::String => TypeStreaming::Primitive(TypeValue::String, meta),
-                TypeValue::Media(_) => {
-                    TypeStreaming::Primitive(TypeValue::Media(BamlMediaType::Image), meta)
-                }
-            },
-            FieldType::Enum { name, dynamic, .. } => TypeStreaming::Enum {
-                name: name.clone(),
-                dynamic: *dynamic,
-                meta: meta.clone(),
-            },
-            FieldType::Literal(literal_value, _) => {
-                TypeStreaming::Literal(literal_value.clone(), meta)
-            }
-            FieldType::Class { name, dynamic, .. } => TypeStreaming::Class {
-                name: name.clone(),
-                mode: if done {
-                    StreamingMode::NonStreaming
-                } else {
-                    StreamingMode::Streaming
-                },
-                dynamic: *dynamic,
-                meta: meta.clone(),
-            },
-            FieldType::List(item_type, _) => {
-                TypeStreaming::List(Box::new(partialize(item_type, lookup)), meta)
-            }
-            FieldType::Map(key_type, item_type, _) => TypeStreaming::Map(
-                {
-                    // Keys cannot be null in maps
-                    let mut clone = key_type.clone();
-                    clone.meta_mut().streaming_behavior.needed = true;
-                    Box::new(partialize(&clone, lookup))
-                },
-                Box::new(partialize(item_type, lookup)),
-                meta,
-            ),
-            FieldType::RecursiveTypeAlias { name, .. } => TypeStreaming::RecursiveTypeAlias {
-                name: name.clone(),
-                meta: meta.clone(),
-            },
-            FieldType::Tuple(field_types, _) => TypeStreaming::Tuple(
-                field_types.iter().map(|t| partialize(t, lookup)).collect(),
-                meta,
-            ),
-            FieldType::Arrow(arrow, _) => TypeStreaming::Arrow(
-                Box::new(ArrowGeneric {
-                    param_types: arrow
-                        .param_types
-                        .iter()
-                        .map(|t| partialize(t, lookup))
-                        .collect(),
-                    return_type: partialize(&arrow.return_type, lookup),
-                }),
-                meta,
-            ),
-            FieldType::Union(union_type, _) => {
-                let variants = union_type.iter_skip_null();
-                let variants = variants.into_iter().cloned().map(|mut t| {
-                    t.meta_mut().streaming_behavior.needed = true;
-                    partialize(&t, lookup)
-                });
-
-                let variants = if !needed {
-                    variants
-                        .chain(std::iter::once(TypeStreaming::null()))
-                        .collect()
-                } else {
-                    variants.collect()
-                };
-                TypeStreaming::Union(unsafe { UnionTypeGeneric::new_unsafe(variants) }, meta)
-            }
-        };
-        if needed || base_type_streaming.is_optional() {
-            // Needed streaming types, and streaming types that are optional, need
-            // no further processing to add optionality.
-            base_type_streaming
-        } else {
-            // Currently base_type_streaming has the interesting metadata.
-            // In the union we create to make base_type_streaming optional,
-            // we want that inner metadata to be default, our outer union to
-            // have the metadata. So we create a new default metadata and swap
-            // its memory with that of the inner base_type.
-            let meta = base_type_streaming.meta().clone();
-            *base_type_streaming.meta_mut() = Default::default();
-            let mut optional_value = TypeStreaming::Union(
-                unsafe {
-                    UnionTypeGeneric::new_unsafe(vec![base_type_streaming, TypeStreaming::null()])
-                },
-                Default::default(),
-            );
-            *optional_value.meta_mut() = meta;
-            optional_value
-        }
+impl TypeStreaming {
+    pub fn to_ir_type(&self) -> TypeIR {
+        converters::streaming::to_type_ir(self)
     }
-
-    // Types have inherent streaming behavior. For example literals and
-    // numbers are inherently @done. These behaviors are applied even
-    // without user annotations.
-    fn inherent_streaming_behavior(
-        field_type: &FieldType,
-        lookup: &impl TypeLookups,
-    ) -> type_meta::base::StreamingBehavior {
-        type StreamingBehavior = type_meta::base::StreamingBehavior;
-        match field_type {
-            FieldType::Primitive(type_value, _) => match type_value {
-                TypeValue::Bool | TypeValue::Float | TypeValue::Int => StreamingBehavior {
-                    done: true,
-                    ..Default::default()
-                },
-                TypeValue::String | TypeValue::Null | TypeValue::Media(_) => Default::default(),
-            },
-            FieldType::Enum { .. } | FieldType::Literal(_, _) => StreamingBehavior {
-                done: true,
-                ..Default::default()
-            },
-            FieldType::RecursiveTypeAlias { name, .. } => {
-                match lookup.expand_recursive_type(name) {
-                    Ok(expansion) if expansion.is_optional() => StreamingBehavior {
-                        needed: true,
-                        ..Default::default()
-                    },
-                    _ => Default::default(),
-                }
-            }
-            FieldType::Class { .. }
-            | FieldType::List(..)
-            | FieldType::Map(..)
-            | FieldType::Tuple(..)
-            | FieldType::Arrow(..)
-            | FieldType::Union(..) => Default::default(),
-        }
-    }
-    partialize_helper(r#type, lookup)
 }
 
-impl TypeGeneric<type_meta::Base> {
+impl TypeGeneric<type_meta::IR> {
     pub fn streaming_behavior(&self) -> &type_meta::base::StreamingBehavior {
         &self.meta().streaming_behavior
-    }
-
-    pub fn simplify(&self) -> Self {
-        match self {
-            TypeGeneric::Union(inner, union_meta) => {
-                let view = inner.view();
-                let flattened = view.flatten();
-                let unique = flattened.into_iter().unique().collect::<Vec<_>>();
-                let has_null = unique.contains(&TypeGeneric::null());
-                // if the union contains null, we'll detect that here.
-                let mut variants: Vec<TypeGeneric<type_meta::Base>> = unique
-                    .into_iter()
-                    .filter(|t| t != &TypeGeneric::null())
-                    .collect::<Vec<_>>();
-
-                // here metadata simplification of both variants and the union itself happens
-                // unions will never have checks and asserts in their own metadata, always distributed and do not keep
-                // Union(A|B)(@check(A, {..})) => Union(A@check(A, {..})|B@check(B, {..}))
-                let (to_move, to_keep): (Vec<_>, Vec<_>) =
-                    union_meta.constraints.clone().into_iter().partition(|c| {
-                        // move these
-                        matches!(c.level, ConstraintLevel::Check | ConstraintLevel::Assert)
-                    });
-
-                let type_meta::base::StreamingBehavior {
-                    done,
-                    needed,
-                    state,
-                } = union_meta.streaming_behavior;
-
-                // Add to_move to each variant
-                for variant in variants.iter_mut() {
-                    variant.meta_mut().constraints.extend(to_move.clone());
-                    if done {
-                        variant.meta_mut().streaming_behavior.done = true;
-                    }
-                    if needed {
-                        variant.meta_mut().streaming_behavior.needed = true;
-                    }
-                }
-
-                let mut new_meta = type_meta::Base::default();
-                new_meta.constraints.extend(to_keep);
-
-                if needed {
-                    new_meta.streaming_behavior.needed = true;
-                }
-                new_meta.streaming_behavior.state = state;
-                new_meta.streaming_behavior.done = done;
-
-                let simplified: TypeGeneric<type_meta::Base> = match variants.len() {
-                    0 => return TypeGeneric::null(),
-                    1 => {
-                        if has_null {
-                            // Return an optional of a single variant.
-                            TypeGeneric::Union(
-                                unsafe { UnionTypeGeneric::new_unsafe(vec![variants[0].clone()]) },
-                                new_meta,
-                            )
-                        } else {
-                            // Return the single variant.
-                            variants[0].clone()
-                        }
-                    }
-                    _ => {
-                        if has_null {
-                            variants.push(TypeGeneric::null());
-                        }
-                        TypeGeneric::Union(
-                            unsafe { UnionTypeGeneric::new_unsafe(variants) },
-                            new_meta,
-                        )
-                    }
-                };
-
-                simplified
-            }
-            _ => self.clone(),
-        }
     }
 }
 
@@ -808,8 +657,8 @@ impl<Meta: std::hash::Hash + std::cmp::Eq> ToUnionName<Meta> for TypeGeneric<Met
                         .map(|c| if c.is_alphanumeric() { c } else { '_' })
                         .collect::<String>()
                 ),
-                LiteralValue::Int(val) => format!("int_{}", val),
-                LiteralValue::Bool(val) => format!("bool_{}", val),
+                LiteralValue::Int(val) => format!("int_{val}"),
+                LiteralValue::Bool(val) => format!("bool_{val}"),
             },
             T::Class { name, .. } => name.to_string(),
             T::List(field_type, _) => {
@@ -873,7 +722,9 @@ pub struct TypeMetaIR {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Constraint;
+    use crate::{
+        ir_type::union_type::UnionConstructor, type_meta::stream::TypeMetaStreaming, Constraint,
+    };
 
     fn make_optional(inner: TypeStreaming) -> TypeStreaming {
         if let TypeStreaming::Union(items, meta) = inner {
@@ -894,85 +745,80 @@ mod tests {
         )
     }
 
-    fn make_union(types: Vec<FieldType>, meta: type_meta::Base) -> FieldType {
-        FieldType::Union(unsafe { UnionTypeGeneric::new_unsafe(types) }, meta)
+    fn make_union<T: std::fmt::Debug + Default>(
+        types: Vec<TypeGeneric<T>>,
+        meta: T,
+    ) -> TypeGeneric<T> {
+        TypeGeneric::Union(unsafe { UnionTypeGeneric::new_unsafe(types) }, meta)
     }
 
     #[test]
     fn simplify_base_case() {
-        assert_eq!(FieldType::null().simplify(), FieldType::null());
+        assert_eq!(TypeIR::null().simplify(), TypeIR::null());
     }
 
     #[test]
     fn simplify_int() {
-        let int = FieldType::int();
+        let int = TypeIR::int();
         assert_eq!(int.simplify(), int);
     }
 
     #[test]
     fn simplify_optional_int() {
-        let optional_int = FieldType::optional(FieldType::int());
+        let optional_int = TypeIR::optional(TypeIR::int());
         assert_eq!(optional_int.simplify(), optional_int);
     }
 
     #[test]
     fn simplify_nested_unions() {
         // ((int | null) | string)
-        let inner_union = FieldType::union(vec![FieldType::int(), FieldType::null()]);
-        let outer_union = FieldType::union(vec![inner_union, FieldType::string()]);
+        let inner_union = TypeIR::union(vec![TypeIR::int(), TypeIR::null()]);
+        let outer_union = TypeIR::union(vec![inner_union, TypeIR::string()]);
         // union(union(int, null), string)
         assert_eq!(
             outer_union.simplify(),
-            FieldType::union(vec![
-                FieldType::int(),
-                FieldType::string(),
-                FieldType::null()
-            ])
+            TypeIR::union(vec![TypeIR::int(), TypeIR::string(), TypeIR::null()])
         );
     }
 
     #[test]
     fn simplify_repeated_variants() {
-        let union = FieldType::union(vec![
-            FieldType::int(),
-            FieldType::int(),
-            FieldType::string(),
-            FieldType::string(),
+        let union = TypeIR::union(vec![
+            TypeIR::int(),
+            TypeIR::int(),
+            TypeIR::string(),
+            TypeIR::string(),
         ]);
         assert_eq!(
             union.simplify(),
-            FieldType::union(vec![FieldType::int(), FieldType::string()])
+            TypeIR::union(vec![TypeIR::int(), TypeIR::string()])
         );
     }
 
     #[test]
     fn simplify_nested_with_repeats() {
-        let inner_union = FieldType::union(vec![FieldType::int(), FieldType::null()]);
-        let union = FieldType::union(vec![FieldType::int(), inner_union, FieldType::string()]);
+        let inner_union = TypeIR::union(vec![TypeIR::int(), TypeIR::null()]);
+        let union = TypeIR::union(vec![TypeIR::int(), inner_union, TypeIR::string()]);
         assert_eq!(
             union.simplify(),
-            FieldType::union(vec![
-                FieldType::int(),
-                FieldType::string(),
-                FieldType::null()
-            ])
+            TypeIR::union(vec![TypeIR::int(), TypeIR::string(), TypeIR::null()])
         );
     }
 
     struct TestLookup;
 
     impl TypeLookups for TestLookup {
-        fn expand_recursive_type(&self, _name: &str) -> anyhow::Result<&FieldType> {
+        fn expand_recursive_type(&self, _name: &str) -> anyhow::Result<&TypeIR> {
             anyhow::bail!("nothing found");
         }
     }
 
     #[test]
-    fn simplify_union_constraints() {
+    fn simplify_union_constraints_streaming() {
         struct TestCase {
             name: &'static str,
-            input: FieldType,
-            expected: FieldType,
+            input: TypeIR,
+            expected: TypeIR,
         }
 
         let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
@@ -982,24 +828,24 @@ mod tests {
             TestCase {
                 name: "(A|B)(@check(A, {..})) => (A@check(A, {..})|B@check(B, {..}))",
                 input: make_union(
-                    vec![FieldType::int(), FieldType::float()],
-                    type_meta::Base {
+                    vec![TypeIR::int(), TypeIR::float()],
+                    type_meta::IR {
                         constraints: vec![constraint.clone()],
                         streaming_behavior: streaming_behavior.clone(),
                     },
                 ),
                 expected: make_union(
                     vec![
-                        FieldType::int_with_meta(type_meta::Base {
+                        TypeIR::int_with_meta(type_meta::IR {
                             constraints: vec![constraint.clone()],
                             streaming_behavior: Default::default(),
                         }),
-                        FieldType::float_with_meta(type_meta::Base {
+                        TypeIR::float_with_meta(type_meta::IR {
                             constraints: vec![constraint.clone()],
                             streaming_behavior: Default::default(),
                         }),
                     ],
-                    type_meta::Base {
+                    type_meta::IR {
                         constraints: vec![],
                         streaming_behavior: Default::default(),
                     },
@@ -1008,8 +854,8 @@ mod tests {
             TestCase {
                 name: "(A|B)@stream.done => (A@stream.done|B@stream.done)@stream.done",
                 input: make_union(
-                    vec![FieldType::int(), FieldType::float()],
-                    type_meta::Base {
+                    vec![TypeIR::int(), TypeIR::float()],
+                    type_meta::IR {
                         constraints: vec![],
                         streaming_behavior: type_meta::base::StreamingBehavior {
                             done: true,
@@ -1019,14 +865,14 @@ mod tests {
                 ),
                 expected: make_union(
                     vec![
-                        FieldType::int_with_meta(type_meta::Base {
+                        TypeIR::int_with_meta(type_meta::IR {
                             constraints: vec![],
                             streaming_behavior: type_meta::base::StreamingBehavior {
                                 done: true,
                                 ..Default::default()
                             },
                         }),
-                        FieldType::float_with_meta(type_meta::Base {
+                        TypeIR::float_with_meta(type_meta::IR {
                             constraints: vec![],
                             streaming_behavior: type_meta::base::StreamingBehavior {
                                 done: true,
@@ -1034,7 +880,7 @@ mod tests {
                             },
                         }),
                     ],
-                    type_meta::Base {
+                    type_meta::IR {
                         constraints: vec![],
                         streaming_behavior: type_meta::base::StreamingBehavior {
                             done: true,
@@ -1045,7 +891,7 @@ mod tests {
             },
             TestCase {
                 name: "(A|B)@stream.not_null => (A@stream.not_null|B@stream.not_null)@stream.not_null",
-                input: make_union(vec![FieldType::int(), FieldType::string()], type_meta::Base {
+                input: make_union(vec![TypeIR::int(), TypeIR::string()], type_meta::IR {
                     constraints: vec![],
                     streaming_behavior: type_meta::base::StreamingBehavior {
                         needed: true,
@@ -1053,21 +899,21 @@ mod tests {
                     },
                 }),
                 expected: make_union(vec![
-                    FieldType::int_with_meta(type_meta::Base {
+                    TypeIR::int_with_meta(type_meta::IR {
                         constraints: vec![],
                         streaming_behavior: type_meta::base::StreamingBehavior {
                             needed: true,
                             ..Default::default()
                         },
                     }),
-                    FieldType::string_with_meta(type_meta::Base {
+                    TypeIR::string_with_meta(type_meta::IR {
                         constraints: vec![],
                         streaming_behavior: type_meta::base::StreamingBehavior {
                             needed: true,
                             ..Default::default()
                         },
                     }),
-                ], type_meta::Base {
+                ], type_meta::IR {
                     constraints: vec![],
                     streaming_behavior: type_meta::base::StreamingBehavior {
                         needed: true,
@@ -1077,7 +923,7 @@ mod tests {
             },
             TestCase {
                 name: "(A|B)@stream.with_state => (A|B)@stream.with_state",
-                input: make_union(vec![FieldType::int(), FieldType::string()], type_meta::Base {
+                input: make_union(vec![TypeIR::int(), TypeIR::string()], type_meta::IR {
                     constraints: vec![],
                     streaming_behavior: type_meta::base::StreamingBehavior {
                         state: true,
@@ -1085,9 +931,9 @@ mod tests {
                     },
                 }),
                 expected: make_union(vec![
-                    FieldType::int(),
-                    FieldType::string(),
-                ], type_meta::Base {
+                    TypeIR::int(),
+                    TypeIR::string(),
+                ], type_meta::IR {
                     constraints: vec![],
                     streaming_behavior: type_meta::base::StreamingBehavior {
                         state: true,
@@ -1097,26 +943,26 @@ mod tests {
             },
             TestCase{
                 name: "(A@stream_with_state | B@stream_with_state) => (A@stream_with_state | B@stream_with_state)",
-                input: make_union(vec![FieldType::int_with_meta(type_meta::Base {
+                input: make_union(vec![TypeIR::int_with_meta(type_meta::IR {
                     constraints: vec![],
                     streaming_behavior: type_meta::base::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
-                }), FieldType::string_with_meta(type_meta::Base {
+                }), TypeIR::string_with_meta(type_meta::IR {
                     constraints: vec![],
                     streaming_behavior: type_meta::base::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
                 })], Default::default()),
-                expected: make_union(vec![FieldType::int_with_meta(type_meta::Base {
+                expected: make_union(vec![TypeIR::int_with_meta(type_meta::IR {
                     constraints: vec![],
                     streaming_behavior: type_meta::base::StreamingBehavior {
                         state: true,
                         ..Default::default()
                     },
-                }), FieldType::string_with_meta(type_meta::Base {
+                }), TypeIR::string_with_meta(type_meta::IR {
                     constraints: vec![],
                     streaming_behavior: type_meta::base::StreamingBehavior {
                         state: true,
@@ -1136,33 +982,196 @@ mod tests {
         }
     }
 
+    // #[test]
+    // fn simplify_union_constraints_convertered() {
+    //     struct TestCase {
+    //         name: &'static str,
+    //         input: TypeIR,
+    //         expected: TypeNonStreaming,
+    //     }
+
+    //     let constraint = Constraint::new_check("check all fields are positive", "{{ this }} > 0");
+    //     let streaming_behavior = type_meta::base::StreamingBehavior::default();
+
+    //     let cases = vec![
+    //         TestCase {
+    //             name: "(A|B)(@check(A, {..})) => (A@check(A, {..})|B@check(B, {..}))",
+    //             input: make_union(
+    //                 vec![TypeIR::int(), TypeIR::float()],
+    //                 type_meta::NonStreaming {
+    //                     constraints: vec![constraint.clone()],
+    //                 },
+    //             ),
+    //             expected: make_union(
+    //                 vec![
+    //                     TypeIR::int_with_meta(type_meta::NonStreaming {
+    //                         constraints: vec![constraint.clone()],
+    //                     }),
+    //                     TypeIR::float_with_meta(type_meta::NonStreaming {
+    //                         constraints: vec![constraint.clone()],
+    //                     }),
+    //                 ],
+    //                 type_meta::IR {
+    //                     constraints: vec![],
+    //                     streaming_behavior: Default::default(),
+    //                 },
+    //             ),
+    //         },
+    //         TestCase {
+    //             name: "(A|B)@stream.done => (A@stream.done|B@stream.done)@stream.done",
+    //             input: make_union(
+    //                 vec![TypeIR::int(), TypeIR::float()],
+    //                 type_meta::IR {
+    //                     constraints: vec![],
+    //                     streaming_behavior: type_meta::base::StreamingBehavior {
+    //                         done: true,
+    //                         ..Default::default()
+    //                     },
+    //                 },
+    //             ),
+    //             expected: make_union(
+    //                 vec![
+    //                     TypeIR::int_with_meta(type_meta::IR {
+    //                         constraints: vec![],
+    //                         streaming_behavior: type_meta::base::StreamingBehavior {
+    //                             done: true,
+    //                             ..Default::default()
+    //                         },
+    //                     }),
+    //                     TypeIR::float_with_meta(type_meta::IR {
+    //                         constraints: vec![],
+    //                         streaming_behavior: type_meta::base::StreamingBehavior {
+    //                             done: true,
+    //                             ..Default::default()
+    //                         },
+    //                     }),
+    //                 ],
+    //                 type_meta::IR {
+    //                     constraints: vec![],
+    //                     streaming_behavior: type_meta::base::StreamingBehavior {
+    //                         done: true,
+    //                         ..Default::default()
+    //                     },
+    //                 },
+    //             ),
+    //         },
+    //         TestCase {
+    //             name: "(A|B)@stream.not_null => (A@stream.not_null|B@stream.not_null)@stream.not_null",
+    //             input: make_union(vec![TypeIR::int(), TypeIR::string()], type_meta::IR {
+    //                 constraints: vec![],
+    //                 streaming_behavior: type_meta::base::StreamingBehavior {
+    //                     needed: true,
+    //                     ..Default::default()
+    //                 },
+    //             }),
+    //             expected: make_union(vec![
+    //                 TypeIR::int_with_meta(type_meta::IR {
+    //                     constraints: vec![],
+    //                     streaming_behavior: type_meta::base::StreamingBehavior {
+    //                         needed: true,
+    //                         ..Default::default()
+    //                     },
+    //                 }),
+    //                 TypeIR::string_with_meta(type_meta::IR {
+    //                     constraints: vec![],
+    //                     streaming_behavior: type_meta::base::StreamingBehavior {
+    //                         needed: true,
+    //                         ..Default::default()
+    //                     },
+    //                 }),
+    //             ], type_meta::IR {
+    //                 constraints: vec![],
+    //                 streaming_behavior: type_meta::base::StreamingBehavior {
+    //                     needed: true,
+    //                     ..Default::default()
+    //                 },
+    //             }),
+    //         },
+    //         TestCase {
+    //             name: "(A|B)@stream.with_state => (A|B)@stream.with_state",
+    //             input: make_union(vec![TypeIR::int(), TypeIR::string()], type_meta::IR {
+    //                 constraints: vec![],
+    //                 streaming_behavior: type_meta::base::StreamingBehavior {
+    //                     state: true,
+    //                     ..Default::default()
+    //                 },
+    //             }),
+    //             expected: make_union(vec![
+    //                 TypeIR::int(),
+    //                 TypeIR::string(),
+    //             ], type_meta::IR {
+    //                 constraints: vec![],
+    //                 streaming_behavior: type_meta::base::StreamingBehavior {
+    //                     state: true,
+    //                     ..Default::default()
+    //                 },
+    //             }),
+    //         },
+    //         TestCase{
+    //             name: "(A@stream_with_state | B@stream_with_state) => (A@stream_with_state | B@stream_with_state)",
+    //             input: make_union(vec![TypeIR::int_with_meta(type_meta::IR {
+    //                 constraints: vec![],
+    //                 streaming_behavior: type_meta::base::StreamingBehavior {
+    //                     state: true,
+    //                     ..Default::default()
+    //                 },
+    //             }), TypeIR::string_with_meta(type_meta::IR {
+    //                 constraints: vec![],
+    //                 streaming_behavior: type_meta::base::StreamingBehavior {
+    //                     state: true,
+    //                     ..Default::default()
+    //                 },
+    //             })], Default::default()),
+    //             expected: make_union(vec![TypeIR::int_with_meta(type_meta::IR {
+    //                 constraints: vec![],
+    //                 streaming_behavior: type_meta::base::StreamingBehavior {
+    //                     state: true,
+    //                     ..Default::default()
+    //                 },
+    //             }), TypeIR::string_with_meta(type_meta::IR {
+    //                 constraints: vec![],
+    //                 streaming_behavior: type_meta::base::StreamingBehavior {
+    //                     state: true,
+    //                     ..Default::default()
+    //                 },
+    //             })], Default::default())
+    //         },
+    //     ];
+
+    //     for case in cases {
+    //         let actual = case.input.simplify();
+    //         assert_eq!(
+    //             actual, case.expected,
+    //             "\n\nFailed test: {}\nInput: {}\nActual: {}\nExpected: {}\n",
+    //             case.name, case.input, actual, case.expected
+    //         );
+    //     }
+    // }
+
     #[test]
     fn flatten_base_case() {
-        let null = FieldType::null();
+        let null = TypeIR::null();
         assert_eq!(null.flatten(), vec![null])
     }
 
     #[test]
     fn flatten_int() {
-        let int = FieldType::int();
+        let int = TypeIR::int();
         assert_eq!(int.flatten(), vec![int])
     }
 
     #[test]
     fn flatten_optional_int() {
-        let optional_int = FieldType::optional(FieldType::int());
-        assert_eq!(
-            optional_int.flatten(),
-            vec![FieldType::int(), FieldType::null()]
-        )
+        let optional_int = TypeIR::optional(TypeIR::int());
+        assert_eq!(optional_int.flatten(), vec![TypeIR::int(), TypeIR::null()])
     }
 
     #[test]
     // null => null
     fn partialize_base_case() {
-        let null = FieldType::null();
+        let null = TypeIR::null();
         assert_eq!(
-            partialize(&null, &TestLookup),
+            converters::streaming::from_type_ir(&null, &TestLookup),
             TypeStreaming::Primitive(TypeValue::Null, Default::default())
         );
     }
@@ -1170,7 +1179,7 @@ mod tests {
     #[test]
     fn partialize_primitive_with_streaming() {
         // int@stream.with_state => stream.int | null @stream.with_state @stream.not_null
-        let int = FieldType::int_with_meta(type_meta::Base {
+        let int = TypeIR::int_with_meta(type_meta::IR {
             streaming_behavior: type_meta::base::StreamingBehavior {
                 state: true,
                 needed: false,
@@ -1183,7 +1192,13 @@ mod tests {
                 UnionTypeGeneric::new_unsafe(vec![
                     TypeStreaming::Primitive(
                         TypeValue::Int,
-                        type_meta::stream::TypeMetaStreaming::default(),
+                        type_meta::stream::TypeMetaStreaming {
+                            streaming_behavior: type_meta::stream::StreamingBehavior {
+                                state: false,
+                                done: true,
+                            },
+                            ..Default::default()
+                        },
                     ),
                     TypeStreaming::null(),
                 ])
@@ -1191,17 +1206,18 @@ mod tests {
             type_meta::stream::TypeMetaStreaming {
                 streaming_behavior: type_meta::stream::StreamingBehavior {
                     state: true,
-                    done: true,
+                    ..Default::default()
                 },
                 ..Default::default()
             },
         );
-        assert_eq!(int.partialize(&TestLookup), expected);
+        let actual = int.to_streaming_type(&TestLookup);
+        assert_eq!(actual, expected, "{actual} != {expected}");
     }
 
     #[test]
     fn parialize_primitive_needed_field_with_streaming() {
-        let int = FieldType::int_with_meta(type_meta::Base {
+        let int = TypeIR::int_with_meta(type_meta::IR {
             streaming_behavior: type_meta::base::StreamingBehavior {
                 state: true,
                 needed: true,
@@ -1219,15 +1235,15 @@ mod tests {
                 },
             },
         );
-        assert_eq!(int.partialize(&TestLookup), expected);
+        assert_eq!(int.to_streaming_type(&TestLookup), expected);
     }
 
     #[test]
     // Foo => stream.Foo | null
     fn partialize_bare_class() {
-        let class = FieldType::class("MyClass");
+        let class = TypeIR::class("MyClass");
         assert_eq!(
-            partialize(&class, &TestLookup),
+            converters::streaming::from_type_ir(&class, &TestLookup),
             make_optional(TypeStreaming::Class {
                 name: "MyClass".to_string(),
                 dynamic: false,
@@ -1240,21 +1256,30 @@ mod tests {
     #[test]
     // Foo @stream.done => Foo
     fn partialize_class_with_done() {
-        let mut class = FieldType::class("MyClass");
-        let mut expected = make_optional(TypeStreaming::Class {
+        let mut class = TypeIR::class("MyClass");
+        let expected = make_optional(TypeStreaming::Class {
             name: "MyClass".to_string(),
             mode: StreamingMode::NonStreaming,
             dynamic: false,
-            meta: Default::default(),
+            meta: TypeMetaStreaming {
+                streaming_behavior: type_meta::stream::StreamingBehavior {
+                    done: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
         });
-        expected.meta_mut().streaming_behavior.done = true;
         class.meta_mut().streaming_behavior.done = true;
-        assert_eq!(partialize(&class, &TestLookup), expected);
+        assert_eq!(
+            converters::streaming::from_type_ir(&class, &TestLookup),
+            expected,
+            "{class} != {expected}"
+        );
     }
 
     #[test]
     fn partialize_simple_union() {
-        let union = FieldType::union(vec![FieldType::int(), FieldType::string()]);
+        let union = TypeIR::union(vec![TypeIR::int(), TypeIR::string()]);
         let expected = make_optional(TypeStreaming::Union(
             unsafe {
                 UnionTypeGeneric::new_unsafe(vec![
@@ -1270,7 +1295,7 @@ mod tests {
             },
             Default::default(),
         ));
-        let actual = partialize(&union, &TestLookup);
+        let actual = converters::streaming::from_type_ir(&union, &TestLookup);
 
         assert_eq!(actual, expected);
     }
@@ -1278,90 +1303,97 @@ mod tests {
     #[test]
     fn partialize_primitive_types() {
         // Test Float
-        let float = FieldType::float();
+        let float = TypeIR::float();
         let expected = TypeStreaming::Union(
             unsafe {
-                UnionTypeGeneric::new_unsafe(vec![TypeStreaming::float(), TypeStreaming::null()])
+                UnionTypeGeneric::new_unsafe(vec![
+                    TypeStreaming::Primitive(
+                        TypeValue::Float,
+                        type_meta::stream::TypeMetaStreaming {
+                            streaming_behavior: type_meta::stream::StreamingBehavior {
+                                done: true,
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                    ),
+                    TypeStreaming::null(),
+                ])
             },
-            type_meta::stream::TypeMetaStreaming {
-                streaming_behavior: type_meta::stream::StreamingBehavior {
-                    done: true,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            Default::default(),
         );
-        assert_eq!(float.partialize(&TestLookup), expected);
+        assert_eq!(float.to_streaming_type(&TestLookup), expected);
 
         // Test Bool
-        let bool_type = FieldType::bool();
+        let bool_type = TypeIR::bool();
         let expected = TypeStreaming::Union(
             unsafe {
-                UnionTypeGeneric::new_unsafe(vec![TypeStreaming::bool(), TypeStreaming::null()])
+                UnionTypeGeneric::new_unsafe(vec![
+                    TypeStreaming::Primitive(
+                        TypeValue::Bool,
+                        type_meta::stream::TypeMetaStreaming::default().done(),
+                    ),
+                    TypeStreaming::null(),
+                ])
             },
-            type_meta::stream::TypeMetaStreaming {
-                streaming_behavior: type_meta::stream::StreamingBehavior {
-                    done: true,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            Default::default(),
         );
-        assert_eq!(bool_type.partialize(&TestLookup), expected);
+        assert_eq!(bool_type.to_streaming_type(&TestLookup), expected);
     }
 
     #[test]
     fn partialize_enum() {
-        let enum_type = FieldType::r#enum("MyEnum");
+        let enum_type = TypeIR::r#enum("MyEnum");
         let expected = TypeStreaming::Union(
             unsafe {
                 UnionTypeGeneric::new_unsafe(vec![
                     TypeStreaming::Enum {
                         name: "MyEnum".to_string(),
                         dynamic: false,
-                        meta: Default::default(),
+                        meta: type_meta::stream::TypeMetaStreaming {
+                            streaming_behavior: type_meta::stream::StreamingBehavior {
+                                done: true,
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
                     },
                     TypeStreaming::null(),
                 ])
             },
-            type_meta::stream::TypeMetaStreaming {
-                streaming_behavior: type_meta::stream::StreamingBehavior {
-                    done: true,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            Default::default(),
         );
-        assert_eq!(enum_type.partialize(&TestLookup), expected);
+        assert_eq!(enum_type.to_streaming_type(&TestLookup), expected);
     }
 
     #[test]
     fn partialize_literal() {
-        let literal = FieldType::literal("test");
+        let literal = TypeIR::literal("test");
         let expected = TypeStreaming::Union(
             unsafe {
                 UnionTypeGeneric::new_unsafe(vec![
                     TypeStreaming::Literal(
                         LiteralValue::String("test".to_string()),
-                        Default::default(),
+                        type_meta::stream::TypeMetaStreaming {
+                            streaming_behavior: type_meta::stream::StreamingBehavior {
+                                done: true,
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
                     ),
                     TypeStreaming::null(),
                 ])
             },
-            type_meta::stream::TypeMetaStreaming {
-                streaming_behavior: type_meta::stream::StreamingBehavior {
-                    done: true,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            Default::default(),
         );
-        assert_eq!(literal.partialize(&TestLookup), expected);
+        let streaming_type = literal.to_streaming_type(&TestLookup);
+        assert_eq!(streaming_type, expected, "{streaming_type} != {expected}");
     }
 
     #[test]
     fn partialize_recursive_type_alias() {
-        let alias = FieldType::recursive_type_alias("MyAlias");
+        let alias = TypeIR::recursive_type_alias("MyAlias");
         let expected = TypeStreaming::Union(
             unsafe {
                 UnionTypeGeneric::new_unsafe(vec![
@@ -1374,6 +1406,6 @@ mod tests {
             },
             Default::default(),
         );
-        assert_eq!(alias.partialize(&TestLookup), expected);
+        assert_eq!(alias.to_streaming_type(&TestLookup), expected);
     }
 }

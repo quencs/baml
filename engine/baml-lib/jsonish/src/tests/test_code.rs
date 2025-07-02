@@ -18,7 +18,7 @@ test_deserializer!(
       "code": `print("Hello, world!")`
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\")",
@@ -34,7 +34,7 @@ test_deserializer!(
       "code": 'print("Hello, world!")'
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\")"
@@ -50,7 +50,7 @@ test_deserializer!(
       "code": "print(\"Hello, world!\")"
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\")"
@@ -66,7 +66,7 @@ test_deserializer!(
       "code": "print(\"Hello, world!\")"
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\")"
@@ -82,7 +82,7 @@ test_deserializer!(
       "code": """print("Hello, world!")"""
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\")"
@@ -118,7 +118,7 @@ test_deserializer!(
       "type": "code",
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "\"Hello, world!\""
@@ -137,7 +137,7 @@ test_deserializer!(
     "type": "code",
   }
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {
     "type": "code",
     "code": "def main():\n  print(\"Hello, world!\")"
@@ -170,7 +170,7 @@ test_deserializer!(
 Goodbye, world!\")"
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\nGoodbye, world!\")"
@@ -188,7 +188,7 @@ test_deserializer!(
 Goodbye, world!")`
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\nGoodbye, world!\")"
@@ -206,7 +206,7 @@ test_deserializer!(
 Goodbye, world!")'
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\nGoodbye, world!\")"
@@ -224,7 +224,7 @@ test_deserializer!(
 Goodbye, world!")"""
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\nGoodbye, world!\")"
@@ -241,7 +241,7 @@ test_deserializer!(
       "code": "print("Hello, world!")"
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\")"
@@ -258,7 +258,7 @@ test_deserializer!(
       "code": `print("Hello, world!")`
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\")"
@@ -275,7 +275,7 @@ test_deserializer!(
       "code": 'print('Hello, world!')'
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print('Hello, world!')"
@@ -292,7 +292,7 @@ test_deserializer!(
       "code": """print("Hello, world!")"""
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print(\"Hello, world!\")"
@@ -312,7 +312,7 @@ test_deserializer!(
       "code": """print("""Hello, world!""")"""
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "print("
@@ -328,7 +328,7 @@ test_deserializer!(
       "code": `console.log(`Hello, world!`)`
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "console.log(`Hello, world!`)"
@@ -382,7 +382,7 @@ export default query(async (ctx) => {
 })`
   }
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {
     "type": "code",
     "code": r#"import { query } from './_generated/server';
@@ -476,7 +476,7 @@ Both versions will:
 The main difference is that Ruby uses the special `$?` variable to check command success, while TypeScript relies on try/catch with execSync.
  
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {
     "type": "code",
     "code": r#"const { execSync } = require('child_process');
@@ -520,7 +520,7 @@ test_deserializer!(
       "type": "code",
     }
     "#,
-    FieldType::class("Test"),
+    TypeIR::class("Test"),
     {
       "type": "code",
       "code": "`Hello, world!`"
@@ -543,7 +543,7 @@ Here's a comparison of TypeScript and Ruby code for checking the main Git branch
 }
 
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {
     "type": "code",
     "code": r#"const async function main() {
@@ -587,7 +587,7 @@ Here's a comparison of TypeScript and Ruby code for checking the main Git branch
 }
 
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {
     "type": "code",
     "code": r#"{ type: "code", code: "aaa", closing_terminators: }}}]])) }"#,
@@ -610,7 +610,7 @@ Here's a comparison of TypeScript and Ruby code for checking the main Git branch
 ```
 
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {
     "type": "code",
     "code": r#"{ type: "code", code: "aaa", closing_terminators: }}}]])) }"#,
@@ -633,7 +633,7 @@ const { execSync } = require('child_process');
 ```
 
   "#,
-  FieldType::class("Test"),
+  TypeIR::class("Test"),
   {
     "type": "code",
     "code": "```\nconst { execSync } = require('child_process');\n```",

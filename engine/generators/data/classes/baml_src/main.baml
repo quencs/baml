@@ -4,14 +4,14 @@ class SimpleClass {
 }
 
 function MakeSimpleClass() -> SimpleClass {
-    client "openai/gpt-4o"
+    client "ollama/phi4:latest"
     prompt #"
         {{ ctx.output_format }}
     "#
 }
 
 function ConsumeSimpleClass(item: SimpleClass) -> SimpleClass {
-    client "openai/gpt-4o"
+    client "ollama/phi4:latest"
     prompt #"
         Return back to me verbatim:
 

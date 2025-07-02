@@ -18,7 +18,6 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type Example struct {
@@ -26,55 +25,52 @@ type Example struct {
 	B string `json:"b"`
 }
 
-func (c *Example) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+func (c *Example) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "Example" {
-		panic(fmt.Sprintf("expected Example, got %s", string(typeName.Name())))
+	if typeName.Name != "Example" {
+		panic(fmt.Sprintf("expected Example, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "a":
-				c.A = *baml.Decode(valueHolder).(*int64)
+		case "a":
+			c.A = *baml.Decode(valueHolder).(*int64)
 
-			case "b":
-				c.B = *baml.Decode(valueHolder).(*string)
+		case "b":
+			c.B = *baml.Decode(valueHolder).(*string)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c Example) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Example) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["a"] = c.A
 
 	fields["b"] = c.B
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c Example) BamlTypeName() string {
 	return "Example"
 }
 
-func (u Example) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("Example")
-	namespaceOffset := builder.CreateString("types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u Example) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_TYPES,
+		Name:      "Example",
+	}
 }
 
 type Example2 struct {
@@ -83,38 +79,37 @@ type Example2 struct {
 	Element2 string  `json:"element2"`
 }
 
-func (c *Example2) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+func (c *Example2) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "Example2" {
-		panic(fmt.Sprintf("expected Example2, got %s", string(typeName.Name())))
+	if typeName.Name != "Example2" {
+		panic(fmt.Sprintf("expected Example2, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "item":
-				c.Item = *baml.Decode(valueHolder).(*Example)
+		case "item":
+			c.Item = *baml.Decode(valueHolder).(*Example)
 
-			case "element":
-				c.Element = *baml.Decode(valueHolder).(*string)
+		case "element":
+			c.Element = *baml.Decode(valueHolder).(*string)
 
-			case "element2":
-				c.Element2 = *baml.Decode(valueHolder).(*string)
+		case "element2":
+			c.Element2 = *baml.Decode(valueHolder).(*string)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c Example2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c Example2) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["item"] = c.Item
@@ -123,18 +118,16 @@ func (c Example2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, fla
 
 	fields["element2"] = c.Element2
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c Example2) BamlTypeName() string {
 	return "Example2"
 }
 
-func (u Example2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("Example2")
-	namespaceOffset := builder.CreateString("types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u Example2) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_TYPES,
+		Name:      "Example2",
+	}
 }

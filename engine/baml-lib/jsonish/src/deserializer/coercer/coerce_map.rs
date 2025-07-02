@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use anyhow::Result;
-use baml_types::{BamlMap, CompletionState, FieldType, LiteralValue, TypeValue};
+use baml_types::{BamlMap, CompletionState, LiteralValue, TypeIR, TypeValue};
 
 use super::{ParsingContext, ParsingError, TypeCoercer};
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
 
 pub(super) fn coerce_map(
     ctx: &ParsingContext,
-    map_target: &FieldType,
+    map_target: &TypeIR,
     value: Option<&jsonish::Value>,
 ) -> Result<BamlValueWithFlags, ParsingError> {
     log::debug!(
@@ -28,7 +28,7 @@ pub(super) fn coerce_map(
         return Err(ctx.error_unexpected_null(map_target));
     };
 
-    let FieldType::Map(key_type, value_type, _) = map_target else {
+    let TypeIR::Map(key_type, value_type, _) = map_target else {
         return Err(ctx.error_unexpected_type(map_target, value));
     };
 
@@ -39,17 +39,17 @@ pub(super) fn coerce_map(
     // this logic and skip the loops & allocs in the the union branch.
     match key_type.as_ref() {
         // String, enum or just one literal string, OK.
-        FieldType::Primitive(TypeValue::String, _)
-        | FieldType::Enum { .. }
-        | FieldType::Literal(LiteralValue::String(_), _) => {}
+        TypeIR::Primitive(TypeValue::String, _)
+        | TypeIR::Enum { .. }
+        | TypeIR::Literal(LiteralValue::String(_), _) => {}
 
         // For unions we need to check if all the items are literal strings.
-        FieldType::Union(items, _) => {
+        TypeIR::Union(items, _) => {
             let mut queue = VecDeque::from_iter(items.iter_include_null());
             while let Some(item) = queue.pop_front() {
                 match item {
-                    FieldType::Literal(LiteralValue::String(_), _) => continue,
-                    FieldType::Union(nested, _) => queue.extend(nested.iter_include_null()),
+                    TypeIR::Literal(LiteralValue::String(_), _) => continue,
+                    TypeIR::Union(nested, _) => queue.extend(nested.iter_include_null()),
                     other => return Err(ctx.error_map_must_have_supported_key(other)),
                 }
             }

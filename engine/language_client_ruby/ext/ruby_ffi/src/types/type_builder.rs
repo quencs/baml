@@ -1,5 +1,5 @@
 use baml_runtime::type_builder::{self, WithMeta};
-use baml_types::BamlValue;
+use baml_types::{ir_type::UnionConstructor, BamlValue};
 use magnus::{
     class, function, method, scan_args::scan_args, try_convert::TryConvertOwned, Module, Object,
     RModule, Value,
@@ -29,7 +29,7 @@ crate::lang_wrapper!(
 crate::lang_wrapper!(
     FieldType,
     "Baml::Ffi::FieldType",
-    baml_types::FieldType,
+    baml_types::TypeIR,
     sync_thread_safe
 );
 
@@ -63,39 +63,39 @@ impl TypeBuilder {
     }
 
     pub fn string(&self) -> FieldType {
-        baml_types::FieldType::string().into()
+        baml_types::TypeIR::string().into()
     }
 
     pub fn literal_string(&self, value: String) -> FieldType {
-        baml_types::FieldType::literal_string(value).into()
+        baml_types::TypeIR::literal_string(value).into()
     }
 
     pub fn literal_int(&self, value: i64) -> FieldType {
-        baml_types::FieldType::literal_int(value).into()
+        baml_types::TypeIR::literal_int(value).into()
     }
 
     pub fn literal_bool(&self, value: bool) -> FieldType {
-        baml_types::FieldType::literal_bool(value).into()
+        baml_types::TypeIR::literal_bool(value).into()
     }
 
     pub fn int(&self) -> FieldType {
-        baml_types::FieldType::int().into()
+        baml_types::TypeIR::int().into()
     }
 
     pub fn float(&self) -> FieldType {
-        baml_types::FieldType::float().into()
+        baml_types::TypeIR::float().into()
     }
 
     pub fn bool(&self) -> FieldType {
-        baml_types::FieldType::bool().into()
+        baml_types::TypeIR::bool().into()
     }
 
     pub fn null(&self) -> FieldType {
-        baml_types::FieldType::null().into()
+        baml_types::TypeIR::null().into()
     }
 
     pub fn map(&self, key: &FieldType, value: &FieldType) -> FieldType {
-        baml_types::FieldType::map(
+        baml_types::TypeIR::map(
             key.inner.lock().unwrap().clone(),
             value.inner.lock().unwrap().clone(),
         )
@@ -105,7 +105,7 @@ impl TypeBuilder {
     pub fn union(&self, args: &[Value]) -> Result<FieldType> {
         let args = scan_args::<(), (), _, (), (), ()>(args)?;
         let types: Vec<&FieldType> = args.splat;
-        Ok(baml_types::FieldType::union(
+        Ok(baml_types::TypeIR::union(
             types
                 .into_iter()
                 .map(|t| t.inner.lock().unwrap().clone())
@@ -201,7 +201,7 @@ impl EnumBuilder {
     }
 
     pub fn field(&self) -> FieldType {
-        baml_types::FieldType::r#enum(&self.name).into()
+        baml_types::TypeIR::r#enum(&self.name).into()
     }
 
     pub fn define_in_ruby(module: &RModule) -> Result<()> {
@@ -253,7 +253,7 @@ impl EnumValueBuilder {
 
 impl ClassBuilder {
     pub fn field(&self) -> FieldType {
-        baml_types::FieldType::class(&self.name).into()
+        baml_types::TypeIR::class(&self.name).into()
     }
 
     pub fn property(&self, name: String) -> ClassPropertyBuilder {

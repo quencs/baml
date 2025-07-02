@@ -61,28 +61,26 @@ func (e *{{ name }}) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-func (e *{{ name }}) Decode(holder cffi.CFFIValueEnum) {
-    name := holder.Name(nil)
-    if string(name.Name()) != "{{ name }}" && string(name.Namespace()) != "types" {
-        panic(fmt.Sprintf("expected types.{{ name }}, got %s.%s", string(name.Namespace()), string(name.Name())))
+func (e *{{ name }}) Decode(holder *cffi.CFFIValueEnum) {
+    name := holder.Name
+    if name.Name != "{{ name }}" && name.Namespace != {{ pkg.namespace() }} {
+        panic(fmt.Sprintf("expected {{ pkg.name() }}.{{ name }}, got %s.%s", string(name.Namespace.String()), string(name.Name)))
     }
-    value := string(holder.Value())
+    value := holder.Value
     *e = {{ name }}(value)
 }
 
-func (e {{ name }}) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
-    return baml.EncodeEnum(builder, e.BamlEncodeName, string(e), false)
+func (e {{ name }}) Encode() (*cffi.CFFIValueHolder, error) {
+    return baml.EncodeEnum(e.BamlEncodeName, string(e), false)
 }
 
 func (e {{ name }}) BamlTypeName() string {
     return "{{ name }}"
 }
 
-func (u {{ name }}) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-    nameOffset := builder.CreateString("{{ name }}")
-    namespaceOffset := builder.CreateString("{{ pkg.get().current() }}")
-    cffi.CFFITypeNameStart(builder)
-    cffi.CFFITypeNameAddName(builder, nameOffset)
-    cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-    return cffi.CFFITypeNameEnd(builder)
+func (u {{ name }}) BamlEncodeName() *cffi.CFFITypeName {
+    return &cffi.CFFITypeName{
+        Name:      "{{ name }}",
+        Namespace: {{ pkg.namespace() }},
+    }
 }

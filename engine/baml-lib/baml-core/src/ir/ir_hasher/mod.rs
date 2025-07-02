@@ -6,9 +6,9 @@ use std::{
 
 use anyhow::Result;
 use baml_rpc::{NamedType, TypeDefinition, TypeReference};
-use baml_types::HasFieldType;
+use baml_types::{ir_type::TypeNonStreaming, HasType};
 
-use super::{repr::Node, FieldType, IntermediateRepr, Walker};
+use super::{repr::Node, IntermediateRepr, Walker};
 
 mod class;
 mod client;
@@ -64,19 +64,19 @@ pub struct Signature {
 #[derive(Clone)]
 pub struct TypeNodeSignature {
     pub signature: Signature,
-    pub field_type: Arc<baml_types::FieldType>,
+    pub field_type: Arc<baml_types::ir_type::TypeNonStreaming>,
 }
 
 #[derive(Clone)]
 pub struct FunctionSignature {
     pub signature: Signature,
-    pub inputs: Arc<Vec<(String, FieldType)>>,
-    pub output: Arc<FieldType>,
+    pub inputs: Arc<Vec<(String, TypeNonStreaming)>>,
+    pub output: Arc<TypeNonStreaming>,
 }
 
 #[derive(Clone)]
 pub struct ClassSignatureDetails {
-    pub fields: Arc<Vec<(String, Arc<FieldType>)>>,
+    pub fields: Arc<Vec<(String, Arc<TypeNonStreaming>)>>,
 }
 
 #[derive(Clone)]
@@ -323,10 +323,12 @@ impl IRSignature {
                         inputs: Arc::new(
                             func.inputs()
                                 .iter()
-                                .map(|(name, r#type)| (name.clone(), r#type.clone()))
+                                .map(|(name, r#type)| {
+                                    (name.clone(), r#type.to_non_streaming_type(ir))
+                                })
                                 .collect(),
                         ),
-                        output: Arc::new(func.output().clone()),
+                        output: Arc::new(func.output().to_non_streaming_type(ir)),
                     },
                 ))
             })
@@ -340,7 +342,9 @@ impl IRSignature {
                     (
                         TypeNodeSignature {
                             signature: Signature::new_class(class_walker.name(), &shallow_hash)?,
-                            field_type: Arc::new(baml_types::FieldType::class(class_walker.name())),
+                            field_type: Arc::new(baml_types::ir_type::TypeNonStreaming::class(
+                                class_walker.name(),
+                            )),
                         },
                         ClassSignatureDetails {
                             fields: Arc::new(
@@ -351,7 +355,13 @@ impl IRSignature {
                                     .map(|field_node| {
                                         (
                                             field_node.elem.name.clone(),
-                                            Arc::new(field_node.elem.r#type.elem.clone()),
+                                            Arc::new(
+                                                field_node
+                                                    .elem
+                                                    .r#type
+                                                    .elem
+                                                    .to_non_streaming_type(ir),
+                                            ),
                                         )
                                     })
                                     .collect(),
@@ -370,7 +380,9 @@ impl IRSignature {
                     (
                         TypeNodeSignature {
                             signature: Signature::new_enum(enum_walker.name(), &shallow_hash)?,
-                            field_type: Arc::new(baml_types::FieldType::r#enum(enum_walker.name())),
+                            field_type: Arc::new(baml_types::ir_type::TypeNonStreaming::r#enum(
+                                enum_walker.name(),
+                            )),
                         },
                         EnumSignatureDetails {
                             values: Arc::new(
@@ -400,7 +412,7 @@ impl IRSignature {
                             type_alias_walker.name(),
                             &shallow_hash,
                         )?,
-                        field_type: Arc::new(resolved_field_type),
+                        field_type: Arc::new(resolved_field_type.to_non_streaming_type(ir)),
                     },
                 ))
             })

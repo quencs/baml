@@ -18,63 +18,62 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type UseMyUnion struct {
-	U *Union3IntOrListRecursive1OrString `json:"u"`
+	U *Union3IntOrRecursive1OrString `json:"u"`
 }
 
-func (c *UseMyUnion) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "stream_types" {
-		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
+func (c *UseMyUnion) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "UseMyUnion" {
-		panic(fmt.Sprintf("expected UseMyUnion, got %s", string(typeName.Name())))
+	if typeName.Name != "UseMyUnion" {
+		panic(fmt.Sprintf("expected UseMyUnion, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "u":
-				c.U = func(param *cffi.CFFIValueHolder) *Union3IntOrListRecursive1OrString {
-					decoded := baml.Decode(param)
-					return func(result any) *Union3IntOrListRecursive1OrString {
-						if result == nil {
-							return nil
-						}
-						return (result).(*Union3IntOrListRecursive1OrString)
-					}(decoded)
-				}(valueHolder)
+		case "u":
+			c.U = func(param *cffi.CFFIValueHolder) *Union3IntOrRecursive1OrString {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *Union3IntOrRecursive1OrString\n")
+				fmt.Printf("===================\n")
+				decoded := baml.Decode(param)
+				return func(result any) *Union3IntOrRecursive1OrString {
+					if result == nil {
+						return nil
+					}
+					return (result).(*Union3IntOrRecursive1OrString)
+				}(decoded)
+			}(valueHolder)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c UseMyUnion) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c UseMyUnion) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["u"] = c.U
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c UseMyUnion) BamlTypeName() string {
 	return "UseMyUnion"
 }
 
-func (u UseMyUnion) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("UseMyUnion")
-	namespaceOffset := builder.CreateString("stream_types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u UseMyUnion) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_STREAM_TYPES,
+		Name:      "UseMyUnion",
+	}
 }

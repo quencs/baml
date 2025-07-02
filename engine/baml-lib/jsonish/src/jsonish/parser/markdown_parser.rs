@@ -27,7 +27,7 @@ pub fn parse(str: &str, options: &ParseOptions) -> Result<Vec<MarkdownResult>> {
 
     while let Some(cap) = md_tag_start.find(remaining) {
         let tag = cap.as_str();
-        log::trace!("Found tag: {:#?}", cap);
+        log::trace!("Found tag: {cap:#?}");
 
         let md_content = if let Some(end) = md_tag_end.find(&remaining[cap.end()..]) {
             let next = remaining[cap.end()..cap.end() + end.start()].trim();
@@ -38,11 +38,12 @@ pub fn parse(str: &str, options: &ParseOptions) -> Result<Vec<MarkdownResult>> {
             remaining[cap.end()..].trim()
         };
 
-        log::trace!("Content:\n-----\n{}\n-----\n", md_content);
+        log::trace!("Content:\n-----\n{md_content}\n-----\n");
 
-        let res = entry::parse(
+        let res = super::entry::parse_func(
             md_content,
             options.next_from_mode(ParsingMode::JsonMarkdown),
+            false,
         );
 
         match res {
@@ -59,7 +60,7 @@ pub fn parse(str: &str, options: &ParseOptions) -> Result<Vec<MarkdownResult>> {
                 ));
             }
             Err(e) => {
-                log::debug!("Error parsing markdown block: Tag: {tag}\n{:?}", e);
+                log::debug!("Error parsing markdown block: Tag: {tag}\n{e:?}");
             }
         };
 
@@ -117,7 +118,7 @@ print("Hello, world!")
             assert_eq!(tag, "json");
 
             let Value::AnyOf(value, _) = value else {
-                panic!("Expected AnyOf, got {:#?}", value);
+                panic!("Expected AnyOf, got {value:#?}");
             };
             assert!(value.contains(&Value::Object(
                 [(
@@ -138,7 +139,7 @@ print("Hello, world!")
             assert_eq!(tag, "test json");
 
             let Value::AnyOf(value, _) = value else {
-                panic!("Expected AnyOf, got {:#?}", value);
+                panic!("Expected AnyOf, got {value:#?}");
             };
             // dbg!(&value);
             assert!(value.contains(&Value::String(

@@ -10,6 +10,16 @@ use pyo3::{
     Bound, IntoPyObjectExt, PyObject, PyRef, Python,
 };
 
+// Type alias for pickle reduce return type
+type PickleReduceResult = PyResult<(
+    PyObject,
+    (
+        String,
+        std::collections::HashMap<String, String>,
+        std::collections::HashMap<String, String>,
+    ),
+)>;
+
 use crate::{
     errors::{BamlError, BamlInvalidArgumentError},
     parse_py_type::parse_py_type,
@@ -23,7 +33,7 @@ use crate::{
     },
 };
 
-crate::lang_wrapper!(BamlRuntime, CoreBamlRuntime, clone_safe);
+crate::lang_wrapper!(BamlRuntime, CoreBamlRuntime, clone_safe, root_path: String = String::new(), env_vars: HashMap<String, String> = HashMap::new(), files: HashMap<String, String> = HashMap::new());
 
 #[derive(Debug, Clone)]
 #[pyclass]
@@ -70,7 +80,7 @@ impl BamlLogEvent {
         format!(
             "BamlLogEvent {{\n    metadata: {{\n        event_id: \"{}\",\n        parent_id: {},\n        root_event_id: \"{}\"\n    }},\n    prompt: {},\n    raw_output: {},\n    parsed_output: {},\n    start_time: \"{}\"\n}}",
             self.metadata.event_id,
-            self.metadata.parent_id.as_ref().map_or("None".to_string(), |id| format!("\"{}\"", id)),
+            self.metadata.parent_id.as_ref().map_or("None".to_string(), |id| format!("\"{id}\"")),
             self.metadata.root_event_id,
             prompt,
             raw_output,
@@ -82,6 +92,34 @@ impl BamlLogEvent {
 
 #[pymethods]
 impl BamlRuntime {
+    // Called by pickle to serialize the object using __reduce__ protocol
+    fn __reduce__(&self, py: Python) -> PickleReduceResult {
+        let cls = py.get_type::<Self>();
+        let args = (
+            self.root_path.clone(),
+            self.env_vars.clone(),
+            self.files.clone(),
+        );
+        Ok((cls.getattr("_create_from_state")?.into(), args))
+    }
+
+    /// Static method to recreate BamlRuntime from pickle state
+    #[staticmethod]
+    fn _create_from_state(
+        root_path: String,
+        env_vars: std::collections::HashMap<String, String>,
+        files: std::collections::HashMap<String, String>,
+    ) -> PyResult<Self> {
+        let core = CoreBamlRuntime::from_file_content(&root_path, &files, env_vars.clone())
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+        Ok(BamlRuntime {
+            inner: std::sync::Arc::new(core),
+            root_path,
+            env_vars,
+            files,
+        })
+    }
+
     #[staticmethod]
     fn from_directory(directory: PathBuf, env_vars: HashMap<String, String>) -> PyResult<Self> {
         Ok(CoreBamlRuntime::from_directory(&directory, env_vars)
@@ -144,7 +182,7 @@ impl BamlRuntime {
                 "Failed to parse args. Expect kwargs",
             ));
         };
-        log::debug!("pyo3 call_function parsed args into: {:#?}", args_map);
+        log::debug!("pyo3 call_function parsed args into: {args_map:#?}");
 
         let baml_runtime = self.inner.clone();
         let ctx_mng = ctx.inner.clone();
@@ -200,7 +238,7 @@ impl BamlRuntime {
                 "Failed to parse args as a map",
             ));
         };
-        log::debug!("pyo3 call_function_sync parsed args into: {:#?}", args_map);
+        log::debug!("pyo3 call_function_sync parsed args into: {args_map:#?}");
 
         let ctx_mng = ctx.inner.clone();
         let tb = tb.map(|tb| tb.inner.clone());
@@ -253,7 +291,7 @@ impl BamlRuntime {
         let Some(args_map) = args.as_map() else {
             return Err(BamlInvalidArgumentError::new_err("Failed to parse args"));
         };
-        log::debug!("pyo3 stream_function parsed args into: {:#?}", args_map);
+        log::debug!("pyo3 stream_function parsed args into: {args_map:#?}");
 
         let ctx = ctx.inner.clone();
         let collector_list = collectors
@@ -306,7 +344,7 @@ impl BamlRuntime {
         let Some(args_map) = args.as_map() else {
             return Err(BamlInvalidArgumentError::new_err("Failed to parse args"));
         };
-        log::debug!("pyo3 stream_function parsed args into: {:#?}", args_map);
+        log::debug!("pyo3 stream_function parsed args into: {args_map:#?}");
 
         let ctx = ctx.inner.clone();
         let collector_list = collectors
@@ -474,6 +512,7 @@ impl BamlRuntime {
             &cls_module,
             &partial_cls_module,
             allow_partials,
+            self,
         )
     }
 
@@ -513,7 +552,7 @@ impl BamlRuntime {
                         ) {
                             Ok(_) => Ok(()),
                             Err(e) => {
-                                log::error!("Error calling log_event_callback: {:?}", e);
+                                log::error!("Error calling log_event_callback: {e:?}");
                                 Err(anyhow::Error::new(e)) // Proper error handling
                             }
                         }

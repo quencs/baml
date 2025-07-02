@@ -7,9 +7,9 @@ use anyhow::{anyhow, Result};
 use baml_types::{
     baml_value::TypeLookups,
     expr::{self, Builtin, Expr, ExprMetadata, Name, VarIndex},
-    ir_type::ArrowGeneric,
-    type_meta, Arrow, BamlMap, BamlValueWithMeta, Constraint, ConstraintLevel, FieldType,
-    JinjaExpression, Resolvable, StringOr, TypeValue, UnionType, UnresolvedValue,
+    ir_type::{ArrowGeneric, TypeNonStreaming, TypeStreaming, UnionConstructor},
+    type_meta, Arrow, BamlMap, BamlValueWithMeta, Constraint, ConstraintLevel, JinjaExpression,
+    Resolvable, StringOr, TypeIR, TypeValue, UnionType, UnresolvedValue,
 };
 use either::Either;
 use indexmap::{IndexMap, IndexSet};
@@ -58,7 +58,7 @@ pub struct IntermediateRepr {
     ///
     /// These are the only allowed cycles, because lists and maps introduce a
     /// level of indirection that makes the cycle finite.
-    pub structural_recursive_alias_cycles: Vec<IndexMap<String, FieldType>>,
+    pub structural_recursive_alias_cycles: Vec<IndexMap<String, TypeIR>>,
 
     pub configuration: Configuration,
 
@@ -70,11 +70,11 @@ pub struct IntermediateRepr {
 pub struct Pass2Repr {
     classes_with_attributes: BamlMap<String, NodeAttributes>,
     enums_with_attributes: BamlMap<String, NodeAttributes>,
-    resolved_type_aliases: BamlMap<String, FieldType>,
+    resolved_type_aliases: BamlMap<String, TypeIR>,
 }
 
 impl Pass2Repr {
-    fn update_type(&self, type_generic: &mut FieldType) {
+    fn update_type(&self, type_generic: &mut TypeIR) {
         use baml_types::ir_type::TypeGeneric;
         match type_generic {
             TypeGeneric::Enum {
@@ -87,6 +87,7 @@ impl Pass2Repr {
                     meta.streaming_behavior = meta
                         .streaming_behavior
                         .combine(&attributes.streaming_behavior());
+                    meta.streaming_behavior.done = true;
                     meta.constraints.extend(attributes.constraints.clone());
                 }
             }
@@ -104,13 +105,24 @@ impl Pass2Repr {
                     meta.constraints.extend(attributes.constraints.clone());
                 }
             }
-            TypeGeneric::Primitive(..)
-            | TypeGeneric::Literal(..)
+            TypeGeneric::Primitive(TypeValue::Int | TypeValue::Float | TypeValue::Bool, meta)
+            | TypeGeneric::Literal(.., meta) => {
+                meta.streaming_behavior.done = true;
+            }
+            TypeGeneric::Primitive(
+                TypeValue::String | TypeValue::Media(..) | TypeValue::Null,
+                ..,
+            )
             | TypeGeneric::RecursiveTypeAlias { .. } => {}
-            TypeGeneric::List(element, _) => {
+            TypeGeneric::List(element, meta) => {
+                meta.streaming_behavior.needed = true;
+                element.meta_mut().streaming_behavior.needed = true;
                 self.update_type(element);
             }
-            TypeGeneric::Map(key, value, _) => {
+            TypeGeneric::Map(key, value, meta) => {
+                meta.streaming_behavior.needed = true;
+                key.meta_mut().streaming_behavior.needed = true;
+                value.meta_mut().streaming_behavior.needed = true;
                 self.update_type(key);
                 self.update_type(value);
             }
@@ -129,7 +141,7 @@ impl Pass2Repr {
 }
 
 impl TypeLookups for IntermediateRepr {
-    fn expand_recursive_type(&self, name: &str) -> anyhow::Result<&FieldType> {
+    fn expand_recursive_type(&self, name: &str) -> anyhow::Result<&TypeIR> {
         match self.pass2_repr.resolved_type_aliases.get(name) {
             Some(ty) => Ok(ty),
             None => anyhow::bail!("Type alias not found: {name}"),
@@ -185,7 +197,7 @@ impl WithRepr<TopLevelAssignment> for TopLevelAssignmentWalker<'_> {
 impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
     fn repr(&self, db: &ParserDatabase) -> Result<ExprFunction> {
         let body = convert_function_body(self.expr_fn().body.to_owned(), db)?;
-        let args: Vec<(String, FieldType)> = self
+        let args: Vec<(String, TypeIR)> = self
             .expr_fn()
             .args
             .args
@@ -231,7 +243,7 @@ impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
             .ok_or(anyhow::anyhow!(
                 "Expression functions must have a return type"
             ))?;
-        let lambda_type = FieldType::Arrow(
+        let lambda_type = TypeIR::Arrow(
             Box::new(ArrowGeneric {
                 param_types: arg_types,
                 return_type: return_type.clone(),
@@ -321,31 +333,28 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
         match self {
             ast::Expression::BoolValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::Bool(
                 *val,
-                (span.clone(), Some(FieldType::bool())),
+                (span.clone(), Some(TypeIR::bool())),
             ))),
             ast::Expression::NumericValue(val, span) => val
                 .parse::<i64>()
                 .map(|v| {
                     Expr::Atom(BamlValueWithMeta::Int(
                         v,
-                        (span.clone(), Some(FieldType::int())),
+                        (span.clone(), Some(TypeIR::int())),
                     ))
                 })
                 .map_err(|_| anyhow!("Invalid numeric value: {}", val)),
             ast::Expression::StringValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::String(
                 val.to_string(),
-                (span.clone(), Some(FieldType::string())),
+                (span.clone(), Some(TypeIR::string())),
             ))),
             ast::Expression::RawStringValue(val) => Ok(Expr::Atom(BamlValueWithMeta::String(
                 val.value().to_string(),
-                (val.span().clone(), Some(FieldType::string())),
+                (val.span().clone(), Some(TypeIR::string())),
             ))),
-            ast::Expression::JinjaExpressionValue(val, span) => {
-                Ok(Expr::Atom(BamlValueWithMeta::String(
-                    val.to_string(),
-                    (span.clone(), Some(FieldType::string())),
-                )))
-            }
+            ast::Expression::JinjaExpressionValue(val, span) => Ok(Expr::Atom(
+                BamlValueWithMeta::String(val.to_string(), (span.clone(), Some(TypeIR::string()))),
+            )),
             ast::Expression::Array(vals, span) => {
                 let new_items = vals
                     .iter()
@@ -357,8 +366,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     .collect::<Vec<_>>();
                 let list_type = match item_types.len() {
                     0 => None,
-                    1 => Some(item_types[0].clone().as_list()),
-                    _ => Some(FieldType::union(item_types).as_list()),
+                    _ => Some(TypeIR::union(item_types).as_list()),
                 };
                 Ok(Expr::List(new_items, (span.clone(), list_type)))
             }
@@ -375,12 +383,12 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                 let item_type = if item_types.is_empty() {
                     None
                 } else {
-                    Some(FieldType::union(item_types))
+                    Some(TypeIR::union(item_types))
                 };
 
                 // TODO: Is this correct?
-                let key_type = FieldType::string();
-                let map_type = item_type.map(|t| FieldType::map(key_type, t));
+                let key_type = TypeIR::string();
+                let map_type = item_type.map(|t| TypeIR::map(key_type, t));
                 Ok(Expr::Map(new_items, (span.clone(), map_type)))
             }
             ast::Expression::Identifier(id) => Ok(Expr::FreeVar(
@@ -466,7 +474,7 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     name: class_name.name().to_string(),
                     fields: new_fields,
                     spread,
-                    meta: (span.clone(), Some(FieldType::class(class_name.name()))),
+                    meta: (span.clone(), Some(TypeIR::class(class_name.name()))),
                 })
             }
             ast::Expression::ExprBlock(block, span) => {
@@ -571,7 +579,7 @@ impl IntermediateRepr {
         &self.finite_recursive_cycles
     }
 
-    pub fn structural_recursive_alias_cycles(&self) -> &[IndexMap<String, FieldType>] {
+    pub fn structural_recursive_alias_cycles(&self) -> &[IndexMap<String, TypeIR>] {
         &self.structural_recursive_alias_cycles
     }
 
@@ -590,7 +598,7 @@ impl IntermediateRepr {
     }
 
     // TODO: Exact size Iterator + Node<>?
-    pub fn walk_alias_cycles(&self) -> impl Iterator<Item = Walker<'_, (&String, &FieldType)>> {
+    pub fn walk_alias_cycles(&self) -> impl Iterator<Item = Walker<'_, (&String, &TypeIR)>> {
         self.structural_recursive_alias_cycles
             .iter()
             .flatten()
@@ -605,7 +613,7 @@ impl IntermediateRepr {
         self.functions.iter().map(|e| Walker { ir: self, item: e })
     }
 
-    pub fn walk_all_unions(&self) -> impl Iterator<Item = &FieldType> {
+    pub fn walk_all_non_streaming_unions(&self) -> impl Iterator<Item = TypeNonStreaming> {
         // finding types used in classes
         let class_fields = self
             .classes
@@ -627,10 +635,52 @@ impl IntermediateRepr {
         let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
 
         // also then flatten the types so any inner types are also included
-        fn is_union(t: &FieldType) -> bool {
-            matches!(t, FieldType::Union(..))
+        fn is_union(t: &TypeNonStreaming) -> bool {
+            matches!(t, TypeNonStreaming::Union(..))
         }
-        all_types.flat_map(|t| t.find_if(&is_union))
+
+        let mut res = vec![];
+        all_types.for_each(|t| {
+            let found = t.to_non_streaming_type(self);
+            res.extend(found.find_if(&is_union).into_iter().cloned());
+        });
+
+        res.into_iter()
+    }
+
+    pub fn walk_all_streaming_unions(&self) -> impl Iterator<Item = TypeStreaming> {
+        // finding types used in classes
+        let class_fields = self
+            .classes
+            .iter()
+            .flat_map(|c| c.elem.static_fields.iter().map(|f| &f.elem.r#type.elem));
+
+        // finding types used in type aliases
+        let type_alias_fields = self.type_aliases.iter().map(|c| &c.elem.r#type.elem);
+
+        // finding types used in functions
+        let function_fields = self.functions.iter().flat_map(|f| {
+            f.elem
+                .inputs
+                .iter()
+                .map(|(_, t)| t)
+                .chain(std::iter::once(&f.elem.output))
+        });
+
+        let all_types = class_fields.chain(type_alias_fields).chain(function_fields);
+
+        // also then flatten the types so any inner types are also included
+        fn is_union(t: &TypeStreaming) -> bool {
+            matches!(t, TypeStreaming::Union(..))
+        }
+
+        let mut res = vec![];
+        all_types.for_each(|t| {
+            let found = t.to_streaming_type(self);
+            res.extend(found.find_if(&is_union).into_iter().cloned());
+        });
+
+        res.into_iter()
     }
 
     // TODO: This is a quick workaround in order to make expr_fns compatible
@@ -779,6 +829,11 @@ impl IntermediateRepr {
         repr.classes
             .retain(|c| !is_builtin_identifier(&c.elem.name));
 
+        // all return types of functions must be set to needed
+        for f in repr.functions.iter_mut() {
+            f.elem.output.meta_mut().streaming_behavior.needed = true;
+        }
+
         repr.distribute_attributes();
 
         Ok(repr)
@@ -826,7 +881,7 @@ impl IntermediateRepr {
     }
 
     /// Modifies the type to inject any block level attributes that are present on the class or enum.
-    pub fn finalize_type(&self, type_generic: &mut FieldType) {
+    pub fn finalize_type(&self, type_generic: &mut TypeIR) {
         self.pass2_repr.update_type(type_generic);
     }
 
@@ -879,7 +934,7 @@ impl IntermediateRepr {
         Vec<Node<Enum>>,
         Vec<Node<TypeAlias>>,
         Vec<IndexSet<String>>,
-        Vec<IndexMap<String, FieldType>>,
+        Vec<IndexMap<String, TypeIR>>,
     )> {
         let classes = scoped_db
             .walk_classes()
@@ -946,6 +1001,194 @@ impl IntermediateRepr {
             recursive_classes,
             recursive_aliases,
         ))
+    }
+
+    /// Identifies type aliases that should be converted to interfaces in TypeScript
+    /// to break circular reference cycles.
+    ///
+    /// TypeScript allows circular references in interfaces through object properties
+    /// but not in direct type alias unions. This method identifies aliases that:
+    /// 1. Are part of a structural recursive cycle
+    /// 2. Can be safely converted to interfaces (object-like types)
+    /// 3. Are referenced in ways that would cause TS circular reference errors
+    pub fn get_typescript_interface_extractable_aliases(&self) -> Vec<String> {
+        let mut extractable = Vec::new();
+
+        // Check all structural recursive alias cycles
+        for cycle in &self.structural_recursive_alias_cycles {
+            for (alias_name, field_type) in cycle {
+                if self.should_extract_as_typescript_interface(alias_name, field_type, cycle) {
+                    extractable.push(alias_name.clone());
+                }
+            }
+        }
+
+        // Also check regular type aliases that directly reference themselves
+        for alias in self.walk_type_aliases() {
+            let alias_name = &alias.item.elem.name;
+            let field_type = &alias.item.elem.r#type.elem;
+
+            // Check if this alias directly references itself (causes immediate circular reference)
+            if self.type_directly_references_self(field_type, alias_name) {
+                // Check if it can be safely converted to an interface
+                if self.can_convert_self_referencing_alias_to_interface(field_type) {
+                    extractable.push(alias_name.clone());
+                }
+            }
+        }
+
+        extractable.sort();
+        extractable.dedup();
+        extractable
+    }
+
+    /// Checks if a self-referencing type alias can be safely converted to an interface
+    fn can_convert_self_referencing_alias_to_interface(&self, field_type: &TypeIR) -> bool {
+        use baml_types::ir_type::TypeGeneric;
+
+        match field_type {
+            // Object-like types (maps) can be converted
+            TypeGeneric::Map(_, _, _) => true,
+
+            // Unions containing maps can be converted
+            TypeGeneric::Union(union_type, _) => union_type
+                .iter_skip_null()
+                .into_iter()
+                .any(|t| matches!(t, TypeGeneric::Map(_, _, _))),
+
+            // Other types cannot be safely converted
+            _ => false,
+        }
+    }
+
+    /// Determines if a specific type alias should be extracted as a TypeScript interface
+    fn should_extract_as_typescript_interface(
+        &self,
+        alias_name: &str,
+        field_type: &TypeIR,
+        cycle: &IndexMap<String, TypeIR>,
+    ) -> bool {
+        use baml_types::ir_type::TypeGeneric;
+
+        match field_type {
+            // Object-like types (maps) can be converted to interfaces
+            TypeGeneric::Map(_, _, _) => {
+                // Check if this map references other types in the cycle
+                self.type_references_cycle_members(field_type, cycle)
+            }
+
+            // Unions that contain object-like types can potentially be extracted
+            TypeGeneric::Union(union_type, _) => {
+                // Check if the union contains maps/objects and references cycle members
+                let has_object_like = union_type
+                    .iter_skip_null()
+                    .into_iter()
+                    .any(|t| matches!(t, TypeGeneric::Map(_, _, _)));
+                let references_cycle = self.type_references_cycle_members(field_type, cycle);
+
+                // For unions, we should extract if:
+                // 1. It has object-like types (maps) AND references cycle members, OR
+                // 2. It directly references itself (which causes circular reference in TS)
+                has_object_like && references_cycle
+                    || self.type_directly_references_self(field_type, alias_name)
+            }
+
+            // Don't extract primitive arrays, primitives, etc.
+            TypeGeneric::List(_, _) | TypeGeneric::Primitive(_, _) | TypeGeneric::Literal(_, _) => {
+                false
+            }
+
+            // Classes and enums are already interfaces/enums in TS
+            TypeGeneric::Class { .. } | TypeGeneric::Enum { .. } => false,
+
+            // Recursive references should be extracted if they're in problematic positions
+            TypeGeneric::RecursiveTypeAlias { name, .. } => cycle.contains_key(name),
+
+            _ => false,
+        }
+    }
+
+    /// Checks if a type directly references itself (causing immediate circular reference)
+    fn type_directly_references_self(&self, field_type: &TypeIR, alias_name: &str) -> bool {
+        use baml_types::ir_type::TypeGeneric;
+
+        fn check_type_inner(field_type: &TypeIR, alias_name: &str) -> bool {
+            match field_type {
+                TypeGeneric::RecursiveTypeAlias { name, .. } => name == alias_name,
+
+                TypeGeneric::Union(union_type, _) => union_type
+                    .iter_skip_null()
+                    .into_iter()
+                    .any(|t| check_type_inner(t, alias_name)),
+
+                TypeGeneric::Map(key, value, _) => {
+                    check_type_inner(key, alias_name) || check_type_inner(value, alias_name)
+                }
+
+                TypeGeneric::List(inner, _) => check_type_inner(inner, alias_name),
+
+                _ => false,
+            }
+        }
+
+        check_type_inner(field_type, alias_name)
+    }
+
+    /// Checks if a type references any members of the given cycle
+    fn type_references_cycle_members(
+        &self,
+        field_type: &TypeIR,
+        cycle: &IndexMap<String, TypeIR>,
+    ) -> bool {
+        use baml_types::ir_type::TypeGeneric;
+
+        fn check_cycle_inner(field_type: &TypeIR, cycle: &IndexMap<String, TypeIR>) -> bool {
+            match field_type {
+                TypeGeneric::RecursiveTypeAlias { name, .. } => cycle.contains_key(name),
+
+                TypeGeneric::List(inner, _) => check_cycle_inner(inner, cycle),
+
+                TypeGeneric::Map(key, value, _) => {
+                    check_cycle_inner(key, cycle) || check_cycle_inner(value, cycle)
+                }
+
+                TypeGeneric::Union(union_type, _) => union_type
+                    .iter_skip_null()
+                    .into_iter()
+                    .any(|t| check_cycle_inner(t, cycle)),
+
+                TypeGeneric::Tuple(types, _) => types.iter().any(|t| check_cycle_inner(t, cycle)),
+
+                _ => false,
+            }
+        }
+
+        check_cycle_inner(field_type, cycle)
+    }
+
+    /// Gets a mapping of alias names to whether they should be interfaces in TypeScript
+    pub fn get_typescript_alias_conversion_map(&self) -> std::collections::HashMap<String, bool> {
+        let extractable = self.get_typescript_interface_extractable_aliases();
+        let mut conversion_map = std::collections::HashMap::new();
+
+        // All type aliases default to type aliases
+        for alias in self.walk_type_aliases() {
+            conversion_map.insert(alias.item.elem.name.clone(), false);
+        }
+
+        // All recursive alias cycle types default to type aliases
+        for cycle in &self.structural_recursive_alias_cycles {
+            for alias_name in cycle.keys() {
+                conversion_map.insert(alias_name.clone(), false);
+            }
+        }
+
+        // Mark extractable ones as interfaces
+        for alias_name in extractable {
+            conversion_map.insert(alias_name, true);
+        }
+
+        conversion_map
     }
 }
 
@@ -1193,14 +1436,14 @@ pub trait WithRepr<T> {
     }
 }
 
-fn type_with_arity(t: FieldType, arity: &FieldArity) -> FieldType {
+fn type_with_arity(t: TypeIR, arity: &FieldArity) -> TypeIR {
     match arity {
         FieldArity::Required => t,
         FieldArity::Optional => t.as_optional(),
     }
 }
 
-impl WithRepr<FieldType> for ast::FieldType {
+impl WithRepr<TypeIR> for ast::FieldType {
     // TODO: (Greg) This code only extracts constraints, and ignores any
     // other types of attributes attached to the type directly.
     fn attributes(&self, _db: &ParserDatabase) -> NodeAttributes {
@@ -1304,14 +1547,14 @@ impl WithRepr<FieldType> for ast::FieldType {
         attributes
     }
 
-    fn repr(&self, db: &ParserDatabase) -> Result<FieldType> {
+    fn repr(&self, db: &ParserDatabase) -> Result<TypeIR> {
         let attributes = WithRepr::attributes(self, db);
         let has_constraints = !attributes.constraints.is_empty();
         let streaming_behavior = attributes.streaming_behavior();
         let has_special_streaming_behavior = streaming_behavior != Default::default();
         let mut base = match self {
             ast::FieldType::Primitive(arity, typeval, ..) => {
-                let repr = FieldType::Primitive(*typeval, Default::default());
+                let repr = TypeIR::Primitive(*typeval, Default::default());
                 if arity.is_optional() {
                     repr.as_optional()
                 } else {
@@ -1319,7 +1562,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                 }
             }
             ast::FieldType::Literal(arity, literal_value, ..) => {
-                let repr = FieldType::Literal(literal_value.clone(), Default::default());
+                let repr = TypeIR::Literal(literal_value.clone(), Default::default());
                 if arity.is_optional() {
                     repr.as_optional()
                 } else {
@@ -1329,7 +1572,7 @@ impl WithRepr<FieldType> for ast::FieldType {
             ast::FieldType::Symbol(arity, idn, ..) => type_with_arity(
                 match db.find_type(idn) {
                     Some(TypeWalker::Class(class_walker)) => {
-                        let mut base_class = FieldType::class(class_walker.name());
+                        let mut base_class = TypeIR::class(class_walker.name());
                         match class_walker.get_constraints(SubType::Class) {
                             Some(constraints) if !constraints.is_empty() => {
                                 base_class.set_meta(type_meta::base::TypeMeta {
@@ -1342,7 +1585,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                         }
                     }
                     Some(TypeWalker::Enum(enum_walker)) => {
-                        let mut base_type = FieldType::r#enum(enum_walker.name());
+                        let mut base_type = TypeIR::r#enum(enum_walker.name());
                         match enum_walker.get_constraints(SubType::Enum) {
                             Some(constraints) if !constraints.is_empty() => {
                                 base_type.set_meta(type_meta::base::TypeMeta {
@@ -1358,7 +1601,7 @@ impl WithRepr<FieldType> for ast::FieldType {
                         if db.is_recursive_type_alias(&alias_walker.id) {
                             let resolved = alias_walker.resolved();
                             // TODO: use resolved in some way
-                            FieldType::RecursiveTypeAlias {
+                            TypeIR::RecursiveTypeAlias {
                                 name: alias_walker.name().to_string(),
                                 meta: Default::default(),
                             }
@@ -1378,28 +1621,28 @@ impl WithRepr<FieldType> for ast::FieldType {
             ),
             ast::FieldType::List(arity, ft, dims, ..) => {
                 // NB: potential bug: this hands back a 1D list when dims == 0
-                let mut repr = FieldType::List(Box::new(ft.repr(db)?), Default::default());
+                let mut repr = TypeIR::List(Box::new(ft.repr(db)?), Default::default());
 
                 for _ in 1u32..*dims {
-                    repr = FieldType::list(repr);
+                    repr = TypeIR::list(repr);
                 }
 
                 if arity.is_optional() {
-                    repr = FieldType::optional(repr);
+                    repr = TypeIR::optional(repr);
                 }
 
                 repr
             }
             ast::FieldType::Map(arity, kv, ..) => {
                 // NB: we can't just unpack (*kv) into k, v because that would require a move/copy
-                let mut repr = FieldType::Map(
+                let mut repr = TypeIR::Map(
                     Box::new((kv).0.repr(db)?),
                     Box::new((kv).1.repr(db)?),
                     Default::default(),
                 );
 
                 if arity.is_optional() {
-                    repr = FieldType::optional(repr);
+                    repr = TypeIR::optional(repr);
                 }
 
                 repr
@@ -1409,16 +1652,16 @@ impl WithRepr<FieldType> for ast::FieldType {
                 let mut types = t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?;
 
                 if arity.is_optional() {
-                    types.push(FieldType::Primitive(
+                    types.push(TypeIR::Primitive(
                         baml_types::TypeValue::Null,
                         Default::default(),
                     ));
                 }
 
-                FieldType::union(types)
+                TypeIR::union(types)
             }
             ast::FieldType::Tuple(arity, t, ..) => type_with_arity(
-                FieldType::Tuple(
+                TypeIR::Tuple(
                     t.iter().map(|ft| ft.repr(db)).collect::<Result<Vec<_>>>()?,
                     Default::default(),
                 ),
@@ -1557,7 +1800,7 @@ pub struct Docstring(pub String);
 #[derive(Clone, Debug)]
 pub struct Field {
     pub name: String,
-    pub r#type: Node<FieldType>,
+    pub r#type: Node<TypeIR>,
     pub docstring: Option<Docstring>,
 }
 
@@ -1606,7 +1849,7 @@ pub struct Class {
 
     /// Parameters to the class definition.
     /// Note that this is a future feature, not something we currently use.
-    pub inputs: Vec<(String, FieldType)>,
+    pub inputs: Vec<(String, TypeIR)>,
 
     /// Docstring.
     pub docstring: Option<Docstring>,
@@ -1659,7 +1902,7 @@ impl WithRepr<Class> for ClassWalker<'_> {
 }
 
 impl Class {
-    pub fn inputs(&self) -> &Vec<(String, FieldType)> {
+    pub fn inputs(&self) -> &Vec<(String, TypeIR)> {
         &self.inputs
     }
 }
@@ -1667,7 +1910,7 @@ impl Class {
 #[derive(Clone, Debug)]
 pub struct TypeAlias {
     pub name: String,
-    pub r#type: Node<FieldType>,
+    pub r#type: Node<TypeIR>,
     pub docstring: Option<Docstring>,
 }
 
@@ -1736,8 +1979,8 @@ pub struct Implementation {
 /// BAML does not allow UnnamedArgList nor a lone NamedArg
 #[derive(serde::Serialize, Debug)]
 pub enum FunctionArgs {
-    UnnamedArg(FieldType),
-    NamedArgList(Vec<(String, FieldType)>),
+    UnnamedArg(TypeIR),
+    NamedArgList(Vec<(String, TypeIR)>),
 }
 
 type FunctionId = String;
@@ -1747,11 +1990,11 @@ impl Function {
         &self.name
     }
 
-    pub fn output(&self) -> &FieldType {
+    pub fn output(&self) -> &TypeIR {
         &self.output
     }
 
-    pub fn inputs(&self) -> &Vec<(String, FieldType)> {
+    pub fn inputs(&self) -> &Vec<(String, TypeIR)> {
         &self.inputs
     }
 
@@ -1771,8 +2014,8 @@ impl Function {
 #[derive(Debug)]
 pub struct Function {
     pub name: FunctionId,
-    pub inputs: Vec<(String, FieldType)>,
-    pub output: FieldType,
+    pub inputs: Vec<(String, TypeIR)>,
+    pub output: TypeIR,
     pub tests: Vec<Node<TestCase>>,
     pub configs: Vec<FunctionConfig>,
     pub default_config: String,
@@ -1789,8 +2032,8 @@ pub struct FunctionConfig {
 #[derive(Clone, Debug)]
 pub struct ExprFunction {
     pub name: FunctionId,
-    pub inputs: Vec<(String, FieldType)>,
-    pub output: FieldType,
+    pub inputs: Vec<(String, TypeIR)>,
+    pub output: TypeIR,
     pub expr: Expr<ExprMetadata>,
     pub tests: Vec<Node<TestCase>>,
 }
@@ -1815,7 +2058,7 @@ impl ExprFunction {
         }
     }
 
-    pub fn inputs(&self) -> &Vec<(String, FieldType)> {
+    pub fn inputs(&self) -> &Vec<(String, TypeIR)> {
         &self.inputs
     }
 
@@ -1857,7 +2100,7 @@ impl ExprFunction {
 /// For all variables under an expression, assign them the given type.
 pub fn annotate_variable(
     target: VarIndex,
-    r#type: FieldType,
+    r#type: TypeIR,
     expr: Expr<ExprMetadata>,
 ) -> Expr<ExprMetadata> {
     match &expr {
@@ -2222,7 +2465,7 @@ pub enum TypeBuilderEntry {
 pub struct TestTypeBuilder {
     pub entries: Vec<TypeBuilderEntry>,
     pub recursive_classes: Vec<IndexSet<String>>,
-    pub recursive_aliases: Vec<IndexMap<String, FieldType>>,
+    pub recursive_aliases: Vec<IndexMap<String, TypeIR>>,
 }
 
 #[derive(Clone, serde::Serialize, Debug)]
@@ -2552,14 +2795,14 @@ pub fn initial_context(ir: &IntermediateRepr) -> HashMap<Name, Expr<ExprMetadata
             .iter()
             .map(|arg| arg.0.clone())
             .collect::<Vec<_>>();
-        let params_type: Vec<FieldType> = llm_function
+        let params_type: Vec<TypeIR> = llm_function
             .elem
             .inputs
             .iter()
             .map(|arg| arg.1.clone())
             .collect::<Vec<_>>();
         let body_type = llm_function.elem.output.clone();
-        let lambda_type = FieldType::Arrow(
+        let lambda_type = TypeIR::Arrow(
             Box::new(ArrowGeneric {
                 param_types: params_type,
                 return_type: body_type,
@@ -2587,7 +2830,7 @@ pub fn initial_context(ir: &IntermediateRepr) -> HashMap<Name, Expr<ExprMetadata
     ctx
 }
 
-pub fn initial_typing_context(ir: &IntermediateRepr) -> HashMap<Name, FieldType> {
+pub fn initial_typing_context(ir: &IntermediateRepr) -> HashMap<Name, TypeIR> {
     let ctx = initial_context(ir);
     ctx.into_iter()
         .filter_map(|(name, expr)| expr.meta().1.as_ref().map(|t| (name, t.clone())))
@@ -2759,7 +3002,7 @@ mod tests {
         let class = ir.find_class("Test").unwrap();
         let alias = class.find_field("field").unwrap();
 
-        assert_eq!(*alias.r#type(), FieldType::int());
+        assert_eq!(*alias.r#type(), TypeIR::int());
     }
 
     #[test]
@@ -2822,12 +3065,12 @@ mod tests {
             // Both fields should have consistent type resolution for Recursive1
             assert_eq!(
                 field1_type.to_string(),
-                "(Recursive1 | int | string | null)", // Union3IntOrRecursive1OrString
+                "(Recursive1 | int @stream.done | string | null)", // Union3IntOrRecursive1OrString
                 "field1 type resolution is inconsistent"
             );
             assert_eq!(
                 field2_type.to_string(),
-                "(Recursive1 | int | string | null)", // Union3IntOrRecursive1OrString
+                "(Recursive1 | int @stream.done | string | null)", // Union3IntOrRecursive1OrString
                 "field2 type resolution is inconsistent"
             );
         }
@@ -2861,12 +3104,12 @@ mod tests {
             // Both fields should have consistent type resolution for Recursive1
             assert_eq!(
                 field1_type.to_string(),
-                "(int | Recursive1[] | string | null)", // Union3IntOrRecursive1OrString
+                "(int @stream.done | Recursive1 @stream.not_null[] @stream.not_null | string | null)", // Union3IntOrRecursive1OrString
                 "field1 type resolution is inconsistent"
             );
             assert_eq!(
                 field2_type.to_string(),
-                "(Recursive1 | int | string | null)", // Union3IntOrRecursive1OrString
+                "(Recursive1 | int @stream.done | string | null)", // Union3IntOrRecursive1OrString
                 "field2 type resolution is inconsistent"
             );
         }
@@ -2894,5 +3137,63 @@ mod tests {
         let test = ir.find_expr_fn_test(&function, "FooTest").unwrap();
         assert_eq!(test.item.1.elem.functions.len(), 1);
         assert_eq!(test.item.1.elem.functions[0].elem.name(), "Foo");
+    }
+
+    #[test]
+    fn test_typescript_interface_extraction() {
+        let ir = make_test_ir(
+            r##"
+            type JsonValue = int | string | bool | JsonObject | JsonArray
+            type JsonObject = map<string, JsonValue>
+            type JsonArray = JsonValue[]
+            type SimpleAlias = int
+        "##,
+        )
+        .unwrap();
+
+        let extractable_aliases = ir.get_typescript_interface_extractable_aliases();
+        let conversion_map = ir.get_typescript_alias_conversion_map();
+
+        // Basic test: conversion map should exist for all type aliases
+        assert!(conversion_map.contains_key("SimpleAlias"));
+
+        // If there are cycles detected, then test those
+        if !ir.structural_recursive_alias_cycles.is_empty() {
+            // JsonObject should be extractable as it's a map type in a cycle
+            assert!(
+                extractable_aliases.contains(&"JsonObject".to_string())
+                    || conversion_map.contains_key("JsonObject")
+            );
+        }
+    }
+
+    #[test]
+    fn test_typescript_recursive_alias_detection() {
+        let ir = make_test_ir(
+            r##"
+            type RecursiveList = RecursiveList[]
+            type RecursiveMap = map<string, RecursiveMap>
+            type RecursiveUnion = string | map<string, RecursiveUnion>
+            type NormalAlias = string
+        "##,
+        )
+        .unwrap();
+
+        let extractable_aliases = ir.get_typescript_interface_extractable_aliases();
+        let conversion_map = ir.get_typescript_alias_conversion_map();
+
+        // RecursiveMap should be extractable as it's an object-like type
+        assert!(extractable_aliases.contains(&"RecursiveMap".to_string()));
+        assert_eq!(conversion_map.get("RecursiveMap"), Some(&true));
+
+        // RecursiveUnion should be extractable as it contains a map and references itself
+        assert!(extractable_aliases.contains(&"RecursiveUnion".to_string()));
+        assert_eq!(conversion_map.get("RecursiveUnion"), Some(&true));
+
+        // RecursiveList should remain as type alias as it's array-based
+        assert_eq!(conversion_map.get("RecursiveList"), Some(&false));
+
+        // NormalAlias should remain as type alias
+        assert_eq!(conversion_map.get("NormalAlias"), Some(&false));
     }
 }

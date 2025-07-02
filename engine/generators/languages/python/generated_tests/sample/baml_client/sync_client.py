@@ -11,7 +11,6 @@
 # baml-cli is available with the baml package.
 
 import typing
-import typing_extensions
 import baml_py
 
 from . import stream_types, types, type_builder
@@ -34,6 +33,19 @@ class BamlSyncClient:
         self.__http_stream_request = BamlHttpStreamRequestClient(options)
         self.__llm_response_parser = LlmResponseParser(options)
         self.__llm_stream_parser = LlmStreamParser(options)
+
+    def __getstate__(self):
+        # Return state needed for pickling
+        return {"options": self.__options}
+
+    def __setstate__(self, state):
+        # Restore state from pickling
+        self.__options = state["options"]
+        self.__stream_client = BamlStreamClient(self.__options)
+        self.__http_request = BamlHttpRequestClient(self.__options)
+        self.__http_stream_request = BamlHttpStreamRequestClient(self.__options)
+        self.__llm_response_parser = LlmResponseParser(self.__options)
+        self.__llm_stream_parser = LlmStreamParser(self.__options)
 
     def with_options(self,
         tb: typing.Optional[type_builder.TypeBuilder] = None,
@@ -97,25 +109,25 @@ class BamlStreamClient:
 
     def Bar(self, x: int,
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[typing.Optional[typing.Union["stream_types.Example", "stream_types.Example2"]], typing.Union["types.Example", "types.Example2"]]:
+    ) -> baml_py.BamlSyncStream[typing.Union["stream_types.Example", "stream_types.Example2"], typing.Union["types.Example", "types.Example2"]]:
         ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="Bar", args={
             "x": x,
         })
-        return baml_py.BamlSyncStream[typing.Optional[typing.Union["stream_types.Example", "stream_types.Example2"]], typing.Union["types.Example", "types.Example2"]](
+        return baml_py.BamlSyncStream[typing.Union["stream_types.Example", "stream_types.Example2"], typing.Union["types.Example", "types.Example2"]](
           result,
-          lambda x: typing.cast(typing.Optional[typing.Union["stream_types.Example", "stream_types.Example2"]], x.cast_to(types, types, stream_types, True)),
+          lambda x: typing.cast(typing.Union["stream_types.Example", "stream_types.Example2"], x.cast_to(types, types, stream_types, True)),
           lambda x: typing.cast(typing.Union["types.Example", "types.Example2"], x.cast_to(types, types, stream_types, False)),
           ctx,
         )
     def Foo(self, x: int,
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[typing.Optional[typing.Union["stream_types.Example2", "stream_types.Example"]], typing.Union["types.Example2", "types.Example"]]:
+    ) -> baml_py.BamlSyncStream[typing.Union["stream_types.Example2", "stream_types.Example"], typing.Union["types.Example2", "types.Example"]]:
         ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="Foo", args={
             "x": x,
         })
-        return baml_py.BamlSyncStream[typing.Optional[typing.Union["stream_types.Example2", "stream_types.Example"]], typing.Union["types.Example2", "types.Example"]](
+        return baml_py.BamlSyncStream[typing.Union["stream_types.Example2", "stream_types.Example"], typing.Union["types.Example2", "types.Example"]](
           result,
-          lambda x: typing.cast(typing.Optional[typing.Union["stream_types.Example2", "stream_types.Example"]], x.cast_to(types, types, stream_types, True)),
+          lambda x: typing.cast(typing.Union["stream_types.Example2", "stream_types.Example"], x.cast_to(types, types, stream_types, True)),
           lambda x: typing.cast(typing.Union["types.Example2", "types.Example"], x.cast_to(types, types, stream_types, False)),
           ctx,
         )

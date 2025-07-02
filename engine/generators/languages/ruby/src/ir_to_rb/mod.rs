@@ -1,7 +1,7 @@
 use baml_types::{
     baml_value::TypeLookups,
-    ir_type::{Type, TypeStreaming},
-    type_meta::{base::TypeMeta, stream::TypeMetaStreaming},
+    ir_type::{TypeNonStreaming, TypeStreaming},
+    type_meta::{self, base::TypeMeta, stream::TypeMetaStreaming},
     BamlMediaType, ConstraintLevel, TypeValue,
 };
 
@@ -131,8 +131,8 @@ pub(crate) fn stream_type_to_rb(field: &TypeStreaming, _lookup: &impl TypeLookup
     type_rb
 }
 
-pub(crate) fn type_to_rb(field: &Type, _lookup: &impl TypeLookups) -> TypeRb {
-    use Type as T;
+pub(crate) fn type_to_rb(field: &TypeNonStreaming, _lookup: &impl TypeLookups) -> TypeRb {
+    use TypeNonStreaming as T;
     let recursive_fn = |field| type_to_rb(field, _lookup);
     let meta = meta_to_rb(field.meta());
 
@@ -226,7 +226,7 @@ pub(crate) fn type_to_rb(field: &Type, _lookup: &impl TypeLookups) -> TypeRb {
 }
 
 // convert ir metadata to rb metadata
-fn meta_to_rb(meta: &TypeMeta) -> TypeMetaRb {
+fn meta_to_rb(meta: &type_meta::NonStreaming) -> TypeMetaRb {
     let checks = meta
         .constraints
         .iter()

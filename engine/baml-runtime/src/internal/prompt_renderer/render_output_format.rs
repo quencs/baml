@@ -1,10 +1,14 @@
 use std::collections::HashSet;
 
 use anyhow::Result;
-use baml_types::BamlValue;
+use baml_types::{
+    baml_value::TypeLookups,
+    ir_type::{TypeIR, TypeStreaming},
+    BamlValue, StreamingMode,
+};
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::{
-    repr::IntermediateRepr, ClassWalker, EnumWalker, FieldType, IRHelper, IRHelperExtended,
+    repr::IntermediateRepr, ClassWalker, EnumWalker, IRHelper, IRHelperExtended,
 };
 use internal_baml_jinja::types::{Class, Enum, Name, OutputFormatContent};
 
@@ -16,10 +20,11 @@ use crate::{
 pub fn render_output_format(
     ir: &IntermediateRepr,
     ctx: &RuntimeContext,
-    output: &FieldType,
+    output: &TypeIR,
+    mode: StreamingMode,
 ) -> Result<OutputFormatContent> {
     let (enums, classes, recursive_classes, structural_recursive_aliases) =
-        relevant_data_models(ir, output, ctx)?;
+        relevant_data_models(ir, output, ctx, mode == StreamingMode::Streaming)?;
 
     Ok(OutputFormatContent::target(output.clone())
         .enums(enums)
@@ -75,7 +80,7 @@ fn find_new_class_field(
     class_walker: &Result<ClassWalker<'_>>,
     overrides: &RuntimeClassOverride,
     _ctx: &RuntimeContext,
-) -> Result<(Name, FieldType, Option<String>, bool)> {
+) -> Result<(Name, TypeIR, Option<String>, bool)> {
     let Some(field_overrides) = overrides.new_fields.get(field_name) else {
         anyhow::bail!("Class {} does not have a field: {}", class_name, field_name);
     };
@@ -106,7 +111,7 @@ fn find_existing_class_field(
     class_walker: &Result<ClassWalker<'_>>,
     overrides: &Option<&RuntimeClassOverride>,
     ctx: &RuntimeContext,
-) -> Result<(Name, FieldType, Option<String>, bool)> {
+) -> Result<(Name, TypeIR, Option<String>, bool)> {
     let Ok(class_walker) = class_walker else {
         anyhow::bail!("Class {} does not exist", class_name);
     };
@@ -214,20 +219,26 @@ fn find_enum_value(
 // Should be refactored.
 fn relevant_data_models<'a>(
     ir: &'a IntermediateRepr,
-    output: &'a FieldType,
+    output: &'a TypeIR,
     ctx: &RuntimeContext,
+    partialize: bool,
 ) -> Result<(
     Vec<Enum>,
     Vec<Class>,
     IndexSet<String>,
-    IndexMap<String, FieldType>,
+    IndexMap<String, TypeIR>,
 )> {
+    let output = if partialize {
+        output.to_streaming_type(ir).to_ir_type()
+    } else {
+        output.clone()
+    };
     let mut checked_types = HashSet::new();
     let mut enums = Vec::new();
     let mut classes = Vec::new();
     let mut recursive_classes = IndexSet::new();
     let mut structural_recursive_aliases = IndexMap::new();
-    let mut stack: Vec<baml_types::FieldType> = vec![output.clone()];
+    let mut stack: Vec<baml_types::TypeIR> = vec![output.clone()];
 
     // start.extend(ctx.type_alias_overrides.values().cloned());
 
@@ -235,7 +246,7 @@ fn relevant_data_models<'a>(
 
     while let Some(output) = stack.pop() {
         match &output {
-            FieldType::Enum {
+            TypeIR::Enum {
                 name: enm,
                 dynamic: _,
                 meta: ref metadata,
@@ -282,22 +293,32 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::List(inner, _) => {
+            TypeIR::List(inner, _) => {
+                let inner = if partialize {
+                    &inner.to_streaming_type(ir).to_ir_type()
+                } else {
+                    inner
+                };
                 if !checked_types.contains(&inner.to_string()) {
-                    stack.push(inner.as_ref().clone());
+                    stack.push(inner.clone());
                 }
             }
-            FieldType::Map(k, ref v, _) => {
+            TypeIR::Map(k, ref v, _) => {
                 if checked_types.insert(output.to_string()) {
+                    let v = if partialize {
+                        v.to_streaming_type(ir).to_ir_type()
+                    } else {
+                        v.as_ref().clone()
+                    };
                     if !checked_types.contains(&k.to_string()) {
                         stack.push(k.as_ref().clone());
                     }
                     if !checked_types.contains(&v.to_string()) {
-                        stack.push(v.as_ref().clone());
+                        stack.push(v);
                     }
                 }
             }
-            FieldType::Tuple(ref options, _) => {
+            TypeIR::Tuple(ref options, _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options {
                         if !checked_types.contains(&inner.to_string()) {
@@ -306,7 +327,7 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Union(ref options, _) => {
+            TypeIR::Union(ref options, _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options.iter_include_null() {
                         if !checked_types.contains(&inner.to_string()) {
@@ -315,9 +336,9 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Class {
+            TypeIR::Class {
                 name: cls,
-                mode: _,
+                mode,
                 dynamic: _,
                 meta: ref metadata,
             } => {
@@ -366,7 +387,18 @@ fn relevant_data_models<'a>(
                         }
                     }
 
-                    let fields = fields.chain(new_fields).collect::<Result<Vec<_>>>()?;
+                    let fields = fields
+                        .chain(new_fields)
+                        .map(|field| {
+                            let (name, t, desc, needed) = field?;
+                            let t = if partialize && !metadata.streaming_behavior.done {
+                                t.to_streaming_type(ir).to_ir_type()
+                            } else {
+                                t
+                            };
+                            Ok((name, t, desc, needed))
+                        })
+                        .collect::<Result<Vec<_>>>()?;
 
                     for (_, t, _, _) in fields.iter().as_ref() {
                         if !checked_types.contains(&t.to_string()) {
@@ -398,13 +430,18 @@ fn relevant_data_models<'a>(
 
                     classes.push(Class {
                         name: Name::new_with_alias(cls.to_string(), alias.value()),
+                        namespace: if !metadata.streaming_behavior.done && partialize {
+                            StreamingMode::Streaming
+                        } else {
+                            StreamingMode::NonStreaming
+                        },
                         fields,
                         constraints: metadata.constraints.clone(),
                         streaming_behavior: metadata.streaming_behavior.clone(),
                     });
                 }
             }
-            FieldType::RecursiveTypeAlias { name, .. } => {
+            TypeIR::RecursiveTypeAlias { name, .. } => {
                 // TODO: Same O(n) problem as above.
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if cycle.contains_key(name) {
@@ -433,9 +470,9 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Literal(_, _) => {}
-            FieldType::Primitive(_, _) => {}
-            FieldType::Arrow(_, _) => {}
+            TypeIR::Literal(_, _) => {}
+            TypeIR::Primitive(_, _) => {}
+            TypeIR::Arrow(_, _) => {}
         }
     }
 
@@ -476,9 +513,14 @@ mod tests {
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .unwrap();
 
-        let field_type = FieldType::r#enum("Foo");
-        let render_output =
-            render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
+        let field_type = TypeIR::r#enum("Foo");
+        let render_output = render_output_format(
+            baml_runtime.inner.ir.as_ref(),
+            &ctx,
+            &field_type,
+            StreamingMode::NonStreaming,
+        )
+        .unwrap();
 
         let foo_enum = render_output.find_enum("Foo").unwrap();
         assert_eq!(foo_enum.values[0].0.real_name(), "Bar".to_string());
@@ -535,15 +577,20 @@ class Resume {
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .unwrap();
 
-        let field_type = FieldType::class("Resume");
-        let render_output =
-            render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
+        let field_type = TypeIR::class("Resume");
+        let render_output = render_output_format(
+            baml_runtime.inner.ir.as_ref(),
+            &ctx,
+            &field_type,
+            StreamingMode::NonStreaming,
+        )
+        .unwrap();
 
         let rendered = render_output
             .render(RenderOptions::default())
             .unwrap()
             .unwrap();
-        println!("{}", rendered);
+        println!("{rendered}");
 
         assert_eq!(
             rendered,
@@ -633,15 +680,20 @@ class Resume {
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .unwrap();
 
-        let field_type = FieldType::class("Resume");
-        let render_output =
-            render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
+        let field_type = TypeIR::class("Resume");
+        let render_output = render_output_format(
+            baml_runtime.inner.ir.as_ref(),
+            &ctx,
+            &field_type,
+            StreamingMode::NonStreaming,
+        )
+        .unwrap();
 
         let rendered = render_output
             .render(RenderOptions::default())
             .unwrap()
             .unwrap();
-        println!("{}", rendered);
+        println!("{rendered}");
 
         assert_eq!(
             rendered,
@@ -704,16 +756,23 @@ Answer in JSON using this schema:
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
             .expect("Should create context");
 
-        let field_type = FieldType::class("Foo");
-        let render_output =
-            render_output_format(baml_runtime.inner.ir.as_ref(), &ctx, &field_type).unwrap();
+        let field_type = TypeIR::class("Foo");
+        let render_output = render_output_format(
+            baml_runtime.inner.ir.as_ref(),
+            &ctx,
+            &field_type,
+            StreamingMode::NonStreaming,
+        )
+        .unwrap();
 
-        let foo = render_output.find_class("Foo").unwrap();
+        let foo = render_output
+            .find_class(&StreamingMode::NonStreaming, "Foo")
+            .unwrap();
         assert_eq!(
             foo.fields[0].0,
             Name::new_with_alias("bar".to_string(), Some("a".to_string()))
         );
-        assert_eq!(foo.fields[0].1, FieldType::r#string());
+        assert_eq!(foo.fields[0].1, TypeIR::r#string());
         assert_eq!(foo.fields[0].2, Some("d".to_string()));
     }
 }

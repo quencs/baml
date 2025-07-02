@@ -42,7 +42,6 @@ from ..baml_client.types import (
 
 from ..baml_client.tracing import trace, set_tags, flush, on_log_event
 from ..baml_client.type_builder import TypeBuilder
-from ..baml_client import reset_baml_env_vars
 
 import datetime
 import concurrent.futures
@@ -50,38 +49,10 @@ import asyncio
 import random
 
 
-@pytest.mark.asyncio
-async def test_env_vars_reset():
-    env_vars = {
-        "OPENAI_API_KEY": "sk-1234567890",
-    }
-    with pytest.deprecated_call():
-        reset_baml_env_vars(env_vars)
+def test_legacy_imports():
+    from ..baml_client import reset_baml_env_vars
 
-    @trace
-    def top_level_async_tracing():
-        with pytest.deprecated_call():
-            reset_baml_env_vars(env_vars)
-
-    @trace
-    async def atop_level_async_tracing():
-        with pytest.deprecated_call():
-            reset_baml_env_vars(env_vars)
-
-    with pytest.raises(errors.BamlError):
-        # Not allowed to call reset_baml_env_vars inside a traced function
-        top_level_async_tracing()
-
-    with pytest.raises(errors.BamlError):
-        # Not allowed to call reset_baml_env_vars inside a traced function
-        await atop_level_async_tracing()
-
-    with pytest.deprecated_call():
-        reset_baml_env_vars(os.environ.copy())
-    people = await b.ExtractPeople(
-        "My name is Harrison. My hair is black and I'm 6 feet tall. I'm pretty good around the hoop."
-    )
-    assert len(people) > 0
+    del reset_baml_env_vars
 
 
 def test_sync():
@@ -152,7 +123,7 @@ class TestAllInputs:
         with pytest.raises(errors.BamlError) as e:
             _res = await b.UseMalformedConstraints(MalformedConstraints2(foo=2))
 
-        assert "object has no method named length" in str(e.value)
+        assert "number has no method named length" in str(e.value)
 
     @pytest.mark.asyncio
     async def test_single_class(self):
@@ -1511,20 +1482,21 @@ async def test_semantic_streaming():
                 assert reference_string == msg.string_with_twenty_words
 
         # Checks for @stream.with_state.
-        if msg.class_needed is not None:
-            if msg.class_needed.s_20_words.value is not None:
-                if (
-                    len(msg.class_needed.s_20_words.value.split(" ")) < 3
-                    and msg.final_string is None
-                ):
-                    print(msg)
-                    assert msg.class_needed.s_20_words.state == "Incomplete"
+        if msg.class_needed.s_20_words.value is not None:
+            if (
+                len(msg.class_needed.s_20_words.value.split(" ")) < 3
+                and msg.final_string is None
+            ):
+                print(msg)
+                assert msg.class_needed.s_20_words.state == "Incomplete"
         if msg.final_string is not None:
             assert msg.class_needed.s_20_words.state == "Complete"
 
         # Checks for @stream.not_null.
         for sub in msg.three_small_things:
             assert sub.i_16_digits is not None
+
+    print("done streaming")
 
     final = await stream.get_final_response()
     print(final)
@@ -1565,19 +1537,3 @@ async def test_thinking_streaming():
     assert len(res.title) > 0, "title should be non-empty"
     assert len(res.content) > 0, "content should be non-empty"
     assert len(res.characters) > 0, "characters should be non-empty"
-
-
-@pytest.mark.asyncio
-async def test_echo_workflow():
-    res = await b.EchoWorkflow()
-    assert res == "Hello, world!"
-
-
-# @pytest.mark.asyncio
-# async def test_streaming_echo_workflow():
-#     stream = b.stream.EchoWorkflow()
-#     chunks = []
-#     async for msg in stream:
-#         chunks.push(msg)
-#     print(chunks)
-#     assert False

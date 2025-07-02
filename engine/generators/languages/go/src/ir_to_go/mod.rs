@@ -1,7 +1,7 @@
 use baml_types::{
     baml_value::TypeLookups,
-    ir_type::{Type, TypeStreaming},
-    type_meta::{base::TypeMeta, stream::TypeMetaStreaming},
+    ir_type::{TypeNonStreaming, TypeStreaming},
+    type_meta::{self, stream::TypeMetaStreaming},
     BamlMediaType, ConstraintLevel, TypeValue,
 };
 
@@ -111,7 +111,7 @@ pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookup
                 let name = name.join("Or");
                 TypeGo::Union {
                     package: stream_pkg.clone(),
-                    name: format!("Union{}{}", num_options, name),
+                    name: format!("Union{num_options}{name}"),
                     meta,
                 }
             }
@@ -131,7 +131,7 @@ pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookup
                         true => types_pkg.clone(),
                         false => stream_pkg.clone(),
                     },
-                    name: format!("Union{}{}", num_options, name),
+                    name: format!("Union{num_options}{name}"),
                     meta,
                 }
             }
@@ -141,8 +141,8 @@ pub(crate) fn stream_type_to_go(field: &TypeStreaming, _lookup: &impl TypeLookup
     type_go
 }
 
-pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
-    use Type as T;
+pub(crate) fn type_to_go(field: &TypeNonStreaming, _lookup: &impl TypeLookups) -> TypeGo {
+    use TypeNonStreaming as T;
     let recursive_fn = |field| type_to_go(field, _lookup);
     let meta = meta_to_go(field.meta());
 
@@ -214,7 +214,7 @@ pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
                 let name = name.join("Or");
                 TypeGo::Union {
                     package: type_pkg.clone(),
-                    name: format!("Union{}{}", num_options, name),
+                    name: format!("Union{num_options}{name}"),
                     meta,
                 }
             }
@@ -233,7 +233,7 @@ pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
                 meta.make_optional();
                 TypeGo::Union {
                     package: type_pkg.clone(),
-                    name: format!("Union{}{}", num_options, name),
+                    name: format!("Union{num_options}{name}"),
                     meta,
                 }
             }
@@ -244,7 +244,7 @@ pub(crate) fn type_to_go(field: &Type, _lookup: &impl TypeLookups) -> TypeGo {
 }
 
 // convert ir metadata to go metadata
-fn meta_to_go(meta: &TypeMeta) -> TypeMetaGo {
+fn meta_to_go(meta: &type_meta::NonStreaming) -> TypeMetaGo {
     let has_checks = meta
         .constraints
         .iter()

@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 use anyhow::{Context, Error};
 use baml_types::{
-    BamlMap, BamlValueWithMeta, Completion, CompletionState, FieldType, ResponseCheck, TypeValue,
+    BamlMap, BamlValueWithMeta, Completion, CompletionState, ResponseCheck, TypeIR, TypeValue,
 };
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::{
@@ -23,8 +23,8 @@ pub enum StreamingError {
     ExpectedClass,
     #[error("Value was marked Done, but was incomplete in the stream")]
     IncompleteDoneValue,
-    #[error("Class instance did not contain fields marked as needed")]
-    MissingNeededFields,
+    #[error("Class instance did not contain fields marked as needed: {fields:?}")]
+    MissingNeededFields { fields: Vec<String> },
     #[error("Failed to distribute_type_with_meta: {0}")]
     DistributeTypeWithMetaFailure(#[from] anyhow::Error),
 }
@@ -34,10 +34,10 @@ pub enum StreamingError {
 pub fn validate_streaming_state(
     ir: &impl IRHelperExtended,
     baml_value: &BamlValueWithFlags,
-    allow_partials: bool,
+    mode: baml_types::StreamingMode,
 ) -> Result<BamlValueWithMeta<Completion>, StreamingError> {
     let baml_value_with_meta_flags: BamlValueWithMeta<Vec<Flag>> = baml_value.clone().into();
-    let typed_baml_value: BamlValueWithMeta<(Vec<Flag>, FieldType)> =
+    let typed_baml_value: BamlValueWithMeta<(Vec<Flag>, TypeIR)> =
         ir.distribute_type_with_meta(baml_value_with_meta_flags, baml_value.field_type().clone())?;
     let baml_value_with_streaming_state_and_behavior =
         typed_baml_value.map_meta(|(flags, r#type)| (completion_state(flags), r#type));
@@ -45,8 +45,8 @@ pub fn validate_streaming_state(
     let top_level_node = process_node(
         ir,
         baml_value_with_streaming_state_and_behavior,
-        allow_partials,
         0,
+        mode == baml_types::StreamingMode::NonStreaming,
     )?;
     Ok(top_level_node)
 }
@@ -64,15 +64,17 @@ pub fn validate_streaming_state(
 ///                   see a false, all child nodes will also get false).
 fn process_node(
     ir: &impl IRHelperExtended,
-    value: BamlValueWithMeta<(CompletionState, &FieldType)>,
-    allow_partials: bool,
+    value: BamlValueWithMeta<(CompletionState, &TypeIR)>,
     _depth: usize,
+    // TODO(vbv): This is a hack to allow us to skip the done check for
+    // non-streaming values.
+    skip_done_check: bool,
 ) -> Result<BamlValueWithMeta<Completion>, StreamingError> {
     let (completion_state, field_type) = value.meta().clone();
     let metadata = field_type.meta();
 
     let must_be_done = required_done(ir, field_type, &value);
-    let allow_partials_in_sub_nodes = allow_partials && !must_be_done;
+    let allow_partials_in_sub_nodes = !must_be_done;
 
     let new_meta = Completion {
         state: completion_state.clone(),
@@ -80,7 +82,7 @@ fn process_node(
         required_done: must_be_done,
     };
 
-    if must_be_done && allow_partials && !(completion_state == CompletionState::Complete) {
+    if !skip_done_check && must_be_done && !(completion_state == CompletionState::Complete) {
         return Err(StreamingError::IncompleteDoneValue);
     }
 
@@ -94,9 +96,7 @@ fn process_node(
         BamlValueWithMeta::List(items, _) => Ok(BamlValueWithMeta::List(
             items
                 .into_iter()
-                .filter_map(|item| {
-                    process_node(ir, item, allow_partials_in_sub_nodes, _depth + 1).ok()
-                })
+                .filter_map(|item| process_node(ir, item, _depth + 1, skip_done_check).ok())
                 .collect(),
             new_meta,
         )),
@@ -113,7 +113,6 @@ fn process_node(
                 ir,
                 class_name,
                 value_field_names.iter().cloned().collect(),
-                allow_partials,
             )?;
 
             // We might later delete fields from 'value_fields`, (e.g. if they
@@ -149,7 +148,7 @@ fn process_node(
                 .filter_map(|(field_name, field_value)| {
                     let with_state = field_value.meta().1.meta().streaming_behavior.state;
                     let completion_state = field_value.meta().0.clone();
-                    match process_node(ir, field_value, allow_partials_in_sub_nodes, _depth + 1) {
+                    match process_node(ir, field_value, _depth + 1, skip_done_check) {
                         Ok(res) => Some((field_name, res)),
                         _ => {
                             let state = Completion {
@@ -169,7 +168,31 @@ fn process_node(
             let derived_present_nonnull_fields: HashSet<String> = new_fields
                 .iter()
                 .filter_map(|(field_name, field_value)| {
-                    if matches!(field_value, BamlValueWithMeta::Null(_)) {
+                    // Check if this field is required to be non-null
+                    let is_needed_field = needed_fields.contains(field_name);
+
+                    // Helper to check if a field value should be considered "effectively null"
+                    // for the purposes of @stream.not_null validation
+                    let is_effectively_null_for_validation =
+                        |field_value: &BamlValueWithMeta<Completion>| -> bool {
+                            match field_value {
+                                BamlValueWithMeta::Null(_) if is_needed_field => {
+                                    // For fields marked @stream.not_null, any null value (including
+                                    // the null variant of a union) should be considered as missing the requirement
+                                    true
+                                }
+                                BamlValueWithMeta::Class(_, class_fields, _) if is_needed_field => {
+                                    // For needed fields, a class is considered "null" if all its fields are null
+                                    class_fields
+                                        .values()
+                                        .all(|field| matches!(field, BamlValueWithMeta::Null(_)))
+                                }
+                                BamlValueWithMeta::Null(_) => false, // Not a needed field, so null is acceptable
+                                _ => false,
+                            }
+                        };
+
+                    if is_effectively_null_for_validation(field_value) {
                         None
                     } else {
                         Some(field_name.to_string())
@@ -199,7 +222,9 @@ fn process_node(
             if missing_needed_fields.is_empty() {
                 Ok(res)
             } else {
-                Err(StreamingError::MissingNeededFields)
+                Err(StreamingError::MissingNeededFields {
+                    fields: missing_needed_fields.into_iter().cloned().collect(),
+                })
             }
         }
         BamlValueWithMeta::Enum(name, value, _) => {
@@ -209,7 +234,7 @@ fn process_node(
             let new_kvs = kvs
                 .into_iter()
                 .filter_map(|(k, v)| {
-                    process_node(ir, v, allow_partials_in_sub_nodes, _depth + 1)
+                    process_node(ir, v, _depth + 1, skip_done_check)
                         .ok()
                         .map(|v| (k, v))
                 })
@@ -224,9 +249,9 @@ fn process_node(
 
 /// Extract the field names from a field_type that is expected to be a `Class`.
 /// If it is not a known class, return no field names.
-fn type_field_names(ir: &impl IRHelperExtended, field_type: &FieldType) -> IndexSet<String> {
+fn type_field_names(ir: &impl IRHelperExtended, field_type: &TypeIR) -> IndexSet<String> {
     match field_type {
-        FieldType::Class {
+        TypeIR::Class {
             name: class_name, ..
         } => ir.class_field_names(class_name).unwrap_or_default(),
         _ => IndexSet::new(),
@@ -240,11 +265,7 @@ fn fields_needing_null_filler<'a>(
     ir: &'a impl IRSemanticStreamingHelper,
     class_name: &'a str,
     value_names: HashSet<String>,
-    allow_partials: bool,
 ) -> Result<HashSet<String>, anyhow::Error> {
-    if !allow_partials {
-        return Ok(HashSet::new());
-    }
     ir.find_class_fields_needing_null_filler(class_name, &value_names)
 }
 
@@ -272,12 +293,12 @@ fn needed_fields(
 /// in a streamed value.
 fn required_done<T>(
     ir: &impl IRHelperExtended,
-    field_type: &FieldType,
+    field_type: &TypeIR,
     value: &BamlValueWithMeta<T>,
 ) -> bool {
     let metadata = field_type.meta();
     let type_implies_done = match field_type {
-        FieldType::Primitive(tv, _) => match tv {
+        TypeIR::Primitive(tv, _) => match tv {
             TypeValue::String => false,
             TypeValue::Int => true,
             TypeValue::Float => true,
@@ -285,18 +306,18 @@ fn required_done<T>(
             TypeValue::Bool => true,
             TypeValue::Null => true,
         },
-        FieldType::Literal { .. } => true,
-        FieldType::List(_, _) => false,
-        FieldType::Map(_, _, _) => false,
-        FieldType::Enum {
+        TypeIR::Literal { .. } => true,
+        TypeIR::List(_, _) => false,
+        TypeIR::Map(_, _, _) => false,
+        TypeIR::Enum {
             name: _,
             dynamic: _,
             meta: _,
         } => true,
-        FieldType::Tuple(_, _) => false,
-        FieldType::RecursiveTypeAlias { .. } => false,
-        FieldType::Class { .. } => false,
-        FieldType::Union(options, _) => {
+        TypeIR::Tuple(_, _) => false,
+        TypeIR::RecursiveTypeAlias { .. } => false,
+        TypeIR::Class { .. } => false,
+        TypeIR::Union(options, _) => {
             let view = options.iter_skip_null();
             // Determining whether a union requires done is complicated.
             // If all the variants are required to be done, then the union
@@ -323,7 +344,7 @@ fn required_done<T>(
                 variant_required_done && value_unifies_with_variant
             })
         }
-        FieldType::Arrow(_, _) => false, // TODO: Error? Arrow shouldn't appear here.
+        TypeIR::Arrow(_, _) => false, // TODO: Error? Arrow shouldn't appear here.
     };
 
     type_implies_done || metadata.streaming_behavior.done
@@ -349,7 +370,7 @@ mod tests {
 
     fn mk_null() -> BamlValueWithFlags {
         BamlValueWithFlags::Null(
-            FieldType::Primitive(TypeValue::Null, TypeMeta::default()),
+            TypeIR::Primitive(TypeValue::Null, TypeMeta::default()),
             DeserializerConditions::default(),
         )
     }
@@ -357,14 +378,14 @@ mod tests {
     fn mk_string(s: &str) -> BamlValueWithFlags {
         BamlValueWithFlags::String(ValueWithFlags {
             value: s.to_string(),
-            target: FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+            target: TypeIR::Primitive(TypeValue::String, TypeMeta::default()),
             flags: DeserializerConditions::default(),
         })
     }
     fn mk_float(s: f64) -> BamlValueWithFlags {
         BamlValueWithFlags::Float(ValueWithFlags {
             value: s,
-            target: FieldType::Primitive(TypeValue::Float, TypeMeta::default()),
+            target: TypeIR::Primitive(TypeValue::Float, TypeMeta::default()),
             flags: DeserializerConditions::default(),
         })
     }
@@ -381,7 +402,7 @@ mod tests {
         fn mk_list(items: Vec<BamlValueWithFlags>) -> BamlValueWithFlags {
             BamlValueWithFlags::List(
                 DeserializerConditions::default(),
-                FieldType::recursive_type_alias("A").as_list(),
+                TypeIR::recursive_type_alias("A").as_list(),
                 items,
             )
         }
@@ -392,7 +413,8 @@ mod tests {
             mk_list(vec![mk_list(vec![]), mk_list(vec![])]),
         ]);
 
-        let res = validate_streaming_state(&ir, &value, true).unwrap();
+        let res =
+            validate_streaming_state(&ir, &value, baml_types::StreamingMode::NonStreaming).unwrap();
 
         assert_eq!(res.into_iter().count(), 6);
     }
@@ -422,14 +444,14 @@ mod tests {
         let value = BamlValueWithFlags::Class(
             "Info".to_string(),
             DeserializerConditions::default(),
-            FieldType::class("Info"),
+            TypeIR::class("Info"),
             vec![
                 (
                     "name".to_string(),
                     BamlValueWithFlags::Class(
                         "Name".to_string(),
                         DeserializerConditions::default(),
-                        FieldType::class("Name"),
+                        TypeIR::class("Name"),
                         vec![
                             ("first".to_string(), mk_string("Greg")),
                             ("last".to_string(), mk_string("Hale")),
@@ -445,9 +467,10 @@ mod tests {
             .into_iter()
             .collect(),
         );
-        let field_type = FieldType::class("Info");
+        let field_type = TypeIR::class("Info");
 
-        let res = validate_streaming_state(&ir, &value, true).unwrap();
+        let res =
+            validate_streaming_state(&ir, &value, baml_types::StreamingMode::NonStreaming).unwrap();
 
         // The first key should be "Name", matching the order specified in the
         // original value.

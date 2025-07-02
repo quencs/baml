@@ -1,4 +1,4 @@
-use baml_types::type_meta::base::TypeMeta;
+use baml_types::{ir_type::UnionConstructor, type_meta::base::TypeMeta};
 
 use super::*;
 
@@ -17,23 +17,25 @@ test_deserializer!(
   test_union,
   FOO_FILE,
   r#"{"hi": ["a", "b"]}"#,
-  FieldType::union(vec![FieldType::class("Foo"), FieldType::class("Bar")]),
+  TypeIR::union(vec![TypeIR::class("Foo"), TypeIR::class("Bar")]),
   {"hi": ["a", "b"]}
 );
 
 #[test_log::test]
 fn test_union_full() {
     let ir = crate::helpers::load_test_ir(FOO_FILE);
-    let target_type = FieldType::union(vec![
-        FieldType::class("Foo"),
-        FieldType::class("Bar").as_list(),
-    ]);
-    let target =
-        crate::helpers::render_output_format(&ir, &target_type, &Default::default()).unwrap();
+    let target_type = TypeIR::union(vec![TypeIR::class("Foo"), TypeIR::class("Bar").as_list()]);
+    let target = crate::helpers::render_output_format(
+        &ir,
+        &target_type,
+        &Default::default(),
+        baml_types::StreamingMode::NonStreaming,
+    )
+    .unwrap();
 
-    let result = from_str(&target, &target_type, r#"{"hi": ["a", "b"]}"#, false);
+    let result = from_str(&target, &target_type, r#"{"hi": ["a", "b"]}"#, true);
 
-    assert!(result.is_ok(), "Failed to parse: {:?}", result);
+    assert!(result.is_ok(), "Failed to parse: {result:?}");
 
     let value = result.unwrap();
     log::trace!("Score: {}", value.score());
@@ -42,19 +44,27 @@ fn test_union_full() {
         for (prop_name, prop_value) in props {
             match prop_name.as_str() {
                 "hi" => {
+                    let mut item_type = TypeIR::Primitive(TypeValue::String, TypeMeta::default());
+                    item_type.meta_mut().streaming_behavior.needed = true;
+                    let mut target_type = item_type.as_list();
+                    target_type.meta_mut().streaming_behavior.needed = true;
                     assert_eq!(
                         prop_value.field_type(),
-                        &FieldType::Primitive(TypeValue::String, TypeMeta::default()).as_list()
+                        &target_type,
+                        "{} != {target_type}",
+                        prop_value.field_type()
                     );
+
+                    let item_type = match &target_type {
+                        TypeIR::List(item, _) => item.as_ref(),
+                        _ => panic!("Expected a list"),
+                    };
                     for item in prop_value.as_list().unwrap() {
-                        assert_eq!(
-                            item.field_type(),
-                            &FieldType::Primitive(TypeValue::String, TypeMeta::default())
-                        );
+                        assert_eq!(item.field_type(), item_type);
                     }
                 }
                 _ => {
-                    panic!("Unexpected property: {}", prop_name);
+                    panic!("Unexpected property: {prop_name}");
                 }
             }
         }
@@ -62,7 +72,7 @@ fn test_union_full() {
         panic!("Expected a class");
     }
     let value: BamlValue = value.into();
-    log::info!("{}", value);
+    log::info!("{value}");
     let json_value = json!(value);
 
     let expected = serde_json::json!({"hi": ["a", "b"]});
@@ -114,7 +124,7 @@ test_deserializer!(
     "data": null
   }
   ```"#,
-  FieldType::union(vec![FieldType::class("CatAPicker"), FieldType::class("CatBPicker"), FieldType::class("CatCPicker")]),
+  TypeIR::union(vec![TypeIR::class("CatAPicker"), TypeIR::class("CatBPicker"), TypeIR::class("CatCPicker")]),
   {
     "cat": "E",
     "item": "28558C",
@@ -262,7 +272,7 @@ test_deserializer!(
   ]
 }
 ```"####,
-  FieldType::union(vec![FieldType::class("RespondToUserAPI"), FieldType::class("AskClarificationAPI"), FieldType::class("AssistantAPI").as_list()]),
+  TypeIR::union(vec![TypeIR::class("RespondToUserAPI"), TypeIR::class("AskClarificationAPI"), TypeIR::class("AssistantAPI").as_list()]),
   {
     "action": "RESPOND_TO_USER",
     "sections": [
@@ -317,7 +327,7 @@ test_deserializer!(
   test_phone_number_regex,
   CONTACT_INFO,
   r#"{"primary": {"value": "908-797-8281"}}"#,
-  FieldType::class("ContactInfo"),
+  TypeIR::class("ContactInfo"),
   {"primary": {"value": "908-797-8281"}}
 );
 
@@ -325,7 +335,7 @@ test_deserializer!(
   test_email_regex,
   CONTACT_INFO,
   r#"{"primary": {"value": "help@boundaryml.com"}}"#,
-  FieldType::class("ContactInfo"),
+  TypeIR::class("ContactInfo"),
   {"primary": {"value": "help@boundaryml.com"}}
 );
 
@@ -333,9 +343,9 @@ test_deserializer!(
     test_ignore_float_in_string_if_string_in_union,
     "",
     "1 cup unsalted butter, room temperature",
-    FieldType::union(vec![
-        FieldType::Primitive(TypeValue::Float, TypeMeta::default()),
-        FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    TypeIR::union(vec![
+        TypeIR::Primitive(TypeValue::Float, TypeMeta::default()),
+        TypeIR::Primitive(TypeValue::String, TypeMeta::default()),
     ]),
     "1 cup unsalted butter, room temperature"
 );
@@ -344,9 +354,9 @@ test_deserializer!(
     test_ignore_int_if_string_in_union,
     "",
     "1 cup unsalted butter, room temperature",
-    FieldType::union(vec![
-        FieldType::Primitive(TypeValue::Int, TypeMeta::default()),
-        FieldType::Primitive(TypeValue::String, TypeMeta::default()),
+    TypeIR::union(vec![
+        TypeIR::Primitive(TypeValue::Int, TypeMeta::default()),
+        TypeIR::Primitive(TypeValue::String, TypeMeta::default()),
     ]),
     "1 cup unsalted butter, room temperature"
 );

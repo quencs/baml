@@ -11,7 +11,7 @@ use internal_baml_core::{
     ast::Field,
     internal_baml_diagnostics::SourceFile,
     ir::{
-        repr::IntermediateRepr, ClassWalker, EnumWalker, FieldType, IRHelper, IRHelperExtended,
+        repr::IntermediateRepr, ClassWalker, EnumWalker, IRHelper, IRHelperExtended, TypeIR,
         TypeValue,
     },
     validate,
@@ -37,7 +37,7 @@ pub fn load_test_ir(file_content: &str) -> IntermediateRepr {
     match schema.diagnostics.to_result() {
         Ok(_) => {}
         Err(e) => {
-            panic!("Failed to validate schema: {}", e);
+            panic!("Failed to validate schema: {e}");
         }
     }
 
@@ -46,11 +46,16 @@ pub fn load_test_ir(file_content: &str) -> IntermediateRepr {
 
 pub fn render_output_format(
     ir: &IntermediateRepr,
-    output: &FieldType,
+    output: &TypeIR,
     env_values: &EvaluationContext<'_>,
+    streaming_mode: baml_types::StreamingMode,
 ) -> Result<OutputFormatContent> {
-    let (enums, classes, recursive_classes, structural_recursive_aliases) =
-        relevant_data_models(ir, output, env_values)?;
+    let (enums, classes, recursive_classes, structural_recursive_aliases) = relevant_data_models(
+        ir,
+        output,
+        env_values,
+        streaming_mode == baml_types::StreamingMode::Streaming,
+    )?;
 
     Ok(OutputFormatContent::target(output.clone())
         .enums(enums)
@@ -65,7 +70,7 @@ fn find_existing_class_field(
     field_name: &str,
     class_walker: &Result<ClassWalker<'_>>,
     env_values: &EvaluationContext<'_>,
-) -> Result<(Name, FieldType, Option<String>, bool)> {
+) -> Result<(Name, TypeIR, Option<String>, bool)> {
     let Ok(class_walker) = class_walker else {
         anyhow::bail!("Class {} does not exist", class_name);
     };
@@ -120,24 +125,30 @@ fn find_enum_value(
 // get a collision that results in some type not getting put onto the stack?
 fn relevant_data_models<'a>(
     ir: &'a IntermediateRepr,
-    output: &'a FieldType,
+    output: &'a TypeIR,
     env_values: &EvaluationContext<'_>,
+    partialize: bool,
 ) -> Result<(
     Vec<Enum>,
     Vec<Class>,
     IndexSet<String>,
-    IndexMap<String, FieldType>,
+    IndexMap<String, TypeIR>,
 )> {
+    let output = if partialize {
+        output.to_streaming_type(ir).to_ir_type()
+    } else {
+        output.clone()
+    };
     let mut checked_types: HashSet<String> = HashSet::new();
     let mut enums = Vec::new();
     let mut classes: Vec<Class> = Vec::new();
     let mut recursive_classes = IndexSet::new();
     let mut structural_recursive_aliases = IndexMap::new();
-    let mut start: Vec<baml_types::FieldType> = vec![output.clone()];
+    let mut start: Vec<baml_types::TypeIR> = vec![output.clone()];
 
     while let Some(output) = start.pop() {
         match &output {
-            FieldType::Enum {
+            TypeIR::Enum {
                 name,
                 dynamic,
                 meta,
@@ -163,22 +174,32 @@ fn relevant_data_models<'a>(
                     });
                 }
             }
-            FieldType::List(inner, _) => {
+            TypeIR::List(inner, _) => {
+                let inner = if partialize {
+                    &inner.to_streaming_type(ir).to_ir_type()
+                } else {
+                    inner
+                };
                 if !checked_types.contains(&inner.to_string()) {
-                    start.push(inner.as_ref().clone());
+                    start.push(inner.clone());
                 }
             }
-            FieldType::Map(k, v, _) => {
+            TypeIR::Map(k, v, _) => {
                 if checked_types.insert(output.to_string()) {
                     if !checked_types.contains(&k.to_string()) {
                         start.push(k.as_ref().clone());
                     }
+                    let v = if partialize {
+                        &v.to_streaming_type(ir).to_ir_type()
+                    } else {
+                        v
+                    };
                     if !checked_types.contains(&v.to_string()) {
-                        start.push(v.as_ref().clone());
+                        start.push(v.clone());
                     }
                 }
             }
-            FieldType::Tuple(options, _) => {
+            TypeIR::Tuple(options, _) => {
                 if checked_types.insert(output.to_string()) {
                     for inner in options {
                         if !checked_types.contains(&inner.to_string()) {
@@ -187,16 +208,16 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Union(options, _) => {
+            TypeIR::Union(options, _) => {
                 if checked_types.insert(output.to_string()) {
-                    for inner in options.iter_include_null() {
+                    for inner in options.iter_skip_null() {
                         if !checked_types.contains(&inner.to_string()) {
                             start.push(inner.clone());
                         }
                     }
                 }
             }
-            FieldType::Class {
+            TypeIR::Class {
                 name,
                 mode,
                 dynamic,
@@ -213,7 +234,16 @@ fn relevant_data_models<'a>(
                     let fields = real_fields
                         .into_iter()
                         .flatten()
-                        .map(|field| find_existing_class_field(name, &field, &walker, env_values));
+                        .map(|field| find_existing_class_field(name, &field, &walker, env_values))
+                        .map(|field| {
+                            let (name, t, prop1, prop2) = field?;
+                            let t = if partialize && !metadata.streaming_behavior.done {
+                                t.to_streaming_type(ir).to_ir_type()
+                            } else {
+                                t
+                            };
+                            Ok((name, t, prop1, prop2))
+                        });
 
                     let fields = fields.collect::<Result<Vec<_>>>()?;
 
@@ -241,13 +271,14 @@ fn relevant_data_models<'a>(
 
                     classes.push(Class {
                         name: Name::new_with_alias(name.to_string(), walker?.alias(env_values)?),
+                        namespace: mode.clone(),
                         fields,
                         constraints: metadata.constraints.clone(),
                         streaming_behavior: metadata.streaming_behavior.clone(),
                     });
                 }
             }
-            FieldType::RecursiveTypeAlias { name, .. } => {
+            TypeIR::RecursiveTypeAlias { name, .. } => {
                 // TODO: Same O(n) problem as above.
                 for cycle in ir.structural_recursive_alias_cycles() {
                     if cycle.contains_key(name) {
@@ -257,9 +288,9 @@ fn relevant_data_models<'a>(
                     }
                 }
             }
-            FieldType::Literal(_, _) => {}
-            FieldType::Primitive(_, _) => {}
-            FieldType::Arrow(_, _) => {}
+            TypeIR::Literal(_, _) => {}
+            TypeIR::Primitive(_, _) => {}
+            TypeIR::Arrow(_, _) => {}
         }
     }
 
@@ -277,12 +308,12 @@ fn relevant_data_models<'a>(
 pub fn parsed_value_to_response(
     ir: &IntermediateRepr,
     baml_value: BamlValueWithFlags,
-    allow_partials: bool,
+    mode: baml_types::StreamingMode,
 ) -> Result<ResponseBamlValue> {
     let meta_flags: BamlValueWithMeta<Vec<Flag>> = baml_value.clone().into();
     let baml_value_with_meta: BamlValueWithMeta<Vec<(String, JinjaExpression, bool)>> =
         baml_value.clone().into();
-    let meta_field_type: BamlValueWithMeta<FieldType> = baml_value.clone().into();
+    let meta_field_type: BamlValueWithMeta<TypeIR> = baml_value.clone().into();
 
     let value_with_response_checks: BamlValueWithMeta<Vec<ResponseCheck>> = baml_value_with_meta
         .map_meta(|cs| {
@@ -298,8 +329,8 @@ pub fn parsed_value_to_response(
                 .collect()
         });
 
-    let baml_value_with_streaming = validate_streaming_state(ir, &baml_value, allow_partials)
-        .map_err(|s| anyhow::anyhow!("{s:?}"))?;
+    let baml_value_with_streaming = validate_streaming_state(ir, &baml_value, mode)
+        .map_err(|s| anyhow::anyhow!("Parsing failed due to: {s:?}"))?;
 
     // Combine the baml_value, its types, the parser flags, and the streaming state
     // into a final value.
@@ -327,10 +358,17 @@ mod tests {
           }
         "#,
         );
-        let output =
-            render_output_format(&ir, &FieldType::class("Foo"), &EvaluationContext::default())
-                .expect("Rendering should work");
-        let foo = output.classes.get("Foo").expect("Exists");
+        let output = render_output_format(
+            &ir,
+            &TypeIR::class("Foo"),
+            &EvaluationContext::default(),
+            baml_types::StreamingMode::NonStreaming,
+        )
+        .expect("Rendering should work");
+        let foo = output
+            .classes
+            .get(&("Foo".to_string(), baml_types::StreamingMode::NonStreaming))
+            .expect("Exists");
         assert_eq!(foo.fields.len(), 1);
         assert_eq!(foo.fields[0].2, Some("d".to_string()));
         assert_eq!(

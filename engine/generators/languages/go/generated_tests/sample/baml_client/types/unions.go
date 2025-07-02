@@ -19,7 +19,6 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type Union2ExampleOrExample2 struct {
@@ -31,8 +30,8 @@ type Union2ExampleOrExample2 struct {
 }
 
 func (u *Union2ExampleOrExample2) Decode(holder *cffi.CFFIValueUnionVariant) {
-	valueHolder := holder.Value(nil)
-	variantName := string(holder.VariantName())
+	valueHolder := holder.Value
+	variantName := holder.VariantName
 	switch variantName {
 	case "Example":
 		u.variant = "Example"
@@ -48,33 +47,31 @@ func (u *Union2ExampleOrExample2) Decode(holder *cffi.CFFIValueUnionVariant) {
 	}
 }
 
-func (u Union2ExampleOrExample2) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (u Union2ExampleOrExample2) Encode() (*cffi.CFFIValueHolder, error) {
 	switch u.variant {
 
 	case "Example":
-		return baml.EncodeUnion(builder, u.BamlEncodeName, "Example", *u.variant_Example)
+		return baml.EncodeUnion(u.BamlEncodeName, "Example", *u.variant_Example)
 
 	case "Example2":
-		return baml.EncodeUnion(builder, u.BamlEncodeName, "Example2", *u.variant_Example2)
+		return baml.EncodeUnion(u.BamlEncodeName, "Example2", *u.variant_Example2)
 
 	case "":
-		return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: [unset]")
+		return nil, fmt.Errorf("invalid union variant: [unset]")
 	}
 
-	return cffi.CFFIValueUnionNONE, 0, fmt.Errorf("invalid union variant: %s", u.variant)
+	return nil, fmt.Errorf("invalid union variant: %s", u.variant)
 }
 
 func (u Union2ExampleOrExample2) BamlTypeName() string {
 	return "Union2ExampleOrExample2"
 }
 
-func (u Union2ExampleOrExample2) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("Union__Example__Example2")
-	namespaceOffset := builder.CreateString("types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u Union2ExampleOrExample2) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Name:      "Union__Example__Example2",
+		Namespace: cffi.CFFITypeNamespace_TYPES,
+	}
 }
 
 func (u Union2ExampleOrExample2) MarshalJSON() ([]byte, error) {

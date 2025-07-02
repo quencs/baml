@@ -1,6 +1,6 @@
 use baml_types::{
     type_meta::base::{StreamingBehavior, TypeMeta},
-    FieldType,
+    TypeIR,
 };
 use internal_baml_core::ir::repr::make_test_ir;
 
@@ -25,17 +25,24 @@ pub fn make_test_data1() {
     )
     .unwrap();
 
-    let mut target_type = FieldType::class("PersonAssignment");
+    let mut target_type = TypeIR::class("PersonAssignment");
     target_type.set_meta(TypeMeta {
         constraints: vec![],
         streaming_behavior: StreamingBehavior {
             done: false,
             state: true,
-            needed: false,
+            needed: true,
         },
     });
+    let target_type = target_type.to_streaming_type(&ir).to_ir_type();
 
-    let target = render_output_format(&ir, &target_type, &Default::default()).unwrap();
+    let target = render_output_format(
+        &ir,
+        &target_type,
+        &Default::default(),
+        baml_types::StreamingMode::Streaming,
+    )
+    .unwrap();
 
     let llm_data = r#"{"person": {"name": "Greg", "age": 42}, "assignment": "Write"}"#;
 
@@ -43,19 +50,29 @@ pub fn make_test_data1() {
         // let results = (0..2)
         .map(|i| {
             let partial_llm_data = &llm_data[0..i];
-            let parsed_value = from_str(&target, &target_type, partial_llm_data, true);
-            let value = parsed_value_to_response(&ir, parsed_value.unwrap(), true).unwrap();
+            let parsed_value = from_str(&target, &target_type, partial_llm_data, false);
 
-            serde_json::to_value(&vec![
-                serde_json::to_value(partial_llm_data).unwrap(),
-                serde_json::to_value(&value.serialize_partial()).unwrap(),
-            ])
+            let value = parsed_value_to_response(
+                &ir,
+                parsed_value.expect("Failed to parse"),
+                baml_types::StreamingMode::Streaming,
+            )
+            .unwrap();
+
+            serde_json::to_value(
+                vec![
+                    serde_json::to_value(partial_llm_data).unwrap(),
+                    serde_json::to_value(value.serialize_partial()).unwrap(),
+                ]
+                .into_iter()
+                .collect::<Vec<_>>(),
+            )
             .unwrap()
         })
         .collect::<Vec<_>>();
 
     let json = serde_json::to_string(&results).unwrap();
-    eprintln!("{}", json);
+    eprintln!("{json}");
 
     // assert!(false);
 }

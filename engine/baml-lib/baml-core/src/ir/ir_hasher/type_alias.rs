@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use baml_types::FieldType;
+use baml_types::TypeIR;
 
 use super::{super::TypeAlias, ShallowSignature};
 
@@ -12,7 +12,7 @@ use super::{super::TypeAlias, ShallowSignature};
 #[derive(Debug)]
 struct TypeAliasInterfaceHash<'a> {
     name: &'a str,
-    expr: &'a FieldType,
+    expr: &'a TypeIR,
 }
 
 impl<'a> std::hash::Hash for TypeAliasInterfaceHash<'a> {
@@ -25,7 +25,7 @@ impl<'a> std::hash::Hash for TypeAliasInterfaceHash<'a> {
 
 #[derive(Debug)]
 struct TypeAliasImplementationHash<'a> {
-    expr: &'a FieldType,
+    expr: &'a TypeIR,
 }
 
 impl<'a> std::hash::Hash for TypeAliasImplementationHash<'a> {

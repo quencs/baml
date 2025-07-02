@@ -42,7 +42,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 }
 
 // / Streaming version of MakeClassWithBlockDone
-func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.ClassWithBlockDone, types.ClassWithBlockDone], error) {
+func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[types.ClassWithBlockDone, types.ClassWithBlockDone], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -58,7 +58,11 @@ func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFun
 		args.ClientRegistry = callOpts.clientRegistry
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
 		// and include the type of the args you're passing in.
@@ -72,7 +76,7 @@ func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFun
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[*stream_types.ClassWithBlockDone, types.ClassWithBlockDone])
+	channel := make(chan StreamValue[types.ClassWithBlockDone, types.ClassWithBlockDone])
 	go func() {
 		defer func() {
 			internal_ctx.Done()
@@ -93,13 +97,13 @@ func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFun
 				}
 				if result.HasData {
 					data := *(result.Data).(*types.ClassWithBlockDone)
-					channel <- StreamValue[*stream_types.ClassWithBlockDone, types.ClassWithBlockDone]{
+					channel <- StreamValue[types.ClassWithBlockDone, types.ClassWithBlockDone]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := (result.StreamData).(*stream_types.ClassWithBlockDone)
-					channel <- StreamValue[*stream_types.ClassWithBlockDone, types.ClassWithBlockDone]{
+					data := *(result.StreamData).(*types.ClassWithBlockDone)
+					channel <- StreamValue[types.ClassWithBlockDone, types.ClassWithBlockDone]{
 						IsFinal:   false,
 						as_stream: &data,
 					}
@@ -111,7 +115,7 @@ func (*stream) MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFun
 }
 
 // / Streaming version of MakeClassWithExternalDone
-func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.ClassWithoutDone, types.ClassWithoutDone], error) {
+func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[types.ClassWithoutDone, types.ClassWithoutDone], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -127,7 +131,11 @@ func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOption
 		args.ClientRegistry = callOpts.clientRegistry
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
 		// and include the type of the args you're passing in.
@@ -141,7 +149,7 @@ func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOption
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[*stream_types.ClassWithoutDone, types.ClassWithoutDone])
+	channel := make(chan StreamValue[types.ClassWithoutDone, types.ClassWithoutDone])
 	go func() {
 		defer func() {
 			internal_ctx.Done()
@@ -162,13 +170,13 @@ func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOption
 				}
 				if result.HasData {
 					data := *(result.Data).(*types.ClassWithoutDone)
-					channel <- StreamValue[*stream_types.ClassWithoutDone, types.ClassWithoutDone]{
+					channel <- StreamValue[types.ClassWithoutDone, types.ClassWithoutDone]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := (result.StreamData).(*stream_types.ClassWithoutDone)
-					channel <- StreamValue[*stream_types.ClassWithoutDone, types.ClassWithoutDone]{
+					data := *(result.StreamData).(*types.ClassWithoutDone)
+					channel <- StreamValue[types.ClassWithoutDone, types.ClassWithoutDone]{
 						IsFinal:   false,
 						as_stream: &data,
 					}
@@ -180,7 +188,7 @@ func (*stream) MakeClassWithExternalDone(ctx context.Context, opts ...CallOption
 }
 
 // / Streaming version of MakeSemanticContainer
-func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[*stream_types.SemanticContainer, types.SemanticContainer], error) {
+func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc) (<-chan StreamValue[stream_types.SemanticContainer, types.SemanticContainer], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -196,7 +204,11 @@ func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc
 		args.ClientRegistry = callOpts.clientRegistry
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
 		// and include the type of the args you're passing in.
@@ -210,7 +222,7 @@ func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[*stream_types.SemanticContainer, types.SemanticContainer])
+	channel := make(chan StreamValue[stream_types.SemanticContainer, types.SemanticContainer])
 	go func() {
 		defer func() {
 			internal_ctx.Done()
@@ -231,13 +243,13 @@ func (*stream) MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc
 				}
 				if result.HasData {
 					data := *(result.Data).(*types.SemanticContainer)
-					channel <- StreamValue[*stream_types.SemanticContainer, types.SemanticContainer]{
+					channel <- StreamValue[stream_types.SemanticContainer, types.SemanticContainer]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := (result.StreamData).(*stream_types.SemanticContainer)
-					channel <- StreamValue[*stream_types.SemanticContainer, types.SemanticContainer]{
+					data := *(result.StreamData).(*stream_types.SemanticContainer)
+					channel <- StreamValue[stream_types.SemanticContainer, types.SemanticContainer]{
 						IsFinal:   false,
 						as_stream: &data,
 					}

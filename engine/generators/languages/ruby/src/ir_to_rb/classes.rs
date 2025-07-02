@@ -46,7 +46,10 @@ pub fn ir_class_to_rb_stream<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -
 fn ir_field_to_rb<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldRb<'a> {
     FieldRb {
         name: field.elem.name.clone(),
-        r#type: super::type_to_rb(&field.elem.r#type.elem, pkg.lookup()),
+        r#type: super::type_to_rb(
+            &field.elem.r#type.elem.to_non_streaming_type(pkg.lookup()),
+            pkg.lookup(),
+        ),
         docstring: field
             .elem
             .docstring
@@ -57,7 +60,7 @@ fn ir_field_to_rb<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldRb<'
 }
 
 fn ir_field_to_rb_stream<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldRb<'a> {
-    let partialized = field.elem.r#type.elem.partialize(pkg.lookup());
+    let partialized = field.elem.r#type.elem.to_streaming_type(pkg.lookup());
     FieldRb {
         name: field.elem.name.clone(),
         r#type: super::stream_type_to_rb(&partialized, pkg.lookup()),
@@ -90,7 +93,7 @@ mod tests {
         let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("SimpleClass").unwrap().item;
         let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
-        let class_rb = ir_class_to_rb_stream(&class, &pkg);
+        let class_rb = ir_class_to_rb_stream(class, &pkg);
         assert_eq!(class_rb.name, "SimpleClass");
         assert_eq!(class_rb.fields.len(), 1);
         assert_eq!(
@@ -117,9 +120,9 @@ mod tests {
         let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("ChildClass").unwrap().item;
         let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
-        let class_rb = ir_class_to_rb_stream(&class, &pkg);
+        let class_rb = ir_class_to_rb_stream(class, &pkg);
         let digits_field = class_rb.fields.iter().find(|f| f.name == "digits").unwrap();
-        eprintln!("{:?}", digits_field);
+        eprintln!("{digits_field:?}");
         assert_eq!(
             digits_field.r#type.meta().map(|m| m.wrap_stream_state),
             Some(true)
@@ -144,7 +147,7 @@ mod tests {
         let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("Foo").unwrap().item;
         let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
-        let class_rb = ir_class_to_rb_stream(&class, &pkg);
+        let class_rb = ir_class_to_rb_stream(class, &pkg);
         assert_eq!(class_rb.fields[0].docstring, Some("ds".to_string()));
     }
 }

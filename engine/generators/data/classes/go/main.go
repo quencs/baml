@@ -33,8 +33,11 @@ func main() {
 			}
 			fmt.Println(string(str))
 		} else {
-			fmt.Println(result.Stream().Words.State)
-			fmt.Println(result.Stream().Words.Value)
+			str, err := json.Marshal(result.Stream())
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(str))
 		}
 	}
 }

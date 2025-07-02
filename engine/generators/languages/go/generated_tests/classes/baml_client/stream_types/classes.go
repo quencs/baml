@@ -18,77 +18,81 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type SimpleClass struct {
-	Digits *int64               `json:"digits"`
-	Words  StreamState[*string] `json:"words"`
+	Digits *int64                    `json:"digits"`
+	Words  baml.StreamState[*string] `json:"words"`
 }
 
-func (c *SimpleClass) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "stream_types" {
-		panic(fmt.Sprintf("expected stream_types, got %s", string(typeName.Namespace())))
+func (c *SimpleClass) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "SimpleClass" {
-		panic(fmt.Sprintf("expected SimpleClass, got %s", string(typeName.Name())))
+	if typeName.Name != "SimpleClass" {
+		panic(fmt.Sprintf("expected SimpleClass, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "digits":
-				c.Digits = func(param *cffi.CFFIValueHolder) *int64 {
+		case "digits":
+			c.Digits = func(param *cffi.CFFIValueHolder) *int64 {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *int64\n")
+				fmt.Printf("===================\n")
+				decoded := baml.Decode(param)
+				return func(result any) *int64 {
+					if result == nil {
+						return nil
+					}
+					return (result).(*int64)
+				}(decoded)
+			}(valueHolder)
+
+		case "words":
+			c.Words = baml.DecodeStreamingState(valueHolder, func(inner *cffi.CFFIValueHolder) *string {
+				return func(param *cffi.CFFIValueHolder) *string {
+					fmt.Printf("\n=== FIELD DECODE ===\n")
+					fmt.Printf("Expecting type: *string\n")
+					fmt.Printf("===================\n")
 					decoded := baml.Decode(param)
-					return func(result any) *int64 {
+					return func(result any) *string {
 						if result == nil {
 							return nil
 						}
-						return (result).(*int64)
+						return (result).(*string)
 					}(decoded)
-				}(valueHolder)
+				}(inner)
+			})
 
-			case "words":
-				c.Words = func(param *cffi.CFFIValueHolder) StreamState[*string] {
-					decoded := baml.Decode(param)
-					return func(result any) StreamState[*string] {
-						if result == nil {
-							return StreamState[*string]{Value: nil, State: StreamStatePending}
-						}
-						return (result).(StreamState[*string])
-					}(decoded)
-				}(valueHolder)
-
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c SimpleClass) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c SimpleClass) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["digits"] = c.Digits
 
 	fields["words"] = c.Words
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c SimpleClass) BamlTypeName() string {
 	return "SimpleClass"
 }
 
-func (u SimpleClass) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("SimpleClass")
-	namespaceOffset := builder.CreateString("stream_types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u SimpleClass) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_STREAM_TYPES,
+		Name:      "SimpleClass",
+	}
 }

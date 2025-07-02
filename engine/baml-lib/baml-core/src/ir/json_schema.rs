@@ -5,7 +5,7 @@ use serde_json::json;
 
 use super::{
     repr::{self},
-    Class, Enum, FieldType, FunctionArgs, FunctionNode, IntermediateRepr, Walker,
+    Class, Enum, FunctionArgs, FunctionNode, IntermediateRepr, TypeIR, Walker,
 };
 
 pub trait WithJsonSchema {
@@ -92,7 +92,7 @@ impl WithJsonSchema for FunctionArgs {
     }
 }
 
-impl WithJsonSchema for Vec<(String, FieldType)> {
+impl WithJsonSchema for Vec<(String, TypeIR)> {
     fn json_schema(&self) -> serde_json::Value {
         let mut properties = json!({});
         let mut required_props = vec![];
@@ -144,19 +144,19 @@ impl WithJsonSchema for Walker<'_, &Class> {
     }
 }
 
-impl WithJsonSchema for FieldType {
+impl WithJsonSchema for TypeIR {
     fn json_schema(&self) -> serde_json::Value {
         match self {
-            FieldType::Class { name, .. } | FieldType::Enum { name, .. } => json!({
+            TypeIR::Class { name, .. } | TypeIR::Enum { name, .. } => json!({
                 "$ref": format!("#/definitions/{}", name),
             }),
-            FieldType::Literal(v, _) => json!({
+            TypeIR::Literal(v, _) => json!({
                 "const": v.to_string(),
             }),
-            FieldType::RecursiveTypeAlias { .. } => json!({
+            TypeIR::RecursiveTypeAlias { .. } => json!({
                 "type": ["number", "string", "boolean", "object", "array", "null"]
             }),
-            FieldType::Primitive(t, _) => match t {
+            TypeIR::Primitive(t, _) => match t {
                 TypeValue::String => json!({
                     "type": "string",
                 }),
@@ -185,7 +185,7 @@ impl WithJsonSchema for FieldType {
             },
             // Handle list types (arrays) with optional support
             // For example: string[]? generates a schema that allows both array and null
-            FieldType::List(item, _) => {
+            TypeIR::List(item, _) => {
                 let mut schema = json!({
                     "type": "array",
                     "items": (*item).json_schema()
@@ -201,7 +201,7 @@ impl WithJsonSchema for FieldType {
             }
             // Handle map types with optional support
             // For example: map<string, int>? generates a schema that allows both object and null
-            FieldType::Map(_k, v, _) => {
+            TypeIR::Map(_k, v, _) => {
                 let mut schema = json!({
                     "type": "object",
                     "additionalProperties": {
@@ -217,7 +217,7 @@ impl WithJsonSchema for FieldType {
                 }
                 schema
             }
-            FieldType::Union(options, _) => json!({
+            TypeIR::Union(options, _) => json!({
                     "anyOf": options.iter_include_null().iter().map(|t| {
                         let mut res = t.json_schema();
                         // if res is a map, add a "title" field
@@ -228,11 +228,11 @@ impl WithJsonSchema for FieldType {
                     }
                 ).collect::<Vec<_>>(),
             }),
-            FieldType::Tuple(options, _) => json!({
+            TypeIR::Tuple(options, _) => json!({
                 "type": "array",
                 "prefixItems": options.iter().map(|t| t.json_schema()).collect::<Vec<_>>(),
             }),
-            FieldType::Arrow(_, _) => json!({}), // TODO: Make this function partial - it should not return for Arrow.
+            TypeIR::Arrow(_, _) => json!({}), // TODO: Make this function partial - it should not return for Arrow.
         }
     }
 }

@@ -13,7 +13,7 @@ import (
 	"unsafe"
 
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
+	"google.golang.org/protobuf/proto"
 )
 
 type BamlError struct {
@@ -92,9 +92,18 @@ func trigger_callback(id C.uint32_t, isDone C.int, content *C.int8_t, length C.i
 	if exists {
 		content_bytes := C.GoBytes(unsafe.Pointer(content), length)
 
-		parsed_data := cffi.CFFIValueHolder{}
-		flatbuffers.GetRootAs(content_bytes, 0, &parsed_data)
-		decoded_data := Decode(&parsed_data)
+		var content_holder cffi.CFFIValueHolder
+		err := proto.Unmarshal(content_bytes, &content_holder)
+		if err != nil {
+			callback.channel <- ResultCallback{Error: err}
+			close(callback.channel)
+			callbackMutex.Lock()
+			defer callbackMutex.Unlock()
+			delete(dynamicCallbacks, id_uint)
+			return
+		}
+
+		decoded_data := Decode(&content_holder)
 
 		var res ResultCallback
 		if isDone == 1 {

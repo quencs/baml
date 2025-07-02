@@ -14,7 +14,6 @@ pub fn ir_class_to_ts<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -> Class
             .clone()
             .map(|docstring| docstring.0.clone()),
         dynamic: class.attributes.dynamic(),
-        pkg,
         fields: class
             .elem
             .static_fields
@@ -33,7 +32,6 @@ pub fn ir_class_to_ts_stream<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -
             .clone()
             .map(|docstring| docstring.0.clone()),
         dynamic: class.attributes.dynamic(),
-        pkg,
         fields: class
             .elem
             .static_fields
@@ -46,7 +44,10 @@ pub fn ir_class_to_ts_stream<'a>(class: &Class, pkg: &'a CurrentRenderPackage) -
 fn ir_field_to_ts<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldTS<'a> {
     FieldTS {
         name: field.elem.name.clone(),
-        r#type: super::type_to_ts(&field.elem.r#type.elem, pkg.lookup()),
+        r#type: super::type_to_ts(
+            &field.elem.r#type.elem.to_non_streaming_type(pkg.lookup()),
+            pkg.lookup(),
+        ),
         docstring: field
             .elem
             .docstring
@@ -57,7 +58,7 @@ fn ir_field_to_ts<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldTS<'
 }
 
 fn ir_field_to_ts_stream<'a>(field: &Field, pkg: &'a CurrentRenderPackage) -> FieldTS<'a> {
-    let partialized = field.elem.r#type.elem.partialize(pkg.lookup());
+    let partialized = field.elem.r#type.elem.to_streaming_type(pkg.lookup());
 
     FieldTS {
         name: field.elem.name.clone(),
@@ -90,10 +91,10 @@ mod tests {
         let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("SimpleClass").unwrap().item;
         let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
-        let class_go = ir_class_to_ts_stream(&class, &pkg);
+        let class_go = ir_class_to_ts_stream(class, &pkg);
         assert_eq!(class_go.name, "SimpleClass");
         assert_eq!(class_go.fields.len(), 1);
-        assert_eq!(class_go.fields[0].r#type.meta().wrap_stream_state, true);
+        assert!(class_go.fields[0].r#type.meta().wrap_stream_state);
         println!("{}", class_go.fields[0]);
     }
 
@@ -110,9 +111,9 @@ mod tests {
         let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("ChildClass").unwrap().item;
         let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
-        let class_ts = ir_class_to_ts_stream(&class, &pkg);
+        let class_ts = ir_class_to_ts_stream(class, &pkg);
         let digits_field = class_ts.fields.iter().find(|f| f.name == "digits").unwrap();
-        eprintln!("{:?}", digits_field);
+        eprintln!("{digits_field:?}");
         eprintln!("{}", class.elem.static_fields[0].elem.r#type.elem);
         eprintln!(
             "{}",
@@ -120,7 +121,7 @@ mod tests {
                 .elem
                 .r#type
                 .elem
-                .partialize(ir.as_ref())
+                .to_streaming_type(ir.as_ref())
         );
         assert!(digits_field.r#type.meta().wrap_stream_state);
         assert_eq!(class_ts.name, "ChildClass");
@@ -142,7 +143,7 @@ mod tests {
         let ir = std::sync::Arc::new(ir);
         let class = ir.find_class("Foo").unwrap().item;
         let pkg = CurrentRenderPackage::new("baml_client", ir.clone());
-        let class_ts = ir_class_to_ts_stream(&class, &pkg);
+        let class_ts = ir_class_to_ts_stream(class, &pkg);
         assert_eq!(class_ts.fields[0].docstring, Some("ds".to_string()));
     }
 }

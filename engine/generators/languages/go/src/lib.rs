@@ -49,19 +49,19 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         let pkg = package::CurrentRenderPackage::new("baml_client", ir.clone());
         let file_map = args.file_map_as_json_string()?;
-        let _ = collector.add_file("baml_source_map.go", render_source_files(file_map)?);
-        let _ = collector.add_file("runtime.go", render_runtime_code(&pkg)?);
+        collector.add_file("baml_source_map.go", render_source_files(file_map)?);
+        collector.add_file("runtime.go", render_runtime_code(&pkg)?);
         let functions = ir
             .functions
             .iter()
             .map(|f| ir_to_go::functions::ir_function_to_go(f, &pkg))
             .collect::<Vec<_>>();
-        let _ = collector.add_file(
+        collector.add_file(
             "functions.go",
             render_functions(&functions, &pkg, go_mod_name)?,
         );
 
-        let _ = collector.add_file(
+        collector.add_file(
             "functions_stream.go",
             render_functions_stream(&functions, &pkg, go_mod_name)?,
         );
@@ -76,8 +76,8 @@ impl LanguageFeatures for GoLanguageFeatures {
             .collect::<Vec<_>>();
         let unions = {
             let mut unions = ir
-                .walk_all_unions()
-                .filter_map(|t| ir_to_go::unions::ir_union_to_go(t, &pkg))
+                .walk_all_non_streaming_unions()
+                .filter_map(|t| ir_to_go::unions::ir_union_to_go(&t, &pkg))
                 .collect::<Vec<_>>();
             // dedup by name!
             unions.sort_by_key(|u| u.name.clone());
@@ -108,8 +108,8 @@ impl LanguageFeatures for GoLanguageFeatures {
 
         let unions = {
             let mut unions = ir
-                .walk_all_unions()
-                .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(t, &pkg))
+                .walk_all_streaming_unions()
+                .filter_map(|t| ir_to_go::unions::ir_union_to_go_stream(&t, &pkg))
                 .collect::<Vec<_>>();
             // dedup by name!
             unions.sort_by_key(|u| u.name.clone());
@@ -148,7 +148,7 @@ impl LanguageFeatures for GoLanguageFeatures {
 }
 
 #[cfg(test)]
-mod generated_tests {
+mod go_tests {
     use test_harness::{create_code_gen_test_suites, TestLanguageFeatures};
 
     impl TestLanguageFeatures for crate::GoLanguageFeatures {

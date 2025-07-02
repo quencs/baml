@@ -18,7 +18,6 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
-	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type ExistingSystemComponent struct {
@@ -29,44 +28,43 @@ type ExistingSystemComponent struct {
 	Explanation string                    `json:"explanation"`
 }
 
-func (c *ExistingSystemComponent) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+func (c *ExistingSystemComponent) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "ExistingSystemComponent" {
-		panic(fmt.Sprintf("expected ExistingSystemComponent, got %s", string(typeName.Name())))
+	if typeName.Name != "ExistingSystemComponent" {
+		panic(fmt.Sprintf("expected ExistingSystemComponent, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "id":
-				c.Id = *baml.Decode(valueHolder).(*int64)
+		case "id":
+			c.Id = *baml.Decode(valueHolder).(*int64)
 
-			case "name":
-				c.Name = *baml.Decode(valueHolder).(*string)
+		case "name":
+			c.Name = *baml.Decode(valueHolder).(*string)
 
-			case "type":
-				c.Type = *baml.Decode(valueHolder).(*string)
+		case "type":
+			c.Type = *baml.Decode(valueHolder).(*string)
 
-			case "category":
-				c.Category = *baml.Decode(valueHolder).(*Union2KresourceOrKservice)
+		case "category":
+			c.Category = *baml.Decode(valueHolder).(*Union2KresourceOrKservice)
 
-			case "explanation":
-				c.Explanation = *baml.Decode(valueHolder).(*string)
+		case "explanation":
+			c.Explanation = *baml.Decode(valueHolder).(*string)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c ExistingSystemComponent) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c ExistingSystemComponent) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["id"] = c.Id
@@ -79,76 +77,74 @@ func (c ExistingSystemComponent) Encode(builder *flatbuffers.Builder) (cffi.CFFI
 
 	fields["explanation"] = c.Explanation
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c ExistingSystemComponent) BamlTypeName() string {
 	return "ExistingSystemComponent"
 }
 
-func (u ExistingSystemComponent) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("ExistingSystemComponent")
-	namespaceOffset := builder.CreateString("types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u ExistingSystemComponent) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_TYPES,
+		Name:      "ExistingSystemComponent",
+	}
 }
 
 type UseMyUnion struct {
 	U *Union3IntOrRecursive1OrString `json:"u"`
 }
 
-func (c *UseMyUnion) Decode(holder cffi.CFFIValueClass) {
-	typeName := holder.Name(nil)
-	if string(typeName.Namespace()) != "types" {
-		panic(fmt.Sprintf("expected types, got %s", string(typeName.Namespace())))
+func (c *UseMyUnion) Decode(holder *cffi.CFFIValueClass) {
+	typeName := holder.Name
+	if typeName.Namespace != cffi.CFFITypeNamespace_TYPES {
+		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_TYPES, got %s", string(typeName.Namespace.String())))
 	}
-	if string(typeName.Name()) != "UseMyUnion" {
-		panic(fmt.Sprintf("expected UseMyUnion, got %s", string(typeName.Name())))
+	if typeName.Name != "UseMyUnion" {
+		panic(fmt.Sprintf("expected UseMyUnion, got %s", typeName.Name))
 	}
 
-	for i := range holder.FieldsLength() {
-		var field cffi.CFFIMapEntry
-		if holder.Fields(&field, i) {
-			key := string(field.Key())
-			valueHolder := field.Value(nil)
-			switch key {
+	for _, field := range holder.Fields {
+		key := field.Key
+		valueHolder := field.Value
+		switch key {
 
-			case "u":
-				c.U = func(param *cffi.CFFIValueHolder) *Union3IntOrRecursive1OrString {
-					decoded := baml.Decode(param)
-					return func(result any) *Union3IntOrRecursive1OrString {
-						if result == nil {
-							return nil
-						}
-						return (result).(*Union3IntOrRecursive1OrString)
-					}(decoded)
-				}(valueHolder)
+		case "u":
+			c.U = func(param *cffi.CFFIValueHolder) *Union3IntOrRecursive1OrString {
+				fmt.Printf("\n=== FIELD DECODE ===\n")
+				fmt.Printf("Expecting type: *Union3IntOrRecursive1OrString\n")
+				fmt.Printf("===================\n")
+				decoded := baml.Decode(param)
+				return func(result any) *Union3IntOrRecursive1OrString {
+					if result == nil {
+						return nil
+					}
+					return (result).(*Union3IntOrRecursive1OrString)
+				}(decoded)
+			}(valueHolder)
 
-			}
+		default:
+			panic(fmt.Sprintf("unexpected field: %s", key))
 		}
 	}
 
 }
 
-func (c UseMyUnion) Encode(builder *flatbuffers.Builder) (cffi.CFFIValueUnion, flatbuffers.UOffsetT, error) {
+func (c UseMyUnion) Encode() (*cffi.CFFIValueHolder, error) {
 	fields := map[string]any{}
 
 	fields["u"] = c.U
 
-	return baml.EncodeClass(builder, c.BamlEncodeName, fields, nil)
+	return baml.EncodeClass(c.BamlEncodeName, fields, nil)
 }
 
 func (c UseMyUnion) BamlTypeName() string {
 	return "UseMyUnion"
 }
 
-func (u UseMyUnion) BamlEncodeName(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	nameOffset := builder.CreateString("UseMyUnion")
-	namespaceOffset := builder.CreateString("types")
-	cffi.CFFITypeNameStart(builder)
-	cffi.CFFITypeNameAddName(builder, nameOffset)
-	cffi.CFFITypeNameAddNamespace(builder, namespaceOffset)
-	return cffi.CFFITypeNameEnd(builder)
+func (u UseMyUnion) BamlEncodeName() *cffi.CFFITypeName {
+	return &cffi.CFFITypeName{
+		Namespace: cffi.CFFITypeNamespace_TYPES,
+		Name:      "UseMyUnion",
+	}
 }

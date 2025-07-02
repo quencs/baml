@@ -61,6 +61,7 @@
           ruby.devEnv
           maturin
           pnpm
+	  protoc-gen-go
           vsce # VSCode extension packaging tool
           toolchain
           nodejs

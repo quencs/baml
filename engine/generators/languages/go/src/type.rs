@@ -136,9 +136,9 @@ impl TypeGo {
         match self {
             TypeGo::String(val, _) => val.as_ref().map_or("String".to_string(), |v| {
                 let safe_name = safe_name(v);
-                format!("K{}", safe_name)
+                format!("K{safe_name}")
             }),
-            TypeGo::Int(val, _) => val.map_or("Int".to_string(), |v| format!("IntK{}", v)),
+            TypeGo::Int(val, _) => val.map_or("Int".to_string(), |v| format!("IntK{v}")),
             TypeGo::Float(_) => "Float".to_string(),
             TypeGo::Bool(val, _) => val.map_or("Bool".to_string(), |v| {
                 format!("BoolK{}", if v { "True" } else { "False" })
@@ -169,7 +169,7 @@ impl TypeGo {
             TypeGo::String(val, _) => val.as_ref().map_or("\"\"".to_string(), |v| {
                 format!("\"{}\"", v.replace("\"", "\\\"")).to_string()
             }),
-            TypeGo::Int(val, _) => val.map_or("0".to_string(), |v| format!("{}", v)),
+            TypeGo::Int(val, _) => val.map_or("0".to_string(), |v| format!("{v}")),
             TypeGo::Float(_) => "0.0".to_string(),
             TypeGo::Bool(val, _) => val.map_or("false".to_string(), |v| {
                 if v { "true" } else { "false" }.to_string()
@@ -185,10 +185,14 @@ impl TypeGo {
                 match lookup.expand_recursive_type(name) {
                     Ok(expansion) => {
                         if package == &Package::types() {
-                            crate::ir_to_go::type_to_go(expansion, lookup).zero_value(pkg)
+                            crate::ir_to_go::type_to_go(
+                                &expansion.to_non_streaming_type(lookup),
+                                lookup,
+                            )
+                            .zero_value(pkg)
                         } else {
                             crate::ir_to_go::stream_type_to_go(
-                                &expansion.partialize(lookup),
+                                &expansion.to_streaming_type(lookup),
                                 lookup,
                             )
                             .zero_value(pkg)
@@ -278,7 +282,7 @@ impl TypeGo {
                 t = inner.serialize_type(pkg),
                 casted = inner.decode_from_any("inner", pkg)
             ),
-            TypeGo::Map(_key, value, meta) if !meta.is_optional() => format!(
+            TypeGo::Map(key, value, meta) if !meta.is_optional() => format!(
                 "baml.DecodeMap({param}, func(inner *cffi.CFFIValueHolder) {t} {{
                 return {casted}
             }})",
@@ -318,15 +322,41 @@ impl TypeGo {
     }
 
     pub fn decode_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        if self.meta().is_optional() {
+        self.decode_from_any_with_field(param, pkg, None)
+    }
+
+    pub fn decode_from_any_with_field(
+        &self,
+        param: &str,
+        pkg: &CurrentRenderPackage,
+        field_name: Option<&str>,
+    ) -> String {
+        if self.meta().wrap_stream_state {
+            let mut without_stream_state = self.clone();
+            without_stream_state.meta_mut().wrap_stream_state = false;
+            format!(
+                "baml.DecodeStreamingState({param}, func(inner *cffi.CFFIValueHolder) {t} {{
+                return {casted}
+            }})",
+                t = without_stream_state.serialize_type(pkg),
+                casted = without_stream_state.decode_from_any("inner", pkg)
+            )
+        } else if self.meta().is_optional() {
+            let field_info = field_name
+                .map(|f| format!("Field: {f}\n"))
+                .unwrap_or_default();
             format!(
                 r#"
                 func(param *cffi.CFFIValueHolder) {t} {{
+                    fmt.Printf("\n=== FIELD DECODE ===\n")
+                    fmt.Printf("{field_info}Expecting type: {t}\n")
+                    fmt.Printf("===================\n")
                     decoded := baml.Decode(param)
                     return {casted}
                 }}({param})
             "#,
                 t = self.serialize_type(pkg),
+                field_info = field_info,
                 casted = self.cast_from_any("decoded", pkg)
             )
         } else {
@@ -415,7 +445,7 @@ impl SerializeType for TypeGo {
 }
 
 impl SerializeType for MediaTypeGo {
-    fn serialize_type(&self, _pkg: &CurrentRenderPackage) -> String {
+    fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         match self {
             MediaTypeGo::Image => "any".to_string(), // format!("{}Image", Package::imported_base().relative_from(pkg)),
             MediaTypeGo::Audio => "any".to_string(), // format!("{}Audio", Package::imported_base().relative_from(pkg)),

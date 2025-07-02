@@ -11,7 +11,6 @@
 # baml-cli is available with the baml package.
 
 import typing
-import typing_extensions
 import baml_py
 
 from . import stream_types, types, type_builder
@@ -34,6 +33,19 @@ class BamlSyncClient:
         self.__http_stream_request = BamlHttpStreamRequestClient(options)
         self.__llm_response_parser = LlmResponseParser(options)
         self.__llm_stream_parser = LlmStreamParser(options)
+
+    def __getstate__(self):
+        # Return state needed for pickling
+        return {"options": self.__options}
+
+    def __setstate__(self, state):
+        # Restore state from pickling
+        self.__options = state["options"]
+        self.__stream_client = BamlStreamClient(self.__options)
+        self.__http_request = BamlHttpRequestClient(self.__options)
+        self.__http_stream_request = BamlHttpStreamRequestClient(self.__options)
+        self.__llm_response_parser = LlmResponseParser(self.__options)
+        self.__llm_stream_parser = LlmStreamParser(self.__options)
 
     def with_options(self,
         tb: typing.Optional[type_builder.TypeBuilder] = None,

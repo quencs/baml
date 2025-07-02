@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
 use anyhow::Result;
-use baml_types::{tracing::events::FunctionType, HasFieldType};
+use baml_types::{tracing::events::FunctionType, type_meta, HasType};
 
 use super::{IntoRpcEvent, TypeLookup};
 
-impl<'a, T: HasFieldType> IntoRpcEvent<'a, baml_rpc::runtime_api::TraceData<'a>>
+impl<'a, T: HasType<type_meta::NonStreaming>> IntoRpcEvent<'a, baml_rpc::runtime_api::TraceData<'a>>
     for baml_types::tracing::events::FunctionStart<T>
 {
     fn to_rpc_event(
@@ -45,7 +45,8 @@ fn function_type_to_rpc(
     }
 }
 
-impl<'a, T: HasFieldType> IntoRpcEvent<'a, Option<baml_rpc::runtime_api::BamlFunctionStart>>
+impl<'a, T: HasType<type_meta::NonStreaming>>
+    IntoRpcEvent<'a, Option<baml_rpc::runtime_api::BamlFunctionStart>>
     for baml_types::tracing::events::FunctionStart<T>
 {
     fn to_rpc_event(
@@ -85,7 +86,7 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::EvaluationContext>
         }
     }
 }
-impl<'a, T: HasFieldType> IntoRpcEvent<'a, baml_rpc::runtime_api::TraceData<'a>>
+impl<'a, T: HasType<type_meta::NonStreaming>> IntoRpcEvent<'a, baml_rpc::runtime_api::TraceData<'a>>
     for baml_types::tracing::events::FunctionEnd<'a, T>
 {
     fn to_rpc_event(

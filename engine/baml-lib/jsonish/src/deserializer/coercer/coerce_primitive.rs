@@ -1,6 +1,6 @@
 use anyhow::Result;
 use baml_types::{BamlMediaType, CompletionState};
-use internal_baml_core::ir::{FieldType, TypeValue};
+use internal_baml_core::ir::{TypeIR, TypeValue};
 use regex::Regex;
 
 use super::{array_helper::coerce_array_to_singular, ParsingContext, ParsingError};
@@ -14,7 +14,7 @@ impl TypeCoercer for TypeValue {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         // Parsed from JSONish
         value: Option<&crate::jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
@@ -45,7 +45,7 @@ impl TypeCoercer for TypeValue {
 
 fn coerce_null(
     _ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithFlags, ParsingError> {
     match value {
@@ -61,7 +61,7 @@ fn coerce_null(
 
 fn coerce_string(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithFlags, ParsingError> {
     let Some(value) = value else {
@@ -85,7 +85,7 @@ fn coerce_string(
 
 pub(super) fn coerce_int(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithFlags, ParsingError> {
     let Some(value) = value else {
@@ -181,7 +181,7 @@ fn float_from_comma_separated(value: &str) -> Option<f64> {
 
 fn coerce_float(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithFlags, ParsingError> {
     let Some(value) = value else {
@@ -243,7 +243,7 @@ fn coerce_float(
 
 pub(super) fn coerce_bool(
     ctx: &ParsingContext,
-    target: &FieldType,
+    target: &TypeIR,
     value: Option<&crate::jsonish::Value>,
 ) -> Result<BamlValueWithFlags, ParsingError> {
     let Some(value) = value else {
@@ -375,8 +375,7 @@ mod tests {
             let result = float_from_comma_separated(input);
             assert_eq!(
                 result, expected,
-                "Failed to parse '{}'. Expected {:?}, got {:?}",
-                input, expected, result
+                "Failed to parse '{input}'. Expected {expected:?}, got {result:?}"
             );
         }
     }

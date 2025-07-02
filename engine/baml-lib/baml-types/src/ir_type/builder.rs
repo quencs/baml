@@ -1,6 +1,6 @@
 use super::{BamlMediaType, StreamingMode, TypeGeneric, TypeValue};
 
-impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
+impl<T: Default> TypeGeneric<T> {
     pub fn string() -> Self {
         TypeGeneric::Primitive(TypeValue::String, T::default())
     }
@@ -45,6 +45,12 @@ impl<T: Default + std::fmt::Debug> TypeGeneric<T> {
     #[cfg(test)]
     pub fn string_with_meta(meta: T) -> Self {
         TypeGeneric::Primitive(TypeValue::String, meta)
+    }
+
+    #[cfg(test)]
+    pub fn with_meta(mut self, meta: T) -> Self {
+        self.set_meta(meta);
+        self
     }
 
     pub fn float() -> Self {

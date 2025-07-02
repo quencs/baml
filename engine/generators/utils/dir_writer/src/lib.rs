@@ -120,7 +120,10 @@ impl GeneratorArgs {
     /// baml_src relative to the path of the file in which the singleton is defined. In Python this is
     /// os.path.dirname(__file__) for globals.py; in TS this is __dirname for globals.ts.
     pub fn baml_src_relative_to_output_dir(&self) -> Result<PathBuf> {
-        pathdiff::diff_paths(&self.baml_src_dir, self.output_dir()).ok_or_else(|| {
+        // for some reason our build requires this to be a borrow, but it's not a borrow in the
+        // actual code
+        #[allow(clippy::needless_borrows_for_generic_args)]
+        pathdiff::diff_paths(&self.baml_src_dir, &self.output_dir()).ok_or_else(|| {
             anyhow::anyhow!(
                 "Failed to compute baml_src ({}) relative to output_dir ({})",
                 self.baml_src_dir.display(),
@@ -244,8 +247,7 @@ fn try_delete_tmp_dir(temp_path: &Path) -> Result<()> {
                 Err(e) => {
                     // For other errors or if it's the last attempt, fail with an error
                     return Err(anyhow::Error::new(e).context(format!(
-                        "Failed to delete temp directory '{:?}' after {} attempts",
-                        temp_path, attempt
+                        "Failed to delete temp directory '{temp_path:?}' after {attempt} attempts"
                     )));
                 }
             }

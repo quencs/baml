@@ -20,5 +20,5 @@ import (
 
 var typeMap = map[string]reflect.Type{
 
-	"types.TestEnum": reflect.TypeOf(types.TestEnum("")),
+	"TYPES.TestEnum": reflect.TypeOf(types.TestEnum("")),
 }

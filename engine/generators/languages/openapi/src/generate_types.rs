@@ -154,13 +154,13 @@ mod class {
                 if field.elem.r#type.elem.is_optional() {
                     (
                         field.elem.name.clone(),
-                        convert_ir_type(ir, &field.elem.r#type.elem),
+                        convert_ir_type(ir, &field.elem.r#type.elem.to_non_streaming_type(ir)),
                     )
                 } else {
                     required.insert(field.elem.name.clone());
                     (
                         field.elem.name.clone(),
-                        convert_ir_type(ir, &field.elem.r#type.elem),
+                        convert_ir_type(ir, &field.elem.r#type.elem.to_non_streaming_type(ir)),
                     )
                 }
             })
@@ -214,7 +214,7 @@ mod function {
                 (
                     arg_name.clone(),
                     arg_type.is_optional(),
-                    convert_ir_type(ir, arg_type),
+                    convert_ir_type(ir, &arg_type.to_non_streaming_type(ir)),
                 )
             })
             .collect();
@@ -222,7 +222,7 @@ mod function {
             name: function.name.clone(),
             documentation: None,
             args,
-            return_type: convert_ir_type(ir, &function.output),
+            return_type: convert_ir_type(ir, &function.output.to_non_streaming_type(ir)),
         }
     }
 
@@ -284,6 +284,6 @@ mod tests {
         .expect("Valid IR");
         let file = serde_yaml::to_string(&OpenApiUserData::from_ir(&ir).render())
             .expect("Should serialize");
-        eprintln!("{}", file);
+        eprintln!("{file}");
     }
 }

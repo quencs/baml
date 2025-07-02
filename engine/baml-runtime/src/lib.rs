@@ -69,7 +69,7 @@ use internal_baml_core::{
 pub use internal_baml_core::{
     internal_baml_diagnostics,
     internal_baml_diagnostics::Diagnostics as DiagnosticsError,
-    ir::{ir_helpers::infer_type, scope_diagnostics, FieldType, IRHelper, TypeValue},
+    ir::{ir_helpers::infer_type, scope_diagnostics, IRHelper, TypeIR, TypeValue},
 };
 #[cfg(feature = "internal")]
 pub use internal_baml_jinja::{ChatMessagePart, RenderedPrompt};
@@ -571,7 +571,7 @@ impl BamlRuntime {
                 .finish_call(call, ctx, None)
             {
                 Ok(id) => {}
-                Err(e) => baml_log::error!("Error during logging: {}", e),
+                Err(e) => baml_log::error!("Error during logging: {e}"),
             }
             #[cfg(target_arch = "wasm32")]
             match self
@@ -581,7 +581,7 @@ impl BamlRuntime {
                 .await
             {
                 Ok(id) => {}
-                Err(e) => log::error!("Error during logging: {}", e),
+                Err(e) => log::error!("Error during logging: {e}"),
             }
         }
 
@@ -667,7 +667,7 @@ impl BamlRuntime {
         // baml_log::info!("env vars: {:#?}", env_vars.clone());
         baml_log::set_from_env(&env_vars).unwrap();
 
-        log::trace!("Calling function: {}", function_name);
+        log::trace!("Calling function: {function_name}");
         log::debug!("collectors: {:#?}", &collectors);
 
         let call = self
@@ -705,7 +705,9 @@ impl BamlRuntime {
                             call_id_stack.clone(),
                             match &result {
                                 Ok(result) => match result.result_with_constraints_content() {
-                                    Ok(value) => Ok(value.0.map_meta(|f| f.3.clone())),
+                                    Ok(value) => Ok(value.0.map_meta(|f| {
+                                        f.3.to_non_streaming_type(self.internal().ir())
+                                    })),
                                     Err(e) => Err((&e).to_baml_error()), // None => Err(baml_types::tracing::errors::BamlError::Base {
                                                                          //     message: format!(
                                                                          //         "No parsed result found for function: {}",
@@ -842,7 +844,7 @@ impl BamlRuntime {
             .await
         {
             Ok(id) => {}
-            Err(e) => log::error!("Error during logging: {}", e),
+            Err(e) => log::error!("Error during logging: {e}"),
         }
 
         (response, curr_call_id)
@@ -1323,7 +1325,7 @@ async fn expr_eval_result(
     let maybe_expr_f = ir.find_expr_fn(function_name);
     match maybe_expr_f {
         Ok(expr_fn) => {
-            log::trace!("Calling function: {}", function_name);
+            log::trace!("Calling function: {function_name}");
             let collectors = collector.as_ref().map(|c| vec![c.clone()]);
             let call = tracer.start_call(function_name, mgr, params, true, false, collectors);
 

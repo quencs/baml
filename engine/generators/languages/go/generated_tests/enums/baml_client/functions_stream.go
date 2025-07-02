@@ -41,7 +41,7 @@ func (s *StreamValue[TStream, TFinal]) Stream() TStream {
 }
 
 // / Streaming version of ConsumeTestEnum
-func (*stream) ConsumeTestEnum(ctx context.Context, input types.TestEnum, opts ...CallOptionFunc) (<-chan StreamValue[*types.TestEnum, types.TestEnum], error) {
+func (*stream) ConsumeTestEnum(ctx context.Context, input types.TestEnum, opts ...CallOptionFunc) (<-chan StreamValue[types.TestEnum, types.TestEnum], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -57,7 +57,11 @@ func (*stream) ConsumeTestEnum(ctx context.Context, input types.TestEnum, opts .
 		args.ClientRegistry = callOpts.clientRegistry
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
 		// and include the type of the args you're passing in.
@@ -71,7 +75,7 @@ func (*stream) ConsumeTestEnum(ctx context.Context, input types.TestEnum, opts .
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[*types.TestEnum, types.TestEnum])
+	channel := make(chan StreamValue[types.TestEnum, types.TestEnum])
 	go func() {
 		defer func() {
 			internal_ctx.Done()
@@ -92,13 +96,13 @@ func (*stream) ConsumeTestEnum(ctx context.Context, input types.TestEnum, opts .
 				}
 				if result.HasData {
 					data := *(result.Data).(*types.TestEnum)
-					channel <- StreamValue[*types.TestEnum, types.TestEnum]{
+					channel <- StreamValue[types.TestEnum, types.TestEnum]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := (result.StreamData).(*types.TestEnum)
-					channel <- StreamValue[*types.TestEnum, types.TestEnum]{
+					data := *(result.StreamData).(*types.TestEnum)
+					channel <- StreamValue[types.TestEnum, types.TestEnum]{
 						IsFinal:   false,
 						as_stream: &data,
 					}
@@ -110,7 +114,7 @@ func (*stream) ConsumeTestEnum(ctx context.Context, input types.TestEnum, opts .
 }
 
 // / Streaming version of FnTestAliasedEnumOutput
-func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (<-chan StreamValue[*types.TestEnum, types.TestEnum], error) {
+func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (<-chan StreamValue[types.TestEnum, types.TestEnum], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -126,7 +130,11 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts .
 		args.ClientRegistry = callOpts.clientRegistry
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
 		// and include the type of the args you're passing in.
@@ -140,7 +148,7 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts .
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[*types.TestEnum, types.TestEnum])
+	channel := make(chan StreamValue[types.TestEnum, types.TestEnum])
 	go func() {
 		defer func() {
 			internal_ctx.Done()
@@ -161,13 +169,13 @@ func (*stream) FnTestAliasedEnumOutput(ctx context.Context, input string, opts .
 				}
 				if result.HasData {
 					data := *(result.Data).(*types.TestEnum)
-					channel <- StreamValue[*types.TestEnum, types.TestEnum]{
+					channel <- StreamValue[types.TestEnum, types.TestEnum]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := (result.StreamData).(*types.TestEnum)
-					channel <- StreamValue[*types.TestEnum, types.TestEnum]{
+					data := *(result.StreamData).(*types.TestEnum)
+					channel <- StreamValue[types.TestEnum, types.TestEnum]{
 						IsFinal:   false,
 						as_stream: &data,
 					}

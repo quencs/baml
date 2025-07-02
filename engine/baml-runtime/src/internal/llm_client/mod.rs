@@ -12,7 +12,7 @@ pub mod traits;
 use std::error::Error;
 
 use anyhow::{Context, Result};
-use baml_types::{BamlMap, BamlValueWithMeta, FieldType, JinjaExpression, ResponseCheck};
+use baml_types::{BamlMap, BamlValueWithMeta, JinjaExpression, ResponseCheck, TypeIR};
 use internal_baml_core::ir::{repr::IntermediateRepr, ClientWalker, IRHelper, IRHelperExtended};
 use internal_baml_jinja::RenderedPrompt;
 use internal_llm_client::AllowedRoleMetadata;
@@ -33,12 +33,12 @@ use wasm_bindgen::JsValue;
 pub fn parsed_value_to_response(
     ir: &impl IRHelperExtended,
     baml_value: BamlValueWithFlags,
-    allow_partials: bool,
+    mode: baml_types::StreamingMode,
 ) -> Result<ResponseBamlValue> {
     let meta_flags: BamlValueWithMeta<Vec<Flag>> = baml_value.clone().into();
     let baml_value_with_meta: BamlValueWithMeta<Vec<(String, JinjaExpression, bool)>> =
         baml_value.clone().into();
-    let meta_field_type: BamlValueWithMeta<FieldType> = baml_value.clone().into();
+    let meta_field_type: BamlValueWithMeta<TypeIR> = baml_value.clone().into();
 
     let value_with_response_checks: BamlValueWithMeta<Vec<ResponseCheck>> = baml_value_with_meta
         .map_meta(|cs| {
@@ -54,8 +54,8 @@ pub fn parsed_value_to_response(
                 .collect()
         });
 
-    let baml_value_with_streaming = validate_streaming_state(ir, &baml_value, allow_partials)
-        .map_err(|s| anyhow::anyhow!("{s:?}"))?;
+    let baml_value_with_streaming =
+        validate_streaming_state(ir, &baml_value, mode).map_err(|s| anyhow::anyhow!("{s:?}"))?;
 
     // Combine the baml_value, its types, the parser flags, and the streaming state
     // into a final value.
@@ -158,7 +158,7 @@ impl crate::tracing::Visualize for LLMResponse {
 impl std::fmt::Display for LLMResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Success(response) => write!(f, "{}", response),
+            Self::Success(response) => write!(f, "{response}"),
             Self::LLMFailure(failure) => write!(f, "LLM call failed: {failure:?}"),
             Self::UserFailure(message) => {
                 write!(f, "Failed before LLM call (user error): {message}")
@@ -394,7 +394,7 @@ impl crate::tracing::Visualize for LLMErrorResponse {
 
 #[cfg(test)]
 mod tests {
-    use baml_types::{BamlValueWithMeta, FieldType};
+    use baml_types::{BamlValueWithMeta, TypeIR};
     use internal_baml_core::ir::repr::{make_test_ir, IntermediateRepr};
     use jsonish::{
         deserializer::{deserialize_flags::DeserializerConditions, types::ValueWithFlags},
@@ -423,13 +423,13 @@ mod tests {
             DeserializerConditions {
                 flags: vec![Flag::Incomplete],
             },
-            FieldType::class("Foo"),
+            TypeIR::class("Foo"),
             vec![
                 (
                     "i".to_string(),
                     BamlValueWithFlags::Int(ValueWithFlags {
                         value: 1,
-                        target: FieldType::int(),
+                        target: TypeIR::int(),
                         flags: DeserializerConditions { flags: Vec::new() },
                     }),
                 ),
@@ -437,7 +437,7 @@ mod tests {
                     "s".to_string(),
                     BamlValueWithFlags::String(ValueWithFlags {
                         value: "H".to_string(),
-                        target: FieldType::string(),
+                        target: TypeIR::string(),
                         flags: DeserializerConditions {
                             flags: vec![Flag::Incomplete],
                         },
@@ -447,25 +447,25 @@ mod tests {
             .into_iter()
             .collect(),
         );
-        let response = parsed_value_to_response(&ir, val, true);
+        let response = parsed_value_to_response(&ir, val, baml_types::StreamingMode::NonStreaming);
         assert!(response.is_ok());
     }
 
     fn mk_null() -> BamlValueWithFlags {
-        BamlValueWithFlags::Null(FieldType::null(), DeserializerConditions::default())
+        BamlValueWithFlags::Null(TypeIR::null(), DeserializerConditions::default())
     }
 
     fn mk_string(s: &str) -> BamlValueWithFlags {
         BamlValueWithFlags::String(ValueWithFlags {
             value: s.to_string(),
-            target: FieldType::string(),
+            target: TypeIR::string(),
             flags: DeserializerConditions::default(),
         })
     }
     fn mk_float(s: f64) -> BamlValueWithFlags {
         BamlValueWithFlags::Float(ValueWithFlags {
             value: s,
-            target: FieldType::float(),
+            target: TypeIR::float(),
             flags: DeserializerConditions::default(),
         })
     }
@@ -495,14 +495,14 @@ mod tests {
         let value = BamlValueWithFlags::Class(
             "Info".to_string(),
             DeserializerConditions::default(),
-            FieldType::class("Info"),
+            TypeIR::class("Info"),
             vec![
                 (
                     "name".to_string(),
                     BamlValueWithFlags::Class(
                         "Name".to_string(),
                         DeserializerConditions::default(),
-                        FieldType::class("Name"),
+                        TypeIR::class("Name"),
                         vec![
                             ("first".to_string(), mk_string("Greg")),
                             ("last".to_string(), mk_string("Hale")),
@@ -518,9 +518,10 @@ mod tests {
             .into_iter()
             .collect(),
         );
-        let field_type = FieldType::class("Info");
+        let field_type = TypeIR::class("Info");
 
-        let res = parsed_value_to_response(&ir, value, true).unwrap();
+        let res =
+            parsed_value_to_response(&ir, value, baml_types::StreamingMode::NonStreaming).unwrap();
 
         let json = serde_json::to_value(res.serialize_final()).unwrap();
 

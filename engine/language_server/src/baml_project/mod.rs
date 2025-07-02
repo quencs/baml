@@ -353,7 +353,7 @@ impl BamlProject {
         .map_err(|e| match e.downcast::<DiagnosticsError>() {
             Ok(e) => e,
             Err(e) => {
-                log::debug!("Error: {:#?}", e);
+                log::debug!("Error: {e:#?}");
                 Diagnostics::new(self.root_dir_name.clone())
             }
         });
@@ -1240,7 +1240,7 @@ impl Project {
             }
             Err(e) => {
                 tracing::error!("Failed to generate BAML client: {:?}", e);
-                on_error(format!("Failed to generate BAML client: {:?}", e));
+                on_error(format!("Failed to generate BAML client: {e:?}"));
             }
         }
     }
@@ -1304,25 +1304,24 @@ impl Project {
         if major_minor_versions.len() > 1 {
             let versions_str = major_minor_versions
                 .keys()
-                .map(|v| format!("'{}'", v))
+                .map(|v| format!("'{v}'"))
                 .collect::<Vec<_>>()
                 .join(", ");
 
             let message = format!(
-                "Multiple generator major.minor versions detected: {}. Major and minor versions must match across all generators.",
-                versions_str
+                "Multiple generator major.minor versions detected: {versions_str}. Major and minor versions must match across all generators."
             );
             Err(message)
         // If there's only one major.minor version, return it with the highest patch
         } else if let Some((version, _)) = major_minor_versions.iter().next() {
             if let Some(highest_patch) = highest_patch_by_major_minor.get(version) {
                 // Parse the version string to create a proper semver::Version
-                if let Ok(mut v) = Version::parse(&format!("{}.0", version)) {
+                if let Ok(mut v) = Version::parse(&format!("{version}.0")) {
                     // Update with the highest patch version
                     v.patch = *highest_patch;
                     Ok(v.to_string())
                 } else {
-                    Ok(format!("{}.{}", version, highest_patch))
+                    Ok(format!("{version}.{highest_patch}"))
                 }
             } else {
                 Ok(version.clone())
@@ -1337,11 +1336,11 @@ impl Project {
 fn get_dummy_value(
     indent: usize,
     allow_multiline: bool,
-    t: &baml_runtime::FieldType,
+    t: &baml_runtime::TypeIR,
 ) -> Option<String> {
     let indent_str = "  ".repeat(indent);
     match t {
-        baml_runtime::FieldType::Primitive(t, _) => {
+        baml_runtime::TypeIR::Primitive(t, _) => {
             let dummy = match t {
                 TypeValue::String => {
                     if allow_multiline {
@@ -1367,11 +1366,11 @@ fn get_dummy_value(
 
             Some(dummy)
         }
-        baml_runtime::FieldType::Literal(_, _) => None,
-        baml_runtime::FieldType::Enum { .. } => None,
-        baml_runtime::FieldType::Class { .. } => None,
-        baml_runtime::FieldType::RecursiveTypeAlias { .. } => None,
-        baml_runtime::FieldType::List(item, _) => {
+        baml_runtime::TypeIR::Literal(_, _) => None,
+        baml_runtime::TypeIR::Enum { .. } => None,
+        baml_runtime::TypeIR::Class { .. } => None,
+        baml_runtime::TypeIR::RecursiveTypeAlias { .. } => None,
+        baml_runtime::TypeIR::List(item, _) => {
             let dummy = get_dummy_value(indent + 1, allow_multiline, item);
             // Repeat it 2 times
             match dummy {
@@ -1383,13 +1382,13 @@ fn get_dummy_value(
                             indent1 = "  ".repeat(indent + 1)
                         ))
                     } else {
-                        Some(format!("[{}, {}]", dummy, dummy))
+                        Some(format!("[{dummy}, {dummy}]"))
                     }
                 }
                 _ => None,
             }
         }
-        baml_runtime::FieldType::Map(k, v, _) => {
+        baml_runtime::TypeIR::Map(k, v, _) => {
             let dummy_k = get_dummy_value(indent, false, k);
             let dummy_v = get_dummy_value(indent + 1, allow_multiline, v);
             match (dummy_k, dummy_v) {
@@ -1408,24 +1407,24 @@ fn get_dummy_value(
                 _ => None,
             }
         }
-        baml_runtime::FieldType::Union(fields, _) => fields
+        baml_runtime::TypeIR::Union(fields, _) => fields
             .iter_include_null()
             .iter()
             .filter_map(|f| get_dummy_value(indent, allow_multiline, f))
             .next(),
-        baml_runtime::FieldType::Tuple(vals, _) => {
+        baml_runtime::TypeIR::Tuple(vals, _) => {
             let dummy = vals
                 .iter()
                 .filter_map(|f| get_dummy_value(0, false, f))
                 .collect::<Vec<_>>()
                 .join(", ");
-            Some(format!("({},)", dummy))
+            Some(format!("({dummy},)"))
         }
-        baml_runtime::FieldType::Arrow(_, _) => None,
+        baml_runtime::TypeIR::Arrow(_, _) => None,
     }
 }
 
-fn get_dummy_field(indent: usize, name: &str, t: &baml_runtime::FieldType) -> Option<String> {
+fn get_dummy_field(indent: usize, name: &str, t: &baml_runtime::TypeIR) -> Option<String> {
     let indent_str = "  ".repeat(indent);
     let dummy = get_dummy_value(indent, true, t);
     dummy.map(|dummy| format!("{indent_str}{name} {dummy}"))

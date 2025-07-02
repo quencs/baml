@@ -230,10 +230,10 @@ impl baml_log::Loggable for BamlEventLoggable<'_> {
         match self.data.as_ref() {
             Ok(response) => {
                 let response = response.visualize(*max_message_length);
-                format!("{}:\n{}", function_name, response)
+                format!("{function_name}:\n{response}")
             }
             Err(error) => {
-                format!("{}:\n{}", function_name, error)
+                format!("{function_name}:\n{error}")
             }
         }
     }
@@ -449,7 +449,7 @@ impl BamlTracer {
                 .map(|(k, v)| {
                     let field_type = infer_type(v).unwrap_or_else(|| {
                         log::warn!("Failed to infer FieldType for BamlValue in tracing. Defaulting to Null.");
-                        baml_types::FieldType::Primitive(baml_types::TypeValue::Null, Default::default())
+                        baml_types::ir_type::TypeNonStreaming::Primitive(baml_types::TypeValue::Null, Default::default())
                     });
                     (
                         k.clone(),
@@ -557,13 +557,17 @@ impl BamlTracer {
                 log::warn!(
                     "Failed to infer FieldType for BamlValue in tracing. Defaulting to Null."
                 );
-                baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
+                baml_types::ir_type::TypeNonStreaming::Primitive(
+                    baml_types::TypeValue::Null,
+                    Default::default(),
+                )
             }),
-            None => {
-                baml_types::FieldType::Primitive(baml_types::TypeValue::Null, TypeMeta::default())
-            }
+            None => baml_types::ir_type::TypeNonStreaming::Primitive(
+                baml_types::TypeValue::Null,
+                Default::default(),
+            ),
         };
-        let baml_value_with_meta: BamlValueWithMeta<baml_types::FieldType> =
+        let baml_value_with_meta: BamlValueWithMeta<baml_types::ir_type::TypeNonStreaming> =
             BamlValueWithMeta::with_const_meta(
                 response.as_ref().unwrap_or(&baml_types::BamlValue::Null),
                 field_type_for_meta,
@@ -610,7 +614,7 @@ impl BamlTracer {
             if is_ok {
                 baml_log::info!(
                     "{}{}",
-                    name.map(|s| format!("Function {}:\n", s))
+                    name.map(|s| format!("Function {s}:\n"))
                         .unwrap_or_default()
                         .purple(),
                     response.visualize(self.options.config.max_log_chunk_chars())
@@ -618,7 +622,7 @@ impl BamlTracer {
             } else {
                 baml_log::warn!(
                     "{}{}",
-                    name.map(|s| format!("Function {}:\n", s))
+                    name.map(|s| format!("Function {s}:\n"))
                         .unwrap_or_default()
                         .purple(),
                     response.visualize(self.options.config.max_log_chunk_chars())
@@ -736,7 +740,7 @@ fn log_simple_event(
     if is_ok {
         baml_log::info!(
             "{}{}",
-            name.map(|s| format!("Function {}:\n", s))
+            name.map(|s| format!("Function {s}:\n"))
                 .unwrap_or_default()
                 .purple(),
             response.visualize(options.config.max_log_chunk_chars())
@@ -744,7 +748,7 @@ fn log_simple_event(
     } else {
         baml_log::warn!(
             "{}{}",
-            name.map(|s| format!("Function {}:\n", s))
+            name.map(|s| format!("Function {s}:\n"))
                 .unwrap_or_default()
                 .purple(),
             response.visualize(options.config.max_log_chunk_chars())
@@ -815,7 +819,7 @@ impl
 
 impl From<&BamlMap<String, BamlValue>> for IOValue {
     fn from(items: &BamlMap<String, BamlValue>) -> Self {
-        log::trace!("Converting IOValue from BamlMap: {:#?}", items);
+        log::trace!("Converting IOValue from BamlMap: {items:#?}");
         IOValue {
             r#type: TypeSchema {
                 name: api_wrapper::core_types::TypeSchemaName::Multi,

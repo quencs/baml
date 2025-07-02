@@ -156,15 +156,15 @@ struct FunctionStreamTemplate<'a> {
 ///
 /// var typeMap = map[string]reflect.Type{
 /// {% for class in classes -%}
-///     "types.{{ class.name }}": reflect.TypeOf(types.{{ class.name }}{}),
-///     "stream_types.{{ class.name }}": reflect.TypeOf(stream_types.{{ class.name }}{}),
+///     "TYPES.{{ class.name }}": reflect.TypeOf(types.{{ class.name }}{}),
+///     "STREAM_TYPES.{{ class.name }}": reflect.TypeOf(stream_types.{{ class.name }}{}),
 /// {% endfor %}
 /// {% for enum_ in enums -%}
-///     "types.{{ enum_.name }}": reflect.TypeOf(types.{{ enum_.name}}("")),
+///     "TYPES.{{ enum_.name }}": reflect.TypeOf(types.{{ enum_.name}}("")),
 /// {% endfor %}
 /// {% for union_ in unions -%}
-///     "types.{{ union_.cffi_name }}": reflect.TypeOf(types.{{ union_.name }}{}),
-///     "stream_types.{{ union_.cffi_name }}": reflect.TypeOf(stream_types.{{ union_.name }}{}),
+///     "TYPES.{{ union_.cffi_name }}": reflect.TypeOf(types.{{ union_.name }}{}),
+///     "STREAM_TYPES.{{ union_.cffi_name }}": reflect.TypeOf(stream_types.{{ union_.name }}{}),
 /// {% endfor %}
 /// }
 /// ```

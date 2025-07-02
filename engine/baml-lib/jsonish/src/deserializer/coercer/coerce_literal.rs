@@ -2,7 +2,7 @@ use std::vec;
 
 use anyhow::Result;
 use baml_types::LiteralValue;
-use internal_baml_core::ir::FieldType;
+use internal_baml_core::ir::TypeIR;
 use internal_baml_jinja::CompletionOptions;
 
 use super::{coerce_primitive::coerce_int, ParsingContext, ParsingError};
@@ -19,7 +19,7 @@ impl TypeCoercer for LiteralValue {
     fn coerce(
         &self,
         ctx: &ParsingContext,
-        target: &FieldType,
+        target: &TypeIR,
         value: Option<&jsonish::Value>,
     ) -> Result<BamlValueWithFlags, ParsingError> {
         log::debug!(

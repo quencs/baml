@@ -5,7 +5,7 @@ import baml_py
 from . import stream_types, types, type_builder
 from .parser import LlmResponseParser, LlmStreamParser
 from .runtime import DoNotUseDirectlyCallManager, BamlCallOptions
-
+from .globals import DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME as __runtime__
 
 class BamlSyncClient:
     __options: DoNotUseDirectlyCallManager
@@ -22,6 +22,19 @@ class BamlSyncClient:
         self.__http_stream_request = BamlHttpStreamRequestClient(options)
         self.__llm_response_parser = LlmResponseParser(options)
         self.__llm_stream_parser = LlmStreamParser(options)
+
+    def __getstate__(self):
+        # Return state needed for pickling
+        return {"options": self.__options}
+
+    def __setstate__(self, state):
+        # Restore state from pickling
+        self.__options = state["options"]
+        self.__stream_client = BamlStreamClient(self.__options)
+        self.__http_request = BamlHttpRequestClient(self.__options)
+        self.__http_stream_request = BamlHttpStreamRequestClient(self.__options)
+        self.__llm_response_parser = LlmResponseParser(self.__options)
+        self.__llm_stream_parser = LlmStreamParser(self.__options)
 
     def with_options(self,
         tb: typing.Optional[type_builder.TypeBuilder] = None,
@@ -75,7 +88,7 @@ class BamlSyncClient:
             "{{arg.name}}": {{arg.name}},
             {%- endfor %}
         })
-        return typing.cast({{func.return_type.serialize_type(pkg)}}, result.cast_to(types, types, stream_types, False))
+        return typing.cast({{func.return_type.serialize_type(pkg)}}, result.cast_to(types, types, stream_types, False, __runtime__))
     {% endfor %}
 
 
@@ -101,8 +114,8 @@ class BamlStreamClient:
         })
         return baml_py.BamlSyncStream[{{ func.stream_return_type.serialize_type(pkg) }}, {{ func.return_type.serialize_type(pkg) }}](
           result,
-          lambda x: typing.cast({{func.stream_return_type.serialize_type(pkg)}}, x.cast_to(types, types, stream_types, True)),
-          lambda x: typing.cast({{func.return_type.serialize_type(pkg)}}, x.cast_to(types, types, stream_types, False)),
+          lambda x: typing.cast({{func.stream_return_type.serialize_type(pkg)}}, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast({{func.return_type.serialize_type(pkg)}}, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
     {% endfor %}

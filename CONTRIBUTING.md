@@ -77,6 +77,8 @@ Issues labeled `good first issue` are a good place to start.
 
 ### Steps to Build and Test Locally
 
+1. Install protobuf generator for Go `brew install protoc-gen-go`
+
 1. Install Rust
 
 2. Run `cargo build` in `engine/` and make sure everything builds on your machine.
@@ -85,6 +87,14 @@ Issues labeled `good first issue` are a good place to start.
    - `cd engine/baml-lib/baml/` and run `cargo test` to execute grammar linting tests.
 
 4. Run the integration tests.
+
+5. **Set up Git hooks (Recommended)**:
+   - Install the pre-commit hook to automatically format Rust code:
+     ```bash
+     ./tools/install-hooks
+     ```
+   - This hook will run `cargo fmt` with import organization before each commit
+   - If formatting changes are made, you'll need to review and re-commit the changes
 
 ## Running Integration Tests
 

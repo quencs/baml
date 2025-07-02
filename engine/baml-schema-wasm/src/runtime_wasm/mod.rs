@@ -61,10 +61,10 @@ pub fn on_wasm_init() {
     //wasm_logger::init(wasm_logger::Config::new(LOG_LEVEL));
     match console_log::init_with_level(LOG_LEVEL) {
         Ok(_) => web_sys::console::log_1(
-            &format!("Initialized BAML runtime logging as log::{}", LOG_LEVEL).into(),
+            &format!("Initialized BAML runtime logging as log::{LOG_LEVEL}").into(),
         ),
         Err(e) => web_sys::console::log_1(
-            &format!("Failed to initialize BAML runtime logging: {:?}", e).into(),
+            &format!("Failed to initialize BAML runtime logging: {e:?}").into(),
         ),
     }
 
@@ -187,7 +187,7 @@ impl WasmProject {
         });
         let formatted_files = saved_files
             .iter()
-            .map(|(k, v)| format!("{}BAML_PATH_SPLTTER{}", k, v))
+            .map(|(k, v)| format!("{k}BAML_PATH_SPLTTER{v}"))
             .collect::<Vec<String>>();
         formatted_files
     }
@@ -235,8 +235,7 @@ impl WasmProject {
         let env_vars: HashMap<String, String> =
             serde_wasm_bindgen::from_value(env_vars).map_err(|e| {
                 JsValue::from_str(&format!(
-                    "Expected env_vars to be HashMap<string, string>. {}",
-                    e
+                    "Expected env_vars to be HashMap<string, string>. {e}"
                 ))
             })?;
 
@@ -252,7 +251,7 @@ impl WasmProject {
                     wasm_error
                 }
                 Err(e) => {
-                    log::debug!("Error: {:#?}", e);
+                    log::debug!("Error: {e:#?}");
                     JsValue::from_str(&e.to_string())
                 }
             })
@@ -272,7 +271,7 @@ impl WasmProject {
         let res = match runtime {
             Ok(runtime) => runtime.run_generators(&self.files, no_version_check),
             Err(e) => Err(wasm_bindgen::JsError::new(
-                format!("Failed to create runtime: {:#?}", e).as_str(),
+                format!("Failed to create runtime: {e:#?}").as_str(),
             )),
         };
 
@@ -815,7 +814,7 @@ impl WithRenderError for baml_runtime::internal::llm_client::LLMResponse {
                 format!("{} {}", f.message, f.code).into()
             }
             baml_runtime::internal::llm_client::LLMResponse::UserFailure(e) => {
-                format!("user error: {}", e).into()
+                format!("user error: {e}").into()
             }
             baml_runtime::internal::llm_client::LLMResponse::InternalFailure(e) => {
                 e.to_string().into()
@@ -827,11 +826,11 @@ impl WithRenderError for baml_runtime::internal::llm_client::LLMResponse {
 fn get_dummy_value(
     indent: usize,
     allow_multiline: bool,
-    t: &baml_runtime::FieldType,
+    t: &baml_runtime::TypeIR,
 ) -> Option<String> {
     let indent_str = "  ".repeat(indent);
     match t {
-        baml_runtime::FieldType::Primitive(t, _) => {
+        baml_runtime::TypeIR::Primitive(t, _) => {
             let dummy = match t {
                 TypeValue::String => {
                     if allow_multiline {
@@ -857,11 +856,11 @@ fn get_dummy_value(
 
             Some(dummy)
         }
-        baml_runtime::FieldType::Literal(_, _) => None,
-        baml_runtime::FieldType::Enum { .. } => None,
-        baml_runtime::FieldType::Class { .. } => None,
-        baml_runtime::FieldType::RecursiveTypeAlias { .. } => None,
-        baml_runtime::FieldType::List(item, _) => {
+        baml_runtime::TypeIR::Literal(_, _) => None,
+        baml_runtime::TypeIR::Enum { .. } => None,
+        baml_runtime::TypeIR::Class { .. } => None,
+        baml_runtime::TypeIR::RecursiveTypeAlias { .. } => None,
+        baml_runtime::TypeIR::List(item, _) => {
             let dummy = get_dummy_value(indent + 1, allow_multiline, item);
             // Repeat it 2 times
             match dummy {
@@ -873,13 +872,13 @@ fn get_dummy_value(
                             indent1 = "  ".repeat(indent + 1)
                         ))
                     } else {
-                        Some(format!("[{}, {}]", dummy, dummy))
+                        Some(format!("[{dummy}, {dummy}]"))
                     }
                 }
                 _ => None,
             }
         }
-        baml_runtime::FieldType::Map(k, v, _) => {
+        baml_runtime::TypeIR::Map(k, v, _) => {
             let dummy_k = get_dummy_value(indent, false, k);
             let dummy_v = get_dummy_value(indent + 1, allow_multiline, v);
             match (dummy_k, dummy_v) {
@@ -899,24 +898,24 @@ fn get_dummy_value(
             }
         }
 
-        baml_runtime::FieldType::Union(fields, _) => fields
+        baml_runtime::TypeIR::Union(fields, _) => fields
             .iter_include_null()
             .iter()
             .filter_map(|f| get_dummy_value(indent, allow_multiline, f))
             .next(),
-        baml_runtime::FieldType::Tuple(vals, _) => {
+        baml_runtime::TypeIR::Tuple(vals, _) => {
             let dummy = vals
                 .iter()
                 .filter_map(|f| get_dummy_value(0, false, f))
                 .collect::<Vec<_>>()
                 .join(", ");
-            Some(format!("({},)", dummy))
+            Some(format!("({dummy},)"))
         }
-        baml_runtime::FieldType::Arrow(..) => None,
+        baml_runtime::TypeIR::Arrow(..) => None,
     }
 }
 
-fn get_dummy_field(indent: usize, name: &str, t: &baml_runtime::FieldType) -> Option<String> {
+fn get_dummy_field(indent: usize, name: &str, t: &baml_runtime::TypeIR) -> Option<String> {
     let indent_str = "  ".repeat(indent);
     let dummy = get_dummy_value(indent, true, t);
 
@@ -1136,19 +1135,18 @@ impl WasmRuntime {
             "VSCodeCLI" => GeneratorType::VSCodeCLI,
             "VSCode" => GeneratorType::VSCode,
             "CLI" => GeneratorType::CLI,
-            other => return Some(format!("Invalid generator type: {:?}", other)),
+            other => return Some(format!("Invalid generator type: {other:?}")),
         };
 
         let version_check_mode = match version_check_mode {
             "Strict" => VersionCheckMode::Strict,
             "None" => VersionCheckMode::None,
-            other => return Some(format!("Invalid version check mode: {:?}", other)),
+            other => return Some(format!("Invalid version check mode: {other:?}")),
         };
 
         let Ok(generator_language) = GeneratorOutputType::from_str(generator_language) else {
             return Some(format!(
-                "Invalid generator language: {:?}",
-                generator_language
+                "Invalid generator language: {generator_language:?}"
             ));
         };
 
@@ -1784,9 +1782,9 @@ impl WasmFunction {
         let ir = rt.internal().ir();
         let walker = ir
             .find_function(&self.name)
-            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
         let renderer = PromptRenderer::from_function(&walker, ir, &ctx)
-            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
         Ok(renderer.client_spec().to_string())
     }
 
@@ -1846,7 +1844,7 @@ impl WasmFunction {
                 RenderedPrompt::Chat(chat_messages) => chat_messages,
                 RenderedPrompt::Completion(_) => vec![], // or handle this case differently
             },
-            Err(e) => return Err(wasm_bindgen::JsError::new(format!("{:?}", e).as_str())),
+            Err(e) => return Err(wasm_bindgen::JsError::new(format!("{e:?}").as_str())),
         };
 
         rt.runtime
@@ -1940,7 +1938,7 @@ impl WasmFunction {
             )
             .await;
 
-        log::info!("test_response: {:#?}", test_response);
+        log::info!("test_response: {test_response:#?}");
 
         Ok(WasmTestResponse {
             test_response,
@@ -2008,7 +2006,7 @@ impl WasmFunction {
             )
             .await;
 
-        log::info!("test_response: {:#?}", test_response);
+        log::info!("test_response: {test_response:#?}");
 
         Ok(WasmTestResponse {
             test_response,
@@ -2034,15 +2032,15 @@ impl WasmFunction {
         let ir = rt.internal().ir();
         let walker = ir
             .find_function(&self.name)
-            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
         let renderer = PromptRenderer::from_function(&walker, ir, &ctx)
-            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
         let client_spec = renderer.client_spec();
 
         let graph = rt
             .internal()
             .orchestration_graph(client_spec, &ctx)
-            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
 
         // Serialize the scopes to JsValue
         let mut scopes = Vec::new();

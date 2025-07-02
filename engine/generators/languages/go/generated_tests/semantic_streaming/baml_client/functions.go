@@ -37,7 +37,11 @@ func MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFunc) (types.
 		args.ClientRegistry = callOpts.clientRegistry
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +76,11 @@ func MakeClassWithExternalDone(ctx context.Context, opts ...CallOptionFunc) (typ
 		args.ClientRegistry = callOpts.clientRegistry
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +115,11 @@ func MakeSemanticContainer(ctx context.Context, opts ...CallOptionFunc) (types.S
 		args.ClientRegistry = callOpts.clientRegistry
 	}
 
-	encoded, err := baml.EncodeRoot(args)
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	encoded, err := baml.EncodeArgs(args)
 	if err != nil {
 		panic(err)
 	}
