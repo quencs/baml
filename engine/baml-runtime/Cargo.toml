@@ -193,7 +193,6 @@ junit-report = "0.8.3"
 
 [features]
 defaults = ["skip-integ-tests"]
-internal = []
 skip-integ-tests = []
 
 

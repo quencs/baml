@@ -250,7 +250,7 @@ Each language has its own debugging setup in VS Code:
 
 2. Run tests with:
 
-- `cargo test --features internal`
+- `cargo test`
 
 This will run the baml-serve server locally, and ping it. You may need to change the PORT variable for your new test to use a different port (we don’t have a good way of autoselecting a port).
 

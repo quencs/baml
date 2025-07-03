@@ -43,10 +43,10 @@ type JsResult<T> = core::result::Result<T, JsError>;
 //     }
 // }
 
-//Run: wasm-pack test --firefox --headless  --features internal,wasm
+//Run: wasm-pack test --firefox --headless  --features wasm
 // but for browser we likely need to do
 //         wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-// Node is run using: wasm-pack test --node --features internal,wasm
+// Node is run using: wasm-pack test --node --features wasm
 
 #[wasm_bindgen(start)]
 pub fn on_wasm_init() {

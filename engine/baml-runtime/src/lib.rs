@@ -1,9 +1,6 @@
 // mod tests;
 
-#[cfg(feature = "internal")]
 pub mod internal;
-#[cfg(not(feature = "internal"))]
-pub(crate) mod internal;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod cli;
@@ -71,19 +68,13 @@ pub use internal_baml_core::{
     internal_baml_diagnostics::Diagnostics as DiagnosticsError,
     ir::{ir_helpers::infer_type, scope_diagnostics, IRHelper, TypeIR, TypeValue},
 };
-#[cfg(feature = "internal")]
 pub use internal_baml_jinja::{ChatMessagePart, RenderedPrompt};
-#[cfg(not(feature = "internal"))]
-pub(crate) use internal_baml_jinja::{ChatMessagePart, RenderedPrompt};
 use internal_llm_client::{AllowedRoleMetadata, ClientSpec};
 use jsonish::{ResponseBamlValue, ResponseValueMeta};
 use on_log_event::LogEventCallbackSync;
 use runtime::InternalBamlRuntime;
 pub use runtime_context::BamlSrcReader;
-#[cfg(feature = "internal")]
 pub use runtime_interface::InternalRuntimeInterface;
-#[cfg(not(feature = "internal"))]
-pub(crate) use runtime_interface::InternalRuntimeInterface;
 use runtime_interface::{ExperimentalTracingInterface, InternalClientLookup, RuntimeConstructor};
 pub(crate) use runtime_methods::prepare_function::PreparedFunctionArgs;
 use serde_json::{self, json};
@@ -287,7 +278,6 @@ impl BamlRuntime {
         )
     }
 
-    #[cfg(feature = "internal")]
     pub fn internal(&self) -> &Arc<InternalBamlRuntime> {
         &self.inner
     }
@@ -1380,5 +1370,41 @@ async fn expr_eval_result(
             name: function_name.to_string(),
             args: params.clone(),
         }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_internal_always_available() {
+        // This test verifies that the internal functionality is always available
+        // without needing the "internal" feature flag
+        let mut files = HashMap::new();
+        files.insert("main.baml", "");
+        
+        let result = BamlRuntime::from_file_content(
+            "baml_src",
+            &files,
+            HashMap::<String, String>::new(),
+        );
+        
+        // This should work regardless of feature flags
+        assert!(result.is_ok(), "BamlRuntime should be constructible");
+        
+        if let Ok(runtime) = result {
+            // The internal() method should be accessible
+            let _internal = runtime.internal();
+            
+            // The InternalRuntimeInterface should be accessible
+            let _ir = runtime.internal().ir();
+            
+            // These types should be available
+            let _: Option<InternalRuntimeInterface> = None;
+            let _: Option<ChatMessagePart> = None;
+            let _: Option<RenderedPrompt> = None;
+        }
     }
 }

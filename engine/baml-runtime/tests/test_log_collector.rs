@@ -1,7 +1,6 @@
 // run these tests with:
-// RUST_LOG=info cargo test test_call_function_unions1 --no-default-features --features "internal" -- --nocapture
+// RUST_LOG=info cargo test test_call_function_unions1 --no-default-features -- --nocapture
 // need to fix the tokio runtime getting closed but at least you can log things.
-#[cfg(feature = "internal")]
 #[cfg(not(feature = "skip-integ-tests"))]
 mod internal_tests {
     use std::{any, collections::HashMap, sync::Once};

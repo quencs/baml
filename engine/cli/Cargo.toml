@@ -22,7 +22,7 @@ unused_variables = "deny"
 anyhow.workspace = true
 axum = "0.7.5"
 axum-extra = { version = "0.9.3", features = ["erased-json", "typed-header"] }
-baml-runtime = { path = "../baml-runtime", features = ["internal"] }
+baml-runtime = { path = "../baml-runtime" }
 language-server = { path = "../language_server" }
 baml-types.workspace = true
 baml-log.workspace = true

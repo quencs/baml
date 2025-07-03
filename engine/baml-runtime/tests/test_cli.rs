@@ -15,7 +15,7 @@ use rstest::rstest;
 use scopeguard::defer;
 use serde_json::json;
 
-// Run this with cargo test --features internal
+// Run this with cargo test
 // run the CLI using debug build using: engine/target/debug/baml-runtime dev
 #[cfg(not(feature = "skip-integ-tests"))]
 mod test_cli {
