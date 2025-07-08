@@ -9,10 +9,10 @@
 //! [HIR]: https://rustc-dev-guide.rust-lang.org/hir.html
 //! [MIR]: https://rustc-dev-guide.rust-lang.org/mir/index.html
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use baml_vm::{Bytecode, Function, FunctionKind, Instruction, Object, Value};
-use internal_baml_core::ast::{self, Expression, WithName};
+use baml_vm::{Bytecode, Class, Function, FunctionKind, Instruction, Object, Value};
+use internal_baml_core::ast::{self, ClassConstructorField, Expression, WithName};
 use internal_baml_parser_database::ParserDatabase;
 
 /// Baml compiler.
@@ -28,6 +28,15 @@ struct Compiler<'g> {
     /// Maps the name of the global variable to its index in the globals pool.
     globals: &'g HashMap<String, usize>,
 
+    /// Resolved class fields.
+    ///
+    /// Maps the name of the class to the field resolution. Field resolution
+    /// is basically a transformation of field name to an index in an array.
+    ///
+    /// TODO: The `g` lifetime here doesn't need to be the same as the globals
+    /// lifetime.
+    classes: &'g HashMap<String, HashMap<String, usize>>,
+
     /// Resolved local variables.
     ///
     /// Maps the name of the variable to its final index in the eval stack.
@@ -39,9 +48,13 @@ struct Compiler<'g> {
 
 impl<'g> Compiler<'g> {
     /// Create a new compiler.
-    pub fn new(globals: &'g HashMap<String, usize>) -> Self {
+    pub fn new(
+        globals: &'g HashMap<String, usize>,
+        classes: &'g HashMap<String, HashMap<String, usize>>,
+    ) -> Self {
         Self {
             globals,
+            classes,
             locals: HashMap::new(),
             bytecode: Bytecode::new(),
         }
@@ -194,7 +207,139 @@ impl<'g> Compiler<'g> {
 
             Expression::Map(items, span) => todo!(),
 
-            Expression::ClassConstructor(class_constructor, span) => todo!(),
+            // Some notes on how class constructors work.
+            //
+            // Fields at runtime are accessed by index, not through a string
+            // lookup, because we are a compiled language and we know the exact
+            // shape of all instances of classes. But that comes with some
+            // problems when constructing instances. How exactly do we set each
+            // field to the value specified in the source code AND in the same
+            // order specified in the source code? We have our own internal
+            // field order for index accessing, but source code can use the
+            // names of fields in any arbitrary order:
+            //
+            // ```baml
+            // // Turned into an array, order is [x, y]
+            // class Point {
+            //     x int
+            //     y int
+            // }
+            //
+            // // User does whatever they want, set y then x.
+            // let p = Point {
+            //     y: 2,
+            //     x: 1,
+            // };
+            // ```
+            //
+            // You might think, well, what's so hard about this? Just issue
+            // the LOAD_CONST instructions in the order that the class
+            // definition expects, then we'll have all the necessary values
+            // on the eval stack in the order we want and we can call some
+            // sort of ALLOC_INSTANCE instruction that would behave like
+            // the ALLOC_ARRAY instruction, but for instances:
+            //
+            // ```text
+            // LOAD_CONST x (1)   // Put value of x on the stack.
+            // LOAD_CONST y (2)   // Put value of y on the stack.
+            // ALLOC_INSTANCE 2   // Just like defining an array of 2 elements.
+            // ```
+            //
+            // Well, not so fast. Assignments are expressions. Expressions
+            // can have side effects (set the value of a global variable,
+            // print some stuff to the program's output, etc). Picture this:
+            //
+            // ```baml
+            // let p = Point {
+            //     y: side_effect(),
+            //     x: another_side_effect(),
+            // }
+            // ```
+            //
+            // We can't just tell the VM to execute `another_side_effect()`
+            // then execute `side_effect()` so that we have the constructor
+            // parameters in order [x, y] on the stack. The user expects
+            // `side_effect()` to be executed first.
+            //
+            // Given the statement above, we know that we must issue bytecode
+            // instructions in the same order defined in the source code, we
+            // can't reorder field assignments. We'll need something like:
+            //
+            // ```text
+            // ALLOC_INSTANCE Point  // Allocate an instance of Point.
+            //
+            // side_effect()         // Compiled instructions for y.
+            //
+            // STORE_FIELD 1         // Store y in the instance (at index 1).
+            //
+            // another_side_effect() // Compiled instructions for x.
+            //
+            // STORE_FIELD 0         // Store x in the instance (at index 0).
+            // ```
+            //
+            // Not "ideal", we'd want something similar to arrays:
+            //
+            // ```text
+            // another_side_effect() // Compiled instructions for x.
+            // side_effect()         // Compiled instructions for y.
+            // ALLOC_INSTANCE Point  // Allocate an instance of Point.
+            // ```
+            //
+            // That's more efficient and requires only 1 VM cycle for the
+            // entire instance construction, but it messes up execution
+            // ordering. Therefore, that can only be done if we are sure that
+            // the assignments contain only constant values or at most one side
+            // effect. So...
+            //
+            // TODO: If someone wants to work on bytecode optimization, heres's
+            // one for you...
+            //
+            // For the time being, we'll just desugar class constructors to
+            // individual assignments. Basically this:
+            //
+            // ```baml
+            // let p = Point {};
+            // p.y = side_effect();
+            // p.x = another_side_effect();
+            // ```
+            //
+            // TODO: There's room for adding an HIR (High Level IR) here just
+            // to desugar stuff like this, but for now we can treat class
+            // constructors in the AST as already desugared assignments.
+            Expression::ClassConstructor(constructor, span) => {
+                self.emit(Instruction::AllocInstance(
+                    self.globals[constructor.class_name.name()],
+                ));
+
+                let mut defined_named_fields = HashSet::new();
+
+                for field in &constructor.fields {
+                    match field {
+                        ClassConstructorField::Named(name, expr) => {
+                            self.compile_expression(expr);
+                            self.emit(Instruction::StoreField(
+                                self.classes[constructor.class_name.name()][name.name()],
+                            ));
+                            defined_named_fields.insert(name.name());
+                        }
+                        ClassConstructorField::Spread(expr) => {
+                            self.compile_expression(expr);
+
+                            // Pseudo local, user didn't declare it.
+                            let spread_local = self.locals.len() + 2;
+                            self.emit(Instruction::LoadVar(spread_local - 1));
+
+                            for (field, index) in &self.classes[constructor.class_name.name()] {
+                                if !defined_named_fields.contains(field.as_str()) {
+                                    self.emit(Instruction::LoadVar(spread_local));
+                                    self.emit(Instruction::LoadField(*index));
+                                    self.emit(Instruction::StoreField(*index));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Functions.
             Expression::Lambda(arguments_list, expression_block, span) => todo!(),
@@ -281,21 +426,50 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
     // eprintln!("{:#?}", ast.ast);
 
     let mut resolved_globals = HashMap::new();
+    let mut resolved_classes = HashMap::new();
 
     // TODO: Probably we can use Top::Id to map these to VM globals.
     for (i, function) in ast.walk_expr_fns().enumerate() {
         resolved_globals.insert(function.name().to_string(), i);
     }
 
+    // TODO: Loop over Tops, get rid of this walker nonsense.
+    for (i, class) in ast.walk_classes().enumerate() {
+        resolved_globals.insert(class.name().to_string(), resolved_globals.len() + i);
+
+        // Resolve class fields.
+        let mut class_fields = HashMap::new();
+        for field in class.static_fields() {
+            class_fields.insert(field.name().to_string(), class_fields.len());
+        }
+
+        resolved_classes.insert(class.name().to_string(), class_fields);
+    }
+
     let mut objects = Vec::with_capacity(resolved_globals.len());
     let mut globals = Vec::with_capacity(resolved_globals.len());
 
     for function in ast.walk_expr_fns() {
-        let function = Compiler::new(&resolved_globals).compile(function.expr_fn())?;
+        let function =
+            Compiler::new(&resolved_globals, &resolved_classes).compile(function.expr_fn())?;
 
         // Add the function to the globals and objects pools.
         globals.push(Value::Object(objects.len()));
         objects.push(Object::Function(function));
+    }
+
+    for class in ast.walk_classes() {
+        let class = Class {
+            name: class.name().to_string(),
+            field_names: class
+                .static_fields()
+                .map(|field| field.name().to_string())
+                .collect(),
+        };
+
+        // Add the class to the globals and objects pools.
+        globals.push(Value::Object(objects.len()));
+        objects.push(Object::Class(class));
     }
 
     Ok((objects, globals))
@@ -351,7 +525,7 @@ mod tests {
 
             eprintln!(
                 "---- fn {function_name}() ----\n{}",
-                baml_vm::debug::display_bytecode(function, &objects, &globals)
+                baml_vm::debug::display_bytecode(function, &[], &objects, &globals)
             );
 
             assert_eq!(
@@ -431,6 +605,75 @@ mod tests {
                     Instruction::LoadConst(1),
                     Instruction::LoadConst(2),
                     Instruction::AllocArray(3),
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn class_constructor() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: "
+                class Point {
+                    x int
+                    y int
+                }
+
+                fn main() -> Point {
+                    let p = Point { x: 1, y: 2 };
+                    p
+                }
+            ",
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::AllocInstance(1),
+                    Instruction::LoadConst(0),
+                    Instruction::StoreField(0),
+                    Instruction::LoadConst(1),
+                    Instruction::StoreField(1),
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn class_constructor_with_spread_operator() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                class Point {
+                    x int
+                    y int
+                    z int
+                }
+
+                fn default_point() -> Point {
+                    Point { x: 0, y: 0, z: 0 }
+                }
+
+                fn main() -> Point {
+                    let p = Point { x: 1, y: 2, ..default_point() };
+                    p
+                }
+            "#,
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::AllocInstance(2),
+                    Instruction::LoadConst(0),
+                    Instruction::StoreField(0),
+                    Instruction::LoadConst(1),
+                    Instruction::StoreField(1),
+                    Instruction::LoadGlobal(0),
+                    Instruction::Call(0),
+                    Instruction::LoadVar(1),
+                    Instruction::LoadVar(2),
+                    Instruction::LoadField(2),
+                    Instruction::StoreField(2),
                     Instruction::LoadVar(1),
                     Instruction::Return,
                 ],

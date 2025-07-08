@@ -30,7 +30,7 @@ use crate::vm::Value;
 ///
 /// Instead store the state or complex structure in the [`crate::Vm`] struct and
 /// find a way to reference it with very simple instructions.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Instruction {
     /// Loads a constant from the bytecode's constant pool.
     ///
@@ -50,22 +50,6 @@ pub enum Instruction {
     /// [`crate::Frame::locals`] array.
     StoreVar(usize),
 
-    /// Pop the top of [`crate::Vm::stack`] (the evaluation stack).
-    Pop,
-
-    /// Jump to another instruction.
-    ///
-    /// Format: `JUMP o` where `o` is the offset from the current instruction
-    /// to the target instruction (can be negative to jump backwards).
-    Jump(isize),
-
-    /// Jump to another instruction if the top of [`crate::Vm::stack`] is false.
-    ///
-    /// Format: `JUMP_IF_FALSE o` where `o` is the offset from the current
-    /// instruction to the target instruction (can be negative to jump
-    /// backwards).
-    JumpIfFalse(isize),
-
     /// Load a global variable from the [`crate::Vm::globals`] array.
     ///
     /// Format: `LOAD_GLOBAL i` where `i` is the index of the global variable
@@ -82,12 +66,46 @@ pub enum Instruction {
     /// in the [`crate::Vm::globals`] array.
     StoreGlobal(usize),
 
+    /// Load a field of an object.
+    ///
+    /// Format: `LOAD_FIELD i` where `i` is the index of the field in the
+    /// object's fields array.
+    LoadField(usize),
+
+    /// Store the value on top of the stack in the field of an object.
+    ///
+    /// Format: `STORE_FIELD i` where `i` is the index of the field in the
+    /// object's fields array.
+    StoreField(usize),
+
+    /// Pop the top of [`crate::Vm::stack`] (the evaluation stack).
+    Pop,
+
+    /// Jump to another instruction.
+    ///
+    /// Format: `JUMP o` where `o` is the offset from the current instruction
+    /// to the target instruction (can be negative to jump backwards).
+    Jump(isize),
+
+    /// Jump to another instruction if the top of [`crate::Vm::stack`] is false.
+    ///
+    /// Format: `JUMP_IF_FALSE o` where `o` is the offset from the current
+    /// instruction to the target instruction (can be negative to jump
+    /// backwards).
+    JumpIfFalse(isize),
+
     /// Builds an array and allocates it on the heap.
     ///
     /// Format: `ALLOC_ARRAY n` where `n` is the number of elements in the
     /// array. All elements must be on the stack by the time this instruction is
     /// executed.
     AllocArray(usize),
+
+    /// Builds an instance of a class and allocates it on the heap.
+    ///
+    /// Format: `ALLOC_INSTANCE i` where `i` is the index of the class in the
+    /// [`crate::Vm::objects`] array.
+    AllocInstance(usize),
 
     /// Call a function.
     ///
@@ -111,12 +129,15 @@ impl std::fmt::Display for Instruction {
             Instruction::LoadConst(i) => write!(f, "LOAD_CONST {i}"),
             Instruction::LoadVar(i) => write!(f, "LOAD_VAR {i}"),
             Instruction::StoreVar(i) => write!(f, "STORE_VAR {i}"),
+            Instruction::LoadGlobal(i) => write!(f, "LOAD_GLOBAL {i}"),
+            Instruction::StoreGlobal(i) => write!(f, "STORE_GLOBAL {i}"),
+            Instruction::LoadField(i) => write!(f, "LOAD_FIELD {i}"),
+            Instruction::StoreField(i) => write!(f, "STORE_FIELD {i}"),
             Instruction::Pop => f.write_str("POP"),
             Instruction::Jump(o) => write!(f, "JUMP {o}"),
             Instruction::JumpIfFalse(o) => write!(f, "JUMP_IF_FALSE {o}"),
-            Instruction::LoadGlobal(i) => write!(f, "LOAD_GLOBAL {i}"),
-            Instruction::StoreGlobal(i) => write!(f, "STORE_GLOBAL {i}"),
             Instruction::AllocArray(n) => write!(f, "ALLOC_ARRAY {n}"),
+            Instruction::AllocInstance(i) => write!(f, "ALLOC_INSTANCE {i}"),
             Instruction::Call(n) => write!(f, "CALL {n}"),
             Instruction::Return => f.write_str("RETURN"),
         }

@@ -176,3 +176,73 @@ fn array_constructor() -> anyhow::Result<()> {
         },
     )
 }
+
+// TODO: Read comment above.
+#[test]
+fn class_constructor() -> anyhow::Result<()> {
+    assert_vm_executes_with_inspection(
+        Program {
+            source: "
+                class Point {
+                    x int
+                    y int
+                }
+
+                fn main() -> Point {
+                    let p = Point { x: 1, y: 2 };
+                    p
+                }
+            ",
+            function: "main",
+            expected: Value::Object(2),
+        },
+        |vm| {
+            let Object::Instance(instance) = &vm.objects[2] else {
+                panic!("expected Instance, got {:?}", vm.objects[2]);
+            };
+
+            assert_eq!(instance.fields, &[Value::Int(1), Value::Int(2)]);
+
+            Ok(())
+        },
+    )
+}
+
+// TODO: Read comment above.
+#[test]
+fn class_constructor_with_spread_operator() -> anyhow::Result<()> {
+    assert_vm_executes_with_inspection(
+        Program {
+            source: "
+                class Point {
+                    x int
+                    y int
+                    z int
+                }
+
+                fn default_point() -> Point {
+                    Point { x: 0, y: 0, z: 0 }
+                }
+
+                fn main() -> Point {
+                    let p = Point { x: 1, y: 2, ..default_point() };
+                    p
+                }
+            ",
+            function: "main",
+            expected: Value::Object(3),
+        },
+        |vm| {
+            let Object::Instance(instance) = &vm.objects[3] else {
+                panic!("expected Instance, got {:?}", vm.objects[3]);
+            };
+
+            assert_eq!(
+                instance.fields,
+                &[Value::Int(1), Value::Int(2), Value::Int(0)]
+            );
+
+            Ok(())
+        },
+    )
+}

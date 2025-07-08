@@ -15,6 +15,7 @@
 //! struct InstructionContext<'vm> {
 //!     instruction_ptr: isize,
 //!     function: &'vm Function,
+//!     stack: &'vm [Value],
 //!     objects: &'vm [Object],
 //!     globals: &'vm [Value],
 //! }
@@ -40,34 +41,70 @@ use crate::{Function, Instruction, Object, Value};
 pub fn display_instruction(
     instruction_ptr: isize,
     function: &Function,
+    stack: &[Value],
     objects: &[Object],
     globals: &[Value],
 ) -> (String, String) {
     let instruction = &function.bytecode.instructions[instruction_ptr as usize];
 
     let metadata = match instruction {
-        // TODO: For this one we need to add some logic to check if it's
-        // a function or a global variable. In the case of variables, we
-        // have to store the names (potentially in the [`Vm`] struct) and
-        // print it.
-        Instruction::LoadGlobal(index) => {
-            format!("({})", display_value(&globals[*index], objects))
-        }
-
-        // TODO: Same as above.
-        Instruction::StoreGlobal(_) => todo!(),
-
         Instruction::LoadConst(index) => format!(
             "({})",
             display_value(&function.bytecode.constants[*index], objects)
         ),
 
+        // TODO: For this one we need to add some logic to check if it's
+        // a function or a global variable. In the case of variables, we
+        // have to store the names (potentially in the [`Vm`] struct) and
+        // print it.
+        Instruction::LoadGlobal(index) | Instruction::StoreGlobal(index) => {
+            format!("({})", display_value(&globals[*index], objects))
+        }
+
         Instruction::LoadVar(index) | Instruction::StoreVar(index) => {
-            format!("({})", function.local_var_names[*index])
+            format!(
+                "({})",
+                function
+                    .local_var_names
+                    .get(*index)
+                    .unwrap_or(&"?".to_string())
+            )
+        }
+
+        Instruction::LoadField(index) | Instruction::StoreField(index) => 'field: {
+            // When the compiler calls this, there's no runtime stack so it's
+            // not possible to get instruction parameters from the stack.
+            // TODO: Figure out a way to get this information without running
+            // the VM. When the compiler emits instructions, it could append
+            // some metadata to each one of them, simplifying this code a lot
+            // since the VM at runtime would only have to print the stack. All
+            // instructions with metadata would be provided by the compiler.
+            if stack.is_empty() {
+                break 'field String::new();
+            }
+
+            let Value::Object(reference) = stack[stack.len() - 2] else {
+                break 'field String::from("(ERROR: value not an object)");
+            };
+
+            let Object::Instance(instance) = &objects[reference] else {
+                break 'field String::from("(ERROR: value not an instance)");
+            };
+
+            let Object::Class(class) = &objects[instance.class] else {
+                break 'field String::from("(ERROR: class not found)");
+            };
+
+            format!("({})", class.field_names[*index])
         }
 
         Instruction::Jump(offset) | Instruction::JumpIfFalse(offset) => {
             format!("(to {})", instruction_ptr + offset)
+        }
+
+        // Classes are also globals, we can get the name from there.
+        Instruction::AllocInstance(index) => {
+            format!("({})", display_value(&globals[*index], objects))
         }
 
         Instruction::Pop
@@ -86,7 +123,18 @@ pub fn display_instruction(
 /// `to_string` implementation.
 pub fn display_value(value: &Value, objects: &[Object]) -> String {
     match value {
-        Value::Object(index) => objects[*index].to_string(),
+        Value::Object(index) => match &objects[*index] {
+            // This one's a bit tricky to print.
+            Object::Instance(instance) => match &objects[instance.class] {
+                Object::Class(class) => format!("<{} instance>", class.name),
+                // This will most likely never happen, but we're trying not
+                // to panic.
+                other => format!("<{other} instance>"),
+            },
+
+            other => other.to_string(),
+        },
+
         other => other.to_string(),
     }
 }
@@ -115,7 +163,12 @@ const COLUMN_MARGIN: usize = 3;
 ///
 /// Takes care of calculating how many whitespaces we need to make the table
 /// symmetric and returns the entire table.
-pub fn display_bytecode(function: &Function, objects: &[Object], globals: &[Value]) -> String {
+pub fn display_bytecode(
+    function: &Function,
+    stack: &[Value],
+    objects: &[Object],
+    globals: &[Value],
+) -> String {
     if function.bytecode.instructions.is_empty() {
         return String::new();
     }
@@ -130,7 +183,7 @@ pub fn display_bytecode(function: &Function, objects: &[Object], globals: &[Valu
     // Populate all the rows.
     for instruction_ptr in 0..function.bytecode.instructions.len() {
         let (instruction, metadata) =
-            display_instruction(instruction_ptr as isize, function, objects, globals);
+            display_instruction(instruction_ptr as isize, function, stack, objects, globals);
 
         // Table format is [IP, INSTR, META].
         let row = [instruction_ptr.to_string(), instruction, metadata];

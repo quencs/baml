@@ -51,6 +51,38 @@ impl std::fmt::Display for Function {
     }
 }
 
+/// Runtime class representation.
+#[derive(Clone, Debug)]
+pub struct Class {
+    /// Class name.
+    pub name: String,
+
+    /// Class field names. Debug info, VM doesn't need this.
+    pub field_names: Vec<String>,
+}
+
+impl std::fmt::Display for Class {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<class {}>", self.name)
+    }
+}
+
+/// Runtime instance representation.
+#[derive(Clone, Debug)]
+pub struct Instance {
+    /// Class index in the [`Vm::objects`] pool.
+    pub class: usize,
+
+    /// Fields are accessed by index. No string lookups.
+    pub fields: Vec<Value>,
+}
+
+impl std::fmt::Display for Instance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<instance of {}>", self.class)
+    }
+}
+
 /// Any data that the Baml program can reference and is allocated on heap.
 ///
 /// [`Vm`] should own objects and give references to them to the running Baml
@@ -64,6 +96,12 @@ pub enum Object {
     /// Function object.
     Function(Function),
 
+    /// Class object.
+    Class(Class),
+
+    /// Class instance object.
+    Instance(Instance),
+
     /// Heap allocated string.
     ///
     /// TODO: Add [`Vm::strings`] interner to avoid allocating duplicates.
@@ -76,13 +114,28 @@ pub enum Object {
 
     /// List of values.
     Array(Vec<Value>),
-    // TODO: Add classes, instances, etc.
+}
+
+impl Object {
+    /// Helper to unwrap an [`Object::Function`].
+    ///
+    /// Used to deal with some borrow checker issues in the [`Vm::exec`]
+    /// function.
+    #[inline]
+    pub fn as_function(&self) -> Result<&Function, VmError> {
+        match self {
+            Object::Function(function) => Ok(function),
+            _ => Err(InternalError::InvalidFunctionRef.into()),
+        }
+    }
 }
 
 impl std::fmt::Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Object::Function(function) => function.fmt(f),
+            Object::Class(class) => class.fmt(f),
+            Object::Instance(instance) => instance.fmt(f),
             Object::String(string) => string.fmt(f),
             Object::Array(array) => std::fmt::Debug::fmt(array, f),
         }
@@ -397,10 +450,7 @@ impl Vm {
         //
         // We do run into some issues/boilerplate, take a look at the impl of
         // `Instruction::AllocArray`. We can write a macro or something.
-        let mut function = match &self.objects[frame.function] {
-            Object::Function(f) => f,
-            _ => return Err(InternalError::InvalidFunctionRef.into()),
-        };
+        let mut function = self.objects[frame.function].as_function()?;
 
         loop {
             // Current instruction pointer.
@@ -425,6 +475,7 @@ impl Vm {
                 let (instruction, metadata) = crate::debug::display_instruction(
                     instruction_ptr,
                     function,
+                    &self.stack,
                     &self.objects,
                     &self.globals,
                 );
@@ -444,11 +495,70 @@ impl Vm {
                 }
 
                 Instruction::StoreVar(index) => {
+                    // Consume the value. There are some intricacies when it
+                    // comes to consuming the value or not, mainly, should this
+                    // work?
+                    //
+                    // let a = 1;
+                    // let b = (a = 2);
+                    //
+                    // If yes, then we should not consume the value and emit
+                    // a pop instruction after each semicolon.
+                    let Some(value) = self.stack.pop() else {
+                        return Err(InternalError::UnexpectedEmptyStack.into());
+                    };
+
+                    self.stack[frame.locals_offset + index] = value;
+                }
+
+                Instruction::LoadGlobal(index) => {
+                    let value = &self.globals[index];
+                    self.stack.push(*value);
+                }
+
+                Instruction::StoreGlobal(index) => {
+                    // Consume the value. Read impl of Instruction::StoreVar.
+                    let Some(value) = self.stack.pop() else {
+                        return Err(InternalError::UnexpectedEmptyStack.into());
+                    };
+
+                    self.globals[index] = value;
+                }
+
+                Instruction::LoadField(index) => {
+                    let Some(Value::Object(reference)) = self.stack.pop() else {
+                        panic!("expect object, got {:?}", self.stack[self.stack.len() - 1]);
+                    };
+
+                    let Object::Instance(instance) = &self.objects[reference] else {
+                        panic!("expect instance, got {:?}", self.objects[reference]);
+                    };
+
+                    // Push the value on top of the stack.
+                    self.stack.push(instance.fields[index]);
+                }
+
+                Instruction::StoreField(index) => {
                     let Some(value) = self.stack.last() else {
                         return Err(InternalError::UnexpectedEmptyStack.into());
                     };
 
-                    self.stack[frame.locals_offset + index] = *value;
+                    let Value::Object(reference) = self.stack[self.stack.len() - 2] else {
+                        panic!("expect object, got {:?}", self.stack[self.stack.len() - 2]);
+                    };
+
+                    let Object::Instance(instance) = &mut self.objects[reference] else {
+                        panic!("expect instance, got {:?}", self.objects[reference]);
+                    };
+
+                    // Set the value.
+                    instance.fields[index] = *value;
+
+                    // Consume the value.
+                    self.stack.pop();
+
+                    // TODO: Borrow checker stuff.
+                    function = self.objects[frame.function].as_function()?;
                 }
 
                 Instruction::Pop => {
@@ -483,16 +593,6 @@ impl Vm {
                     None => return Err(InternalError::UnexpectedEmptyStack.into()),
                 },
 
-                Instruction::LoadGlobal(index) => {
-                    let value = &self.globals[index];
-                    self.stack.push(*value);
-                }
-
-                Instruction::StoreGlobal(index) => {
-                    let value = self.stack.last().unwrap();
-                    self.globals[index] = *value;
-                }
-
                 Instruction::AllocArray(size) => {
                     // Pop all the elements from the stack and create an array.
                     let array = self.stack.drain(self.stack.len() - size..).collect();
@@ -500,15 +600,34 @@ impl Vm {
                     // Allocate it on the heap.
                     self.objects.push(Object::Array(array));
 
-                    // objects.push() above might've reallocated the vector so
-                    // borrow checker complains. Restore the reference.
-                    function = match &self.objects[frame.function] {
-                        Object::Function(f) => f,
-                        _ => return Err(InternalError::InvalidFunctionRef.into()),
-                    };
-
                     // Push the array object on top of the stack.
                     self.stack.push(Value::Object(self.objects.len() - 1));
+
+                    // objects.push() above might've reallocated the vector so
+                    // borrow checker complains. Restore the reference.
+                    function = self.objects[frame.function].as_function()?;
+                }
+
+                Instruction::AllocInstance(index) => {
+                    let Object::Class(class) = &self.objects[index] else {
+                        panic!("expect class, got {:?}", self.objects[index]);
+                    };
+
+                    // Allocate the fields.
+                    let mut fields = Vec::with_capacity(class.field_names.len());
+                    fields.resize(class.field_names.len(), Value::Null);
+
+                    // Allocate an instance of the class.
+                    self.objects.push(Object::Instance(Instance {
+                        class: index,
+                        fields,
+                    }));
+
+                    // Push the instance object on top of the stack.
+                    self.stack.push(Value::Object(self.objects.len() - 1));
+
+                    // Same as in the instruction above.
+                    function = self.objects[frame.function].as_function()?;
                 }
 
                 Instruction::Call(arg_count) => {
@@ -569,10 +688,7 @@ impl Vm {
                     // code at the beginning of each iteration since it's
                     // totaly unnecessary. The function only changes when the
                     // frame changes.
-                    function = match &self.objects[frame.function] {
-                        Object::Function(f) => f,
-                        _ => return Err(InternalError::InvalidFunctionRef.into()),
-                    };
+                    function = self.objects[frame.function].as_function()?;
                 }
 
                 Instruction::Return => {
@@ -603,10 +719,7 @@ impl Vm {
                     // Point to the previous frame's function. Read the
                     // implementation of `Instruction::Call` above this one for
                     // more information about this piece.
-                    function = match &self.objects[frame.function] {
-                        Object::Function(f) => f,
-                        _ => return Err(InternalError::InvalidFunctionRef.into()),
-                    };
+                    function = self.objects[frame.function].as_function()?;
                 }
             }
         }
