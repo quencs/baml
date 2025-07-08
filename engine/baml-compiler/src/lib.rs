@@ -306,6 +306,8 @@ impl<'g> Compiler<'g> {
             // TODO: There's room for adding an HIR (High Level IR) here just
             // to desugar stuff like this, but for now we can treat class
             // constructors in the AST as already desugared assignments.
+            //
+            // TODO: Explain what's going on with the spread operator.
             Expression::ClassConstructor(constructor, span) => {
                 self.emit(Instruction::AllocInstance(
                     self.globals[constructor.class_name.name()],
