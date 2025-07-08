@@ -44,6 +44,12 @@ struct Compiler<'g> {
 
     /// Bytecode to generate.
     bytecode: Bytecode,
+
+    /// Objects pool.
+    ///
+    /// Stores heap-allocated objects that are created during compilation,
+    /// such as string constants.
+    objects: &'g mut Vec<Object>,
 }
 
 impl<'g> Compiler<'g> {
@@ -51,12 +57,14 @@ impl<'g> Compiler<'g> {
     pub fn new(
         globals: &'g HashMap<String, usize>,
         classes: &'g HashMap<String, HashMap<String, usize>>,
+        objects: &'g mut Vec<Object>,
     ) -> Self {
         Self {
             globals,
             classes,
             locals: HashMap::new(),
             bytecode: Bytecode::new(),
+            objects,
         }
     }
 
@@ -187,7 +195,15 @@ impl<'g> Compiler<'g> {
                 self.emit(Instruction::LoadConst(index));
             }
 
-            Expression::StringValue(string, _span) => todo!(),
+            Expression::StringValue(string, _span) => {
+                // Allocate the string in the objects pool
+                self.objects.push(Object::String(string.to_string()));
+                let object_index = self.objects.len() - 1;
+
+                // Add a constant that points to the string object
+                let const_index = self.add_constant(Value::Object(object_index));
+                self.emit(Instruction::LoadConst(const_index));
+            }
 
             Expression::RawStringValue(raw_string) => todo!(),
 
@@ -452,8 +468,8 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
     let mut globals = Vec::with_capacity(resolved_globals.len());
 
     for function in ast.walk_expr_fns() {
-        let function =
-            Compiler::new(&resolved_globals, &resolved_classes).compile(function.expr_fn())?;
+        let function = Compiler::new(&resolved_globals, &resolved_classes, &mut objects)
+            .compile(function.expr_fn())?;
 
         // Add the function to the globals and objects pools.
         globals.push(Value::Object(objects.len()));
@@ -680,6 +696,18 @@ mod tests {
                     Instruction::Return,
                 ],
             )],
+        })
+    }
+
+    #[test]
+    fn function_returning_string() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: "
+                fn main() -> string {
+                    \"hello\"
+                }
+            ",
+            expected: vec![("main", vec![Instruction::LoadConst(0), Instruction::Return])],
         })
     }
 }
