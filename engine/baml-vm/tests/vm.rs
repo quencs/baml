@@ -246,3 +246,64 @@ fn class_constructor_with_spread_operator() -> anyhow::Result<()> {
         },
     )
 }
+
+#[test]
+fn function_returning_string() -> anyhow::Result<()> {
+    assert_vm_executes_with_inspection(
+        Program {
+            source: "
+                fn main() -> string {
+                    \"hello\"
+                }
+            ",
+            function: "main",
+            expected: Value::Object(0),
+        },
+        |vm| {
+            let Object::String(string) = &vm.objects[0] else {
+                panic!("expected String, got {:?}", vm.objects[0]);
+            };
+
+            assert_eq!(string, "hello");
+
+            Ok(())
+        },
+    )
+}
+
+#[test]
+fn multiple_strings() -> anyhow::Result<()> {
+    assert_vm_executes_with_inspection(
+        Program {
+            source: "
+                fn get_greeting() -> string {
+                    \"Hello\"
+                }
+                
+                fn main() -> string {
+                    let greeting = get_greeting();
+                    let name = \"World\";
+                    greeting
+                }
+            ",
+            function: "main",
+            expected: Value::Object(0), // "Hello" should be the first string object
+        },
+        |vm| {
+            // Check that we have the expected strings in the objects pool
+            let strings: Vec<&str> = vm
+                .objects
+                .iter()
+                .filter_map(|obj| match obj {
+                    Object::String(s) => Some(s.as_str()),
+                    _ => None,
+                })
+                .collect();
+
+            assert!(strings.contains(&"Hello"));
+            assert!(strings.contains(&"World"));
+
+            Ok(())
+        },
+    )
+}
