@@ -8,6 +8,8 @@
 //!
 //! [HIR]: https://rustc-dev-guide.rust-lang.org/hir.html
 //! [MIR]: https://rustc-dev-guide.rust-lang.org/mir/index.html
+//!
+pub mod hir;
 
 use std::collections::{HashMap, HashSet};
 

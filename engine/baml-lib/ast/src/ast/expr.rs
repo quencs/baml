@@ -5,6 +5,7 @@ use internal_baml_diagnostics::Diagnostics;
 
 use crate::ast::{
     ArgumentsList, BlockArgs, Expression, ExpressionBlock, FieldType, Identifier, Span, Stmt,
+    WithIdentifier, WithSpan,
 };
 
 /// A function definition.
@@ -22,4 +23,16 @@ pub struct ExprFn {
 #[derive(Debug, Clone)]
 pub struct TopLevelAssignment {
     pub stmt: Stmt,
+}
+
+impl WithIdentifier for ExprFn {
+    fn identifier(&self) -> &Identifier {
+        &self.name
+    }
+}
+
+impl WithSpan for ExprFn {
+    fn span(&self) -> &Span {
+        &self.span
+    }
 }

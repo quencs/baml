@@ -925,10 +925,13 @@ name = "baml-compiler"
 version = "0.200.0"
 dependencies = [
  "anyhow",
+ "baml-types",
  "baml-vm",
+ "internal-baml-ast",
  "internal-baml-core",
  "internal-baml-diagnostics",
  "internal-baml-parser-database",
+ "pretty",
 ]
 
 [[package]]
