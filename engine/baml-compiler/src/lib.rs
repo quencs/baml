@@ -12,7 +12,7 @@
 use std::collections::{HashMap, HashSet};
 
 use baml_vm::{Bytecode, Class, Function, FunctionKind, Instruction, Object, Value};
-use internal_baml_core::ast::{self, ClassConstructorField, Expression, WithName};
+use internal_baml_core::ast::{self, ClassConstructorField, Expression, ExpressionBlock, WithName};
 use internal_baml_parser_database::ParserDatabase;
 
 /// Baml compiler.
@@ -42,6 +42,26 @@ struct Compiler<'g> {
     /// Maps the name of the variable to its final index in the eval stack.
     locals: HashMap<String, usize>,
 
+    /// Current scope.
+    ///
+    /// The scope increments with each nested block. Example:
+    ///
+    /// ```ignore
+    /// fn example() {          // Scope is 0.
+    ///     let a = 1;
+    ///     {                   // Scope is 1.
+    ///         let b = 2;
+    ///         {               // Scope is 2.
+    ///             let c  = 3;
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// This is used to keep track of local variables present in the evaluation
+    /// stack.
+    scope: usize,
+
     /// Bytecode to generate.
     bytecode: Bytecode,
 
@@ -62,9 +82,10 @@ impl<'g> Compiler<'g> {
         Self {
             globals,
             classes,
+            objects,
+            scope: 0,
             locals: HashMap::new(),
             bytecode: Bytecode::new(),
-            objects,
         }
     }
 
@@ -78,25 +99,8 @@ impl<'g> Compiler<'g> {
                 .insert(param_name.to_string(), self.locals.len() + 1);
         }
 
-        // Compile expressions and resolve rest of locals.
-        for statement in function.body.stmts.iter() {
-            self.compile_expression(&statement.body);
-
-            let local_index = self.locals.len() + 1;
-
-            // We don't need to emit this because when the expression is
-            // executed and leaves the value on top of the stack, that index in
-            // the stack will be the index of the local variable. It's already
-            // "stored".
-
-            // self.emit(Instruction::StoreVar(local_index));
-
-            self.locals
-                .insert(statement.identifier.to_string(), local_index);
-        }
-
-        // Compile the return expression.
-        self.compile_expression(&function.body.expr);
+        // Expr block.
+        self.compile_expression_block(&function.body);
 
         // Pop off the stack.
         self.emit(Instruction::Return);
@@ -166,6 +170,56 @@ impl<'g> Compiler<'g> {
                 self.bytecode.instructions[instruction_ptr]
             ),
         }
+    }
+
+    /// Compiles [`ExpressionBlock`] instances.
+    ///
+    /// [`ExpressionBlock`] is not a variant of [`Expression`], instead it's
+    /// part of [`ast::ExprFn`] and [`Expression::ExprBlock`], and since
+    /// compilation is recursive it needs it's own separate function.
+    fn compile_expression_block(&mut self, block: &ExpressionBlock) {
+        // Start new scope.
+        self.scope += 1;
+
+        let mut scope_locals = HashSet::new();
+
+        // Compile expressions and resolve rest of locals.
+        for statement in &block.stmts {
+            // Compile the assignment expression.
+            self.compile_expression(&statement.body);
+
+            // Resolve the index of the local variable at runtime.
+            self.locals
+                .insert(statement.identifier.to_string(), self.locals.len() + 1);
+
+            // We'll remove scoped locals so that outer local indexes are not
+            // affected.
+            scope_locals.insert(statement.identifier.name());
+
+            // We don't need to emit Instruction::StoreVar because when the
+            // expression is executed and leaves the value on top of the stack,
+            // that index in the stack will be the index of the local variable.
+            // It's already "stored".
+        }
+
+        // Compile the return expression.
+        self.compile_expression(&block.expr);
+
+        // Scope 1 is the function's body. After that we have subblocks. If
+        // those subblocks contain locals, then we have to pop them from the
+        // stack. Otherwise we do nothing, we simply leave the resulting value
+        // on top of the stack and that will be exactly the slot of the outer
+        // local variable assignment.
+        if self.scope > 1 && !block.stmts.is_empty() {
+            self.emit(Instruction::EndBlock(block.stmts.len()));
+
+            for local in scope_locals {
+                self.locals.remove(local);
+            }
+        }
+
+        // End scope.
+        self.scope -= 1;
     }
 
     /// Generate bytecode for an expression.
@@ -377,7 +431,7 @@ impl<'g> Compiler<'g> {
 
             Expression::JinjaExpressionValue(jinja_expression, span) => todo!(),
 
-            Expression::ExprBlock(expression_block, span) => todo!(),
+            Expression::ExprBlock(block, span) => self.compile_expression_block(block),
 
             // Branching.
             Expression::If(condition, r#if, r#else, _span) => {
@@ -702,12 +756,38 @@ mod tests {
     #[test]
     fn function_returning_string() -> anyhow::Result<()> {
         assert_compiles(Program {
-            source: "
+            source: r#"
                 fn main() -> string {
-                    \"hello\"
+                    "hello"
+                }
+            "#,
+            expected: vec![("main", vec![Instruction::LoadConst(0), Instruction::Return])],
+        })
+    }
+
+    #[test]
+    fn block_expr() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: "
+                fn main() -> int {
+                    let a = {
+                        let b = 1;
+                        b
+                    };
+
+                    a
                 }
             ",
-            expected: vec![("main", vec![Instruction::LoadConst(0), Instruction::Return])],
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(1),
+                    Instruction::EndBlock(1),
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
         })
     }
 }

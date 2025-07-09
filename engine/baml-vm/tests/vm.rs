@@ -275,17 +275,17 @@ fn function_returning_string() -> anyhow::Result<()> {
 fn multiple_strings() -> anyhow::Result<()> {
     assert_vm_executes_with_inspection(
         Program {
-            source: "
+            source: r#"
                 fn get_greeting() -> string {
-                    \"Hello\"
+                    "Hello"
                 }
-                
+
                 fn main() -> string {
                     let greeting = get_greeting();
-                    let name = \"World\";
+                    let name = "World";
                     greeting
                 }
-            ",
+            "#,
             function: "main",
             expected: Value::Object(0), // "Hello" should be the first string object
         },
@@ -306,4 +306,22 @@ fn multiple_strings() -> anyhow::Result<()> {
             Ok(())
         },
     )
+}
+
+#[test]
+fn block_expr() -> anyhow::Result<()> {
+    assert_vm_executes(Program {
+        source: "
+            fn main() -> int {
+                let a = {
+                    let b = 1;
+                    b
+                };
+
+                a
+            }
+        ",
+        function: "main",
+        expected: Value::Int(1),
+    })
 }
