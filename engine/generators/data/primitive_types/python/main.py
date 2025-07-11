@@ -2,6 +2,37 @@ import asyncio
 import sys
 from baml_client import baml
 
+# Test top-level primitive types - these were the actual bug fix
+async def test_top_level_string():
+    print("Testing TestTopLevelString...")
+    result = await baml.TestTopLevelString("test string")
+    
+    assert result == "Hello from BAML!", f"Expected 'Hello from BAML!', got '{result}'"
+    print("✓ TestTopLevelString test passed")
+
+async def test_top_level_int():
+    print("Testing TestTopLevelInt...")
+    result = await baml.TestTopLevelInt("test int")
+    
+    assert result == 42, f"Expected 42, got {result}"
+    print("✓ TestTopLevelInt test passed")
+
+async def test_top_level_float():
+    print("Testing TestTopLevelFloat...")
+    result = await baml.TestTopLevelFloat("test float")
+    
+    assert 3.14 <= result <= 3.15, f"Expected ~3.14159, got {result}"
+    print("✓ TestTopLevelFloat test passed")
+
+async def test_top_level_bool():
+    print("Testing TestTopLevelBool...")
+    result = await baml.TestTopLevelBool("test bool")
+    
+    assert result is True, f"Expected True, got {result}"
+    print("✓ TestTopLevelBool test passed")
+
+# TODO: TestTopLevelNull is not supported yet according to the Go tests
+
 async def test_primitive_types():
     print("Testing PrimitiveTypes...")
     result = await baml.TestPrimitiveTypes("test input")
@@ -76,8 +107,16 @@ async def test_empty_collections():
     print("✓ EmptyCollections test passed")
 
 async def main():
-    # Run all tests in parallel
-    tasks = [
+    # Run top-level primitive tests first (the bug fix)
+    top_level_tests = [
+        test_top_level_string(),
+        test_top_level_int(),
+        test_top_level_float(),
+        test_top_level_bool(),
+    ]
+    
+    # Run all other tests
+    other_tests = [
         test_primitive_types(),
         test_primitive_arrays(),
         test_primitive_maps(),
@@ -86,8 +125,16 @@ async def main():
     ]
     
     try:
-        await asyncio.gather(*tasks)
+        print("🧪 Running top-level primitive type tests (the bug fix)...")
+        await asyncio.gather(*top_level_tests)
+        print("\n✅ Top-level primitive type tests passed!")
+        
+        print("\n🧪 Running other primitive type tests...")
+        await asyncio.gather(*other_tests)
         print("\n✅ All primitive type tests passed!")
+        
+        print("\n🎉 Customer bug fix verified! Top-level primitive types are working correctly.")
+        
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         sys.exit(1)
