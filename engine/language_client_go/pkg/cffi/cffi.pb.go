@@ -74,6 +74,8 @@ type MediaTypeEnum int32
 const (
 	MediaTypeEnum_IMAGE MediaTypeEnum = 0
 	MediaTypeEnum_AUDIO MediaTypeEnum = 1
+	MediaTypeEnum_PDF   MediaTypeEnum = 2
+	MediaTypeEnum_VIDEO MediaTypeEnum = 3
 )
 
 // Enum value maps for MediaTypeEnum.
@@ -81,10 +83,14 @@ var (
 	MediaTypeEnum_name = map[int32]string{
 		0: "IMAGE",
 		1: "AUDIO",
+		2: "PDF",
+		3: "VIDEO",
 	}
 	MediaTypeEnum_value = map[string]int32{
 		"IMAGE": 0,
 		"AUDIO": 1,
+		"PDF":   2,
+		"VIDEO": 3,
 	}
 )
 
@@ -3189,10 +3195,12 @@ const file_types_cffi_proto_rawDesc = "" +
 	"\x05state\x18\x02 \x01(\x0e2\x1a.baml.cffi.CFFIStreamStateR\x05state*0\n" +
 	"\x11CFFITypeNamespace\x12\t\n" +
 	"\x05TYPES\x10\x00\x12\x10\n" +
-	"\fSTREAM_TYPES\x10\x01*%\n" +
+	"\fSTREAM_TYPES\x10\x01*9\n" +
 	"\rMediaTypeEnum\x12\t\n" +
 	"\x05IMAGE\x10\x00\x12\t\n" +
-	"\x05AUDIO\x10\x01*5\n" +
+	"\x05AUDIO\x10\x01\x12\a\n" +
+	"\x03PDF\x10\x02\x12\t\n" +
+	"\x05VIDEO\x10\x03*5\n" +
 	"\x0fCFFIStreamState\x12\v\n" +
 	"\aPENDING\x10\x00\x12\v\n" +
 	"\aSTARTED\x10\x01\x12\b\n" +
