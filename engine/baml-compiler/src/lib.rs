@@ -186,15 +186,15 @@ impl<'g> Compiler<'g> {
         // Compile expressions and resolve rest of locals.
         for statement in &block.stmts {
             // Compile the assignment expression.
-            self.compile_expression(&statement.body);
+            self.compile_expression(&statement.body());
 
             // Resolve the index of the local variable at runtime.
             self.locals
-                .insert(statement.identifier.to_string(), self.locals.len() + 1);
+                .insert(statement.identifier().to_string(), self.locals.len() + 1);
 
             // We'll remove scoped locals so that outer local indexes are not
             // affected.
-            scope_locals.insert(statement.identifier.name());
+            scope_locals.insert(statement.identifier().name());
 
             // We don't need to emit Instruction::StoreVar because when the
             // expression is executed and leaves the value on top of the stack,
@@ -478,13 +478,6 @@ impl<'g> Compiler<'g> {
                 // the simplest possible VM (very limited instructions).
                 self.patch_jump(skip_else);
             }
-
-            Expression::ForLoop {
-                identifier,
-                iterator,
-                body,
-                span,
-            } => todo!(),
         }
     }
 }
