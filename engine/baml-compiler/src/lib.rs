@@ -290,7 +290,15 @@ impl<'g> Compiler<'g> {
                 self.emit(Instruction::AllocArray(expressions.len()));
             }
 
-            Expression::Map(items, _) => todo!(),
+            Expression::Map(items, _) => {
+                // Compile all key-value pairs onto the stack
+                for (key, value) in items {
+                    self.compile_expression(key);
+                    self.compile_expression(value);
+                }
+
+                self.emit(Instruction::AllocMap(items.len()));
+            }
 
             // Some notes on how class constructors work.
             //
@@ -701,6 +709,160 @@ mod tests {
                     Instruction::LoadConst(2),
                     Instruction::AllocArray(3),
                     Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn map_constructor() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn main() -> map<string, int> {
+                    let m = {"a": 1, "b": 2};
+                    m
+                }
+            "#,
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0), // "a"
+                    Instruction::LoadConst(1), // 1
+                    Instruction::LoadConst(2), // "b"
+                    Instruction::LoadConst(3), // 2
+                    Instruction::AllocMap(2),  // Create map with 2 entries
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn map_constructor_with_int_keys() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn main() -> map<int, string> {
+                    let m = {1: "one", 2: "two"};
+                    m
+                }
+            "#,
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0), // 1
+                    Instruction::LoadConst(1), // "one"
+                    Instruction::LoadConst(2), // 2
+                    Instruction::LoadConst(3), // "two"
+                    Instruction::AllocMap(2),  // Create map with 2 entries
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn map_constructor_nested() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn main() -> map<string, map<string, int>> {
+                    let m = {"outer": {"inner": 42}};
+                    m
+                }
+            "#,
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0), // "outer"
+                    Instruction::LoadConst(1), // "inner"
+                    Instruction::LoadConst(2), // 42
+                    Instruction::AllocMap(1),  // Create inner map
+                    Instruction::AllocMap(1),  // Create outer map
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn map_constructor_mixed_types() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn main() -> map<string, int> {
+                    let m = {"key1": 1, "key2": 2, "key3": 3};
+                    m
+                }
+            "#,
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0), // "key1"
+                    Instruction::LoadConst(1), // 1
+                    Instruction::LoadConst(2), // "key2"
+                    Instruction::LoadConst(3), // 2
+                    Instruction::LoadConst(4), // "key3"
+                    Instruction::LoadConst(5), // 3
+                    Instruction::AllocMap(3),  // Create map with 3 entries
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn map_with_enum_and_literal_keys() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                enum MapKey {
+                    A
+                    B
+                    C
+                }
+
+                class Fields {
+                    e map<MapKey, string>
+                    l1 map<"literal", string>
+                    l2 map<"one" | "two" | ("three" | "four"), string>
+                }
+
+                fn main() -> Fields {
+                    let f = Fields {
+                        e: {MapKey::A: "value_a", MapKey::B: "value_b"},
+                        l1: {"literal": "lit_value"},
+                        l2: {"one": "value_one", "three": "value_three"}
+                    };
+                    f
+                }
+            "#,
+            expected: vec![(
+                "main",
+                vec![
+                    // Create Fields instance
+                    Instruction::AllocInstance(1), // Fields class
+                    // Build map for field 'e' (enum keys)
+                    Instruction::LoadGlobal(2), // MapKey::A
+                    Instruction::LoadConst(0),  // "value_a"
+                    Instruction::LoadGlobal(3), // MapKey::B
+                    Instruction::LoadConst(1),  // "value_b"
+                    Instruction::AllocMap(2),   // Create map with 2 entries
+                    Instruction::StoreField(0), // Store in field 'e'
+                    // Build map for field 'l1' (literal key)
+                    Instruction::LoadConst(2),  // "literal"
+                    Instruction::LoadConst(3),  // "lit_value"
+                    Instruction::AllocMap(1),   // Create map with 1 entry
+                    Instruction::StoreField(1), // Store in field 'l1'
+                    // Build map for field 'l2' (union literal keys)
+                    Instruction::LoadConst(4),  // "one"
+                    Instruction::LoadConst(5),  // "value_one"
+                    Instruction::LoadConst(6),  // "three"
+                    Instruction::LoadConst(7),  // "value_three"
+                    Instruction::AllocMap(2),   // Create map with 2 entries
+                    Instruction::StoreField(2), // Store in field 'l2'
+                    Instruction::LoadVar(1),    // Load the Fields instance
                     Instruction::Return,
                 ],
             )],

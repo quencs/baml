@@ -109,6 +109,7 @@ pub fn display_instruction(
 
         Instruction::Pop
         | Instruction::AllocArray(_)
+        | Instruction::AllocMap(_)
         | Instruction::Call(_)
         | Instruction::EndBlock(_)
         | Instruction::Return => String::new(),
@@ -132,6 +133,8 @@ pub fn display_value(value: &Value, objects: &[Object]) -> String {
                 // to panic.
                 other => format!("<{other} instance>"),
             },
+
+            Object::Map(map) => format!("<map with {} entries>", map.len()),
 
             other => other.to_string(),
         },

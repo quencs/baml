@@ -342,8 +342,22 @@ fn parse_map(pair: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<FieldType>
     }
 
     match fields.len() {
-        0 => None, // Invalid: no types specified
-        1 => None, // Invalid: only key type specified
+        0 => {
+            // Invalid: no types specified
+            diagnostics.push_error(DatamodelError::new_validation_error(
+                "Map types must specify both key and value types. Use syntax: map<KeyType, ValueType>",
+                span,
+            ));
+            None
+        }
+        1 => {
+            // Invalid: only key type specified
+            diagnostics.push_error(DatamodelError::new_validation_error(
+                "Map types must specify both key and value types. Use syntax: map<KeyType, ValueType>",
+                span,
+            ));
+            None
+        }
         2 => Some(FieldType::Map(
             arity,                                                  // Whether the map itself is optional
             Box::new((fields[0].to_owned(), fields[1].to_owned())), // Key and value types

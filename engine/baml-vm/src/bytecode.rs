@@ -107,6 +107,13 @@ pub enum Instruction {
     /// [`crate::Vm::objects`] array.
     AllocInstance(usize),
 
+    /// Builds a map and allocates it on the heap.
+    ///
+    /// Format: `ALLOC_MAP n` where `n` is the number of key-value pairs in the
+    /// map. All keys and values must be on the stack in alternating order
+    /// (key1, value1, key2, value2, ...) by the time this instruction is executed.
+    AllocMap(usize),
+
     /// Call a function.
     ///
     /// Format: `CALL n` where `n` is the number of arguments passed to the
@@ -163,6 +170,7 @@ impl std::fmt::Display for Instruction {
             Instruction::JumpIfFalse(o) => write!(f, "JUMP_IF_FALSE {o}"),
             Instruction::AllocArray(n) => write!(f, "ALLOC_ARRAY {n}"),
             Instruction::AllocInstance(i) => write!(f, "ALLOC_INSTANCE {i}"),
+            Instruction::AllocMap(n) => write!(f, "ALLOC_MAP {n}"),
             Instruction::Call(n) => write!(f, "CALL {n}"),
             Instruction::Return => f.write_str("RETURN"),
             Instruction::EndBlock(n) => write!(f, "END_BLOCK {n}"),

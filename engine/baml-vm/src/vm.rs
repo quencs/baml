@@ -1,3 +1,8 @@
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+};
+
 use crate::bytecode::{Bytecode, Instruction};
 
 /// Max call stack size.
@@ -114,6 +119,9 @@ pub enum Object {
 
     /// List of values.
     Array(Vec<Value>),
+
+    /// Map of values to values.
+    Map(HashMap<Value, Value>),
 }
 
 impl Object {
@@ -138,6 +146,7 @@ impl std::fmt::Display for Object {
             Object::Instance(instance) => instance.fmt(f),
             Object::String(string) => string.fmt(f),
             Object::Array(array) => std::fmt::Debug::fmt(array, f),
+            Object::Map(map) => std::fmt::Debug::fmt(map, f),
         }
     }
 }
@@ -168,6 +177,33 @@ impl std::fmt::Display for Value {
             Value::Float(float) => write!(f, "{float}"),
             Value::Bool(bool) => write!(f, "{bool}"),
             Value::Object(object) => write!(f, "{object}"),
+        }
+    }
+}
+
+impl Eq for Value {}
+
+impl Hash for Value {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Value::Null => 0.hash(state),
+            Value::Int(i) => {
+                1.hash(state);
+                i.hash(state);
+            }
+            Value::Float(f) => {
+                2.hash(state);
+                // For floats, we use the bit representation to ensure consistent hashing
+                f.to_bits().hash(state);
+            }
+            Value::Bool(b) => {
+                3.hash(state);
+                b.hash(state);
+            }
+            Value::Object(idx) => {
+                4.hash(state);
+                idx.hash(state);
+            }
         }
     }
 }
@@ -627,6 +663,36 @@ impl Vm {
                     self.stack.push(Value::Object(self.objects.len() - 1));
 
                     // Same as in the instruction above.
+                    function = self.objects[frame.function].as_function()?;
+                }
+
+                Instruction::AllocMap(size) => {
+                    // Maps expect key-value pairs on the stack in alternating order
+                    if size * 2 > self.stack.len() {
+                        return Err(InternalError::UnexpectedEmptyStack.into());
+                    }
+
+                    let mut map = HashMap::with_capacity(size);
+
+                    // Pop key-value pairs from the stack
+                    let start_index = self.stack.len() - size * 2;
+                    for i in (0..size * 2).step_by(2) {
+                        let key = self.stack[start_index + i];
+                        let value = self.stack[start_index + i + 1];
+
+                        map.insert(key, value);
+                    }
+
+                    // Remove the key-value pairs from the stack
+                    self.stack.drain(start_index..);
+
+                    // Allocate the map on the heap
+                    self.objects.push(Object::Map(map));
+
+                    // Push the map object on top of the stack
+                    self.stack.push(Value::Object(self.objects.len() - 1));
+
+                    // Restore the function reference
                     function = self.objects[frame.function].as_function()?;
                 }
 
