@@ -788,6 +788,14 @@ mod tests {
         })
     }
 
+    // TODO: Given the way local variables are handled, the debugger can't
+    // correctly print the names of nested variables inside block expressions.
+    // In this example here, LoadVar(1) corresponds to "b" while the nested
+    // block is executing and after that LoadVar(1) corresponds to "a". But
+    // the debugger always prints "a". Desugaring this to temporary variables
+    // might help, but since we found a way to avoid temporary variables for
+    // block expressions, we should find a way to correctly determine the
+    // names of the variables according to their stack semantics.
     #[test]
     fn block_expr() -> anyhow::Result<()> {
         assert_compiles(Program {
