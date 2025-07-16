@@ -22,6 +22,10 @@
 //!
 //! ```
 
+use std::io::IsTerminal;
+
+use colored::*;
+
 use crate::{Function, Instruction, Object, Value};
 
 /// Context aware instruction display.
@@ -145,6 +149,24 @@ pub fn display_value(value: &Value, objects: &[Object]) -> String {
 /// See [`display_bytecode`] for more information.
 const COLUMN_MARGIN: usize = 3;
 
+/// Get color for instruction based on its type
+fn get_instruction_color(instruction: &Instruction) -> Color {
+    match instruction {
+        Instruction::LoadConst(_)
+        | Instruction::LoadVar(_)
+        | Instruction::LoadGlobal(_)
+        | Instruction::LoadField(_) => Color::Blue,
+        Instruction::StoreVar(_) | Instruction::StoreGlobal(_) | Instruction::StoreField(_) => {
+            Color::Green
+        }
+        Instruction::Jump(_) | Instruction::JumpIfFalse(_) => Color::Yellow,
+        Instruction::Call(_) => Color::Magenta,
+        Instruction::Return => Color::Red,
+        Instruction::AllocInstance(_) | Instruction::AllocArray(_) => Color::Cyan,
+        Instruction::Pop | Instruction::EndBlock(_) => Color::BrightBlack,
+    }
+}
+
 /// Print the bytecode of a function in a readable table format.
 ///
 /// Format is [LINE, IP, INSTRUCTION, METADATA]. Something like this:
@@ -181,6 +203,8 @@ pub fn display_bytecode(
     let mut chars_count = Vec::new();
     // Max width of each column. [usize, usize, usize, usize]
     let mut widths = [0; 4];
+    // Store instruction colors for each row
+    let mut row_colors = Vec::new();
 
     // Track the last line number we printed
     let mut last_line: usize = 0;
@@ -224,12 +248,18 @@ pub fn display_bytecode(
 
         rows.push(row);
         chars_count.push(char_count);
+        row_colors.push(get_instruction_color(
+            &function.bytecode.instructions[instruction_ptr],
+        ));
     }
 
     let mut table = String::new();
 
+    // Check if stdout is a TTY to determine whether to use colors
+    let use_colors = std::io::stdout().is_terminal();
+
     // Print the table.
-    for (row, char_count) in rows.iter().zip(chars_count) {
+    for ((row, char_count), color) in rows.iter().zip(chars_count).zip(row_colors) {
         for (i, col) in row.iter().enumerate() {
             let mut width = widths[i];
 
@@ -240,9 +270,22 @@ pub fn display_bytecode(
                 width = 0;
             }
 
-            // Trick to avoid allocating unnecessary strings with format!().
-            // Just use the table buffer directly.
-            table.push_str(col);
+            // Apply color based on column, only if output is to a TTY
+            let colored_text = if use_colors {
+                match i {
+                    0 => col.bright_black().to_string(),      // Line numbers in gray
+                    1 => col.white().to_string(),             // IP in white
+                    2 => col.color(color).bold().to_string(), // Instruction with type-based color
+                    3 => col.bright_cyan().to_string(),       // Metadata in cyan
+                    _ => col.to_string(),
+                }
+            } else {
+                col.to_string() // No colors when not writing to TTY
+            };
+
+            // For colored strings, we need to use the actual character count
+            // not the length with ANSI codes
+            table.push_str(&colored_text);
             for _ in char_count[i]..width {
                 table.push(' ');
             }
