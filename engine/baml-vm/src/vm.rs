@@ -122,6 +122,9 @@ pub enum Object {
 
     /// Map of values to values.
     Map(HashMap<Value, Value>),
+
+    /// Iterator over an array (array for now).
+    Iterator { iterable: usize, index: usize },
 }
 
 impl Object {
@@ -147,6 +150,9 @@ impl std::fmt::Display for Object {
             Object::String(string) => string.fmt(f),
             Object::Array(array) => std::fmt::Debug::fmt(array, f),
             Object::Map(map) => std::fmt::Debug::fmt(map, f),
+            Object::Iterator { iterable, index } => {
+                write!(f, "<iterator iterable={iterable} index={index}>")
+            }
         }
     }
 }
@@ -601,6 +607,18 @@ impl Vm {
                     self.stack.pop();
                 }
 
+                Instruction::EndBlock(n) => {
+                    let Some(value) = self.stack.pop() else {
+                        return Err(InternalError::UnexpectedEmptyStack.into());
+                    };
+
+                    // Pop the last `n` locals from the stack.
+                    self.stack.drain(self.stack.len() - n..).for_each(drop);
+
+                    // Push the value back on top of the stack.
+                    self.stack.push(value);
+                }
+
                 Instruction::Jump(offset) => {
                     // Reassign the frame's IP to the new instruction.
                     // Remember that offset can be negative here, so even though
@@ -696,16 +714,116 @@ impl Vm {
                     function = self.objects[frame.function].as_function()?;
                 }
 
-                Instruction::EndBlock(n) => {
-                    let Some(value) = self.stack.pop() else {
+                Instruction::AllocMap(size) => {
+                    // Maps expect key-value pairs on the stack in alternating order
+                    if size * 2 > self.stack.len() {
+                        return Err(InternalError::UnexpectedEmptyStack.into());
+                    }
+
+                    let mut map = HashMap::with_capacity(size);
+
+                    // Pop key-value pairs from the stack
+                    let start_index = self.stack.len() - size * 2;
+                    for i in (0..size * 2).step_by(2) {
+                        let key = self.stack[start_index + i];
+                        let value = self.stack[start_index + i + 1];
+
+                        map.insert(key, value);
+                    }
+
+                    // Remove the key-value pairs from the stack
+                    self.stack.drain(start_index..);
+
+                    // Allocate the map on the heap
+                    self.objects.push(Object::Map(map));
+
+                    // Push the map object on top of the stack
+                    self.stack.push(Value::Object(self.objects.len() - 1));
+
+                    // Restore the function reference
+                    function = self.objects[frame.function].as_function()?;
+                }
+
+                Instruction::CreateIterator => {
+                    // Pop the array from the stack
+                    let Some(Value::Object(array_index)) = self.stack.pop() else {
                         return Err(InternalError::UnexpectedEmptyStack.into());
                     };
 
-                    // Pop the last `n` locals from the stack.
-                    self.stack.drain(self.stack.len() - n..).for_each(drop);
+                    // Verify it's an array
+                    let Object::Array(_) = &self.objects[array_index] else {
+                        return Err(VmError::from(InternalError::TypeError {
+                            expected: Type::Object,
+                            got: Type::Object,
+                        }));
+                    };
 
-                    // Push the value back on top of the stack.
-                    self.stack.push(value);
+                    // Create the iterator
+                    self.objects.push(Object::Iterator {
+                        iterable: array_index,
+                        index: 0,
+                    });
+
+                    // Push the iterator on the stack
+                    self.stack.push(Value::Object(self.objects.len() - 1));
+
+                    // Restore function reference
+                    function = self.objects[frame.function].as_function()?;
+                }
+
+                Instruction::IterNext => {
+                    // Pop the iterator from the stack
+                    let Some(Value::Object(iterator_index)) = self.stack.pop() else {
+                        return Err(InternalError::UnexpectedEmptyStack.into());
+                    };
+
+                    let (array_index, current_index) = match &self.objects[iterator_index] {
+                        Object::Iterator {
+                            iterable: array,
+                            index,
+                        } => (*array, *index),
+                        _ => {
+                            return Err(VmError::from(InternalError::TypeError {
+                                expected: Type::Object,
+                                got: Type::Object,
+                            }))
+                        }
+                    };
+
+                    // Get the element from the array
+                    let (element, has_next) = match &self.objects[array_index] {
+                        Object::Array(array) => {
+                            if current_index < array.len() {
+                                let element = array[current_index];
+                                let has_next = (current_index + 1) < array.len();
+                                (element, has_next)
+                            } else {
+                                (Value::Null, false)
+                            }
+                        }
+                        _ => {
+                            return Err(VmError::from(InternalError::TypeError {
+                                expected: Type::Object,
+                                got: Type::Object,
+                            }))
+                        }
+                    };
+
+                    // Now update the iterator index
+                    match &mut self.objects[iterator_index] {
+                        Object::Iterator { index, .. } => {
+                            *index += 1;
+                        }
+                        _ => unreachable!(), // We already checked this above
+                    };
+
+                    // Push iterator back, then element, then has_next
+                    self.stack.push(Value::Object(iterator_index));
+                    self.stack.push(element);
+                    self.stack.push(Value::Bool(has_next));
+
+                    // Restore function reference
+                    function = self.objects[frame.function].as_function()?;
                 }
 
                 Instruction::Call(arg_count) => {
