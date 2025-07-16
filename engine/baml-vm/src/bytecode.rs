@@ -132,15 +132,6 @@ pub enum Instruction {
     /// [`crate::Vm::objects`] array.
     AllocInstance(usize),
 
-    /// Call a function.
-    ///
-    /// Format: `CALL n` where `n` is the number of arguments passed to the
-    /// function.
-    ///
-    /// Arguments are pushed onto the eval stack and the name of the function
-    /// is right below them.
-    Call(usize),
-
     /// Create an iterator from an array.
     ///
     /// Format: `CREATE_ITERATOR` - pops an array from the stack and pushes an iterator.
@@ -155,6 +146,15 @@ pub enum Instruction {
     /// Stack after: [iterator, element, has_next]
     /// TODO(Rahul): Check with Antonio, if this insn is complex than needed.
     IterNext,
+
+    /// Call a function.
+    ///
+    /// Format: `CALL n` where `n` is the number of arguments passed to the
+    /// function.
+    ///
+    /// Arguments are pushed onto the eval stack and the name of the function
+    /// is right below them.
+    Call(usize),
 
     /// Return from a function.
     ///
