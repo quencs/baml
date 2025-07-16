@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 
 // Vertex AI response format (very similar to Google AI but with some differences)
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
