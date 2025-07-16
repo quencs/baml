@@ -81,6 +81,31 @@ pub enum Instruction {
     /// Pop the top of [`crate::Vm::stack`] (the evaluation stack).
     Pop,
 
+    /// End a nested block.
+    ///
+    /// Format: `END_BLOCK n` where `n` is the number of locals in the block's
+    /// scope.
+    ///
+    /// This is instruction is necessary to support "blocks as expressions".
+    /// Example:
+    ///
+    /// ```ignore
+    /// fn main() {
+    ///     let a = {
+    ///         let b = 1;
+    ///         b
+    ///     };
+    /// }
+    /// ```
+    ///
+    /// Technicaly we could emit [`Instruction::StoreVar`] to store the block in
+    /// `a` and then emit one [`Instruction::Pop`] for each scoped local. But
+    /// if we have many locals we would need a specialized `POP_N` instruction
+    /// that pops more than one local in once VM cycle, so since we need a new
+    /// instruction anyway we'll just use this one that is similar to
+    /// [`Instruction::Return`] but for scoped blocks.
+    EndBlock(usize),
+
     /// Jump to another instruction.
     ///
     /// Format: `JUMP o` where `o` is the offset from the current instruction
@@ -116,12 +141,6 @@ pub enum Instruction {
     /// is right below them.
     Call(usize),
 
-    /// Return from a function.
-    ///
-    /// No arguments needed, result is stored in the eval stack and the VM
-    /// simply has to clean up the call stack and continue execution.
-    Return,
-
     /// Create an iterator from an array.
     ///
     /// Format: `CREATE_ITERATOR` - pops an array from the stack and pushes an iterator.
@@ -137,30 +156,11 @@ pub enum Instruction {
     /// TODO(Rahul): Check with Antonio, if this insn is complex than needed.
     IterNext,
 
-    /// End a nested block.
+    /// Return from a function.
     ///
-    /// Format: `END_BLOCK n` where `n` is the number of locals in the block's
-    /// scope.
-    ///
-    /// This is instruction is necessary to support "blocks as expressions".
-    /// Example:
-    ///
-    /// ```ignore
-    /// fn main() {
-    ///     let a = {
-    ///         let b = 1;
-    ///         b
-    ///     };
-    /// }
-    /// ```
-    ///
-    /// Technicaly we could emit [`Instruction::StoreVar`] to store the block in
-    /// `a` and then emit one [`Instruction::Pop`] for each scoped local. But
-    /// if we have many locals we would need a specialized `POP_N` instruction
-    /// that pops more than one local in once VM cycle, so since we need a new
-    /// instruction anyway we'll just use this one that is similar to
-    /// [`Instruction::Return`] but for scoped blocks.
-    EndBlock(usize),
+    /// No arguments needed, result is stored in the eval stack and the VM
+    /// simply has to clean up the call stack and continue execution.
+    Return,
 }
 
 impl std::fmt::Display for Instruction {
@@ -174,15 +174,15 @@ impl std::fmt::Display for Instruction {
             Instruction::LoadField(i) => write!(f, "LOAD_FIELD {i}"),
             Instruction::StoreField(i) => write!(f, "STORE_FIELD {i}"),
             Instruction::Pop => f.write_str("POP"),
+            Instruction::EndBlock(n) => write!(f, "END_BLOCK {n}"),
             Instruction::Jump(o) => write!(f, "JUMP {o}"),
             Instruction::JumpIfFalse(o) => write!(f, "JUMP_IF_FALSE {o}"),
             Instruction::AllocArray(n) => write!(f, "ALLOC_ARRAY {n}"),
             Instruction::AllocInstance(i) => write!(f, "ALLOC_INSTANCE {i}"),
-            Instruction::Call(n) => write!(f, "CALL {n}"),
-            Instruction::Return => f.write_str("RETURN"),
             Instruction::CreateIterator => f.write_str("CREATE_ITERATOR"),
             Instruction::IterNext => f.write_str("ITER_NEXT"),
-            Instruction::EndBlock(n) => write!(f, "END_BLOCK {n}"),
+            Instruction::Call(n) => write!(f, "CALL {n}"),
+            Instruction::Return => f.write_str("RETURN"),
         }
     }
 }
