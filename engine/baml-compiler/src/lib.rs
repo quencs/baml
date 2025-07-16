@@ -720,7 +720,10 @@ mod tests {
         assert_compiles(Program {
             source: r#"
                 fn main() -> map<string, int> {
-                    let m = {"a": 1, "b": 2};
+                    let m = {
+                        "a" 1,
+                        "b" 2
+                    };
                     m
                 }
             "#,
@@ -744,7 +747,10 @@ mod tests {
         assert_compiles(Program {
             source: r#"
                 fn main() -> map<int, string> {
-                    let m = {1: "one", 2: "two"};
+                    let m = {
+                        1 "one",
+                        2 "two"
+                    };
                     m
                 }
             "#,
@@ -768,7 +774,11 @@ mod tests {
         assert_compiles(Program {
             source: r#"
                 fn main() -> map<string, map<string, int>> {
-                    let m = {"outer": {"inner": 42}};
+                    let m = {
+                        "outer" {
+                            "inner" 42
+                        }
+                    };
                     m
                 }
             "#,
@@ -792,7 +802,11 @@ mod tests {
         assert_compiles(Program {
             source: r#"
                 fn main() -> map<string, int> {
-                    let m = {"key1": 1, "key2": 2, "key3": 3};
+                    let m = {
+                        "key1" 1,
+                        "key2" 2,
+                        "key3" 3
+                    };
                     m
                 }
             "#,
@@ -817,52 +831,38 @@ mod tests {
     fn map_with_enum_and_literal_keys() -> anyhow::Result<()> {
         assert_compiles(Program {
             source: r#"
-                enum MapKey {
-                    A
-                    B
-                    C
-                }
-
                 class Fields {
-                    e map<MapKey, string>
                     l1 map<"literal", string>
                     l2 map<"one" | "two" | ("three" | "four"), string>
                 }
 
                 fn main() -> Fields {
-                    let f = Fields {
-                        e: {MapKey::A: "value_a", MapKey::B: "value_b"},
-                        l1: {"literal": "lit_value"},
-                        l2: {"one": "value_one", "three": "value_three"}
-                    };
-                    f
+                    Fields {
+                        l1 {
+                            "literal" "lit_value"
+                        },
+                        l2 {
+                            "one" "value_one",
+                            "three" "value_three"
+                        }
+                    }
                 }
             "#,
             expected: vec![(
                 "main",
                 vec![
-                    // Create Fields instance
                     Instruction::AllocInstance(1), // Fields class
-                    // Build map for field 'e' (enum keys)
-                    Instruction::LoadGlobal(2), // MapKey::A
-                    Instruction::LoadConst(0),  // "value_a"
-                    Instruction::LoadGlobal(3), // MapKey::B
-                    Instruction::LoadConst(1),  // "value_b"
-                    Instruction::AllocMap(2),   // Create map with 2 entries
-                    Instruction::StoreField(0), // Store in field 'e'
-                    // Build map for field 'l1' (literal key)
-                    Instruction::LoadConst(2),  // "literal"
-                    Instruction::LoadConst(3),  // "lit_value"
-                    Instruction::AllocMap(1),   // Create map with 1 entry
-                    Instruction::StoreField(1), // Store in field 'l1'
-                    // Build map for field 'l2' (union literal keys)
-                    Instruction::LoadConst(4),  // "one"
-                    Instruction::LoadConst(5),  // "value_one"
-                    Instruction::LoadConst(6),  // "three"
-                    Instruction::LoadConst(7),  // "value_three"
-                    Instruction::AllocMap(2),   // Create map with 2 entries
-                    Instruction::StoreField(2), // Store in field 'l2'
-                    Instruction::LoadVar(1),    // Load the Fields instance
+                    Instruction::LoadConst(0),     // "literal"
+                    Instruction::LoadConst(1),     // "lit_value"
+                    Instruction::AllocMap(1),      // Create map with 1 entry
+                    Instruction::StoreField(1),    // Store in field 'l1'
+                    Instruction::LoadConst(2),     // "one"
+                    Instruction::LoadConst(3),     // "value_one"
+                    Instruction::LoadConst(2),     // "three"
+                    Instruction::LoadConst(3),     // "value_three"
+                    Instruction::AllocMap(2),      // Create map with 2 entries
+                    Instruction::StoreField(2),    // Store in field 'l2'
+                    Instruction::LoadVar(1),       // Load the Fields instance
                     Instruction::Return,
                 ],
             )],

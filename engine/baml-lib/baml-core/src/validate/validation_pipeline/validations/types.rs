@@ -58,6 +58,15 @@ fn validate_type_allowed(ctx: &mut Context<'_>, field_type: &FieldType) {
                 // String key.
                 FieldType::Primitive(FieldArity::Required, TypeValue::String, ..) => {}
 
+                // Int key.
+                FieldType::Primitive(FieldArity::Required, TypeValue::Int, ..) => {}
+
+                // Float key.
+                FieldType::Primitive(FieldArity::Required, TypeValue::Float, ..) => {}
+
+                // Bool key.
+                FieldType::Primitive(FieldArity::Required, TypeValue::Bool, ..) => {}
+
                 // Enum key.
                 FieldType::Symbol(FieldArity::Required, identifier, _)
                     if ctx
@@ -67,6 +76,12 @@ fn validate_type_allowed(ctx: &mut Context<'_>, field_type: &FieldType) {
 
                 // Literal string key.
                 FieldType::Literal(FieldArity::Required, LiteralValue::String(_), ..) => {}
+
+                // Literal int key.
+                FieldType::Literal(FieldArity::Required, LiteralValue::Int(_), ..) => {}
+
+                // Literal bool key.
+                FieldType::Literal(FieldArity::Required, LiteralValue::Bool(_), ..) => {}
 
                 // Literal string union.
                 FieldType::Union(FieldArity::Required, items, ..) => {
@@ -80,6 +95,12 @@ fn validate_type_allowed(ctx: &mut Context<'_>, field_type: &FieldType) {
                                 LiteralValue::String(_),
                                 ..,
                             ) => {}
+
+                            // Ok, literal int.
+                            FieldType::Literal(FieldArity::Required, LiteralValue::Int(_), ..) => {}
+                            // Ok, literal bool.
+                            FieldType::Literal(FieldArity::Required, LiteralValue::Bool(_), ..) => {
+                            }
 
                             // Nested union, "recurse" but it's iterative.
                             FieldType::Union(FieldArity::Required, nested, ..) => {
