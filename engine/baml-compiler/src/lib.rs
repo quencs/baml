@@ -196,23 +196,88 @@ impl<'g> Compiler<'g> {
 
         let mut scope_locals = HashSet::new();
 
-        // Compile expressions and resolve rest of locals.
+        // Compile statements and resolve locals.
         for statement in &block.stmts {
-            // Compile the assignment expression.
-            self.compile_expression(&statement.body());
+            match statement {
+                ast::Stmt::Let(stmt) => {
+                    // Compile the assignment expression.
+                    self.compile_expression(&stmt.expr);
 
-            // Resolve the index of the local variable at runtime.
-            self.locals
-                .insert(statement.identifier().to_string(), self.locals.len() + 1);
+                    // Resolve the index of the local variable at runtime.
+                    self.locals
+                        .insert(statement.identifier().to_string(), self.locals.len() + 1);
 
-            // We'll remove scoped locals so that outer local indexes are not
-            // affected.
-            scope_locals.insert(statement.identifier().name());
+                    // We'll remove scoped locals so that outer local indexes are not
+                    // affected.
+                    scope_locals.insert(stmt.identifier.name());
 
-            // We don't need to emit Instruction::StoreVar because when the
-            // expression is executed and leaves the value on top of the stack,
-            // that index in the stack will be the index of the local variable.
-            // It's already "stored".
+                    // We don't need to emit Instruction::StoreVar because when the
+                    // expression is executed and leaves the value on top of the stack,
+                    // that index in the stack will be the index of the local variable.
+                    // It's already "stored".
+                }
+                ast::Stmt::ForLoop(stmt) => {
+                    // Compile the iterator expression (array) - leaves array on stack
+                    self.compile_expression(&stmt.iterator);
+
+                    // Create iterator from array - replaces array with iterator on stack
+                    self.emit(Instruction::CreateIterator);
+
+                    // Loop start - iterator is on top of stack
+                    let loop_start = self.bytecode.instructions.len();
+
+                    // Get next element - pops iterator, pushes iterator, element, has_next
+                    self.emit(Instruction::IterNext);
+
+                    // Check if we have more elements (has_next is on top of stack)
+                    let jump_to_end = self.emit(Instruction::JumpIfFalse(0));
+
+                    // Pop the has_next boolean
+                    self.emit(Instruction::Pop);
+
+                    // Now we have: [function, args..., locals..., iterator, element] on stack
+                    // The element is what we want for the loop variable.
+                    // The element is always 2 positions after the last local
+                    // (iterator is at last_local + 1, element is at last_local + 2)
+                    let last_local_index = self.locals.values().max().copied().unwrap_or(0);
+                    let item_local = last_local_index + 2;
+                    self.locals
+                        .insert(statement.identifier().name().to_string(), item_local);
+
+                    // Compile the loop body (nested expression block)
+                    self.compile_expression_block(&stmt.body);
+
+                    // Pop the body result
+                    self.emit(Instruction::Pop);
+
+                    // Pop the element since we're done with it for this iteration
+                    self.emit(Instruction::Pop);
+
+                    // Now iterator is back on top of stack. Jump back to loop start.
+                    let current_pos = self.bytecode.instructions.len();
+                    self.emit(Instruction::Jump(
+                        (loop_start as isize) - (current_pos as isize),
+                    ));
+
+                    // Patch the jump to end - this is where we land when has_next is false
+                    self.patch_jump(jump_to_end);
+
+                    // Clean up remaining stack values
+                    self.emit(Instruction::Pop); // Pop has_next boolean
+                    self.emit(Instruction::Pop); // Pop element
+                    self.emit(Instruction::Pop); // Pop iterator
+
+                    // Remove the loop variable from locals since it's no longer in scope
+                    self.locals.remove(stmt.identifier.name());
+
+                    // Push null as the for loop result
+                    let null_index = self.add_constant(Value::Null);
+                    self.emit(Instruction::LoadConst(null_index));
+
+                    // Track this as a local so it gets cleaned up in EndBlock
+                    scope_locals.insert(stmt.identifier.name());
+                }
+            }
         }
 
         // Compile the return expression.
@@ -770,6 +835,44 @@ mod tests {
                     Instruction::LoadField(2),
                     Instruction::StoreField(2),
                     Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn for_loop() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: "
+                fn main() -> int {
+                    for (i in [1, 2, 3]) {
+                        i
+                    }
+
+                    42
+                }
+            ",
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadConst(1),
+                    Instruction::LoadConst(2),
+                    Instruction::AllocArray(3),
+                    Instruction::CreateIterator,
+                    Instruction::IterNext,
+                    Instruction::JumpIfFalse(6),
+                    Instruction::Pop,
+                    Instruction::LoadVar(2),
+                    Instruction::Pop,
+                    Instruction::Pop,
+                    Instruction::Jump(-6),
+                    Instruction::Pop,
+                    Instruction::Pop,
+                    Instruction::Pop,
+                    Instruction::LoadConst(3),
+                    Instruction::LoadConst(4),
                     Instruction::Return,
                 ],
             )],
