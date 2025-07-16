@@ -155,6 +155,9 @@ fn parse_map_entry(
         match current.as_rule() {
             Rule::map_key => key = Some(parse_map_key(current, diagnostics)),
             Rule::expression => value = parse_expression(current, diagnostics),
+            Rule::separator => {
+                // Separator is optional, so we just ignore it
+            }
             Rule::ENTRY_CATCH_ALL => {
                 diagnostics.push_error(
                     internal_baml_diagnostics::DatamodelError::new_validation_error(
@@ -417,6 +420,25 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_map() {
+        let input = "{\"foo\": 1, \"bar\": 2}";
+        let root_path = "test_file.baml";
+        let source = SourceFile::new_static(root_path.into(), input);
+        let mut diagnostics = Diagnostics::new(root_path.into());
+        diagnostics.set_source(&source);
+
+        let pair = BAMLParser::parse(Rule::map_expression, input)
+            .unwrap()
+            .next()
+            .unwrap();
+        let expr = parse_map(pair, &mut diagnostics);
+        match expr {
+            Expression::Map(entries, _) => assert_eq!(entries.len(), 2),
+            _ => panic!("Expected Map, got {expr:?}"),
+        }
+    }
+
+    #[test]
     fn test_parse_jinja_expression() {
         let input = "{{ 1 + 1 }}";
         let root_path = "test_file.baml";
@@ -432,6 +454,47 @@ mod tests {
         match expr {
             Expression::JinjaExpressionValue(JinjaExpression(s), _) => assert_eq!(s, "1 + 1"),
             _ => panic!("Expected JinjaExpression, got {expr:?}"),
+        }
+    }
+
+    #[test]
+    fn test_parse_map_without_colons() {
+        let input = "{foo 1, bar 2}";
+        let root_path = "test_file.baml";
+        let source = SourceFile::new_static(root_path.into(), input);
+        let mut diagnostics = Diagnostics::new(root_path.into());
+        diagnostics.set_source(&source);
+
+        let pair = BAMLParser::parse(Rule::map_expression, input)
+            .unwrap()
+            .next()
+            .unwrap();
+        let expr = parse_map(pair, &mut diagnostics);
+        match expr {
+            Expression::Map(entries, _) => assert_eq!(entries.len(), 2),
+            _ => panic!("Expected Map, got {expr:?}"),
+        }
+    }
+
+    #[test]
+    fn test_parse_map_multiline_without_colons() {
+        let input = r#"{
+    foo 1
+    bar 2
+}"#;
+        let root_path = "test_file.baml";
+        let source = SourceFile::new_static(root_path.into(), input);
+        let mut diagnostics = Diagnostics::new(root_path.into());
+        diagnostics.set_source(&source);
+
+        let pair = BAMLParser::parse(Rule::map_expression, input)
+            .unwrap()
+            .next()
+            .unwrap();
+        let expr = parse_map(pair, &mut diagnostics);
+        match expr {
+            Expression::Map(entries, _) => assert_eq!(entries.len(), 2),
+            _ => panic!("Expected Map, got {expr:?}"),
         }
     }
 }
