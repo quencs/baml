@@ -155,8 +155,8 @@ fn parse_map_entry(
         match current.as_rule() {
             Rule::map_key => key = Some(parse_map_key(current, diagnostics)),
             Rule::expression => value = parse_expression(current, diagnostics),
-            Rule::separator => {
-                // Separator is optional, so we just ignore it
+            Rule::COLON => {
+                // colon is optional, so we just ignore it
             }
             Rule::ENTRY_CATCH_ALL => {
                 diagnostics.push_error(
