@@ -386,8 +386,23 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     Some(TypeIR::union(item_types))
                 };
 
-                // TODO: Is this correct?
-                let key_type = TypeIR::string();
+                // Determine key type from the actual key expressions
+                let key_types = vals
+                    .iter()
+                    .filter_map(|(k, _)| match k {
+                        ast::Expression::StringValue(s, _) => {
+                            Some(TypeIR::literal_string(s.clone()))
+                        }
+                        _ => Some(TypeIR::string()),
+                    })
+                    .collect::<Vec<_>>();
+
+                let key_type = if key_types.is_empty() {
+                    TypeIR::string()
+                } else {
+                    TypeIR::union(key_types)
+                };
+
                 let map_type = item_type.map(|t| TypeIR::map(key_type, t));
                 Ok(Expr::Map(new_items, (span.clone(), map_type)))
             }

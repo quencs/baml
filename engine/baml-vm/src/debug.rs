@@ -189,6 +189,7 @@ fn instruction_color(instruction: &Instruction) -> Color {
         // Alloc instructions.
         Instruction::AllocInstance(_)
         | Instruction::AllocArray(_)
+        | Instruction::AllocMap(_)
         | Instruction::CreateIterator => Color::Cyan,
 
         // Pop from stack instructions.

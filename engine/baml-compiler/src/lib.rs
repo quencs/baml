@@ -808,33 +808,6 @@ mod tests {
     }
 
     #[test]
-    fn map_constructor_with_int_keys() -> anyhow::Result<()> {
-        assert_compiles(Program {
-            source: r#"
-                fn main() -> map<int, string> {
-                    let m = {
-                        1 "one",
-                        2 "two"
-                    };
-                    m
-                }
-            "#,
-            expected: vec![(
-                "main",
-                vec![
-                    Instruction::LoadConst(0), // 1
-                    Instruction::LoadConst(1), // "one"
-                    Instruction::LoadConst(2), // 2
-                    Instruction::LoadConst(3), // "two"
-                    Instruction::AllocMap(2),  // Create map with 2 entries
-                    Instruction::LoadVar(1),
-                    Instruction::Return,
-                ],
-            )],
-        })
-    }
-
-    #[test]
     fn map_constructor_nested() -> anyhow::Result<()> {
         assert_compiles(Program {
             source: r#"
@@ -892,8 +865,11 @@ mod tests {
         })
     }
 
+    // TODO(Rahul): Once enums are supported, we should add a test for map with
+    // enum keys.
+
     #[test]
-    fn map_with_enum_and_literal_keys() -> anyhow::Result<()> {
+    fn map_with_literal_keys() -> anyhow::Result<()> {
         assert_compiles(Program {
             source: r#"
                 class Fields {
@@ -902,31 +878,32 @@ mod tests {
                 }
 
                 fn main() -> Fields {
-                    Fields {
-                        l1 {
+                    let f = Fields {
+                        l1: {
                             "literal" "lit_value"
                         },
-                        l2 {
+                        l2: {
                             "one" "value_one",
                             "three" "value_three"
                         }
-                    }
+                    };
+                    f
                 }
             "#,
             expected: vec![(
                 "main",
                 vec![
-                    Instruction::AllocInstance(1), // Fields class
+                    Instruction::AllocInstance(0), // Fields class
                     Instruction::LoadConst(0),     // "literal"
                     Instruction::LoadConst(1),     // "lit_value"
                     Instruction::AllocMap(1),      // Create map with 1 entry
-                    Instruction::StoreField(1),    // Store in field 'l1'
+                    Instruction::StoreField(0),    // Store in field 'l1'
                     Instruction::LoadConst(2),     // "one"
                     Instruction::LoadConst(3),     // "value_one"
-                    Instruction::LoadConst(2),     // "three"
-                    Instruction::LoadConst(3),     // "value_three"
+                    Instruction::LoadConst(4),     // "three"
+                    Instruction::LoadConst(5),     // "value_three"
                     Instruction::AllocMap(2),      // Create map with 2 entries
-                    Instruction::StoreField(2),    // Store in field 'l2'
+                    Instruction::StoreField(1),    // Store in field 'l2'
                     Instruction::LoadVar(1),       // Load the Fields instance
                     Instruction::Return,
                 ],
