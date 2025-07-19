@@ -47,11 +47,12 @@ pub(crate) fn parse_expression(
         Rule::expr_block => parse_expr_block(first_child, diagnostics)
             .map(|block| Expression::ExprBlock(block, span)),
         Rule::if_expression => parse_if_expression(first_child, diagnostics),
-
+        Rule::parenthesized_expression => parse_parenthesized_expression(first_child, diagnostics),
+        Rule::not_expression => parse_not_expression(first_child, diagnostics),
         Rule::BLOCK_LEVEL_CATCH_ALL => {
             diagnostics.push_error(
                 internal_baml_diagnostics::DatamodelError::new_validation_error(
-                    "This is not a valid expression.",
+                    "This is not a valid expression!",
                     span,
                 ),
             );
@@ -60,6 +61,21 @@ pub(crate) fn parse_expression(
 
         _ => unreachable_rule!(first_child, Rule::expression),
     }
+}
+
+fn parse_parenthesized_expression(
+    token: Pair<'_>,
+    diagnostics: &mut Diagnostics,
+) -> Option<Expression> {
+    assert_correct_parser!(token, Rule::parenthesized_expression);
+    let expr = parse_expression(token.into_inner().next().unwrap(), diagnostics);
+    expr
+}
+
+fn parse_not_expression(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<Expression> {
+    assert_correct_parser!(token, Rule::not_expression);
+    let expr = parse_expression(token.into_inner().next().unwrap(), diagnostics);
+    expr
 }
 
 fn parse_array(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Expression {

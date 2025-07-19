@@ -331,6 +331,10 @@ fn convert_function_body(
 impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
     fn repr(&self, db: &ParserDatabase) -> Result<Expr<ExprMetadata>> {
         match self {
+            ast::Expression::Not(expr, span) => {
+                let expr = expr.repr(db)?;
+                Ok(Expr::Not(Arc::new(expr), (span.clone(), None)))
+            }
             ast::Expression::BoolValue(val, span) => Ok(Expr::Atom(BamlValueWithMeta::Bool(
                 *val,
                 (span.clone(), Some(TypeIR::bool())),
@@ -2090,6 +2094,14 @@ pub fn annotate_variable(
     expr: Expr<ExprMetadata>,
 ) -> Expr<ExprMetadata> {
     match &expr {
+        Expr::Not(expr, meta) => {
+            let new_expr = annotate_variable(
+                target.clone(),
+                r#type.clone(),
+                Arc::unwrap_or_clone(expr.clone()),
+            );
+            Expr::Not(Arc::new(new_expr), meta.clone())
+        }
         Expr::FreeVar(var_name, meta) => expr,
         Expr::Builtin(builtin, meta) => Expr::Builtin(builtin.clone(), meta.clone()),
         Expr::BoundVar(var_index, meta) => {
@@ -2683,6 +2695,9 @@ fn make_test_ir_and_diagnostics_from_dir(
 // Specialize generics.
 fn specialize_generics(expr: &Expr<ExprMetadata>, ctx: &mut HashMap<Name, Expr<ExprMetadata>>) {
     match expr {
+        Expr::Not(expr, _) => {
+            specialize_generics(expr, ctx);
+        }
         Expr::FreeVar(name, _) => {}
         Expr::BoundVar(name, _) => {}
         Expr::Builtin(_, _) => {}

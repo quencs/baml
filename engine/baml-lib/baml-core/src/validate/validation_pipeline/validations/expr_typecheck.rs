@@ -100,6 +100,9 @@ pub fn typecheck_in_context(
 ) -> Result<()> {
     // eprintln!("TYPECHECKING: {:?}", expr.dump_str());
     match expr {
+        Expr::Not(expr, _) => {
+            typecheck_in_context(ir, diagnostics, typing_context, expr)?;
+        }
         Expr::Atom(atom) => {
             // Atoms always typecheck.
             //  Ok(())
@@ -381,6 +384,10 @@ pub fn infer_types_in_context(
     expr: Arc<Expr<ExprMetadata>>,
 ) -> Arc<Expr<ExprMetadata>> {
     match expr.as_ref() {
+        Expr::Not(expr, _) => {
+            let new_expr = infer_types_in_context(typing_context, expr.clone());
+            Arc::new(Expr::Not(new_expr, expr.meta().clone()))
+        }
         Expr::FreeVar(ref var_name, (span, maybe_type)) => {
             // Assign variables from the context.
             if let Some(ctx_ty) = typing_context.get(var_name) {

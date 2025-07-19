@@ -91,7 +91,7 @@ namespaced_identifier = ${ single_word ~ ("::" ~ single_word)+ }
 // ######################################
 // Type Alias
 // ######################################
-type_alias = { identifier ~ identifier ~ assignment ~ field_type_with_attr }
+type_alias = { "type" ~ identifier ~ assignment ~ field_type_with_attr }
 
 // ######################################
 // Arguments
@@ -104,29 +104,34 @@ arguments_list = { "(" ~ (NEWLINE?) ~ expression? ~ ("," ~ (NEWLINE?) ~ expressi
 map_key   = { identifier | quoted_string_literal }
 map_entry = { (comment_block | empty_lines)* ~ map_key ~ (expression | ENTRY_CATCH_ALL)? ~ trailing_comment? }
 
-splitter          = _{ ("," ~ NEWLINE?) | NEWLINE }
-map_expression    =  { "{" ~ empty_lines? ~ (map_entry ~ (splitter ~ map_entry)*)? ~ (comment_block | empty_lines)* ~ "}" }
-array_expression  =  { "[" ~ empty_lines? ~ ((expression | ARRAY_CATCH_ALL) ~ trailing_comment? ~ (splitter ~ (comment_block | empty_lines)* ~ (expression | ARRAY_CATCH_ALL) ~ trailing_comment?)*)? ~ (comment_block | empty_lines)* ~ splitter? ~ "]" }
-jinja_block_open  = _{ "{{" }
-jinja_block_close = _{ "}}" }
-jinja_body        =  { (!(jinja_block_open | jinja_block_close) ~ ANY)* }
-jinja_expression  =  { jinja_block_open ~ jinja_body ~ jinja_block_close }
-expression        =  {
-    generic_fn_app |
-    fn_app |
-    if_expression |
-    lambda |
-    jinja_expression |
-    map_expression |
-    expr_block |
-    array_expression |
-    numeric_literal |
-    class_constructor |
-    string_literal |
-    identifier
+splitter                 = _{ ("," ~ NEWLINE?) | NEWLINE }
+map_expression           =  { "{" ~ empty_lines? ~ (map_entry ~ (splitter ~ map_entry)*)? ~ (comment_block | empty_lines)* ~ "}" }
+array_expression         =  { "[" ~ empty_lines? ~ ((expression | ARRAY_CATCH_ALL) ~ trailing_comment? ~ (splitter ~ (comment_block | empty_lines)* ~ (expression | ARRAY_CATCH_ALL) ~ trailing_comment?)*)? ~ (comment_block | empty_lines)* ~ splitter? ~ "]" }
+jinja_block_open         = _{ "{{" }
+jinja_block_close        = _{ "}}" }
+jinja_body               =  { (!(jinja_block_open | jinja_block_close) ~ ANY)* }
+jinja_expression         =  { jinja_block_open ~ jinja_body ~ jinja_block_close }
+parenthesized_expression =  { openParan ~ expression ~ closeParan }
+not_expression           =  { "!" ~ expression }
+expression               =  {
+  
+  | parenthesized_expression
+  | not_expression
+  | array_expression
+  | if_expression
+  | lambda
+  | jinja_expression
+  | map_expression
+  | expr_block
+  | fn_app
+  | generic_fn_app
+  | numeric_literal
+  | class_constructor
+  | string_literal
+  | identifier
 }
-ARRAY_CATCH_ALL   =  { !"]" ~ CATCH_ALL }
-ENTRY_CATCH_ALL   =  { field_attribute | BLOCK_LEVEL_CATCH_ALL }
+ARRAY_CATCH_ALL          =  { !"]" ~ CATCH_ALL }
+ENTRY_CATCH_ALL          =  { field_attribute | BLOCK_LEVEL_CATCH_ALL }
 // ######################################
 // Literals / Values
 // ######################################
@@ -210,9 +215,9 @@ TYPE_BUILDER_KEYWORD = { "type_builder" }
 CLIENT_KEYWORD       = { "client<llm>" | "client" }
 GENERATOR_KEYWORD    = { "generator" }
 RETRY_POLICY_KEYWORD = { "retry_policy" }
-SEMICOLON = { ";" }
-COLON = { ":" }
-COMMA = { "," }
+SEMICOLON            = { ";" }
+COLON                = { ":" }
+COMMA                = { "," }
 
 // #################################################
 // BAML Expressions
@@ -220,23 +225,25 @@ COMMA = { "," }
 
 // Constant applicative form.
 // e.g. top-level
-//   - `let x = go(1,2)`
-//   - `let z = { let b = 2; [b, 3] }
+// - `let x = go(1,2)`
+// - `let z = { let b = 2; [b, 3] }
 top_level_assignment = { stmt }
 
 // Regular function.
 // e.g.:
 // function foo(x:int, y: bool?) -> string {
-//   go(x,y)
+// go(x,y)
 // }
-expr_fn = { ("function" | "fn") ~ identifier ~ named_argument_list ~ ARROW? ~ field_type_chain? ~ expr_block }
+expr_fn = { ("fn" | "function") ~ identifier ~ named_argument_list ~ ARROW? ~ field_type_chain? ~ expr_block }
 
 // Body of a function (including curly brackets).
-expr_block = { BLOCK_OPEN ~ NEWLINE? ~ (stmt | comment_block | empty_lines)* ~ expression ~ NEWLINE? ~ BLOCK_CLOSE }
+expr_block = { BLOCK_OPEN ~ empty_lines? ~ (mdx_header | stmt | comment_block | empty_lines | expression | BLOCK_LEVEL_CATCH_ALL)* ~ BLOCK_CLOSE }
+
+mdx_header = { "#"+ ~ unquoted_string_literal? ~ NEWLINE? }
 
 // Statement.
 // Currently the only statement is a let-binding.
-stmt = { ((let_expr ~ SEMICOLON?) | for_loop) ~ trailing_comment? ~ NEWLINE? }
+stmt = { ((let_expr ~ SEMICOLON?) | for_loop) ~ trailing_comment? }
 
 // Let-binding statement.
 let_expr = { "let" ~ identifier ~ "=" ~ expression }
@@ -247,22 +254,22 @@ fn_args = { expression? ~ ("," ~ expression)* }
 fn_app = { identifier ~ "(" ~ fn_args ~ ")" }
 
 // If expression.
-if_expression = { "if" ~ expression ~ NEWLINE? ~
-   "{"~ NEWLINE? ~ expression ~ NEWLINE? ~ "}" ~
-   ( "else" ~ "{"~ NEWLINE? ~ expression ~ NEWLINE? ~ "}" )? }
+if_expression = {
+    "if" ~ expression ~ empty_lines? ~ expr_block ~ ("else" ~ expr_block)?
+}
 
 // For loop, e.g.
 // for (r in resumes) {
-//   ExtractResume(x)
+// ExtractResume(x)
 // }
-for_loop = { "for" ~ "(" ~ identifier ~ "in" ~ expression ~ ")" ~ expr_block }
+for_loop = { "for" ~ (("(" ~ identifier ~ "in" ~ expression ~ ")") | (identifier ~ "in" ~ expression)) ~ expr_block }
 
 // Anonymous function.
 lambda = { named_argument_list ~ "=>" ~ expression }
 
 // Class constructors.
 // e.g. `new MyClass { x = 1, y = 2 }`.
-//
+// 
 class_constructor = { identifier ~ "{" ~ NEWLINE? ~ (class_field_value_pair ~ COMMA? ~ NEWLINE?)* ~ NEWLINE? ~ "}" }
 
 // A single field in a class constructor.

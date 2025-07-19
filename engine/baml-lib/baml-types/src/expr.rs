@@ -44,6 +44,7 @@ pub enum Expr<T> {
         body: Arc<Expr<T>>,
         meta: T,
     },
+    Not(Arc<Expr<T>>, T),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,6 +100,7 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
             Expr::Builtin(_, meta) => meta,
             Expr::If(_, _, _, meta) => meta,
             Expr::ForLoop { meta, .. } => meta,
+            Expr::Not(_, meta) => meta,
         }
     }
 
@@ -118,6 +120,7 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
             Expr::Builtin(_, meta) => meta,
             Expr::If(_, _, _, meta) => meta,
             Expr::ForLoop { meta, .. } => meta,
+            Expr::Not(_, meta) => meta,
         }
     }
 
@@ -137,6 +140,7 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
             Expr::Builtin(_, meta) => meta,
             Expr::If(_, _, _, meta) => meta,
             Expr::ForLoop { meta, .. } => meta,
+            Expr::Not(_, meta) => meta,
         }
     }
 }
@@ -228,6 +232,7 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
                     body.dump_str()
                 )
             }
+            Expr::Not(expr, _) => format!("!{}", expr.dump_str()),
         }
     }
 
@@ -236,6 +241,9 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
     /// if the evaluation stepper is stuck.
     pub fn temporary_same_state(&self, other: &Expr<T>) -> bool {
         match (self, other) {
+            (Expr::Not(e1, _), Expr::Not(e2, _)) => e1.temporary_same_state(e2),
+            (Expr::Not(_, _), _) => false,
+
             (Expr::Atom(a1), Expr::Atom(a2)) => a1.clone().value() == a2.clone().value(),
             (Expr::Atom(_), _) => false,
 
@@ -408,6 +416,7 @@ impl Expr<ExprMetadata> {
 
     pub fn free_vars(&self) -> HashSet<Name> {
         match self {
+            Expr::Not(expr, _) => expr.free_vars(),
             Expr::Atom(_) => HashSet::new(),
             Expr::List(items, _) => items.iter().flat_map(|item| item.free_vars()).collect(),
             Expr::Map(entries, _) => entries
@@ -486,6 +495,7 @@ impl<T: Clone> Expr<T> {
     /// This operation is used when going under a binder.
     pub fn open(&self, target: &VarIndex, new_name: &str) -> Expr<T> {
         match self {
+            Expr::Not(expr, m) => Expr::Not(Arc::new(expr.open(target, new_name)), m.clone()),
             Expr::Atom(v) => Expr::Atom(v.clone()),
             Expr::List(items, m) => Expr::List(
                 items.iter().map(|e| e.open(target, new_name)).collect(),
@@ -572,6 +582,7 @@ impl<T: Clone> Expr<T> {
     /// This is the inverse operation of open.
     pub fn close(&self, new_index: &VarIndex, target: &str) -> Expr<T> {
         match self {
+            Expr::Not(expr, m) => Expr::Not(Arc::new(expr.close(new_index, target)), m.clone()),
             Expr::Atom(v) => Expr::Atom(v.clone()),
             Expr::List(items, m) => Expr::List(
                 items.iter().map(|e| e.close(new_index, target)).collect(),
@@ -688,6 +699,9 @@ impl<'a, T: 'a> Iterator for ExprIterator<'a, T> {
 
         // For exprs with sub-exprs, push the sub-exprs onto the stack.
         match expr {
+            Expr::Not(expr, _) => {
+                self.stack.push_back(expr);
+            }
             Expr::Atom(_) => {}
             Expr::List(items, _) => {
                 for item in items.iter() {

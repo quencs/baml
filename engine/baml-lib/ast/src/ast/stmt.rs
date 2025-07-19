@@ -7,6 +7,7 @@ pub struct LetStmt {
     pub identifier: Identifier,
     pub expr: Expression,
     pub span: Span,
+    pub annotations: Vec<std::sync::Arc<Header>>,
 }
 
 #[derive(Debug, Clone)]
@@ -15,6 +16,7 @@ pub struct ForLoopStmt {
     pub iterator: Expression,
     pub body: ExpressionBlock,
     pub span: Span,
+    pub annotations: Vec<std::sync::Arc<Header>>,
 }
 
 // Stmt(statements) perform actions and not often return values.
@@ -22,6 +24,13 @@ pub struct ForLoopStmt {
 pub enum Stmt {
     Let(LetStmt),
     ForLoop(ForLoopStmt),
+}
+
+#[derive(Debug, Clone)]
+pub struct Header {
+    pub level: u8,
+    pub title: String,
+    pub span: Span,
 }
 
 impl fmt::Display for Stmt {

@@ -87,6 +87,7 @@ pub fn parse_for_loop(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<
         iterator,
         body,
         span,
+        annotations: vec![],
     }))
 }
 
@@ -123,6 +124,7 @@ pub fn parse_statement(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option
                     identifier,
                     expr: body,
                     span: span.clone(),
+                    annotations: vec![],
                 })
             })
         }
@@ -174,13 +176,27 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                     break;
                 }
             }
+            Rule::mdx_header => {
+                let mut mdx_header_tokens = item.into_inner();
+                let header_level = mdx_header_tokens.next()?;
+                let header_title = mdx_header_tokens.next()?;
+                let header_span = diagnostics.span(header_title.as_span());
+                let header_title_str = header_title.as_str();
+                let header_level_str = header_level.as_str();
+                // Some(Header {
+                //     level: header_level_str.parse().unwrap(),
+                //     title: header_title_str.to_string(),
+                //     span: header_span,
+                // })
+            }
             Rule::BLOCK_CLOSE => {
-                if expr.is_none() {
-                    diagnostics.push_error(DatamodelError::new_static(
-                        "Function must end in an expression.",
-                        span.clone(),
-                    ));
-                }
+                // we check this later based on the kind of block we're in
+                // if expr.is_none() {
+                //     diagnostics.push_error(DatamodelError::new_static(
+                //         "Function must end in an expression.",
+                //         span.clone(),
+                //     ));
+                // }
                 break;
             }
             Rule::NEWLINE => {
@@ -194,12 +210,15 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                 // Skip empty lines in function bodies
                 continue;
             }
-            _ => {
-                diagnostics.push_error(DatamodelError::new_static(
-                    "Internal Error: Parser only allows statements and expressions in function body.",
-                    span.clone()
-                ));
+            Rule::BLOCK_LEVEL_CATCH_ALL => {
+                diagnostics.push_error(
+                    internal_baml_diagnostics::DatamodelError::new_validation_error(
+                        "This is not a valid expression.",
+                        diagnostics.span(item.as_span()),
+                    ),
+                );
             }
+            _ => parsing_catch_all(item, "block"),
         }
     }
     expr.map(|e| ExpressionBlock {
@@ -289,12 +308,13 @@ pub fn parse_if_expression(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Op
     let span = diagnostics.span(token.as_span());
     let mut tokens = token.into_inner();
     let condition = parse_expression(tokens.next()?, diagnostics)?;
-    let then_branch = parse_expression(tokens.next()?, diagnostics)?;
-    let else_branch = parse_expression(tokens.next()?, diagnostics);
+    let then_branch = parse_expr_block(tokens.next()?, diagnostics)?;
+    let else_branch = parse_expr_block(tokens.next()?, diagnostics);
     Some(Expression::If(
         Box::new(condition),
-        Box::new(then_branch),
-        else_branch.map(Box::new),
+        // TODO: Get the full statements heres.
+        then_branch.expr,
+        else_branch.map(|e| e.expr),
         span,
     ))
 }
