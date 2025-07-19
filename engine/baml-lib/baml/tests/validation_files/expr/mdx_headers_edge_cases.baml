@@ -77,7 +77,7 @@ function HeadersInComplexNesting() -> string {
         
         ## Back to Block Level
         inner
-    }
+    };
     
     # Back to Function Level
     result
@@ -112,7 +112,7 @@ function HeadersAroundExpressions() -> string {
     ## After Let
     
     ### Before If
-    if x > 0 {
+    if (x > 0) {
         #### Inside If
         x
     } else {
@@ -151,36 +151,63 @@ function HeaderOnlyFunction() -> string {
     "default"
 }
 
-// error: Statement must end with a semicolon.
-//   -->  expr/mdx_headers_edge_cases.baml:60
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:3
 //    | 
-// 59 |     
-// 60 |     let result = {
-// 61 |         ## Inside Block Expression
-// 62 |         
-// 63 |         let inner = if true {
-// 64 |             ### Inside If True
-// 65 |             
-// 66 |             let deep = {
-// 67 |                 #### Very Deep Block
-// 68 |                 "deep value"
-// 69 |             };
-// 70 |             
+//  2 | 
+//  3 | function UnicodeHeaders() -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:15
+//    | 
+// 14 | 
+// 15 | function HeaderLevels() -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:29
+//    | 
+// 28 | 
+// 29 | function HeadersWithWhitespace() -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:42
+//    | 
+// 41 | 
+// 42 | function HeadersAndComments() -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:57
+//    | 
+// 56 | 
+// 57 | function HeadersInComplexNesting() -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:86
+//    | 
+// 85 | 
+// 86 | function HeadersWithSpecialChars() -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:97
+//    | 
+// 96 | 
+// 97 | function ConsecutiveHeaders() -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:109
+//    | 
+// 108 | 
+// 109 | function HeadersAroundExpressions() -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_edge_cases.baml:143
+//    | 
+// 142 | 
+// 143 | function HeaderOnlyFunction() -> string {
+//    | 
+// error: Unknown variable deep
+//   -->  expr/mdx_headers_edge_cases.baml:72
+//    | 
 // 71 |             ### Back to If Level
 // 72 |             deep
-// 73 |         } else {
-// 74 |             ### Inside Else
-// 75 |             "else value"
-// 76 |         };
-// 77 |         
-// 78 |         ## Back to Block Level
-// 79 |         inner
-// 80 |     }
-//    | 
-// error: Error validating: This line is invalid. It does not start with any known Baml schema keyword.
-//   -->  expr/mdx_headers_edge_cases.baml:118
-//    | 
-// 117 |         x
-// 118 |     } else {
-// 119 |         #### Inside Else
 //    | 

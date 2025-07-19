@@ -113,8 +113,10 @@ jinja_body               =  { (!(jinja_block_open | jinja_block_close) ~ ANY)* }
 jinja_expression         =  { jinja_block_open ~ jinja_body ~ jinja_block_close }
 parenthesized_expression =  { openParan ~ expression ~ closeParan }
 not_expression           =  { "!" ~ expression }
+operator_expression      =  { "(" ~ expression ~ operator ~ expression ~ ")" }
+operator                 =  { "+" | "-" | "*" | "/" | "%" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "&&" | "||" | "&" | "|" }
 expression               =  {
-  
+    operator_expression
   | parenthesized_expression
   | not_expression
   | array_expression
@@ -140,7 +142,7 @@ numeric_literal = @{ ("-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 // ######################################
 // String literals. These behave specially in BAML.
 // ######################################
-banned_chars            = @{ "#" | "@" | "{" | "(" | "[" | "<" | "}" | ")" | "]" | ">" | "," | "'" | ";" | " //" | NEWLINE }
+banned_chars            = @{ "#" | "@" | "{" | "(" | "[" | "<" | "}" | ")" | "]" | ">" | "," | "'" | ";" | " //" | "if " | "else " | NEWLINE }
 banned_start_chars      =  { WHITESPACE | banned_chars }
 banned_end_chars        =  { WHITESPACE | banned_chars }
 unquoted_string_literal = @{ (!banned_start_chars ~ ANY) ~ (!banned_chars ~ !"\"" ~ ANY)* ~ (!banned_end_chars ~ ANY)* }

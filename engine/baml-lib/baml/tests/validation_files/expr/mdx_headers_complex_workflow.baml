@@ -10,7 +10,7 @@ function ProcessVideo(transcript: string, title: string?) -> string {
     };
     
     ## Generate Summary
-    let summary = SummarizeVideo(transcript)
+    let summary = SummarizeVideo(transcript);
     
     ## Create Final Output
     computed_title + ": " + summary
@@ -35,9 +35,32 @@ client<llm> GPT4 {
     }
 }
 
-// error: Statement must end with a semicolon.
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_complex_workflow.baml:2
+//    | 
+//  1 | // Complex expression function that calls LLM functions
+//  2 | function ProcessVideo(transcript: string, title: string?) -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_complex_workflow.baml:20
+//    | 
+// 19 | // LLM helper functions
+// 20 | function GenerateTitle(transcript: string) -> string {
+//    | 
+// warning: Workflow functions are experimental, and will break in the future.
+//   -->  expr/mdx_headers_complex_workflow.baml:25
+//    | 
+// 24 | 
+// 25 | function SummarizeVideo(transcript: string) -> string {
+//    | 
+// error: Error validating: Type mismatch in if
 //   -->  expr/mdx_headers_complex_workflow.baml:5
 //    | 
 //  4 |     
 //  5 |     let computed_title = if !title {
+//  6 |         ## Generate Title
+//  7 |         GenerateTitle(transcript)
+//  8 |     } else {
+//  9 |         title
+// 10 |     };
 //    | 
