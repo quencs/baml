@@ -224,8 +224,9 @@
           position: relative;
           display: flex;
           align-items: center;
-          max-width: 400px;
-          margin: 0 auto;
+          max-width: 540px;
+          width: 100%;
+          margin: 24px auto 18px auto;
         `;
 
         // Create search input
@@ -235,27 +236,31 @@
         searchInput.id = 'custom-search-input';
         searchInput.style.cssText = `
           width: 100%;
-          padding: 8px 40px 8px 16px;
-          border: 1px solid #e2e8f0;
-          border-radius: 6px;
-          background: rgba(255, 255, 255, 0.95);
+          min-width: 320px;
+          max-width: 540px;
+          padding: 8px 48px 8px 18px;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.98);
           font-size: 14px;
           outline: none;
-          transition: all 0.2s ease;
+          transition: box-shadow 0.18s, border 0.18s;
+          box-shadow: 0 2px 12px rgba(96, 37, 209, 0.04);
           backdrop-filter: blur(10px);
+          color: #222;
         `;
 
         // Create search icon
         const searchIcon = document.createElement('div');
         searchIcon.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"></circle>
             <path d="m21 21-4.35-4.35"></path>
           </svg>
         `;
         searchIcon.style.cssText = `
           position: absolute;
-          right: 12px;
+          right: 18px;
           top: 50%;
           transform: translateY(-50%);
           color: #64748b;
@@ -486,13 +491,14 @@
               resultItem.href = result.url;
               resultItem.style.cssText = `
                 display: block;
-                padding: 10px 0 8px 0;
+                padding: 12px 0 10px 0;
                 text-decoration: none;
                 border-bottom: 1px solid #f1f5f9;
                 transition: background 0.15s;
                 color: inherit;
                 border-radius: 4px;
                 margin-bottom: 2px;
+                padding-left: 18px;
               `;
               resultItem.innerHTML = `
                 <div style="font-weight: 500; font-size: 15px; color: #6025d1; margin-bottom: 2px;">${result.title}</div>
