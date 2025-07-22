@@ -281,10 +281,86 @@
           margin-top: 4px;
         `;
 
+        // --- Side Panel Implementation ---
+        // Create side panel
+        const sidePanel = document.createElement('div');
+        sidePanel.id = 'custom-search-side-panel';
+        sidePanel.style.cssText = `
+          position: fixed;
+          top: 60px;
+          right: 40px;
+          width: 340px;
+          height: 420px;
+          background: #fff;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          z-index: 2000;
+          display: none;
+          flex-direction: column;
+          padding: 0 0 24px 0;
+          transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.2s;
+          overflow: hidden;
+        `;
+        // Title bar for dragging
+        const sidePanelTitleBar = document.createElement('div');
+        sidePanelTitleBar.style.cssText = `
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 0;
+          color: #6025d1;
+          padding: 18px 20px 10px 20px;
+          cursor: move;
+          user-select: none;
+          background: transparent;
+          letter-spacing: 0.01em;
+        `;
+        sidePanelTitleBar.textContent = 'BAML Search';
+        sidePanel.appendChild(sidePanelTitleBar);
+        // Remove info area for minimalism
+        // Results area
+        const sidePanelResults = document.createElement('div');
+        sidePanelResults.id = 'custom-search-side-panel-results';
+        sidePanelResults.style.cssText = `
+          flex: 1 1 auto;
+          overflow-y: auto;
+          padding: 0 12px 12px 12px;
+        `;
+        sidePanel.appendChild(sidePanelResults);
+        // Close button
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        closeBtn.setAttribute('aria-label', 'Close search panel');
+        closeBtn.style.cssText = `
+          position: absolute;
+          top: 10px;
+          right: 16px;
+          background: none;
+          border: none;
+          font-size: 22px;
+          color: #bbb;
+          cursor: pointer;
+          padding: 0;
+          line-height: 1;
+          transition: color 0.15s;
+        `;
+        closeBtn.addEventListener('mouseenter', () => {
+          closeBtn.style.color = '#6025d1';
+        });
+        closeBtn.addEventListener('mouseleave', () => {
+          closeBtn.style.color = '#bbb';
+        });
+        closeBtn.addEventListener('click', () => {
+          sidePanel.style.display = 'none';
+        });
+        sidePanel.appendChild(closeBtn);
+        document.body.appendChild(sidePanel);
+        // --- End Side Panel Implementation ---
+
         // Assemble the search component
         customSearchContainer.appendChild(searchInput);
         customSearchContainer.appendChild(searchIcon);
-        customSearchContainer.appendChild(resultsDropdown);
+        // customSearchContainer.appendChild(resultsDropdown); // Remove dropdown from DOM
 
         // Insert into header (try different insertion strategies)
         if (searchContainer) {
@@ -308,14 +384,18 @@
             searchInput.style.background = 'rgba(30, 30, 30, 0.95)';
             searchInput.style.border = '1px solid #2e2e2e';
             searchInput.style.color = '#ffffff';
-            resultsDropdown.style.background = '#1a1a1a';
-            resultsDropdown.style.border = '1px solid #2e2e2e';
+            sidePanel.style.background = '#1a1a1a';
+            sidePanel.style.border = '1px solid #2e2e2e';
+            sidePanelResults.style.background = '#1a1a1a';
+            sidePanelResults.style.color = '#fff';
           } else {
             searchInput.style.background = 'rgba(255, 255, 255, 0.95)';
             searchInput.style.border = '1px solid #e2e8f0';
             searchInput.style.color = '#000000';
-            resultsDropdown.style.background = 'white';
-            resultsDropdown.style.border = '1px solid #e2e8f0';
+            sidePanel.style.background = '#fff';
+            sidePanel.style.border = '1px solid #e2e8f0';
+            sidePanelResults.style.background = '#fff';
+            sidePanelResults.style.color = '#000';
           }
         };
 
@@ -375,67 +455,60 @@
           },
         ];
 
+        // Replace performSearch and displayResults to update sidePanelResults
         const performSearch = (query) => {
           if (!query.trim()) {
-            resultsDropdown.style.display = 'none';
+            sidePanelResults.innerHTML = '';
             return;
           }
-
           const filtered = searchData.filter(
             (item) =>
               item.title.toLowerCase().includes(query.toLowerCase()) ||
               item.excerpt.toLowerCase().includes(query.toLowerCase()),
           );
-
           displayResults(filtered, query);
         };
-
         const displayResults = (results, query) => {
-          resultsDropdown.innerHTML = '';
-
+          sidePanelResults.innerHTML = '';
           if (results.length === 0) {
             const noResults = document.createElement('div');
-            noResults.textContent = `No results found for "${query}"`;
+            noResults.textContent = `No results for "${query}"`;
             noResults.style.cssText = `
-              padding: 16px;
+              padding: 32px 0 0 0;
               text-align: center;
-              color: #64748b;
-              font-size: 14px;
+              color: #a0aec0;
+              font-size: 15px;
             `;
-            resultsDropdown.appendChild(noResults);
+            sidePanelResults.appendChild(noResults);
           } else {
             for (const result of results) {
               const resultItem = document.createElement('a');
               resultItem.href = result.url;
               resultItem.style.cssText = `
                 display: block;
-                padding: 12px 16px;
+                padding: 10px 0 8px 0;
                 text-decoration: none;
                 border-bottom: 1px solid #f1f5f9;
-                transition: background-color 0.2s ease;
+                transition: background 0.15s;
                 color: inherit;
+                border-radius: 4px;
+                margin-bottom: 2px;
               `;
-
               resultItem.innerHTML = `
-                <div style="font-weight: 500; margin-bottom: 4px; color: #6025d1;">${result.title}</div>
-                <div style="font-size: 12px; color: #64748b; line-height: 1.4;">${result.excerpt}</div>
+                <div style="font-weight: 500; font-size: 15px; color: #6025d1; margin-bottom: 2px;">${result.title}</div>
+                <div style="font-size: 12px; color: #7b8494; line-height: 1.4;">${result.excerpt}</div>
               `;
-
               resultItem.addEventListener('mouseenter', () => {
-                resultItem.style.backgroundColor = isDarkMode()
-                  ? '#2a2a2a'
-                  : '#f8fafc';
+                resultItem.style.background = isDarkMode()
+                  ? '#23232a'
+                  : '#f3f4f6';
               });
-
               resultItem.addEventListener('mouseleave', () => {
-                resultItem.style.backgroundColor = 'transparent';
+                resultItem.style.background = 'transparent';
               });
-
-              resultsDropdown.appendChild(resultItem);
+              sidePanelResults.appendChild(resultItem);
             }
           }
-
-          resultsDropdown.style.display = 'block';
         };
 
         // Search input event listeners
@@ -452,23 +525,36 @@
           if (searchInput.value.trim()) {
             performSearch(searchInput.value);
           }
+          // Show side panel
+          sidePanel.style.display = 'flex';
         });
 
         searchInput.addEventListener('blur', () => {
           searchInput.style.borderColor = isDarkMode() ? '#2e2e2e' : '#e2e8f0';
           searchInput.style.boxShadow = 'none';
-          // Delay hiding results to allow clicks
-          setTimeout(() => {
-            resultsDropdown.style.display = 'none';
-          }, 150);
         });
 
-        // Keyboard navigation
+        // Hide side panel when clicking outside
+        document.addEventListener('mousedown', (e) => {
+          if (
+            sidePanel.style.display === 'flex' &&
+            !sidePanel.contains(e.target) &&
+            !customSearchContainer.contains(e.target)
+          ) {
+            sidePanel.style.display = 'none';
+          }
+        });
+        // Hide side panel on Escape
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && sidePanel.style.display === 'flex') {
+            sidePanel.style.display = 'none';
+            searchInput.blur();
+          }
+        });
+        // Keyboard navigation (optional: highlight in sidePanelResults)
         let selectedIndex = -1;
-
         searchInput.addEventListener('keydown', (e) => {
-          const items = resultsDropdown.querySelectorAll('a');
-
+          const items = sidePanelResults.querySelectorAll('a');
           if (e.key === 'ArrowDown') {
             e.preventDefault();
             selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
@@ -483,11 +569,10 @@
               items[selectedIndex].click();
             }
           } else if (e.key === 'Escape') {
-            resultsDropdown.style.display = 'none';
+            sidePanel.style.display = 'none';
             searchInput.blur();
           }
         });
-
         const updateSelection = (items) => {
           for (let index = 0; index < items.length; index++) {
             const item = items[index];
@@ -498,14 +583,38 @@
             }
           }
         };
-
         // Click outside to close
         document.addEventListener('click', (e) => {
-          if (!customSearchContainer.contains(e.target)) {
-            resultsDropdown.style.display = 'none';
+          if (
+            !customSearchContainer.contains(e.target) &&
+            !sidePanel.contains(e.target)
+          ) {
+            sidePanel.style.display = 'none';
           }
         });
-
+        // --- Draggable Side Panel ---
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        sidePanelTitleBar.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          const rect = sidePanel.getBoundingClientRect();
+          dragOffsetX = e.clientX - rect.left;
+          dragOffsetY = e.clientY - rect.top;
+          document.body.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', (e) => {
+          if (isDragging) {
+            sidePanel.style.left = `${e.clientX - dragOffsetX}px`;
+            sidePanel.style.top = `${e.clientY - dragOffsetY}px`;
+            sidePanel.style.right = 'auto';
+          }
+        });
+        document.addEventListener('mouseup', () => {
+          isDragging = false;
+          document.body.style.userSelect = '';
+        });
+        // --- End Draggable Side Panel ---
         obs.disconnect();
       }
     });
