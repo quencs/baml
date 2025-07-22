@@ -1,4 +1,3 @@
-// Immediately execute function
 (() => {
   // Only create chat bubble if window width > 700px
   if (window.innerWidth <= 700) {
@@ -236,11 +235,11 @@
         searchInput.id = 'custom-search-input';
         searchInput.style.cssText = `
           width: 100%;
-          min-width: 320px;
+          min-width: 0;
           max-width: 540px;
           padding: 8px 48px 8px 18px;
           border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
+          border-radius: 10px 0 0 10px;
           background: rgba(255, 255, 255, 0.98);
           font-size: 14px;
           outline: none;
@@ -248,9 +247,67 @@
           box-shadow: 0 2px 12px rgba(96, 37, 209, 0.04);
           backdrop-filter: blur(10px);
           color: #222;
+          border-right: none;
+          flex: 1 1 auto;
         `;
-
-        // Create search icon
+        // Create Ask AI button (icon only, circular, with tooltip)
+        let aiMode = false;
+        const askAiBtn = document.createElement('button');
+        askAiBtn.type = 'button';
+        askAiBtn.style.cssText = `
+          width: 40px;
+          height: 40px;
+          border-radius: 0 10px 10px 0;
+          border: 1.5px solid #e2e8f0;
+          border-left: none;
+          background: #fff;
+          color: #6025d1;
+          font-size: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background 0.15s, color 0.15s, border 0.15s, box-shadow 0.15s;
+          outline: none;
+          position: relative;
+        `;
+        // Add icon (sparkle/magic/chatbot)
+        askAiBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5.22 5.22l1.42 1.42"/><path d="M17.36 17.36l1.42 1.42"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M5.22 18.78l1.42-1.42"/><path d="M17.36 6.64l1.42-1.42"/><circle cx="12" cy="12" r="5"/></svg>`;
+        // Tooltip
+        askAiBtn.title = 'Ask BAML AI';
+        function updateAiBtnStyle() {
+          if (aiMode) {
+            askAiBtn.style.background = '#6025d1';
+            askAiBtn.style.color = '#fff';
+            askAiBtn.style.border = '1.5px solid #6025d1';
+            askAiBtn.style.borderLeft = 'none';
+            askAiBtn.style.boxShadow = '0 0 0 2px #e9e4fa';
+          } else {
+            askAiBtn.style.background = '#fff';
+            askAiBtn.style.color = '#6025d1';
+            askAiBtn.style.border = '1.5px solid #e2e8f0';
+            askAiBtn.style.borderLeft = 'none';
+            askAiBtn.style.boxShadow = 'none';
+          }
+        }
+        updateAiBtnStyle();
+        askAiBtn.addEventListener('click', () => {
+          aiMode = !aiMode;
+          updateAiBtnStyle();
+          // Show/hide chat in side panel
+          if (aiMode) {
+            chatContainer.style.display = '';
+          } else {
+            chatContainer.style.display = 'none';
+          }
+        });
+        // Create a flex row for search input and Ask AI button
+        const searchInputGroup = document.createElement('div');
+        searchInputGroup.style.cssText =
+          'display: flex; align-items: stretch; width: 100%; position: relative;';
+        searchInputGroup.appendChild(searchInput);
+        searchInputGroup.appendChild(askAiBtn);
+        // Place search icon absolutely inside the input group (move to left)
         const searchIcon = document.createElement('div');
         searchIcon.innerHTML = `
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -260,12 +317,17 @@
         `;
         searchIcon.style.cssText = `
           position: absolute;
-          right: 18px;
+          left: 14px;
           top: 50%;
           transform: translateY(-50%);
           color: #64748b;
           pointer-events: none;
         `;
+        // Adjust input padding to make room for icon
+        searchInput.style.paddingLeft = '38px';
+        searchInputGroup.appendChild(searchIcon);
+        // Add the input group to the custom search container
+        customSearchContainer.appendChild(searchInputGroup);
 
         // Create results dropdown
         const resultsDropdown = document.createElement('div');
@@ -295,7 +357,8 @@
           top: 60px;
           right: 40px;
           width: 340px;
-          height: 420px;
+          height: auto;
+          max-height: 80vh;
           background: #fff;
           box-shadow: 0 8px 32px rgba(0,0,0,0.18);
           border-radius: 16px;
@@ -303,51 +366,91 @@
           z-index: 2000;
           display: none;
           flex-direction: column;
-          padding: 0 0 24px 0;
+          padding: 0 0 0 0;
           transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.2s;
           overflow: hidden;
         `;
-        // Title bar for dragging
-        const sidePanelTitleBar = document.createElement('div');
-        sidePanelTitleBar.style.cssText = `
-          font-size: 18px;
-          font-weight: 600;
-          margin-bottom: 0;
-          color: #6025d1;
-          padding: 18px 20px 10px 20px;
+        // --- Top Bar (Context Selector Dropdown + Draggable + Close) ---
+        const topBar = document.createElement('div');
+        topBar.style.cssText = `
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 0 0 0;
+          background: linear-gradient(90deg, #e9e4fa 0%, #f5f3fa 100%);
+          border-bottom: 1px solid #e2e8f0;
+          min-height: 44px;
+          height: 44px;
+          width: 100%;
+          position: relative;
           cursor: move;
           user-select: none;
-          background: transparent;
-          letter-spacing: 0.01em;
         `;
-        sidePanelTitleBar.textContent = 'BAML Search';
-        sidePanel.appendChild(sidePanelTitleBar);
-        // Remove info area for minimalism
-        // Results area
-        const sidePanelResults = document.createElement('div');
-        sidePanelResults.id = 'custom-search-side-panel-results';
-        sidePanelResults.style.cssText = `
-          flex: 1 1 auto;
-          overflow-y: auto;
-          padding: 0 12px 12px 12px;
+        // Grab handle + Title
+        const grabTitle = document.createElement('div');
+        grabTitle.style.cssText = `
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          color: #6025d1;
+          padding: 0 12px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         `;
-        sidePanel.appendChild(sidePanelResults);
+        grabTitle.innerHTML = `<svg width="18" height="18" style="margin-right:2px;opacity:0.7;" viewBox="0 0 20 20"><rect x="4" y="7" width="2" height="6" rx="1" fill="#b7a7e6"/><rect x="9" y="7" width="2" height="6" rx="1" fill="#b7a7e6"/><rect x="14" y="7" width="2" height="6" rx="1" fill="#b7a7e6"/></svg>BAML Search`;
+        // Context dropdown (no AI)
+        const languages = [
+          { name: 'Python', value: 'python' },
+          { name: 'TypeScript', value: 'typescript' },
+          { name: 'Ruby', value: 'ruby' },
+          { name: 'Go', value: 'go' },
+        ];
+        let selectedLanguage = languages[0].value;
+        const contextDropdown = document.createElement('select');
+        contextDropdown.style.cssText = `
+          margin-left: 8px;
+          padding: 4px 18px 4px 8px;
+          border-radius: 6px;
+          border: 1px solid #d1c4e9;
+          background: #fff;
+          color: #6025d1;
+          font-size: 13px;
+          font-weight: 500;
+          outline: none;
+          cursor: pointer;
+          min-width: 80px;
+          max-width: 120px;
+        `;
+        for (const lang of languages) {
+          const opt = document.createElement('option');
+          opt.value = lang.value;
+          opt.textContent = lang.name;
+          contextDropdown.appendChild(opt);
+        }
+        contextDropdown.value = selectedLanguage;
+        contextDropdown.addEventListener('change', () => {
+          selectedLanguage = contextDropdown.value;
+        });
         // Close button
         const closeBtn = document.createElement('button');
         closeBtn.textContent = '×';
         closeBtn.setAttribute('aria-label', 'Close search panel');
         closeBtn.style.cssText = `
-          position: absolute;
-          top: 10px;
-          right: 16px;
           background: none;
           border: none;
           font-size: 22px;
           color: #bbb;
           cursor: pointer;
-          padding: 0;
+          padding: 0 16px 0 8px;
           line-height: 1;
           transition: color 0.15s;
+          margin-left: 8px;
+          height: 44px;
+          display: flex;
+          align-items: center;
         `;
         closeBtn.addEventListener('mouseenter', () => {
           closeBtn.style.color = '#6025d1';
@@ -358,13 +461,125 @@
         closeBtn.addEventListener('click', () => {
           sidePanel.style.display = 'none';
         });
-        sidePanel.appendChild(closeBtn);
+        // Assemble top bar
+        grabTitle.appendChild(contextDropdown);
+        topBar.appendChild(grabTitle);
+        topBar.appendChild(closeBtn);
+        sidePanel.appendChild(topBar);
+        // Remove info area for minimalism
+        // Results area
+        const sidePanelResults = document.createElement('div');
+        sidePanelResults.id = 'custom-search-side-panel-results';
+        sidePanelResults.style.cssText = `
+          flex: 1 1 auto;
+          overflow-y: auto;
+          padding: 0 12px 12px 12px;
+          max-height: 250px;
+        `;
+        sidePanel.appendChild(sidePanelResults);
+        // --- Chat Interface ---
+        const chatContainer = document.createElement('div');
+        chatContainer.style.cssText = `
+          border-top: 1px solid #e2e8f0;
+          padding: 10px 12px 12px 12px;
+          background: inherit;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        `;
+        // Only show chat if AI mode
+        chatContainer.style.display = 'none';
+        // Chat messages area
+        const chatMessages = document.createElement('div');
+        chatMessages.style.cssText = `
+          min-height: 40px;
+          max-height: 120px;
+          overflow-y: auto;
+          margin-bottom: 6px;
+          font-size: 14px;
+          color: #222;
+          background: #f8f8fa;
+          border-radius: 6px;
+          padding: 8px;
+        `;
+        chatContainer.appendChild(chatMessages);
+        // Chat input row
+        const chatInputRow = document.createElement('div');
+        chatInputRow.style.cssText = 'display: flex; gap: 6px;';
+        const chatInput = document.createElement('input');
+        chatInput.type = 'text';
+        chatInput.placeholder = 'Ask a question...';
+        chatInput.style.cssText = `
+          flex: 1 1 auto;
+          padding: 6px 10px;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          font-size: 14px;
+          outline: none;
+        `;
+        const chatSend = document.createElement('button');
+        chatSend.textContent = 'Send';
+        chatSend.style.cssText = `
+          padding: 6px 14px;
+          background: #6025d1;
+          color: #fff;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: background 0.15s;
+        `;
+        chatSend.addEventListener('mouseenter', () => {
+          chatSend.style.background = '#7d3cf6';
+        });
+        chatSend.addEventListener('mouseleave', () => {
+          chatSend.style.background = '#6025d1';
+        });
+        chatInputRow.appendChild(chatInput);
+        chatInputRow.appendChild(chatSend);
+        chatContainer.appendChild(chatInputRow);
+        sidePanel.appendChild(chatContainer);
+        // Chat logic
+        function appendChatMessage(text, isUser) {
+          const msg = document.createElement('div');
+          msg.textContent = text;
+          msg.style.cssText = `
+            margin-bottom: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: ${isUser ? '#e9e4fa' : '#f1f5f9'};
+            color: #222;
+            align-self: ${isUser ? 'flex-end' : 'flex-start'};
+            max-width: 90%;
+            word-break: break-word;
+          `;
+          chatMessages.appendChild(msg);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        function sendChat() {
+          const value = chatInput.value.trim();
+          if (!value) return;
+          appendChatMessage(value, true);
+          chatInput.value = '';
+          setTimeout(() => {
+            appendChatMessage(
+              'This is a placeholder response from BAML AI.',
+              false,
+            );
+          }, 600);
+        }
+        chatSend.addEventListener('click', sendChat);
+        chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') sendChat();
+        });
+        // --- End Chat Interface ---
         document.body.appendChild(sidePanel);
         // --- End Side Panel Implementation ---
 
         // Assemble the search component
-        customSearchContainer.appendChild(searchInput);
-        customSearchContainer.appendChild(searchIcon);
+        // customSearchContainer.appendChild(searchInput); // Removed as it's now in searchInputGroup
+        // customSearchContainer.appendChild(askAiBtn); // Removed as it's now in searchInputGroup
+        // customSearchContainer.appendChild(searchIcon); // Removed as it's now in searchInputGroup
         // customSearchContainer.appendChild(resultsDropdown); // Remove dropdown from DOM
 
         // Insert into header (try different insertion strategies)
@@ -602,7 +817,8 @@
         let isDragging = false;
         let dragOffsetX = 0;
         let dragOffsetY = 0;
-        sidePanelTitleBar.addEventListener('mousedown', (e) => {
+        // Make the whole topBar draggable
+        topBar.addEventListener('mousedown', (e) => {
           isDragging = true;
           const rect = sidePanel.getBoundingClientRect();
           dragOffsetX = e.clientX - rect.left;
