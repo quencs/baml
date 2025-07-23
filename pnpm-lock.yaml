@@ -65,7 +65,7 @@ importers:
         version: 1.9.4
       '@napi-rs/cli':
         specifier: 3.0.0-alpha.62
-        version: 3.0.0-alpha.62(@emnapi/runtime@1.4.3)
+        version: 3.0.0-alpha.62(@emnapi/runtime@1.4.5)
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -381,40 +381,6 @@ importers:
       zod:
         specifier: ^4.0.5
         version: 4.0.5
-
-  sage2:
-    dependencies:
-      '@boundaryml/baml':
-        specifier: ^0.202.1
-        version: 0.202.1
-      next:
-        specifier: 15.4.3
-        version: 15.4.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      react:
-        specifier: 19.1.0
-        version: 19.1.0
-      react-dom:
-        specifier: 19.1.0
-        version: 19.1.0(react@19.1.0)
-    devDependencies:
-      '@tailwindcss/postcss':
-        specifier: ^4
-        version: 4.1.11
-      '@types/node':
-        specifier: ^20
-        version: 20.19.1
-      '@types/react':
-        specifier: ^19
-        version: 19.1.8
-      '@types/react-dom':
-        specifier: ^19
-        version: 19.1.6(@types/react@19.1.8)
-      tailwindcss:
-        specifier: ^4
-        version: 4.1.11
-      typescript:
-        specifier: ^5
-        version: 5.8.3
 
   typescript/apps/fiddle-web-app:
     dependencies:
@@ -13609,7 +13575,7 @@ snapshots:
 
   '@microsoft/fetch-event-source@2.0.1': {}
 
-  '@napi-rs/cli@3.0.0-alpha.62(@emnapi/runtime@1.4.3)':
+  '@napi-rs/cli@3.0.0-alpha.62(@emnapi/runtime@1.4.5)':
     dependencies:
       '@napi-rs/cross-toolchain': 0.0.16
       '@napi-rs/wasm-tools': 0.0.2
@@ -13625,7 +13591,7 @@ snapshots:
       typanion: 3.14.0
       wasm-sjlj: 1.0.6
     optionalDependencies:
-      '@emnapi/runtime': 1.4.3
+      '@emnapi/runtime': 1.4.5
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'

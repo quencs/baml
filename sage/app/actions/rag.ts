@@ -1,6 +1,6 @@
 'use server';
-import OpenAI from 'openai';
 import { Pinecone } from '@pinecone-database/pinecone';
+import OpenAI from 'openai';
 
 const openaiClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? '',
@@ -10,7 +10,7 @@ const pineconeClient = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY ?? '',
 });
 
-const pineconeIndex = pineconeClient.Index('baml-index-sage');
+const pineconeIndex = pineconeClient.Index('baml-index');
 
 interface FernDoc {
   slug: string;
@@ -24,7 +24,7 @@ interface EmbeddingWithMetadata {
   document: FernDoc;
 }
 
-function chunkMarkdown(text: string, maxChunkSize: number = 16000): string[] {
+function chunkMarkdown(text: string, maxChunkSize = 16000): string[] {
   // Split on H1 and H2 headers
   const headerRegex = /^#{1,2}\s+.+$/gm;
   const sections = text.split(headerRegex);
@@ -151,7 +151,7 @@ export async function populatePinecone() {
 }
 
 // RAG using pinecone
-export async function searchPinecone(query: string, count: number = 5) {
+export async function searchPinecone(query: string, count = 5) {
   const results = await pineconeIndex.query({
     vector: await openaiClient.embeddings
       .create({
@@ -165,4 +165,133 @@ export async function searchPinecone(query: string, count: number = 5) {
   console.log('Got matches', results.matches.length);
   // console.log(results.matches);
   return results.matches;
+}
+
+// Copy vectors from baml-index to baml-index-sage
+export async function copyPineconeIndex() {
+  const sourceIndex = pineconeClient.Index('baml-index');
+  const targetIndex = pineconeClient.Index('baml-index-sage');
+
+  try {
+    // Get index statistics to understand the data size
+    const stats = await sourceIndex.describeIndexStats();
+    console.log('Source index stats:', stats);
+
+    const totalVectors = stats.totalRecordCount || 0;
+    if (totalVectors === 0) {
+      console.log('No vectors found in source index');
+      return;
+    }
+
+    console.log(
+      `Copying ${totalVectors} vectors from baml-index to baml-index-sage...`,
+    );
+
+    // Clear the target index first
+    // try {
+    //   await targetIndex.deleteAll();
+    //   console.log('Cleared target index');
+    // } catch (e) {
+    //   console.log('Target index was already empty or error clearing:', e);
+    // }
+
+    // We need to query in batches since Pinecone doesn't have a "list all" operation
+    // We'll use a dummy query to get all vectors
+    const batchSize = 1000;
+    let copiedCount = 0;
+
+    // Get all unique namespaces first
+    const namespaces = Object.keys(stats.namespaces || { '': stats });
+
+    for (const namespace of namespaces) {
+      console.log(`Processing namespace: ${namespace || 'default'}`);
+
+      // Query with a zero vector to get vectors (this is a workaround)
+      // Since we can't list all vectors, we'll query with high topK
+      const queryOptions = {
+        topK: Math.min(batchSize, 10000), // Pinecone max is 10000
+        includeMetadata: true,
+        includeValues: true,
+      };
+
+      // We need to provide a vector for the query, so we'll use a dummy vector
+      // with the same dimensions. Let's get the dimension from the first vector
+      let vectorDimension = 3072; // Default for text-embedding-3-large
+
+      try {
+        // Try to get a sample vector to determine dimensions
+        const sampleQueryOptions = {
+          ...queryOptions,
+          vector: new Array(vectorDimension).fill(0),
+          topK: 1,
+        };
+
+        const sampleQuery = namespace
+          ? await sourceIndex.namespace(namespace).query(sampleQueryOptions)
+          : await sourceIndex.query(sampleQueryOptions);
+
+        if (sampleQuery.matches.length > 0) {
+          vectorDimension =
+            sampleQuery.matches[0].values?.length || vectorDimension;
+        }
+      } catch (e) {
+        console.log(
+          'Could not determine vector dimension, using default:',
+          vectorDimension,
+        );
+      }
+
+      // Query all vectors in this namespace
+      const finalQueryOptions = {
+        ...queryOptions,
+        vector: new Array(vectorDimension).fill(0),
+        topK: 10000, // Get as many as possible
+      };
+
+      const queryResult = namespace
+        ? await sourceIndex.namespace(namespace).query(finalQueryOptions)
+        : await sourceIndex.query(finalQueryOptions);
+
+      const vectors = queryResult.matches;
+      console.log(
+        `Found ${vectors.length} vectors in namespace: ${namespace || 'default'}`,
+      );
+
+      if (vectors.length === 0) continue;
+
+      // Prepare records for upsert
+      const records = vectors.map((match) => ({
+        id: match.id,
+        values: match.values || [],
+        metadata: match.metadata || {},
+      }));
+
+      // Upsert in smaller batches
+      const upsertBatchSize = 100;
+      for (let i = 0; i < records.length; i += upsertBatchSize) {
+        const batch = records.slice(i, i + upsertBatchSize);
+
+        if (namespace) {
+          await targetIndex.namespace(namespace).upsert(batch);
+        } else {
+          await targetIndex.upsert(batch);
+        }
+
+        copiedCount += batch.length;
+
+        console.log(`Copied ${copiedCount}/${totalVectors} vectors...`);
+      }
+    }
+
+    console.log(
+      `Successfully copied ${copiedCount} vectors from baml-index to baml-index-sage`,
+    );
+
+    // Verify the copy
+    const targetStats = await targetIndex.describeIndexStats();
+    console.log('Target index stats after copy:', targetStats);
+  } catch (error) {
+    console.error('Error copying Pinecone index:', error);
+    throw error;
+  }
 }
