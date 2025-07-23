@@ -1,5 +1,8 @@
 'use server';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Pinecone } from '@pinecone-database/pinecone';
+import * as cheerio from 'cheerio';
 import OpenAI from 'openai';
 
 const openaiClient = new OpenAI({
@@ -10,7 +13,18 @@ const pineconeClient = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY ?? '',
 });
 
-const pineconeIndex = pineconeClient.Index('baml-index');
+const pineconeIndex = pineconeClient.Index('baml-index-sage');
+
+interface SitemapEntry {
+  title: string;
+  path?: string;
+  url?: string;
+  type: 'internal' | 'external';
+  slug?: string;
+  description?: string;
+  section?: string;
+  [key: string]: any;
+}
 
 interface FernDoc {
   slug: string;
@@ -24,81 +38,297 @@ interface EmbeddingWithMetadata {
   document: FernDoc;
 }
 
-function chunkMarkdown(text: string, maxChunkSize = 16000): string[] {
-  // Split on H1 and H2 headers
+// Rough token estimation (1 token ≈ 4 characters for English text)
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+function chunkMarkdown(text: string, maxChunkSize = 3000): string[] {
+  const chunks: string[] = [];
+
+  // First, split by major headers (H1, H2)
   const headerRegex = /^#{1,2}\s+.+$/gm;
   const sections = text.split(headerRegex);
   const headers = text.match(headerRegex) || [];
 
-  const chunks: string[] = [];
-  let currentChunk = '';
-
-  // Combine headers with their content
   for (let i = 0; i < sections.length; i++) {
-    const header = headers[i - 1] || ''; // First section might not have header
-    const content = sections[i];
-    const combined = `${header}\n${content}`.trim();
+    const header = headers[i - 1] || '';
+    const content = sections[i].trim();
 
-    if (combined.length <= maxChunkSize) {
-      // If current chunk + combined would exceed limit, start new chunk
-      if ((currentChunk + combined).length > maxChunkSize && currentChunk) {
-        chunks.push(currentChunk.trim());
-        currentChunk = combined;
+    if (!content) continue;
+
+    const sectionText = header ? `${header}\n${content}` : content;
+
+    // If section is small enough, add it directly
+    if (sectionText.length <= maxChunkSize) {
+      chunks.push(sectionText);
+      continue;
+    }
+
+    // If section is too large, split by paragraphs
+    const paragraphs = content.split(/\n\s*\n/);
+    let currentChunk = header ? `${header}\n` : '';
+
+    for (const paragraph of paragraphs) {
+      const trimmedParagraph = paragraph.trim();
+      if (!trimmedParagraph) continue;
+
+      // If adding this paragraph would exceed limit, start new chunk
+      if ((currentChunk + trimmedParagraph).length > maxChunkSize) {
+        if (currentChunk.trim()) {
+          chunks.push(currentChunk.trim());
+        }
+        currentChunk = trimmedParagraph;
       } else {
         currentChunk = currentChunk
-          ? `${currentChunk}\n\n${combined}`
-          : combined;
-      }
-    } else {
-      // If single section is too large, split by paragraphs
-      if (currentChunk) {
-        chunks.push(currentChunk.trim());
-        currentChunk = '';
+          ? `${currentChunk}\n\n${trimmedParagraph}`
+          : trimmedParagraph;
       }
 
-      const paragraphs = combined.split(/\n\s*\n/);
-      let paragraphChunk = '';
+      // If even a single paragraph is too large, split by sentences
+      if (currentChunk.length > maxChunkSize) {
+        const sentences = currentChunk.split(/[.!?]+\s+/);
+        let sentenceChunk = '';
 
-      for (const paragraph of paragraphs) {
-        if ((paragraphChunk + paragraph).length > maxChunkSize) {
-          if (paragraphChunk) chunks.push(paragraphChunk.trim());
-          paragraphChunk = paragraph;
+        for (const sentence of sentences) {
+          if ((sentenceChunk + sentence).length > maxChunkSize) {
+            if (sentenceChunk.trim()) {
+              chunks.push(sentenceChunk.trim());
+            }
+            sentenceChunk = sentence;
+          } else {
+            sentenceChunk = sentenceChunk
+              ? `${sentenceChunk}. ${sentence}`
+              : sentence;
+          }
+        }
+
+        if (sentenceChunk.trim()) {
+          currentChunk = sentenceChunk;
         } else {
-          paragraphChunk = paragraphChunk
-            ? `${paragraphChunk}\n\n${paragraph}`
-            : paragraph;
+          currentChunk = '';
         }
       }
+    }
 
-      if (paragraphChunk) chunks.push(paragraphChunk.trim());
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
     }
   }
 
-  if (currentChunk) chunks.push(currentChunk.trim());
-  return chunks;
+  // Final validation: ensure no chunk exceeds token limits
+  const validatedChunks: string[] = [];
+  for (const chunk of chunks) {
+    if (estimateTokens(chunk) > 7000) {
+      // Leave some buffer below 8192
+      // Force split by character count as last resort
+      const words = chunk.split(/\s+/);
+      let wordChunk = '';
+
+      for (const word of words) {
+        if ((wordChunk + word).length > 2500) {
+          // Very conservative
+          if (wordChunk.trim()) {
+            validatedChunks.push(wordChunk.trim());
+          }
+          wordChunk = word;
+        } else {
+          wordChunk = wordChunk ? `${wordChunk} ${word}` : word;
+        }
+      }
+
+      if (wordChunk.trim()) {
+        validatedChunks.push(wordChunk.trim());
+      }
+    } else {
+      validatedChunks.push(chunk);
+    }
+  }
+
+  return validatedChunks.filter((chunk) => chunk.length > 50); // Remove very small chunks
 }
 
-// TODO store the whole document even for each chunk?
-export async function populatePinecone() {
-  const fs = require('fs');
-  const path = require('path');
-  const docs = JSON.parse(fs.readFileSync('./fern.json', 'utf8'));
+// Helper function to extract clean text content from HTML
+function extractTextFromHtml(html: string): string {
+  const $ = cheerio.load(html);
 
-  // Filter out changelog documents
-  const filteredDocs = docs.filter(
-    (doc: FernDoc) => !doc.slug.includes('/changelog'),
+  // Remove unwanted elements
+  $(
+    'script, style, nav, header, footer, .navigation, .sidebar, .ads, .cookie-banner, .header, .footer',
+  ).remove();
+
+  // Try to find main content area
+  let content = '';
+  const contentSelectors = [
+    'main article',
+    'main',
+    'article',
+    '.post-content',
+    '.entry-content',
+    '.blog-content',
+    '.content',
+    '[role="main"]',
+    '.post-body',
+    '.article-content',
+  ];
+
+  for (const selector of contentSelectors) {
+    const element = $(selector);
+    if (element.length) {
+      const text = element.text().trim();
+      if (text.length > content.length) {
+        content = text;
+      }
+    }
+  }
+
+  // If no main content found, try body with unwanted elements removed
+  if (!content) {
+    $(
+      'header, footer, nav, aside, .header, .footer, .nav, .sidebar, .menu, .navigation',
+    ).remove();
+    content = $('body').text().trim();
+  }
+
+  // Clean up whitespace and normalize
+  content = content
+    .replace(/\s+/g, ' ')
+    .replace(/\n\s*\n/g, '\n')
+    .trim();
+
+  return content;
+}
+
+// Helper function to fetch and clean blog content
+async function fetchBlogContent(url: string): Promise<string> {
+  try {
+    console.log(`Fetching blog content from: ${url}`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const html = await response.text();
+    const content = extractTextFromHtml(html);
+
+    if (!content || content.length < 100) {
+      throw new Error('Could not extract meaningful content from blog post');
+    }
+
+    console.log(
+      `✓ Successfully extracted ${content.length} characters from ${url}`,
+    );
+    return content;
+  } catch (error) {
+    console.error(`✗ Error fetching blog content from ${url}:`, error);
+    // Return a minimal fallback content
+    return `Blog post: ${url}\nTitle: ${url.split('/').pop()?.replace(/-/g, ' ') || 'Blog Post'}`;
+  }
+}
+
+// Helper function to read internal doc content
+function readInternalDocContent(docPath: string): string {
+  try {
+    // Assume docs are in the fern directory relative to the sage directory
+    const fullPath = join('../fern', docPath);
+    const content = readFileSync(fullPath, 'utf8');
+
+    // Remove frontmatter if present
+    const frontmatterRegex = /^---\s*\n[\s\S]*?\n---\s*\n/;
+    const cleanContent = content.replace(frontmatterRegex, '').trim();
+
+    return cleanContent;
+  } catch (error) {
+    console.error(`Error reading internal doc ${docPath}:`, error);
+    return `Document: ${docPath}`;
+  }
+}
+
+export async function populatePinecone() {
+  // Read sitemap.json which contains all documentation sources
+  const sitemap: SitemapEntry[] = JSON.parse(
+    readFileSync('./sitemap.json', 'utf8'),
+  );
+
+  console.log(`Found ${sitemap.length} total entries in sitemap`);
+
+  // Separate internal docs and external blog posts
+  const internalDocs = sitemap.filter((entry) => entry.type === 'internal');
+  const externalBlogs = sitemap.filter((entry) => entry.type === 'external');
+
+  console.log(
+    `Processing ${internalDocs.length} internal docs and ${externalBlogs.length} external blog posts`,
   );
 
   // Delete all existing records once before starting
   try {
     await pineconeIndex.deleteAll();
+    console.log('Cleared existing Pinecone records');
   } catch (e) {
     console.log('No existing records to delete');
   }
 
+  // Process internal docs first
+  const internalFernDocs: FernDoc[] = [];
+
+  for (const entry of internalDocs) {
+    if (!entry.path || !entry.slug) {
+      console.warn(
+        `Skipping internal doc without path or slug: ${entry.title}`,
+      );
+      continue;
+    }
+
+    try {
+      const content = readInternalDocContent(entry.path);
+      internalFernDocs.push({
+        slug: entry.slug,
+        path: entry.path,
+        body: content,
+      });
+      console.log(`✓ Processed internal doc: ${entry.title}`);
+    } catch (error) {
+      console.error(`✗ Failed to process internal doc ${entry.title}:`, error);
+    }
+  }
+
+  // Process external blog posts
+  const externalFernDocs: FernDoc[] = [];
+
+  for (const entry of externalBlogs) {
+    if (!entry.url) {
+      console.warn(`Skipping external entry without URL: ${entry.title}`);
+      continue;
+    }
+
+    try {
+      const content = await fetchBlogContent(entry.url);
+      // Create a slug from the URL for external content
+      const slug =
+        entry.url.replace('https://boundaryml.com', '') ||
+        `/blog/${entry.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+
+      externalFernDocs.push({
+        slug: slug,
+        path: entry.url,
+        body: content,
+      });
+      console.log(`✓ Processed external blog: ${entry.title}`);
+    } catch (error) {
+      console.error(`✗ Failed to process external blog ${entry.title}:`, error);
+    }
+  }
+
+  // Combine all documents
+  const allDocs = [...internalFernDocs, ...externalFernDocs];
+  console.log(`Total documents to process: ${allDocs.length}`);
+
   // Process docs in batches of 10
-  for (let i = 0; i < filteredDocs.length; i += 10) {
-    const batch = filteredDocs.slice(i, i + 10);
+  for (let i = 0; i < allDocs.length; i += 10) {
+    const batch = allDocs.slice(i, i + 10);
+    console.log(
+      `Processing batch ${Math.floor(i / 10) + 1}/${Math.ceil(allDocs.length / 10)}`,
+    );
 
     // First, create all chunks for each document
     const chunkedDocs: { doc: FernDoc; chunk: string; chunkIndex: number }[] =
@@ -111,9 +341,26 @@ export async function populatePinecone() {
         }));
       });
 
+    console.log(
+      `Created ${chunkedDocs.length} chunks from ${batch.length} documents`,
+    );
+
     // Then, generate embeddings for all chunks
     const embeddingsWithMetadata: EmbeddingWithMetadata[] = await Promise.all(
       chunkedDocs.map(async ({ doc, chunk, chunkIndex }) => {
+        // Validate chunk size before sending to OpenAI
+        const estimatedTokens = estimateTokens(chunk);
+        if (estimatedTokens > 7500) {
+          console.warn(
+            `⚠️  Chunk ${chunkIndex} for ${doc.slug} is large: ~${estimatedTokens} tokens (${chunk.length} chars)`,
+          );
+          // Truncate if still too large
+          if (estimatedTokens > 8000) {
+            chunk = `${chunk.substring(0, 2000)}...`;
+            console.warn('✂️  Truncated chunk to avoid API error');
+          }
+        }
+
         const embeddingResponse = await openaiClient.embeddings.create({
           model: 'text-embedding-3-large',
           input: chunk,
@@ -133,7 +380,7 @@ export async function populatePinecone() {
 
     // Prepare records for Pinecone using the combined data
     const records = embeddingsWithMetadata.map(({ embedding, document }) => ({
-      id: `${document.slug}-chunk-${document.chunkIndex}`,
+      id: `${document.slug.replace(/[^a-zA-Z0-9-_]/g, '_')}-chunk-${document.chunkIndex}`,
       values: embedding,
       metadata: {
         slug: document.slug,
@@ -146,7 +393,72 @@ export async function populatePinecone() {
     for (let j = 0; j < records.length; j += 100) {
       const upsertBatch = records.slice(j, j + 100);
       await pineconeIndex.upsert(upsertBatch);
+      console.log(`Upserted ${upsertBatch.length} records to Pinecone`);
     }
+  }
+
+  console.log(
+    `✅ Successfully populated Pinecone with ${allDocs.length} documents`,
+  );
+}
+
+// Test function to verify populate works with a small subset
+export async function testPopulatePinecone() {
+  try {
+    // Read sitemap and take a small sample
+    const sitemap: SitemapEntry[] = JSON.parse(
+      readFileSync('./sitemap.json', 'utf8'),
+    );
+
+    const sampleInternal = sitemap
+      .filter((entry) => entry.type === 'internal')
+      .slice(0, 2);
+    const sampleExternal = sitemap
+      .filter((entry) => entry.type === 'external')
+      .slice(0, 1);
+
+    console.log(
+      `Testing with ${sampleInternal.length} internal docs and ${sampleExternal.length} external blogs`,
+    );
+
+    // Test internal doc processing
+    for (const entry of sampleInternal) {
+      if (!entry.path) {
+        console.error(`✗ Internal doc "${entry.title}" has no path`);
+        continue;
+      }
+      try {
+        const content = readInternalDocContent(entry.path);
+        console.log(
+          `✓ Internal doc "${entry.title}": ${content.length} characters`,
+        );
+      } catch (error) {
+        console.error(`✗ Failed to read internal doc "${entry.title}"`);
+      }
+    }
+
+    // Test external blog processing
+    for (const entry of sampleExternal) {
+      if (!entry.url) {
+        console.error(`✗ External blog "${entry.title}" has no URL`);
+        continue;
+      }
+      try {
+        const content = await fetchBlogContent(entry.url);
+        console.log(
+          `✓ External blog "${entry.title}": ${content.length} characters`,
+        );
+        console.log(content.slice(0, 200));
+      } catch (error) {
+        console.error(`✗ Failed to fetch external blog "${entry.title}"`);
+      }
+    }
+
+    console.log('✅ Test completed successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Test failed:', error);
+    return false;
   }
 }
 

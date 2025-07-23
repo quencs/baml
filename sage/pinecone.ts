@@ -1,7 +1,10 @@
-async function main() {
-  // await populatePinecone();
+import { populatePinecone, searchPinecone } from './app/actions/rag';
 
-  const results = await searchPinecone('what is @alias?');
+async function main() {
+  await populatePinecone();
+  // await testPopulatePinecone();
+
+  const results = await searchPinecone('is there a baml zed extension?');
   console.log(results);
 
   // await copyPineconeIndex();
