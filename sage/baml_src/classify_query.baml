@@ -58,6 +58,7 @@ function PlanQuery(query: Query) -> QueryActionPlan {
   prompt #"
     {{ _.role("system") }}
     You are a librarian answering queries a user has about BAML (an AI framework to write LLM prompts as functions).
+    Be concise in your answer.
 
     'this' without context will refer to BAML
 
@@ -167,16 +168,18 @@ function PlanQuery(query: Query) -> QueryActionPlan {
     {% endfor %}
     </context_docs>
 
-    ---
+
+    {% if query.language_preference %}
+    If you generate application code to answer the user's query, use the following language: {{ query.language_preference }}
+    {% endif %}
+
     If you are not sure of the answer (you're not sure how to write the code), you can tell the user to join the Discord server and ask the question there (we respond very fast)
 
-    {{ _.role("user") }}
-    {{ query.text }}
-
-    My language preference is:
-    {{ query.language_preference }}
 
     {{ ctx.output_format }}
+    
+    {{ _.role("user") }}
+    {{ query.text }}
   "#
 }
 
@@ -234,6 +237,203 @@ test query_plan2 {
                 val.description(k.llm_description)
             selected_categories = b.PickBestCategories(text, count=3, baml_options={ "tb": tb })
             return [category for category in categories if category.name in selected_categories]
+      "#
+      language_preference #"Python"#
+      context_docs [
+        {
+          title "@alias"
+          body #"
+            The `@alias` attribute in BAML is used to rename fields or values for better understanding by the LLM, while keeping the original name in your code. This is particularly useful for prompt engineering, as it allows you to provide a more intuitive name for the LLM without altering your existing codebase.
+
+            ## Prompt Impact (class)
+
+
+            ### Without `@alias`
+
+            ```baml BAML
+            class MyClass {
+              property1 string
+            }
+            ```
+
+            **ctx.output_format:**
+
+            ```
+            {
+              property1: string
+            }
+            ```
+
+            ### With `@alias`
+
+            ```baml BAML
+            class MyClass {
+              property1 string @alias("name")
+            }
+            ```
+
+            **ctx.output_format:**
+
+            ```
+            {
+              name: string
+            }
+            ```
+
+            ## Prompt Impact (enum)
+
+
+            ```baml BAML
+            enum MyEnum {
+              Value1
+              // Note that @@alias is applied to the enum itself, not the value
+              @@alias("My Name")
+            }
+            ```
+
+            **ctx.output_format:**
+
+            ```
+            My Name
+            ---
+            Value1
+            ```
+
+            ## Prompt Impact (enum value)
+
+
+            ```baml BAML
+            enum MyEnum {
+              Value1 @alias("Something")
+            }
+            ```
+
+            **ctx.output_format:**
+
+            ```
+            MyEnum
+            ---
+            Something
+            ```
+          "#
+          relevance_score 0.58877033
+        },
+        {
+          title "Attributes"
+          body #"
+            In BAML, attributes are used to provide additional metadata or behavior to fields and types. They can be applied at different levels, such as field-level or block-level, depending on their intended use.
+
+            ## Field-Level Attributes
+
+
+            Field-level attributes are applied directly to individual fields within a class or enum. They modify the behavior or metadata of that specific field.
+
+            ### Examples of Field-Level Attributes
+
+            - **`@alias`**: Renames a field for better understanding by the LLM.
+            - **`@description`**: Provides additional context to a field.
+            - **`@skip`**: Excludes a field from prompts or parsing.
+            - **`@assert`**: Applies strict validation to a field.
+            - **`@check`**: Adds non-exception-raising validation to a field.
+
+            ```baml BAML
+            class MyClass {
+              property1 string @alias("name") @description("The name of the object")
+              age int? @check(positive, {{ this > 0 }})
+            }
+            ```
+
+            ## Block-Level Attributes
+
+
+            Block-level attributes are applied to an entire class or enum, affecting all fields or values within that block. They are used to modify the behavior or metadata of the entire block.
+
+            ### Examples of Block-Level Attributes
+
+            - **`@@dynamic`**: Allows dynamic modification of fields or values at runtime.
+
+            ```baml BAML
+            class MyClass {
+              property1 string
+              property2 int?
+
+              @@dynamic // allows adding fields dynamically at runtime
+            }
+            ```
+
+            ## Key Differences
+
+
+            - **Scope**: Field-level attributes affect individual fields, while block-level attributes affect the entire class or enum.
+            - **Usage**: Field-level attributes are used for specific field modifications, whereas block-level attributes are used for broader modifications affecting the whole block.
+
+            Understanding the distinction between these types of attributes is crucial for effectively using BAML to define and manipulate data structures.
+
+            For more detailed information on each attribute, refer to the specific attribute pages in this section.
+          "#
+          relevance_score 0.279810756
+            },
+        {
+          title "Creating a Classification Function with Symbol Tuning"
+          body #"
+            Aliasing field names to abstract symbols like "k1", "k2", etc. can improve classification results. This technique, known as symbol tuning, helps the LLM focus on your descriptions rather than being biased by the enum or property names themselves.
+
+            See the paper [Symbol Tuning Improves In-Context Learning in Language Models](https://arxiv.org/abs/2305.08298) for more details.
+
+            ```baml
+            enum MyClass {
+                Refund @alias("k1")
+                @description("Customer wants to refund a product")
+
+                CancelOrder @alias("k2")
+                @description("Customer wants to cancel an order")
+
+                TechnicalSupport @alias("k3")
+                @description("Customer needs help with a technical issue unrelated to account creation or login")
+
+                AccountIssue @alias("k4")
+                @description("Specifically relates to account-login or account-creation")
+
+                Question @alias("k5")
+                @description("Customer has a question")
+            }
+
+            function ClassifyMessageWithSymbol(input: string) -> MyClass {
+              client GPT4o
+
+              prompt #"
+                Classify the following INPUT into ONE
+                of the following categories:
+
+                INPUT: {{ input }}
+
+                {{ ctx.output_format }}
+
+                Response:
+              \"\#
+            }
+
+            test Test1 {
+              functions [ClassifyMessageWithSymbol]
+              args {
+                input "I can't access my account using my login credentials. I havent received the promised reset password email. Please help."
+              }
+            }
+            ```
+          "#
+          relevance_score 0.276066154
+            }
+
+      ]
+    }
+  }
+}
+test query_plan3 {
+  functions [PlanQuery]
+  args {
+    query {
+      text #"
+        what is @alias?
       "#
       language_preference #"Python"#
       context_docs [
