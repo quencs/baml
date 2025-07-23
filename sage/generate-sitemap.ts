@@ -5,6 +5,7 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { parse as parseYaml } from 'yaml';
 import matter from 'gray-matter';
+import _ from 'lodash';
 
 // Zod schema for the docs.yml navigation structure
 const TabSchema = z.object({
@@ -64,6 +65,18 @@ function extractMdxMetadata(filePath: string): Record<string, any> {
   }
 }
 
+// Helper function to slugify text (matches Python implementation, preserves underscores)
+function slugify(text: string): string {
+  // Replace non-alphanumeric characters with spaces (preserving underscores as alnum)
+  const normalized = text.split('').map(c => /[a-zA-Z0-9_]/.test(c) ? c : ' ').join('');
+  
+  // Pattern to match: consecutive caps, title case words, single caps, numbers (including underscores in words)
+  const pattern = /[A-Z]{2,}(?=[A-Z][a-z_]+|[0-9]|\s|$)|[A-Z]?[a-z_]+|[A-Z]|[0-9_]+/g;
+  const words = normalized.match(pattern) || [];
+  
+  return words.join('-').toLowerCase();
+}
+
 // Function to generate slug from tab/section/title
 function generateSlug(tabSlug: string, sectionPath: string | undefined, title: string): string {
   const parts = [tabSlug];
@@ -74,12 +87,7 @@ function generateSlug(tabSlug: string, sectionPath: string | undefined, title: s
     
     // Convert each section to slug format
     sectionOnly.forEach(section => {
-      const sectionSlug = section
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens and spaces
-        .replace(/\s+/g, '-') // Replace spaces with hyphens
-        .replace(/--+/g, '-') // Replace multiple consecutive hyphens with single hyphen
-        .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+      const sectionSlug = slugify(section);
       
       if (sectionSlug) {
         parts.push(sectionSlug);
@@ -87,13 +95,8 @@ function generateSlug(tabSlug: string, sectionPath: string | undefined, title: s
     });
   }
   
-  // Convert title to slug format
-  const titleSlug = title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens and spaces
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/--+/g, '-') // Replace multiple consecutive hyphens with single hyphen
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  // Convert title to slug format using slugify helper
+  const titleSlug = slugify(title);
   
   if (titleSlug) {
     parts.push(titleSlug);
@@ -107,7 +110,8 @@ function processNavigationItem(
   item: z.infer<typeof PageSchema> | z.infer<typeof SectionSchema>,
   tabDisplayName: string,
   tabSlug: string,
-  section: string | undefined,
+  sectionDisplayPath: string | undefined,
+  sectionSlugPath: string | undefined,
   docsRoot: string
 ): SitemapEntry[] {
   const entries: SitemapEntry[] = [];
@@ -117,15 +121,16 @@ function processNavigationItem(
     const mdxPath = join(docsRoot, item.path);
     const metadata = extractMdxMetadata(mdxPath);
     
-    const fullSectionPath = section ? `${tabDisplayName} > ${section}` : undefined;
+    const fullSectionPath = sectionDisplayPath ? `${tabDisplayName} > ${sectionDisplayPath}` : undefined;
+    const slugSectionPath = sectionSlugPath ? `${tabSlug} > ${sectionSlugPath}` : undefined;
     
     // Determine slug: docs.yml slug > frontmatter slug > generated slug
     let finalSlug = item.slug || metadata.slug;
     if (!finalSlug) {
-      finalSlug = generateSlug(tabSlug, fullSectionPath, item.page);
+      finalSlug = generateSlug(tabSlug, slugSectionPath, item.page);
     } else if (!finalSlug.startsWith('/')) {
       // If slug is relative, prefix it with tab and section
-      finalSlug = generateSlug(tabSlug, fullSectionPath, finalSlug);
+      finalSlug = generateSlug(tabSlug, slugSectionPath, finalSlug);
     }
     
     entries.push({
@@ -137,10 +142,11 @@ function processNavigationItem(
     });
   } else if ('section' in item) {
     // Handle section item - recursively process contents
-    const sectionName = section ? `${section} > ${item.section}` : item.section;
+    const sectionDisplayName = sectionDisplayPath ? `${sectionDisplayPath} > ${item.section}` : item.section;
+    const sectionSlugName = sectionSlugPath ? `${sectionSlugPath} > ${item.slug || slugify(item.section)}` : (item.slug || slugify(item.section));
     
     for (const contentItem of item.contents) {
-      entries.push(...processNavigationItem(contentItem, tabDisplayName, tabSlug, sectionName, docsRoot));
+      entries.push(...processNavigationItem(contentItem, tabDisplayName, tabSlug, sectionDisplayName, sectionSlugName, docsRoot));
     }
   }
 
@@ -172,7 +178,7 @@ function generateSitemap(docsYmlPath: string): SitemapEntry[] {
     }
     
     for (const layoutItem of navItem.layout) {
-      const entries = processNavigationItem(layoutItem, tabDisplayName, tabSlug, undefined, docsRoot);
+      const entries = processNavigationItem(layoutItem, tabDisplayName, tabSlug, undefined, undefined, docsRoot);
       sitemap.push(...entries);
     }
   }
