@@ -20,7 +20,7 @@ $ pnpm add @boundaryml/baml
 
 import type { Image, Audio, Pdf, Video } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
-import type {  BamlLanguage,  HelpWritingCode,  Query,  QueryActionPlan,  RefineQuery,  Resume,  SearchDocumentation } from "./types"
+import type {  BamlLanguage,  ContextDoc,  Query,  QueryActionPlan,  RefineQuery,  RelevantDoc,  Resume,  SearchDocumentation } from "./types"
 import type * as types from "./types"
 
 /******************************************************************************
@@ -36,21 +36,28 @@ export interface StreamState<T> {
 }
 
 export namespace partial_types {
-    export interface HelpWritingCode {
-      help_with?: types.BamlLanguage | null
+    export interface ContextDoc {
+      title?: string | null
+      body?: string | null
+      relevance_score?: number | null
     }
     export interface Query {
       text?: string | null
       language_preference?: string | null
+      context_docs: ContextDoc[]
     }
     export interface QueryActionPlan {
+      ranked_docs?: RelevantDoc[] | null
       refine_query?: RefineQuery | null
-      search_documentation?: SearchDocumentation | null
-      help_writing_code?: HelpWritingCode | null
+      answer?: string | null
     }
     export interface RefineQuery {
       reason?: string | null
       suggested_queries: string[]
+    }
+    export interface RelevantDoc {
+      title?: string | null
+      relevance?: "very-relevant" | "relevant" | "not-relevant" | null
     }
     export interface Resume {
       name?: string | null

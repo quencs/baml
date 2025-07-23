@@ -57,27 +57,36 @@ export enum BamlLanguage {
   Other = "Other",
 }
 
-export interface HelpWritingCode {
-  help_with: BamlLanguage
+export interface ContextDoc {
+  title: string
+  body: string
+  relevance_score: number
   
 }
 
 export interface Query {
   text: string
   language_preference?: string | null
+  context_docs: ContextDoc[]
   
 }
 
 export interface QueryActionPlan {
+  ranked_docs?: RelevantDoc[] | null
   refine_query?: RefineQuery | null
-  search_documentation?: SearchDocumentation | null
-  help_writing_code?: HelpWritingCode | null
+  answer?: string | null
   
 }
 
 export interface RefineQuery {
   reason: string
   suggested_queries: string[]
+  
+}
+
+export interface RelevantDoc {
+  title: string
+  relevance: "very-relevant" | "relevant" | "not-relevant"
   
 }
 

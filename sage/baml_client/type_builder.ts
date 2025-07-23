@@ -25,13 +25,15 @@ import { DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME } from "./
 export default class TypeBuilder {
     private tb: _TypeBuilder;
     
-    HelpWritingCode: ClassViewer<'HelpWritingCode', "help_with">;
+    ContextDoc: ClassViewer<'ContextDoc', "title" | "body" | "relevance_score">;
     
-    Query: ClassViewer<'Query', "text" | "language_preference">;
+    Query: ClassViewer<'Query', "text" | "language_preference" | "context_docs">;
     
-    QueryActionPlan: ClassViewer<'QueryActionPlan', "refine_query" | "search_documentation" | "help_writing_code">;
+    QueryActionPlan: ClassViewer<'QueryActionPlan', "ranked_docs" | "refine_query" | "answer">;
     
     RefineQuery: ClassViewer<'RefineQuery', "reason" | "suggested_queries">;
+    
+    RelevantDoc: ClassViewer<'RelevantDoc', "title" | "relevance">;
     
     Resume: ClassViewer<'Resume', "name" | "email" | "experience" | "skills">;
     
@@ -44,7 +46,7 @@ export default class TypeBuilder {
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "HelpWritingCode","Query","QueryActionPlan","RefineQuery","Resume","SearchDocumentation",
+            "ContextDoc","Query","QueryActionPlan","RefineQuery","RelevantDoc","Resume","SearchDocumentation",
           ]),
           enums: new Set([
             "BamlLanguage",
@@ -52,20 +54,24 @@ export default class TypeBuilder {
           runtime: DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME
         });
         
-        this.HelpWritingCode = this.tb.classViewer("HelpWritingCode", [
-          "help_with",
+        this.ContextDoc = this.tb.classViewer("ContextDoc", [
+          "title","body","relevance_score",
         ]);
         
         this.Query = this.tb.classViewer("Query", [
-          "text","language_preference",
+          "text","language_preference","context_docs",
         ]);
         
         this.QueryActionPlan = this.tb.classViewer("QueryActionPlan", [
-          "refine_query","search_documentation","help_writing_code",
+          "ranked_docs","refine_query","answer",
         ]);
         
         this.RefineQuery = this.tb.classViewer("RefineQuery", [
           "reason","suggested_queries",
+        ]);
+        
+        this.RelevantDoc = this.tb.classViewer("RelevantDoc", [
+          "title","relevance",
         ]);
         
         this.Resume = this.tb.classViewer("Resume", [

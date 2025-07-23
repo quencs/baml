@@ -2,6 +2,13 @@
 class Query {
   text string
   language_preference string? @description("The user is building their BAML application with this language")
+  context_docs ContextDoc[]
+}
+
+class ContextDoc {
+  title string @description("The title of the document")
+  body string
+  relevance_score float
 }
 
 class RefineQuery {
@@ -18,12 +25,6 @@ class SearchDocumentation {
   // search_context string[] @description("Additional context we should add to the search")
 }
 
-class HelpWritingCode {
-  @@description("User is asking for help writing or debugging code")
-
-  help_with BamlLanguage
-}
-
 enum BamlLanguage {
   Baml
   Python
@@ -35,13 +36,18 @@ enum BamlLanguage {
 }
 
 class QueryActionPlan {
+  ranked_docs RelevantDoc[]?
+  @description("For each context_doc, how relevant is it to the user's query?")
 
   refine_query RefineQuery?
   @description("Query is impossibly vague, user needs to be more specific about what they're asking about")
 
-  search_documentation SearchDocumentation?
+  answer string? @description("The answer to the user's query.")
+}
 
-  help_writing_code HelpWritingCode?
+class RelevantDoc {
+  title string
+  relevance "very-relevant" | "relevant" | "not-relevant"
 }
 
 // Create a function to extract the resume from a string.
@@ -51,13 +57,17 @@ function PlanQuery(query: Query) -> QueryActionPlan {
   client "openai/gpt-4o" // Set OPENAI_API_KEY to use this client.
   prompt #"
     {{ _.role("system") }}
-    You will be answering questions about BAML (Basically, a Made-up Language) -- an AI framework to write LLM prompts as functions. Here is some background:
+    You are a librarian answering queries a user has about BAML (an AI framework to write LLM prompts as functions).
+
+    'this' without context will refer to BAML
+
+    Here is some background on BAML:
     <Overview>
     BAML (Basically, A Made-Up Language) is a domain-specific language for building LLM prompts as functions.
     You can build an agentic workflow with BAML.
     </Overview>
 
-    <Schema>
+    <Example BAML Schema>
     // Define output schemas using classes
     class MyObject {
       // Optional string fields use ?
@@ -96,7 +106,7 @@ function PlanQuery(query: Query) -> QueryActionPlan {
 
     // Comments use double slashes
     // Recursive types and inline definitions are not supported
-    </Schema>
+    </Example BAML Schema>
 
     <Functions>
     // Functions define inputs, outputs and prompts
@@ -109,44 +119,6 @@ function PlanQuery(query: Query) -> QueryActionPlan {
 
       \"\#
     }
-
-    <LLMClients>
-      You can use any of the following if you write a baml function example:
-      - openai/gpt-4o
-      - openai/gpt-4o-mini
-      - anthropic/claude-3-5-sonnet-latest (note the "3-5")
-      - anthropic/claude-3-5-haiku-latest
-
-      If the user mentions an open-source model like "llama3" or "r1", search the docs for "OpenRouter" or "openai-generic" to see how to use it.
-    </LLMClients>
-
-    <Prompt>
-      In case you need to write a prompt example:
-      1. Make sure to include the input in the prompt (even if it's an image) using \{\{ input \}\}
-      2. Make sure to include \{\{ ctx.output_format \}\} in the prompt so the LLM knows how to format the output.
-      3. You do not need to specify to "answer in JSON format". Only write in the prompt brief instruction, and any other task-specific things to keep in mind for the task.
-      4. Write a \{\{ _.role("user") \}\} tag to indicate where the user's inputs start. So if there's a convo you can write
-      \{\{ _.role("user") \}\} \{\{ some-variable \}\}
-
-      DO NOT REPEAT output schema fields in the prompt. They are included with \{\{ "\{\{ ctx.output_format \}\}" \}\}.
-      ```baml
-      class TweetAnalysis {
-        mainTopic string @description("The primary topic or subject matter of the tweet")
-        isSpam bool @description("Whether the tweet appears to be spam")
-      }
-
-      function ClassifyTweets(tweets: string[]) -> TweetAnalysis[] {
-        client "openai/gpt-4o-mini"
-        prompt #"
-          Analyze each of the following tweets and classify them.
-
-          \{\{ ctx.output_format \}\}
-
-          \{\{ _.role("user") \}\} \{\{ tweets \}\}
-        \"\#
-      }
-    ```
-    </Prompt>
     </Functions>
 
     <Usage in other languages>
@@ -184,102 +156,16 @@ function PlanQuery(query: Query) -> QueryActionPlan {
     ```
     </Usage>
 
-    <Tool Use>
-    Here's an example of how tools work in BAML:
-
-    1. Define tool classes that represent the structured output you want
-    2. Create a function that returns one of those tool classes
-    3. The function's prompt will automatically format user messages and add output validation
-
-    The LLM will choose which tool to call, and your python code will handle the tool call with the LLM's chosen parameters.
-
-    ```baml
-    // Tool classes define the structure of possible outputs
-    class ChatMessage {
-      role "user" | "assistant"
-      content string
-    }
-
-    class WeatherAPI {
-      city string @description("the user's city")
-      timeOfDay string @description("As an ISO8601 timestamp")
-    }
-
-    // Function that can return different tool classes
-    function UseTool(user_messages: ChatMessage[]) -> WeatherAPI | MyOtherAPI {
-      client CustomSonnet
-      prompt #"
-        You are a helpful assistant that can use different tools to help users. Based on their message, choose the appropriate tool to use.
-
-        \{\{ "\{\{ ctx.output_format \}\}" \}\}
-
-        User message:
-        \{\% for message in .....(jinja iterator) \%\}
-        \{\{ _.role(message.role) \}\} \{\{ message.content \}\}
-        \{\% endfor \%\}
-      \"\#
-    }
-    ```
-
-    ```python
-    import asyncio
-    from baml_client import b
-    from baml_client.types import WeatherAPI, MyOtherAPI
-
-    async def main():
-        tool = b.UseTool("What's the weather like in San Francisco?")
-        print(tool)
-
-        if isinstance(tool, WeatherAPI):
-            print(f"Weather API called:")
-            print(f"City: {tool.city}")
-            print(f"Time of Day: {tool.timeOfDay}")
-        elif isinstance(tool, MyOtherAPI):
-            print(f"MyOtherAPI called:")
-            # Handle MyOtherAPI specific attributes here
-
-    if __name__ == '__main__':
-        main()
-    ```
-    </Tool Use>
-
-    <Collecting usage>
-    ```python
-    from baml_client import b
-    from baml_py import Collector
-
-    # Create a collector with optional name
-    collector = Collector(name="my-collector")
-
-    # Use it with a function call
-    result = b.ExtractResume("...", baml_options={"collector": collector})
-
-    # Access logging information
-    print(collector.last.usage)  # Print usage metrics
-    print(collector.last.raw_llm_response)  # Print final response as string
-    # since there may be retries, print the last http response received
-    print(collector.last.calls[-1].http_response)
-    ```
-
-    ```typescript
-    import { b } from 'baml_client'
-    import { Collector } from '@boundaryml/baml'
-
-    // Create a collector with optional name
-    const collector = new Collector("my-collector")
-
-    // Use it with a function call
-    const result = await b.ExtractResume("...", { collector })
-
-    // Access logging information
-    console.log(collector.last?.usage)  // Print usage metrics
-    console.log(collector.last?.rawLlmResponse)  // Print final response
-    // since there may be retries, print the last http response received
-    console.log(collector.last?.calls[-1].httpResponse)
 
     ```
 
     Users can define LLM clients and types dynamically at runtime (in python) as well using the "Client Registry" feature or the Dynamic Type feature.
+
+    <context_docs>
+    {% for doc in query.context_docs %}
+    {{ doc }}
+    {% endfor %}
+    </context_docs>
 
     ---
     If you are not sure of the answer (you're not sure how to write the code), you can tell the user to join the Discord server and ask the question there (we respond very fast)
@@ -350,6 +236,192 @@ test query_plan2 {
             return [category for category in categories if category.name in selected_categories]
       "#
       language_preference #"Python"#
+      context_docs [
+        {
+          title "@alias"
+          body #"
+            The `@alias` attribute in BAML is used to rename fields or values for better understanding by the LLM, while keeping the original name in your code. This is particularly useful for prompt engineering, as it allows you to provide a more intuitive name for the LLM without altering your existing codebase.
+
+            ## Prompt Impact (class)
+
+
+            ### Without `@alias`
+
+            ```baml BAML
+            class MyClass {
+              property1 string
+            }
+            ```
+
+            **ctx.output_format:**
+
+            ```
+            {
+              property1: string
+            }
+            ```
+
+            ### With `@alias`
+
+            ```baml BAML
+            class MyClass {
+              property1 string @alias("name")
+            }
+            ```
+
+            **ctx.output_format:**
+
+            ```
+            {
+              name: string
+            }
+            ```
+
+            ## Prompt Impact (enum)
+
+
+            ```baml BAML
+            enum MyEnum {
+              Value1
+              // Note that @@alias is applied to the enum itself, not the value
+              @@alias("My Name")
+            }
+            ```
+
+            **ctx.output_format:**
+
+            ```
+            My Name
+            ---
+            Value1
+            ```
+
+            ## Prompt Impact (enum value)
+
+
+            ```baml BAML
+            enum MyEnum {
+              Value1 @alias("Something")
+            }
+            ```
+
+            **ctx.output_format:**
+
+            ```
+            MyEnum
+            ---
+            Something
+            ```
+          "#
+          relevance_score 0.58877033
+        },
+        {
+          title "Attributes"
+          body #"
+            In BAML, attributes are used to provide additional metadata or behavior to fields and types. They can be applied at different levels, such as field-level or block-level, depending on their intended use.
+
+            ## Field-Level Attributes
+
+
+            Field-level attributes are applied directly to individual fields within a class or enum. They modify the behavior or metadata of that specific field.
+
+            ### Examples of Field-Level Attributes
+
+            - **`@alias`**: Renames a field for better understanding by the LLM.
+            - **`@description`**: Provides additional context to a field.
+            - **`@skip`**: Excludes a field from prompts or parsing.
+            - **`@assert`**: Applies strict validation to a field.
+            - **`@check`**: Adds non-exception-raising validation to a field.
+
+            ```baml BAML
+            class MyClass {
+              property1 string @alias("name") @description("The name of the object")
+              age int? @check(positive, {{ this > 0 }})
+            }
+            ```
+
+            ## Block-Level Attributes
+
+
+            Block-level attributes are applied to an entire class or enum, affecting all fields or values within that block. They are used to modify the behavior or metadata of the entire block.
+
+            ### Examples of Block-Level Attributes
+
+            - **`@@dynamic`**: Allows dynamic modification of fields or values at runtime.
+
+            ```baml BAML
+            class MyClass {
+              property1 string
+              property2 int?
+
+              @@dynamic // allows adding fields dynamically at runtime
+            }
+            ```
+
+            ## Key Differences
+
+
+            - **Scope**: Field-level attributes affect individual fields, while block-level attributes affect the entire class or enum.
+            - **Usage**: Field-level attributes are used for specific field modifications, whereas block-level attributes are used for broader modifications affecting the whole block.
+
+            Understanding the distinction between these types of attributes is crucial for effectively using BAML to define and manipulate data structures.
+
+            For more detailed information on each attribute, refer to the specific attribute pages in this section.
+          "#
+          relevance_score 0.279810756
+            },
+        {
+          title "Creating a Classification Function with Symbol Tuning"
+          body #"
+            Aliasing field names to abstract symbols like "k1", "k2", etc. can improve classification results. This technique, known as symbol tuning, helps the LLM focus on your descriptions rather than being biased by the enum or property names themselves.
+
+            See the paper [Symbol Tuning Improves In-Context Learning in Language Models](https://arxiv.org/abs/2305.08298) for more details.
+
+            ```baml
+            enum MyClass {
+                Refund @alias("k1")
+                @description("Customer wants to refund a product")
+
+                CancelOrder @alias("k2")
+                @description("Customer wants to cancel an order")
+
+                TechnicalSupport @alias("k3")
+                @description("Customer needs help with a technical issue unrelated to account creation or login")
+
+                AccountIssue @alias("k4")
+                @description("Specifically relates to account-login or account-creation")
+
+                Question @alias("k5")
+                @description("Customer has a question")
+            }
+
+            function ClassifyMessageWithSymbol(input: string) -> MyClass {
+              client GPT4o
+
+              prompt #"
+                Classify the following INPUT into ONE
+                of the following categories:
+
+                INPUT: {{ input }}
+
+                {{ ctx.output_format }}
+
+                Response:
+              \"\#
+            }
+
+            test Test1 {
+              functions [ClassifyMessageWithSymbol]
+              args {
+                input "I can't access my account using my login credentials. I havent received the promised reset password email. Please help."
+              }
+            }
+            ```
+          "#
+          relevance_score 0.276066154
+            }
+
+      ]
     }
   }
 }

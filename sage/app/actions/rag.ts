@@ -485,7 +485,7 @@ export async function searchPinecone(query: string, count = 5) {
 }
 
 // Copy vectors from baml-index to baml-index-sage
-export async function copyPineconeIndex() {
+async function copyPineconeIndex() {
   const sourceIndex = pineconeClient.Index('baml-index');
   const targetIndex = pineconeClient.Index('baml-index-sage');
 
