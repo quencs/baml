@@ -6,6 +6,7 @@ async function main() {
 
   const results = await searchPinecone('is there a baml zed extension?');
   console.log(results);
+  return;
 
   for (const result of results) {
     // console.log(result);

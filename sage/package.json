@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm next dev --turbopack",
+    "dev": "pnpm next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@boundaryml/baml": "^0.202.1",
+    "@boundaryml/baml-nextjs-plugin": "^0.1.0",
     "@pinecone-database/pinecone": "^6.1.2",
     "cheerio": "^1.1.2",
     "next": "15.4.3",

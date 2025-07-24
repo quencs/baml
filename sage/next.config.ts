@@ -1,7 +1,8 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+import { withBaml } from '@boundaryml/baml-nextjs-plugin';
 
 const nextConfig: NextConfig = {
   /* config options here */
 };
 
-export default nextConfig;
+export default withBaml()(nextConfig);
