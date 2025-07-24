@@ -13,11 +13,9 @@ interface ChatBotProps {
   onClose?: () => void;
 }
 
-const ChatBot: React.FC<ChatBotProps> = ({ 
-  apiEndpoint = 'http://localhost:3002/api/docs-chat',
-  isOpen = false,
-  onClose
-}) => {
+const API_ENDPOINT = 'http://localhost:4000/api/doc-chat';
+
+const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,17 +39,17 @@ const ChatBot: React.FC<ChatBotProps> = ({
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await fetch(apiEndpoint, {
+      const response = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: text.trim() }),
+        body: JSON.stringify({ query: text.trim() }),
       });
 
       if (!response.ok) {
@@ -59,15 +57,15 @@ const ChatBot: React.FC<ChatBotProps> = ({
       }
 
       const data = await response.json();
-      
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: data.response || 'Sorry, I couldn\'t process your request.',
+        text: data.response || "Sorry, I couldn't process your request.",
         isUser: false,
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
@@ -76,7 +74,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +106,9 @@ const ChatBot: React.FC<ChatBotProps> = ({
 
   React.useEffect(() => {
     const updatePosition = () => {
-      const header = document.querySelector('header, .fern-header') as HTMLElement;
+      const header = document.querySelector(
+        'header, .fern-header',
+      ) as HTMLElement;
       const top = header ? header.getBoundingClientRect().bottom : 0;
       setPanelTop(top);
       setPanelHeight(`calc(100vh - ${top}px)`);
@@ -125,34 +125,38 @@ const ChatBot: React.FC<ChatBotProps> = ({
   }, []);
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: `${panelTop}px`,
-      right: '0',
-      width: '380px',
-      height: panelHeight,
-      backgroundColor: 'white',
-      borderLeft: '1px solid #e2e8f0',
-      boxShadow: '-4px 0 32px rgba(0,0,0,0.08)',
-      transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-      transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 2000,
-      fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-    }}>
-      {/* Header */}
-      <div style={{
+    <div
+      style={{
+        position: 'fixed',
+        top: `${panelTop}px`,
+        right: '0',
+        width: '380px',
+        height: panelHeight,
+        backgroundColor: 'white',
+        borderLeft: '1px solid #e2e8f0',
+        transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: '56px',
-        padding: '0 20px',
-        fontSize: '15px',
-        fontWeight: '600',
-        background: '#7c3aed',
-        color: '#fff'
-      }}>
+        flexDirection: 'column',
+        zIndex: 2000,
+        fontFamily:
+          'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: '56px',
+          padding: '0 20px',
+          fontSize: '15px',
+          fontWeight: '600',
+          background: '#7c3aed',
+          color: '#fff',
+        }}
+      >
         <span>BAML AI</span>
         <button
           onClick={handleClose}
@@ -164,7 +168,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
             cursor: 'pointer',
             opacity: 0.75,
             padding: '0',
-            lineHeight: 1
+            lineHeight: 1,
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.opacity = '1';
@@ -178,28 +182,34 @@ const ChatBot: React.FC<ChatBotProps> = ({
       </div>
 
       {/* Messages */}
-      <main style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '18px',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
+      <main
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '18px',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         {messages.length === 0 && (
-          <div style={{
-            textAlign: 'center',
-            color: '#666',
-            fontStyle: 'italic',
-            marginTop: '20px',
-          }}>
+          <div
+            style={{
+              textAlign: 'center',
+              color: '#666',
+              fontStyle: 'italic',
+              marginTop: '20px',
+            }}
+          >
             👋 Hi! I'm here to help you with the documentation. Ask me anything!
           </div>
         )}
-        
+
         {messages.map((message) => (
           <div
             key={message.id}
-            className={message.isUser ? 'baml-bubble baml-me' : 'baml-bubble baml-ai'}
+            className={
+              message.isUser ? 'baml-bubble baml-me' : 'baml-bubble baml-ai'
+            }
             style={{
               maxWidth: '75%',
               padding: '10px 14px',
@@ -217,9 +227,9 @@ const ChatBot: React.FC<ChatBotProps> = ({
             {message.text}
           </div>
         ))}
-        
+
         {isLoading && (
-          <div 
+          <div
             className="baml-bubble baml-ai"
             style={{
               maxWidth: '75%',
@@ -238,16 +248,16 @@ const ChatBot: React.FC<ChatBotProps> = ({
             …thinking
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </main>
 
       {/* Input Form */}
-      <form 
+      <form
         onSubmit={handleSubmit}
         style={{
           display: 'flex',
-          borderTop: '1px solid #e5e7eb'
+          borderTop: '1px solid #e5e7eb',
         }}
       >
         <input
@@ -261,7 +271,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
             border: 'none',
             fontSize: '14px',
             outline: 'none',
-            fontFamily: 'inherit'
+            fontFamily: 'inherit',
           }}
         />
         <button

@@ -24,7 +24,7 @@ const docs = [
     t: 'Getting Started with BAML',
     u: '/guide/introduction/what-is-baml',
     x: 'Overview of core concepts',
-    sel: 'h1'
+    sel: 'h1',
   },
   {
     t: 'Python Installation',
@@ -167,7 +167,7 @@ function initializeSearchInterface() {
     const dd = document.createElement('div');
     dd.className = 'baml-search-dd';
     wrap.append(input, aiBtn, dd);
-    
+
     // Hide original search and replace with custom
     if (old.parentNode) {
       (old as HTMLElement).style.display = 'none';
@@ -177,27 +177,28 @@ function initializeSearchInterface() {
     // Initialize React chatbot with sidebar panel functionality
     let chatbotRoot: any = null;
     let isOpen = false;
-    
+    const AUTO_MOUNT_SIDEBAR = true;
+
     const setOpen = (flag: boolean) => {
       isOpen = flag;
       document.body.classList.toggle(OPEN, flag);
       aiBtn.classList.toggle('open', flag);
-      (aiBtn.querySelector('span') as HTMLElement).textContent = flag ? 'Close' : 'Ask';
+      (aiBtn.querySelector('span') as HTMLElement).textContent = flag
+        ? 'Close'
+        : 'Ask';
       (aiBtn.querySelector('svg') as SVGElement).innerHTML = flag
         ? '<path d="M18 6L6 18M6 6l12 12"/>'
         : '<path d="M12 4v16m8-8H4"/>';
-      
+
       if (chatbotRoot) {
-        chatbotRoot.render(<ChatBot 
-          apiEndpoint="http://localhost:3002/api/docs-chat" 
-          isOpen={flag}
-          onClose={() => setOpen(false)}
-        />);
+        chatbotRoot.render(
+          <ChatBot isOpen={flag} onClose={() => setOpen(false)} />,
+        );
       }
-      
+
       setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
     };
-    
+
     const initChatbot = () => {
       if (!chatbotRoot) {
         const rootElement = document.createElement('div');
@@ -205,19 +206,22 @@ function initializeSearchInterface() {
         document.body.appendChild(rootElement);
         chatbotRoot = createRoot(rootElement);
         // Initial render with closed state
-        chatbotRoot.render(<ChatBot 
-          apiEndpoint="http://localhost:3002/api/docs-chat" 
-          isOpen={false}
-          onClose={() => setOpen(false)}
-        />);
+        chatbotRoot.render(
+          <ChatBot isOpen={false} onClose={() => setOpen(false)} />,
+        );
       }
       setOpen(true);
     };
 
+    // Auto-mount sidebar if AUTO_MOUNT_SIDEBAR is true
+    if (AUTO_MOUNT_SIDEBAR) {
+      initChatbot();
+    }
+
     // Handle AI button clicks
     aiBtn.addEventListener('click', () => {
       const q = input.value.trim();
-      
+
       // Toggle close if already open
       if (isOpen) {
         setOpen(false);
@@ -230,21 +234,21 @@ function initializeSearchInterface() {
         input.focus();
         return;
       }
-      
+
       // TODO: Send initial query to chatbot when that functionality is implemented
     });
 
     // Search dropdown functionality
     const hi = (s: string, q: string) =>
       s.replace(new RegExp(`(${q})`, 'ig'), '<mark>$1</mark>');
-    
+
     const render = (q: string) => {
       dd.innerHTML = '';
       if (!q) {
         dd.classList.remove('open');
         return;
       }
-      
+
       const ask = document.createElement('div');
       ask.className = 'baml-item ai';
       ask.innerHTML = `Ask "${hi(q, q)}"`;
@@ -253,11 +257,10 @@ function initializeSearchInterface() {
         dd.classList.remove('open');
       };
       dd.append(ask);
-      
+
       for (const d of docs
         .filter(
-          (d) =>
-            d.t.toLowerCase().includes(q) || d.x.toLowerCase().includes(q),
+          (d) => d.t.toLowerCase().includes(q) || d.x.toLowerCase().includes(q),
         )
         .slice(0, 10) || [{ t: `No docs for "${q}"`, u: '#', x: '' }]) {
         const a = document.createElement('a');
@@ -268,21 +271,24 @@ function initializeSearchInterface() {
       }
       dd.classList.add('open');
     };
-    
+
     let tm: any;
     input.addEventListener('input', (e) => {
       clearTimeout(tm);
-      tm = setTimeout(() => render((e.target as HTMLInputElement).value.trim().toLowerCase()), 100);
+      tm = setTimeout(
+        () => render((e.target as HTMLInputElement).value.trim().toLowerCase()),
+        100,
+      );
     });
-    
+
     input.addEventListener('focus', () => {
       input.value.trim() && render(input.value.trim().toLowerCase());
     });
-    
+
     document.addEventListener('click', (e) => {
       if (!wrap.contains(e.target as Node)) dd.classList.remove('open');
     });
-    
+
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') dd.classList.remove('open');
     });
@@ -302,10 +308,10 @@ declare global {
 window.initFernChatbot = (options = {}) => {
   // Initialize search interface integration
   initializeSearchInterface();
-  
+
   // Handle highlight functionality
   highlightFromStore();
-  
+
   window.addEventListener('popstate', (e) => {
     if ((e.state as any)?.pjax) highlightFromStore();
   });

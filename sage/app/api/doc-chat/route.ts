@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Optional: Add GET method to provide API documentation
 export async function GET() {
   return NextResponse.json({
     message: 'Doc Chat API',
