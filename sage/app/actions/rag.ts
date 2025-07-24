@@ -30,6 +30,7 @@ interface FernDoc {
   slug: string;
   path: string;
   body: string;
+  title: string;
   chunkIndex?: number;
 }
 
@@ -285,6 +286,7 @@ export async function populatePinecone() {
         slug: entry.slug,
         path: entry.path,
         body: content,
+        title: entry.title,
       });
       console.log(`✓ Processed internal doc: ${entry.title}`);
     } catch (error) {
@@ -312,6 +314,7 @@ export async function populatePinecone() {
         slug: slug,
         path: entry.url,
         body: content,
+        title: entry.title,
       });
       console.log(`✓ Processed external blog: ${entry.title}`);
     } catch (error) {
@@ -372,6 +375,7 @@ export async function populatePinecone() {
             slug: doc.slug,
             path: doc.path,
             body: chunk,
+            title: doc.title,
             chunkIndex,
           },
         };
@@ -386,6 +390,7 @@ export async function populatePinecone() {
         slug: document.slug,
         path: document.path,
         body: document.body,
+        title: document.title,
       },
     }));
 
