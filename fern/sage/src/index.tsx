@@ -103,9 +103,10 @@ function highlightFromStore() {
   });
 }
 
-// Add global CSS from original custom.js
+// Add global CSS from original custom.js with sidebar panel styling
 css(`
 body.${OPEN}{padding-right:${PANEL_W}px;transition:padding-right .3s cubic-bezier(.4,0,.2,1);overflow-x:hidden;}
+/* Smoothly slide the "On this page" TOC out instead of popping it off‑screen */
 .fern-toc,#fern-toc{
   transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s;
 }
@@ -115,10 +116,9 @@ body.${OPEN} #fern-toc{
   opacity:0;
   pointer-events:none;
 }
+/* Hide right‑hand "On this page" TOC when the AI panel is open */
 body.${OPEN} nav[aria-label="On this page"],
-body.${OPEN} [data-toc],
-body.${OPEN} .fern-toc,
-body.${OPEN} #fern-toc{
+body.${OPEN} [data-toc],body.${OPEN} .fern-toc,body.${OPEN} #fern-toc{
   display:none !important;
 }
 #baml-search-wrap{display:flex;align-items:center;max-width:640px;width:100%;position:relative;}
@@ -174,30 +174,64 @@ function initializeSearchInterface() {
       old.parentNode.insertBefore(wrap, old);
     }
 
-    // Initialize React chatbot when AI button is clicked
+    // Initialize React chatbot with sidebar panel functionality
     let chatbotRoot: any = null;
+    let isOpen = false;
+    
+    const setOpen = (flag: boolean) => {
+      isOpen = flag;
+      document.body.classList.toggle(OPEN, flag);
+      aiBtn.classList.toggle('open', flag);
+      (aiBtn.querySelector('span') as HTMLElement).textContent = flag ? 'Close' : 'Ask';
+      (aiBtn.querySelector('svg') as SVGElement).innerHTML = flag
+        ? '<path d="M18 6L6 18M6 6l12 12"/>'
+        : '<path d="M12 4v16m8-8H4"/>';
+      
+      if (chatbotRoot) {
+        chatbotRoot.render(<ChatBot 
+          apiEndpoint="http://localhost:3002/api/docs-chat" 
+          isOpen={flag}
+          onClose={() => setOpen(false)}
+        />);
+      }
+      
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
+    };
+    
     const initChatbot = () => {
       if (!chatbotRoot) {
         const rootElement = document.createElement('div');
         rootElement.id = 'fern-chatbot-root';
         document.body.appendChild(rootElement);
         chatbotRoot = createRoot(rootElement);
-        chatbotRoot.render(<ChatBot apiEndpoint="http://localhost:3002/api/docs-chat" />);
+        // Initial render with closed state
+        chatbotRoot.render(<ChatBot 
+          apiEndpoint="http://localhost:3002/api/docs-chat" 
+          isOpen={false}
+          onClose={() => setOpen(false)}
+        />);
       }
+      setOpen(true);
     };
 
     // Handle AI button clicks
     aiBtn.addEventListener('click', () => {
       const q = input.value.trim();
       
-      if (q) {
-        // Initialize chatbot and send query
-        initChatbot();
-        // For now, just initialize - the actual query sending would be handled by the ChatBot component
-      } else {
-        initChatbot();
-        input.focus();
+      // Toggle close if already open
+      if (isOpen) {
+        setOpen(false);
+        return;
       }
+
+      // Opening the chatbot
+      initChatbot();
+      if (!q) {
+        input.focus();
+        return;
+      }
+      
+      // TODO: Send initial query to chatbot when that functionality is implemented
     });
 
     // Search dropdown functionality

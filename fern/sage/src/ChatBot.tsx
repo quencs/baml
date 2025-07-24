@@ -9,15 +9,18 @@ interface Message {
 
 interface ChatBotProps {
   apiEndpoint?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 const ChatBot: React.FC<ChatBotProps> = ({ 
-  apiEndpoint = 'http://localhost:3002/api/docs-chat' 
+  apiEndpoint = 'http://localhost:3002/api/docs-chat',
+  isOpen = false,
+  onClose
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -91,99 +94,96 @@ const ChatBot: React.FC<ChatBotProps> = ({
     }
   };
 
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
   };
 
-  if (!isOpen) {
-    return (
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        zIndex: 1000,
-      }}>
-        <button
-          onClick={toggleChat}
-          style={{
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '24px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            transition: 'all 0.3s ease',
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = '#0056b3';
-            e.currentTarget.style.transform = 'scale(1.1)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = '#007bff';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          💬
-        </button>
-      </div>
-    );
-  }
+  // Always render the panel for smooth animations
+
+  // Calculate panel position below header
+  const [panelTop, setPanelTop] = React.useState(0);
+  const [panelHeight, setPanelHeight] = React.useState('100vh');
+
+  React.useEffect(() => {
+    const updatePosition = () => {
+      const header = document.querySelector('header, .fern-header') as HTMLElement;
+      const top = header ? header.getBoundingClientRect().bottom : 0;
+      setPanelTop(top);
+      setPanelHeight(`calc(100vh - ${top}px)`);
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition);
+    };
+  }, []);
 
   return (
     <div style={{
       position: 'fixed',
-      bottom: '20px',
-      right: '20px',
-      width: '350px',
-      height: '500px',
+      top: `${panelTop}px`,
+      right: '0',
+      width: '380px',
+      height: panelHeight,
       backgroundColor: 'white',
-      border: '1px solid #ddd',
-      borderRadius: '12px',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+      borderLeft: '1px solid #e2e8f0',
+      boxShadow: '-4px 0 32px rgba(0,0,0,0.08)',
+      transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+      transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
       display: 'flex',
       flexDirection: 'column',
-      zIndex: 1000,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      zIndex: 2000,
+      fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
     }}>
       {/* Header */}
       <div style={{
-        padding: '16px',
-        borderBottom: '1px solid #eee',
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '12px 12px 0 0',
+        justifyContent: 'space-between',
+        height: '56px',
+        padding: '0 20px',
+        fontSize: '15px',
+        fontWeight: '600',
+        background: '#7c3aed',
+        color: '#fff'
       }}>
-        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
-          Documentation Assistant
-        </h3>
+        <span>BAML AI</span>
         <button
-          onClick={toggleChat}
+          onClick={handleClose}
           style={{
             background: 'none',
             border: 'none',
-            fontSize: '18px',
+            fontSize: '26px',
+            color: '#fff',
             cursor: 'pointer',
-            color: '#666',
-            padding: '4px',
+            opacity: 0.75,
+            padding: '0',
+            lineHeight: 1
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.opacity = '1';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.opacity = '0.75';
           }}
         >
-          ✕
+          ×
         </button>
       </div>
 
       {/* Messages */}
-      <div style={{
+      <main style={{
         flex: 1,
-        padding: '16px',
         overflowY: 'auto',
+        padding: '18px',
         display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
+        flexDirection: 'column'
       }}>
         {messages.length === 0 && (
           <div style={{
@@ -199,105 +199,87 @@ const ChatBot: React.FC<ChatBotProps> = ({
         {messages.map((message) => (
           <div
             key={message.id}
+            className={message.isUser ? 'baml-bubble baml-me' : 'baml-bubble baml-ai'}
             style={{
+              maxWidth: '75%',
+              padding: '10px 14px',
+              borderRadius: '14px',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              marginBottom: '6px',
+              boxShadow: '0 2px 6px rgba(0,0,0,.06)',
               alignSelf: message.isUser ? 'flex-end' : 'flex-start',
-              maxWidth: '80%',
+              backgroundColor: message.isUser ? '#7c3aed' : '#f3f4f6',
+              color: message.isUser ? '#fff' : '#111827',
+              wordWrap: 'break-word',
             }}
           >
-            <div
-              style={{
-                padding: '8px 12px',
-                borderRadius: '18px',
-                backgroundColor: message.isUser ? '#007bff' : '#f1f1f1',
-                color: message.isUser ? 'white' : '#333',
-                fontSize: '14px',
-                lineHeight: '1.4',
-                wordWrap: 'break-word',
-              }}
-            >
-              {message.text}
-            </div>
-            <div
-              style={{
-                fontSize: '11px',
-                color: '#999',
-                marginTop: '4px',
-                textAlign: message.isUser ? 'right' : 'left',
-              }}
-            >
-              {message.timestamp.toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </div>
+            {message.text}
           </div>
         ))}
         
         {isLoading && (
-          <div style={{ alignSelf: 'flex-start', maxWidth: '80%' }}>
-            <div
-              style={{
-                padding: '8px 12px',
-                borderRadius: '18px',
-                backgroundColor: '#f1f1f1',
-                color: '#333',
-                fontSize: '14px',
-                animation: 'pulse 1.5s ease-in-out infinite',
-              }}
-            >
-              Thinking...
-            </div>
+          <div 
+            className="baml-bubble baml-ai"
+            style={{
+              maxWidth: '75%',
+              padding: '10px 14px',
+              borderRadius: '14px',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              marginBottom: '6px',
+              boxShadow: '0 2px 6px rgba(0,0,0,.06)',
+              alignSelf: 'flex-start',
+              backgroundColor: '#f3f4f6',
+              color: '#111827',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }}
+          >
+            …thinking
           </div>
         )}
         
         <div ref={messagesEndRef} />
-      </div>
+      </main>
 
-      {/* Input */}
-      <div style={{
-        padding: '16px',
-        borderTop: '1px solid #eee',
-        borderRadius: '0 0 12px 12px',
-      }}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px' }}>
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask about the documentation..."
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '20px',
-              resize: 'none',
-              fontSize: '14px',
-              fontFamily: 'inherit',
-              outline: 'none',
-              maxHeight: '80px',
-              minHeight: '36px',
-            }}
-            rows={1}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
-              opacity: isLoading || !input.trim() ? 0.6 : 1,
-            }}
-          >
-            Send
-          </button>
-        </form>
-      </div>
+      {/* Input Form */}
+      <form 
+        onSubmit={handleSubmit}
+        style={{
+          display: 'flex',
+          borderTop: '1px solid #e5e7eb'
+        }}
+      >
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a question…"
+          disabled={isLoading}
+          style={{
+            flex: 1,
+            padding: '14px',
+            border: 'none',
+            fontSize: '14px',
+            outline: 'none',
+            fontFamily: 'inherit'
+          }}
+        />
+        <button
+          type="submit"
+          disabled={isLoading || !input.trim()}
+          style={{
+            border: 'none',
+            padding: '0 20px',
+            background: '#7c3aed',
+            color: '#fff',
+            fontWeight: '600',
+            cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
+            opacity: isLoading || !input.trim() ? 0.6 : 1,
+          }}
+        >
+          Send
+        </button>
+      </form>
 
       <style>
         {`
