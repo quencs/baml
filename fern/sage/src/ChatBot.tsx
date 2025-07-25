@@ -24,86 +24,17 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
     scrollToBottom();
   }, [messages]);
 
-<<<<<<< HEAD
-  // Check for AI context when the chatbot opens
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      const aiContext = localStorage.getItem('baml-ai-context');
-      if (aiContext) {
-        try {
-          const context = JSON.parse(aiContext);
-          const timeDiff = Date.now() - context.timestamp;
-
-          // Only use context if it's recent (within 10 seconds)
-          if (timeDiff < 10000) {
-            localStorage.removeItem('baml-ai-context');
-
-            // Add the user's question
-            const userMessage: Message = {
-              id: Date.now().toString(),
-              text: context.query,
-              isUser: true,
-              timestamp: new Date(),
-            };
-
-            // Generate a placeholder AI response based on the query and page
-            const placeholderResponse = generatePlaceholderResponse(
-              context.query,
-              context.suggestedPage,
-            );
-
-            const aiMessage: Message = {
-              id: (Date.now() + 1).toString(),
-              text: placeholderResponse,
-              isUser: false,
-              timestamp: new Date(),
-            };
-
-            setMessages([userMessage, aiMessage]);
-          }
-        } catch (error) {
-          console.error('Error parsing AI context:', error);
-          localStorage.removeItem('baml-ai-context');
-        }
-      }
-    }
-  }, [isOpen, messages.length]);
-
-  const generatePlaceholderResponse = (
-    query: string,
-    suggestedPage: string,
-  ): string => {
-    const responses: Record<string, string> = {
-      '/docs/guide/languages/typescript': `Great question about "${query}"! I've navigated you to the TypeScript guide which covers how to use BAML with TypeScript. Here you'll find information about generating TypeScript clients, type safety, and integration patterns. The TypeScript client provides excellent IntelliSense and compile-time checking for your BAML functions.`,
-      '/docs/guide/languages/python': `Perfect! For "${query}", I've taken you to the Python documentation. This page explains how to integrate BAML with Python applications, including how to install the Python client, call BAML functions, and handle responses. Python is one of the most popular languages for AI applications with BAML.`,
-      '/docs/guide/baml-basics/functions': `Excellent question about "${query}"! I've navigated to the Functions guide which explains how to define and use BAML functions. This is the core of BAML - where you define your AI function signatures, prompts, and expected outputs. You'll learn about function syntax, parameters, and return types.`,
-      '/docs/guide/baml-basics/clients': `Great query about "${query}"! I've directed you to the Clients documentation. This covers how to configure different LLM providers (OpenAI, Claude, etc.), set up authentication, and manage multiple model configurations. Clients are how BAML connects to various AI services.`,
-      '/docs/guide/prompt-engineering/overview': `Fantastic question about "${query}"! I've taken you to the Prompt Engineering section. This is crucial for getting the best results from your AI functions. You'll learn about prompt optimization, few-shot examples, and best practices for crafting effective prompts.`,
-      '/docs/guide/development/testing': `Perfect question about "${query}"! I've navigated to the Testing guide. Testing AI functions is important for reliability - this page covers how to write tests for your BAML functions, mock responses, and ensure consistent behavior across different models.`,
-    };
-
-    return (
-      responses[suggestedPage] ||
-      `Thanks for asking about "${query}"! I've found a relevant page that should help answer your question. This documentation section contains detailed information about the topic you're interested in. Feel free to ask me more specific questions about what you find here!`
-    );
-  };
-
-  const sendMessage = async (text: string) => {
-||||||| parent of aae45cc07 (add more build steps)
-  const sendMessage = async (text: string) => {
-=======
   const sendMessage = async (text: string, retryMessageId?: string) => {
->>>>>>> aae45cc07 (add more build steps)
     if (!text.trim()) return;
 
     let messagesWithUser: Message[];
-    
+
     if (retryMessageId) {
       // Find and update the existing error message
-      messagesWithUser = messages.map(msg => 
-        msg.id === retryMessageId 
+      messagesWithUser = messages.map((msg) =>
+        msg.id === retryMessageId
           ? { ...msg, error: false, text: '...thinking' }
-          : msg
+          : msg,
       );
       setMessages(messagesWithUser);
     } else {
@@ -117,7 +48,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
       setMessages(messagesWithUser);
       setInput('');
     }
-    
+
     setIsLoading(true);
 
     try {
@@ -146,9 +77,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
 
       if (retryMessageId) {
         // Update the existing message
-        setMessages(messagesWithUser.map(msg => 
-          msg.id === retryMessageId ? botMessage : msg
-        ));
+        setMessages(
+          messagesWithUser.map((msg) =>
+            msg.id === retryMessageId ? botMessage : msg,
+          ),
+        );
       } else {
         setMessages([...messagesWithUser, botMessage]);
       }
@@ -160,7 +93,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         if ((window as any).navigateToDoc) {
           (window as any).navigateToDoc(
             { u: firstDoc.url, t: firstDoc.title, sel: 'article' },
-            text.trim()
+            text.trim(),
           );
         }
       }
@@ -174,12 +107,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         error: true,
         originalQuery: text.trim(),
       };
-      
+
       if (retryMessageId) {
         // Update the existing message
-        setMessages(messagesWithUser.map(msg => 
-          msg.id === retryMessageId ? errorMessage : msg
-        ));
+        setMessages(
+          messagesWithUser.map((msg) =>
+            msg.id === retryMessageId ? errorMessage : msg,
+          ),
+        );
       } else {
         setMessages([...messagesWithUser, errorMessage]);
       }
@@ -266,7 +201,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'linear-gradient(180deg, rgba(96, 37, 209, 0.15) 0%, rgba(96, 37, 209, 0.05) 20%, rgba(0, 0, 0, 0) 40%)',
+          background:
+            'linear-gradient(180deg, rgba(96, 37, 209, 0.15) 0%, rgba(96, 37, 209, 0.05) 20%, rgba(0, 0, 0, 0) 40%)',
           pointerEvents: 'none',
           zIndex: -1,
         }}
@@ -283,7 +219,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           opacity: 0.05,
           backgroundSize: '60px 60px',
           maskImage: 'linear-gradient(to bottom, black 0%, transparent 40%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 40%)',
+          WebkitMaskImage:
+            'linear-gradient(to bottom, black 0%, transparent 40%)',
           pointerEvents: 'none',
           zIndex: -1,
         }}
@@ -363,7 +300,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         )}
 
         {messages.map((message) => (
-          <div key={message.id} style={{ alignSelf: message.isUser ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
+          <div
+            key={message.id}
+            style={{
+              alignSelf: message.isUser ? 'flex-end' : 'flex-start',
+              maxWidth: '75%',
+            }}
+          >
             <div
               className={
                 message.isUser ? 'baml-bubble baml-me' : 'baml-bubble baml-ai'
@@ -373,10 +316,21 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                 borderRadius: '14px',
                 fontSize: '14px',
                 lineHeight: '1.5',
-                marginBottom: message.ranked_docs && message.ranked_docs.length > 0 ? '8px' : '6px',
+                marginBottom:
+                  message.ranked_docs && message.ranked_docs.length > 0
+                    ? '8px'
+                    : '6px',
                 boxShadow: '0 2px 6px rgba(0,0,0,.06)',
-                backgroundColor: message.isUser ? 'var(--accent-primary)' : message.error ? '#fef2f2' : 'var(--card-background)',
-                color: message.isUser ? '#fff' : message.error ? '#dc2626' : 'var(--text)',
+                backgroundColor: message.isUser
+                  ? 'var(--accent-primary)'
+                  : message.error
+                    ? '#fef2f2'
+                    : 'var(--card-background)',
+                color: message.isUser
+                  ? '#fff'
+                  : message.error
+                    ? '#dc2626'
+                    : 'var(--text)',
                 wordWrap: 'break-word',
                 borderLeft: message.error ? '3px solid #dc2626' : undefined,
                 border: message.isUser ? 'none' : '1px solid var(--border)',

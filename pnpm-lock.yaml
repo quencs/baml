@@ -103,11 +103,14 @@ importers:
 
   fern/sage:
     dependencies:
+      algoliasearch:
+        specifier: ^5.34.1
+        version: 5.34.1
       jotai:
         specifier: ^2.12.5
         version: 2.12.5(@types/react@18.3.23)(react@18.3.1)
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
         specifier: ^18.2.0
@@ -8396,7 +8399,6 @@ packages:
     resolution: {integrity: sha512-Quz3MvAwHxVYNXsOByL7xI5EB2WYOeFswqaHIA3qOK3isRWTxiplBEocmmru6XmxDB2L7jDNYtYA4FyimoAFEw==}
     engines: {node: '>=8.17.0'}
     hasBin: true
-    bundledDependencies: []
 
   jsonfile@6.1.0:
     resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
