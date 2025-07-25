@@ -23,8 +23,45 @@ const createSearchFilters = () => {
   return 'domain:docs.boundaryml.com AND NOT type:navigation';
 };
 
-// Custom Hit component to display search results
+// Document type icon component using Fern's FontAwesome icons
+function DocumentIcon({ type }: { type: string }) {
+  const iconStyle = {
+    width: '16px',
+    height: '16px',
+    flexShrink: 0,
+    color: '#6b7280',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const getIconClass = () => {
+    switch (type) {
+      case 'guide':
+        return 'fa-solid fa-book';
+      case 'reference':
+        return 'fa-solid fa-code';
+      case 'example':
+        return 'fa-solid fa-grid-2';
+      default:
+        return 'fa-regular fa-file-lines';
+    }
+  };
+
+  return (
+    <i
+      className={getIconClass()}
+      style={iconStyle}
+      aria-label={`${type} document`}
+      title={`${type} document`}
+    />
+  );
+}
+
+// Custom Hit component to display search results with icons and descriptions
 function Hit({ hit }: { hit: any }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   const processHighlights = (text: string) => {
     return text
       .replace(
@@ -42,58 +79,134 @@ function Hit({ hit }: { hit: any }) {
     hit.description ||
     '';
 
+  // Determine document type based on URL path
+  const getDocumentType = (pathname: string): string => {
+    if (pathname.includes('/guide/')) return 'guide';
+    if (pathname.includes('/reference/')) return 'reference';
+    if (pathname.includes('/examples/')) return 'example';
+    return 'document';
+  };
+
+  const documentType = getDocumentType(
+    hit.pathname || hit.canonicalPathname || '',
+  );
+
+  // Truncate description for display
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return `${text.substring(0, maxLength)}...`;
+  };
+
+  const processedDescription = highlightedDescription.replace(/<[^>]*>/g, ''); // Remove HTML tags for length calculation
+  const shouldTruncate = processedDescription.length > 120;
+  const displayDescription =
+    shouldTruncate && !isHovered
+      ? truncateText(processedDescription, 120)
+      : highlightedDescription;
+
   return (
     <a
       href={hit.pathname || hit.canonicalPathname || '#'}
       style={{
-        display: 'block',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
         padding: '12px 16px',
         textDecoration: 'none',
         color: '#374151',
         borderBottom: '1px solid #f3f4f6',
         transition: 'background 0.15s ease',
         cursor: 'pointer',
+        background: isHovered ? '#f9fafb' : 'transparent',
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = '#f9fafb';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'transparent';
-      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      title={shouldTruncate ? processedDescription : undefined}
     >
-      <div
-        style={{
-          fontWeight: 600,
-          fontSize: '14px',
-          marginBottom: '4px',
-          color: '#111827',
-        }}
-      >
-        <span
-          dangerouslySetInnerHTML={{
-            __html: processHighlights(highlightedTitle),
-          }}
-        />
+      {/* Document Icon */}
+      <div style={{ paddingTop: '2px' }}>
+        <DocumentIcon type={documentType} />
       </div>
-      {highlightedDescription && (
-        <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.4' }}>
+
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontWeight: 600,
+            fontSize: '14px',
+            marginBottom: '4px',
+            color: '#111827',
+            lineHeight: '1.3',
+          }}
+        >
           <span
+            // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{
-              __html: processHighlights(highlightedDescription),
+              __html: processHighlights(highlightedTitle),
             }}
           />
         </div>
-      )}
-      {hit.breadcrumb && hit.breadcrumb.length > 0 && (
-        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '6px' }}>
-          {hit.breadcrumb.map((crumb: any, index: number) => (
-            <span key={crumb.title}>
-              {index > 0 && ' › '}
-              {crumb.title}
+
+        {highlightedDescription && (
+          <div
+            style={{
+              fontSize: '13px',
+              color: '#6b7280',
+              lineHeight: '1.4',
+              wordBreak: 'break-word',
+            }}
+          >
+            <span
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{
+                __html: processHighlights(displayDescription),
+              }}
+            />
+            {shouldTruncate && !isHovered && (
+              <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
+                {' '}
+                (hover for full description)
+              </span>
+            )}
+          </div>
+        )}
+
+        {hit.breadcrumb && hit.breadcrumb.length > 0 && (
+          <div
+            style={{
+              fontSize: '11px',
+              color: '#9ca3af',
+              marginTop: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <svg
+              width="12"
+              height="12"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              aria-label="Breadcrumb"
+            >
+              <title>Breadcrumb</title>
+              <path
+                fillRule="evenodd"
+                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span>
+              {hit.breadcrumb.map((crumb: any, index: number) => (
+                <span key={crumb.title}>
+                  {index > 0 && ' › '}
+                  {crumb.title}
+                </span>
+              ))}
             </span>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </a>
   );
 }
@@ -172,14 +285,21 @@ function AskWithAIOption({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
+      e.stopPropagation();
       onClick();
     }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick();
   };
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
       style={{
         display: 'block',
@@ -231,7 +351,13 @@ function AskWithAIOption({
 }
 
 // Custom SearchBox with integrated controls
-function CustomSearchBox({ onAskAI }: { onAskAI: (query: string) => void }) {
+function CustomSearchBox({
+  onAskAI,
+  onToggleAI,
+}: {
+  onAskAI: (query: string) => void;
+  onToggleAI?: () => void;
+}) {
   const { query, refine } = useSearchBox();
   const [inputValue, setInputValue] = useState(query);
   const [isFocused, setIsFocused] = useState(false);
@@ -270,6 +396,12 @@ function CustomSearchBox({ onAskAI }: { onAskAI: (query: string) => void }) {
 
   const handleAskAI = () => {
     onAskAI(inputValue);
+  };
+
+  const handleToggleAI = () => {
+    if (onToggleAI) {
+      onToggleAI();
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -391,7 +523,7 @@ function CustomSearchBox({ onAskAI }: { onAskAI: (query: string) => void }) {
           {/* Ask AI button */}
           <button
             type="button"
-            onClick={handleAskAI}
+            onClick={handleToggleAI}
             style={{
               padding: '6px 10px',
               background: '#7c3aed',
@@ -522,12 +654,22 @@ function CustomHits({
 
 export default function AlgoliaSearch({
   onAskAI,
-}: { onAskAI?: (query: string) => void }) {
+  onToggleAI,
+}: {
+  onAskAI?: (query: string) => void;
+  onToggleAI?: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleAskAI = (query: string) => {
     if (onAskAI) {
       onAskAI(query);
+    }
+  };
+
+  const handleToggleAI = () => {
+    if (onToggleAI) {
+      onToggleAI();
     }
   };
 
@@ -552,8 +694,7 @@ export default function AlgoliaSearch({
           analyticsTags={['desktop', 'docs.boundaryml.com', 'search-v2-dialog']}
         />
 
-        <CustomSearchBox onAskAI={handleAskAI} />
-        <CustomHits />
+        <CustomSearchBox onAskAI={handleAskAI} onToggleAI={handleToggleAI} />
       </InstantSearch>
     </div>
   );

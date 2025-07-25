@@ -137,74 +137,23 @@ function initializeSearchInterface() {
     const handleAskAI = (query: string) => {
       console.log('Ask AI clicked with query:', query);
 
-      // For demo: Navigate to a relevant page based on the query
-      const demoPages = [
-        {
-          keywords: ['client', 'typescript', 'javascript', 'js', 'ts'],
-          url: '/docs/guide/languages/typescript',
-        },
-        { keywords: ['python', 'py'], url: '/docs/guide/languages/python' },
-        {
-          keywords: ['function', 'baml', 'syntax'],
-          url: '/docs/guide/baml-basics/functions',
-        },
-        {
-          keywords: ['llm', 'model', 'openai', 'claude'],
-          url: '/docs/guide/baml-basics/clients',
-        },
-        {
-          keywords: ['prompt', 'engineering'],
-          url: '/docs/guide/prompt-engineering/overview',
-        },
-        {
-          keywords: ['test', 'testing'],
-          url: '/docs/guide/development/testing',
-        },
-      ];
-
-      // Find the most relevant page based on query keywords
-      const lowerQuery = query.toLowerCase();
-      let targetPage = '/docs/guide/introduction'; // Default page
-
-      for (const page of demoPages) {
-        if (page.keywords.some((keyword) => lowerQuery.includes(keyword))) {
-          targetPage = page.url;
-          break;
-        }
-      }
-
-      // Create a demo search result object
-      const demoHit = {
-        u: targetPage,
-        sel: 'main',
-        title: `AI-suggested page for "${query}"`,
-      };
-
       // Open the AI chatbot first
       initChatbot();
 
-      // Navigate to the relevant page with AI context
-      setTimeout(() => {
-        navigateToDoc(demoHit, query);
-
-        // Store AI context for the chatbot
-        localStorage.setItem(
-          'baml-ai-context',
-          JSON.stringify({
-            query: query,
-            suggestedPage: targetPage,
-            timestamp: Date.now(),
-          }),
-        );
-      }, 100);
+      // Store AI context for the chatbot with just the query
+      localStorage.setItem(
+        'baml-ai-context',
+        JSON.stringify({
+          query: query,
+          timestamp: Date.now(),
+        }),
+      );
     };
-
-    algoliaRoot.render(<AlgoliaSearch onAskAI={handleAskAI} />);
 
     // Initialize React chatbot with sidebar panel functionality
     let chatbotRoot: any = null;
     let isOpen = false;
-    const AUTO_MOUNT_SIDEBAR = true;
+    const AUTO_MOUNT_SIDEBAR = false; // Changed to false to prevent auto-opening
 
     const setOpen = (flag: boolean) => {
       isOpen = flag;
@@ -219,6 +168,24 @@ function initializeSearchInterface() {
       setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
     };
 
+    const toggleChatbot = () => {
+      if (!chatbotRoot) {
+        const rootElement = document.createElement('div');
+        rootElement.id = 'fern-chatbot-root';
+        document.body.appendChild(rootElement);
+        chatbotRoot = createRoot(rootElement);
+        // Initial render with closed state
+        chatbotRoot.render(
+          <ChatBot isOpen={false} onClose={() => setOpen(false)} />,
+        );
+      }
+      setOpen(!isOpen); // Toggle the current state
+    };
+
+    algoliaRoot.render(
+      <AlgoliaSearch onAskAI={handleAskAI} onToggleAI={toggleChatbot} />,
+    );
+
     const initChatbot = () => {
       if (!chatbotRoot) {
         const rootElement = document.createElement('div');
@@ -230,13 +197,13 @@ function initializeSearchInterface() {
           <ChatBot isOpen={false} onClose={() => setOpen(false)} />,
         );
       }
-      setOpen(true);
+      setOpen(true); // Always open when called from Ask AI
     };
 
-    // Auto-mount sidebar if AUTO_MOUNT_SIDEBAR is true
-    if (AUTO_MOUNT_SIDEBAR) {
-      initChatbot();
-    }
+    // Don't auto-mount sidebar - only open when explicitly requested
+    // if (AUTO_MOUNT_SIDEBAR) {
+    //   initChatbot();
+    // }
 
     obs.disconnect();
   });
