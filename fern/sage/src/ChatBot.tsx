@@ -1,5 +1,7 @@
 import { useAtom } from 'jotai';
 import React, { useRef, useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { z } from 'zod';
 import BamlLambWhite from './baml-lamb-white.svg';
 import { type Message, messagesAtom } from './store';
@@ -588,7 +590,201 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                   : '0 2px 8px rgba(0, 0, 0, 0.08)',
               }}
             >
-              {message.text}
+              {message.isUser ? (
+                message.text
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Custom styles for markdown elements
+                    p: ({ children }) => (
+                      <p style={{ margin: '0 0 12px 0', lineHeight: '1.6' }}>
+                        {children}
+                      </p>
+                    ),
+                    h1: ({ children }) => (
+                      <h1
+                        style={{
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          margin: '0 0 12px 0',
+                          color: '#111827',
+                        }}
+                      >
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2
+                        style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          margin: '0 0 10px 0',
+                          color: '#111827',
+                        }}
+                      >
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3
+                        style={{
+                          fontSize: '15px',
+                          fontWeight: '600',
+                          margin: '0 0 8px 0',
+                          color: '#111827',
+                        }}
+                      >
+                        {children}
+                      </h3>
+                    ),
+                    code: ({ children, className, ...props }) => {
+                      const isInline = !className;
+
+                      return isInline ? (
+                        <code
+                          {...props}
+                          style={{
+                            backgroundColor: '#f3f4f6',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            fontFamily:
+                              'Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            color: '#d63384',
+                          }}
+                        >
+                          {children}
+                        </code>
+                      ) : (
+                        <pre
+                          style={{
+                            margin: '0 0 12px 0',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            border: '1px solid #e9ecef',
+                            backgroundColor: '#f8f9fa',
+                            padding: '12px',
+                            overflow: 'auto',
+                            fontFamily:
+                              'Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          }}
+                        >
+                          <code style={{ backgroundColor: 'transparent' }}>
+                            {String(children).replace(/\n$/, '')}
+                          </code>
+                        </pre>
+                      );
+                    },
+                    pre: ({ children }) => (
+                      <pre
+                        style={{
+                          margin: '0 0 12px 0',
+                          overflow: 'visible',
+                        }}
+                      >
+                        {children}
+                      </pre>
+                    ),
+                    ul: ({ children }) => (
+                      <ul
+                        style={{
+                          margin: '0 0 12px 0',
+                          paddingLeft: '20px',
+                          listStyleType: 'disc',
+                        }}
+                      >
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol
+                        style={{
+                          margin: '0 0 12px 0',
+                          paddingLeft: '20px',
+                          listStyleType: 'decimal',
+                        }}
+                      >
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => (
+                      <li
+                        style={{
+                          margin: '0 0 4px 0',
+                          lineHeight: '1.5',
+                        }}
+                      >
+                        {children}
+                      </li>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote
+                        style={{
+                          margin: '0 0 12px 0',
+                          paddingLeft: '16px',
+                          borderLeft: '4px solid #7d47e3',
+                          fontStyle: 'italic',
+                          color: '#6b7280',
+                        }}
+                      >
+                        {children}
+                      </blockquote>
+                    ),
+                    a: ({ children, href }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: '#7d47e3',
+                          textDecoration: 'underline',
+                          fontWeight: '500',
+                        }}
+                      >
+                        {children}
+                      </a>
+                    ),
+                    table: ({ children }) => (
+                      <table
+                        style={{
+                          width: '100%',
+                          borderCollapse: 'collapse',
+                          margin: '0 0 12px 0',
+                          fontSize: '13px',
+                        }}
+                      >
+                        {children}
+                      </table>
+                    ),
+                    th: ({ children }) => (
+                      <th
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          padding: '8px 12px',
+                          backgroundColor: '#f9fafb',
+                          fontWeight: '600',
+                          textAlign: 'left',
+                        }}
+                      >
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          padding: '8px 12px',
+                        }}
+                      >
+                        {children}
+                      </td>
+                    ),
+                  }}
+                >
+                  {message.text}
+                </ReactMarkdown>
+              )}
               {message.error && (
                 <div style={{ marginTop: '12px' }}>
                   <button
