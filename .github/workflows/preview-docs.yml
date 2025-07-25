@@ -3,7 +3,7 @@ name: Preview Docs
 on:
   pull_request:
   push:
-    branches: [canary]
+    branches: [canary, sage]
 
 jobs:
   run:
@@ -13,16 +13,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node
+        with:
+          install-dependencies: false
+
       - name: Install Fern
         run: npm install -g fern-api
 
       - name: Install dependencies
         working-directory: ./fern/sage
-        run: npm install
+        run: pnpm install
 
       - name: Build custom.js with webpack
         working-directory: ./fern/sage
-        run: npm run build
+        run: pnpm run build
 
       - name: Generate preview URL
         id: generate-docs
