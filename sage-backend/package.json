@@ -1,5 +1,5 @@
 {
-  "name": "sage2",
+  "name": "sage-backend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -32,6 +32,6 @@
     "gray-matter": "^4.0.3",
     "tailwindcss": "^4",
     "tsx": "^4.20.3",
-    "typescript": "^5",
+    "typescript": "^5"
   }
 }
