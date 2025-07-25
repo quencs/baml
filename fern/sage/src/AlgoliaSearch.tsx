@@ -588,20 +588,24 @@ function CustomSearchBox({
           display: 'flex',
           alignItems: 'center',
           background: '#ffffff',
-          border: `1.5px solid ${isFocused ? '#6366f1' : '#e5e7eb'}`,
-          borderRadius: '12px',
-          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-          boxShadow: isFocused ? '0 0 0 3px rgba(99, 102, 241, 0.1)' : 'none',
+          border: `1px solid ${isFocused ? '#6366f1' : '#d1d5db'}`,
+          borderRadius: '8px',
+          transition: 'all 0.15s ease',
+          boxShadow: isFocused
+            ? '0 0 0 3px rgba(99, 102, 241, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1)'
+            : '0 1px 2px rgba(0, 0, 0, 0.05)',
+          height: '40px',
         }}
       >
         {/* Search Icon */}
         <div
           style={{
             position: 'absolute',
-            left: '14px',
-            color: '#9ca3af',
+            left: '12px',
+            color: isFocused ? '#6366f1' : '#9ca3af',
             display: 'flex',
             alignItems: 'center',
+            transition: 'color 0.15s ease',
           }}
         >
           <SearchIcon />
@@ -619,13 +623,15 @@ function CustomSearchBox({
           placeholder="Search BAML docs…"
           style={{
             flex: 1,
-            padding: '12px 180px 12px 44px',
+            padding: '0 140px 0 40px',
             border: 'none',
             outline: 'none',
             background: 'transparent',
             fontSize: '14px',
             color: '#111827',
             fontFamily: 'inherit',
+            height: '100%',
+            lineHeight: 1,
           }}
         />
 
@@ -633,10 +639,11 @@ function CustomSearchBox({
         <div
           style={{
             position: 'absolute',
-            right: '10px',
+            right: '8px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '6px',
+            height: '100%',
           }}
         >
           {/* Clear button */}
@@ -645,29 +652,27 @@ function CustomSearchBox({
               type="button"
               onClick={handleClear}
               style={{
-                padding: '6px',
+                padding: '4px',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
                 color: '#9ca3af',
-                borderRadius: '6px',
+                borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
-                fontSize: '14px',
-                transition: 'all 0.2s ease',
-                width: '28px',
-                height: '28px',
+                fontSize: '12px',
+                transition: 'all 0.15s ease',
+                width: '24px',
+                height: '24px',
                 justifyContent: 'center',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = '#ef4444';
                 e.currentTarget.style.backgroundColor = '#fef2f2';
-                e.currentTarget.style.transform = 'scale(1.1)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = '#9ca3af';
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
               ✕
@@ -675,48 +680,65 @@ function CustomSearchBox({
           )}
 
           {/* Slash shortcut indicator */}
-          {!isFocused && !inputValue && <SlashIcon />}
+          {!isFocused && !inputValue && (
+            <div
+              style={{
+                padding: '2px 5px',
+                background: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '3px',
+                fontSize: '10px',
+                fontWeight: 500,
+                color: '#6b7280',
+                fontFamily: 'monospace',
+                lineHeight: 1,
+              }}
+            >
+              /
+            </div>
+          )}
 
           {/* Ask Baaaaml / Close button */}
           <button
             type="button"
             onClick={handleToggleAI}
             style={{
-              padding: '8px 12px',
-              background: isAIOpen ? '#6b7280' : '#7d47e3',
+              padding: '6px 10px',
+              background: isAIOpen ? '#6b7280' : '#7c3aed',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               color: 'white',
-              fontSize: '12px',
+              fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              minWidth: '90px',
+              minWidth: '80px',
               justifyContent: 'center',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              height: '24px',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = isAIOpen
                 ? '#4b5563'
-                : '#6b3bc9';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                : '#6d28d9';
+              e.currentTarget.style.transform = 'translateY(-0.5px)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.15)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = isAIOpen
                 ? '#6b7280'
-                : '#7d47e3';
+                : '#7c3aed';
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
             }}
           >
             {isAIOpen ? (
               <>
                 <CloseIcon />
-                Close AI
+                Close
               </>
             ) : (
               <>

@@ -90,22 +90,6 @@ body.${OPEN}{
   overflow-x: hidden;
 }
 
-/* Smoothly slide the "On this page" TOC out instead of popping it off‑screen */
-.fern-toc,#fern-toc{
-  transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s;
-}
-body.${OPEN} .fern-toc,
-body.${OPEN} #fern-toc{
-  transform:translateX(100%);
-  opacity:0;
-  pointer-events:none;
-}
-/* Hide right‑hand "On this page" TOC when the AI panel is open */
-body.${OPEN} nav[aria-label="On this page"],
-body.${OPEN} [data-toc],body.${OPEN} .fern-toc,body.${OPEN} #fern-toc{
-  display:none !important;
-}
-
 /* Search result highlighting */
 .ai-hl{background:#fff7a8;padding:0 2px;border-radius:4px;animation:ai-blink 1.6s ease-in-out 2;}
 @keyframes ai-blink{
