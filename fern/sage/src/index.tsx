@@ -1,5 +1,5 @@
-import React from 'react';
 import { createRoot } from 'react-dom/client';
+import AlgoliaSearch from './AlgoliaSearch';
 import ChatBot from './ChatBot';
 
 // Constants from original custom.js
@@ -17,34 +17,6 @@ const whenReady = (f: () => void) =>
   document.readyState === 'loading'
     ? document.addEventListener('DOMContentLoaded', f)
     : f();
-
-// Docs data from original custom.js
-const docs = [
-  {
-    t: 'Getting Started with BAML',
-    u: '/guide/introduction/what-is-baml',
-    x: 'Overview of core concepts',
-    sel: 'h1',
-  },
-  {
-    t: 'Python Installation',
-    u: '/guide/installation-language/python',
-    x: 'Quick‑start for Python devs',
-    sel: 'article',
-  },
-  {
-    t: 'TypeScript Installation',
-    u: '/guide/installation-language/typescript',
-    x: 'Install & set up with TS',
-    sel: 'article',
-  },
-  {
-    t: 'Functions',
-    u: '/ref/baml/function',
-    x: 'Reference for BAML functions',
-  },
-  { t: 'Classes', u: '/ref/baml/class', x: 'Data structures & classes' },
-];
 
 // Highlight functionality from original custom.js
 function navigateToDoc(hit: any, q: string) {
@@ -103,7 +75,7 @@ function highlightFromStore() {
   });
 }
 
-// Add global CSS from original custom.js with sidebar panel styling
+// Updated global CSS to integrate with Algolia search styling
 css(`
 body.${OPEN}{padding-right:${PANEL_W}px;transition:padding-right .3s cubic-bezier(.4,0,.2,1);overflow-x:hidden;}
 /* Smoothly slide the "On this page" TOC out instead of popping it off‑screen */
@@ -121,23 +93,10 @@ body.${OPEN} nav[aria-label="On this page"],
 body.${OPEN} [data-toc],body.${OPEN} .fern-toc,body.${OPEN} #fern-toc{
   display:none !important;
 }
-#baml-search-wrap{display:flex;align-items:center;max-width:640px;width:100%;position:relative;}
-#baml-search-input{flex:1;padding:10px 46px 10px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;}
-#baml-ai-btn{position:absolute;right:3px;top:4px;bottom:4px;display:flex;align-items:center;gap:6px;background:#7c3aed;border:none;border-radius:6px;color:#fff;font-weight:600;font-size:13px;line-height:1;padding:0 12px;cursor:pointer;transition:background .2s,transform .2s;}
-#baml-ai-btn:hover{background:#6320df;}
-#baml-ai-btn.open{background:#edf2ff;color:#7c3aed;border:1px solid #7c3aed;}
-#baml-ai-btn span{color:inherit;}
-#baml-ai-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
-.baml-search-dd{position:absolute;inset:auto 0 0 0;transform:translateY(100%);background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.12);z-index:1500;max-height:420px;overflow-y:auto;display:none;}
-.baml-search-dd.open{display:block;}
-.baml-item{padding:12px 18px;display:block;text-decoration:none;color:#111827;transition:background .15s;}
-.baml-item:hover{background:#f9fafb;}
-.baml-item+.baml-item{border-top:1px solid #f3f4f6;}
-.baml-item .title{font-weight:600;font-size:14px;display:block;}
-.baml-item .descr{font-size:12.5px;color:#6b7280;}
-.baml-item.ai{background:#f8f5ff;color:#7c3aed;}
-.baml-item.ai:hover{background:#f3efff;}
-mark{background:transparent;color:#ec4899;font-weight:700;}
+
+/* Cleaned up styling */
+
+/* Search result highlighting */
 .ai-hl{background:#fff7a8;padding:0 2px;border-radius:4px;animation:ai-blink 1.6s ease-in-out 2;}
 @keyframes ai-blink{
   0%,100%{background:#fff7a8;}
@@ -146,7 +105,7 @@ mark{background:transparent;color:#ec4899;font-weight:700;}
 .goto-doc{color:#7c3aed;text-decoration:underline;font-weight:600;}
 `);
 
-// Search interface integration
+// Search interface integration with Algolia
 function initializeSearchInterface() {
   const obs = new MutationObserver(() => {
     const old = document.querySelector(
@@ -154,25 +113,93 @@ function initializeSearchInterface() {
     );
     if (!old) return;
 
-    // Build custom search interface
+    // Build custom search interface with Algolia integration
     const wrap = document.createElement('div');
     wrap.id = 'baml-search-wrap';
-    const input = document.createElement('input');
-    input.id = 'baml-search-input';
-    input.placeholder = 'Search BAML docs…';
-    const aiBtn = document.createElement('button');
-    aiBtn.id = 'baml-ai-btn';
-    aiBtn.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16m8-8H4"/></svg><span>Ask</span>';
-    const dd = document.createElement('div');
-    dd.className = 'baml-search-dd';
-    wrap.append(input, aiBtn, dd);
+    wrap.style.cssText = 'max-width: 640px; width: 100%; position: relative;';
+
+    const algoliaContainer = document.createElement('div');
+    algoliaContainer.id = 'baml-algolia-container';
+    algoliaContainer.style.cssText = 'width: 100%; position: relative;';
+
+    wrap.append(algoliaContainer);
 
     // Hide original search and replace with custom
     if (old.parentNode) {
       (old as HTMLElement).style.display = 'none';
       old.parentNode.insertBefore(wrap, old);
     }
+
+    // Render Algolia search component
+    const algoliaRoot = createRoot(algoliaContainer);
+
+    // AI functionality callback
+    const handleAskAI = (query: string) => {
+      console.log('Ask AI clicked with query:', query);
+
+      // For demo: Navigate to a relevant page based on the query
+      const demoPages = [
+        {
+          keywords: ['client', 'typescript', 'javascript', 'js', 'ts'],
+          url: '/docs/guide/languages/typescript',
+        },
+        { keywords: ['python', 'py'], url: '/docs/guide/languages/python' },
+        {
+          keywords: ['function', 'baml', 'syntax'],
+          url: '/docs/guide/baml-basics/functions',
+        },
+        {
+          keywords: ['llm', 'model', 'openai', 'claude'],
+          url: '/docs/guide/baml-basics/clients',
+        },
+        {
+          keywords: ['prompt', 'engineering'],
+          url: '/docs/guide/prompt-engineering/overview',
+        },
+        {
+          keywords: ['test', 'testing'],
+          url: '/docs/guide/development/testing',
+        },
+      ];
+
+      // Find the most relevant page based on query keywords
+      const lowerQuery = query.toLowerCase();
+      let targetPage = '/docs/guide/introduction'; // Default page
+
+      for (const page of demoPages) {
+        if (page.keywords.some((keyword) => lowerQuery.includes(keyword))) {
+          targetPage = page.url;
+          break;
+        }
+      }
+
+      // Create a demo search result object
+      const demoHit = {
+        u: targetPage,
+        sel: 'main',
+        title: `AI-suggested page for "${query}"`,
+      };
+
+      // Open the AI chatbot first
+      initChatbot();
+
+      // Navigate to the relevant page with AI context
+      setTimeout(() => {
+        navigateToDoc(demoHit, query);
+
+        // Store AI context for the chatbot
+        localStorage.setItem(
+          'baml-ai-context',
+          JSON.stringify({
+            query: query,
+            suggestedPage: targetPage,
+            timestamp: Date.now(),
+          }),
+        );
+      }, 100);
+    };
+
+    algoliaRoot.render(<AlgoliaSearch onAskAI={handleAskAI} />);
 
     // Initialize React chatbot with sidebar panel functionality
     let chatbotRoot: any = null;
@@ -182,13 +209,6 @@ function initializeSearchInterface() {
     const setOpen = (flag: boolean) => {
       isOpen = flag;
       document.body.classList.toggle(OPEN, flag);
-      aiBtn.classList.toggle('open', flag);
-      (aiBtn.querySelector('span') as HTMLElement).textContent = flag
-        ? 'Close'
-        : 'Ask';
-      (aiBtn.querySelector('svg') as SVGElement).innerHTML = flag
-        ? '<path d="M18 6L6 18M6 6l12 12"/>'
-        : '<path d="M12 4v16m8-8H4"/>';
 
       if (chatbotRoot) {
         chatbotRoot.render(
@@ -217,81 +237,6 @@ function initializeSearchInterface() {
     if (AUTO_MOUNT_SIDEBAR) {
       initChatbot();
     }
-
-    // Handle AI button clicks
-    aiBtn.addEventListener('click', () => {
-      const q = input.value.trim();
-
-      // Toggle close if already open
-      if (isOpen) {
-        setOpen(false);
-        return;
-      }
-
-      // Opening the chatbot
-      initChatbot();
-      if (!q) {
-        input.focus();
-        return;
-      }
-
-      // TODO: Send initial query to chatbot when that functionality is implemented
-    });
-
-    // Search dropdown functionality
-    const hi = (s: string, q: string) =>
-      s.replace(new RegExp(`(${q})`, 'ig'), '<mark>$1</mark>');
-
-    const render = (q: string) => {
-      dd.innerHTML = '';
-      if (!q) {
-        dd.classList.remove('open');
-        return;
-      }
-
-      const ask = document.createElement('div');
-      ask.className = 'baml-item ai';
-      ask.innerHTML = `Ask "${hi(q, q)}"`;
-      ask.onclick = () => {
-        initChatbot();
-        dd.classList.remove('open');
-      };
-      dd.append(ask);
-
-      for (const d of docs
-        .filter(
-          (d) => d.t.toLowerCase().includes(q) || d.x.toLowerCase().includes(q),
-        )
-        .slice(0, 10) || [{ t: `No docs for "${q}"`, u: '#', x: '' }]) {
-        const a = document.createElement('a');
-        a.href = d.u;
-        a.className = 'baml-item';
-        a.innerHTML = `<span class="title">${hi(d.t, q)}</span>${d.x ? `<span class="descr">${hi(d.x, q)}</span>` : ''}`;
-        dd.append(a);
-      }
-      dd.classList.add('open');
-    };
-
-    let tm: any;
-    input.addEventListener('input', (e) => {
-      clearTimeout(tm);
-      tm = setTimeout(
-        () => render((e.target as HTMLInputElement).value.trim().toLowerCase()),
-        100,
-      );
-    });
-
-    input.addEventListener('focus', () => {
-      input.value.trim() && render(input.value.trim().toLowerCase());
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!wrap.contains(e.target as Node)) dd.classList.remove('open');
-    });
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') dd.classList.remove('open');
-    });
 
     obs.disconnect();
   });
