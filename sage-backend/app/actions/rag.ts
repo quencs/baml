@@ -305,10 +305,8 @@ export async function populatePinecone() {
 
     try {
       const content = await fetchBlogContent(entry.url);
-      // Create a slug from the URL for external content
-      const slug =
-        entry.url.replace('https://boundaryml.com', '') ||
-        `/blog/${entry.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+      // Use the full URL as the slug for external content
+      const slug = entry.url;
 
       externalFernDocs.push({
         slug: slug,
