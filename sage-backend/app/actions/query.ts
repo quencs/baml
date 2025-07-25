@@ -1,8 +1,9 @@
 'use server';
 
 import { z } from 'zod';
-import { searchPinecone } from './rag';
 import { b } from '../../baml_client';
+import type { QueryRequest } from '../types';
+import { searchPinecone } from './rag';
 
 // Define the Zod schema for the response
 const RankedDocSchema = z.object({
@@ -18,8 +19,10 @@ const QueryResponseSchema = z.object({
 
 export type QueryResponse = z.infer<typeof QueryResponseSchema>;
 
-export async function submitQuery(query: string): Promise<QueryResponse> {
-  const docs = await searchPinecone(query);
+export async function submitQuery(
+  queryRequest: QueryRequest,
+): Promise<QueryResponse> {
+  const docs = await searchPinecone(queryRequest.query);
   const rankedDocs = docs.map((doc) => ({
     title: (doc.metadata?.title ?? '') as string,
     url: (doc.metadata?.slug ?? '') as string,
@@ -27,14 +30,19 @@ export async function submitQuery(query: string): Promise<QueryResponse> {
   }));
 
   const plan = await b.PlanQuery({
-    text: query,
-    language_preference: 'Python',
+    text: queryRequest.query,
+    language_preference: queryRequest.language_preference,
     context_docs: rankedDocs.map((doc) => ({
       title: doc.title,
       body: doc.url,
       relevance_score: doc.relevance,
     })),
+    prev_messages: queryRequest.prev_messages,
   });
+
+  for (const doc of rankedDocs) {
+    console.log({ url: doc.url, relevance: doc.relevance });
+  }
 
   // TODO: implement auto-navigation based on LLM tagging as "very-relevant"
 

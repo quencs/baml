@@ -27,7 +27,9 @@ export default class TypeBuilder {
     
     ContextDoc: ClassViewer<'ContextDoc', "title" | "body" | "relevance_score">;
     
-    Query: ClassViewer<'Query', "text" | "language_preference" | "context_docs">;
+    Message: ClassViewer<'Message', "role" | "text">;
+    
+    Query: ClassViewer<'Query', "text" | "language_preference" | "context_docs" | "prev_messages">;
     
     QueryActionPlan: ClassViewer<'QueryActionPlan', "ranked_docs" | "refine_query" | "answer">;
     
@@ -46,7 +48,7 @@ export default class TypeBuilder {
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "ContextDoc","Query","QueryActionPlan","RefineQuery","RelevantDoc","Resume","SearchDocumentation",
+            "ContextDoc","Message","Query","QueryActionPlan","RefineQuery","RelevantDoc","Resume","SearchDocumentation",
           ]),
           enums: new Set([
             "BamlLanguage",
@@ -58,8 +60,12 @@ export default class TypeBuilder {
           "title","body","relevance_score",
         ]);
         
+        this.Message = this.tb.classViewer("Message", [
+          "role","text",
+        ]);
+        
         this.Query = this.tb.classViewer("Query", [
-          "text","language_preference","context_docs",
+          "text","language_preference","context_docs","prev_messages",
         ]);
         
         this.QueryActionPlan = this.tb.classViewer("QueryActionPlan", [

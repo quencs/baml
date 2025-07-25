@@ -1,13 +1,45 @@
 import { useAtom } from 'jotai';
 import React, { useRef, useEffect, useState } from 'react';
 import BamlLambWhite from './baml-lamb-white.svg';
-import { type Message, messagesAtom } from './store';
+import { messagesAtom, type Message } from './store';
+import { z } from 'zod';
 
 interface ChatBotProps {
   apiEndpoint?: string;
   isOpen?: boolean;
   onClose?: () => void;
 }
+
+// IfChange
+const QueryRequestSchema = z.object({
+  query: z.string(),
+  language_preference: z.string().optional(),
+  prev_messages: z.array(
+    z.object({
+      role: z.enum(['user', 'assistant']),
+      text: z.string(),
+    }),
+  ),
+});
+type QueryRequest = z.infer<typeof QueryRequestSchema>;
+// ThenChange baml/sage-backend/app/types.ts
+
+const postDocChat = async (req: QueryRequest) => {
+  console.log('postDocChat', req);
+  const response = await fetch(API_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(req),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
 
 const API_ENDPOINT =
   process.env.NODE_ENV === 'development'
@@ -102,32 +134,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // TODO: attach old messages to the context
-        body: JSON.stringify({ query: text.trim() }),
+      const data = await postDocChat({
+        query: text.trim(),
+        // TODO: add language preference
+        prev_messages: messagesWithUser.map((msg) => ({
+          role: msg.isUser ? 'user' : 'assistant',
+          text: msg.text,
+        })),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      let data: any;
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        console.error('Failed to parse JSON response:', jsonError);
-        throw new Error('Invalid JSON response from server');
-      }
-
-      // Validate that we have the expected response structure
-      if (!data || typeof data.answer !== 'string') {
-        console.error('Invalid response structure:', data);
-        throw new Error('Invalid response structure from AI service');
-      }
 
       const botMessage: Message = {
         id: retryMessageId || (Date.now() + 1).toString(),

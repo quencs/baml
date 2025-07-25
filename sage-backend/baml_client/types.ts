@@ -64,10 +64,17 @@ export interface ContextDoc {
   
 }
 
+export interface Message {
+  role: "user" | "assistant"
+  text: string
+  
+}
+
 export interface Query {
   text: string
   language_preference?: string | null
   context_docs: ContextDoc[]
+  prev_messages: Message[]
   
 }
 

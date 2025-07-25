@@ -3,6 +3,12 @@ class Query {
   text string
   language_preference string? @description("The user is building their BAML application with this language")
   context_docs ContextDoc[]
+  prev_messages Message[]
+}
+
+class Message {
+  role "user" | "assistant"
+  text string
 }
 
 class ContextDoc {
@@ -175,9 +181,13 @@ function PlanQuery(query: Query) -> QueryActionPlan {
 
     If you are not sure of the answer (you're not sure how to write the code), you can tell the user to join the Discord server and ask the question there (we respond very fast)
 
-
     {{ ctx.output_format }}
-    
+
+    {% for message in query.prev_messages %}
+    {{ _.role(message.role) }}
+    {{ message.text }}
+    {% endfor %}
+
     {{ _.role("user") }}
     {{ query.text }}
   "#
@@ -192,6 +202,8 @@ test query_plan {
     query {
       text #"how to call openai"#
       language_preference #"Python"#
+      context_docs []
+      prev_messages []
     }
   }
 }
@@ -219,6 +231,8 @@ test query_plan1 {
                 for _, row in df.iterrows()
       "#
       language_preference #"Python"#
+      context_docs []
+      prev_messages []
     }
   }
 }
@@ -425,6 +439,7 @@ test query_plan2 {
             }
 
       ]
+      prev_messages []
     }
   }
 }
@@ -622,6 +637,7 @@ test query_plan3 {
             }
 
       ]
+      prev_messages []
     }
   }
 }
