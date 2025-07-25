@@ -22,6 +22,7 @@ export const QueryResponseSchema = z.object({
     }),
   ),
   answer: z.string().optional().or(z.null()),
+  suggestions: z.array(z.string()).optional(),
 });
 export type QueryResponse = z.infer<typeof QueryResponseSchema>;
 // ThenChange fern/sage/src/ChatBot.tsx

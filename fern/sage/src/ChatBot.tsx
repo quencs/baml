@@ -32,6 +32,7 @@ const QueryResponseSchema = z.object({
     }),
   ),
   answer: z.string().optional().or(z.null()),
+  suggestions: z.array(z.string()).optional(),
 });
 type QueryResponse = z.infer<typeof QueryResponseSchema>;
 // ThenChange baml/sage-backend/app/types.ts
@@ -155,23 +156,34 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         })),
       });
 
-      const botMessage: Message = {
-        id: retryMessageId || (Date.now() + 1).toString(),
-        text: data.answer || "Sorry, I couldn't process your request.",
-        isUser: false,
-        timestamp: new Date(),
-        ranked_docs: data.ranked_docs,
-      };
+      // Only create a bot message if there's an actual answer
+      if (data.answer) {
+        const botMessage: Message = {
+          id: retryMessageId || (Date.now() + 1).toString(),
+          text: data.answer,
+          isUser: false,
+          timestamp: new Date(),
+          ranked_docs: data.ranked_docs,
+        };
 
-      if (retryMessageId) {
-        // Update the existing message
-        setMessages(
-          messagesWithUser.map((msg) =>
-            msg.id === retryMessageId ? botMessage : msg,
-          ),
-        );
+        if (retryMessageId) {
+          // Update the existing message
+          setMessages(
+            messagesWithUser.map((msg) =>
+              msg.id === retryMessageId ? botMessage : msg,
+            ),
+          );
+        } else {
+          setMessages([...messagesWithUser, botMessage]);
+        }
       } else {
-        setMessages([...messagesWithUser, botMessage]);
+        // If no answer, just remove the loading state without adding a message
+        if (retryMessageId) {
+          // Remove the loading message if it was a retry
+          setMessages(
+            messagesWithUser.filter((msg) => msg.id !== retryMessageId),
+          );
+        }
       }
 
       // Auto-navigate to first ranked doc if available

@@ -47,7 +47,7 @@ class QueryActionPlan {
   refine_query RefineQuery?
   @description("Query is impossibly vague, user needs to be more specific about what they're asking about")
 
-  answer string? @description("The answer to the user's query.")
+  answer string? @description("The answer to the user's query. If the user's query is too vague, tell them to try one of the suggested queries.")
 }
 
 class RelevantDoc {
