@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
-import { messagesAtom, type Message } from './store';
+import React, { useRef, useEffect, useState } from 'react';
+import { type Message, messagesAtom } from './store';
 
 interface ChatBotProps {
   apiEndpoint?: string;
@@ -17,6 +17,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
   const [messages, setMessages] = useAtom(messagesAtom);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingQuery, setPendingQuery] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -26,6 +27,48 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Check for stored AI query on mount and when opening, and periodically when open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const checkForNewQuery = () => {
+      try {
+        const storedContext = localStorage.getItem('baml-ai-context');
+        if (storedContext) {
+          const context = JSON.parse(storedContext);
+          const now = Date.now();
+
+          // Check if the context is recent (within 10 seconds)
+          if (context.query && now - context.timestamp < 10000) {
+            // Set the pending query to be sent
+            setPendingQuery(context.query);
+
+            // Clear the stored context after using it
+            localStorage.removeItem('baml-ai-context');
+          }
+        }
+      } catch (error) {
+        console.error('Error processing stored AI context:', error);
+        localStorage.removeItem('baml-ai-context');
+      }
+    };
+
+    // Check immediately when opening
+    checkForNewQuery();
+
+    // Set up interval to check for new queries while panel is open
+    const interval = setInterval(checkForNewQuery, 100);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isOpen]);
+
+  // Clear chat functionality
+  const clearChat = () => {
+    setMessages([]);
+  };
 
   const sendMessage = async (text: string, retryMessageId?: string) => {
     if (!text.trim()) return;
@@ -68,7 +111,19 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError);
+        throw new Error('Invalid JSON response from server');
+      }
+
+      // Validate that we have the expected response structure
+      if (!data || typeof data.answer !== 'string') {
+        console.error('Invalid response structure:', data);
+        throw new Error('Invalid response structure from AI service');
+      }
 
       const botMessage: Message = {
         id: retryMessageId || (Date.now() + 1).toString(),
@@ -102,9 +157,32 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+
+      // Determine more specific error message
+      let errorText = 'Sorry, there was an error processing your request.';
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorText =
+          'Unable to connect to the AI service. Please check your connection and try again.';
+      } else if (error instanceof Error) {
+        if (error.message.includes('HTTP error! status: 429')) {
+          errorText = 'Too many requests. Please wait a moment and try again.';
+        } else if (error.message.includes('HTTP error! status: 500')) {
+          errorText =
+            'Server error occurred. The AI service may be temporarily unavailable.';
+        } else if (error.message.includes('HTTP error! status: 404')) {
+          errorText =
+            'AI service endpoint not found. Please check the configuration.';
+        } else if (error.message.includes('HTTP error!')) {
+          errorText = `Service error: ${error.message}. Please try again.`;
+        } else if (error.message.includes('JSON')) {
+          errorText =
+            'Received invalid response from AI service. Please try again.';
+        }
+      }
+
       const errorMessage: Message = {
         id: retryMessageId || (Date.now() + 1).toString(),
-        text: 'Sorry, there was an error processing your request.',
+        text: errorText,
         isUser: false,
         timestamp: new Date(),
         error: true,
@@ -125,6 +203,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
       setIsLoading(false);
     }
   };
+
+  // Handle pending query from Ask AI functionality
+  useEffect(() => {
+    if (pendingQuery && !isLoading) {
+      sendMessage(pendingQuery);
+      setPendingQuery(null);
+    }
+  }, [pendingQuery, isLoading]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,8 +235,6 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
       onClose();
     }
   };
-
-  // Always render the panel for smooth animations
 
   // Calculate panel position below header
   const [panelTop, setPanelTop] = React.useState(0);
@@ -182,10 +266,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         position: 'fixed',
         top: `${panelTop}px`,
         right: '0',
-        width: '380px',
+        width: '400px',
         height: panelHeight,
-        backgroundColor: 'var(--background)',
-        borderLeft: '1px solid var(--border)',
+        backgroundColor: '#ffffff',
+        borderLeft: '1px solid #e5e7eb',
         transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
         display: 'flex',
@@ -196,86 +280,120 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Background gradient overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background:
-            'linear-gradient(180deg, rgba(96, 37, 209, 0.15) 0%, rgba(96, 37, 209, 0.05) 20%, rgba(0, 0, 0, 0) 40%)',
-          pointerEvents: 'none',
-          zIndex: -1,
-        }}
-        className="chatbot-gradient"
-      />
-      {/* Pattern overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: 0.05,
-          backgroundSize: '60px 60px',
-          maskImage: 'linear-gradient(to bottom, black 0%, transparent 40%)',
-          WebkitMaskImage:
-            'linear-gradient(to bottom, black 0%, transparent 40%)',
-          pointerEvents: 'none',
-          zIndex: -1,
-        }}
-        className="chatbot-pattern"
-      />
       {/* Header */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          height: '56px',
-          padding: '0 20px',
-          fontSize: '15px',
-          fontWeight: '600',
-          backgroundColor: 'var(--tag-primary)',
-          color: 'var(--accent-primary)',
-          borderBottom: '1px solid var(--border)',
+          height: '64px',
+          padding: '0 24px',
+          fontSize: '16px',
+          fontWeight: '700',
+          backgroundColor: '#ffffff',
+          color: '#111827',
+          borderBottom: '1px solid #e5e7eb',
           position: 'relative',
           zIndex: 1,
         }}
       >
-        <span>BAML AI</span>
-        <button
-          type="button"
-          onClick={handleClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '26px',
-            color: 'var(--text)',
-            cursor: 'pointer',
-            opacity: 0.7,
-            padding: '0',
-            lineHeight: 1,
-            transition: 'opacity 0.2s ease',
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.opacity = '1';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.opacity = '0.7';
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.opacity = '1';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.opacity = '0.75';
-          }}
-        >
-          ×
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* AI Icon */}
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '12px',
+              fontWeight: '600',
+            }}
+          >
+            AI
+          </div>
+          <span style={{ color: '#111827' }}>BAML Assistant</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Clear Chat Button */}
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={clearChat}
+              style={{
+                background: 'none',
+                border: '1px solid #e5e7eb',
+                fontSize: '12px',
+                color: '#6b7280',
+                cursor: 'pointer',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: '500',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#f9fafb';
+                e.currentTarget.style.borderColor = '#d1d5db';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.backgroundColor = '#f9fafb';
+                e.currentTarget.style.borderColor = '#d1d5db';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.color = '#6b7280';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.color = '#6b7280';
+              }}
+            >
+              Clear
+            </button>
+          )}
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={handleClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
+              color: '#6b7280',
+              cursor: 'pointer',
+              opacity: 0.7,
+              padding: '4px',
+              lineHeight: 1,
+              transition: 'all 0.2s ease',
+              borderRadius: '4px',
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.opacity = '0.7';
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.opacity = '0.7';
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -283,22 +401,41 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '18px',
+          padding: '24px',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: 'var(--background)',
+          backgroundColor: '#fafafa',
+          gap: '16px',
         }}
+        className="chat-scrollbar"
       >
         {messages.length === 0 && (
           <div
             style={{
               textAlign: 'center',
-              color: 'var(--faded)',
-              fontStyle: 'italic',
-              marginTop: '20px',
+              color: '#6b7280',
+              fontStyle: 'normal',
+              marginTop: '40px',
+              padding: '24px',
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
             }}
           >
-            👋 Hi! I'm here to help you with the documentation. Ask me anything!
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>👋</div>
+            <div
+              style={{
+                fontWeight: '600',
+                marginBottom: '4px',
+                color: '#111827',
+              }}
+            >
+              Welcome to BAML Assistant
+            </div>
+            <div style={{ fontSize: '14px', lineHeight: '1.5' }}>
+              I'm here to help you with the BAML documentation. Ask me anything
+              about functions, types, clients, or examples!
+            </div>
           </div>
         )}
 
@@ -307,91 +444,143 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
             key={message.id}
             style={{
               alignSelf: message.isUser ? 'flex-end' : 'flex-start',
-              maxWidth: '75%',
+              maxWidth: '85%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
             }}
           >
             <div
-              className={
-                message.isUser ? 'baml-bubble baml-me' : 'baml-bubble baml-ai'
-              }
               style={{
-                padding: '10px 14px',
-                borderRadius: '14px',
+                padding: '12px 16px',
+                borderRadius: message.isUser
+                  ? '16px 16px 4px 16px'
+                  : '16px 16px 16px 4px',
                 fontSize: '14px',
                 lineHeight: '1.5',
-                marginBottom:
-                  message.ranked_docs && message.ranked_docs.length > 0
-                    ? '8px'
-                    : '6px',
-                boxShadow: '0 2px 6px rgba(0,0,0,.06)',
                 backgroundColor: message.isUser
-                  ? 'var(--accent-primary)'
+                  ? '#667eea'
                   : message.error
                     ? '#fef2f2'
-                    : 'var(--card-background)',
+                    : '#ffffff',
                 color: message.isUser
-                  ? '#fff'
+                  ? '#ffffff'
                   : message.error
                     ? '#dc2626'
-                    : 'var(--text)',
+                    : '#111827',
                 wordWrap: 'break-word',
-                borderLeft: message.error ? '3px solid #dc2626' : undefined,
-                border: message.isUser ? 'none' : '1px solid var(--border)',
+                border: message.isUser ? 'none' : '1px solid #e5e7eb',
+                boxShadow: message.isUser
+                  ? '0 4px 12px rgba(102, 126, 234, 0.3)'
+                  : '0 2px 8px rgba(0, 0, 0, 0.08)',
               }}
             >
               {message.text}
               {message.error && (
-                <button
-                  onClick={() => handleRetry(message)}
-                  style={{
-                    marginLeft: '8px',
-                    padding: '4px 8px',
-                    fontSize: '12px',
-                    backgroundColor: '#dc2626',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '500',
-                    transition: 'background-color 0.2s ease',
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = '#b91c1c';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = '#dc2626';
-                  }}
-                >
-                  Retry
-                </button>
+                <div style={{ marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleRetry(message)}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      backgroundColor: '#6366f1',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5d68e4';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5d68e4';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = '#6366f1';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.backgroundColor = '#6366f1';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-label="Retry"
+                    >
+                      <title>Retry Icon</title>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Try Again
+                  </button>
+                </div>
               )}
             </div>
+
+            {/* Related docs */}
             {message.ranked_docs && message.ranked_docs.length > 0 && (
               <div
                 style={{
                   fontSize: '12px',
-                  color: 'var(--faded)',
-                  marginBottom: '6px',
+                  color: '#6b7280',
+                  padding: '12px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
                 }}
               >
-                <div style={{ fontWeight: '600', marginBottom: '4px' }}>
-                  Related docs:
+                <div
+                  style={{
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#374151',
+                  }}
+                >
+                  📖 Related documentation:
                 </div>
-                {message.ranked_docs.map((doc, index) => (
-                  <div key={index} style={{ marginBottom: '2px' }}>
+                {message.ranked_docs.map((doc) => (
+                  <div key={doc.url} style={{ marginBottom: '4px' }}>
                     <a
                       href={doc.url}
                       style={{
-                        color: 'var(--accent-primary)',
+                        color: '#667eea',
                         textDecoration: 'none',
                         fontSize: '12px',
-                        transition: 'text-decoration 0.2s ease',
+                        transition: 'all 0.2s ease',
+                        fontWeight: '500',
                       }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.textDecoration = 'underline';
+                        e.currentTarget.style.color = '#5a67d8';
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.textDecoration = 'underline';
+                        e.currentTarget.style.color = '#5a67d8';
                       }}
                       onMouseOut={(e) => {
                         e.currentTarget.style.textDecoration = 'none';
+                        e.currentTarget.style.color = '#667eea';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.textDecoration = 'none';
+                        e.currentTarget.style.color = '#667eea';
                       }}
                     >
                       {doc.title}
@@ -405,23 +594,50 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
 
         {isLoading && (
           <div
-            className="baml-bubble baml-ai"
             style={{
-              maxWidth: '75%',
-              padding: '10px 14px',
-              borderRadius: '14px',
+              maxWidth: '85%',
+              padding: '12px 16px',
+              borderRadius: '16px 16px 16px 4px',
               fontSize: '14px',
               lineHeight: '1.5',
-              marginBottom: '6px',
-              boxShadow: '0 2px 6px rgba(0,0,0,.06)',
               alignSelf: 'flex-start',
-              backgroundColor: 'var(--card-background)',
-              color: 'var(--text)',
-              border: '1px solid var(--border)',
-              animation: 'pulse 1.5s ease-in-out infinite',
+              backgroundColor: '#ffffff',
+              color: '#6b7280',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
             }}
           >
-            …thinking
+            <div
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: '#667eea',
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }}
+            />
+            <div
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: '#667eea',
+                animation: 'pulse 1.5s ease-in-out infinite 0.2s',
+              }}
+            />
+            <div
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: '#667eea',
+                animation: 'pulse 1.5s ease-in-out infinite 0.4s',
+              }}
+            />
+            <span>Thinking...</span>
           </div>
         )}
 
@@ -433,38 +649,83 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         onSubmit={handleSubmit}
         style={{
           display: 'flex',
-          borderTop: '1px solid var(--border)',
-          backgroundColor: 'var(--background)',
+          padding: '16px 24px',
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: '#ffffff',
+          gap: '12px',
+          alignItems: 'flex-end',
         }}
       >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a question…"
-          disabled={isLoading}
-          style={{
-            flex: 1,
-            padding: '14px',
-            border: 'none',
-            fontSize: '14px',
-            outline: 'none',
-            fontFamily: 'inherit',
-            backgroundColor: 'var(--background)',
-            color: 'var(--text)',
-          }}
-        />
+        <div style={{ flex: 1, position: 'relative' }}>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(input);
+              }
+            }}
+            placeholder="Ask me anything about BAML..."
+            disabled={isLoading}
+            rows={1}
+            style={{
+              width: '100%',
+              minHeight: '44px',
+              maxHeight: '120px',
+              padding: '12px 16px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '12px',
+              fontSize: '14px',
+              outline: 'none',
+              fontFamily: 'inherit',
+              backgroundColor: '#ffffff',
+              color: '#111827',
+              resize: 'none',
+              transition: 'border-color 0.2s ease',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#667eea';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = '#e5e7eb';
+            }}
+          />
+        </div>
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
           style={{
             border: 'none',
-            padding: '0 20px',
-            background: 'var(--accent-primary)',
-            color: '#fff',
+            padding: '12px 20px',
+            background: input.trim() ? '#667eea' : '#e5e7eb',
+            color: input.trim() ? '#ffffff' : '#9ca3af',
             fontWeight: '600',
             cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
-            opacity: isLoading || !input.trim() ? 0.6 : 1,
-            transition: 'opacity 0.2s ease',
+            borderRadius: '12px',
+            fontSize: '14px',
+            transition: 'all 0.2s ease',
+            minWidth: '64px',
+          }}
+          onMouseOver={(e) => {
+            if (input.trim() && !isLoading) {
+              e.currentTarget.style.backgroundColor = '#5a67d8';
+            }
+          }}
+          onFocus={(e) => {
+            if (input.trim() && !isLoading) {
+              e.currentTarget.style.backgroundColor = '#5a67d8';
+            }
+          }}
+          onMouseOut={(e) => {
+            if (input.trim() && !isLoading) {
+              e.currentTarget.style.backgroundColor = '#667eea';
+            }
+          }}
+          onBlur={(e) => {
+            if (input.trim() && !isLoading) {
+              e.currentTarget.style.backgroundColor = '#667eea';
+            }
           }}
         >
           Send
@@ -474,18 +735,23 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
       <style>
         {`
           @keyframes pulse {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; }
+            0%, 100% { opacity: 0.4; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1); }
           }
           
-          /* Dark mode support for chatbot background */
-          .dark .chatbot-gradient {
-            background: linear-gradient(
-              180deg,
-              rgba(183, 148, 255, 0.15) 0%,
-              rgba(183, 148, 255, 0.05) 20%,
-              rgba(0, 0, 0, 0) 40%
-            ) !important;
+          /* Improved scrollbar styling for chat */
+          .chat-scrollbar::-webkit-scrollbar {
+            width: 6px;
+          }
+          .chat-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .chat-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+          }
+          .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
           }
         `}
       </style>

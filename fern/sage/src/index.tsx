@@ -204,6 +204,9 @@ const ChatbotManager = {
 
     // Trigger resize after DOM changes
     setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
+
+    // Update search interface to reflect AI state
+    updateSearchInterface();
   },
 
   toggle() {
@@ -277,6 +280,41 @@ const ChatbotManager = {
   },
 };
 
+// Search interface root reference
+let searchInterfaceRoot: any = null;
+
+// Function to update search interface with current AI state
+function updateSearchInterface() {
+  if (searchInterfaceRoot) {
+    try {
+      const handleAskAI = (query: string) => {
+        ChatbotManager.openWithQuery(query);
+      };
+
+      const handleToggleAI = () => {
+        ChatbotManager.initialize();
+        ChatbotManager.toggle();
+      };
+
+      searchInterfaceRoot.render(
+        <ErrorBoundary
+          fallback={<div className="baml-error">Search failed to load</div>}
+        >
+          <Provider>
+            <AlgoliaSearch
+              onAskAI={handleAskAI}
+              onToggleAI={handleToggleAI}
+              isAIOpen={isOpen}
+            />
+          </Provider>
+        </ErrorBoundary>,
+      );
+    } catch (error) {
+      console.error('Failed to update search interface:', error);
+    }
+  }
+}
+
 // Search interface integration with Algolia
 function initializeSearchInterface() {
   let initialized = false;
@@ -310,10 +348,9 @@ function initializeSearchInterface() {
       }
 
       // Render Algolia search component with error boundary
-      const algoliaRoot = createRoot(algoliaContainer);
+      searchInterfaceRoot = createRoot(algoliaContainer);
 
       const handleAskAI = (query: string) => {
-        console.log('Ask AI clicked with query:', query);
         ChatbotManager.openWithQuery(query);
       };
 
@@ -322,12 +359,16 @@ function initializeSearchInterface() {
         ChatbotManager.toggle();
       };
 
-      algoliaRoot.render(
+      searchInterfaceRoot.render(
         <ErrorBoundary
           fallback={<div className="baml-error">Search failed to load</div>}
         >
           <Provider>
-            <AlgoliaSearch onAskAI={handleAskAI} onToggleAI={handleToggleAI} />
+            <AlgoliaSearch
+              onAskAI={handleAskAI}
+              onToggleAI={handleToggleAI}
+              isAIOpen={isOpen}
+            />
           </Provider>
         </ErrorBoundary>,
       );

@@ -23,53 +23,123 @@ const createSearchFilters = () => {
   return 'domain:docs.boundaryml.com AND NOT type:navigation';
 };
 
-// Document type icon component using Fern's FontAwesome icons
+// Modern document type icon component using SVG icons
 function DocumentIcon({ type }: { type: string }) {
   const iconStyle = {
-    width: '16px',
-    height: '16px',
+    width: '18px',
+    height: '18px',
     flexShrink: 0,
-    color: '#6b7280',
+    color: '#6366f1',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   };
 
-  const getIconClass = () => {
+  const getIcon = () => {
     switch (type) {
       case 'guide':
-        return 'fa-solid fa-book';
+        return (
+          <svg fill="currentColor" viewBox="0 0 24 24" aria-label="Guide">
+            <title>Guide Document</title>
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+          </svg>
+        );
       case 'reference':
-        return 'fa-solid fa-code';
+        return (
+          <svg fill="currentColor" viewBox="0 0 24 24" aria-label="Reference">
+            <title>Reference Document</title>
+            <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z" />
+          </svg>
+        );
       case 'example':
-        return 'fa-solid fa-grid-2';
+        return (
+          <svg fill="currentColor" viewBox="0 0 24 24" aria-label="Example">
+            <title>Example Document</title>
+            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+          </svg>
+        );
       default:
-        return 'fa-regular fa-file-lines';
+        return (
+          <svg fill="currentColor" viewBox="0 0 24 24" aria-label="Document">
+            <title>Document</title>
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+          </svg>
+        );
     }
   };
 
+  return <div style={iconStyle}>{getIcon()}</div>;
+}
+
+// Hover tooltip component for full descriptions
+function HoverTooltip({
+  children,
+  content,
+  isVisible,
+}: {
+  children: React.ReactNode;
+  content: string;
+  isVisible: boolean;
+}) {
+  if (!isVisible || !content) return <>{children}</>;
+
   return (
-    <i
-      className={getIconClass()}
-      style={iconStyle}
-      aria-label={`${type} document`}
-      title={`${type} document`}
-    />
+    <div style={{ position: 'relative' }}>
+      {children}
+      <div
+        style={{
+          position: 'absolute',
+          top: '0',
+          left: '100%',
+          marginLeft: '12px',
+          width: '300px',
+          padding: '12px',
+          backgroundColor: '#111827',
+          color: '#ffffff',
+          borderRadius: '8px',
+          fontSize: '13px',
+          lineHeight: '1.4',
+          zIndex: 1001,
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+          pointerEvents: 'none',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '-6px',
+            width: '0',
+            height: '0',
+            borderTop: '6px solid transparent',
+            borderBottom: '6px solid transparent',
+            borderRight: '6px solid #111827',
+          }}
+        />
+        <span
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: processHighlights(content),
+          }}
+        />
+      </div>
+    </div>
   );
 }
+
+// Function to process highlights for search results
+const processHighlights = (text: string) => {
+  return text
+    .replace(
+      /__ais-highlight__/g,
+      '<mark style="background: #fef3c7; color: #92400e; font-weight: 600; padding: 0 2px; border-radius: 2px;">',
+    )
+    .replace(/__\/ais-highlight__/g, '</mark>');
+};
 
 // Custom Hit component to display search results with icons and descriptions
 function Hit({ hit }: { hit: any }) {
   const [isHovered, setIsHovered] = useState(false);
-
-  const processHighlights = (text: string) => {
-    return text
-      .replace(
-        /__ais-highlight__/g,
-        '<mark style="background: #fff7a8; color: #ec4899; font-weight: 700; padding: 0 2px; border-radius: 2px;">',
-      )
-      .replace(/__\/ais-highlight__/g, '</mark>');
-  };
 
   const highlightedTitle =
     hit._highlightResult?.title?.value || hit.title || 'Untitled';
@@ -98,116 +168,127 @@ function Hit({ hit }: { hit: any }) {
   };
 
   const processedDescription = highlightedDescription.replace(/<[^>]*>/g, ''); // Remove HTML tags for length calculation
-  const shouldTruncate = processedDescription.length > 120;
+  const shouldTruncate = processedDescription.length > 100;
   const displayDescription =
     shouldTruncate && !isHovered
-      ? truncateText(processedDescription, 120)
+      ? truncateText(processedDescription, 100)
       : highlightedDescription;
 
   return (
-    <a
-      href={hit.pathname || hit.canonicalPathname || '#'}
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '12px',
-        padding: '12px 16px',
-        textDecoration: 'none',
-        color: '#374151',
-        borderBottom: '1px solid #f3f4f6',
-        transition: 'background 0.15s ease',
-        cursor: 'pointer',
-        background: isHovered ? '#f9fafb' : 'transparent',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      title={shouldTruncate ? processedDescription : undefined}
+    <HoverTooltip
+      content={shouldTruncate ? highlightedDescription : ''}
+      isVisible={isHovered && shouldTruncate}
     >
-      {/* Document Icon */}
-      <div style={{ paddingTop: '2px' }}>
-        <DocumentIcon type={documentType} />
-      </div>
-
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontWeight: 600,
-            fontSize: '14px',
-            marginBottom: '4px',
-            color: '#111827',
-            lineHeight: '1.3',
-          }}
-        >
-          <span
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{
-              __html: processHighlights(highlightedTitle),
-            }}
-          />
+      <a
+        href={hit.pathname || hit.canonicalPathname || '#'}
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '14px',
+          padding: '14px 18px',
+          textDecoration: 'none',
+          color: '#374151',
+          borderBottom: '1px solid #f3f4f6',
+          transition: 'all 0.15s ease',
+          cursor: 'pointer',
+          background: isHovered ? '#f8fafc' : 'transparent',
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Document Icon */}
+        <div style={{ paddingTop: '2px' }}>
+          <DocumentIcon type={documentType} />
         </div>
 
-        {highlightedDescription && (
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: '13px',
-              color: '#6b7280',
-              lineHeight: '1.4',
-              wordBreak: 'break-word',
+              fontWeight: 600,
+              fontSize: '15px',
+              marginBottom: '6px',
+              color: '#111827',
+              lineHeight: '1.3',
             }}
           >
             <span
               // eslint-disable-next-line react/no-danger
               dangerouslySetInnerHTML={{
-                __html: processHighlights(displayDescription),
+                __html: processHighlights(highlightedTitle),
               }}
             />
-            {shouldTruncate && !isHovered && (
-              <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
-                {' '}
-                (hover for full description)
-              </span>
-            )}
           </div>
-        )}
 
-        {hit.breadcrumb && hit.breadcrumb.length > 0 && (
-          <div
-            style={{
-              fontSize: '11px',
-              color: '#9ca3af',
-              marginTop: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <svg
-              width="12"
-              height="12"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              aria-label="Breadcrumb"
+          {highlightedDescription && (
+            <div
+              style={{
+                fontSize: '13px',
+                color: '#6b7280',
+                lineHeight: '1.5',
+                wordBreak: 'break-word',
+                marginBottom: shouldTruncate ? '4px' : '0',
+              }}
             >
-              <title>Breadcrumb</title>
-              <path
-                fillRule="evenodd"
-                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                clipRule="evenodd"
+              <span
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{
+                  __html: processHighlights(displayDescription),
+                }}
               />
-            </svg>
-            <span>
-              {hit.breadcrumb.map((crumb: any, index: number) => (
-                <span key={crumb.title}>
-                  {index > 0 && ' › '}
-                  {crumb.title}
-                </span>
-              ))}
-            </span>
-          </div>
-        )}
-      </div>
-    </a>
+            </div>
+          )}
+
+          {shouldTruncate && (
+            <div
+              style={{
+                fontSize: '11px',
+                color: '#9ca3af',
+                fontStyle: 'italic',
+              }}
+            >
+              Hover to see full description
+            </div>
+          )}
+
+          {hit.breadcrumb && hit.breadcrumb.length > 0 && (
+            <div
+              style={{
+                fontSize: '11px',
+                color: '#9ca3af',
+                marginTop: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                aria-label="Breadcrumb"
+              >
+                <title>Breadcrumb Navigator</title>
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>
+                {hit.breadcrumb.map((crumb: any, index: number) => (
+                  <span key={crumb.title}>
+                    {index > 0 && ' › '}
+                    {crumb.title}
+                  </span>
+                ))}
+              </span>
+            </div>
+          )}
+        </div>
+      </a>
+    </HoverTooltip>
   );
 }
 
@@ -222,11 +303,34 @@ function SearchIcon() {
       viewBox="0 0 24 24"
       aria-label="Search"
     >
+      <title>Search</title>
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={2}
         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+  );
+}
+
+// Close X Icon Component
+function CloseIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-label="Close"
+    >
+      <title>Close</title>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M6 18L18 6M6 6l12 12"
       />
     </svg>
   );
@@ -262,6 +366,7 @@ function AIIcon() {
       viewBox="0 0 24 24"
       aria-label="AI"
     >
+      <title>AI Assistant</title>
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -304,7 +409,7 @@ function AskWithAIOption({
       style={{
         display: 'block',
         width: '100%',
-        padding: '12px 16px',
+        padding: '14px 18px',
         textDecoration: 'none',
         color: '#374151',
         borderBottom: '1px solid #f3f4f6',
@@ -312,14 +417,14 @@ function AskWithAIOption({
         textAlign: 'left',
         transition: 'background 0.15s ease',
         cursor: 'pointer',
-        background: isSelected ? '#f3f4f6' : 'transparent',
+        background: isSelected ? '#f8fafc' : 'transparent',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = '#f3f4f6';
+        e.currentTarget.style.background = '#f8fafc';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = isSelected
-          ? '#f3f4f6'
+          ? '#f8fafc'
           : 'transparent';
       }}
     >
@@ -327,24 +432,24 @@ function AskWithAIOption({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          gap: '10px',
           fontWeight: 600,
-          fontSize: '14px',
-          color: '#7c3aed',
+          fontSize: '15px',
+          color: '#6366f1',
+          marginBottom: '4px',
         }}
       >
         <AIIcon />
-        Ask with AI about "{query}"
+        Ask AI about "{query}"
       </div>
       <div
         style={{
           fontSize: '13px',
           color: '#6b7280',
           lineHeight: '1.4',
-          marginTop: '4px',
         }}
       >
-        Get AI-powered insights about your search query
+        Get AI-powered insights and explanations for your search query
       </div>
     </button>
   );
@@ -354,9 +459,11 @@ function AskWithAIOption({
 function CustomSearchBox({
   onAskAI,
   onToggleAI,
+  isAIOpen,
 }: {
   onAskAI: (query: string) => void;
   onToggleAI?: () => void;
+  isAIOpen?: boolean;
 }) {
   const { query, refine } = useSearchBox();
   const { hits } = useHits();
@@ -474,17 +581,17 @@ function CustomSearchBox({
           display: 'flex',
           alignItems: 'center',
           background: '#ffffff',
-          border: `1.5px solid ${isFocused ? '#7c3aed' : '#e5e7eb'}`,
-          borderRadius: '10px',
+          border: `1.5px solid ${isFocused ? '#6366f1' : '#e5e7eb'}`,
+          borderRadius: '12px',
           transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-          boxShadow: isFocused ? '0 0 0 3px rgba(124, 58, 237, 0.1)' : 'none',
+          boxShadow: isFocused ? '0 0 0 3px rgba(99, 102, 241, 0.1)' : 'none',
         }}
       >
         {/* Search Icon */}
         <div
           style={{
             position: 'absolute',
-            left: '12px',
+            left: '14px',
             color: '#9ca3af',
             display: 'flex',
             alignItems: 'center',
@@ -505,7 +612,7 @@ function CustomSearchBox({
           placeholder="Search BAML docs…"
           style={{
             flex: 1,
-            padding: '12px 160px 12px 40px',
+            padding: '14px 180px 14px 44px',
             border: 'none',
             outline: 'none',
             background: 'transparent',
@@ -519,7 +626,7 @@ function CustomSearchBox({
         <div
           style={{
             position: 'absolute',
-            right: '8px',
+            right: '10px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -531,53 +638,72 @@ function CustomSearchBox({
               type="button"
               onClick={handleClear}
               style={{
-                padding: '4px',
+                padding: '6px',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
                 color: '#9ca3af',
-                borderRadius: '4px',
+                borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
                 fontSize: '14px',
+                transition: 'all 0.2s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = '#6b7280';
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = '#9ca3af';
+                e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
               ✕
             </button>
           )}
 
-          {/* Ask AI button */}
+          {/* Ask AI / Close button */}
           <button
             type="button"
             onClick={handleToggleAI}
             style={{
-              padding: '6px 10px',
-              background: '#7c3aed',
+              padding: '8px 12px',
+              background: isAIOpen ? '#6b7280' : '#6366f1',
               border: 'none',
-              borderRadius: '6px',
+              borderRadius: '8px',
               color: 'white',
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'background 0.2s ease',
+              transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '6px',
+              minWidth: '90px',
+              justifyContent: 'center',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#6d28d9';
+              e.currentTarget.style.background = isAIOpen
+                ? '#4b5563'
+                : '#5d68e4';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#7c3aed';
+              e.currentTarget.style.background = isAIOpen
+                ? '#6b7280'
+                : '#6366f1';
             }}
           >
-            Ask AI
+            {isAIOpen ? (
+              <>
+                <CloseIcon />
+                Close AI
+              </>
+            ) : (
+              <>
+                <AIIcon />
+                Ask AI
+              </>
+            )}
           </button>
 
           {/* Slash shortcut indicator */}
@@ -610,18 +736,11 @@ function CustomHits({
 }) {
   const { hits } = useHits();
   const { query: searchQuery } = useSearchBox();
-  const [showResults, setShowResults] = useState(false);
 
   const actualQuery = query || searchQuery;
 
-  // Show results when there's a query and focus, or when there are hits
-  useEffect(() => {
-    setShowResults(
-      (actualQuery.trim().length > 0 && isFocused) || hits.length > 0,
-    );
-  }, [actualQuery, hits, isFocused]);
-
-  if (!showResults || !isFocused) {
+  // Only show results when there's a query and focus, and the query is not empty
+  if (!isFocused || !actualQuery.trim()) {
     return null;
   }
 
@@ -632,14 +751,14 @@ function CustomHits({
         top: '100%',
         left: 0,
         right: 0,
-        marginTop: '4px',
+        marginTop: '8px',
         background: '#ffffff',
         border: '1px solid #e5e7eb',
-        borderRadius: '10px',
+        borderRadius: '12px',
         boxShadow:
           '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)',
         zIndex: 1000,
-        maxHeight: '400px',
+        maxHeight: '480px',
         overflowY: 'auto',
         overflowX: 'hidden',
       }}
@@ -662,7 +781,7 @@ function CustomHits({
           <div
             key={hit.objectID}
             style={{
-              backgroundColor: isSelected ? '#f3f4f6' : 'transparent',
+              backgroundColor: isSelected ? '#f8fafc' : 'transparent',
             }}
           >
             <Hit hit={hit} />
@@ -674,48 +793,34 @@ function CustomHits({
       {hits.length === 0 && actualQuery.trim() && (
         <div
           style={{
-            padding: '16px',
+            padding: '20px',
             textAlign: 'center',
             color: '#6b7280',
             fontSize: '14px',
           }}
         >
-          No results found for "{actualQuery}"
+          <div style={{ marginBottom: '8px' }}>
+            No results found for "{actualQuery}"
+          </div>
           {onAskAI && (
-            <div style={{ marginTop: '8px' }}>
-              <button
-                type="button"
-                onClick={onAskAI}
-                style={{
-                  color: '#7c3aed',
-                  background: 'none',
-                  border: 'none',
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                }}
-              >
-                Ask AI about this instead
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onAskAI}
+              style={{
+                color: '#6366f1',
+                background: 'none',
+                border: 'none',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+              }}
+            >
+              Ask AI about this instead
+            </button>
           )}
         </div>
       )}
-
-      {/* Footer */}
-      <div
-        style={{
-          padding: '8px 16px',
-          borderTop: '1px solid #f3f4f6',
-          background: '#f9fafb',
-          fontSize: '11px',
-          color: '#6b7280',
-          textAlign: 'center',
-        }}
-      >
-        Search powered by Algolia • Use ↑↓ to navigate, Enter to select, Esc to
-        close
-      </div>
     </div>
   );
 }
@@ -723,9 +828,11 @@ function CustomHits({
 export default function AlgoliaSearch({
   onAskAI,
   onToggleAI,
+  isAIOpen,
 }: {
   onAskAI?: (query: string) => void;
   onToggleAI?: () => void;
+  isAIOpen?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -752,17 +859,25 @@ export default function AlgoliaSearch({
       >
         <Configure
           filters={createSearchFilters()}
-          hitsPerPage={8}
+          hitsPerPage={6}
           attributesToHighlight={['title', 'description', 'content']}
-          attributesToSnippet={['description:50', 'content:50']}
+          attributesToSnippet={['description:80', 'content:60']}
           highlightPreTag="__ais-highlight__"
           highlightPostTag="__/ais-highlight__"
           distinct={true}
           analytics={true}
-          analyticsTags={['desktop', 'docs.boundaryml.com', 'search-v2-dialog']}
+          analyticsTags={[
+            'desktop',
+            'docs.boundaryml.com',
+            'search-v3-enhanced',
+          ]}
         />
 
-        <CustomSearchBox onAskAI={handleAskAI} onToggleAI={handleToggleAI} />
+        <CustomSearchBox
+          onAskAI={handleAskAI}
+          onToggleAI={handleToggleAI}
+          isAIOpen={isAIOpen}
+        />
       </InstantSearch>
     </div>
   );

@@ -1,9 +1,9 @@
 name: Preview Docs
 
 on:
-  pull_request:
+  # pull_request:
   push:
-    branches: [sage]
+    branches: [canary, sage]
 
 jobs:
   run:
