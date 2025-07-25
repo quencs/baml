@@ -24,6 +24,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
     scrollToBottom();
   }, [messages]);
 
+<<<<<<< HEAD
   // Check for AI context when the chatbot opens
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -88,18 +89,35 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
   };
 
   const sendMessage = async (text: string) => {
+||||||| parent of aae45cc07 (add more build steps)
+  const sendMessage = async (text: string) => {
+=======
+  const sendMessage = async (text: string, retryMessageId?: string) => {
+>>>>>>> aae45cc07 (add more build steps)
     if (!text.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: text.trim(),
-      isUser: true,
-      timestamp: new Date(),
-    };
-
-    const messagesWithUser = [...messages, userMessage];
-    setMessages(messagesWithUser);
-    setInput('');
+    let messagesWithUser: Message[];
+    
+    if (retryMessageId) {
+      // Find and update the existing error message
+      messagesWithUser = messages.map(msg => 
+        msg.id === retryMessageId 
+          ? { ...msg, error: false, text: '...thinking' }
+          : msg
+      );
+      setMessages(messagesWithUser);
+    } else {
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        text: text.trim(),
+        isUser: true,
+        timestamp: new Date(),
+      };
+      messagesWithUser = [...messages, userMessage];
+      setMessages(messagesWithUser);
+      setInput('');
+    }
+    
     setIsLoading(true);
 
     try {
@@ -119,14 +137,21 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
       const data = await response.json();
 
       const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: retryMessageId || (Date.now() + 1).toString(),
         text: data.answer || "Sorry, I couldn't process your request.",
         isUser: false,
         timestamp: new Date(),
         ranked_docs: data.ranked_docs,
       };
 
-      setMessages([...messagesWithUser, botMessage]);
+      if (retryMessageId) {
+        // Update the existing message
+        setMessages(messagesWithUser.map(msg => 
+          msg.id === retryMessageId ? botMessage : msg
+        ));
+      } else {
+        setMessages([...messagesWithUser, botMessage]);
+      }
 
       // Auto-navigate to first ranked doc if available
       if (data.ranked_docs && data.ranked_docs.length > 0) {
@@ -142,12 +167,22 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'Sorry, there was an error processing your request. Please try again.',
+        id: retryMessageId || (Date.now() + 1).toString(),
+        text: 'Sorry, there was an error processing your request.',
         isUser: false,
         timestamp: new Date(),
+        error: true,
+        originalQuery: text.trim(),
       };
-      setMessages([...messagesWithUser, errorMessage]);
+      
+      if (retryMessageId) {
+        // Update the existing message
+        setMessages(messagesWithUser.map(msg => 
+          msg.id === retryMessageId ? errorMessage : msg
+        ));
+      } else {
+        setMessages([...messagesWithUser, errorMessage]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -156,6 +191,12 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(input);
+  };
+
+  const handleRetry = (message: Message) => {
+    if (message.originalQuery) {
+      sendMessage(message.originalQuery, message.id);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -205,8 +246,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         right: '0',
         width: '380px',
         height: panelHeight,
-        backgroundColor: 'white',
-        borderLeft: '1px solid #e2e8f0',
+        backgroundColor: 'var(--background)',
+        borderLeft: '1px solid var(--border)',
         transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
         display: 'flex',
@@ -214,8 +255,40 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         zIndex: 2000,
         fontFamily:
           'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+        overflow: 'hidden',
       }}
     >
+      {/* Background gradient overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'linear-gradient(180deg, rgba(96, 37, 209, 0.15) 0%, rgba(96, 37, 209, 0.05) 20%, rgba(0, 0, 0, 0) 40%)',
+          pointerEvents: 'none',
+          zIndex: -1,
+        }}
+        className="chatbot-gradient"
+      />
+      {/* Pattern overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          opacity: 0.05,
+          backgroundSize: '60px 60px',
+          maskImage: 'linear-gradient(to bottom, black 0%, transparent 40%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 40%)',
+          pointerEvents: 'none',
+          zIndex: -1,
+        }}
+        className="chatbot-pattern"
+      />
       {/* Header */}
       <div
         style={{
@@ -226,8 +299,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           padding: '0 20px',
           fontSize: '15px',
           fontWeight: '600',
-          background: '#7c3aed',
-          color: '#fff',
+          backgroundColor: 'var(--tag-primary)',
+          color: 'var(--accent-primary)',
+          borderBottom: '1px solid var(--border)',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <span>BAML AI</span>
@@ -238,17 +314,18 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
             background: 'none',
             border: 'none',
             fontSize: '26px',
-            color: '#fff',
+            color: 'var(--text)',
             cursor: 'pointer',
-            opacity: 0.75,
+            opacity: 0.7,
             padding: '0',
             lineHeight: 1,
+            transition: 'opacity 0.2s ease',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.opacity = '1';
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.opacity = '0.75';
+            e.currentTarget.style.opacity = '0.7';
           }}
           onFocus={(e) => {
             e.currentTarget.style.opacity = '1';
@@ -269,13 +346,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           padding: '18px',
           display: 'flex',
           flexDirection: 'column',
+          backgroundColor: 'var(--background)',
         }}
       >
         {messages.length === 0 && (
           <div
             style={{
               textAlign: 'center',
-              color: '#666',
+              color: 'var(--faded)',
               fontStyle: 'italic',
               marginTop: '20px',
             }}
@@ -297,18 +375,45 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                 lineHeight: '1.5',
                 marginBottom: message.ranked_docs && message.ranked_docs.length > 0 ? '8px' : '6px',
                 boxShadow: '0 2px 6px rgba(0,0,0,.06)',
-                backgroundColor: message.isUser ? '#7c3aed' : '#f3f4f6',
-                color: message.isUser ? '#fff' : '#111827',
+                backgroundColor: message.isUser ? 'var(--accent-primary)' : message.error ? '#fef2f2' : 'var(--card-background)',
+                color: message.isUser ? '#fff' : message.error ? '#dc2626' : 'var(--text)',
                 wordWrap: 'break-word',
+                borderLeft: message.error ? '3px solid #dc2626' : undefined,
+                border: message.isUser ? 'none' : '1px solid var(--border)',
               }}
             >
               {message.text}
+              {message.error && (
+                <button
+                  onClick={() => handleRetry(message)}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '4px 8px',
+                    fontSize: '12px',
+                    backgroundColor: '#dc2626',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s ease',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = '#b91c1c';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = '#dc2626';
+                  }}
+                >
+                  Retry
+                </button>
+              )}
             </div>
             {message.ranked_docs && message.ranked_docs.length > 0 && (
               <div
                 style={{
                   fontSize: '12px',
-                  color: '#6b7280',
+                  color: 'var(--faded)',
                   marginBottom: '6px',
                 }}
               >
@@ -320,9 +425,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                     <a
                       href={doc.url}
                       style={{
-                        color: '#7c3aed',
+                        color: 'var(--accent-primary)',
                         textDecoration: 'none',
                         fontSize: '12px',
+                        transition: 'text-decoration 0.2s ease',
                       }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.textDecoration = 'underline';
@@ -352,8 +458,9 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
               marginBottom: '6px',
               boxShadow: '0 2px 6px rgba(0,0,0,.06)',
               alignSelf: 'flex-start',
-              backgroundColor: '#f3f4f6',
-              color: '#111827',
+              backgroundColor: 'var(--card-background)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
               animation: 'pulse 1.5s ease-in-out infinite',
             }}
           >
@@ -369,7 +476,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         onSubmit={handleSubmit}
         style={{
           display: 'flex',
-          borderTop: '1px solid #e5e7eb',
+          borderTop: '1px solid var(--border)',
+          backgroundColor: 'var(--background)',
         }}
       >
         <input
@@ -384,6 +492,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
             fontSize: '14px',
             outline: 'none',
             fontFamily: 'inherit',
+            backgroundColor: 'var(--background)',
+            color: 'var(--text)',
           }}
         />
         <button
@@ -392,11 +502,12 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           style={{
             border: 'none',
             padding: '0 20px',
-            background: '#7c3aed',
+            background: 'var(--accent-primary)',
             color: '#fff',
             fontWeight: '600',
             cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
             opacity: isLoading || !input.trim() ? 0.6 : 1,
+            transition: 'opacity 0.2s ease',
           }}
         >
           Send
@@ -408,6 +519,16 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           @keyframes pulse {
             0%, 100% { opacity: 0.7; }
             50% { opacity: 1; }
+          }
+          
+          /* Dark mode support for chatbot background */
+          .dark .chatbot-gradient {
+            background: linear-gradient(
+              180deg,
+              rgba(183, 148, 255, 0.15) 0%,
+              rgba(183, 148, 255, 0.05) 20%,
+              rgba(0, 0, 0, 0) 40%
+            ) !important;
           }
         `}
       </style>

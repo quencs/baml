@@ -16,7 +16,8 @@
     "next": "15.4.3",
     "openai": "4.87.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "vercel": "^44.5.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

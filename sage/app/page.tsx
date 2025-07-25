@@ -108,17 +108,7 @@ export default function Home() {
                         {doc.url}
                       </a>
                     </div>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        doc.relevance === 'high'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                          : doc.relevance === 'medium'
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                      }`}
-                    >
-                      {doc.relevance}
-                    </span>
+                    <span>{doc.relevance}</span>
                   </div>
                 ))}
               </div>

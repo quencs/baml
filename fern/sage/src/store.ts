@@ -9,6 +9,8 @@ export interface Message {
     title: string;
     url: string;
   }[];
+  error?: boolean;
+  originalQuery?: string;
 }
 
 // Session storage functions
