@@ -39,7 +39,6 @@ export namespace partial_types {
     export interface ContextDoc {
       title?: string | null
       body?: string | null
-      relevance_score?: number | null
     }
     export interface Message {
       role?: "user" | "assistant" | null

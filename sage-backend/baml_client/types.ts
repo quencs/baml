@@ -60,7 +60,6 @@ export enum BamlLanguage {
 export interface ContextDoc {
   title: string
   body: string
-  relevance_score: number
   
 }
 

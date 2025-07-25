@@ -25,7 +25,7 @@ import { DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME } from "./
 export default class TypeBuilder {
     private tb: _TypeBuilder;
     
-    ContextDoc: ClassViewer<'ContextDoc', "title" | "body" | "relevance_score">;
+    ContextDoc: ClassViewer<'ContextDoc', "title" | "body">;
     
     Message: ClassViewer<'Message', "role" | "text">;
     
@@ -57,7 +57,7 @@ export default class TypeBuilder {
         });
         
         this.ContextDoc = this.tb.classViewer("ContextDoc", [
-          "title","body","relevance_score",
+          "title","body",
         ]);
         
         this.Message = this.tb.classViewer("Message", [

@@ -26,7 +26,7 @@ export async function submitQuery(
   const pineconeRankedDocs = docs.map((doc) => ({
     title: (doc.metadata?.title ?? '') as string,
     url: (doc.metadata?.slug ?? '') as string,
-    relevance: doc.score ?? 0,
+    body: (doc.metadata?.body ?? '') as string,
   }));
 
   const plan = await b.PlanQuery({
@@ -34,8 +34,7 @@ export async function submitQuery(
     language_preference: queryRequest.language_preference,
     context_docs: pineconeRankedDocs.map((doc) => ({
       title: doc.title,
-      body: doc.url,
-      relevance_score: doc.relevance,
+      body: doc.body,
     })),
     prev_messages: queryRequest.prev_messages,
   });
@@ -54,7 +53,9 @@ export async function submitQuery(
 
   const resp = {
     answer: plan.answer,
-    ranked_docs: relevantDocs,
+    ranked_docs: Array.from(
+      new Map(relevantDocs.map((doc) => [doc.url, doc])).values(),
+    ),
   };
 
   return resp;

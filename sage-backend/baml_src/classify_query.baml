@@ -14,7 +14,6 @@ class Message {
 class ContextDoc {
   title string @description("The title of the document")
   body string
-  relevance_score float
 }
 
 class RefineQuery {
