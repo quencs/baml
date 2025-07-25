@@ -72,204 +72,6 @@ function DocumentIcon({ type }: { type: string }) {
   return <div style={iconStyle}>{getIcon()}</div>;
 }
 
-// Hover tooltip component for full descriptions
-function HoverTooltip({
-  children,
-  hit,
-  isVisible,
-}: {
-  children: React.ReactNode;
-  hit: any;
-  isVisible: boolean;
-}) {
-  if (!isVisible) return <>{children}</>;
-
-  const highlightedDescription =
-    hit._highlightResult?.description?.value ||
-    hit._snippetResult?.description?.value ||
-    hit.description ||
-    '';
-
-  const highlightedContent =
-    hit._highlightResult?.content?.value ||
-    hit._snippetResult?.content?.value ||
-    hit.content ||
-    '';
-
-  // Determine document type
-  const getDocumentType = (pathname: string): string => {
-    if (pathname.includes('/guide/')) return 'Guide';
-    if (pathname.includes('/reference/')) return 'Reference';
-    if (pathname.includes('/examples/')) return 'Example';
-    return 'Documentation';
-  };
-
-  const documentType = getDocumentType(
-    hit.pathname || hit.canonicalPathname || '',
-  );
-
-  return (
-    <div style={{ position: 'relative' }}>
-      {children}
-      <div
-        style={{
-          position: 'absolute',
-          top: '0',
-          left: '100%',
-          marginLeft: '16px', // Increased margin to prevent overlap
-          width: '320px',
-          maxHeight: '400px',
-          overflowY: 'auto',
-          padding: '16px',
-          backgroundColor: '#ffffff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          fontSize: '13px',
-          lineHeight: '1.5',
-          zIndex: 2000,
-          boxShadow:
-            '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          pointerEvents: 'none',
-          userSelect: 'none',
-          // Ensure tooltip doesn't go off screen
-          right: 'auto',
-        }}
-        className="chat-scrollbar"
-      >
-        {/* Document Type Badge */}
-        <div
-          style={{
-            display: 'inline-block',
-            padding: '4px 8px',
-            backgroundColor: '#f3f4f6',
-            color: '#6b7280',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 600,
-            marginBottom: '12px',
-            textTransform: 'uppercase',
-          }}
-        >
-          {documentType}
-        </div>
-
-        {/* Title */}
-        <div
-          style={{
-            fontWeight: 600,
-            fontSize: '15px',
-            color: '#111827',
-            marginBottom: '8px',
-            lineHeight: '1.3',
-          }}
-        >
-          <span
-            dangerouslySetInnerHTML={{
-              __html: processHighlights(
-                hit._highlightResult?.title?.value || hit.title || 'Untitled',
-              ),
-            }}
-          />
-        </div>
-
-        {/* Description */}
-        {highlightedDescription && (
-          <div
-            style={{
-              color: '#374151',
-              marginBottom: '12px',
-              lineHeight: '1.5',
-            }}
-          >
-            <span
-              dangerouslySetInnerHTML={{
-                __html: processHighlights(highlightedDescription),
-              }}
-            />
-          </div>
-        )}
-
-        {/* Content Preview */}
-        {highlightedContent &&
-          highlightedContent !== highlightedDescription && (
-            <div
-              style={{
-                color: '#6b7280',
-                fontSize: '12px',
-                marginBottom: '12px',
-                lineHeight: '1.4',
-                fontStyle: 'italic',
-                borderLeft: '3px solid #e5e7eb',
-                paddingLeft: '12px',
-              }}
-            >
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: processHighlights(
-                    highlightedContent.substring(0, 200) +
-                      (highlightedContent.length > 200 ? '...' : ''),
-                  ),
-                }}
-              />
-            </div>
-          )}
-
-        {/* Breadcrumb */}
-        {hit.breadcrumb && hit.breadcrumb.length > 0 && (
-          <div
-            style={{
-              fontSize: '11px',
-              color: '#9ca3af',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              marginTop: '12px',
-              paddingTop: '12px',
-              borderTop: '1px solid #f3f4f6',
-            }}
-          >
-            <svg
-              width="12"
-              height="12"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              aria-label="Breadcrumb"
-            >
-              <title>Breadcrumb Navigator</title>
-              <path
-                fillRule="evenodd"
-                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span>
-              {hit.breadcrumb.map((crumb: any, index: number) => (
-                <span key={crumb.title}>
-                  {index > 0 && ' › '}
-                  {crumb.title}
-                </span>
-              ))}
-            </span>
-          </div>
-        )}
-
-        {/* URL Preview */}
-        <div
-          style={{
-            fontSize: '11px',
-            color: '#9ca3af',
-            fontFamily: 'monospace',
-            marginTop: '8px',
-            wordBreak: 'break-all',
-          }}
-        >
-          {hit.pathname || hit.canonicalPathname || ''}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Function to process highlights for search results
 const processHighlights = (text: string) => {
   return text
@@ -285,12 +87,14 @@ function Hit({
   hit,
   isKeyboardSelected,
 }: { hit: any; isKeyboardSelected?: boolean }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   const highlightedTitle =
     hit._highlightResult?.title?.value || hit.title || 'Untitled';
   const highlightedDescription =
-    hit._highlightResult?.description?.value ||
-    hit._snippetResult?.description?.value ||
-    hit.description ||
+    hit._highlightResult?.content?.value ||
+    hit._snippetResult?.content?.value ||
+    hit.content ||
     '';
 
   // Determine document type based on URL path
@@ -312,109 +116,176 @@ function Hit({
   };
 
   const processedDescription = highlightedDescription.replace(/<[^>]*>/g, ''); // Remove HTML tags for length calculation
-  const displayDescription = truncateText(processedDescription, 150); // Fixed truncation without hover dependency
+  const displayDescription = truncateText(processedDescription, 150);
 
-  // Determine background color based on selection state only
-  const getBackgroundColor = () => {
-    if (isKeyboardSelected) return '#f8fafc'; // Keyboard selection
-    return 'transparent';
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    if (!isKeyboardSelected) {
+      (e.currentTarget as HTMLElement).style.backgroundColor = '#f1f5f9';
+    }
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = (e: React.MouseEvent) => {
+    if (!isKeyboardSelected) {
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+    }
+    setShowTooltip(false);
   };
 
   return (
-    <a
-      href={hit.pathname || hit.canonicalPathname || '#'}
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '14px',
-        padding: '14px 18px',
-        textDecoration: 'none',
-        color: '#374151',
-        borderBottom: '1px solid #f3f4f6',
-        transition: 'all 0.2s ease',
-        cursor: 'pointer',
-        background: getBackgroundColor(),
-      }}
-    >
-      {/* Document Icon */}
-      <div style={{ paddingTop: '2px' }}>
-        <DocumentIcon type={documentType} />
-      </div>
-
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontWeight: 600,
-            fontSize: '15px',
-            marginBottom: '6px',
-            color: '#111827',
-            lineHeight: '1.3',
-          }}
-        >
-          <span
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{
-              __html: processHighlights(highlightedTitle),
-            }}
-          />
+    <div style={{ position: 'relative' }}>
+      <a
+        href={hit.pathname || hit.canonicalPathname || '#'}
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '14px',
+          padding: '14px 18px',
+          textDecoration: 'none',
+          color: '#374151',
+          borderBottom: '1px solid #f3f4f6',
+          transition: 'background-color 0.2s ease',
+          cursor: 'pointer',
+          background: isKeyboardSelected ? '#f8fafc' : 'transparent',
+        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Document Icon */}
+        <div style={{ paddingTop: '2px' }}>
+          <DocumentIcon type={documentType} />
         </div>
 
-        {highlightedDescription && (
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: '13px',
-              color: '#6b7280',
-              lineHeight: '1.5',
-              wordBreak: 'break-word',
+              fontWeight: 600,
+              fontSize: '15px',
+              marginBottom: '6px',
+              color: '#111827',
+              lineHeight: '1.3',
             }}
           >
             <span
               // eslint-disable-next-line react/no-danger
               dangerouslySetInnerHTML={{
-                __html: processHighlights(displayDescription),
+                __html: processHighlights(highlightedTitle),
               }}
             />
           </div>
-        )}
 
-        {hit.breadcrumb && hit.breadcrumb.length > 0 && (
+          {highlightedDescription && (
+            <div
+              style={{
+                fontSize: '13px',
+                color: '#6b7280',
+                lineHeight: '1.5',
+                wordBreak: 'break-word',
+              }}
+            >
+              <span
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{
+                  __html: processHighlights(displayDescription),
+                }}
+              />
+            </div>
+          )}
+
+          {hit.breadcrumb && hit.breadcrumb.length > 0 && (
+            <div
+              style={{
+                fontSize: '11px',
+                color: '#9ca3af',
+                marginTop: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                aria-label="Breadcrumb"
+              >
+                <title>Breadcrumb Navigator</title>
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>
+                {hit.breadcrumb.map((crumb: any, index: number) => (
+                  <span key={crumb.title}>
+                    {index > 0 && ' › '}
+                    {crumb.title}
+                  </span>
+                ))}
+              </span>
+            </div>
+          )}
+        </div>
+      </a>
+
+      {/* Simple Tooltip */}
+      {showTooltip && highlightedDescription && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '0',
+            left: '100%',
+            marginLeft: '12px',
+            width: '280px',
+            padding: '12px',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            fontSize: '13px',
+            lineHeight: '1.4',
+            color: '#374151',
+            zIndex: 1000,
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+            pointerEvents: 'none',
+            maxHeight: '200px',
+            overflowY: 'auto',
+          }}
+        >
+          {/* Full description */}
           <div
             style={{
-              fontSize: '11px',
-              color: '#9ca3af',
-              marginTop: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
+              marginBottom: hit.breadcrumb?.length > 0 ? '8px' : '0',
             }}
-          >
-            <svg
-              width="12"
-              height="12"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              aria-label="Breadcrumb"
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{
+              __html: processHighlights(highlightedDescription),
+            }}
+          />
+
+          {/* Breadcrumb */}
+          {hit.breadcrumb && hit.breadcrumb.length > 0 && (
+            <div
+              style={{
+                fontSize: '11px',
+                color: '#9ca3af',
+                paddingTop: '8px',
+                borderTop: '1px solid #f3f4f6',
+              }}
             >
-              <title>Breadcrumb Navigator</title>
-              <path
-                fillRule="evenodd"
-                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span>
               {hit.breadcrumb.map((crumb: any, index: number) => (
                 <span key={crumb.title}>
                   {index > 0 && ' › '}
                   {crumb.title}
                 </span>
               ))}
-            </span>
-          </div>
-        )}
-      </div>
-    </a>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -519,8 +390,6 @@ function AskWithAIOption({
   onClick: () => void;
   query: string;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -535,20 +404,21 @@ function AskWithAIOption({
     onClick();
   };
 
-  // Determine background color based on hover and selection states
-  const getBackgroundColor = () => {
-    if (isHovered) return '#f1f5f9'; // Stronger hover effect
-    if (isSelected) return '#f8fafc'; // Keyboard selection
-    return 'transparent';
-  };
-
   return (
     <button
       type="button"
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = '#f1f5f9';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }
+      }}
       style={{
         display: 'block',
         width: '100%',
@@ -558,11 +428,11 @@ function AskWithAIOption({
         borderBottom: '1px solid #f3f4f6',
         border: 'none',
         textAlign: 'left',
-        transition: 'all 0.2s ease',
+        transition: 'background-color 0.2s ease',
         cursor: 'pointer',
-        background: getBackgroundColor(),
-        borderRadius: isHovered ? '8px' : '0px',
-        margin: isHovered ? '0 4px' : '0',
+        background: isSelected ? '#f8fafc' : 'transparent',
+        borderRadius: '0px',
+        margin: '0',
       }}
     >
       <div
@@ -572,9 +442,8 @@ function AskWithAIOption({
           gap: '10px',
           fontWeight: 600,
           fontSize: '15px',
-          color: isHovered ? '#5b21b6' : '#6366f1',
+          color: '#6366f1',
           marginBottom: '4px',
-          transition: 'color 0.2s ease',
         }}
       >
         <AIIcon />
@@ -583,9 +452,8 @@ function AskWithAIOption({
       <div
         style={{
           fontSize: '13px',
-          color: isHovered ? '#4b5563' : '#6b7280',
+          color: '#6b7280',
           lineHeight: '1.4',
-          transition: 'color 0.2s ease',
         }}
       >
         Get AI-powered insights and explanations for your search query
