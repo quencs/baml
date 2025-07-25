@@ -3,7 +3,7 @@ name: Preview Docs
 on:
   pull_request:
   push:
-    branches: [canary, sage]
+    branches: [sage]
 
 jobs:
   run:
