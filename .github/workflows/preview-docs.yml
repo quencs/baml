@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - canary
+  push:
+    branches:
+      - sage
 
 jobs:
   run:
@@ -38,4 +41,4 @@ jobs:
       - name: Comment URL in PR
         uses: thollander/actions-comment-pull-request@v3.0.1
         with:
-          filePath: preview_url.txt
+          file-path: preview_url.txt
