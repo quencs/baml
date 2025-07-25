@@ -357,10 +357,10 @@ function AIIcon() {
   return (
     <div
       style={{
-        width: '18px',
-        height: '18px',
+        width: '20px',
+        height: '20px',
         borderRadius: '3px',
-        background: '#667eea',
+        background: '#7d47e3',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -619,7 +619,7 @@ function CustomSearchBox({
           placeholder="Search BAML docs…"
           style={{
             flex: 1,
-            padding: '14px 180px 14px 44px',
+            padding: '12px 180px 12px 44px',
             border: 'none',
             outline: 'none',
             background: 'transparent',
@@ -674,13 +674,16 @@ function CustomSearchBox({
             </button>
           )}
 
+          {/* Slash shortcut indicator */}
+          {!isFocused && !inputValue && <SlashIcon />}
+
           {/* Ask Baaaaml / Close button */}
           <button
             type="button"
             onClick={handleToggleAI}
             style={{
               padding: '8px 12px',
-              background: isAIOpen ? '#6b7280' : '#6366f1',
+              background: isAIOpen ? '#6b7280' : '#7d47e3',
               border: 'none',
               borderRadius: '8px',
               color: 'white',
@@ -690,7 +693,7 @@ function CustomSearchBox({
               transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               minWidth: '90px',
               justifyContent: 'center',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
@@ -698,14 +701,14 @@ function CustomSearchBox({
             onMouseEnter={(e) => {
               e.currentTarget.style.background = isAIOpen
                 ? '#4b5563'
-                : '#5d68e4';
+                : '#6b3bc9';
               e.currentTarget.style.transform = 'translateY(-1px)';
               e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = isAIOpen
                 ? '#6b7280'
-                : '#6366f1';
+                : '#7d47e3';
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
             }}
@@ -722,9 +725,6 @@ function CustomSearchBox({
               </>
             )}
           </button>
-
-          {/* Slash shortcut indicator */}
-          {!isFocused && !inputValue && <SlashIcon />}
         </div>
       </div>
 

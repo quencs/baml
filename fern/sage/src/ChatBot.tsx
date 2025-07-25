@@ -1,8 +1,8 @@
 import { useAtom } from 'jotai';
 import React, { useRef, useEffect, useState } from 'react';
-import BamlLambWhite from './baml-lamb-white.svg';
-import { messagesAtom, type Message } from './store';
 import { z } from 'zod';
+import BamlLambWhite from './baml-lamb-white.svg';
+import { type Message, messagesAtom } from './store';
 
 interface ChatBotProps {
   apiEndpoint?: string;
@@ -378,7 +378,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           transition: 'background-color 0.2s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#667eea';
+          e.currentTarget.style.backgroundColor = '#7d47e3';
         }}
         onMouseLeave={(e) => {
           if (!isResizing) {
@@ -411,7 +411,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
               width: '28px',
               height: '28px',
               borderRadius: '6px',
-              background: '#667eea',
+              background: '#7d47e3',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -428,7 +428,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
               }}
             />
           </div>
-          <span style={{ color: '#111827' }}>BAML Assistant</span>
+          <span style={{ color: '#111827' }}>Ask Baaaml</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Clear Chat Button */}
@@ -572,7 +572,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                 fontSize: '14px',
                 lineHeight: '1.5',
                 backgroundColor: message.isUser
-                  ? '#667eea'
+                  ? '#7d47e3'
                   : message.error
                     ? '#fef2f2'
                     : '#ffffff',
@@ -584,7 +584,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                 wordWrap: 'break-word',
                 border: message.isUser ? 'none' : '1px solid #e5e7eb',
                 boxShadow: message.isUser
-                  ? '0 4px 12px rgba(102, 126, 234, 0.3)'
+                  ? '0 4px 12px rgba(125, 71, 227, 0.3)'
                   : '0 2px 8px rgba(0, 0, 0, 0.08)',
               }}
             >
@@ -672,28 +672,42 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                   <div key={doc.url} style={{ marginBottom: '4px' }}>
                     <a
                       href={doc.url}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Use the global navigateToDoc function to navigate while keeping chat open
+                        if ((window as any).navigateToDoc) {
+                          (window as any).navigateToDoc(
+                            { u: doc.url, t: doc.title, sel: 'article' },
+                            message.text || '',
+                          );
+                        } else {
+                          // Fallback to normal navigation if navigateToDoc is not available
+                          window.location.href = doc.url;
+                        }
+                      }}
                       style={{
-                        color: '#667eea',
+                        color: '#7d47e3',
                         textDecoration: 'none',
                         fontSize: '12px',
                         transition: 'all 0.2s ease',
                         fontWeight: '500',
+                        cursor: 'pointer',
                       }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.textDecoration = 'underline';
-                        e.currentTarget.style.color = '#5a67d8';
+                        e.currentTarget.style.color = '#6b3bc9';
                       }}
                       onFocus={(e) => {
                         e.currentTarget.style.textDecoration = 'underline';
-                        e.currentTarget.style.color = '#5a67d8';
+                        e.currentTarget.style.color = '#6b3bc9';
                       }}
                       onMouseOut={(e) => {
                         e.currentTarget.style.textDecoration = 'none';
-                        e.currentTarget.style.color = '#667eea';
+                        e.currentTarget.style.color = '#7d47e3';
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.textDecoration = 'none';
-                        e.currentTarget.style.color = '#667eea';
+                        e.currentTarget.style.color = '#7d47e3';
                       }}
                     >
                       {doc.title}
@@ -728,7 +742,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                backgroundColor: '#667eea',
+                backgroundColor: '#7d47e3',
                 animation: 'pulse 1.5s ease-in-out infinite',
               }}
             />
@@ -737,7 +751,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                backgroundColor: '#667eea',
+                backgroundColor: '#7d47e3',
                 animation: 'pulse 1.5s ease-in-out infinite 0.2s',
               }}
             />
@@ -746,7 +760,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                backgroundColor: '#667eea',
+                backgroundColor: '#7d47e3',
                 animation: 'pulse 1.5s ease-in-out infinite 0.4s',
               }}
             />
@@ -798,7 +812,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
               transition: 'border-color 0.2s ease',
             }}
             onFocus={(e) => {
-              e.currentTarget.style.borderColor = '#667eea';
+              e.currentTarget.style.borderColor = '#7d47e3';
             }}
             onBlur={(e) => {
               e.currentTarget.style.borderColor = '#e5e7eb';
@@ -811,7 +825,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           style={{
             border: 'none',
             padding: '12px 20px',
-            background: input.trim() ? '#667eea' : '#e5e7eb',
+            background: input.trim() ? '#7d47e3' : '#e5e7eb',
             color: input.trim() ? '#ffffff' : '#9ca3af',
             fontWeight: '600',
             cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
@@ -822,22 +836,22 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           }}
           onMouseOver={(e) => {
             if (input.trim() && !isLoading) {
-              e.currentTarget.style.backgroundColor = '#5a67d8';
+              e.currentTarget.style.backgroundColor = '#6b3bc9';
             }
           }}
           onFocus={(e) => {
             if (input.trim() && !isLoading) {
-              e.currentTarget.style.backgroundColor = '#5a67d8';
+              e.currentTarget.style.backgroundColor = '#6b3bc9';
             }
           }}
           onMouseOut={(e) => {
             if (input.trim() && !isLoading) {
-              e.currentTarget.style.backgroundColor = '#667eea';
+              e.currentTarget.style.backgroundColor = '#7d47e3';
             }
           }}
           onBlur={(e) => {
             if (input.trim() && !isLoading) {
-              e.currentTarget.style.backgroundColor = '#667eea';
+              e.currentTarget.style.backgroundColor = '#7d47e3';
             }
           }}
         >
