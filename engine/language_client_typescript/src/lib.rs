@@ -8,6 +8,9 @@ mod parse_ts_types;
 mod runtime;
 mod types;
 
+#[cfg(test)]
+mod tests;
+
 pub(crate) use runtime::BamlRuntime;
 use tracing_subscriber::{self, EnvFilter};
 

@@ -7,6 +7,7 @@ use baml_types::{BamlValue, BamlValueWithMeta};
 use internal_baml_core::ir::repr::IntermediateRepr;
 use jsonish::BamlValueWithFlags;
 use serde_json::json;
+use tokio_util::sync::CancellationToken;
 use web_time::Duration;
 
 use super::{call::CtxWithHttpRequestId, OrchestrationScope, OrchestratorNodeIterator};
@@ -34,6 +35,7 @@ pub async fn orchestrate_stream<F, G>(
     partial_parse_fn: impl Fn(&str) -> Result<ResponseBamlValue>,
     parse_fn: impl Fn(&str) -> Result<ResponseBamlValue>,
     on_event: Option<F>,
+    cancellation_token: Option<CancellationToken>,
 ) -> (
     Vec<(
         OrchestrationScope,
@@ -51,6 +53,18 @@ where
 
     //advanced curl viewing, use render_raw_curl on each node. TODO
     for node in iter {
+        // Check for cancellation before processing each node
+        if let Some(token) = &cancellation_token {
+            if token.is_cancelled() {
+                results.push((
+                    node.scope,
+                    LLMResponse::InternalFailure("Request was cancelled".to_string()),
+                    None,
+                ));
+                break;
+            }
+        }
+
         let prompt = match node.render_prompt(ir, prompt, ctx, params).await {
             Ok(p) => p,
             Err(e) => {
@@ -65,10 +79,19 @@ where
 
         let (system_start, instant_start) = (web_time::SystemTime::now(), web_time::Instant::now());
         let ctx = CtxWithHttpRequestId::from(ctx);
-        let stream_res = node.stream(&ctx, &prompt).await;
+        
+        // Pass cancellation token to the stream method
+        let stream_res = node.stream(&ctx, &prompt, cancellation_token.clone()).await;
         let final_response = match stream_res {
             Ok(response) => response
                 .map(|stream_part| {
+                    // Check for cancellation during streaming
+                    if let Some(token) = &cancellation_token {
+                        if token.is_cancelled() {
+                            return LLMResponse::InternalFailure("Request was cancelled during streaming".to_string());
+                        }
+                    }
+
                     if let Some(on_tick) = on_tick_fn.as_ref() {
                         on_tick();
                     }
@@ -187,6 +210,12 @@ where
         }
 
         if let Some(duration) = sleep_duration {
+            // Check for cancellation before sleeping
+            if let Some(token) = &cancellation_token {
+                if token.is_cancelled() {
+                    break;
+                }
+            }
             total_sleep_duration += duration;
             async_std::task::sleep(duration).await;
         }
