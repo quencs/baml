@@ -9,16 +9,16 @@ jobs:
   fern-check:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install fern
+        run: npm install -g fern-api
       - name: Install dependencies
         working-directory: ./fern/sage
         run: npm install
       - name: Build custom.js with webpack
         working-directory: ./fern/sage
         run: npm run build
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install fern
-        run: npm install -g fern-api
       - name: fern check
         working-directory: ./fern
         run: fern check --strict-broken-links
