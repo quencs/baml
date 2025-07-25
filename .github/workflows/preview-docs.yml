@@ -16,6 +16,14 @@ jobs:
       - name: Install Fern
         run: npm install -g fern-api
 
+      - name: Install dependencies
+        working-directory: ./fern/sage
+        run: npm install
+
+      - name: Build custom.js with webpack
+        working-directory: ./fern/sage
+        run: npm run build
+
       - name: Generate preview URL
         id: generate-docs
         env:
