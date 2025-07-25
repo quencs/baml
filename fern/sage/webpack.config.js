@@ -7,7 +7,7 @@ module.exports = {
     path: path.resolve(__dirname, '../'),
     library: 'FernChatbot',
     libraryTarget: 'umd',
-    globalObject: 'this'
+    globalObject: 'this',
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
@@ -18,6 +18,10 @@ module.exports = {
         test: /\.tsx?$/,
         use: 'ts-loader',
         exclude: /node_modules/,
+      },
+      {
+        test: /\.svg$/,
+        type: 'asset/resource',
       },
     ],
   },

@@ -1,5 +1,6 @@
 import { useAtom } from 'jotai';
 import React, { useRef, useEffect, useState } from 'react';
+import BamlLambWhite from './baml-lamb-white.svg';
 import { type Message, messagesAtom } from './store';
 
 interface ChatBotProps {
@@ -18,6 +19,9 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [pendingQuery, setPendingQuery] = useState<string | null>(null);
+  // Add width state for resizing
+  const [width, setWidth] = useState(400);
+  const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -204,7 +208,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
     }
   };
 
-  // Handle pending query from Ask AI functionality
+  // Handle pending query from Ask Baaaaml functionality
   useEffect(() => {
     if (pendingQuery && !isLoading) {
       sendMessage(pendingQuery);
@@ -236,6 +240,45 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
     }
   };
 
+  // Add resize handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = window.innerWidth - e.clientX;
+      // Set min and max width constraints
+      const minWidth = 300;
+      const maxWidth = Math.min(800, window.innerWidth * 0.8);
+
+      if (newWidth >= minWidth && newWidth <= maxWidth) {
+        setWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
+
   // Calculate panel position below header
   const [panelTop, setPanelTop] = React.useState(0);
   const [panelHeight, setPanelHeight] = React.useState('100vh');
@@ -266,12 +309,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         position: 'fixed',
         top: `${panelTop}px`,
         right: '0',
-        width: '400px',
+        width: `${width}px`,
         height: panelHeight,
         backgroundColor: '#ffffff',
         borderLeft: '1px solid #e5e7eb',
         transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
+        transition: isResizing
+          ? 'none'
+          : 'transform .3s cubic-bezier(.4,0,.2,1)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 2000,
@@ -280,6 +325,30 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         overflow: 'hidden',
       }}
     >
+      {/* Resize Handle */}
+      <div
+        onMouseDown={handleMouseDown}
+        style={{
+          position: 'absolute',
+          left: '0',
+          top: '0',
+          bottom: '0',
+          width: '4px',
+          cursor: 'ew-resize',
+          backgroundColor: 'transparent',
+          zIndex: 10,
+          transition: 'background-color 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#667eea';
+        }}
+        onMouseLeave={(e) => {
+          if (!isResizing) {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }
+        }}
+      />
+
       {/* Header */}
       <div
         style={{
@@ -298,22 +367,28 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* AI Icon */}
+          {/* BAML Icon */}
           <div
             style={{
-              width: '24px',
-              height: '24px',
+              width: '28px',
+              height: '28px',
               borderRadius: '6px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: '#667eea',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: '600',
+              padding: '2px',
             }}
           >
-            AI
+            <img
+              src={BamlLambWhite}
+              alt="BAML Logo"
+              style={{
+                width: '26px',
+                height: '26px',
+                filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))',
+              }}
+            />
           </div>
           <span style={{ color: '#111827' }}>BAML Assistant</span>
         </div>

@@ -9,6 +9,7 @@ import {
   useHits,
   useSearchBox,
 } from 'react-instantsearch';
+import BamlLambWhite from './baml-lamb-white.svg';
 
 const SEARCH_INDEX_NAME = 'fern_docs_search';
 const APP_ID = 'P6VYURBGG0';
@@ -358,22 +359,28 @@ function SlashIcon() {
 // AI Icon Component
 function AIIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-label="AI"
+    <div
+      style={{
+        width: '18px',
+        height: '18px',
+        borderRadius: '3px',
+        background: '#667eea',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1px',
+      }}
     >
-      <title>AI Assistant</title>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+      <img
+        src={BamlLambWhite}
+        alt="BAML Logo"
+        style={{
+          width: '17px',
+          height: '17px',
+          filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))',
+        }}
       />
-    </svg>
+    </div>
   );
 }
 
@@ -440,7 +447,7 @@ function AskWithAIOption({
         }}
       >
         <AIIcon />
-        Ask AI about "{query}"
+        Ask Baaaaml about "{query}"
       </div>
       <div
         style={{
@@ -516,7 +523,7 @@ function CustomSearchBox({
     }
   };
 
-  // Calculate total selectable items: Ask AI option (when query exists) + search results
+  // Calculate total selectable items: Ask Baaaaml option (when query exists) + search results
   const totalSelectableItems = (inputValue.trim() ? 1 : 0) + hits.length;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -535,7 +542,7 @@ function CustomSearchBox({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (selectedIndex === 0 && inputValue.trim()) {
-        // Ask AI option is selected
+        // Ask Baaaaml option is selected
         handleAskAI();
       } else if (selectedIndex > 0) {
         // A search result is selected
@@ -545,7 +552,7 @@ function CustomSearchBox({
           window.location.href = hit.pathname || hit.canonicalPathname || '#';
         }
       } else if (selectedIndex === -1 && inputValue.trim()) {
-        // No selection, trigger Ask AI by default
+        // No selection, trigger Ask Baaaaml by default
         handleAskAI();
       }
     } else if (e.key === 'Escape') {
@@ -662,7 +669,7 @@ function CustomSearchBox({
             </button>
           )}
 
-          {/* Ask AI / Close button */}
+          {/* Ask Baaaaml / Close button */}
           <button
             type="button"
             onClick={handleToggleAI}
@@ -701,7 +708,7 @@ function CustomSearchBox({
             ) : (
               <>
                 <AIIcon />
-                Ask AI
+                Ask Baaaaml
               </>
             )}
           </button>
@@ -722,7 +729,7 @@ function CustomSearchBox({
   );
 }
 
-// Custom Hits component with conditional visibility and Ask AI option
+// Custom Hits component with conditional visibility and Ask Baaaaml option
 function CustomHits({
   selectedIndex,
   onAskAI,
@@ -816,7 +823,7 @@ function CustomHits({
                 fontWeight: '500',
               }}
             >
-              Ask AI about this instead
+              Ask Baaaaml about this instead
             </button>
           )}
         </div>
