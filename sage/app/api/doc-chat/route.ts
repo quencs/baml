@@ -24,19 +24,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-export async function GET() {
-  return NextResponse.json({
-    message: 'Doc Chat API',
-    usage: {
-      method: 'POST',
-      body: {
-        query: 'string (required) - The search query',
-      },
-      response: {
-        ranked_docs: 'Array of ranked documents',
-        answer: 'Optional answer from the query planning',
-      },
-    },
-  });
-}

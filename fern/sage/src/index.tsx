@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { Provider } from 'jotai';
 import ChatBot from './ChatBot';
 
 // Constants from original custom.js
@@ -192,7 +193,9 @@ function initializeSearchInterface() {
 
       if (chatbotRoot) {
         chatbotRoot.render(
-          <ChatBot isOpen={flag} onClose={() => setOpen(false)} />,
+          <Provider>
+            <ChatBot isOpen={flag} onClose={() => setOpen(false)} />
+          </Provider>,
         );
       }
 
@@ -207,7 +210,9 @@ function initializeSearchInterface() {
         chatbotRoot = createRoot(rootElement);
         // Initial render with closed state
         chatbotRoot.render(
-          <ChatBot isOpen={false} onClose={() => setOpen(false)} />,
+          <Provider>
+            <ChatBot isOpen={false} onClose={() => setOpen(false)} />
+          </Provider>,
         );
       }
       setOpen(true);
@@ -302,8 +307,12 @@ function initializeSearchInterface() {
 declare global {
   interface Window {
     initFernChatbot: (options?: { apiEndpoint?: string }) => void;
+    navigateToDoc: (hit: { u: string; t: string; sel?: string }, q: string) => void;
   }
 }
+
+// Expose navigateToDoc globally
+window.navigateToDoc = navigateToDoc;
 
 window.initFernChatbot = (options = {}) => {
   // Initialize search interface integration

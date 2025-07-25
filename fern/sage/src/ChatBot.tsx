@@ -1,11 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-}
+import React, { useRef, useEffect, useState } from 'react';
+import { useAtom } from 'jotai';
+import { messagesAtom, type Message } from './store';
 
 interface ChatBotProps {
   apiEndpoint?: string;
@@ -16,7 +11,7 @@ interface ChatBotProps {
 const API_ENDPOINT = 'http://localhost:4000/api/doc-chat';
 
 const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useAtom(messagesAtom);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,7 +34,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const messagesWithUser = [...messages, userMessage];
+    setMessages(messagesWithUser);
     setInput('');
     setIsLoading(true);
 
@@ -49,6 +45,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         headers: {
           'Content-Type': 'application/json',
         },
+        // TODO: attach old messages to the context
         body: JSON.stringify({ query: text.trim() }),
       });
 
@@ -60,12 +57,25 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: data.response || "Sorry, I couldn't process your request.",
+        text: data.answer || "Sorry, I couldn't process your request.",
         isUser: false,
         timestamp: new Date(),
+        ranked_docs: data.ranked_docs,
       };
 
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages([...messagesWithUser, botMessage]);
+
+      // Auto-navigate to first ranked doc if available
+      if (data.ranked_docs && data.ranked_docs.length > 0) {
+        const firstDoc = data.ranked_docs[0];
+        // Use the global navigateToDoc function
+        if ((window as any).navigateToDoc) {
+          (window as any).navigateToDoc(
+            { u: firstDoc.url, t: firstDoc.title, sel: 'article' },
+            text.trim()
+          );
+        }
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
@@ -74,7 +84,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages([...messagesWithUser, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -205,26 +215,58 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         )}
 
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={
-              message.isUser ? 'baml-bubble baml-me' : 'baml-bubble baml-ai'
-            }
-            style={{
-              maxWidth: '75%',
-              padding: '10px 14px',
-              borderRadius: '14px',
-              fontSize: '14px',
-              lineHeight: '1.5',
-              marginBottom: '6px',
-              boxShadow: '0 2px 6px rgba(0,0,0,.06)',
-              alignSelf: message.isUser ? 'flex-end' : 'flex-start',
-              backgroundColor: message.isUser ? '#7c3aed' : '#f3f4f6',
-              color: message.isUser ? '#fff' : '#111827',
-              wordWrap: 'break-word',
-            }}
-          >
-            {message.text}
+          <div key={message.id} style={{ alignSelf: message.isUser ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
+            <div
+              className={
+                message.isUser ? 'baml-bubble baml-me' : 'baml-bubble baml-ai'
+              }
+              style={{
+                padding: '10px 14px',
+                borderRadius: '14px',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                marginBottom: message.ranked_docs && message.ranked_docs.length > 0 ? '8px' : '6px',
+                boxShadow: '0 2px 6px rgba(0,0,0,.06)',
+                backgroundColor: message.isUser ? '#7c3aed' : '#f3f4f6',
+                color: message.isUser ? '#fff' : '#111827',
+                wordWrap: 'break-word',
+              }}
+            >
+              {message.text}
+            </div>
+            {message.ranked_docs && message.ranked_docs.length > 0 && (
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  marginBottom: '6px',
+                }}
+              >
+                <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                  Related docs:
+                </div>
+                {message.ranked_docs.map((doc, index) => (
+                  <div key={index} style={{ marginBottom: '2px' }}>
+                    <a
+                      href={doc.url}
+                      style={{
+                        color: '#7c3aed',
+                        textDecoration: 'none',
+                        fontSize: '12px',
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.textDecoration = 'underline';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.textDecoration = 'none';
+                      }}
+                    >
+                      {doc.title}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
 
