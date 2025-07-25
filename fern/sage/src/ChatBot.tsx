@@ -8,7 +8,10 @@ interface ChatBotProps {
   onClose?: () => void;
 }
 
-const API_ENDPOINT = 'http://localhost:4000/api/doc-chat';
+const API_ENDPOINT =
+  process.env.NODE_ENV === 'development'
+    ? 'http://localhost:4000/api/doc-chat'
+    : 'https://baml-sage-backend.vercel.app/api/doc-chat';
 
 const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
   const [messages, setMessages] = useAtom(messagesAtom);
