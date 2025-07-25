@@ -6,14 +6,14 @@ import type { QueryRequest } from '../types';
 import { searchPinecone } from './rag';
 
 // Define the Zod schema for the response
-const RankedDocSchema = z.object({
-  title: z.string(),
-  url: z.string(),
-  relevance: z.number(),
-});
-
 const QueryResponseSchema = z.object({
-  ranked_docs: z.array(RankedDocSchema),
+  ranked_docs: z.array(
+    z.object({
+      title: z.string(),
+      url: z.string(),
+      relevance: z.enum(['very-relevant', 'relevant', 'not-relevant']),
+    }),
+  ),
   answer: z.string().optional().or(z.null()),
 });
 
@@ -23,7 +23,7 @@ export async function submitQuery(
   queryRequest: QueryRequest,
 ): Promise<QueryResponse> {
   const docs = await searchPinecone(queryRequest.query);
-  const rankedDocs = docs.map((doc) => ({
+  const pineconeRankedDocs = docs.map((doc) => ({
     title: (doc.metadata?.title ?? '') as string,
     url: (doc.metadata?.slug ?? '') as string,
     relevance: doc.score ?? 0,
@@ -32,7 +32,7 @@ export async function submitQuery(
   const plan = await b.PlanQuery({
     text: queryRequest.query,
     language_preference: queryRequest.language_preference,
-    context_docs: rankedDocs.map((doc) => ({
+    context_docs: pineconeRankedDocs.map((doc) => ({
       title: doc.title,
       body: doc.url,
       relevance_score: doc.relevance,
@@ -40,19 +40,21 @@ export async function submitQuery(
     prev_messages: queryRequest.prev_messages,
   });
 
-  for (const doc of rankedDocs) {
-    console.log({ url: doc.url, relevance: doc.relevance });
-  }
-
-  // TODO: implement auto-navigation based on LLM tagging as "very-relevant"
+  // Merge titles from rankedDocs into plan.ranked_docs
+  const relevantDocs = (plan.ranked_docs ?? []).map((planDoc) => {
+    const matchingRankedDoc = pineconeRankedDocs.find(
+      (rd) => rd.title === planDoc.title,
+    );
+    return {
+      title: planDoc.title,
+      url: matchingRankedDoc?.url ?? '',
+      relevance: planDoc.relevance,
+    };
+  });
 
   const resp = {
     answer: plan.answer,
-    ranked_docs: rankedDocs.map((doc) => ({
-      title: doc.title,
-      url: doc.url,
-      relevance: doc.relevance,
-    })),
+    ranked_docs: relevantDocs,
   };
 
   return resp;

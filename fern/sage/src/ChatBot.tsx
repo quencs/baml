@@ -22,6 +22,18 @@ const QueryRequestSchema = z.object({
   ),
 });
 type QueryRequest = z.infer<typeof QueryRequestSchema>;
+
+const QueryResponseSchema = z.object({
+  ranked_docs: z.array(
+    z.object({
+      title: z.string(),
+      url: z.string(),
+      relevance: z.enum(['very-relevant', 'relevant', 'not-relevant']),
+    }),
+  ),
+  answer: z.string().optional().or(z.null()),
+});
+type QueryResponse = z.infer<typeof QueryResponseSchema>;
 // ThenChange baml/sage-backend/app/types.ts
 
 const postDocChat = async (req: QueryRequest) => {
