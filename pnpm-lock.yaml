@@ -390,7 +390,7 @@ importers:
         specifier: 4.17.21
         version: 4.17.21
       next:
-        specifier: 15.4.3
+        specifier: '15.4'
         version: 15.4.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       openai:
         specifier: 4.87.3
