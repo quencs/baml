@@ -1,4 +1,5 @@
 import { Provider } from 'jotai';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
 import AlgoliaSearch from './AlgoliaSearch';
 import ChatBot from './ChatBot';
@@ -6,6 +7,11 @@ import ChatBot from './ChatBot';
 // Constants from original custom.js
 const PANEL_W = 380;
 const OPEN = 'baml-ai-open';
+
+// Global state for chatbot
+let chatbotRoot: any = null;
+let chatbotContainer: HTMLElement | null = null;
+let isOpen = false;
 
 // Helper functions from original custom.js
 const css = (s: string) => {
@@ -78,7 +84,12 @@ function highlightFromStore() {
 
 // Updated global CSS to integrate with Algolia search styling
 css(`
-body.${OPEN}{padding-right:${PANEL_W}px;transition:padding-right .3s cubic-bezier(.4,0,.2,1);overflow-x:hidden;}
+/* Dynamic body padding will be handled by ChatBot component directly */
+body.${OPEN}{
+  transition: padding-right .3s cubic-bezier(.4,0,.2,1);
+  overflow-x: hidden;
+}
+
 /* Smoothly slide the "On this page" TOC out instead of popping it off‑screen */
 .fern-toc,#fern-toc{
   transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s;
@@ -95,8 +106,6 @@ body.${OPEN} [data-toc],body.${OPEN} .fern-toc,body.${OPEN} #fern-toc{
   display:none !important;
 }
 
-/* Cleaned up styling */
-
 /* Search result highlighting */
 .ai-hl{background:#fff7a8;padding:0 2px;border-radius:4px;animation:ai-blink 1.6s ease-in-out 2;}
 @keyframes ai-blink{
@@ -104,115 +113,267 @@ body.${OPEN} [data-toc],body.${OPEN} .fern-toc,body.${OPEN} #fern-toc{
   50%{background:#ffe949;}
 }
 .goto-doc{color:#7c3aed;text-decoration:underline;font-weight:600;}
+
+/* Error boundary styles */
+.baml-error {
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+/* Prevent text selection during resize */
+body.resizing {
+  user-select: none;
+  cursor: ew-resize !important;
+}
+
+/* Improved scrollbar styling for chat */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 `);
+
+// Error boundary component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error('React component error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        this.props.fallback || (
+          <div className="baml-error">
+            Something went wrong with the search interface. Please refresh the
+            page.
+          </div>
+        )
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Centralized chatbot management
+const ChatbotManager = {
+  setOpen(flag: boolean) {
+    isOpen = flag;
+    document.body.classList.toggle(OPEN, flag);
+
+    if (chatbotRoot && chatbotContainer) {
+      try {
+        chatbotRoot.render(
+          <ErrorBoundary
+            fallback={<div className="baml-error">Chatbot failed to load</div>}
+          >
+            <Provider>
+              <ChatBot isOpen={flag} onClose={() => this.setOpen(false)} />
+            </Provider>
+          </ErrorBoundary>,
+        );
+      } catch (error) {
+        console.error('Failed to render chatbot:', error);
+      }
+    }
+
+    // Trigger resize after DOM changes
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
+  },
+
+  toggle() {
+    this.setOpen(!isOpen);
+  },
+
+  initialize() {
+    if (chatbotRoot && chatbotContainer) {
+      return; // Already initialized
+    }
+
+    try {
+      // Clean up any existing instances
+      const existing = document.getElementById('fern-chatbot-root');
+      if (existing) {
+        existing.remove();
+      }
+
+      chatbotContainer = document.createElement('div');
+      chatbotContainer.id = 'fern-chatbot-root';
+      document.body.appendChild(chatbotContainer);
+
+      chatbotRoot = createRoot(chatbotContainer);
+
+      // Initial render with closed state
+      chatbotRoot.render(
+        <ErrorBoundary
+          fallback={<div className="baml-error">Chatbot failed to load</div>}
+        >
+          <Provider>
+            <ChatBot isOpen={false} onClose={() => this.setOpen(false)} />
+          </Provider>
+        </ErrorBoundary>,
+      );
+    } catch (error) {
+      console.error('Failed to initialize chatbot:', error);
+    }
+  },
+
+  openWithQuery(query: string) {
+    // Store AI context for the chatbot
+    localStorage.setItem(
+      'baml-ai-context',
+      JSON.stringify({
+        query: query,
+        timestamp: Date.now(),
+      }),
+    );
+
+    this.initialize();
+    this.setOpen(true);
+  },
+
+  cleanup() {
+    if (chatbotRoot) {
+      try {
+        chatbotRoot.unmount();
+      } catch (error) {
+        console.error('Error unmounting chatbot:', error);
+      }
+      chatbotRoot = null;
+    }
+
+    if (chatbotContainer) {
+      chatbotContainer.remove();
+      chatbotContainer = null;
+    }
+
+    isOpen = false;
+    document.body.classList.remove(OPEN);
+  },
+};
 
 // Search interface integration with Algolia
 function initializeSearchInterface() {
-  const obs = new MutationObserver(() => {
-    const old = document.querySelector(
+  let initialized = false;
+  let observer: MutationObserver | null = null;
+
+  const tryInitialize = () => {
+    if (initialized) return true;
+
+    const searchTarget = document.querySelector(
       '[data-search], .fern-search, [class*="search"]',
     );
-    if (!old) return;
 
-    // Build custom search interface with Algolia integration
-    const wrap = document.createElement('div');
-    wrap.id = 'baml-search-wrap';
-    wrap.style.cssText = 'max-width: 640px; width: 100%; position: relative;';
+    if (!searchTarget) return false;
 
-    const algoliaContainer = document.createElement('div');
-    algoliaContainer.id = 'baml-algolia-container';
-    algoliaContainer.style.cssText = 'width: 100%; position: relative;';
+    try {
+      // Build custom search interface with Algolia integration
+      const wrap = document.createElement('div');
+      wrap.id = 'baml-search-wrap';
+      wrap.style.cssText = 'max-width: 640px; width: 100%; position: relative;';
 
-    wrap.append(algoliaContainer);
+      const algoliaContainer = document.createElement('div');
+      algoliaContainer.id = 'baml-algolia-container';
+      algoliaContainer.style.cssText = 'width: 100%; position: relative;';
 
-    // Hide original search and replace with custom
-    if (old.parentNode) {
-      (old as HTMLElement).style.display = 'none';
-      old.parentNode.insertBefore(wrap, old);
-    }
+      wrap.append(algoliaContainer);
 
-    // Render Algolia search component
-    const algoliaRoot = createRoot(algoliaContainer);
+      // Hide original search and replace with custom
+      if (searchTarget.parentNode) {
+        (searchTarget as HTMLElement).style.display = 'none';
+        searchTarget.parentNode.insertBefore(wrap, searchTarget);
+      }
 
-    // AI functionality callback
-    const handleAskAI = (query: string) => {
-      console.log('Ask AI clicked with query:', query);
+      // Render Algolia search component with error boundary
+      const algoliaRoot = createRoot(algoliaContainer);
 
-      // Open the AI chatbot first
-      initChatbot();
+      const handleAskAI = (query: string) => {
+        console.log('Ask AI clicked with query:', query);
+        ChatbotManager.openWithQuery(query);
+      };
 
-      // Store AI context for the chatbot with just the query
-      localStorage.setItem(
-        'baml-ai-context',
-        JSON.stringify({
-          query: query,
-          timestamp: Date.now(),
-        }),
+      const handleToggleAI = () => {
+        ChatbotManager.initialize();
+        ChatbotManager.toggle();
+      };
+
+      algoliaRoot.render(
+        <ErrorBoundary
+          fallback={<div className="baml-error">Search failed to load</div>}
+        >
+          <Provider>
+            <AlgoliaSearch onAskAI={handleAskAI} onToggleAI={handleToggleAI} />
+          </Provider>
+        </ErrorBoundary>,
       );
-    };
 
-    // Initialize React chatbot with sidebar panel functionality
-    let chatbotRoot: any = null;
-    let isOpen = false;
-    const AUTO_MOUNT_SIDEBAR = false; // Changed to false to prevent auto-opening
+      initialized = true;
 
-    const setOpen = (flag: boolean) => {
-      isOpen = flag;
-      document.body.classList.toggle(OPEN, flag);
-
-      if (chatbotRoot) {
-        chatbotRoot.render(
-          <Provider>
-            <ChatBot isOpen={flag} onClose={() => setOpen(false)} />
-          </Provider>,
-        );
+      // Clean up observer
+      if (observer) {
+        observer.disconnect();
+        observer = null;
       }
 
-      setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
-    };
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize search interface:', error);
+      return false;
+    }
+  };
 
-    const toggleChatbot = () => {
-      if (!chatbotRoot) {
-        const rootElement = document.createElement('div');
-        rootElement.id = 'fern-chatbot-root';
-        document.body.appendChild(rootElement);
-        chatbotRoot = createRoot(rootElement);
-        // Initial render with closed state
-        chatbotRoot.render(
-          <ChatBot isOpen={false} onClose={() => setOpen(false)} />,
-        );
-      }
-      setOpen(!isOpen); // Toggle the current state
-    };
+  // Try immediate initialization
+  if (tryInitialize()) {
+    return;
+  }
 
-    algoliaRoot.render(
-      <AlgoliaSearch onAskAI={handleAskAI} onToggleAI={toggleChatbot} />,
-    );
-
-    const initChatbot = () => {
-      if (!chatbotRoot) {
-        const rootElement = document.createElement('div');
-        rootElement.id = 'fern-chatbot-root';
-        document.body.appendChild(rootElement);
-        chatbotRoot = createRoot(rootElement);
-        // Initial render with closed state
-        chatbotRoot.render(
-          <Provider>
-            <ChatBot isOpen={false} onClose={() => setOpen(false)} />
-          </Provider>,
-        );
-      }
-      setOpen(true); // Always open when called from Ask AI
-    };
-
-    // Don't auto-mount sidebar - only open when explicitly requested
-    // if (AUTO_MOUNT_SIDEBAR) {
-    //   initChatbot();
-    // }
-
-    obs.disconnect();
+  // Set up observer for dynamic content
+  observer = new MutationObserver(() => {
+    tryInitialize();
   });
-  obs.observe(document.body, { subtree: true, childList: true });
+
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    attributes: false,
+    characterData: false,
+  });
+
+  // Cleanup observer after 10 seconds to prevent memory leaks
+  setTimeout(() => {
+    if (observer && !initialized) {
+      console.warn(
+        'Search interface not found after 10 seconds, stopping observer',
+      );
+      observer.disconnect();
+      observer = null;
+    }
+  }, 10000);
 }
 
 // Global initialization function that Fern can call
@@ -223,27 +384,53 @@ declare global {
       hit: { u: string; t: string; sel?: string },
       q: string,
     ) => void;
+    __fernChatbotCleanup?: () => void;
   }
 }
 
 // Expose navigateToDoc globally
 window.navigateToDoc = navigateToDoc;
 
+// Expose cleanup function for testing/debugging
+window.__fernChatbotCleanup = () => {
+  ChatbotManager.cleanup();
+};
+
 window.initFernChatbot = (options = {}) => {
-  // Initialize search interface integration
-  initializeSearchInterface();
+  try {
+    // Initialize search interface integration
+    initializeSearchInterface();
 
-  // Handle highlight functionality
-  highlightFromStore();
+    // Handle highlight functionality
+    highlightFromStore();
 
-  window.addEventListener('popstate', (e) => {
-    if ((e.state as any)?.pjax) highlightFromStore();
-  });
+    // Handle navigation events
+    const handlePopState = (e: PopStateEvent) => {
+      if ((e.state as any)?.pjax) {
+        highlightFromStore();
+      }
+    };
+
+    // Clean up existing listener to prevent duplicates
+    window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', handlePopState);
+
+    console.log('Fern chatbot initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Fern chatbot:', error);
+  }
 };
 
 // Auto-initialize if running in a browser environment
 if (typeof window !== 'undefined') {
   whenReady(() => {
     window.initFernChatbot();
+  });
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    if (window.__fernChatbotCleanup) {
+      window.__fernChatbotCleanup();
+    }
   });
 }

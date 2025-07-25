@@ -359,6 +359,7 @@ function CustomSearchBox({
   onToggleAI?: () => void;
 }) {
   const { query, refine } = useSearchBox();
+  const { hits } = useHits();
   const [inputValue, setInputValue] = useState(query);
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -379,12 +380,15 @@ function CustomSearchBox({
     setIsFocused(true);
   };
 
-  const handleBlur = () => {
-    // Delay blur to allow clicking on results
+  const handleBlur = (e: React.FocusEvent) => {
+    // Only blur if focus is moving outside the search container
+    const currentTarget = e.currentTarget;
     setTimeout(() => {
-      setIsFocused(false);
-      setSelectedIndex(-1);
-    }, 150);
+      if (!currentTarget.contains(document.activeElement)) {
+        setIsFocused(false);
+        setSelectedIndex(-1);
+      }
+    }, 200); // Increased delay for better UX
   };
 
   const handleClear = () => {
@@ -396,6 +400,7 @@ function CustomSearchBox({
 
   const handleAskAI = () => {
     onAskAI(inputValue);
+    setIsFocused(false);
   };
 
   const handleToggleAI = () => {
@@ -404,16 +409,42 @@ function CustomSearchBox({
     }
   };
 
+  // Calculate total selectable items: Ask AI option (when query exists) + search results
+  const totalSelectableItems = (inputValue.trim() ? 1 : 0) + hits.length;
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!inputValue.trim() && e.key !== 'Escape') return;
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((prev) => Math.min(prev + 1, 0)); // Only Ask AI option for now
+      setSelectedIndex((prev) =>
+        prev < totalSelectableItems - 1 ? prev + 1 : -1,
+      );
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex((prev) => Math.max(prev - 1, -1));
-    } else if (e.key === 'Enter' && selectedIndex === 0) {
+      setSelectedIndex((prev) =>
+        prev > -1 ? prev - 1 : totalSelectableItems - 1,
+      );
+    } else if (e.key === 'Enter') {
       e.preventDefault();
-      handleAskAI();
+      if (selectedIndex === 0 && inputValue.trim()) {
+        // Ask AI option is selected
+        handleAskAI();
+      } else if (selectedIndex > 0) {
+        // A search result is selected
+        const hitIndex = selectedIndex - 1;
+        if (hits[hitIndex]) {
+          const hit = hits[hitIndex];
+          window.location.href = hit.pathname || hit.canonicalPathname || '#';
+        }
+      } else if (selectedIndex === -1 && inputValue.trim()) {
+        // No selection, trigger Ask AI by default
+        handleAskAI();
+      }
+    } else if (e.key === 'Escape') {
+      setIsFocused(false);
+      setSelectedIndex(-1);
+      inputRef.current?.blur();
     }
   };
 
@@ -423,7 +454,8 @@ function CustomSearchBox({
       if (
         e.key === '/' &&
         !isFocused &&
-        document.activeElement?.tagName !== 'INPUT'
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
       ) {
         e.preventDefault();
         inputRef.current?.focus();
@@ -558,6 +590,7 @@ function CustomSearchBox({
         selectedIndex={selectedIndex}
         onAskAI={() => handleAskAI()}
         query={inputValue}
+        isFocused={isFocused}
       />
     </div>
   );
@@ -568,10 +601,12 @@ function CustomHits({
   selectedIndex,
   onAskAI,
   query,
+  isFocused,
 }: {
   selectedIndex?: number;
   onAskAI?: () => void;
   query?: string;
+  isFocused?: boolean;
 }) {
   const { hits } = useHits();
   const { query: searchQuery } = useSearchBox();
@@ -579,12 +614,14 @@ function CustomHits({
 
   const actualQuery = query || searchQuery;
 
-  // Only show results when there's a query and hits
+  // Show results when there's a query and focus, or when there are hits
   useEffect(() => {
-    setShowResults(actualQuery.trim().length > 0);
-  }, [actualQuery, hits]);
+    setShowResults(
+      (actualQuery.trim().length > 0 && isFocused) || hits.length > 0,
+    );
+  }, [actualQuery, hits, isFocused]);
 
-  if (!showResults) {
+  if (!showResults || !isFocused) {
     return null;
   }
 
@@ -617,9 +654,21 @@ function CustomHits({
       )}
 
       {/* Search results */}
-      {hits.map((hit: any) => (
-        <Hit key={hit.objectID} hit={hit} />
-      ))}
+      {hits.map((hit: any, index: number) => {
+        const adjustedIndex = actualQuery.trim() ? index + 1 : index;
+        const isSelected = selectedIndex === adjustedIndex;
+
+        return (
+          <div
+            key={hit.objectID}
+            style={{
+              backgroundColor: isSelected ? '#f3f4f6' : 'transparent',
+            }}
+          >
+            <Hit hit={hit} />
+          </div>
+        );
+      })}
 
       {/* No results message when there are no hits but there's a query */}
       {hits.length === 0 && actualQuery.trim() && (
@@ -632,6 +681,24 @@ function CustomHits({
           }}
         >
           No results found for "{actualQuery}"
+          {onAskAI && (
+            <div style={{ marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={onAskAI}
+                style={{
+                  color: '#7c3aed',
+                  background: 'none',
+                  border: 'none',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                Ask AI about this instead
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -646,7 +713,8 @@ function CustomHits({
           textAlign: 'center',
         }}
       >
-        Search powered by Algolia
+        Search powered by Algolia • Use ↑↓ to navigate, Enter to select, Esc to
+        close
       </div>
     </div>
   );
