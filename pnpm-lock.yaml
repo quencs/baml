@@ -98,9 +98,9 @@ importers:
 
   fern/sage:
     dependencies:
-      algoliasearch:
-        specifier: ^5.34.1
-        version: 5.34.1
+      jotai:
+        specifier: ^2.12.5
+        version: 2.12.5(@types/react@18.3.23)(react@18.3.1)
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -19444,6 +19444,11 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.8
       react: 19.1.0
+
+  jotai@2.12.5(@types/react@18.3.23)(react@18.3.1):
+    optionalDependencies:
+      '@types/react': 18.3.23
+      react: 18.3.1
 
   jotai@2.12.5(@types/react@19.1.8)(react@19.1.0):
     optionalDependencies:

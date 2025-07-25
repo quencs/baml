@@ -42,7 +42,7 @@ export async function submitQuery(query: string): Promise<QueryResponse> {
     answer: plan.answer,
     ranked_docs: rankedDocs.map((doc) => ({
       title: doc.title,
-      url: `https://docs.boundaryml.com${doc.url}`,
+      url: doc.url,
       relevance: doc.relevance,
     })),
   };
