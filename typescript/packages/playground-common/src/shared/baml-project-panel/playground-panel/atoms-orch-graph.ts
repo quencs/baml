@@ -89,6 +89,20 @@ export const currentClientsAtom = atom((get) => {
   }
 });
 
+// this is a mermaid graph of the function
+export const functionGraphAtom = atom(
+  (get): { graph: string } => {
+    const func = get(selectedFunctionObjectAtom);
+    const runtime = get(runtimeAtom).rt;
+    if (!func || !runtime) {
+      return { graph: '' };
+    }
+
+    const graph = func.function_graph(runtime);
+    return { graph };
+  },
+);
+
 // something about the orchestration graph is broken, comment it out to make it work
 export const orchestrationNodesAtom = atom(
   (get): { nodes: GroupEntry[]; edges: Edge[] } => {

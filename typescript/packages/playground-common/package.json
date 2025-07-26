@@ -14,7 +14,12 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./*": ["./src/*.ts", "./src/*.tsx", "./src/*/index.ts", "./src/*/index.tsx"],
+    "./*": [
+      "./src/*.ts",
+      "./src/*.tsx",
+      "./src/*/index.ts",
+      "./src/*/index.tsx"
+    ],
     "./custom-error-boundary": "./src/utils/ErrorFallback.tsx",
     "./jotai-provider": "./src/baml_wasm_web/JotaiProvider.tsx",
     "./event-listener": "./src/baml_wasm_web/EventListener.tsx",
@@ -57,6 +62,7 @@
     "js-tiktoken": "1.0.20",
     "lodash": "4.17.21",
     "lucide-react": "0.516.0",
+    "mermaid": "^11.9.0",
     "motion": "12.18.1",
     "next-themes": "0.4.6",
     "react": "19.1.0",

@@ -60,6 +60,7 @@ fn subst<'a>(
                 Ok(expr.clone())
             }
         }
+        Expr::Not(..) => Err(anyhow!("Bare not found")),
         Expr::Builtin(builtin, meta) => Ok(expr.clone()),
         Expr::FreeVar(name, _) => Ok(expr.clone()),
         Expr::Atom(_) => Ok(expr.clone()),
@@ -651,6 +652,9 @@ pub async fn eval_to_value_or_llm_call<'a>(
                     value: val,
                     field_type: TypeIR::class(name),
                 });
+            }
+            Expr::Not(_, _) => {
+                return Err(anyhow!("Bare not found"));
             }
             Expr::LLMFunction(_, _, _) => {
                 return Err(anyhow!("Bare LLM function found"));

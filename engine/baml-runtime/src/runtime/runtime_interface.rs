@@ -170,6 +170,12 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
         client.iter_orchestrator(&mut Default::default(), Default::default(), ctx, self)
     }
 
+    fn function_graph(&self, function_name: &str, ctx: &RuntimeContext) -> Result<String> {
+        let func = self.get_expr_function(function_name, ctx)?;
+        let graph = func.graph();
+        Ok(graph)
+    }
+
     fn features(&self) -> IrFeatures {
         WithInternal::features(self)
     }

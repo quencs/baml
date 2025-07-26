@@ -5,6 +5,7 @@ import { useAtom } from 'jotai';
 import { PromptPreviewCurl } from './prompt-preview-curl';
 import { PromptPreviewContent } from './prompt-preview-content';
 import { ClientGraphView } from './test-panel/components/ClientGraphView';
+import { MermaidGraphView } from './test-panel.1/components/MermaidGraphView';
 import { displaySettingsAtom } from '../preview-toolbar';
 
 export const PromptRenderWrapper = () => {
@@ -17,6 +18,7 @@ export const PromptRenderWrapper = () => {
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="curl">cURL</TabsTrigger>
           <TabsTrigger value="client-graph">Client Graph</TabsTrigger>
+          <TabsTrigger value="mermaid-graph">Function Flow</TabsTrigger>
         </TabsList>
         <Button
           variant="ghost"
@@ -43,6 +45,9 @@ export const PromptRenderWrapper = () => {
       </TabsContent>
       <TabsContent value="client-graph">
         <ClientGraphView />
+      </TabsContent>
+      <TabsContent value="mermaid-graph">
+        <MermaidGraphView />
       </TabsContent>
     </Tabs>
   );
