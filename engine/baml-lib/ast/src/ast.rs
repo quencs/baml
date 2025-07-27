@@ -178,6 +178,16 @@ impl std::ops::Index<TemplateStringId> for Ast {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AgentId(u32);
+impl std::ops::Index<AgentId> for Ast {
+    type Output = Agent;
+
+    fn index(&self, index: AgentId) -> &Self::Output {
+        self.tops[index.0 as usize].as_agent().unwrap()
+    }
+}
+
 /// An identifier for a top-level item in a schema AST. Use the `schema[top_id]`
 /// syntax to resolve the id to an `ast::Top`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

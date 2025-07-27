@@ -1,5 +1,5 @@
 schema = {
-    SOI ~ (expr_fn | top_level_assignment | value_expression_block | type_expression_block | template_declaration | type_alias | comment_block | raw_string_literal | empty_lines | CATCH_ALL)* ~ EOI
+    SOI ~ (agent | expr_fn | top_level_assignment | value_expression_block | type_expression_block | template_declaration | type_alias | comment_block | raw_string_literal | empty_lines | CATCH_ALL)* ~ EOI
 }
 
 // ######################################
@@ -284,3 +284,28 @@ generic_fn_app_identifier = ${ identifier ~ "<" }
 generic_fn_app_args = { field_type_chain ~ ">" ~ "(" ~ fn_args ~ ")" }
 
 generic_fn_app = { generic_fn_app_identifier ~ generic_fn_app_args }
+
+// #################################################
+// Agent syntax
+// #################################################
+
+// agent Name(args) {
+//   state: StateType = expr;
+//   tools: [
+//     ToolSpec1,
+//     ToolSpec2,
+//   ];
+//   prompt: #"...";
+// }
+agent = { "agent" ~ identifier ~ named_argument_list? ~ BLOCK_OPEN ~ NEWLINE* ~
+  (agent_state | agent_tools | agent_prompt | NEWLINE )* ~
+BLOCK_CLOSE }
+
+agent_state = { "state" ~ COLON ~ field_type_chain ~ "=" ~ expression ~ SEMICOLON }
+
+agent_tools = { "tools" ~ COLON ~ "[" ~ NEWLINE* ~ tool_spec? ~ NEWLINE* ~ (COMMA ~ NEWLINE* ~ tool_spec)* ~ NEWLINE* ~ "]" ~ SEMICOLON }
+
+agent_prompt = { "prompt" ~ COLON ~ NEWLINE* ~ raw_string_literal ~ SEMICOLON }
+
+// ToolName(args_list): (return_value) => { statements }
+tool_spec = { identifier ~ arguments_list? ~ COLON ~ "(" ~ field_type_chain? ~ ")" ~ "=>" ~ expr_block }
