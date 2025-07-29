@@ -26,6 +26,52 @@ pub struct Program {
     pub enums: Vec<Enum>,
 }
 
+impl Program {
+    /// Lower BAML AST into HIR.
+    pub fn from_ast(ast: &ast::Ast) -> Self {
+        let llm_functions = ast
+            .iter_tops()
+            .filter_map(|(_id, top)| match top {
+                ast::Top::Function(function) => Some(LLMFunction::from_ast(function)),
+                _ => None,
+            })
+            .collect();
+
+        let expr_functions = ast
+            .iter_tops()
+            .filter_map(|(_id, top)| match top {
+                ast::Top::ExprFn(expr_fn) => Some(ExprFunction::from_ast(expr_fn)),
+                _ => None,
+            })
+            .collect();
+
+        let classes = ast
+            .iter_tops()
+            .filter_map(|(_id, top)| match top {
+                ast::Top::Class(class) => Some(Class::from_ast(class)),
+                _ => None,
+            })
+            .collect();
+
+        let enums = ast
+            .iter_tops()
+            .filter_map(|(_id, top)| match top {
+                ast::Top::Enum(enum_def) => Some(Enum::from_ast(enum_def)),
+                _ => None,
+            })
+            .collect();
+
+        let hir = Program {
+            expr_functions,
+            llm_functions,
+            classes,
+            enums,
+        };
+
+        hir
+    }
+}
+
 #[derive(Debug)]
 pub struct ExprFunction {
     pub name: String,
@@ -171,36 +217,6 @@ struct TypeMeta {
     span: Span,
     constraints: Vec<Constraint>,
     streaming_behavior: StreamingBehavior,
-}
-
-impl Program {
-    /// Lower BAML AST into HIR.
-    pub fn from_ast(ast: &ast::Ast) -> Self {
-        let llm_functions = ast
-            .iter_tops()
-            .filter_map(|(_id, top)| match top {
-                ast::Top::Function(function) => Some(LLMFunction::from_ast(function)),
-                _ => None,
-            })
-            .collect();
-
-        let expr_functions = ast
-            .iter_tops()
-            .filter_map(|(_id, top)| match top {
-                ast::Top::ExprFn(expr_fn) => Some(ExprFunction::from_ast(expr_fn)),
-                _ => None,
-            })
-            .collect();
-
-        let hir = Program {
-            expr_functions,
-            llm_functions,
-            classes: vec![],
-            enums: vec![],
-        };
-
-        hir
-    }
 }
 
 impl LLMFunction {
@@ -734,39 +750,44 @@ impl Expression {
                     //   }
                     //   result
                     // }
-                    
+
                     let iter_name = format!("iter_{}", *temp_counter);
                     let index_name = format!("index_{}", *temp_counter);
                     let result_name = format!("result_{}", *temp_counter);
                     *temp_counter += 1;
-                    
+
                     // Create the block statements
                     let mut block_statements = vec![];
-                    
+
                     // let iter = iterable;
                     let mut iterator_statements = vec![];
-                    let iterator_expr = Self::from_ast(iterator, with_lifting, &mut iterator_statements, temp_counter);
+                    let iterator_expr = Self::from_ast(
+                        iterator,
+                        with_lifting,
+                        &mut iterator_statements,
+                        temp_counter,
+                    );
                     statements.extend(iterator_statements);
                     block_statements.push(Statement::Let {
                         name: iter_name.clone(),
                         value: iterator_expr,
                         span: iterator.span().clone(),
                     });
-                    
+
                     // let index = 0;
                     block_statements.push(Statement::Let {
                         name: index_name.clone(),
                         value: Expression::NumericValue("0".to_string(), span.clone()),
                         span: span.clone(),
                     });
-                    
+
                     // let result = [];
                     block_statements.push(Statement::Let {
                         name: result_name.clone(),
                         value: Expression::Array(vec![], span.clone()),
                         span: span.clone(),
                     });
-                    
+
                     // Create while loop condition: index < length(iter)
                     let condition = Expression::Call(
                         "lt".to_string(),
@@ -780,10 +801,10 @@ impl Expression {
                         ],
                         span.clone(),
                     );
-                    
+
                     // Create while loop body
                     let mut while_body_statements = vec![];
-                    
+
                     // let item = iter[index];
                     while_body_statements.push(Statement::Let {
                         name: identifier.to_string(),
@@ -797,25 +818,35 @@ impl Expression {
                         ),
                         span: identifier.span().clone(),
                     });
-                    
+
                     // Process the body expression
                     let mut body_statements = vec![];
-                    let body_expr = Expression::from_ast(&body.expr, with_lifting, &mut body_statements, temp_counter);
+                    let body_expr = Expression::from_ast(
+                        &body.expr,
+                        with_lifting,
+                        &mut body_statements,
+                        temp_counter,
+                    );
                     while_body_statements.extend(body_statements);
-                    
+
                     // Add body statements from the for loop body
                     for stmt in &body.stmts {
                         let mut stmt_statements = vec![];
                         let mut dummy_counter = 0;
                         let lowered_stmt = Statement::Let {
                             name: stmt.identifier.to_string(),
-                            value: Self::from_ast(&stmt.body, with_lifting, &mut stmt_statements, temp_counter),
+                            value: Self::from_ast(
+                                &stmt.body,
+                                with_lifting,
+                                &mut stmt_statements,
+                                temp_counter,
+                            ),
                             span: stmt.span.clone(),
                         };
                         while_body_statements.extend(stmt_statements);
                         while_body_statements.push(lowered_stmt);
                     }
-                    
+
                     // result.push(body_expr);
                     while_body_statements.push(Statement::DeclareAndAssign {
                         name: format!("temp_push_{}", *temp_counter),
@@ -829,7 +860,7 @@ impl Expression {
                         ),
                         span: span.clone(),
                     });
-                    
+
                     // index = index + 1;
                     while_body_statements.push(Statement::Assign {
                         name: index_name.clone(),
@@ -842,26 +873,26 @@ impl Expression {
                             span.clone(),
                         ),
                     });
-                    
+
                     let while_block = Block {
                         statements: while_body_statements,
                     };
-                    
+
                     // Add the while statement
                     block_statements.push(Statement::While {
                         condition: Box::new(condition),
                         block: while_block,
                         span: span.clone(),
                     });
-                    
+
                     // The block expression evaluates to the result array
                     let final_block = Block {
                         statements: block_statements,
                     };
-                    
+
                     // Add the block statements to the main statements list
                     statements.extend(final_block.statements);
-                    
+
                     // Return the result array
                     Expression::Identifier(result_name, span.clone())
                 } else {
@@ -1288,6 +1319,42 @@ impl ClassConstructorField {
     }
 }
 
+impl Class {
+    /// Lower a class from AST to HIR.
+    pub fn from_ast(class: &ast::TypeExpressionBlock) -> Self {
+        Class {
+            name: class.name().to_string(),
+            fields: class
+                .fields
+                .iter()
+                .map(|field| Field {
+                    name: field.name().to_string(),
+                    span: field.span().clone(),
+                })
+                .collect(),
+            span: class.span().clone(),
+        }
+    }
+}
+
+impl Enum {
+    /// Lower an enum from AST to HIR.
+    pub fn from_ast(enum_def: &ast::TypeExpressionBlock) -> Self {
+        Enum {
+            name: enum_def.name().to_string(),
+            variants: enum_def
+                .fields
+                .iter()
+                .map(|field| EnumVariant {
+                    name: field.name().to_string(),
+                    span: field.span().clone(),
+                })
+                .collect(),
+            span: enum_def.span().clone(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1652,6 +1719,11 @@ fn CallTest() {
   let y = 1;
     y
   } };
+}
+
+class Foo {
+a
+  b
 }"#;
 
         assert_eq!(result, expected);
@@ -1671,10 +1743,10 @@ fn CallTest() {
         "#;
 
         let result = hir_from_source(source);
-        
+
         // The for loop should be lowered to:
         // - iterator variable declaration
-        // - index variable initialization  
+        // - index variable initialization
         // - result array initialization
         // - while loop with condition and body
         let expected = r#"fn TestForLoop() {
@@ -1690,7 +1762,7 @@ fn CallTest() {
 }"#;
 
         assert_eq!(result, expected);
-        
+
         // Print for visual inspection
         println!("HIR for for loop lowering:");
         println!("{}", result);
