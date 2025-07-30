@@ -922,7 +922,7 @@ dependencies = [
 
 [[package]]
 name = "baml-compiler"
-version = "0.202.0"
+version = "0.202.1"
 dependencies = [
  "anyhow",
  "baml-vm",
@@ -1108,10 +1108,12 @@ dependencies = [
  "aws-smithy-types",
  "axum",
  "axum-extra",
+ "baml-compiler",
  "baml-ids",
  "baml-log",
  "baml-rpc",
  "baml-types",
+ "baml-vm",
  "base64 0.22.1",
  "bytes",
  "cfg-if",
@@ -1303,14 +1305,16 @@ dependencies = [
 
 [[package]]
 name = "baml-vm"
-version = "0.202.0"
+version = "0.202.1"
 dependencies = [
  "anyhow",
  "baml-compiler",
+ "baml-types",
  "colored 2.2.0",
  "internal-baml-core",
  "internal-baml-diagnostics",
  "internal-baml-parser-database",
+ "tokio",
 ]
 
 [[package]]

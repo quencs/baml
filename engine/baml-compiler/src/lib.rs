@@ -39,6 +39,9 @@ struct Compiler<'g> {
     /// lifetime.
     class_fields: &'g HashMap<String, HashMap<String, usize>>,
 
+    /// LLM functions.
+    llm_functions: &'g HashSet<String>,
+
     /// Resolved local variables.
     ///
     /// Maps the name of the variable to its final index in the eval stack.
@@ -82,11 +85,13 @@ impl<'g> Compiler<'g> {
     pub fn new(
         globals: &'g HashMap<String, usize>,
         class_fields: &'g HashMap<String, HashMap<String, usize>>,
+        llm_functions: &'g HashSet<String>,
         objects: &'g mut Vec<Object>,
     ) -> Self {
         Self {
             globals,
             class_fields,
+            llm_functions,
             objects,
             scope: 0,
             locals: HashMap::new(),
@@ -506,8 +511,13 @@ impl<'g> Compiler<'g> {
                     self.compile_expression(arg);
                 }
 
-                // Call the function.
-                self.emit(Instruction::Call(app.args.len()));
+                // Either async LLM call or regular function call.
+                if self.llm_functions.contains(app.name.name()) {
+                    self.emit(Instruction::DispatchFuture(app.args.len()));
+                    self.emit(Instruction::Await);
+                } else {
+                    self.emit(Instruction::Call(app.args.len()));
+                }
             }
 
             Expression::JinjaExpressionValue(jinja_expression, _) => todo!(),
@@ -570,13 +580,21 @@ impl<'g> Compiler<'g> {
 /// to run. First, it returns the object pool or object arena, which contains
 /// all the functions, then it returns the globals pool (functions are basically
 /// global "variables").
-pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)> {
-    // eprintln!("{:#?}", ast.ast);
-
+pub fn compile(
+    ast: &ParserDatabase,
+) -> anyhow::Result<(
+    Vec<Object>,
+    Vec<Value>,
+    HashMap<String, (usize, FunctionKind)>,
+)> {
+    // TODO: This one is wrong because of string allocations during the
+    // compilation of functions.
     // Name -> Index
     let mut resolved_globals = HashMap::new();
     // Class Name -> (Field Name -> Index)
     let mut resolved_class_fields = HashMap::new();
+    // LLM function names.
+    let mut llm_functions = HashSet::new();
 
     // Name resolution phase.
     for top in &ast.ast.tops {
@@ -601,7 +619,15 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
                 resolved_globals.insert(function.name.to_string(), resolved_globals.len());
             }
 
-            _ => todo!("name resolution: unhandled Top variant: {top:?}"),
+            ast::Top::Function(llm_function) => {
+                resolved_globals.insert(llm_function.name().to_string(), resolved_globals.len());
+                llm_functions.insert(llm_function.name().to_string());
+            }
+
+            _ => {
+                // eprintln!("name resolution: unhandled Top variant: {}", top.get_type());
+                continue;
+            }
         }
     }
 
@@ -621,18 +647,55 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
             }),
 
             ast::Top::ExprFn(function) => Object::Function(
-                Compiler::new(&resolved_globals, &resolved_class_fields, &mut objects)
-                    .compile(function)?,
+                Compiler::new(
+                    &resolved_globals,
+                    &resolved_class_fields,
+                    &llm_functions,
+                    &mut objects,
+                )
+                .compile(function)?,
             ),
 
-            _ => todo!("compilation: unhandled Top variant: {top:?}"),
+            ast::Top::Function(llm_function) => Object::Function(Function {
+                name: llm_function.name().to_string(),
+                arity: llm_function
+                    .input()
+                    .map(|block_args| block_args.args.len())
+                    .unwrap_or(0),
+                bytecode: Bytecode::new(),
+                kind: FunctionKind::Llm,
+                local_var_names: llm_function
+                    .input()
+                    .iter()
+                    .flat_map(|block_args| {
+                        block_args
+                            .args
+                            .iter()
+                            .map(|(name, _)| name.name().to_string())
+                    })
+                    .collect(),
+            }),
+
+            _ => {
+                // eprintln!("compilation: unhandled Top variant: {}", top.get_type());
+                continue;
+            }
         };
 
         globals.push(Value::Object(objects.len()));
         objects.push(object);
     }
 
-    Ok((objects, globals))
+    let resolved_function_names = objects
+        .iter()
+        .enumerate()
+        .filter_map(|(i, obj)| match obj {
+            Object::Function(f) => Some((f.name.clone(), (i, f.kind))),
+            _ => None,
+        })
+        .collect();
+
+    Ok((objects, globals, resolved_function_names))
 }
 
 /// For tests.
@@ -666,7 +729,7 @@ mod tests {
     /// instructions.
     fn assert_compiles(input: Program) -> anyhow::Result<()> {
         let ast = ast(input.source)?;
-        let (objects, globals) = compile(ast)?;
+        let (objects, globals, _) = compile(&ast)?;
 
         // Create a map of function name to function for easy lookup
         let functions: std::collections::HashMap<&str, &baml_vm::Function> = objects
@@ -685,7 +748,7 @@ mod tests {
 
             eprintln!(
                 "---- fn {function_name}() ----\n{}",
-                baml_vm::debug::display_bytecode(function, &[], &objects, &globals)
+                baml_vm::debug::display_bytecode(function, &[], &objects, &globals, true)
             );
 
             assert_eq!(

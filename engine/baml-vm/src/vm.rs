@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use crate::bytecode::{Bytecode, Instruction};
 
 /// Max call stack size.
 const MAX_FRAMES: usize = 256;
 
 /// Function type.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum FunctionKind {
     /// Regular executable function.
     ///
@@ -116,7 +118,29 @@ pub enum Object {
     Array(Vec<Value>),
 
     /// Iterator over an array (array for now).
-    Iterator { iterable: usize, index: usize },
+    Iterator {
+        iterable: usize,
+        index: usize,
+    },
+
+    Future(Future),
+}
+
+#[derive(Clone, Debug)]
+pub struct LlmFuture {
+    pub llm_function: String,
+    pub args: Vec<Value>,
+}
+
+#[derive(Clone, Debug)]
+pub enum Future {
+    /// Pending future.
+    ///
+    /// Only LLM calls for now.
+    Pending(LlmFuture),
+
+    /// Ready value for the future.
+    Ready(Value),
 }
 
 impl Object {
@@ -144,6 +168,10 @@ impl std::fmt::Display for Object {
             Object::Iterator { iterable, index } => {
                 write!(f, "<iterator iterable={iterable} index={index}>")
             }
+            Object::Future(future) => match future {
+                Future::Pending(llm_future) => write!(f, "<pending: {}>", llm_future.llm_function),
+                Future::Ready(value) => write!(f, "<ready: {value}>"),
+            },
         }
     }
 }
@@ -428,13 +456,131 @@ pub struct Vm {
     ///
     /// This stores the functions and globally declared variables.
     pub globals: Vec<Value>,
+
+    /// Offset of the first runtime allocated object.
+    ///
+    /// This is used to track the index of the first runtime allocated object.
+    /// When the embedder calls [`Vm::collect_garbage`] it will drop all values
+    /// after this offset.
+    pub runtime_allocs_offset: usize,
+}
+
+/// VM execution state.
+///
+/// The virtual machine cannot deal with futures, so when when it stumbles upon
+/// future creation instructions, it returns control flow to the embedder,
+/// expecting the embedder to schedule the future and yield back the control
+/// flow to the VM.
+///
+/// Similarly, when the VM encounters an await point, it returns control flow to
+/// the embedder, expecting the embedder to await the future and fulfil it with
+/// the final result before yielding back control flow to the VM.
+#[derive(Debug, PartialEq)]
+pub enum VmExecState {
+    /// VM cannot proceed. It is awaiting a pending future to complete.
+    Await(usize),
+
+    /// VM notifies caller about a future that needs to be scheduled.
+    ///
+    /// Bytecode execution continues when control flow is handled back to the
+    /// VM.
+    ScheduleFuture(usize),
+
+    /// VM has completed the execution of all available bytecode.
+    Complete(Value),
 }
 
 impl Vm {
+    pub fn new(objects: Vec<Object>, globals: Vec<Value>) -> Self {
+        Self {
+            frames: Vec::new(),
+            stack: Vec::new(),
+            runtime_allocs_offset: objects.len(),
+            objects,
+            globals,
+        }
+    }
+
+    /// Bootstraps the VM preparing the given function to run.
+    pub fn set_entry_point(&mut self, function: usize, args: &[Value]) {
+        debug_assert!(
+            matches!(self.objects[function], Object::Function(_)),
+            "expect function as entry point, got {:?}",
+            self.objects[function]
+        );
+
+        debug_assert!(
+            self.objects.len() == self.runtime_allocs_offset,
+            "garbage collection did not run before setting a new entry point"
+        );
+
+        self.stack.push(Value::Object(function));
+        self.stack.extend(args.iter().copied());
+
+        self.frames.push(Frame {
+            function,
+            instruction_ptr: 0,
+            locals_offset: 0,
+        });
+    }
+
+    /// Restores the VM state and prepares it for the next execution.
+    ///
+    /// This is used to clear the stack and frames after execution.
+    pub fn finalize(&mut self) {
+        // If the VM returns correctly with VmExecState::Complete, the eval
+        // stack and call stack should be empty.
+        self.stack.clear();
+        self.frames.clear();
+        self.collect_garbage();
+    }
+
+    /// Returns a reference to the pending future.
+    ///
+    /// Panics if the future is not pending.
+    pub fn pending_future(&self, future: usize) -> &LlmFuture {
+        match &self.objects[future] {
+            Object::Future(Future::Pending(llm_future)) => llm_future,
+            _ => panic!("expect pending future, got {:?}", self.objects[future]),
+        }
+    }
+
+    pub fn fulfil_future(&mut self, future_index: usize, value: Value) {
+        let Object::Future(future) = &mut self.objects[future_index] else {
+            panic!("expect future, got {:?}", self.objects[future_index]);
+        };
+
+        *future = Future::Ready(value);
+
+        // At any given moment, the VM can only await a single future, because
+        // we can only call the AWAIT instruction on a future on top of the
+        // stack. If that future being await is fulfilled, we need to replace
+        // the future on the stack with the ready value so that the next
+        // instruction that the VM runs can use the value, not the future
+        // object.
+        if let Some(Value::Object(index)) = self.stack.last() {
+            if *index == future_index {
+                self.stack.pop();
+                self.stack.push(value);
+            }
+        }
+    }
+
+    pub fn object(&self, index: usize) -> &Object {
+        &self.objects[index]
+    }
+
+    /// Keeps only compile time necessary objects.
+    ///
+    /// Everything allocated while the program run is dropped.
+    pub fn collect_garbage(&mut self) {
+        self.objects.drain(self.runtime_allocs_offset..);
+    }
+
     /// Main VM execution loop.
     ///
     /// Each "cycle" (loop iteration) executes a single instruction.
-    pub fn exec(&mut self) -> Result<Value, VmError> {
+    pub fn exec(&mut self) -> Result<VmExecState, VmError> {
         // Grab the last frame from the call stack.
         //
         // Note that [`Frame`] is [`Copy`], so in case the borrow checker
@@ -446,7 +592,7 @@ impl Vm {
         // `tarjan.rs` file.
         let Some(mut frame) = self.frames.last_mut() else {
             // This should actually return "Void" or () like Rust.
-            return Ok(Value::Null);
+            return Ok(VmExecState::Complete(Value::Null));
         };
 
         // Grab a reference to the function object. We do this before the loop
@@ -467,27 +613,27 @@ impl Vm {
             frame.instruction_ptr += 1;
 
             // Runtime debugging information.
-            #[cfg(debug_assertions)]
-            {
-                let stack = self
-                    .stack
-                    .iter()
-                    .map(|v| crate::debug::display_value(v, &self.objects))
-                    .collect::<Vec<_>>()
-                    .join(", ");
+            // #[cfg(debug_assertions)]
+            // {
+            //     let stack = self
+            //         .stack
+            //         .iter()
+            //         .map(|v| crate::debug::display_value(v, &self.objects))
+            //         .collect::<Vec<_>>()
+            //         .join(", ");
 
-                eprintln!("[{stack}]");
+            //     eprintln!("[{stack}]");
 
-                let (instruction, metadata) = crate::debug::display_instruction(
-                    instruction_ptr,
-                    function,
-                    &self.stack,
-                    &self.objects,
-                    &self.globals,
-                );
+            //     let (instruction, metadata) = crate::debug::display_instruction(
+            //         instruction_ptr,
+            //         function,
+            //         &self.stack,
+            //         &self.objects,
+            //         &self.globals,
+            //     );
 
-                eprintln!("{instruction} {metadata}");
-            }
+            //     eprintln!("{instruction} {metadata}");
+            // }
 
             match function.bytecode.instructions[instruction_ptr as usize] {
                 Instruction::LoadConst(index) => {
@@ -730,6 +876,87 @@ impl Vm {
                     function = self.objects[frame.function].as_function()?;
                 }
 
+                Instruction::DispatchFuture(arg_count) => {
+                    let args_offset = self.stack.len().saturating_sub(arg_count).saturating_sub(1);
+
+                    // Get the function object from the stack.
+                    let Value::Object(index) = &self.stack[args_offset] else {
+                        return Err(VmError::from(InternalError::TypeError {
+                            expected: Type::Object,
+                            got: Type::of(&self.stack[args_offset]),
+                        }));
+                    };
+
+                    // Can't call a function if it's not a function ¯\_(ツ)_/¯
+                    let Object::Function(llm_function) = &self.objects[*index] else {
+                        return Err(InternalError::InvalidFunctionRef.into());
+                    };
+
+                    // Compiler should have already checked this so we could
+                    // skip it but it's an easy and fast check.
+                    if arg_count != llm_function.arity {
+                        return Err(VmError::from(InternalError::InvalidArgumentCount {
+                            expected: llm_function.arity,
+                            got: arg_count,
+                        }));
+                    }
+
+                    // Not a future.
+                    if !matches!(llm_function.kind, FunctionKind::Llm) {
+                        return Err(VmError::from(InternalError::TypeError {
+                            expected: Type::Object,
+                            got: Type::Object,
+                        }));
+                    }
+
+                    // Collect the LLM function call args and cleanup the LLM
+                    // call.
+                    let llm_args = self.stack.drain(args_offset..).skip(1).collect();
+
+                    // Create the pending future.
+                    let llm_future = LlmFuture {
+                        llm_function: llm_function.name.clone(),
+                        args: llm_args,
+                    };
+
+                    // Allocate the future.
+                    self.objects
+                        .push(Object::Future(Future::Pending(llm_future)));
+
+                    // Now leave the future on top of the stack.
+                    self.stack.push(Value::Object(self.objects.len() - 1));
+
+                    // Yield control flow back to the embedder.
+                    return Ok(VmExecState::ScheduleFuture(self.objects.len() - 1));
+                }
+
+                Instruction::Await => {
+                    let Some(Value::Object(index)) = self.stack.last() else {
+                        return Err(InternalError::UnexpectedEmptyStack.into());
+                    };
+
+                    let Object::Future(awaiting) = &self.objects[*index] else {
+                        return Err(VmError::from(InternalError::TypeError {
+                            expected: Type::Object,
+                            got: Type::Object,
+                        }));
+                    };
+
+                    match awaiting {
+                        // Can't do nothing, handle control flow back to embedder.
+                        Future::Pending(_) => {
+                            return Ok(VmExecState::Await(*index));
+                        }
+
+                        // Replace the future on the eval stack with the ready
+                        // value.
+                        Future::Ready(value) => {
+                            self.stack.pop();
+                            self.stack.push(*value);
+                        }
+                    }
+                }
+
                 Instruction::Call(arg_count) => {
                     // Function calls are pushed onto the stack like this:
                     //
@@ -741,11 +968,8 @@ impl Vm {
                     //
                     // That's how we compute the relative offset of the callee
                     // and it's local args in the stack.
-                    let locals_offset = if self.stack.is_empty() {
-                        0
-                    } else {
-                        self.stack.len() - arg_count - 1
-                    };
+                    let locals_offset =
+                        self.stack.len().saturating_sub(arg_count).saturating_sub(1);
 
                     // Get the function object from the stack.
                     let Value::Object(index) = &self.stack[locals_offset] else {
@@ -810,6 +1034,7 @@ impl Vm {
                         return self
                             .stack
                             .pop()
+                            .map(VmExecState::Complete)
                             .ok_or(InternalError::UnexpectedEmptyStack.into());
                     };
 
