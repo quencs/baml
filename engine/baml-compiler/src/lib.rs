@@ -14,7 +14,7 @@ pub mod hir;
 use std::collections::{HashMap, HashSet};
 
 use baml_vm::{Bytecode, Class, Function, FunctionKind, Instruction, Object, Value};
-use internal_baml_core::ast::{self, WithName};
+use internal_baml_core::ast;
 use internal_baml_parser_database::ParserDatabase;
 
 /// Compile a Baml AST into bytecode.
@@ -22,12 +22,10 @@ use internal_baml_parser_database::ParserDatabase;
 /// This now uses a two-stage compilation process:
 /// 1. AST -> HIR
 /// 2. HIR -> Bytecode
-pub fn compile(
-    ast: &ParserDatabase,
-) -> anyhow::Result<(
+pub fn compile(ast: &ParserDatabase) -> anyhow::Result<(
     Vec<Object>,
     Vec<Value>,
-    HashMap<String, (usize, FunctionKind)>,
+    HashMap<String, (usize, FunctionKind)>
 )> {
     // Stage 1: AST -> HIR
     let hir_program = hir::Program::from_ast(&ast.ast);
@@ -39,9 +37,7 @@ pub fn compile(
 /// Compile HIR to bytecode.
 ///
 /// This function takes an HIR Program and generates the bytecode for the VM.
-fn compile_hir_to_bytecode(
-    hir: &hir::Program,
-) -> anyhow::Result<(
+fn compile_hir_to_bytecode(hir: &hir::Program) -> anyhow::Result<(
     Vec<Object>,
     Vec<Value>,
     HashMap<String, (usize, FunctionKind)>,
@@ -76,13 +72,8 @@ fn compile_hir_to_bytecode(
 
     // Compile HIR functions to bytecode
     for func in &hir.expr_functions {
-        let bytecode_function = compile_hir_function(
-            func,
-            &resolved_globals,
-            &resolved_classes,
-            &mut objects,
-            &llm_functions,
-        )?;
+        let bytecode_function =
+            compile_hir_function(func, &resolved_globals, &resolved_classes, &mut objects, &llm_functions)?;
 
         // Add the function to the globals and objects pools.
         globals.push(Value::Object(objects.len()));
@@ -101,13 +92,13 @@ fn compile_hir_to_bytecode(
     }
 
     let resolved_function_names = objects
-        .iter()
-        .enumerate()
-        .filter_map(|(i, obj)| match obj {
-            Object::Function(f) => Some((f.name.clone(), (i, f.kind))),
-            _ => None,
-        })
-        .collect();
+    .iter()
+    .enumerate()
+    .filter_map(|(i, obj)| match obj {
+        Object::Function(f) => Some((f.name.clone(), (i, f.kind))),
+        _ => None,
+    })
+    .collect();
 
     Ok((objects, globals, resolved_function_names))
 }
@@ -132,7 +123,7 @@ fn compile_hir_function(
 /// validated before calling this otherwise it will issue incorrect bytecode,
 /// the VM will break and the universe will collapse.
 struct HirCompiler<'g> {
-    /// Resolved global variables.
+        /// Resolved global variables.
     ///
     /// Maps the name of the global variable to its index in the globals pool.
     globals: &'g HashMap<String, usize>,
@@ -459,6 +450,52 @@ impl<'g> HirCompiler<'g> {
                 // TODO: Implement proper scoping for expression blocks
                 self.compile_block(block);
             }
+            hir::Expression::If(condition, then_expr, else_expr, _) => {
+                // First, compile the condition. This will leave the end result
+                // of the condition on top of the stack.
+                self.compile_expression(condition);
+
+                // Skip the `if { ... }` branch when condition is false. We'll
+                // patch this offset later when we know how many instructions to
+                // jump over, so we'll store a reference to this instruction.
+                let skip_if = self.emit(Instruction::JumpIfFalse(0));
+
+                // In case we execute the `if { ... }` branch, prepend a POP to
+                // discard the condition value, we don't need it anymore.
+                self.emit(Instruction::Pop);
+
+                // Compile the `if { ... }` branch.
+                self.compile_expression(then_expr);
+
+                // Now skip the potential `else { ... }` branch. We'll patch the
+                // jump later.
+                let skip_else = self.emit(Instruction::Jump(0));
+
+                // We now know where the `if { ... }` branch ends so we can
+                // patch the JUMP_IF_FALSE instruction above.
+                self.patch_jump(skip_if);
+
+                // This is either the start of the `else { ... }` branch or the
+                // start of whatever code we have after an `if { ... }` branch
+                // without an `else` statement. Either way, we still have to
+                // discard the condition value.
+                self.emit(Instruction::Pop);
+
+                // Compile the `else { ... }` branch if it exists.
+                if let Some(else_expr) = else_expr {
+                    self.compile_expression(else_expr);
+                } else {
+                    // This shouldn't happen as HIR lowering ensures if expressions have else
+                    panic!("if expression without else branch in HIR");
+                }
+
+                // Patch the skip else jump. If there's no else, this will
+                // simply skip the POP above, because the if branch has its
+                // own POP. We can simplify this stuff by creating a specialized
+                // POP_JUMP instruction like Python does, but for now I want
+                // the simplest possible VM (very limited instructions).
+                self.patch_jump(skip_else);
+            }
         }
     }
 
@@ -479,11 +516,6 @@ impl<'g> HirCompiler<'g> {
         self.bytecode.constants.len() - 1
     }
 
-    /// Updates the current source line from a span.
-    fn set_source_line_from_span(&mut self, span: &ast::Span) {
-        let (start_line, _) = span.line_and_column();
-        self.current_source_line = start_line.0;
-    }
 
     /// Patches a jump instruction to point to the correct destination.
     ///
@@ -545,7 +577,7 @@ mod tests {
     /// instructions.
     fn assert_compiles(input: Program) -> anyhow::Result<()> {
         let ast = ast(input.source)?;
-        let (objects, globals) = compile(ast)?;
+        let (objects, globals, _) = compile(&ast)?;
 
         // Create a map of function name to function for easy lookup
         let functions: std::collections::HashMap<&str, &baml_vm::Function> = objects
@@ -616,11 +648,10 @@ mod tests {
                 "main",
                 vec![
                     Instruction::LoadVar(1),
-                    Instruction::JumpIfFalse(5),
+                    Instruction::JumpIfFalse(4),
                     Instruction::Pop,
                     Instruction::LoadConst(0),
-                    Instruction::Return,
-                    Instruction::Jump(4),
+                    Instruction::Jump(3),
                     Instruction::Pop,
                     Instruction::LoadConst(1),
                     Instruction::Return,
@@ -669,7 +700,7 @@ mod tests {
             expected: vec![(
                 "main",
                 vec![
-                    Instruction::AllocInstance(1),
+                    Instruction::AllocInstance(0),
                     Instruction::LoadConst(0),
                     Instruction::StoreField(0),
                     Instruction::LoadConst(1),
@@ -682,7 +713,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "HIR doesn't support spread operators yet"]
     fn class_constructor_with_spread_operator() -> anyhow::Result<()> {
         assert_compiles(Program {
             source: r#"
@@ -704,12 +734,12 @@ mod tests {
             expected: vec![(
                 "main",
                 vec![
-                    Instruction::AllocInstance(2),
+                    Instruction::AllocInstance(0),
                     Instruction::LoadConst(0),
                     Instruction::StoreField(0),
                     Instruction::LoadConst(1),
                     Instruction::StoreField(1),
-                    Instruction::LoadGlobal(0),
+                    Instruction::LoadGlobal(1),
                     Instruction::Call(0),
                     Instruction::LoadVar(1),
                     Instruction::LoadVar(2),
@@ -723,14 +753,86 @@ mod tests {
     }
 
     #[test]
-    fn function_returning_string() -> anyhow::Result<()> {
+    fn for_loop() -> anyhow::Result<()> {
         assert_compiles(Program {
             source: "
-                fn main() -> string {
-                    \"hello\"
+                fn main() -> int {
+                    for (i in [1, 2, 3]) {
+                        i
+                    }
+
+                    42
                 }
             ",
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadConst(1),
+                    Instruction::LoadConst(2),
+                    Instruction::AllocArray(3),
+                    Instruction::CreateIterator,
+                    Instruction::IterNext,
+                    Instruction::JumpIfFalse(6),
+                    Instruction::Pop,
+                    Instruction::LoadVar(2),
+                    Instruction::Pop,
+                    Instruction::Pop,
+                    Instruction::Jump(-6),
+                    Instruction::Pop,
+                    Instruction::Pop,
+                    Instruction::Pop,
+                    Instruction::LoadConst(3),
+                    Instruction::LoadConst(4),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn function_returning_string() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn main() -> string {
+                    "hello"
+                }
+            "#,
             expected: vec![("main", vec![Instruction::LoadConst(0), Instruction::Return])],
+        })
+    }
+
+    // TODO: Given the way local variables are handled, the debugger can't
+    // correctly print the names of nested variables inside block expressions.
+    // In this example here, LoadVar(1) corresponds to "b" while the nested
+    // block is executing and after that LoadVar(1) corresponds to "a". But
+    // the debugger always prints "a". Desugaring this to temporary variables
+    // might help, but since we found a way to avoid temporary variables for
+    // block expressions, we should find a way to correctly determine the
+    // names of the variables according to their stack semantics.
+    #[test]
+    fn block_expr() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: "
+                fn main() -> int {
+                    let a = {
+                        let b = 1;
+                        b
+                    };
+
+                    a
+                }
+            ",
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(1),
+                    Instruction::EndBlock(1),
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
         })
     }
 }
