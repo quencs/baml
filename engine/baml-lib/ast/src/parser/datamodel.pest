@@ -111,7 +111,16 @@ jinja_block_open  = _{ "{{" }
 jinja_block_close = _{ "}}" }
 jinja_body        =  { (!(jinja_block_open | jinja_block_close) ~ ANY)* }
 jinja_expression  =  { jinja_block_open ~ jinja_body ~ jinja_block_close }
-expression        =  {
+expression        =  { postfix_expression }
+
+postfix_expression = { primary_expression ~ postfix_operator* }
+
+postfix_operator = { array_accessor | field_accessor }
+
+array_accessor = { "[" ~ expression ~ "]" }
+field_accessor = { "." ~ identifier }
+
+primary_expression = {
     generic_fn_app |
     fn_app |
     if_expression |
