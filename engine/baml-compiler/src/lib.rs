@@ -65,7 +65,13 @@ fn compile_hir_to_bytecode(hir: &hir::Program) -> anyhow::Result<(
         resolved_classes.insert(class.name.clone(), class_fields);
     }
 
-    // Then resolve functions
+    // Then resolve LLM functions
+    for func in &hir.llm_functions {
+        resolved_globals.insert(func.name.clone(), global_index);
+        global_index += 1;
+    }
+
+    // Then resolve expression functions
     for func in &hir.expr_functions {
         resolved_globals.insert(func.name.clone(), global_index);
         global_index += 1;
@@ -85,7 +91,21 @@ fn compile_hir_to_bytecode(hir: &hir::Program) -> anyhow::Result<(
         objects.push(Object::Class(bytecode_class));
     }
 
-    // Then compile and add functions
+    // Add LLM functions to objects (they don't need bytecode, just metadata)
+    for func in &hir.llm_functions {
+        let llm_function = Function {
+            name: func.name.clone(),
+            arity: func.parameters.len(),
+            bytecode: Bytecode::new(), // Empty bytecode - LLM functions are handled by runtime
+            kind: FunctionKind::Llm,
+            local_var_names: vec![format!("<fn {}>", func.name)], // Debug info
+        };
+
+        globals.push(Value::Object(objects.len()));
+        objects.push(Object::Function(llm_function));
+    }
+
+    // Then compile and add expression functions
     for func in &hir.expr_functions {
         let bytecode_function =
             compile_hir_function(func, &resolved_globals, &resolved_classes, &mut objects, &llm_functions)?;
@@ -180,6 +200,10 @@ struct HirCompiler<'g> {
 
     /// Current source line for debug info.
     current_source_line: usize,
+    
+    /// Pending LLM calls that have been spawned but not yet awaited.
+    /// This allows us to batch contiguous LLM calls by spawning all first, then awaiting all.
+    pending_llm_calls: usize,
 }
 
 impl<'g> HirCompiler<'g> {
@@ -198,6 +222,7 @@ impl<'g> HirCompiler<'g> {
             locals: HashMap::new(),
             bytecode: Bytecode::new(),
             current_source_line: 0,
+            pending_llm_calls: 0,
         }
     }
 
@@ -213,6 +238,9 @@ impl<'g> HirCompiler<'g> {
 
         // Compile statements in the function body.
         self.compile_block(&func.body);
+        
+        // Ensure any pending LLM calls are awaited before function returns
+        self.flush_pending_llm_calls();
 
         Ok(Function {
             name: func.name.clone(),
@@ -274,6 +302,8 @@ impl<'g> HirCompiler<'g> {
         match statement {
             hir::Statement::Let { name, value, .. } => {
                 self.compile_expression(value);
+                // Don't flush LLM calls immediately - let them batch with subsequent LLM calls
+                // The value will be available on the stack after the eventual flush
                 let local_index = self.locals.len() + 1;
                 self.locals.insert(name.clone(), local_index);
             }
@@ -289,6 +319,8 @@ impl<'g> HirCompiler<'g> {
                 // For assignment to existing variable, compile the expression
                 // then store it at the variable's location
                 self.compile_expression(value);
+                // Flush LLM calls before assignment
+                self.flush_pending_llm_calls();
                 // The value is on top of stack, but we need to move it to the right local
                 // This is a bit tricky - we need to implement proper assignment
                 // For now, this is a limitation - assignments don't work properly in bytecode
@@ -296,15 +328,21 @@ impl<'g> HirCompiler<'g> {
             }
             hir::Statement::DeclareAndAssign { name, value, .. } => {
                 self.compile_expression(value);
+                // Flush LLM calls before proceeding to next statement
+                self.flush_pending_llm_calls();
                 let local_index = self.locals.len() + 1;
                 self.locals.insert(name.clone(), local_index);
             }
             hir::Statement::Return { expr, .. } => {
                 self.compile_expression(expr);
+                // Flush all pending LLM calls before returning
+                self.flush_pending_llm_calls();
                 self.emit(Instruction::Return);
             }
             hir::Statement::Expression { expr, .. } => {
                 self.compile_expression(expr);
+                // Flush LLM calls after expression statement
+                self.flush_pending_llm_calls();
                 // Expression results are left on stack
             }
             hir::Statement::If {
@@ -315,6 +353,8 @@ impl<'g> HirCompiler<'g> {
             } => {
                 // Compile condition
                 self.compile_expression(condition);
+                // Flush LLM calls before branching to ensure condition is evaluated
+                self.flush_pending_llm_calls();
 
                 // Jump if false
                 let skip_if = self.emit(Instruction::JumpIfFalse(0));
@@ -348,6 +388,8 @@ impl<'g> HirCompiler<'g> {
 
                 // Compile condition
                 self.compile_expression(condition);
+                // Flush LLM calls before loop condition check
+                self.flush_pending_llm_calls();
 
                 // Jump out of loop if false
                 let exit_jump = self.emit(Instruction::JumpIfFalse(0));
@@ -376,6 +418,8 @@ impl<'g> HirCompiler<'g> {
             } => {
                 // Compile the iterator expression (array) - leaves array on stack
                 self.compile_expression(iterator);
+                // Flush LLM calls before starting loop
+                self.flush_pending_llm_calls();
 
                 // Create iterator from array - replaces array with iterator on stack
                 self.emit(Instruction::CreateIterator);
@@ -508,10 +552,12 @@ impl<'g> HirCompiler<'g> {
                 }
 
                 if self.llm_functions.contains(name) {
-                    self.emit(Instruction::DispatchFuture(args.len()));
-                    self.emit(Instruction::Await);
+                    // Spawn the LLM call but don't immediately await it
+                    // This allows batching with other contiguous LLM calls
+                    self.spawn_llm_call(args.len());
                 } else {
-                    // Call the function
+                    // Non-LLM call: flush any pending LLM calls first, then call
+                    self.flush_pending_llm_calls();
                     self.emit(Instruction::Call(args.len()));
                 }
             }
@@ -602,6 +648,8 @@ impl<'g> HirCompiler<'g> {
                 // First, compile the condition. This will leave the end result
                 // of the condition on top of the stack.
                 self.compile_expression(condition);
+                // Flush LLM calls before branching to ensure condition is evaluated
+                self.flush_pending_llm_calls();
 
                 // Skip the `if { ... }` branch when condition is false. We'll
                 // patch this offset later when we know how many instructions to
@@ -691,6 +739,22 @@ impl<'g> HirCompiler<'g> {
                 self.bytecode.instructions[instruction_ptr]
             ),
         }
+    }
+    
+    /// Flushes all pending LLM calls by emitting Await instructions for each.
+    /// This should be called when we encounter a non-LLM operation or at the end of a block.
+    fn flush_pending_llm_calls(&mut self) {
+        for _ in 0..self.pending_llm_calls {
+            self.emit(Instruction::Await);
+        }
+        self.pending_llm_calls = 0;
+    }
+    
+    /// Records an LLM call spawn without immediately awaiting it.
+    /// The Await will be emitted later when flush_pending_llm_calls is called.
+    fn spawn_llm_call(&mut self, arity: usize) {
+        self.emit(Instruction::DispatchFuture(arity));
+        self.pending_llm_calls += 1;
     }
 }
 
@@ -948,6 +1012,82 @@ mod tests {
             "#,
             expected: vec![("main", vec![Instruction::LoadConst(0), Instruction::Return])],
         })
+    }
+
+    #[test]
+    fn batched_llm_calls() -> anyhow::Result<()> {
+        // This test demonstrates that multiple LLM calls in sequence
+        // result in batched DispatchFuture instructions followed by batched Await instructions
+        let ast = ast(r###"
+            client<llm> TestClient {
+                provider "openai"
+                options {
+                    model "gpt-3.5-turbo"
+                }
+            }
+            
+            function LlmFunc1() -> string { 
+                client TestClient
+                prompt #"test prompt 1"#
+            }
+            
+            function LlmFunc2() -> string {
+                client TestClient
+                prompt #"test prompt 2"#
+            }
+
+            fn main() -> string {
+                let a = LlmFunc1();
+                let b = LlmFunc2();
+                a
+            }
+        "###)?;
+        let (objects, globals, _) = compile(&ast)?;
+
+        // Find the main function
+        let main_function = objects
+            .iter()
+            .find_map(|obj| match obj {
+                Object::Function(f) if f.name == "main" => Some(f),
+                _ => None,
+            })
+            .expect("main function not found");
+
+        eprintln!(
+            "---- Batched LLM calls bytecode ----\n{}",
+            baml_vm::debug::display_bytecode(main_function, &[], &objects, &globals, true)
+        );
+
+        // Check that we have the batching pattern:
+        // DispatchFuture, DispatchFuture, Await, Await (not DispatchFuture, Await, DispatchFuture, Await)
+        let instructions = &main_function.bytecode.instructions;
+        
+        // Find DispatchFuture and Await instructions
+        let mut dispatch_positions = vec![];
+        let mut await_positions = vec![];
+        
+        for (i, instruction) in instructions.iter().enumerate() {
+            match instruction {
+                Instruction::DispatchFuture(_) => dispatch_positions.push(i),
+                Instruction::Await => await_positions.push(i),
+                _ => {}
+            }
+        }
+        
+        // We should have 2 DispatchFuture instructions followed by 2 Await instructions
+        assert_eq!(dispatch_positions.len(), 2, "Expected 2 DispatchFuture instructions");
+        assert_eq!(await_positions.len(), 2, "Expected 2 Await instructions");
+        
+        // All DispatchFuture instructions should come before all Await instructions
+        if !dispatch_positions.is_empty() && !await_positions.is_empty() {
+            let last_dispatch = dispatch_positions.last().unwrap();
+            let first_await = await_positions.first().unwrap();
+            assert!(last_dispatch < first_await, 
+                "All DispatchFuture instructions should come before all Await instructions. Last dispatch: {}, First await: {}", 
+                last_dispatch, first_await);
+        }
+
+        Ok(())
     }
 
     // TODO: Given the way local variables are handled, the debugger can't
