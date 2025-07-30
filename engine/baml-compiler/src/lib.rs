@@ -14,7 +14,7 @@ pub mod hir;
 use std::collections::{HashMap, HashSet};
 
 use baml_vm::{Bytecode, Class, Function, FunctionKind, Instruction, Object, Value};
-use internal_baml_core::ast::WithName;
+use internal_baml_core::ast::{self, WithName};
 use internal_baml_parser_database::ParserDatabase;
 
 /// Compile a Baml AST into bytecode.
@@ -22,7 +22,13 @@ use internal_baml_parser_database::ParserDatabase;
 /// This now uses a two-stage compilation process:
 /// 1. AST -> HIR
 /// 2. HIR -> Bytecode
-pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)> {
+pub fn compile(
+    ast: &ParserDatabase,
+) -> anyhow::Result<(
+    Vec<Object>,
+    Vec<Value>,
+    HashMap<String, (usize, FunctionKind)>,
+)> {
     // Stage 1: AST -> HIR
     let hir_program = hir::Program::from_ast(&ast.ast);
 
@@ -33,9 +39,16 @@ pub fn compile(ast: ParserDatabase) -> anyhow::Result<(Vec<Object>, Vec<Value>)>
 /// Compile HIR to bytecode.
 ///
 /// This function takes an HIR Program and generates the bytecode for the VM.
-fn compile_hir_to_bytecode(hir: &hir::Program) -> anyhow::Result<(Vec<Object>, Vec<Value>)> {
+fn compile_hir_to_bytecode(
+    hir: &hir::Program,
+) -> anyhow::Result<(
+    Vec<Object>,
+    Vec<Value>,
+    HashMap<String, (usize, FunctionKind)>,
+)> {
     let mut resolved_globals = HashMap::new();
     let mut resolved_classes = HashMap::new();
+    let llm_functions: HashSet<String> = hir.llm_functions.iter().map(|f| f.name.clone()).collect();
 
     // Resolve global functions from HIR
     let mut global_index = 0;
@@ -63,8 +76,13 @@ fn compile_hir_to_bytecode(hir: &hir::Program) -> anyhow::Result<(Vec<Object>, V
 
     // Compile HIR functions to bytecode
     for func in &hir.expr_functions {
-        let bytecode_function =
-            compile_hir_function(func, &resolved_globals, &resolved_classes, &mut objects)?;
+        let bytecode_function = compile_hir_function(
+            func,
+            &resolved_globals,
+            &resolved_classes,
+            &mut objects,
+            &llm_functions,
+        )?;
 
         // Add the function to the globals and objects pools.
         globals.push(Value::Object(objects.len()));
@@ -82,7 +100,16 @@ fn compile_hir_to_bytecode(hir: &hir::Program) -> anyhow::Result<(Vec<Object>, V
         objects.push(Object::Class(bytecode_class));
     }
 
-    Ok((objects, globals))
+    let resolved_function_names = objects
+        .iter()
+        .enumerate()
+        .filter_map(|(i, obj)| match obj {
+            Object::Function(f) => Some((f.name.clone(), (i, f.kind))),
+            _ => None,
+        })
+        .collect();
+
+    Ok((objects, globals, resolved_function_names))
 }
 
 /// Compile an HIR function to bytecode.
@@ -91,40 +118,95 @@ fn compile_hir_function(
     globals: &HashMap<String, usize>,
     classes: &HashMap<String, HashMap<String, usize>>,
     objects: &mut Vec<Object>,
+    llm_functions: &HashSet<String>,
 ) -> anyhow::Result<Function> {
-    let mut compiler = HirCompiler::new(globals, classes, objects);
+    let mut compiler = HirCompiler::new(globals, classes, llm_functions, objects);
     compiler.compile_function(func)
 }
 
-/// HIR to bytecode compiler.
+/// Baml compiler.
+///
+/// This struct compiles a single AST function into bytecode.
+///
+/// **IMPORTANT**: The compiler DOES NOT validate anything, AST must already be
+/// validated before calling this otherwise it will issue incorrect bytecode,
+/// the VM will break and the universe will collapse.
 struct HirCompiler<'g> {
     /// Resolved global variables.
+    ///
+    /// Maps the name of the global variable to its index in the globals pool.
     globals: &'g HashMap<String, usize>,
+
     /// Resolved class fields.
-    classes: &'g HashMap<String, HashMap<String, usize>>,
+    ///
+    /// Maps the name of the class to the field resolution. Field resolution
+    /// is basically a transformation of field name to an index in an array.
+    ///
+    /// TODO: The `g` lifetime here doesn't need to be the same as the globals
+    /// lifetime.
+    class_fields: &'g HashMap<String, HashMap<String, usize>>,
+
+    /// LLM functions.
+    llm_functions: &'g HashSet<String>,
+
     /// Resolved local variables.
+    ///
+    /// Maps the name of the variable to its final index in the eval stack.
     locals: HashMap<String, usize>,
+
+    /// Current scope.
+    ///
+    /// The scope increments with each nested block. Example:
+    ///
+    /// ```ignore
+    /// fn example() {          // Scope is 0.
+    ///     let a = 1;
+    ///     {                   // Scope is 1.
+    ///         let b = 2;
+    ///         {               // Scope is 2.
+    ///             let c  = 3;
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// This is used to keep track of local variables present in the evaluation
+    /// stack.
+    scope: usize,
+
     /// Bytecode to generate.
     bytecode: Bytecode,
+
     /// Objects pool.
+    ///
+    /// Stores heap-allocated objects that are created during compilation,
+    /// such as string constants.
     objects: &'g mut Vec<Object>,
+
+    /// Current source line for debug info.
+    current_source_line: usize,
 }
 
 impl<'g> HirCompiler<'g> {
     fn new(
         globals: &'g HashMap<String, usize>,
-        classes: &'g HashMap<String, HashMap<String, usize>>,
+        class_fields: &'g HashMap<String, HashMap<String, usize>>,
+        llm_functions: &'g HashSet<String>,
         objects: &'g mut Vec<Object>,
     ) -> Self {
         Self {
             globals,
-            classes,
+            class_fields,
+            llm_functions,
+            objects,
+            scope: 0,
             locals: HashMap::new(),
             bytecode: Bytecode::new(),
-            objects,
+            current_source_line: 0,
         }
     }
 
+    /// Compile an HIR function into a VM function.
     fn compile_function(&mut self, func: &hir::ExprFunction) -> anyhow::Result<Function> {
         // Resolve parameters.
         for param in &func.parameters {
@@ -341,8 +423,7 @@ impl<'g> HirCompiler<'g> {
                     self.compile_expression(arg);
                 }
 
-                let llm_functions: HashSet<String> = self.llm_functions.iter().map(|f| f.name.clone()).collect();
-                if llm_functions.contains(name) {
+                if self.llm_functions.contains(name) {
                     self.emit(Instruction::DispatchFuture(args.len()));
                     self.emit(Instruction::Await);
                 } else {
@@ -358,7 +439,7 @@ impl<'g> HirCompiler<'g> {
                     // Set fields
                     for field in &cc.fields {
                         self.compile_expression(&field.value);
-                        if let Some(class_fields) = self.classes.get(&cc.class_name) {
+                        if let Some(class_fields) = self.class_fields.get(&cc.class_name) {
                             if let Some(&field_index) = class_fields.get(&field.name) {
                                 self.emit(Instruction::StoreField(field_index));
                             } else {
@@ -381,16 +462,38 @@ impl<'g> HirCompiler<'g> {
         }
     }
 
+    /// Emits a single instruction and returns the index of the instruction.
+    ///
+    /// The return value is useful when we want to modify an instruction that
+    /// we've already ommited. Take a look at how we compile if statements in
+    /// the [`Self::compile_expression`] function.
     fn emit(&mut self, instruction: Instruction) -> usize {
         self.bytecode.instructions.push(instruction);
+        self.bytecode.source_lines.push(self.current_source_line);
         self.bytecode.instructions.len() - 1
     }
 
+    /// Adds a new constant to the constants pool and returns its index.
     fn add_constant(&mut self, value: Value) -> usize {
         self.bytecode.constants.push(value);
         self.bytecode.constants.len() - 1
     }
 
+    /// Updates the current source line from a span.
+    fn set_source_line_from_span(&mut self, span: &ast::Span) {
+        let (start_line, _) = span.line_and_column();
+        self.current_source_line = start_line.0;
+    }
+
+    /// Patches a jump instruction to point to the correct destination.
+    ///
+    /// When we first emit a jump instruction, we do not know what offset to use
+    /// because we don't know how many instructions the block we want to jump
+    /// over will emit. In order to solve that, we emit the jump instruction
+    /// with a placeholder offset (like 0), then we compile the jump target,
+    /// and finally we call this function passing the index of the jump
+    /// instruction to adjust the offset and make it point to the end of the
+    /// target block.
     fn patch_jump(&mut self, instruction_ptr: usize) {
         let destination = self.bytecode.instructions.len();
 
@@ -398,6 +501,11 @@ impl<'g> HirCompiler<'g> {
             Instruction::Jump(offset) | Instruction::JumpIfFalse(offset) => {
                 *offset = (destination - instruction_ptr) as isize;
             }
+
+            // This should never run. Don't call this function with anything
+            // that is not a jump instruction.
+            // TODO: Just error out and report some "Internal Error" instead of
+            // panicking and breaking the program.
             _ => unreachable!(
                 "expected jump instruction at index {instruction_ptr}, but got {:?}",
                 self.bytecode.instructions[instruction_ptr]
