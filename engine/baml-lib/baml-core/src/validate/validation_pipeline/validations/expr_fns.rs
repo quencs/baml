@@ -219,5 +219,13 @@ fn validate_expression(ctx: &mut Context<'_>, expr: &Expression, scope: &HashSet
                 validate_expression(ctx, else_, scope);
             }
         }
+        Expression::ArrayAccess(base, index, span) => {
+            validate_expression(ctx, base, scope);
+            validate_expression(ctx, index, scope);
+        }
+        Expression::FieldAccess(base, field, span) => {
+            validate_expression(ctx, base, scope);
+            // Field access doesn't need to validate the field identifier itself
+        }
     }
 }

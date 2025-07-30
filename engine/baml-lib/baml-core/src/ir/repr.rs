@@ -494,6 +494,23 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
                     (span.clone(), None),
                 ))
             }
+            ast::Expression::ArrayAccess(base, index, span) => {
+                let base_ir = base.repr(db)?;
+                let index_ir = index.repr(db)?;
+                Ok(Expr::ArrayAccess {
+                    base: Arc::new(base_ir),
+                    index: Arc::new(index_ir),
+                    meta: (span.clone(), None), // Type will be inferred later
+                })
+            }
+            ast::Expression::FieldAccess(base, field, span) => {
+                let base_ir = base.repr(db)?;
+                Ok(Expr::FieldAccess {
+                    base: Arc::new(base_ir),
+                    field: field.name().to_string(),
+                    meta: (span.clone(), None), // Type will be inferred later
+                })
+            }
         }
     }
 }
@@ -2249,6 +2266,35 @@ pub fn annotate_variable(
                 meta: meta.clone(),
             }
         }
+        Expr::ArrayAccess { base, index, meta } => {
+            let new_base = annotate_variable(
+                target.clone(),
+                r#type.clone(),
+                Arc::unwrap_or_clone(base.clone()),
+            );
+            let new_index = annotate_variable(
+                target.clone(),
+                r#type.clone(),
+                Arc::unwrap_or_clone(index.clone()),
+            );
+            Expr::ArrayAccess {
+                base: Arc::new(new_base),
+                index: Arc::new(new_index),
+                meta: meta.clone(),
+            }
+        }
+        Expr::FieldAccess { base, field, meta } => {
+            let new_base = annotate_variable(
+                target.clone(),
+                r#type.clone(),
+                Arc::unwrap_or_clone(base.clone()),
+            );
+            Expr::FieldAccess {
+                base: Arc::new(new_base),
+                field: field.clone(),
+                meta: meta.clone(),
+            }
+        }
     }
 }
 
@@ -2754,6 +2800,13 @@ fn specialize_generics(expr: &Expr<ExprMetadata>, ctx: &mut HashMap<Name, Expr<E
         Expr::ForLoop { iterable, body, .. } => {
             specialize_generics(iterable, ctx);
             specialize_generics(body, ctx);
+        }
+        Expr::ArrayAccess { base, index, .. } => {
+            specialize_generics(base, ctx);
+            specialize_generics(index, ctx);
+        }
+        Expr::FieldAccess { base, .. } => {
+            specialize_generics(base, ctx);
         }
     }
 }

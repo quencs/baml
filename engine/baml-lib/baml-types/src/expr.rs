@@ -44,6 +44,18 @@ pub enum Expr<T> {
         body: Arc<Expr<T>>,
         meta: T,
     },
+    /// Array or map access: `base[index]`
+    ArrayAccess {
+        base: Arc<Expr<T>>,
+        index: Arc<Expr<T>>,
+        meta: T,
+    },
+    /// Field access: `base.field`
+    FieldAccess {
+        base: Arc<Expr<T>>,
+        field: String,
+        meta: T,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,6 +111,8 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
             Expr::Builtin(_, meta) => meta,
             Expr::If(_, _, _, meta) => meta,
             Expr::ForLoop { meta, .. } => meta,
+            Expr::ArrayAccess { meta, .. } => meta,
+            Expr::FieldAccess { meta, .. } => meta,
         }
     }
 
@@ -118,6 +132,8 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
             Expr::Builtin(_, meta) => meta,
             Expr::If(_, _, _, meta) => meta,
             Expr::ForLoop { meta, .. } => meta,
+            Expr::ArrayAccess { meta, .. } => meta,
+            Expr::FieldAccess { meta, .. } => meta,
         }
     }
 
@@ -137,6 +153,8 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
             Expr::Builtin(_, meta) => meta,
             Expr::If(_, _, _, meta) => meta,
             Expr::ForLoop { meta, .. } => meta,
+            Expr::ArrayAccess { meta, .. } => meta,
+            Expr::FieldAccess { meta, .. } => meta,
         }
     }
 }
@@ -227,6 +245,12 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
                     iterable.dump_str(),
                     body.dump_str()
                 )
+            }
+            Expr::ArrayAccess { base, index, .. } => {
+                format!("{}[{}]", base.dump_str(), index.dump_str())
+            }
+            Expr::FieldAccess { base, field, .. } => {
+                format!("{}.{}", base.dump_str(), field)
             }
         }
     }
@@ -350,6 +374,32 @@ impl<T: Clone + std::fmt::Debug> Expr<T> {
                 },
             ) => i1 == i2 && iter1.temporary_same_state(iter2) && body1.temporary_same_state(body2),
             (Expr::ForLoop { .. }, _) => false,
+            (
+                Expr::ArrayAccess {
+                    base: base1,
+                    index: index1,
+                    ..
+                },
+                Expr::ArrayAccess {
+                    base: base2,
+                    index: index2,
+                    ..
+                },
+            ) => base1.temporary_same_state(base2) && index1.temporary_same_state(index2),
+            (Expr::ArrayAccess { .. }, _) => false,
+            (
+                Expr::FieldAccess {
+                    base: base1,
+                    field: field1,
+                    ..
+                },
+                Expr::FieldAccess {
+                    base: base2,
+                    field: field2,
+                    ..
+                },
+            ) => base1.temporary_same_state(base2) && field1 == field2,
+            (Expr::FieldAccess { .. }, _) => false,
         }
     }
 }
@@ -459,6 +509,12 @@ impl Expr<ExprMetadata> {
                 free_vars.insert(item.clone());
                 free_vars
             }
+            Expr::ArrayAccess { base, index, .. } => {
+                let mut free_vars = base.free_vars();
+                free_vars.extend(index.free_vars());
+                free_vars
+            }
+            Expr::FieldAccess { base, .. } => base.free_vars(),
         }
     }
 
@@ -565,6 +621,16 @@ impl<T: Clone> Expr<T> {
                 body: Arc::new(body.open(target, new_name)),
                 meta: meta.clone(),
             },
+            Expr::ArrayAccess { base, index, meta } => Expr::ArrayAccess {
+                base: Arc::new(base.open(target, new_name)),
+                index: Arc::new(index.open(target, new_name)),
+                meta: meta.clone(),
+            },
+            Expr::FieldAccess { base, field, meta } => Expr::FieldAccess {
+                base: Arc::new(base.open(target, new_name)),
+                field: field.clone(),
+                meta: meta.clone(),
+            },
         }
     }
 
@@ -653,6 +719,16 @@ impl<T: Clone> Expr<T> {
                 body: Arc::new(body.close(new_index, target)),
                 meta: meta.clone(),
             },
+            Expr::ArrayAccess { base, index, meta } => Expr::ArrayAccess {
+                base: Arc::new(base.close(new_index, target)),
+                index: Arc::new(index.close(new_index, target)),
+                meta: meta.clone(),
+            },
+            Expr::FieldAccess { base, field, meta } => Expr::FieldAccess {
+                base: Arc::new(base.close(new_index, target)),
+                field: field.clone(),
+                meta: meta.clone(),
+            },
         }
     }
 }
@@ -736,6 +812,13 @@ impl<'a, T: 'a> Iterator for ExprIterator<'a, T> {
             Expr::ForLoop { iterable, body, .. } => {
                 self.stack.push_back(iterable);
                 self.stack.push_back(body);
+            }
+            Expr::ArrayAccess { base, index, .. } => {
+                self.stack.push_back(base);
+                self.stack.push_back(index);
+            }
+            Expr::FieldAccess { base, .. } => {
+                self.stack.push_back(base);
             }
             Expr::Builtin(_, _) => {}
         }

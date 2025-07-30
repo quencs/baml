@@ -355,6 +355,70 @@ pub fn typecheck_in_context(
                 ));
             }
         }
+        Expr::ArrayAccess { base, index, meta } => {
+            // Check that base is either a List or Map
+            match &base.meta().1 {
+                Some(TypeIR::List(_, _)) => {
+                    // Index should be an integer for lists
+                    if !compatible_as_subtype(
+                        ir,
+                        &index.meta().1,
+                        &Some(TypeIR::Primitive(TypeValue::Int, TypeMeta::default())),
+                    ) {
+                        diagnostics.push_error(DatamodelError::new_validation_error(
+                            "List index must be an integer",
+                            index.meta().0.clone(),
+                        ));
+                    }
+                }
+                Some(TypeIR::Map(key_type, _, _)) => {
+                    // Index should match the key type for maps
+                    if !compatible_as_subtype(ir, &index.meta().1, &Some(*key_type.clone())) {
+                        diagnostics.push_error(DatamodelError::new_validation_error(
+                            "Map index must match key type",
+                            index.meta().0.clone(),
+                        ));
+                    }
+                }
+                _ => {
+                    diagnostics.push_error(DatamodelError::new_validation_error(
+                        "Array access requires a list or map type",
+                        base.meta().0.clone(),
+                    ));
+                }
+            }
+            
+            typecheck_in_context(ir, diagnostics, typing_context, base)?;
+            typecheck_in_context(ir, diagnostics, typing_context, index)?;
+        }
+        Expr::FieldAccess { base, field, meta } => {
+            // Check that base is a class type and has the requested field
+            match &base.meta().1 {
+                Some(TypeIR::Class { name, .. }) => {
+                    if let Ok(class_walker) = ir.find_class(name) {
+                        if class_walker.find_field(field).is_none() {
+                            diagnostics.push_error(DatamodelError::new_validation_error(
+                                &format!("Class {} has no field {}", name, field),
+                                meta.0.clone(),
+                            ));
+                        }
+                    } else {
+                        diagnostics.push_error(DatamodelError::new_validation_error(
+                            &format!("Unknown class: {}", name),
+                            base.meta().0.clone(),
+                        ));
+                    }
+                }
+                _ => {
+                    diagnostics.push_error(DatamodelError::new_validation_error(
+                        "Field access requires a class type",
+                        base.meta().0.clone(),
+                    ));
+                }
+            }
+            
+            typecheck_in_context(ir, diagnostics, typing_context, base)?;
+        }
     };
 
     // Finally, assert that we know the type of the whole expression.
@@ -588,6 +652,44 @@ pub fn infer_types_in_context(
                 iterable: iterable.clone(),
                 body: new_body,
                 meta: meta.clone(),
+            })
+        }
+        Expr::ArrayAccess { base, index, meta } => {
+            let new_base = infer_types_in_context(typing_context, base.clone());
+            let new_index = infer_types_in_context(typing_context, index.clone());
+            
+            // Infer the type based on the base type
+            let inferred_type = match &new_base.meta().1 {
+                Some(TypeIR::List(inner_type, _)) => Some(*inner_type.clone()),
+                Some(TypeIR::Map(_, value_type, _)) => Some(*value_type.clone()),
+                _ => meta.1.clone(), // Fall back to existing type annotation
+            };
+            
+            let new_meta = (meta.0.clone(), inferred_type);
+            Arc::new(Expr::ArrayAccess {
+                base: new_base,
+                index: new_index,
+                meta: new_meta,
+            })
+        }
+        Expr::FieldAccess { base, field, meta } => {
+            let new_base = infer_types_in_context(typing_context, base.clone());
+            
+            // Try to infer field type from class definition
+            let inferred_type = match &new_base.meta().1 {
+                Some(TypeIR::Class { name, .. }) => {
+                    // TODO: For now, we don't have access to the IR in this context
+                    // This would require a larger refactor to pass the IR through
+                    meta.1.clone()
+                }
+                _ => meta.1.clone(),
+            };
+            
+            let new_meta = (meta.0.clone(), inferred_type);
+            Arc::new(Expr::FieldAccess {
+                base: new_base,
+                field: field.clone(),
+                meta: new_meta,
             })
         }
     }

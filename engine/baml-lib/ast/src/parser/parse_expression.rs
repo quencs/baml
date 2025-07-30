@@ -17,36 +17,96 @@ pub(crate) fn parse_expression(
     diagnostics: &mut internal_baml_diagnostics::Diagnostics,
 ) -> Option<Expression> {
     let first_child = token.into_inner().next()?;
-    let span = diagnostics.span(first_child.as_span());
     match first_child.as_rule() {
-        Rule::numeric_literal => Some(Expression::NumericValue(first_child.as_str().into(), span)),
-        Rule::string_literal => Some(parse_string_literal(first_child, diagnostics)),
+        Rule::postfix_expression => parse_postfix_expression(first_child, diagnostics),
+        _ => unreachable_rule!(first_child, Rule::expression),
+    }
+}
+
+fn parse_postfix_expression(
+    token: Pair<'_>,
+    diagnostics: &mut internal_baml_diagnostics::Diagnostics,
+) -> Option<Expression> {
+    let mut inner = token.into_inner();
+    let primary = inner.next()?;
+    
+    // Check if the primary token is actually a primary_expression rule
+    let mut expr = match primary.as_rule() {
+        Rule::primary_expression => {
+            // If it's a primary_expression rule, we need to unwrap it first
+            let primary_inner = primary.into_inner().next()?;
+            parse_primary_expression(primary_inner, diagnostics)?
+        }
+        _ => parse_primary_expression(primary, diagnostics)?
+    };
+    
+    for postfix_op in inner {
+        match postfix_op.as_rule() {
+            Rule::postfix_operator => {
+                if let Some(op) = postfix_op.into_inner().next() {
+                    match op.as_rule() {
+                        Rule::array_accessor => {
+                            let span = diagnostics.span(op.as_span());
+                            let mut accessor_inner = op.into_inner();
+                            if let Some(index_expr) = accessor_inner.next() {
+                                if let Some(index) = parse_expression(index_expr, diagnostics) {
+                                    expr = Expression::ArrayAccess(Box::new(expr), Box::new(index), span);
+                                }
+                            }
+                        }
+                        Rule::field_accessor => {
+                            let span = diagnostics.span(op.as_span());
+                            let mut accessor_inner = op.into_inner();
+                            if let Some(field_ident) = accessor_inner.next() {
+                                let field = parse_identifier(field_ident, diagnostics);
+                                expr = Expression::FieldAccess(Box::new(expr), field, span);
+                            }
+                        }
+                        _ => unreachable_rule!(op, Rule::postfix_operator),
+                    }
+                }
+            }
+            _ => unreachable_rule!(postfix_op, Rule::postfix_expression),
+        }
+    }
+    
+    Some(expr)
+}
+
+fn parse_primary_expression(
+    token: Pair<'_>,
+    diagnostics: &mut internal_baml_diagnostics::Diagnostics,
+) -> Option<Expression> {
+    let span = diagnostics.span(token.as_span());
+    match token.as_rule() {
+        Rule::numeric_literal => Some(Expression::NumericValue(token.as_str().into(), span)),
+        Rule::string_literal => Some(parse_string_literal(token, diagnostics)),
         Rule::raw_string_literal => Some(Expression::RawStringValue(parse_raw_string(
-            first_child,
+            token,
             diagnostics,
         ))),
         Rule::quoted_string_literal => {
-            let contents = first_child.into_inner().next().unwrap();
+            let contents = token.into_inner().next().unwrap();
             Some(Expression::StringValue(
                 unescape_string(contents.as_str()),
                 span,
             ))
         }
-        Rule::map_expression => Some(parse_map(first_child, diagnostics)),
-        Rule::array_expression => Some(parse_array(first_child, diagnostics)),
-        Rule::jinja_expression => Some(parse_jinja_expression(first_child, diagnostics)),
+        Rule::map_expression => Some(parse_map(token, diagnostics)),
+        Rule::array_expression => Some(parse_array(token, diagnostics)),
+        Rule::jinja_expression => Some(parse_jinja_expression(token, diagnostics)),
 
         Rule::identifier => Some(Expression::Identifier(parse_identifier(
-            first_child,
+            token,
             diagnostics,
         ))),
-        Rule::class_constructor => Some(parse_class_constructor(first_child, diagnostics)),
-        Rule::fn_app => parse_fn_app(first_child, diagnostics),
-        Rule::generic_fn_app => parse_generic_fn_app(first_child, diagnostics),
-        Rule::lambda => parse_lambda(first_child, diagnostics),
-        Rule::expr_block => parse_expr_block(first_child, diagnostics)
+        Rule::class_constructor => Some(parse_class_constructor(token, diagnostics)),
+        Rule::fn_app => parse_fn_app(token, diagnostics),
+        Rule::generic_fn_app => parse_generic_fn_app(token, diagnostics),
+        Rule::lambda => parse_lambda(token, diagnostics),
+        Rule::expr_block => parse_expr_block(token, diagnostics)
             .map(|block| Expression::ExprBlock(block, span)),
-        Rule::if_expression => parse_if_expression(first_child, diagnostics),
+        Rule::if_expression => parse_if_expression(token, diagnostics),
 
         Rule::BLOCK_LEVEL_CATCH_ALL => {
             diagnostics.push_error(
@@ -58,7 +118,7 @@ pub(crate) fn parse_expression(
             None
         }
 
-        _ => unreachable_rule!(first_child, Rule::expression),
+        _ => unreachable_rule!(token, Rule::primary_expression),
     }
 }
 
