@@ -14,7 +14,6 @@ pub mod hir;
 use std::collections::{HashMap, HashSet};
 
 use baml_vm::{Bytecode, Class, Function, FunctionKind, Instruction, Object, Value};
-use internal_baml_core::ast;
 use internal_baml_parser_database::ParserDatabase;
 
 /// Compile a Baml AST into bytecode.
@@ -239,6 +238,33 @@ impl<'g> HirCompiler<'g> {
         }
     }
 
+    fn compile_expression_block(&mut self, block: &hir::Block) {
+        // Compile all statements except the last one
+        let num_stmts = block.statements.len();
+        if num_stmts > 0 {
+            for statement in &block.statements[..num_stmts - 1] {
+                self.compile_statement(statement);
+            }
+            
+            // The last statement should be an Expression or Return
+            // For expression blocks, it should leave its value on the stack
+            match &block.statements[num_stmts - 1] {
+                hir::Statement::Expression { expr, .. } => {
+                    // Just compile the expression, leaving its value on the stack
+                    self.compile_expression(expr);
+                }
+                hir::Statement::Return { .. } => {
+                    // This shouldn't happen in an expression block
+                    panic!("Return statement in expression block");
+                }
+                _ => {
+                    // Other statements in final position
+                    self.compile_statement(&block.statements[num_stmts - 1]);
+                }
+            }
+        }
+    }
+
     fn compile_statement(&mut self, statement: &hir::Statement) {
         match statement {
             hir::Statement::Let { name, value, .. } => {
@@ -446,9 +472,38 @@ impl<'g> HirCompiler<'g> {
             }
             hir::Expression::ExpressionBlock(block, _) => {
                 // Expression blocks need special handling to maintain proper scoping
-                // For now, we'll compile them as regular blocks
-                // TODO: Implement proper scoping for expression blocks
-                self.compile_block(block);
+                // We need to track how many locals are defined in the block
+                // and emit EndBlock to clean them up
+                
+                // Save the current scope state
+                self.scope += 1;
+                let locals_before = self.locals.len();
+                
+                // Compile the block
+                self.compile_expression_block(block);
+                
+                // Count how many locals were added in this block
+                let locals_added = self.locals.len() - locals_before;
+                
+                // If we're in a nested scope and added locals, emit EndBlock
+                // Note: scope > 0 because we already incremented it
+                if self.scope > 0 && locals_added > 0 {
+                    self.emit(Instruction::EndBlock(locals_added));
+                    
+                    // Remove the scoped locals from our tracking
+                    // We need to remove the last `locals_added` entries
+                    let keys_to_remove: Vec<String> = self.locals
+                        .iter()
+                        .filter(|(_, &index)| index > locals_before)
+                        .map(|(name, _)| name.clone())
+                        .collect();
+                    
+                    for key in keys_to_remove {
+                        self.locals.remove(&key);
+                    }
+                }
+                
+                self.scope -= 1;
             }
             hir::Expression::If(condition, then_expr, else_expr, _) => {
                 // First, compile the condition. This will leave the end result
