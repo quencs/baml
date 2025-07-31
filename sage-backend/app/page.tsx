@@ -4,11 +4,23 @@ import { type QueryResponse, submitQuery } from './actions/query';
 
 // Define the 5 placeholder queries
 const PLACEHOLDER_QUERIES = [
-  'How do I define a function in BAML?',
-  'What are BAML types and how do I use them?',
-  'How to connect to OpenAI using BAML clients?',
-  'What is the difference between class and enum in BAML?',
-  'How do I test BAML functions?',
+  'can I load enums or classes from a saved state, (after defining dynamically previously, then saving)',
+  'cal I load enums from a class not created in baml? (for instance saved state of dynamic types)',
+  'Can I bring my own LLM client?',
+  'How do I see the prompt that rendered in the response',
+  'building a test to incorporate a test image file',
+  'Can I use Excel sheets as an input',
+  'hi how do i do this',
+  'How can I type-hint a list of 3-lenght tuples of strings?',
+  'i dont understand why this is required. really. Give an example',
+  "I'm not a developer or software engineer but can i still learn baml?",
+  'what do i have to know to learn baml?',
+  'How can I control retries and fallback?',
+  'Help me understand this code:\n\n\ndef _pick_best_categories(text: str, categories: list[Category]) -> list[Category]:\n    tb = TypeBuilder()\n    for k in categories:\n        val = tb.Category.add_value(k.name)\n        val.description(k.llm_description)\n    selected_categories = b.PickBestCategories(text, count=3, baml_options={ "tb": tb })\n    return [category for category in categories if category.name in selected_categories]',
+  'i am using provider "openai-generic" to tlak to ollama what options am i allowed ot pass?',
+  'can you give an example of how the type alias is used?',
+  'can you make an alias dynamically for an existing enum using tb?',
+  'Is there a retry after a BamlValidationError?',
 ];
 
 interface QueryResult {
@@ -64,6 +76,13 @@ export default function Home() {
     }
   };
 
+  // Function to retry all queries
+  const retryAllQueries = () => {
+    PLACEHOLDER_QUERIES.forEach((_, index) => {
+      runQuery(index);
+    });
+  };
+
   // Run all queries on mount
   useEffect(() => {
     PLACEHOLDER_QUERIES.forEach((_, index) => {
@@ -83,7 +102,15 @@ export default function Home() {
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-24">
-                  Action
+                  <div className="flex flex-col gap-1">
+                    <span>Action</span>
+                    <button
+                      onClick={retryAllQueries}
+                      className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                    >
+                      Retry All
+                    </button>
+                  </div>
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-1/4">
                   Query
