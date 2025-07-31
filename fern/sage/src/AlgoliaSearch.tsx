@@ -9,15 +9,41 @@ import {
   useHits,
   useSearchBox,
 } from 'react-instantsearch';
+import { z } from 'zod';
 import BamlLambWhite from './baml-lamb-white.svg';
 
 const SEARCH_INDEX_NAME = 'fern_docs_search';
-const APP_ID = 'P6VYURBGG0';
-const API_KEY =
-  'YWFiYjAzM2UxMGZkODA5YTA1ZTRiODQ3NDU1NzAzZmIwZWRiY2MwMDY1ZDQxMjQzZGE3ZWZhNWFlZDkyYTNjMmZpbHRlcnM9ZG9tYWluJTNBZG9jcy5ib3VuZGFyeW1sLmNvbSUyMEFORCUyMGF1dGhlZCUzQWZhbHNlJTIwQU5EJTIwTk9UJTIwdHlwZSUzQW5hdmlnYXRpb24mcmVzdHJpY3RJbmRpY2VzPWZlcm5fZG9jc19zZWFyY2gmdXNlclRva2VuPWFub255bW91cy11c2VyLWVmNjBiMzU2LTVkMzYtNGU3YS05N2NmLWI5NjMyMDQ3NmQ0NyZ2YWxpZFVudGlsPTE3NTM0ODEwNjE=';
+const API_ENDPOINT = 'https://docs.boundaryml.com/api/fern-docs/search/v2/key';
 
-// Create the search client
-const searchClient = algoliasearch(APP_ID, API_KEY);
+// Zod schema for API response validation
+const SearchCredentialsSchema = z.object({
+  appId: z.string(),
+  apiKey: z.string(),
+});
+
+type SearchCredentials = z.infer<typeof SearchCredentialsSchema>;
+
+// Function to fetch Algolia search credentials from API
+async function fetchSearchCredentials(): Promise<SearchCredentials> {
+  try {
+    const response = await fetch(API_ENDPOINT);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch search credentials: ${response.status}`);
+    }
+    const data = await response.json();
+    
+    // Validate the response with Zod
+    const credentials = SearchCredentialsSchema.parse(data);
+    return credentials;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error('Invalid API response format:', error.errors);
+      throw new Error('Invalid search credentials response format');
+    }
+    console.error('Error fetching search credentials:', error);
+    throw error;
+  }
+}
 
 // Create search filters for the domain
 const createSearchFilters = () => {
@@ -867,6 +893,39 @@ export default function AlgoliaSearch({
   isAIOpen?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [searchClient, setSearchClient] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeSearch = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const credentials = await fetchSearchCredentials();
+        
+        if (mounted) {
+          const client = algoliasearch(credentials.appId, credentials.apiKey);
+          setSearchClient(client);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Failed to initialize search');
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initializeSearch();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleAskAI = (query: string) => {
     if (onAskAI) {
@@ -879,6 +938,50 @@ export default function AlgoliaSearch({
       onToggleAI();
     }
   };
+
+  if (isLoading) {
+    return (
+      <div style={{ position: 'relative', width: '100%' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: '#ffffff',
+            border: '1.5px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            color: '#9ca3af',
+            fontSize: '14px',
+          }}
+        >
+          <SearchIcon />
+          <span style={{ marginLeft: '12px' }}>Loading search...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !searchClient) {
+    return (
+      <div style={{ position: 'relative', width: '100%' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: '#ffffff',
+            border: '1.5px solid #ef4444',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            color: '#ef4444',
+            fontSize: '14px',
+          }}
+        >
+          <SearchIcon />
+          <span style={{ marginLeft: '12px' }}>Search unavailable</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>

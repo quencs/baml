@@ -17,7 +17,11 @@ export default function Home() {
     setResult(null);
 
     try {
-      const response = await submitQuery(query);
+      const response = await submitQuery({
+        query,
+        prev_messages: [],
+        language_preference: 'Python',
+      });
       setResult(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
