@@ -31,6 +31,14 @@ function setCachedResult(cacheKey: string, result: QueryResponse): void {
   }
 }
 
+function invalidateCache(cacheKey: string): void {
+  try {
+    localStorage.removeItem(CACHE_PREFIX + cacheKey);
+  } catch {
+    // localStorage might be unavailable, ignore silently
+  }
+}
+
 async function cachedSubmitQuery(
   queryRequest: QueryRequest,
 ): Promise<QueryResponse> {
@@ -192,6 +200,10 @@ export default function Home() {
     );
 
     try {
+      // Invalidate cache before making new request
+      const cacheKey = await hashQueryRequest(PLACEHOLDER_QUERIES[index].input);
+      invalidateCache(cacheKey);
+      
       const response = await cachedSubmitQuery(
         PLACEHOLDER_QUERIES[index].input,
       );
