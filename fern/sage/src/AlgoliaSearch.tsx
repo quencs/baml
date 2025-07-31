@@ -31,7 +31,7 @@ async function fetchSearchCredentials(): Promise<SearchCredentials> {
       throw new Error(`Failed to fetch search credentials: ${response.status}`);
     }
     const data = await response.json();
-    
+
     // Validate the response with Zod
     const credentials = SearchCredentialsSchema.parse(data);
     return credentials;
@@ -274,7 +274,7 @@ function Hit({
             lineHeight: '1.4',
             color: '#374151',
             zIndex: 1000,
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+            boxShadow: 'none',
             pointerEvents: 'none',
             maxHeight: '200px',
             overflowY: 'auto',
@@ -399,7 +399,7 @@ function AIIcon() {
         style={{
           width: '17px',
           height: '17px',
-          filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))',
+          filter: 'none',
         }}
       />
     </div>
@@ -820,8 +820,7 @@ function CustomHits({
         background: '#ffffff',
         border: '1px solid #e5e7eb',
         borderRadius: '12px',
-        boxShadow:
-          '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)',
+        boxShadow: 'none',
         zIndex: 1000,
         maxHeight: '480px',
         overflowY: 'auto',
@@ -904,9 +903,9 @@ export default function AlgoliaSearch({
       try {
         setIsLoading(true);
         setError(null);
-        
+
         const credentials = await fetchSearchCredentials();
-        
+
         if (mounted) {
           const client = algoliasearch(credentials.appId, credentials.apiKey);
           setSearchClient(client);
@@ -914,7 +913,9 @@ export default function AlgoliaSearch({
         }
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err.message : 'Failed to initialize search');
+          setError(
+            err instanceof Error ? err.message : 'Failed to initialize search',
+          );
           setIsLoading(false);
         }
       }

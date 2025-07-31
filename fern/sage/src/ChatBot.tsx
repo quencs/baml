@@ -426,7 +426,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
               style={{
                 width: '26px',
                 height: '26px',
-                filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))',
+                filter: 'none',
               }}
             />
           </div>
@@ -585,9 +585,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                     : '#111827',
                 wordWrap: 'break-word',
                 border: message.isUser ? 'none' : '1px solid #e5e7eb',
-                boxShadow: message.isUser
-                  ? '0 4px 12px rgba(125, 71, 227, 0.3)'
-                  : '0 2px 8px rgba(0, 0, 0, 0.08)',
+                boxShadow: 'none',
               }}
             >
               {message.isUser ? (
@@ -927,7 +925,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
               backgroundColor: '#ffffff',
               color: '#6b7280',
               border: '1px solid #e5e7eb',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              boxShadow: 'none',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
