@@ -15,6 +15,7 @@ const QueryResponseSchema = z.object({
     }),
   ),
   answer: z.string().optional().or(z.null()),
+  suggested_messages: z.array(z.string()).optional(),
 });
 
 export type QueryResponse = z.infer<typeof QueryResponseSchema>;
@@ -56,6 +57,7 @@ export async function submitQuery(
     ranked_docs: Array.from(
       new Map(relevantDocs.map((doc) => [doc.url, doc])).values(),
     ),
+    suggested_messages: plan.refine_query?.suggested_queries,
   };
 
   return resp;
