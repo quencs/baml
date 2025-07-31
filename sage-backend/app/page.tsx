@@ -2,15 +2,55 @@
 import { useEffect, useState } from 'react';
 import { type QueryResponse, submitQuery } from './actions/query';
 import type { QueryRequest } from './types';
+async function hashQueryRequest(request: QueryRequest): Promise<string> {
+  const sortedRequest = JSON.stringify(request, Object.keys(request).sort());
+  const encoder = new TextEncoder();
+  const data = encoder.encode(sortedRequest);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Browser localStorage cache utilities
+const CACHE_PREFIX = 'query_cache_';
+
+function getCachedResult(cacheKey: string): QueryResponse | null {
+  try {
+    const cached = localStorage.getItem(CACHE_PREFIX + cacheKey);
+    return cached ? JSON.parse(cached) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedResult(cacheKey: string, result: QueryResponse): void {
+  try {
+    localStorage.setItem(CACHE_PREFIX + cacheKey, JSON.stringify(result));
+  } catch {
+    // localStorage might be full or unavailable, ignore silently
+  }
+}
+
+async function cachedSubmitQuery(
+  queryRequest: QueryRequest,
+): Promise<QueryResponse> {
+  const cacheKey = await hashQueryRequest(queryRequest);
+
+  // Check if result is already cached in localStorage
+  const cachedResult = getCachedResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+
+  // If not cached, call the original function and cache the result
+  const result = await submitQuery(queryRequest);
+  setCachedResult(cacheKey, result);
+
+  return result;
+}
 
 // Define the placeholder queries with optional inspect notes
 const PLACEHOLDER_QUERIES: { input: QueryRequest; inspectNotes?: string }[] = [
-  {
-    input: {
-      query: 'Can I use Excel sheets as an input',
-      prev_messages: [],
-    },
-  },
   {
     input: {
       query:
@@ -152,7 +192,9 @@ export default function Home() {
     );
 
     try {
-      const response = await submitQuery(PLACEHOLDER_QUERIES[index].input);
+      const response = await cachedSubmitQuery(
+        PLACEHOLDER_QUERIES[index].input,
+      );
 
       setQueryResults((prev) =>
         prev.map((item, i) =>
@@ -211,7 +253,7 @@ export default function Home() {
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-2/3">
                   Result
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-48">
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-96">
                   Inspect Notes
                 </th>
               </tr>
