@@ -59,7 +59,7 @@ class RelevantDoc {
 function PlanQuery(query: Query) -> QueryActionPlan {
   // Specify a client as provider/model-name
   // you can use custom LLM params with a custom client name from clients.baml like "client CustomHaiku"
-  client "openai/gpt-4o-mini" // Set OPENAI_API_KEY to use this client.
+  client "anthropic/claude-3-5-sonnet-20240620" // Set OPENAI_API_KEY to use this client.
   prompt #"
     {{ _.role("system") }}
     You are a librarian answering queries a user has about BAML (an AI framework to write LLM prompts as functions).
