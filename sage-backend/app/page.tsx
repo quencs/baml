@@ -103,7 +103,7 @@ export default function Home() {
                       : 'bg-gray-100 dark:bg-gray-700'
                   }`}
                 >
-                  <td className="px-4 py-4 align-top">
+                  <td className="px-4 py-4 align-middle">
                     <button
                       onClick={() => runQuery(index)}
                       disabled={item.isLoading}
@@ -112,7 +112,7 @@ export default function Home() {
                       {item.isLoading ? 'Loading...' : 'Retry'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 align-top">
+                  <td className="px-6 py-4 align-middle">
                     <p className="text-sm text-gray-700 dark:text-gray-300">
                       {item.query}
                     </p>
@@ -136,7 +136,7 @@ export default function Home() {
                     )}
 
                     {item.response && (
-                      <div className="flex gap-4">
+                      <div className="flex gap-4 flex-row items-center">
                         {/* Answer */}
                         <div className="flex-1">
                           {item.response.answer && (
@@ -151,30 +151,32 @@ export default function Home() {
                         {/* Relevant Documents */}
                         {item.response.ranked_docs &&
                           item.response.ranked_docs.length > 0 && (
-                            <div className="w-80 space-y-2">
+                            <div className="w-96">
                               <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                                 Related Documents:
                               </p>
-                              <div className="space-y-1">
+                              <div>
                                 {item.response.ranked_docs.map((doc) => (
                                   <div
                                     key={doc.url}
-                                    className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-xs"
+                                    className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-xs mb-1"
                                   >
-                                    <div className="space-y-1">
-                                      <p className="font-medium text-gray-700 dark:text-gray-300 truncate">
-                                        {doc.title}
-                                      </p>
-                                      <a
-                                        href={doc.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 dark:text-blue-400 hover:underline truncate block"
-                                      >
-                                        {doc.url}
-                                      </a>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-gray-700 dark:text-gray-300 truncate text-xs">
+                                          {doc.title}
+                                        </p>
+                                        <a
+                                          href={doc.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 dark:text-blue-400 hover:underline truncate block text-xs"
+                                        >
+                                          {doc.url}
+                                        </a>
+                                      </div>
                                       <span
-                                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                        className={`flex-shrink-0 px-2 py-0.5 rounded text-xs font-medium ${
                                           doc.relevance === 'very-relevant'
                                             ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                                             : doc.relevance === 'relevant'
