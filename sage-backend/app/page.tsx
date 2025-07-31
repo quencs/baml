@@ -163,11 +163,14 @@ export default function Home() {
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-72">
                 Query
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-1/2">
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                 Answer
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-48">
                 Related Documents
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-48">
+                Suggested Messages
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-96">
                 Inspect Notes
@@ -220,7 +223,7 @@ export default function Home() {
 
                   {item.response && item.response.answer && (
                     <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded">
-                      <p className="text-sm text-gray-800 dark:text-gray-200">
+                      <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
                         {item.response.answer}
                       </p>
                     </div>
@@ -262,6 +265,25 @@ export default function Home() {
                                   {doc.relevance}
                                 </span>
                               </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                </td>
+                <td className="px-6 py-4">
+                  {item.response?.suggested_messages &&
+                    item.response.suggested_messages.length > 0 && (
+                      <div>
+                        <div>
+                          {item.response.suggested_messages.map((message, msgIndex) => (
+                            <div
+                              key={msgIndex}
+                              className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-xs mb-1"
+                            >
+                              <p className="text-blue-800 dark:text-blue-200">
+                                {message}
+                              </p>
                             </div>
                           ))}
                         </div>

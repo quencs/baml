@@ -57,9 +57,7 @@ class RelevantDoc {
 
 // Create a function to extract the resume from a string.
 function PlanQuery(query: Query) -> QueryActionPlan {
-  // Specify a client as provider/model-name
-  // you can use custom LLM params with a custom client name from clients.baml like "client CustomHaiku"
-  client "anthropic/claude-3-5-sonnet-20240620" // Set OPENAI_API_KEY to use this client.
+  client "anthropic/claude-3-5-sonnet-20241022"
   prompt #"
     {{ _.role("system") }}
     You are a librarian answering queries a user has about BAML (an AI framework to write LLM prompts as functions).
@@ -178,7 +176,7 @@ function PlanQuery(query: Query) -> QueryActionPlan {
     If you generate application code to answer the user's query, use the following language: {{ query.language_preference }}
     {% endif %}
 
-    If you are not sure of the answer (you're not sure how to write the code), you can tell the user to join the Discord server and ask the question there (we respond very fast)
+    If you are not sure of the answer (you're not sure how to write the code), encourage them to ask in the [BAML Discord](https://boundaryml.com/discord).
 
     {{ ctx.output_format }}
 
