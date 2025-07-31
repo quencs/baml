@@ -1,30 +1,131 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { type QueryResponse, submitQuery } from './actions/query';
+import type { QueryRequest } from './types';
 
-// Define the 5 placeholder queries
-const PLACEHOLDER_QUERIES = [
-  'can I load enums or classes from a saved state, (after defining dynamically previously, then saving)',
-  'cal I load enums from a class not created in baml? (for instance saved state of dynamic types)',
-  'Can I bring my own LLM client?',
-  'How do I see the prompt that rendered in the response',
-  'building a test to incorporate a test image file',
-  'Can I use Excel sheets as an input',
-  'hi how do i do this',
-  'How can I type-hint a list of 3-lenght tuples of strings?',
-  'i dont understand why this is required. really. Give an example',
-  "I'm not a developer or software engineer but can i still learn baml?",
-  'what do i have to know to learn baml?',
-  'How can I control retries and fallback?',
-  'Help me understand this code:\n\n\ndef _pick_best_categories(text: str, categories: list[Category]) -> list[Category]:\n    tb = TypeBuilder()\n    for k in categories:\n        val = tb.Category.add_value(k.name)\n        val.description(k.llm_description)\n    selected_categories = b.PickBestCategories(text, count=3, baml_options={ "tb": tb })\n    return [category for category in categories if category.name in selected_categories]',
-  'i am using provider "openai-generic" to tlak to ollama what options am i allowed ot pass?',
-  'can you give an example of how the type alias is used?',
-  'can you make an alias dynamically for an existing enum using tb?',
-  'Is there a retry after a BamlValidationError?',
+// Define the placeholder queries with optional inspect notes
+const PLACEHOLDER_QUERIES: { input: QueryRequest; inspectNotes?: string }[] = [
+  {
+    input: {
+      query: 'Can I use Excel sheets as an input',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query:
+        'can I load enums or classes from a saved state, (after defining dynamically previously, then saving)',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query:
+        'cal I load enums from a class not created in baml? (for instance saved state of dynamic types)',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'Can I bring my own LLM client?',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'How do I see the prompt that rendered in the response',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'building a test to incorporate a test image file',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'Can I use Excel sheets as an input',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'hi how do i do this',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'How can I type-hint a list of 3-lenght tuples of strings?',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'i dont understand why this is required. really. Give an example',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query:
+        "I'm not a developer or software engineer but can i still learn baml?",
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'what do i have to know to learn baml?',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'How can I control retries and fallback?',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query:
+        'Help me understand this code:\n\n\ndef _pick_best_categories(text: str, categories: list[Category]) -> list[Category]:\n    tb = TypeBuilder()\n    for k in categories:\n        val = tb.Category.add_value(k.name)\n        val.description(k.llm_description)\n    selected_categories = b.PickBestCategories(text, count=3, baml_options={ "tb": tb })\n    return [category for category in categories if category.name in selected_categories]',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query:
+        'i am using provider "openai-generic" to tlak to ollama what options am i allowed ot pass?',
+      prev_messages: [],
+    },
+  },
+  {
+    input: {
+      query: 'can you give an example of how the type alias is used?',
+      prev_messages: [],
+    },
+    inspectNotes:
+      'answer should talk about the `@alias` feature of BAML, but often treats' +
+      'this as a "type alias" in the generic sense of the phrase',
+  },
+  {
+    input: {
+      query: 'can you make an alias dynamically for an existing enum using tb?',
+      prev_messages: [],
+    },
+    inspectNotes: 'answer should reference TypeBuilder, not baml code',
+  },
+  {
+    input: {
+      query: 'Is there a retry after a BamlValidationError?',
+      prev_messages: [],
+    },
+  },
 ];
 
 interface QueryResult {
-  query: string;
+  queryData: { input: QueryRequest; inspectNotes?: string };
   response: QueryResponse | null;
   error: string | null;
   isLoading: boolean;
@@ -32,8 +133,8 @@ interface QueryResult {
 
 export default function Home() {
   const [queryResults, setQueryResults] = useState<QueryResult[]>(
-    PLACEHOLDER_QUERIES.map((query) => ({
-      query,
+    PLACEHOLDER_QUERIES.map((queryData) => ({
+      queryData,
       response: null,
       error: null,
       isLoading: false,
@@ -51,10 +152,7 @@ export default function Home() {
     );
 
     try {
-      const response = await submitQuery({
-        query: PLACEHOLDER_QUERIES[index],
-        prev_messages: [],
-      });
+      const response = await submitQuery(PLACEHOLDER_QUERIES[index].input);
 
       setQueryResults((prev) =>
         prev.map((item, i) =>
@@ -77,17 +175,13 @@ export default function Home() {
   };
 
   // Function to retry all queries
-  const retryAllQueries = () => {
-    PLACEHOLDER_QUERIES.forEach((_, index) => {
-      runQuery(index);
-    });
+  const retryAllQueries = async () => {
+    await Promise.all(PLACEHOLDER_QUERIES.map((_, index) => runQuery(index)));
   };
 
   // Run all queries on mount
   useEffect(() => {
-    PLACEHOLDER_QUERIES.forEach((_, index) => {
-      runQuery(index);
-    });
+    Promise.all(PLACEHOLDER_QUERIES.map((_, index) => runQuery(index)));
   }, []);
 
   return (
@@ -101,9 +195,8 @@ export default function Home() {
           <table className="w-full border-collapse bg-white dark:bg-gray-800 rounded-lg shadow-lg">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-24">
+                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                   <div className="flex flex-col gap-1">
-                    <span>Action</span>
                     <button
                       onClick={retryAllQueries}
                       className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
@@ -115,8 +208,11 @@ export default function Home() {
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-1/4">
                   Query
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-2/3">
                   Result
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-48">
+                  Inspect Notes
                 </th>
               </tr>
             </thead>
@@ -141,7 +237,7 @@ export default function Home() {
                   </td>
                   <td className="px-6 py-4 align-middle">
                     <p className="text-sm text-gray-700 dark:text-gray-300">
-                      {item.query}
+                      {item.queryData.input.query}
                     </p>
                   </td>
                   <td className="px-6 py-4">
@@ -219,6 +315,15 @@ export default function Home() {
                               </div>
                             </div>
                           )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 align-middle">
+                    {item.queryData.inspectNotes && (
+                      <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+                        <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                          {item.queryData.inspectNotes}
+                        </p>
                       </div>
                     )}
                   </td>
