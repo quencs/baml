@@ -83,7 +83,7 @@ jobs:
           PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
         run: |
           pnpm vercel pull --yes --token=${{ secrets.VERCEL_TOKEN_SAM }}
-          pnpm vercel build --prod --token=${{ secrets.VERCEL_TOKEN_SAM }}
+          pnpm vercel build --token=${{ secrets.VERCEL_TOKEN_SAM }}
 
       - name: Deploy preview backend
         env:
