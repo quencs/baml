@@ -68,6 +68,7 @@ jobs:
           install-dependencies: false
 
       - name: Install Fern
+        working-directory: .
         run: npm install -g fern-api
 
       - name: Pull sage-backend out of monorepo
