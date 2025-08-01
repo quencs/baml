@@ -4,7 +4,7 @@ module.exports = {
   entry: './src/index.tsx',
   output: {
     filename: 'custom.js',
-    path: path.resolve(__dirname, '../'),
+    path: path.resolve(__dirname, '../../../fern'),
     library: 'FernChatbot',
     libraryTarget: 'umd',
     globalObject: 'this',

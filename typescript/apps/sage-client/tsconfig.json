@@ -14,9 +14,13 @@
     "isolatedModules": true,
     "noEmit": false,
     "jsx": "react-jsx",
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": [
     "src/**/*"
-  ]
+, "components/message-actions.tsx", "components/message-editor.tsx", "components/message-reasoning.tsx", "components/message.tsx", "components/messages.tsx"  ]
 }
