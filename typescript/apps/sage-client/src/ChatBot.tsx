@@ -2,10 +2,9 @@ import { useAtom } from 'jotai';
 import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { z } from 'zod';
 import BamlLambWhite from './baml-lamb-white.svg';
 import { type Message, messagesAtom } from './store';
-
+import { type QueryRequest, QueryResponseSchema } from './api-types';
 import { Messages } from '@baml/ui/chatbot/messages';
 
 const OPEN_BY_DEFAULT = true;
@@ -16,33 +15,6 @@ interface ChatBotProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
-
-// IfChange
-const QueryRequestSchema = z.object({
-  query: z.string(),
-  language_preference: z.string().optional(),
-  prev_messages: z.array(
-    z.object({
-      role: z.enum(['user', 'assistant']),
-      text: z.string(),
-    }),
-  ),
-});
-type QueryRequest = z.infer<typeof QueryRequestSchema>;
-
-const QueryResponseSchema = z.object({
-  ranked_docs: z.array(
-    z.object({
-      title: z.string(),
-      url: z.string(),
-      relevance: z.enum(['very-relevant', 'relevant', 'not-relevant']),
-    }),
-  ),
-  answer: z.string().optional().or(z.null()),
-  suggestions: z.array(z.string()).optional(),
-});
-type QueryResponse = z.infer<typeof QueryResponseSchema>;
-// ThenChange baml/sage-backend/app/types.ts
 
 // Transform messages for API format
 const transformMessagesForAPI = (messages: Message[]): Array<{role: 'user' | 'assistant', text: string}> => {
@@ -1013,6 +985,73 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = OPEN_BY_DEFAULT, onClose }) 
                     >
                       {doc.title}
                     </a>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Suggestions */}
+            {message.role === 'assistant/success' && message.response.suggested_messages && message.response.suggested_messages.length > 0 && (
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  padding: '12px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#374151',
+                  }}
+                >
+                  💡 Suggested follow-ups:
+                </div>
+                {message.response.suggested_messages.map((suggestion, index) => (
+                  <div key={index} style={{ marginBottom: '4px' }}>
+                    <button
+                      onClick={() => sendMessage(suggestion)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#7d47e3',
+                        textDecoration: 'none',
+                        fontSize: '12px',
+                        transition: 'all 0.2s ease',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        textAlign: 'left',
+                        width: '100%',
+                        borderRadius: '4px',
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        e.currentTarget.style.textDecoration = 'underline';
+                        e.currentTarget.style.color = '#6b3bc9';
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        e.currentTarget.style.textDecoration = 'underline';
+                        e.currentTarget.style.color = '#6b3bc9';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.textDecoration = 'none';
+                        e.currentTarget.style.color = '#7d47e3';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.textDecoration = 'none';
+                        e.currentTarget.style.color = '#7d47e3';
+                      }}
+                    >
+                      {suggestion}
+                    </button>
                   </div>
                 ))}
               </div>

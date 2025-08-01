@@ -1,4 +1,5 @@
 import { atom } from 'jotai';
+import { type QueryResponse } from './api-types';
 
 export type Message = {
   id: string;
@@ -10,15 +11,7 @@ export type Message = {
     }
   | {
       role: 'assistant/success';
-      response: {
-        ranked_docs: Array<{
-          title: string;
-          url: string;
-          relevance: 'very-relevant' | 'relevant' | 'not-relevant';
-        }>;
-        answer?: string | null;
-        suggestions?: string[];
-      };
+      response: QueryResponse;
     }
   | {
       role: 'assistant/error';
