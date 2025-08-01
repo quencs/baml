@@ -92,9 +92,9 @@ jobs:
         run: |
           (
             if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/canary" ]; then
-              pnpm vercel deploy --prod --prebuilt
+              pnpm vercel deploy --prod --prebuilt --token=${{ secrets.VERCEL_TOKEN_SAM }}
             else
-              pnpm vercel deploy --prebuilt
+              pnpm vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN_SAM }}
             fi
           ) | tee preview_url.txt
 
