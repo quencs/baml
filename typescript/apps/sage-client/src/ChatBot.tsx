@@ -398,6 +398,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         }}
       />
 
+      {/*
       <Messages
           chatId={'asdf'}
           status={'submitted'}
@@ -410,7 +411,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           regenerate={() => Promise.resolve()}
           isReadonly={false}
           isArtifactVisible={false}
-        />
+        /> */}
 
       {/* <DataStreamHandler /> */}
 
