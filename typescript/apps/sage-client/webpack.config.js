@@ -23,6 +23,10 @@ module.exports = {
         test: /\.svg$/,
         type: 'asset/inline',
       },
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+      },
     ],
   },
   externals: {

@@ -8,6 +8,9 @@ import { type Message, messagesAtom } from './store';
 
 import { Messages } from '@baml/ui/chatbot/messages';
 
+const OPEN_BY_DEFAULT = true;
+const SESSION_STORAGE_KEY = 'baml-ai-context';
+
 interface ChatBotProps {
   apiEndpoint?: string;
   isOpen?: boolean;
@@ -41,6 +44,42 @@ const QueryResponseSchema = z.object({
 type QueryResponse = z.infer<typeof QueryResponseSchema>;
 // ThenChange baml/sage-backend/app/types.ts
 
+// Transform messages for API format
+const transformMessagesForAPI = (messages: Message[]): Array<{role: 'user' | 'assistant', text: string}> => {
+  return messages
+    .filter(msg => msg.role === 'user' || (msg.role === 'assistant/success' && msg.response.answer))
+    .map(msg => {
+      if (msg.role === 'user') {
+        return { role: 'user', text: msg.text };
+      } else if (msg.role === 'assistant/success' && msg.response.answer) {
+        return { role: 'assistant', text: msg.response.answer };
+      }
+      throw new Error('Unexpected message type in transform');
+    });
+};
+
+// Serialize errors to storable format
+const serializeError = (error: unknown): { message: string; code?: string; statusCode?: number } => {
+  if (error instanceof Error) {
+    const serialized: { message: string; code?: string; statusCode?: number } = { 
+      message: error.message 
+    };
+    if ('code' in error && error.code) serialized.code = String(error.code);
+    if ('statusCode' in error && error.statusCode) serialized.statusCode = Number(error.statusCode);
+    
+    // Handle specific HTTP errors
+    if (error.message.includes('HTTP error! status:')) {
+      const match = error.message.match(/status: (\d+)/);
+      if (match) {
+        serialized.statusCode = parseInt(match[1]);
+      }
+    }
+    
+    return serialized;
+  }
+  return { message: String(error) };
+};
+
 const postDocChat = async (req: QueryRequest) => {
   console.log('postDocChat', req);
   const response = await fetch(API_ENDPOINT, {
@@ -55,7 +94,9 @@ const postDocChat = async (req: QueryRequest) => {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  QueryResponseSchema.parse(data);
+  return data;
 };
 
 const API_ENDPOINT =
@@ -63,7 +104,7 @@ const API_ENDPOINT =
     ? 'http://localhost:4000/api/doc-chat'
     : 'https://baml-sage-backend.vercel.app/api/doc-chat';
 
-const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
+const ChatBot: React.FC<ChatBotProps> = ({ isOpen = OPEN_BY_DEFAULT, onClose }) => {
   const [messages, setMessages] = useAtom(messagesAtom);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -82,113 +123,92 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
   }, [messages]);
 
   // Check for stored AI query on mount and when opening, and periodically when open
-  useEffect(() => {
-    if (!isOpen) return;
+  // useEffect(() => {
+  //   if (!isOpen) return;
 
-    const checkForNewQuery = () => {
-      try {
-        const storedContext = localStorage.getItem('baml-ai-context');
-        if (storedContext) {
-          const context = JSON.parse(storedContext);
-          const now = Date.now();
+  //   const checkForNewQuery = () => {
+  //     try {
+  //       const storedContext = localStorage.getItem('baml-ai-context');
+  //       if (storedContext) {
+  //         const context = JSON.parse(storedContext);
+  //         const now = Date.now();
 
-          // Check if the context is recent (within 10 seconds)
-          if (context.query && now - context.timestamp < 10000) {
-            // Set the pending query to be sent
-            setPendingQuery(context.query);
+  //         // Check if the context is recent (within 10 seconds)
+  //         if (context.query && now - context.timestamp < 10000) {
+  //           // Set the pending query to be sent
+  //           setPendingQuery(context.query);
 
-            // Clear the stored context after using it
-            localStorage.removeItem('baml-ai-context');
-          }
-        }
-      } catch (error) {
-        console.error('Error processing stored AI context:', error);
-        localStorage.removeItem('baml-ai-context');
-      }
-    };
+  //           // Clear the stored context after using it
+  //           localStorage.removeItem('baml-ai-context');
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Error processing stored AI context:', error);
+  //       localStorage.removeItem('baml-ai-context');
+  //     }
+  //   };
 
-    // Check immediately when opening
-    checkForNewQuery();
+  //   // Check immediately when opening
+  //   checkForNewQuery();
 
-    // Set up interval to check for new queries while panel is open
-    const interval = setInterval(checkForNewQuery, 100);
+  //   // Set up interval to check for new queries while panel is open
+  //   const interval = setInterval(checkForNewQuery, 100);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isOpen]);
+  //   return () => {
+  //     clearInterval(interval);
+  //   };
+  // }, [isOpen]);
 
   // Clear chat functionality
   const clearChat = () => {
     setMessages([]);
   };
 
-  const sendMessage = async (text: string, retryMessageId?: string) => {
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
-    let messagesWithUser: Message[];
-
-    if (retryMessageId) {
-      // Find and update the existing error message
-      messagesWithUser = messages.map((msg) =>
-        msg.id === retryMessageId
-          ? { ...msg, error: false, text: '...thinking' }
-          : msg,
-      );
-      setMessages(messagesWithUser);
-    } else {
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        text: text.trim(),
-        isUser: true,
-        timestamp: new Date(),
-      };
-      messagesWithUser = [...messages, userMessage];
-      setMessages(messagesWithUser);
-      setInput('');
-    }
-
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      text: text.trim(),
+      timestamp: new Date(),
+    };
+    
+    // Add progress message
+    const progressMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant/progress',
+      timestamp: new Date(),
+    };
+    
+    const messagesWithProgress = [...messages, userMessage, progressMessage];
+    setMessages(messagesWithProgress);
+    setInput('');
+    
     setIsLoading(true);
 
     try {
       const data = await postDocChat({
         query: text.trim(),
         // TODO: add language preference
-        prev_messages: messagesWithUser.map((msg) => ({
-          role: msg.isUser ? 'user' : 'assistant',
-          text: msg.text,
-        })),
+        prev_messages: transformMessagesForAPI(messagesWithProgress),
       });
 
-      // Only create a bot message if there's an actual answer
-      if (data.answer) {
-        const botMessage: Message = {
-          id: retryMessageId || (Date.now() + 1).toString(),
-          text: data.answer,
-          isUser: false,
-          timestamp: new Date(),
-          ranked_docs: data.ranked_docs,
-        };
+      // Create success message with the response
+      const successMessage: Message = {
+        id: progressMessage.id,
+        role: 'assistant/success',
+        timestamp: new Date(),
+        response: data,
+      };
 
-        if (retryMessageId) {
-          // Update the existing message
-          setMessages(
-            messagesWithUser.map((msg) =>
-              msg.id === retryMessageId ? botMessage : msg,
-            ),
-          );
-        } else {
-          setMessages([...messagesWithUser, botMessage]);
-        }
-      } else {
-        // If no answer, just remove the loading state without adding a message
-        if (retryMessageId) {
-          // Remove the loading message if it was a retry
-          setMessages(
-            messagesWithUser.filter((msg) => msg.id !== retryMessageId),
-          );
-        }
-      }
+      // Replace progress message with success message
+      setMessages(
+        messagesWithProgress.map((msg) =>
+          msg.id === progressMessage.id ? successMessage : msg,
+        ),
+      );
 
       // Auto-navigate to first very-relevant doc on same domain if available
       if (data.ranked_docs && data.ranked_docs.length > 0) {
@@ -211,47 +231,20 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
     } catch (error) {
       console.error('Error sending message:', error);
 
-      // Determine more specific error message
-      let errorText = 'Sorry, there was an error processing your request.';
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorText =
-          'Unable to connect to the AI service. Please check your connection and try again.';
-      } else if (error instanceof Error) {
-        if (error.message.includes('HTTP error! status: 429')) {
-          errorText = 'Too many requests. Please wait a moment and try again.';
-        } else if (error.message.includes('HTTP error! status: 500')) {
-          errorText =
-            'Server error occurred. The AI service may be temporarily unavailable.';
-        } else if (error.message.includes('HTTP error! status: 404')) {
-          errorText =
-            'AI service endpoint not found. Please check the configuration.';
-        } else if (error.message.includes('HTTP error!')) {
-          errorText = `Service error: ${error.message}. Please try again.`;
-        } else if (error.message.includes('JSON')) {
-          errorText =
-            'Received invalid response from AI service. Please try again.';
-        }
-      }
-
+      // Create error message
       const errorMessage: Message = {
-        id: retryMessageId || (Date.now() + 1).toString(),
-        text: errorText,
-        isUser: false,
+        id: progressMessage.id,
+        role: 'assistant/error',
         timestamp: new Date(),
-        error: true,
-        originalQuery: text.trim(),
+        error: serializeError(error),
       };
 
-      if (retryMessageId) {
-        // Update the existing message
-        setMessages(
-          messagesWithUser.map((msg) =>
-            msg.id === retryMessageId ? errorMessage : msg,
-          ),
-        );
-      } else {
-        setMessages([...messagesWithUser, errorMessage]);
-      }
+      // Replace progress message with error message
+      setMessages(
+        messagesWithProgress.map((msg) =>
+          msg.id === progressMessage.id ? errorMessage : msg,
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -270,9 +263,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
     sendMessage(input);
   };
 
-  const handleRetry = (message: Message) => {
-    if (message.originalQuery) {
-      sendMessage(message.originalQuery, message.id);
+  const handleRetry = () => {
+    // Get the last user message to retry
+    const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user');
+    if (lastUserMessage && lastUserMessage.role === 'user') {
+      sendMessage(lastUserMessage.text);
     }
   };
 
@@ -351,6 +346,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
       window.removeEventListener('scroll', updatePosition);
     };
   }, []);
+
+  console.log('messages', messages);
 
   return (
     <div
@@ -580,46 +577,123 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           </div>
         )}
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            style={{
-              alignSelf: message.isUser ? 'flex-end' : 'flex-start',
-              maxWidth: '85%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
+        {messages.map((message) => {
+          if (message.role === 'assistant/progress') {
+            return (
+              <div
+                key={message.id}
+                style={{
+                  maxWidth: '85%',
+                  padding: '12px 16px',
+                  borderRadius: '16px 16px 16px 4px',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  alignSelf: 'flex-start',
+                  backgroundColor: '#ffffff',
+                  color: '#6b7280',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#7d47e3',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                  }}
+                />
+                <div
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#7d47e3',
+                    animation: 'pulse 1.5s ease-in-out infinite 0.2s',
+                  }}
+                />
+                <div
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#7d47e3',
+                    animation: 'pulse 1.5s ease-in-out infinite 0.4s',
+                  }}
+                />
+                <span>Thinking...</span>
+              </div>
+            );
+          }
+          
+          return (
             <div
+              key={message.id}
               style={{
-                padding: '12px 16px',
-                borderRadius: message.isUser
-                  ? '16px 16px 4px 16px'
-                  : '16px 16px 16px 4px',
-                fontSize: '14px',
-                lineHeight: '1.5',
-                backgroundColor: message.isUser
-                  ? '#7d47e3'
-                  : message.error
-                    ? '#fef2f2'
-                    : '#ffffff',
-                color: message.isUser
-                  ? '#ffffff'
-                  : message.error
-                    ? '#dc2626'
-                    : '#111827',
-                wordWrap: 'break-word',
-                border: message.isUser ? 'none' : '1px solid #e5e7eb',
-                boxShadow: 'none',
+                alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
+                maxWidth: '85%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
               }}
             >
-              {message.isUser ? (
-                message.text
-              ) : (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: message.role === 'user'
+                    ? '16px 16px 4px 16px'
+                    : '16px 16px 16px 4px',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  backgroundColor: message.role === 'user'
+                    ? '#7d47e3'
+                    : message.role === 'assistant/error'
+                      ? '#fef2f2'
+                      : '#ffffff',
+                  color: message.role === 'user'
+                    ? '#ffffff'
+                    : message.role === 'assistant/error'
+                      ? '#dc2626'
+                      : '#111827',
+                  wordWrap: 'break-word',
+                  border: message.role === 'user' ? 'none' : '1px solid #e5e7eb',
+                  boxShadow: 'none',
+                }}
+              >
+                {message.role === 'user' ? (
+                  message.text
+                ) : message.role === 'assistant/error' ? (
+                  <div>
+                    {(() => {
+                      let errorText = 'Sorry, there was an error processing your request.';
+                      const errorMsg = message.error.message;
+                      const statusCode = message.error.statusCode;
+                      
+                      if (errorMsg.includes('fetch')) {
+                        errorText = 'Unable to connect to the AI service. Please check your connection and try again.';
+                      } else if (statusCode === 429) {
+                        errorText = 'Too many requests. Please wait a moment and try again.';
+                      } else if (statusCode === 500) {
+                        errorText = 'Server error occurred. The AI service may be temporarily unavailable.';
+                      } else if (statusCode === 404) {
+                        errorText = 'AI service endpoint not found. Please check the configuration.';
+                      } else if (errorMsg.includes('HTTP error!')) {
+                        errorText = `Service error: ${errorMsg}. Please try again.`;
+                      } else if (errorMsg.includes('JSON')) {
+                        errorText = 'Received invalid response from AI service. Please try again.';
+                      }
+                      
+                      return errorText;
+                    })()}
+                  </div>
+                ) : message.role === 'assistant/success' ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
                     // Custom styles for markdown elements
                     p: ({ children }) => (
                       <p style={{ margin: '0 0 12px 0', lineHeight: '1.6' }}>
@@ -806,14 +880,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                     ),
                   }}
                 >
-                  {message.text}
+                  {message.response.answer || "Sorry, I'm not sure how to answer that."}
                 </ReactMarkdown>
-              )}
-              {message.error && (
+              ) : null}
+              {message.role === 'assistant/error' && (
                 <div style={{ marginTop: '12px' }}>
                   <button
                     type="button"
-                    onClick={() => handleRetry(message)}
+                    onClick={() => handleRetry()}
                     style={{
                       padding: '8px 16px',
                       fontSize: '13px',
@@ -868,7 +942,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
             </div>
 
             {/* Related docs */}
-            {message.ranked_docs && message.ranked_docs.length > 0 && (
+            {message.role === 'assistant/success' && message.response.ranked_docs && message.response.ranked_docs.length > 0 && (
               <div
                 style={{
                   fontSize: '12px',
@@ -888,7 +962,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                 >
                   📖 Related documentation:
                 </div>
-                {message.ranked_docs.map((doc) => (
+                {message.response.ranked_docs.map((doc) => (
                   <div key={doc.url} style={{ marginBottom: '4px' }}>
                     <a
                       href={doc.url}
@@ -903,7 +977,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                           if ((window as any).navigateToDoc) {
                             (window as any).navigateToDoc(
                               { u: doc.url, t: doc.title, sel: 'article' },
-                              message.text || '',
+                              message.response.answer || '',
                             );
                           } else {
                             // Fallback to normal navigation if navigateToDoc is not available
@@ -944,56 +1018,9 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
 
-        {isLoading && (
-          <div
-            style={{
-              maxWidth: '85%',
-              padding: '12px 16px',
-              borderRadius: '16px 16px 16px 4px',
-              fontSize: '14px',
-              lineHeight: '1.5',
-              alignSelf: 'flex-start',
-              backgroundColor: '#ffffff',
-              color: '#6b7280',
-              border: '1px solid #e5e7eb',
-              boxShadow: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: '#7d47e3',
-                animation: 'pulse 1.5s ease-in-out infinite',
-              }}
-            />
-            <div
-              style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: '#7d47e3',
-                animation: 'pulse 1.5s ease-in-out infinite 0.2s',
-              }}
-            />
-            <div
-              style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: '#7d47e3',
-                animation: 'pulse 1.5s ease-in-out infinite 0.4s',
-              }}
-            />
-            <span>Thinking...</span>
-          </div>
-        )}
 
         <div ref={messagesEndRef} />
       </main>

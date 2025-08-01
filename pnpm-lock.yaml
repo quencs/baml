@@ -617,6 +617,15 @@ importers:
       '@types/react-syntax-highlighter':
         specifier: ^15.5.13
         version: 15.5.13
+      css-loader:
+        specifier: ^7.1.2
+        version: 7.1.2(webpack@5.99.9)
+      jotai-devtools:
+        specifier: 0.12.0
+        version: 0.12.0(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(redux@5.0.1)(storybook@8.6.14)
+      style-loader:
+        specifier: ^4.0.0
+        version: 4.0.0(webpack@5.99.9)
       ts-loader:
         specifier: ^9.4.0
         version: 9.5.2(typescript@5.8.3)(webpack@5.99.9)
@@ -625,7 +634,7 @@ importers:
         version: 5.8.3
       webpack:
         specifier: ^5.88.0
-        version: 5.99.9(webpack-cli@5.1.4)
+        version: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
       webpack-cli:
         specifier: ^5.1.4
         version: 5.1.4(webpack@5.99.9)
@@ -6798,6 +6807,18 @@ packages:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
 
+  css-loader@7.1.2:
+    resolution: {integrity: sha512-6WvYYn7l/XEGN8Xu2vWFt9nVzrCn39vKyTEFf/ExEyoksJjjSZV/0/35XPlMbpnr6VGhZIUg5yJrL8tGfes/FA==}
+    engines: {node: '>= 18.12.0'}
+    peerDependencies:
+      '@rspack/core': 0.x || 1.x
+      webpack: ^5.27.0
+    peerDependenciesMeta:
+      '@rspack/core':
+        optional: true
+      webpack:
+        optional: true
+
   css-select@5.1.0:
     resolution: {integrity: sha512-nwoRF1rvRRnnCqqY7updORDsuqKzqYJ28+oSMaJMMgOauh3fvwHqMS7EZpIPqK8GL+g9mKxF1vP/ZjSeNjEVHg==}
 
@@ -7988,6 +8009,12 @@ packages:
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
+
+  icss-utils@5.1.0:
+    resolution: {integrity: sha512-soFhflCVWLfRNOPU3iv5Z9VUdT44xFRbzjLsEzSr5AQmgqPMTHdU3PMT1Cf1ssx8fLNJDA1juftYl+PUcv3MqA==}
+    engines: {node: ^10 || ^12 || >= 14}
+    peerDependencies:
+      postcss: ^8.1.0
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -9925,6 +9952,30 @@ packages:
       yaml:
         optional: true
 
+  postcss-modules-extract-imports@3.1.0:
+    resolution: {integrity: sha512-k3kNe0aNFQDAZGbin48pL2VNidTF0w4/eASDsxlyspobzU3wZQLOGj7L9gfRe0Jo9/4uud09DsjFNH7winGv8Q==}
+    engines: {node: ^10 || ^12 || >= 14}
+    peerDependencies:
+      postcss: ^8.1.0
+
+  postcss-modules-local-by-default@4.2.0:
+    resolution: {integrity: sha512-5kcJm/zk+GJDSfw+V/42fJ5fhjL5YbFDl8nVdXkJPLLW+Vf9mTD5Xe0wqIaDnLuL2U6cDNpTr+UQ+v2HWIBhzw==}
+    engines: {node: ^10 || ^12 || >= 14}
+    peerDependencies:
+      postcss: ^8.1.0
+
+  postcss-modules-scope@3.2.1:
+    resolution: {integrity: sha512-m9jZstCVaqGjTAuny8MdgE88scJnCiQSlSrOWcTQgM2t32UBe+MUmFSO5t7VMSfAf/FJKImAxBav8ooCHJXCJA==}
+    engines: {node: ^10 || ^12 || >= 14}
+    peerDependencies:
+      postcss: ^8.1.0
+
+  postcss-modules-values@4.0.0:
+    resolution: {integrity: sha512-RDxHkAiEGI78gS2ofyvCsu7iycRv7oqw5xMWn9iMoR0N/7mf9D50ecQqUo5BZ9Zh2vH4bCUR/ktCqbB9m8vJjQ==}
+    engines: {node: ^10 || ^12 || >= 14}
+    peerDependencies:
+      postcss: ^8.1.0
+
   postcss-nested@6.2.0:
     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
     engines: {node: '>=12.0'}
@@ -9937,6 +9988,10 @@ packages:
 
   postcss-selector-parser@6.1.2:
     resolution: {integrity: sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==}
+    engines: {node: '>=4'}
+
+  postcss-selector-parser@7.1.0:
+    resolution: {integrity: sha512-8sLjZwK0R+JlxlYcTuVnyT2v+htpdrjDOKuMcOVdYjt52Lh8hWRYpxBPoKx/Zg+bcjc3wx6fmQevMmUztS/ccA==}
     engines: {node: '>=4'}
 
   postcss-value-parser@4.2.0:
@@ -10999,6 +11054,12 @@ packages:
 
   structured-source@4.0.0:
     resolution: {integrity: sha512-qGzRFNJDjFieQkl/sVOI2dUjHKRyL9dAJi2gCPGJLbJHBIkyOHxjuocpIEfbLioX+qSJpvbYdT49/YCdMznKxA==}
+
+  style-loader@4.0.0:
+    resolution: {integrity: sha512-1V4WqhhZZgjVAVJyt7TdDPZoPBPNHbekX4fWnCJL1yQukhCeZhJySUL+gL9y6sNdN95uEOS83Y55SqHcP7MzLA==}
+    engines: {node: '>= 18.12.0'}
+    peerDependencies:
+      webpack: ^5.27.0
 
   style-mod@4.1.2:
     resolution: {integrity: sha512-wnD1HyVqpJUI2+eKZ+eo1UwghftP6yuFheBqqe+bWCotBjC2K1YnteJILRMs3SM4V/0dLEW1SC27MWP5y+mwmw==}
@@ -14034,12 +14095,26 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
+  '@floating-ui/react-dom@2.1.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      '@floating-ui/dom': 1.7.1
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+
   '@floating-ui/react@0.26.28(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@floating-ui/react-dom': 2.1.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@floating-ui/utils': 0.2.9
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
+      tabbable: 6.2.0
+
+  '@floating-ui/react@0.26.28(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      '@floating-ui/react-dom': 2.1.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@floating-ui/utils': 0.2.9
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
       tabbable: 6.2.0
 
   '@floating-ui/utils@0.2.9': {}
@@ -14913,6 +14988,15 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
+  '@mantine/code-highlight@7.17.8(@mantine/core@7.17.8(@mantine/hooks@7.17.8(react@19.1.1))(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@mantine/hooks@7.17.8(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      '@mantine/core': 7.17.8(@mantine/hooks@7.17.8(react@19.1.1))(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@mantine/hooks': 7.17.8(react@19.1.1)
+      clsx: 2.1.1
+      highlight.js: 11.11.1
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+
   '@mantine/core@7.17.8(@mantine/hooks@7.17.8(react@19.1.0))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@floating-ui/react': 0.26.28(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -14927,9 +15011,27 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
+  '@mantine/core@7.17.8(@mantine/hooks@7.17.8(react@19.1.1))(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      '@floating-ui/react': 0.26.28(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@mantine/hooks': 7.17.8(react@19.1.1)
+      clsx: 2.1.1
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      react-number-format: 5.4.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react-remove-scroll: 2.7.1(@types/react@19.1.9)(react@19.1.1)
+      react-textarea-autosize: 8.5.9(@types/react@19.1.9)(react@19.1.1)
+      type-fest: 4.41.0
+    transitivePeerDependencies:
+      - '@types/react'
+
   '@mantine/hooks@7.17.8(react@19.1.0)':
     dependencies:
       react: 19.1.0
+
+  '@mantine/hooks@7.17.8(react@19.1.1)':
+    dependencies:
+      react: 19.1.1
 
   '@mapbox/node-pre-gyp@1.0.11':
     dependencies:
@@ -16309,7 +16411,7 @@ snapshots:
 
   '@redux-devtools/extension@3.3.0(redux@5.0.1)':
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
       immutable: 4.3.7
       redux: 5.0.1
 
@@ -17359,7 +17461,7 @@ snapshots:
   '@testing-library/dom@10.4.0':
     dependencies:
       '@babel/code-frame': 7.27.1
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       chalk: 4.1.2
@@ -17762,7 +17864,7 @@ snapshots:
     dependencies:
       '@types/node': 20.17.17
       tapable: 2.2.2
-      webpack: 5.99.9(webpack-cli@5.1.4)
+      webpack: 5.99.9
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
@@ -18346,17 +18448,17 @@ snapshots:
 
   '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4)(webpack@5.99.9)':
     dependencies:
-      webpack: 5.99.9(webpack-cli@5.1.4)
+      webpack: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.99.9)
 
   '@webpack-cli/info@2.0.2(webpack-cli@5.1.4)(webpack@5.99.9)':
     dependencies:
-      webpack: 5.99.9(webpack-cli@5.1.4)
+      webpack: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.99.9)
 
   '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4)(webpack@5.99.9)':
     dependencies:
-      webpack: 5.99.9(webpack-cli@5.1.4)
+      webpack: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.99.9)
 
   '@xtuc/ieee754@1.2.0': {}
@@ -19302,6 +19404,19 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
+  css-loader@7.1.2(webpack@5.99.9):
+    dependencies:
+      icss-utils: 5.1.0(postcss@8.5.6)
+      postcss: 8.5.6
+      postcss-modules-extract-imports: 3.1.0(postcss@8.5.6)
+      postcss-modules-local-by-default: 4.2.0(postcss@8.5.6)
+      postcss-modules-scope: 3.2.1(postcss@8.5.6)
+      postcss-modules-values: 4.0.0(postcss@8.5.6)
+      postcss-value-parser: 4.2.0
+      semver: 7.7.2
+    optionalDependencies:
+      webpack: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
+
   css-select@5.1.0:
     dependencies:
       boolbase: 1.0.0
@@ -19513,7 +19628,7 @@ snapshots:
 
   dom-helpers@5.2.1:
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
       csstype: 3.1.3
 
   dom-serializer@2.0.0:
@@ -20550,6 +20665,10 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
+  icss-utils@5.1.0(postcss@8.5.6):
+    dependencies:
+      postcss: 8.5.6
+
   ieee754@1.2.1: {}
 
   ignore@7.0.5: {}
@@ -21471,6 +21590,28 @@ snapshots:
       react-error-boundary: 5.0.0(react@19.1.0)
       react-json-tree: 0.18.0(@types/react@19.1.8)(react@19.1.0)
       react-resizable-panels: 2.1.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+    transitivePeerDependencies:
+      - '@types/react'
+      - react-dom
+      - redux
+      - storybook
+
+  jotai-devtools@0.12.0(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(redux@5.0.1)(storybook@8.6.14):
+    dependencies:
+      '@mantine/code-highlight': 7.17.8(@mantine/core@7.17.8(@mantine/hooks@7.17.8(react@19.1.1))(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@mantine/hooks@7.17.8(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@mantine/core': 7.17.8(@mantine/hooks@7.17.8(react@19.1.1))(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@mantine/hooks': 7.17.8(react@19.1.1)
+      '@redux-devtools/extension': 3.3.0(redux@5.0.1)
+      '@storybook/test': 8.6.14(storybook@8.6.14)
+      clsx: 2.1.1
+      javascript-stringify: 2.1.0
+      jotai: 2.12.5(@types/react@19.1.9)(react@19.1.1)
+      jsondiffpatch: 0.5.0
+      react: 19.1.1
+      react-base16-styling: 0.9.1
+      react-error-boundary: 5.0.0(react@19.1.1)
+      react-json-tree: 0.18.0(@types/react@19.1.9)(react@19.1.1)
+      react-resizable-panels: 2.1.7(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
     transitivePeerDependencies:
       - '@types/react'
       - react-dom
@@ -23222,6 +23363,27 @@ snapshots:
       tsx: 4.20.3
       yaml: 2.8.0
 
+  postcss-modules-extract-imports@3.1.0(postcss@8.5.6):
+    dependencies:
+      postcss: 8.5.6
+
+  postcss-modules-local-by-default@4.2.0(postcss@8.5.6):
+    dependencies:
+      icss-utils: 5.1.0(postcss@8.5.6)
+      postcss: 8.5.6
+      postcss-selector-parser: 7.1.0
+      postcss-value-parser: 4.2.0
+
+  postcss-modules-scope@3.2.1(postcss@8.5.6):
+    dependencies:
+      postcss: 8.5.6
+      postcss-selector-parser: 7.1.0
+
+  postcss-modules-values@4.0.0(postcss@8.5.6):
+    dependencies:
+      icss-utils: 5.1.0(postcss@8.5.6)
+      postcss: 8.5.6
+
   postcss-nested@6.2.0(postcss@8.5.6):
     dependencies:
       postcss: 8.5.6
@@ -23233,6 +23395,11 @@ snapshots:
       util-deprecate: 1.0.2
 
   postcss-selector-parser@6.1.2:
+    dependencies:
+      cssesc: 3.0.0
+      util-deprecate: 1.0.2
+
+  postcss-selector-parser@7.1.0:
     dependencies:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
@@ -23421,7 +23588,7 @@ snapshots:
 
   react-base16-styling@0.9.1:
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
       '@types/base16': 1.0.5
       '@types/lodash': 4.17.17
       base16: 1.0.0
@@ -23491,6 +23658,11 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.27.6
       react: 19.1.0
+
+  react-error-boundary@5.0.0(react@19.1.1):
+    dependencies:
+      '@babel/runtime': 7.27.6
+      react: 19.1.1
 
   react-error-boundary@6.0.0(react@19.1.0):
     dependencies:
@@ -23572,10 +23744,18 @@ snapshots:
 
   react-json-tree@0.18.0(@types/react@19.1.8)(react@19.1.0):
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
       '@types/lodash': 4.17.17
       '@types/react': 19.1.8
       react: 19.1.0
+      react-base16-styling: 0.9.1
+
+  react-json-tree@0.18.0(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      '@babel/runtime': 7.28.2
+      '@types/lodash': 4.17.17
+      '@types/react': 19.1.9
+      react: 19.1.1
       react-base16-styling: 0.9.1
 
   react-konva@19.0.6(@types/react@19.1.8)(konva@9.3.20)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
@@ -23678,6 +23858,11 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
+  react-number-format@5.4.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+
   react-pdf@9.0.0(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       clsx: 2.1.1
@@ -23718,6 +23903,14 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.8
 
+  react-remove-scroll-bar@2.3.8(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+      react-style-singleton: 2.2.3(@types/react@19.1.9)(react@19.1.1)
+      tslib: 2.8.1
+    optionalDependencies:
+      '@types/react': 19.1.9
+
   react-remove-scroll@2.7.1(@types/react@19.1.8)(react@19.1.0):
     dependencies:
       react: 19.1.0
@@ -23729,10 +23922,26 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.8
 
+  react-remove-scroll@2.7.1(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+      react-remove-scroll-bar: 2.3.8(@types/react@19.1.9)(react@19.1.1)
+      react-style-singleton: 2.2.3(@types/react@19.1.9)(react@19.1.1)
+      tslib: 2.8.1
+      use-callback-ref: 1.3.3(@types/react@19.1.9)(react@19.1.1)
+      use-sidecar: 1.1.3(@types/react@19.1.9)(react@19.1.1)
+    optionalDependencies:
+      '@types/react': 19.1.9
+
   react-resizable-panels@2.1.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
+
+  react-resizable-panels@2.1.7(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   react-resizable-panels@3.0.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
@@ -23803,6 +24012,14 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.8
 
+  react-style-singleton@2.2.3(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      get-nonce: 1.0.1
+      react: 19.1.1
+      tslib: 2.8.1
+    optionalDependencies:
+      '@types/react': 19.1.9
+
   react-syntax-highlighter@15.6.1(react@19.1.1):
     dependencies:
       '@babel/runtime': 7.27.6
@@ -23815,10 +24032,19 @@ snapshots:
 
   react-textarea-autosize@8.5.9(@types/react@19.1.8)(react@19.1.0):
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
       react: 19.1.0
       use-composed-ref: 1.4.0(@types/react@19.1.8)(react@19.1.0)
       use-latest: 1.3.0(@types/react@19.1.8)(react@19.1.0)
+    transitivePeerDependencies:
+      - '@types/react'
+
+  react-textarea-autosize@8.5.9(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      '@babel/runtime': 7.28.2
+      react: 19.1.1
+      use-composed-ref: 1.4.0(@types/react@19.1.9)(react@19.1.1)
+      use-latest: 1.3.0(@types/react@19.1.9)(react@19.1.1)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -23985,7 +24211,7 @@ snapshots:
 
   redux@4.2.1:
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
 
   redux@5.0.1: {}
 
@@ -24658,6 +24884,10 @@ snapshots:
     dependencies:
       boundary: 2.0.0
 
+  style-loader@4.0.0(webpack@5.99.9):
+    dependencies:
+      webpack: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
+
   style-mod@4.1.2: {}
 
   style-to-js@1.1.17:
@@ -24830,6 +25060,17 @@ snapshots:
     optionalDependencies:
       '@swc/core': 1.12.7
 
+  terser-webpack-plugin@5.3.14(esbuild@0.25.2)(webpack@5.99.9):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.25
+      jest-worker: 27.5.1
+      schema-utils: 4.3.2
+      serialize-javascript: 6.0.2
+      terser: 5.43.1
+      webpack: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
+    optionalDependencies:
+      esbuild: 0.25.2
+
   terser-webpack-plugin@5.3.14(webpack@5.99.9):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
@@ -24837,7 +25078,7 @@ snapshots:
       schema-utils: 4.3.2
       serialize-javascript: 6.0.2
       terser: 5.43.1
-      webpack: 5.99.9(webpack-cli@5.1.4)
+      webpack: 5.99.9
 
   terser@5.43.1:
     dependencies:
@@ -25020,7 +25261,7 @@ snapshots:
       semver: 7.7.2
       source-map: 0.7.4
       typescript: 5.8.3
-      webpack: 5.99.9(webpack-cli@5.1.4)
+      webpack: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
 
   ts-morph@12.0.0:
     dependencies:
@@ -25385,11 +25626,24 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.8
 
+  use-callback-ref@1.3.3(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+      tslib: 2.8.1
+    optionalDependencies:
+      '@types/react': 19.1.9
+
   use-composed-ref@1.4.0(@types/react@19.1.8)(react@19.1.0):
     dependencies:
       react: 19.1.0
     optionalDependencies:
       '@types/react': 19.1.8
+
+  use-composed-ref@1.4.0(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+    optionalDependencies:
+      '@types/react': 19.1.9
 
   use-isomorphic-layout-effect@1.2.1(@types/react@19.1.8)(react@19.1.0):
     dependencies:
@@ -25397,12 +25651,25 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.8
 
+  use-isomorphic-layout-effect@1.2.1(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+    optionalDependencies:
+      '@types/react': 19.1.9
+
   use-latest@1.3.0(@types/react@19.1.8)(react@19.1.0):
     dependencies:
       react: 19.1.0
       use-isomorphic-layout-effect: 1.2.1(@types/react@19.1.8)(react@19.1.0)
     optionalDependencies:
       '@types/react': 19.1.8
+
+  use-latest@1.3.0(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+      use-isomorphic-layout-effect: 1.2.1(@types/react@19.1.9)(react@19.1.1)
+    optionalDependencies:
+      '@types/react': 19.1.9
 
   use-resize-observer@9.1.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
@@ -25417,6 +25684,14 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.1.8
+
+  use-sidecar@1.1.3(@types/react@19.1.9)(react@19.1.1):
+    dependencies:
+      detect-node-es: 1.1.0
+      react: 19.1.1
+      tslib: 2.8.1
+    optionalDependencies:
+      '@types/react': 19.1.9
 
   use-sync-external-store@1.5.0(react@19.1.0):
     dependencies:
@@ -25800,7 +26075,7 @@ snapshots:
       import-local: 3.2.0
       interpret: 3.1.1
       rechoir: 0.8.0
-      webpack: 5.99.9(webpack-cli@5.1.4)
+      webpack: 5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4)
       webpack-merge: 5.10.0
 
   webpack-merge@5.10.0:
@@ -25813,6 +26088,37 @@ snapshots:
 
   webpack-virtual-modules@0.6.2:
     optional: true
+
+  webpack@5.99.9:
+    dependencies:
+      '@types/eslint-scope': 3.7.7
+      '@types/estree': 1.0.8
+      '@types/json-schema': 7.0.15
+      '@webassemblyjs/ast': 1.14.1
+      '@webassemblyjs/wasm-edit': 1.14.1
+      '@webassemblyjs/wasm-parser': 1.14.1
+      acorn: 8.15.0
+      browserslist: 4.25.1
+      chrome-trace-event: 1.0.4
+      enhanced-resolve: 5.18.2
+      es-module-lexer: 1.7.0
+      eslint-scope: 5.1.1
+      events: 3.3.0
+      glob-to-regexp: 0.4.1
+      graceful-fs: 4.2.11
+      json-parse-even-better-errors: 2.3.1
+      loader-runner: 4.3.0
+      mime-types: 2.1.35
+      neo-async: 2.6.2
+      schema-utils: 4.3.2
+      tapable: 2.2.2
+      terser-webpack-plugin: 5.3.14(webpack@5.99.9)
+      watchpack: 2.4.4
+      webpack-sources: 3.3.3
+    transitivePeerDependencies:
+      - '@swc/core'
+      - esbuild
+      - uglify-js
 
   webpack@5.99.9(@swc/core@1.12.7):
     dependencies:
@@ -25845,7 +26151,7 @@ snapshots:
       - esbuild
       - uglify-js
 
-  webpack@5.99.9(webpack-cli@5.1.4):
+  webpack@5.99.9(esbuild@0.25.2)(webpack-cli@5.1.4):
     dependencies:
       '@types/eslint-scope': 3.7.7
       '@types/estree': 1.0.8
@@ -25868,7 +26174,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.2
       tapable: 2.2.2
-      terser-webpack-plugin: 5.3.14(webpack@5.99.9)
+      terser-webpack-plugin: 5.3.14(esbuild@0.25.2)(webpack@5.99.9)
       watchpack: 2.4.4
       webpack-sources: 3.3.3
     optionalDependencies:

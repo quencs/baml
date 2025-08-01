@@ -1,17 +1,37 @@
 import { atom } from 'jotai';
 
-export interface Message {
+export type Message = {
   id: string;
-  text: string;
-  isUser: boolean;
   timestamp: Date;
-  ranked_docs?: {
-    title: string;
-    url: string;
-  }[];
-  error?: boolean;
-  originalQuery?: string;
-}
+} & (
+  | {
+      role: 'user';
+      text: string;
+    }
+  | {
+      role: 'assistant/success';
+      response: {
+        ranked_docs: Array<{
+          title: string;
+          url: string;
+          relevance: 'very-relevant' | 'relevant' | 'not-relevant';
+        }>;
+        answer?: string | null;
+        suggestions?: string[];
+      };
+    }
+  | {
+      role: 'assistant/error';
+      error: {
+        message: string;
+        code?: string;
+        statusCode?: number;
+      };
+    }
+  | {
+      role: 'assistant/progress';
+    }
+);
 
 // Session storage functions
 const getSessionStorageMessages = (): Message[] => {
