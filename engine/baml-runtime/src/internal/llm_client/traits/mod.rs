@@ -315,6 +315,7 @@ where
                 false,
                 render_settings.stream && self.supports_streaming(),
                 render_settings.expose_secrets,
+                None,
             )
             .await?;
         let mut request = request_builder.build()?;
@@ -362,8 +363,8 @@ pub trait WithStreamable {
     /// Retries are not supported for streaming calls.
     #[allow(async_fn_in_trait)]
     async fn stream(
-        &self, 
-        ctx: &impl HttpContext, 
+        &self,
+        ctx: &impl HttpContext,
         prompt: &RenderedPrompt,
         cancellation_token: Option<tokio_util::sync::CancellationToken>,
     ) -> StreamResponse;
@@ -380,8 +381,8 @@ where
 {
     #[allow(async_fn_in_trait)]
     async fn stream(
-        &self, 
-        ctx: &impl HttpContext, 
+        &self,
+        ctx: &impl HttpContext,
         prompt: &RenderedPrompt,
         cancellation_token: Option<tokio_util::sync::CancellationToken>,
     ) -> StreamResponse {

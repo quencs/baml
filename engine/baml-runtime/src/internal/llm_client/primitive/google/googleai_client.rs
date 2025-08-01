@@ -251,6 +251,7 @@ impl WithChat for GoogleAIClient {
             false,
             ResponseType::Google,
             ctx,
+            None,
         )
         .await
     }

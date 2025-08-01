@@ -223,10 +223,10 @@ pub async fn execute_request(
     cancellation_token: Option<tokio_util::sync::CancellationToken>,
 ) -> Result<(EitherResponse, web_time::SystemTime, web_time::Instant), LLMResponse> {
     let http_client = client.http_client();
-    
+
     // Create a future for the HTTP request
     let request_future = http_client.execute(built_req);
-    
+
     // Race the request against cancellation
     let response = if let Some(token) = cancellation_token {
         tokio::select! {
@@ -405,9 +405,17 @@ pub async fn make_request(
     prompt: either::Either<&String, &[RenderedChatMessage]>,
     stream: bool,
     runtime_context: &impl HttpContext,
+    cancellation_token: Option<tokio_util::sync::CancellationToken>,
 ) -> Result<(LoggedHttpResponse, web_time::SystemTime, web_time::Instant), LLMResponse> {
-    let (system_now, instant_now, built_req) =
-        build_and_log_outbound_request(client, prompt, true, stream, runtime_context).await?;
+    let (system_now, instant_now, built_req) = build_and_log_outbound_request(
+        client,
+        prompt,
+        true,
+        stream,
+        runtime_context,
+        cancellation_token.clone(),
+    )
+    .await?;
 
     match execute_request(
         client,
@@ -417,6 +425,7 @@ pub async fn make_request(
         instant_now,
         runtime_context,
         true,
+        cancellation_token,
     )
     .await?
     {
@@ -432,12 +441,20 @@ pub async fn make_parsed_request(
     stream: bool,
     response_type: ResponseType,
     runtime_context: &impl HttpContext,
+    cancellation_token: Option<tokio_util::sync::CancellationToken>,
 ) -> LLMResponse {
-    let (response, system_now, instant_now) =
-        match make_request(client, prompt, stream, runtime_context).await {
-            Ok((response, system_now, instant_now)) => (response, system_now, instant_now),
-            Err(e) => return e,
-        };
+    let (response, system_now, instant_now) = match make_request(
+        client,
+        prompt,
+        stream,
+        runtime_context,
+        cancellation_token.clone(),
+    )
+    .await
+    {
+        Ok((response, system_now, instant_now)) => (response, system_now, instant_now),
+        Err(e) => return e,
+    };
 
     let response_body = serde_json::from_slice::<serde_json::Value>(&response.body).map_err(|e| {
         LLMResponse::LLMFailure(LLMErrorResponse {

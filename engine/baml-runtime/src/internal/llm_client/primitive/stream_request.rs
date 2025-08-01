@@ -39,15 +39,15 @@ pub async fn make_stream_request(
     runtime_context: &impl HttpContext,
     cancellation_token: Option<CancellationToken>,
 ) -> StreamResponse {
-    let (start_time_system, start_time_instant, built_req) =
-        build_and_log_outbound_request(
-            client, 
-            prompt, 
-            true, 
-            true, 
-            runtime_context,
-            cancellation_token.clone()
-        ).await?;
+    let (start_time_system, start_time_instant, built_req) = build_and_log_outbound_request(
+        client,
+        prompt,
+        true,
+        true,
+        runtime_context,
+        cancellation_token.clone(),
+    )
+    .await?;
 
     let resp = match execute_request(
         client,
@@ -58,7 +58,6 @@ pub async fn make_stream_request(
         runtime_context,
         false,
         cancellation_token.clone(),
-    ).await {
     )
     .await?
     {

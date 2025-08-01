@@ -263,7 +263,12 @@ impl WithSingleCallable for OrchestratorNode {
 }
 
 impl WithStreamable for OrchestratorNode {
-    async fn stream(&self, ctx: &impl HttpContext, prompt: &RenderedPrompt) -> StreamResponse {
+    async fn stream(
+        &self,
+        ctx: &impl HttpContext,
+        prompt: &RenderedPrompt,
+        cancellation_token: Option<tokio_util::sync::CancellationToken>,
+    ) -> StreamResponse {
         {
             let request = LoggedLLMRequest {
                 request_id: ctx.http_request_id().clone(),
@@ -303,7 +308,7 @@ impl WithStreamable for OrchestratorNode {
             .for_each(drop);
 
         // Perform the streaming call
-        let result = self.provider.stream(ctx, prompt).await;
+        let result = self.provider.stream(ctx, prompt, cancellation_token).await;
 
         // We do not log the full LLMResponse here the same way as single_call,
         // because streaming typically emits chunked events. If you want to log

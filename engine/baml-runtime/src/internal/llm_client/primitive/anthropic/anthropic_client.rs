@@ -298,6 +298,7 @@ impl WithChat for AnthropicClient {
             false,
             ResponseType::Anthropic,
             ctx,
+            None,
         )
         .await
     }

@@ -82,6 +82,7 @@ impl InternalBamlRuntime {
                 #[cfg(not(target_arch = "wasm32"))]
                 tokio_runtime,
                 collectors,
+                cancellation_token: None,
             })
         } else {
             let prepared = self
@@ -101,6 +102,7 @@ impl InternalBamlRuntime {
                 #[cfg(not(target_arch = "wasm32"))]
                 tokio_runtime,
                 collectors,
+                cancellation_token: None,
             })
         }
     }

@@ -240,26 +240,52 @@ impl LLMPrimitiveProvider {
         prompt: either::Either<&String, &[RenderedChatMessage]>,
         allow_proxy: bool,
         stream: bool,
+        expose_secrets: bool,
+        cancellation_token: Option<tokio_util::sync::CancellationToken>,
     ) -> Result<reqwest::RequestBuilder> {
         match self {
             LLMPrimitiveProvider::OpenAI(client) => {
                 client
-                    .build_request(prompt, allow_proxy, stream, true)
+                    .build_request(
+                        prompt,
+                        allow_proxy,
+                        stream,
+                        expose_secrets,
+                        cancellation_token,
+                    )
                     .await
             }
             LLMPrimitiveProvider::Anthropic(client) => {
                 client
-                    .build_request(prompt, allow_proxy, stream, true)
+                    .build_request(
+                        prompt,
+                        allow_proxy,
+                        stream,
+                        expose_secrets,
+                        cancellation_token,
+                    )
                     .await
             }
             LLMPrimitiveProvider::Google(client) => {
                 client
-                    .build_request(prompt, allow_proxy, stream, true)
+                    .build_request(
+                        prompt,
+                        allow_proxy,
+                        stream,
+                        expose_secrets,
+                        cancellation_token,
+                    )
                     .await
             }
             LLMPrimitiveProvider::Vertex(client) => {
                 client
-                    .build_request(prompt, allow_proxy, stream, true)
+                    .build_request(
+                        prompt,
+                        allow_proxy,
+                        stream,
+                        expose_secrets,
+                        cancellation_token,
+                    )
                     .await
             }
             LLMPrimitiveProvider::Aws(client) => {
@@ -307,8 +333,9 @@ impl WithStreamable for LLMPrimitiveProvider {
         &self,
         ctx: &impl HttpContext,
         prompt: &internal_baml_jinja::RenderedPrompt,
+        cancellation_token: Option<tokio_util::sync::CancellationToken>,
     ) -> super::traits::StreamResponse {
-        match_llm_provider!(self, stream, async, ctx, prompt)
+        match_llm_provider!(self, stream, async, ctx, prompt, cancellation_token)
     }
 }
 

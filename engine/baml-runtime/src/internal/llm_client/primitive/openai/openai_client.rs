@@ -96,6 +96,7 @@ impl WithChat for OpenAIClient {
             false,
             self.properties.client_response_type.clone(),
             ctx,
+            None,
         )
         .await
     }

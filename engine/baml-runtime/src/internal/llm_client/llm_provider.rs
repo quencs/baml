@@ -122,12 +122,22 @@ impl LLMProvider {
         prompt: either::Either<&String, &[RenderedChatMessage]>,
         allow_proxy: bool,
         stream: bool,
+        expose_secrets: bool,
         ctx: &RuntimeContext,
         client_lookup: &'a impl InternalClientLookup<'a>,
+        cancellation_token: Option<tokio_util::sync::CancellationToken>,
     ) -> Result<reqwest::RequestBuilder> {
         match self {
             LLMProvider::Primitive(provider) => {
-                provider.build_request(prompt, allow_proxy, stream).await
+                provider
+                    .build_request(
+                        prompt,
+                        allow_proxy,
+                        stream,
+                        expose_secrets,
+                        cancellation_token,
+                    )
+                    .await
             }
 
             LLMProvider::Strategy(provider) => {
@@ -142,7 +152,13 @@ impl LLMProvider {
                     .first()
                     .ok_or(anyhow::anyhow!("Strategy provider is empty: {}", provider))?
                     .provider
-                    .build_request(prompt, allow_proxy, stream)
+                    .build_request(
+                        prompt,
+                        allow_proxy,
+                        stream,
+                        expose_secrets,
+                        cancellation_token,
+                    )
                     .await
             }
         }

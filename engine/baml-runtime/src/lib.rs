@@ -702,7 +702,7 @@ impl BamlRuntime {
         cb: Option<&ClientRegistry>,
         collectors: Option<Vec<Arc<Collector>>>,
         env_vars: HashMap<String, String>,
-        expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
+        expr_tx: Option<mpsc::UnboundedSender<Vec<SerializedSpan>>>,
     ) -> (Result<FunctionResult>, FunctionCallId) {
         // baml_log::info!("env vars: {:#?}", env_vars.clone());
         baml_log::set_from_env(&env_vars).unwrap();
@@ -970,12 +970,28 @@ impl BamlRuntime {
 
         let request = match prompt {
             RenderedPrompt::Chat(chat) => provider
-                .build_request(either::Either::Right(&chat), true, stream, &ctx, self)
+                .build_request(
+                    either::Either::Right(&chat),
+                    true,
+                    stream,
+                    true,
+                    &ctx,
+                    self,
+                    None,
+                )
                 .await?
                 .build()?,
 
             RenderedPrompt::Completion(completion) => provider
-                .build_request(either::Either::Left(&completion), true, stream, &ctx, self)
+                .build_request(
+                    either::Either::Left(&completion),
+                    true,
+                    stream,
+                    true,
+                    &ctx,
+                    self,
+                    None,
+                )
                 .await?
                 .build()?,
         };

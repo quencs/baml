@@ -316,6 +316,7 @@ impl WithChat for VertexClient {
                 None => ResponseType::Vertex,
             },
             ctx,
+            None,
         )
         .await
     }
