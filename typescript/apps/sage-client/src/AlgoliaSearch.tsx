@@ -103,7 +103,7 @@ const processHighlights = (text: string) => {
   return text
     .replace(
       /__ais-highlight__/g,
-      '<mark style="background: #fef3c7; color: #92400e; font-weight: 600; padding: 0 2px; border-radius: 2px;">',
+      '<mark style="background: #e9d5ff; color: #6b21a8; font-weight: 600; padding: 0 2px; border-radius: 2px;">',
     )
     .replace(/__\/ais-highlight__/g, '</mark>');
 };
@@ -146,7 +146,7 @@ function Hit({
 
   const handleMouseEnter = (e: React.MouseEvent) => {
     if (!isKeyboardSelected) {
-      (e.currentTarget as HTMLElement).style.backgroundColor = '#f1f5f9';
+      (e.currentTarget as HTMLElement).style.backgroundColor = '#f3e8ff';
     }
     setShowTooltip(true);
   };
@@ -165,14 +165,14 @@ function Hit({
         style={{
           display: 'flex',
           alignItems: 'flex-start',
-          gap: '14px',
-          padding: '14px 18px',
+          gap: '10px',
+          padding: '10px 14px',
           textDecoration: 'none',
           color: '#374151',
           borderBottom: '1px solid #f3f4f6',
           transition: 'background-color 0.2s ease',
           cursor: 'pointer',
-          background: isKeyboardSelected ? '#f8fafc' : 'transparent',
+          background: isKeyboardSelected ? '#ede9fe' : 'transparent',
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -188,7 +188,7 @@ function Hit({
             style={{
               fontWeight: 600,
               fontSize: '15px',
-              marginBottom: '6px',
+              marginBottom: '4px',
               color: '#111827',
               lineHeight: '1.3',
             }}
@@ -224,7 +224,7 @@ function Hit({
               style={{
                 fontSize: '11px',
                 color: '#9ca3af',
-                marginTop: '8px',
+                marginTop: '6px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -266,7 +266,7 @@ function Hit({
             left: '100%',
             marginLeft: '12px',
             width: '280px',
-            padding: '12px',
+            padding: '10px',
             backgroundColor: '#ffffff',
             border: '1px solid #e5e7eb',
             borderRadius: '8px',
@@ -437,7 +437,7 @@ function AskWithAIOption({
       onKeyDown={handleKeyDown}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.backgroundColor = '#f1f5f9';
+          e.currentTarget.style.backgroundColor = '#f3e8ff';
         }
       }}
       onMouseLeave={(e) => {
@@ -448,7 +448,7 @@ function AskWithAIOption({
       style={{
         display: 'block',
         width: '100%',
-        padding: '14px 18px',
+        padding: '10px 14px',
         textDecoration: 'none',
         color: '#374151',
         borderBottom: '1px solid #f3f4f6',
@@ -456,7 +456,7 @@ function AskWithAIOption({
         textAlign: 'left',
         transition: 'background-color 0.2s ease',
         cursor: 'pointer',
-        background: isSelected ? '#f8fafc' : 'transparent',
+        background: isSelected ? '#ede9fe' : 'transparent',
         borderRadius: '0px',
         margin: '0',
       }}
@@ -469,7 +469,7 @@ function AskWithAIOption({
           fontWeight: 600,
           fontSize: '15px',
           color: '#6366f1',
-          marginBottom: '4px',
+          marginBottom: '2px',
         }}
       >
         <AIIcon />
@@ -611,14 +611,14 @@ function CustomSearchBox({
           boxShadow: isFocused
             ? '0 0 0 3px rgba(99, 102, 241, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1)'
             : '0 1px 2px rgba(0, 0, 0, 0.05)',
-          height: '40px',
+          height: '36px',
         }}
       >
         {/* Search Icon */}
         <div
           style={{
             position: 'absolute',
-            left: '12px',
+            left: '10px',
             color: isFocused ? '#6366f1' : '#9ca3af',
             display: 'flex',
             alignItems: 'center',
@@ -640,7 +640,7 @@ function CustomSearchBox({
           placeholder="Search BAML docs…"
           style={{
             flex: 1,
-            padding: '0 140px 0 40px',
+            padding: '0 140px 0 36px',
             border: 'none',
             outline: 'none',
             background: 'transparent',
@@ -656,7 +656,7 @@ function CustomSearchBox({
         <div
           style={{
             position: 'absolute',
-            right: '8px',
+            right: '6px',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -807,7 +807,7 @@ function CustomHits({
         top: '100%',
         left: 0,
         right: 0,
-        marginTop: '8px',
+        marginTop: '4px',
         background: '#ffffff',
         border: '1px solid #e5e7eb',
         borderRadius: '12px',
@@ -841,13 +841,13 @@ function CustomHits({
       {hits.length === 0 && actualQuery.trim() && (
         <div
           style={{
-            padding: '20px',
+            padding: '16px',
             textAlign: 'center',
             color: '#6b7280',
             fontSize: '14px',
           }}
         >
-          <div style={{ marginBottom: '8px' }}>
+          <div style={{ marginBottom: '6px' }}>
             No results found for "{actualQuery}"
           </div>
           {onAskAI && (
