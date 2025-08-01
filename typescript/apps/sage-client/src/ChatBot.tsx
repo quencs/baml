@@ -6,6 +6,8 @@ import { z } from 'zod';
 import BamlLambWhite from './baml-lamb-white.svg';
 import { type Message, messagesAtom } from './store';
 
+import { Messages } from '@baml/ui/chatbot/messages';
+
 interface ChatBotProps {
   apiEndpoint?: string;
   isOpen?: boolean;
@@ -395,6 +397,22 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
           }
         }}
       />
+
+      <Messages
+          chatId={'asdf'}
+          status={'submitted'}
+          // votes={votes}
+          // messages={messages}
+          messages={[]}
+          // setMessages={setMessages}
+          setMessages={() => {}}
+          // regenerate={() => {}}
+          regenerate={() => Promise.resolve()}
+          isReadonly={false}
+          isArtifactVisible={false}
+        />
+
+      {/* <DataStreamHandler /> */}
 
       {/* Header */}
       <div

@@ -20,7 +20,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": [
-    "src/**/*"
-, "components/message-actions.tsx", "components/message-editor.tsx", "components/message-reasoning.tsx", "components/message.tsx", "components/messages.tsx"  ]
+  "include": [ "src" ],
+  "exclude": ["node_modules", "dist", ".turbo"]
 }

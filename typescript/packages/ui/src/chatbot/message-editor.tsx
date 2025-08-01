@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from './ui/button';
+import { Button } from '../components/button';
 import {
   type Dispatch,
   type SetStateAction,
@@ -8,11 +8,11 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Textarea } from './ui/textarea';
-import { deleteTrailingMessages } from '@/app/(chat)/actions';
+import { Textarea } from '../components/textarea';
+// import { deleteTrailingMessages } from '@/app/(chat)/actions';
 import type { UseChatHelpers } from '@ai-sdk/react';
-import type { ChatMessage } from '@/lib/types';
-import { getTextFromMessage } from '@/lib/utils';
+import type { ChatMessage } from './types';
+import { getTextFromMessage } from './utils';
 
 export type MessageEditorProps = {
   message: ChatMessage;
@@ -80,9 +80,10 @@ export function MessageEditor({
           onClick={async () => {
             setIsSubmitting(true);
 
-            await deleteTrailingMessages({
-              id: message.id,
-            });
+            console.log('TODO: delete trailing messages');
+            // await deleteTrailingMessages({
+            //   id: message.id,
+            // });
 
             setMessages((messages) => {
               const index = messages.findIndex((m) => m.id === message.id);

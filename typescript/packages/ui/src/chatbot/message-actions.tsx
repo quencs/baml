@@ -4,13 +4,13 @@ import { useCopyToClipboard } from 'usehooks-ts';
 // import type { Vote } from '@/lib/db/schema';
 
 import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
-import { Button } from '@baml/ui/button';
+import { Button } from '../components/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@baml/ui/tooltip';
+} from '../components/tooltip';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
 import { toast } from 'sonner';
@@ -68,7 +68,8 @@ export function PureMessageActions({
             <Button
               data-testid="message-upvote"
               className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
-              disabled={vote?.isUpvoted}
+              // disabled={vote?.isUpvoted}
+              disabled
               variant="outline"
               onClick={async () => {
                 console.log('upvote placeholder');
@@ -125,8 +126,11 @@ export function PureMessageActions({
               data-testid="message-downvote"
               className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
               variant="outline"
-              disabled={vote && !vote.isUpvoted}
+              // disabled={vote && !vote.isUpvoted}
+              disabled
               onClick={async () => {
+                console.log('downvote placeholder');
+                /*
                 const downvote = fetch('/api/vote', {
                   method: 'PATCH',
                   body: JSON.stringify({
@@ -164,6 +168,7 @@ export function PureMessageActions({
                   },
                   error: 'Failed to downvote response.',
                 });
+                */
               }}
             >
               <ThumbDownIcon />
@@ -179,7 +184,7 @@ export function PureMessageActions({
 export const MessageActions = memo(
   PureMessageActions,
   (prevProps, nextProps) => {
-    if (!equal(prevProps.vote, nextProps.vote)) return false;
+    // if (!equal(prevProps.vote, nextProps.vote)) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
 
     return true;
