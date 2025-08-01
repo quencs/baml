@@ -55,6 +55,9 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     permissions: write-all
+    defaults:
+      run:
+        working-directory: ../sage-backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -72,14 +75,13 @@ jobs:
         run: pnpm --filter=sage-backend deploy ../sage-backend
 
       - name: Install dependencies and build
-        working-directory: ../sage-backend
         run: pnpm install && pnpm baml-cli generate
 
       - name: Vercel pull
-        run: pnpx vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN_SAM }}
+        run: pnpm vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN_SAM }}
 
       - name: Build project artifacts
-        run: pnpx vercel build --prod --token=${{ secrets.VERCEL_TOKEN_SAM }}
+        run: pnpm vercel build --prod --token=${{ secrets.VERCEL_TOKEN_SAM }}
 
       - name: Deploy preview backend
         env:
@@ -88,9 +90,9 @@ jobs:
         run: |
           (
             if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/canary" ]; then
-              pnpx vercel deploy --prod --prebuilt
+              pnpm vercel deploy --prod --prebuilt
             else
-              pnpx vercel deploy --prebuilt
+              pnpm vercel deploy --prebuilt
             fi
           ) | tee preview_url.txt
 
