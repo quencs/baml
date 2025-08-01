@@ -188,13 +188,20 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
         }
       }
 
-      // Auto-navigate to first ranked doc if available
+      // Auto-navigate to first very-relevant doc on same domain if available
       if (data.ranked_docs && data.ranked_docs.length > 0) {
-        const firstDoc = data.ranked_docs[0];
-        // Use the global navigateToDoc function
-        if ((window as any).navigateToDoc) {
+        console.log('data.ranked_docs', data.ranked_docs);
+        const veryRelevantSameDomainDoc = data.ranked_docs.find(
+          (doc) => doc.relevance === 'very-relevant' && doc.url.startsWith('/'),
+        );
+        console.log('veryRelevantSameDomainDoc', veryRelevantSameDomainDoc);
+        if (veryRelevantSameDomainDoc && (window as any).navigateToDoc) {
           (window as any).navigateToDoc(
-            { u: firstDoc.url, t: firstDoc.title, sel: 'article' },
+            {
+              u: veryRelevantSameDomainDoc.url,
+              t: veryRelevantSameDomainDoc.title,
+              sel: 'article',
+            },
             text.trim(),
           );
         }
@@ -867,17 +874,24 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen = false, onClose }) => {
                     <a
                       href={doc.url}
                       onClick={(e) => {
-                        e.preventDefault();
-                        // Use the global navigateToDoc function to navigate while keeping chat open
-                        if ((window as any).navigateToDoc) {
-                          (window as any).navigateToDoc(
-                            { u: doc.url, t: doc.title, sel: 'article' },
-                            message.text || '',
-                          );
-                        } else {
-                          // Fallback to normal navigation if navigateToDoc is not available
-                          window.location.href = doc.url;
+                        // Only redirect if very-relevant and same domain, otherwise use normal link behavior
+                        if (
+                          doc.relevance === 'very-relevant' &&
+                          doc.url.startsWith('/')
+                        ) {
+                          e.preventDefault();
+                          // Use the global navigateToDoc function to navigate while keeping chat open
+                          if ((window as any).navigateToDoc) {
+                            (window as any).navigateToDoc(
+                              { u: doc.url, t: doc.title, sel: 'article' },
+                              message.text || '',
+                            );
+                          } else {
+                            // Fallback to normal navigation if navigateToDoc is not available
+                            window.location.href = doc.url;
+                          }
                         }
+                        // For non-very-relevant docs or external links, let the default link behavior handle it
                       }}
                       style={{
                         color: '#7d47e3',

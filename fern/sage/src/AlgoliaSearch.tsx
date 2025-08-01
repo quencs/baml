@@ -475,15 +475,6 @@ function AskWithAIOption({
         <AIIcon />
         Ask Baaaaml about "{query}"
       </div>
-      <div
-        style={{
-          fontSize: '13px',
-          color: '#6b7280',
-          lineHeight: '1.4',
-        }}
-      >
-        Get AI-powered insights and explanations for your search query
-      </div>
     </button>
   );
 }
