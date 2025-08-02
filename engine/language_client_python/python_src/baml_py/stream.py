@@ -1,5 +1,5 @@
 """
-BAML Stream with cancellation support for Python
+BAML Stream for Python
 """
 
 import asyncio
@@ -13,7 +13,7 @@ FinalT = TypeVar('FinalT')
 
 class BamlStream(Generic[PartialT, FinalT]):
     """
-    A BAML stream that supports cancellation.
+    A BAML stream.
     
     This stream can be cancelled to stop ongoing HTTP requests to LLM providers,
     preventing wasted resources and billing charges.
@@ -56,7 +56,6 @@ class BamlStream(Generic[PartialT, FinalT]):
         Get the final response from the stream.
         
         This will wait for the stream to complete and return the final result.
-        If the stream is cancelled, this will raise an exception.
         """
         if self._final_result is not None:
             return self._final_result
@@ -125,7 +124,7 @@ class BamlStream(Generic[PartialT, FinalT]):
 
 class BamlSyncStream(Generic[PartialT, FinalT]):
     """
-    Synchronous version of BamlStream with cancellation support.
+    Synchronous version of BamlStream.
     """
     
     def __init__(

@@ -4,13 +4,18 @@ mod ffi;
 mod panic;
 mod raw_ptr_wrapper;
 
-use std::{collections::HashMap, ffi::{CStr, CString}, ops::Deref, ptr::null, sync::Arc};
+use std::{
+    collections::HashMap,
+    ffi::{CStr, CString},
+    ops::Deref,
+    ptr::null,
+    sync::Arc,
+};
 
 use anyhow::Result;
 use baml_runtime::{BamlRuntime, FunctionResult};
 use libc::size_t;
 use once_cell::sync::{Lazy, OnceCell};
-use tokio_util::sync::CancellationToken;
 
 use crate::{
     ctypes::{
@@ -40,70 +45,6 @@ pub use ffi::{
 pub extern "C" fn version() -> *const libc::c_char {
     let version = CString::new(VERSION).unwrap();
     version.into_raw() as *const libc::c_char
-}
-
-/// Create a cancellation token for stream operations
-#[no_mangle]
-pub extern "C" fn create_cancellation_token() -> *const libc::c_void {
-    let token = CancellationToken::new();
-    Box::into_raw(Box::new(token)) as *const libc::c_void
-}
-
-/// Cancel a cancellation token
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-#[no_mangle]
-pub extern "C" fn cancel_token(token_ptr: *const libc::c_void) {
-    if token_ptr.is_null() {
-        return;
-    }
-    
-    let token = unsafe { &*(token_ptr as *const CancellationToken) };
-    token.cancel();
-}
-
-/// Check if a cancellation token is cancelled
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-#[no_mangle]
-pub extern "C" fn is_token_cancelled(token_ptr: *const libc::c_void) -> bool {
-    if token_ptr.is_null() {
-        return false;
-    }
-    
-    let token = unsafe { &*(token_ptr as *const CancellationToken) };
-    token.is_cancelled()
-}
-
-/// Free a cancellation token
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-#[no_mangle]
-pub extern "C" fn free_cancellation_token(token_ptr: *const libc::c_void) {
-    if !token_ptr.is_null() {
-        unsafe {
-            let _ = Box::from_raw(token_ptr as *mut CancellationToken);
-        }
-    }
-}
-
-/// Cancel a stream using its cancellation token
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-#[no_mangle]
-pub extern "C" fn cancel_stream(
-    stream_ptr: *const libc::c_void,
-    token_ptr: *const libc::c_void,
-) -> bool {
-    if stream_ptr.is_null() || token_ptr.is_null() {
-        return false;
-    }
-    
-    let token = unsafe { &*(token_ptr as *const CancellationToken) };
-    token.cancel();
-    
-    // Also try to cancel the stream directly if it supports it
-    let stream = unsafe { &mut *(stream_ptr as *mut baml_runtime::FunctionResultStream) };
-    stream.set_cancellation_token(token.clone());
-    stream.cancel();
-    
-    true
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]

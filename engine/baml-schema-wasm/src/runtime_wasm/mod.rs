@@ -401,7 +401,11 @@ pub struct WasmFunctionTestPair {
 
 #[wasm_bindgen]
 pub struct WasmFunctionResponse {
-    function_response: baml_runtime::FunctionResult,
+    // Store the parsed response as a string to avoid circular references
+    parsed_response: Option<String>,
+    // Store the LLM response data separately
+    llm_response: Option<WasmLLMResponse>,
+    llm_failure: Option<WasmLLMFailure>,
     func_test_pair: WasmFunctionTestPair,
 }
 
@@ -454,6 +458,7 @@ pub enum TestStatus {
 }
 
 #[wasm_bindgen(getter_with_clone, inspectable)]
+#[derive(Clone)]
 pub struct WasmLLMResponse {
     scope: OrchestrationScope,
     pub model: String,
@@ -468,6 +473,7 @@ pub struct WasmLLMResponse {
 }
 
 #[wasm_bindgen(getter_with_clone, inspectable)]
+#[derive(Clone)]
 pub struct WasmLLMFailure {
     scope: OrchestrationScope,
     pub model: Option<String>,
@@ -508,27 +514,17 @@ impl WasmLLMResponse {
 #[wasm_bindgen]
 impl WasmFunctionResponse {
     pub fn parsed_response(&self) -> Option<String> {
-        self.function_response
-            .result_with_constraints_content()
-            .map(|p| serde_json::to_string(&p.serialize_partial()))
-            .map_or_else(|_| None, |s| s.ok())
+        self.parsed_response.clone()
     }
 
     #[wasm_bindgen]
     pub fn llm_failure(&self) -> Option<WasmLLMFailure> {
-        llm_response_to_wasm_error(
-            self.function_response.llm_response(),
-            self.function_response.scope(),
-        )
+        self.llm_failure.clone()
     }
 
     #[wasm_bindgen]
     pub fn llm_response(&self) -> Option<WasmLLMResponse> {
-        (
-            self.function_response.llm_response(),
-            self.function_response.scope(),
-        )
-            .to_wasm()
+        self.llm_response.clone()
     }
 
     #[wasm_bindgen]
@@ -1587,10 +1583,24 @@ impl WasmRuntime {
 
                     // Create a closure to handle partial responses for this test
                     let on_partial_response_clone = on_partial_response.clone();
-                    let cb = Box::new(move |r| {
+                    let cb = Box::new(move |r: FunctionResult| {
                         let this = JsValue::NULL;
+
+                        // Extract the parsed response
+                        let parsed_response = r
+                            .result_with_constraints_content()
+                            .map(|p| serde_json::to_string(&p.serialize_partial()))
+                            .map_or_else(|_| None, |s| s.ok());
+
+                        // Extract LLM response data
+                        let llm_response = (r.llm_response(), r.scope()).to_wasm();
+
+                        let llm_failure = llm_response_to_wasm_error(r.llm_response(), r.scope());
+
                         let res = WasmFunctionResponse {
-                            function_response: r,
+                            parsed_response,
+                            llm_response,
+                            llm_failure,
                             func_test_pair: WasmFunctionTestPair {
                                 function_name: fn_name_copy.clone(),
                                 test_name: test_name_copy.clone(),
@@ -1896,8 +1906,22 @@ impl WasmFunction {
         // Create the closure to handle partial responses:
         let cb = Box::new(move |r: FunctionResult| {
             let this = JsValue::NULL;
+
+            // Extract the parsed response
+            let parsed_response = r
+                .result_with_constraints_content()
+                .map(|p| serde_json::to_string(&p.serialize_partial()))
+                .map_or_else(|_| None, |s| s.ok());
+
+            // Extract LLM response data
+            let llm_response = (r.llm_response(), r.scope()).to_wasm();
+
+            let llm_failure = llm_response_to_wasm_error(r.llm_response(), r.scope());
+
             let res = WasmFunctionResponse {
-                function_response: r,
+                parsed_response,
+                llm_response,
+                llm_failure,
                 func_test_pair: WasmFunctionTestPair {
                     function_name: function_name_for_test_pair.clone(),
                     test_name: test_name_for_test_pair.clone(),
@@ -1983,10 +2007,24 @@ impl WasmFunction {
         let test_name_for_test_pair = test_name.clone();
 
         // Create the closure to handle partial responses:
-        let cb = Box::new(move |r| {
+        let cb = Box::new(move |r: FunctionResult| {
             let this = JsValue::NULL;
+
+            // Extract the parsed response
+            let parsed_response = r
+                .result_with_constraints_content()
+                .map(|p| serde_json::to_string(&p.serialize_partial()))
+                .map_or_else(|_| None, |s| s.ok());
+
+            // Extract LLM response data
+            let llm_response = (r.llm_response(), r.scope()).to_wasm();
+
+            let llm_failure = llm_response_to_wasm_error(r.llm_response(), r.scope());
+
             let res = WasmFunctionResponse {
-                function_response: r,
+                parsed_response,
+                llm_response,
+                llm_failure,
                 func_test_pair: WasmFunctionTestPair {
                     function_name: function_name_for_test_pair.clone(),
                     test_name: test_name_for_test_pair.clone(),

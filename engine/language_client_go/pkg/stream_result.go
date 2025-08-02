@@ -32,7 +32,7 @@ func (result *StreamResult[Partial, Final]) Error() error {
 	return result.error
 }
 
-// BamlStream provides streaming functionality with cancellation support
+// BamlStream provides streaming functionality
 type BamlStream[Partial any, Final any] struct {
 	ffiStream    interface{} // The underlying FFI stream
 	ctx          context.Context
@@ -43,7 +43,7 @@ type BamlStream[Partial any, Final any] struct {
 	cancelled    bool
 }
 
-// NewBamlStream creates a new BAML stream with cancellation support
+// NewBamlStream creates a new BAML stream
 func NewBamlStream[Partial any, Final any](ffiStream interface{}, ctx context.Context) *BamlStream[Partial, Final] {
 	streamCtx, cancel := context.WithCancel(ctx)
 	return &BamlStream[Partial, Final]{
@@ -56,9 +56,8 @@ func NewBamlStream[Partial any, Final any](ffiStream interface{}, ctx context.Co
 // Cancel cancels the stream processing.
 // This will:
 // 1. Cancel the Rust-level stream
-// 2. Cancel ongoing HTTP requests to LLM providers
-// 3. Stop consuming network bandwidth and API quota
-// 4. Clean up resources
+// 2. Stop consuming network bandwidth and API quota
+// 3. Clean up resources
 func (s *BamlStream[Partial, Final]) Cancel() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -81,13 +80,12 @@ func (s *BamlStream[Partial, Final]) IsCancelled() bool {
 	return s.cancelled || s.ctx.Err() != nil
 }
 
-// Context returns the stream's context for cancellation checking
+// Context returns the stream's context
 func (s *BamlStream[Partial, Final]) Context() context.Context {
 	return s.ctx
 }
 
 // GetFinalResponse waits for the stream to complete and returns the final result.
-// If the stream is cancelled, this will return a cancellation error.
 func (s *BamlStream[Partial, Final]) GetFinalResponse() (*Final, error) {
 	s.mutex.RLock()
 	if s.finalResult != nil {
@@ -96,7 +94,7 @@ func (s *BamlStream[Partial, Final]) GetFinalResponse() (*Final, error) {
 	}
 	s.mutex.RUnlock()
 	
-	// Check for cancellation
+	// Check for completion
 	select {
 	case <-s.ctx.Done():
 		return nil, s.ctx.Err()

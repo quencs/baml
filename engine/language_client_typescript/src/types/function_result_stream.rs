@@ -6,7 +6,6 @@ use napi::{
     Env, JsFunction, JsObject, JsUndefined,
 };
 use napi_derive::napi;
-use tokio_util::sync::CancellationToken;
 
 use super::{function_results::FunctionResult, runtime_ctx_manager::RuntimeContextManager};
 use crate::errors::from_anyhow_error;
@@ -20,8 +19,7 @@ crate::lang_wrapper!(
     callback: Option<napi::Ref<()>>,
     tb: Option<baml_runtime::type_builder::TypeBuilder>,
     cb: Option<baml_runtime::client_registry::ClientRegistry>,
-    env_vars: HashMap<String, String>,
-    cancellation_token: CancellationToken
+    env_vars: HashMap<String, String>
 );
 
 impl FunctionResultStream {
@@ -37,7 +35,6 @@ impl FunctionResultStream {
             tb,
             cb,
             env_vars: HashMap::new(),
-            cancellation_token: CancellationToken::new(),
         }
     }
 }
@@ -46,18 +43,14 @@ impl FunctionResultStream {
 impl FunctionResultStream {
     #[napi]
     pub fn cancel(&self) -> napi::Result<()> {
-        self.cancellation_token.cancel();
-        
-        // Also cancel the underlying Rust stream
+        // Cancel the underlying Rust stream
         let inner = self.inner.clone();
-        let token = self.cancellation_token.clone();
         tokio::spawn(async move {
             if let Ok(mut stream) = inner.try_lock() {
-                stream.set_cancellation_token(token);
                 stream.cancel();
             }
         });
-        
+
         Ok(())
     }
 
@@ -85,7 +78,6 @@ impl FunctionResultStream {
     #[napi(ts_return_type = "Promise<FunctionResult>")]
     pub fn done(&self, env: Env, rctx: &RuntimeContextManager) -> napi::Result<JsObject> {
         let inner = self.inner.clone();
-        let cancellation_token = self.cancellation_token.clone();
 
         let on_event = match &self.callback {
             Some(cb) => {
@@ -115,12 +107,7 @@ impl FunctionResultStream {
 
         let fut = async move {
             let ctx_mng = ctx_mng;
-            
-            // Set the cancellation token on the stream
-            if let Ok(mut stream) = inner.try_lock() {
-                stream.set_cancellation_token(cancellation_token);
-            }
-            
+
             let res = inner
                 .lock()
                 .await
@@ -142,9 +129,6 @@ impl FunctionResultStream {
 
 impl ObjectFinalize for FunctionResultStream {
     fn finalize(mut self, env: Env) -> napi::Result<()> {
-        // Cancel the stream when the object is finalized
-        self.cancellation_token.cancel();
-        
         if let Some(mut cb) = self.callback.take() {
             cb.unref(env)?;
         }
