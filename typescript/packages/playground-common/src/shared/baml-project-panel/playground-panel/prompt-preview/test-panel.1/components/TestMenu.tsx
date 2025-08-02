@@ -3,7 +3,7 @@ import { Tooltip, TooltipTrigger } from '@baml/ui/tooltip';
 import { TooltipContent, TooltipProvider } from '@baml/ui/tooltip';
 import { useAtomValue } from 'jotai';
 import { useAtom } from 'jotai';
-import { Play } from 'lucide-react';
+import { Play, AlertTriangle } from 'lucide-react';
 import { selectedHistoryIndexAtom, testHistoryAtom } from '../atoms';
 import { useRunBamlTests } from '../test-runner';
 import { ViewSelector } from './ViewSelector';
@@ -53,6 +53,25 @@ export const TestMenu = () => {
             </TooltipTrigger>
             <TooltipContent>
               <p>Re-run all tests</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-6 h-6"
+                onClick={() => {
+                  alert('Alert button clicked!');
+                }}
+              >
+                <AlertTriangle className="w-4 h-4" fill="#f59e0b" stroke="#f59e0b" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Alert button</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

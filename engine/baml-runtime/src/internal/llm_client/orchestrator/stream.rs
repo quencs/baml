@@ -79,7 +79,7 @@ where
 
         let (system_start, instant_start) = (web_time::SystemTime::now(), web_time::Instant::now());
         let ctx = CtxWithHttpRequestId::from(ctx);
-        
+
         // Pass cancellation token to the stream method
         let stream_res = node.stream(&ctx, &prompt, cancellation_token.clone()).await;
         let final_response = match stream_res {
@@ -88,7 +88,9 @@ where
                     // Check for cancellation during streaming
                     if let Some(token) = &cancellation_token {
                         if token.is_cancelled() {
-                            return LLMResponse::InternalFailure("Request was cancelled during streaming".to_string());
+                            return LLMResponse::InternalFailure(
+                                "Request was cancelled during streaming".to_string(),
+                            );
                         }
                     }
 

@@ -16,8 +16,8 @@ import { toast } from '@baml/ui/sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@baml/ui/tooltip';
 import { TooltipProvider } from '@baml/ui/tooltip';
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { Key, Play, Settings } from 'lucide-react';
-import type React from 'react';
+import { Key, Play, Settings, Ban } from 'lucide-react';
+import React from 'react';
 import {
   type BamlConfigAtom,
   bamlConfig,
@@ -44,27 +44,76 @@ export const displaySettingsAtom = atom({
 
 // RunButton component
 const RunButton: React.FC<{ className?: string }> = ({ className }) => {
-  const runBamlTests = useRunBamlTests();
+  const { runTests, cancelTests } = useRunBamlTests();
   const isRunning = useAtomValue(areTestsRunningAtom);
   const selected = useAtomValue(selectedItemAtom);
+  const { open: isSidebarOpen } = useSidebar();
+  const [hasCanceled, setHasCanceled] = React.useState(false);
+
+  // Hide text when sidebar is open or on smaller screens
+  const getButtonTextClass = () => {
+    if (isSidebarOpen) {
+      return 'text-sm hidden whitespace-nowrap';
+    }
+    return 'text-sm hidden md:block whitespace-nowrap';
+  };
+
+  const handleCancel = () => {
+    // Cancel the tests using the test runner
+    cancelTests();
+    setHasCanceled(true);
+    
+    // Send cancel message to VSCode extension
+    try {
+      vscode.postMessage({
+        command: 'cancelTestRun',
+      });
+    } catch (e) {
+      console.error('Failed to send cancel message:', e);
+      // Fallback for non-VSCode environments
+      console.log('Cancel button clicked - tests should be cancelled');
+    }
+  };
+
+  // Reset cancel state when tests stop running
+  React.useEffect(() => {
+    if (!isRunning) {
+      setHasCanceled(false);
+    }
+  }, [isRunning]);
 
   return (
-    <Button
-      variant="default"
-      size="xs"
-      className={cn('cursor-pointer items-center gap-2 flex-shrink-0 min-w-fit bg-purple-600 hover:bg-purple-700 text-white', className)}
-      disabled={isRunning || selected === undefined}
-      onClick={() => {
-        if (selected) {
-          void runBamlTests([
-            { functionName: selected[0], testName: selected[1] },
-          ]);
-        }
-      }}
-    >
-      <Play className="size-4 flex-shrink-0" />
-      <span className="text-sm whitespace-nowrap">Run Test</span>
-    </Button>
+    <div className="flex items-center gap-2">
+      {isRunning && (
+        <Button
+          variant="default"
+          size="xs"
+          className={cn('items-center gap-2 flex-shrink-0 min-w-fit', className)}
+          style={{ backgroundColor: '#ff746c' }}
+          onClick={handleCancel}
+          disabled={hasCanceled}
+        >
+          <Ban className="size-4 flex-shrink-0" strokeWidth={2.5} />
+          <div className={getButtonTextClass()}>Cancel</div>
+        </Button>
+      )}
+      <Button
+        variant="default"
+        size="xs"
+        className={cn('cursor-pointer items-center gap-2 flex-shrink-0 min-w-fit bg-purple-600 hover:bg-purple-700 text-white', className)}
+        disabled={isRunning || selected === undefined}
+        onClick={() => {
+          if (selected) {
+            void runTests([
+              { functionName: selected[0], testName: selected[1] },
+            ]);
+          }
+        }}
+      >
+        <Play className="size-4 flex-shrink-0" />
+        <div className={getButtonTextClass()}>Run Test</div>
+      </Button>
+    </div>
   );
 };
 
