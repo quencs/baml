@@ -1,4 +1,5 @@
 import type { WasmFunctionResponse, WasmSpan, WasmTestResponse } from '@gloo-ai/baml-schema-wasm-web'
+import { TestStatus } from '@gloo-ai/baml-schema-wasm-web'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { findMediaFile } from '../media-utils'
 import { ctxAtom, runtimeAtom, wasmAtom } from '../../../atoms';
@@ -11,8 +12,9 @@ import {
   areTestsRunningAtom,
   selectedTestcaseAtom,
   selectedFunctionAtom,
+  type DoneTestStatusType,
 } from '../../atoms'
-import { isParallelTestsEnabledAtom, testHistoryAtom, selectedHistoryIndexAtom, type TestHistoryRun } from './atoms'
+import { isParallelTestsEnabledAtom, testHistoryAtom, selectedHistoryIndexAtom, type TestHistoryRun, isCancellingAtom, activeCancellationTokenAtom } from './atoms'
 import { isClientCallGraphEnabledAtom } from '../../preview-toolbar'
 import { apiKeysAtom } from '../../../../../components/api-keys-dialog/atoms';
 
@@ -156,19 +158,20 @@ const useRunTests = (maxBatchSize = 5) => {
             const endTime = performance.now()
             const response_status = result.status()
             const responseStatusMap = {
-              [wasm.TestStatus.Passed]: 'passed',
-              [wasm.TestStatus.LLMFailure]: 'llm_failed',
-              [wasm.TestStatus.ParseFailure]: 'parse_failed',
-              [wasm.TestStatus.ConstraintsFailed]: 'constraints_failed',
-              [wasm.TestStatus.AssertFailed]: 'assert_failed',
-              [wasm.TestStatus.UnableToRun]: 'error',
-              [wasm.TestStatus.FinishReasonFailed]: 'error',
-            } as const
+              [TestStatus.Passed]: 'passed',
+              [TestStatus.LLMFailure]: 'llm_failed',
+              [TestStatus.ParseFailure]: 'parse_failed',
+              [TestStatus.ConstraintsFailed]: 'constraints_failed',
+              [TestStatus.AssertFailed]: 'assert_failed',
+              [TestStatus.UnableToRun]: 'error',
+              [TestStatus.FinishReasonFailed]: 'error',
+              [TestStatus.Canceled]: 'cancelled',
+            }
 
             setState(test, {
               status: 'done',
               response: result,
-              response_status: responseStatusMap[response_status] || 'error',
+              response_status: (responseStatusMap[response_status] || 'error') as DoneTestStatusType,
               latency_ms: endTime - startTime,
             })
 
@@ -257,7 +260,7 @@ const useParallelRunTests = (maxBatchSize = 5) => {
             functionName: test.functionName,
             testName: test.testName,
             response: { status: 'running' },
-            input: get(testCaseAtom(test))?.tc.inputs,
+            input: get(testCaseAtom(test))?.tc.inputs, // Store input
           })),
         }
 
@@ -265,6 +268,7 @@ const useParallelRunTests = (maxBatchSize = 5) => {
 
         set(testHistoryAtom, (prev) => [historyRun, ...prev])
         set(selectedHistoryIndexAtom, 0)
+        set(isCancellingAtom, false) // Reset cancellation state
 
         const setState = (test: { functionName: string; testName: string }, update: TestState) => {
           set(testHistoryAtom, (prev) => {
@@ -297,37 +301,8 @@ const useParallelRunTests = (maxBatchSize = 5) => {
             return
           }
 
-          if (tests.length === 0) {
-            console.error('No tests found')
-            return
-          }
-
-          if (tests.length === 0 || !tests[0]) {
-            console.error('No tests found')
-            return
-          }
-
-          const firstTest = get(testCaseAtom(tests[0]))
-          if (firstTest) {
-            setSelectedFunction(firstTest.fn.name)
-            setSelectedTestcase(firstTest.tc.name)
-          } else {
-            console.error("Invalid test found, so won't select this test case in the prompt preview", tests[0])
-          }
-
-          vscode.postMessage({
-            command: 'telemetry',
-            meta: {
-              action: 'run_tests',
-              data: {
-                num_tests: tests.length,
-                parallel: true,
-              },
-            },
-          })
-
           try {
-            // Prepare test cases for `run_tests`
+            // Convert tests to the format expected by WASM
             const testCases = tests
               .map((test) => {
                 const testCase = get(testCaseAtom(test))
@@ -351,10 +326,19 @@ const useParallelRunTests = (maxBatchSize = 5) => {
             const startTime = performance.now()
             set(areTestsRunningAtom, true)
 
+            // Create a cancellation token for this test run
+            const cancellationToken = new wasm.WasmCancellationToken()
+            set(activeCancellationTokenAtom, cancellationToken)
+            
             // Call `run_tests` on the runtime
             const results = await rt.run_tests(
               testCases,
               (partial: WasmFunctionResponse) => {
+                // Check if cancellation was requested
+                if (get(isCancellingAtom)) {
+                  return
+                }
+                
                 const pair = partial.func_test_pair()
                 setState(
                   { functionName: pair.function_name, testName: pair.test_name },
@@ -363,23 +347,49 @@ const useParallelRunTests = (maxBatchSize = 5) => {
               },
               findMediaFile,
               apiKeys,
+              cancellationToken,
             )
+            
+            // Reset the cancellation token
+            set(activeCancellationTokenAtom, null)
+
+            // Check if cancellation was requested during execution
+            if (get(isCancellingAtom)) {
+              // Mark all tests as cancelled
+              tests.forEach((test) => {
+                setState(test, { 
+                  status: 'cancelled', 
+                  message: 'Test execution was cancelled' 
+                })
+              })
+              return
+            }
 
             const endTime = performance.now()
-            const responseStatusMap = {
-              [wasm.TestStatus.Passed]: 'passed',
-              [wasm.TestStatus.LLMFailure]: 'llm_failed',
-              [wasm.TestStatus.ParseFailure]: 'parse_failed',
-              [wasm.TestStatus.ConstraintsFailed]: 'constraints_failed',
-              [wasm.TestStatus.AssertFailed]: 'assert_failed',
-              [wasm.TestStatus.UnableToRun]: 'error',
-              [wasm.TestStatus.FinishReasonFailed]: 'error',
-            } as const
+            const responseStatusMap: Record<TestStatus, string> = {
+              [TestStatus.Passed]: 'passed',
+              [TestStatus.LLMFailure]: 'llm_failed',
+              [TestStatus.ParseFailure]: 'parse_failed',
+              [TestStatus.ConstraintsFailed]: 'constraints_failed',
+              [TestStatus.AssertFailed]: 'assert_failed',
+              [TestStatus.UnableToRun]: 'error',
+              [TestStatus.FinishReasonFailed]: 'error',
+              [TestStatus.Canceled]: 'cancelled',
+            }
 
             // Process results
-            // TODO: is there a better way to handle Rust's Option? Or do we even need Option?
             let response: WasmTestResponse | null | undefined
             while ((response = results.yield_next()) != undefined) {
+              // Check if cancellation was requested during result processing
+              if (get(isCancellingAtom)) {
+                const pair = response.func_test_pair()
+                setState(
+                  { functionName: pair.function_name, testName: pair.test_name },
+                  { status: 'cancelled', message: 'Test execution was cancelled' }
+                )
+                continue
+              }
+
               const pair = response.func_test_pair()
               const status = response.status()
               setState(
@@ -387,7 +397,7 @@ const useParallelRunTests = (maxBatchSize = 5) => {
                 {
                   status: 'done',
                   response: response,
-                  response_status: responseStatusMap[status] || 'error',
+                  response_status: (responseStatusMap[status] || 'error') as DoneTestStatusType,
                   latency_ms: endTime - startTime,
                 },
               )
@@ -402,6 +412,7 @@ const useParallelRunTests = (maxBatchSize = 5) => {
             })
           } finally {
             set(areTestsRunningAtom, false)
+            set(isCancellingAtom, false) // Reset cancellation state
           }
         }
 
@@ -418,6 +429,7 @@ export const useRunBamlTests = () => {
   const { setRunningTests } = useRunTests()
   const { setParallelTests } = useParallelRunTests()
   const isParallelTestsEnabled = useAtomValue(isParallelTestsEnabledAtom)
+  const setIsCancelling = useSetAtom(isCancellingAtom)
 
   const runTests = (tests: { functionName: string; testName: string }[]) => {
     if (isParallelTestsEnabled) {
@@ -427,5 +439,18 @@ export const useRunBamlTests = () => {
     }
   }
 
-  return runTests
+  const cancelTests = useAtomCallback((get, set) => {
+    vscode.postMessage({ command: 'waka waka 3'})
+    set(isCancellingAtom, true)
+    const token = get(activeCancellationTokenAtom)
+    if (token) {
+    vscode.postMessage({ command: 'waka waka 4'})
+      token.cancel()
+    vscode.postMessage({ command: 'waka waka 5'})
+    } else {
+      console.error("cancelling when no tests are running? this is not a bug but is right now.")
+    }
+  })
+
+  return { runTests, cancelTests }
 }

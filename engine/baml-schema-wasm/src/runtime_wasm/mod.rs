@@ -25,6 +25,26 @@ use itertools::join;
 use js_sys::{Promise, Uint8Array};
 use jsonish::ResponseBamlValue;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use tokio_util::sync::CancellationToken;
+
+// Wrapper for cancellation token that can be passed to WASM
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct WasmCancellationToken(CancellationToken);
+
+#[wasm_bindgen]
+impl WasmCancellationToken {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self(CancellationToken::new())
+    }
+
+    #[wasm_bindgen]
+    pub fn cancel(&self) {
+        self.0.cancel()
+    }
+}
 use wasm_bindgen::{prelude::*, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
@@ -242,7 +262,9 @@ impl WasmProject {
             })?;
 
         BamlRuntime::from_file_content(&self.root_dir_name, &hm, env_vars)
-            .map(|r| WasmRuntime { runtime: r })
+            .map(|r| WasmRuntime {
+                runtime: r,
+            })
             .map_err(|e| match e.downcast::<DiagnosticsError>() {
                 Ok(e) => {
                     let wasm_error = WasmDiagnosticError {
@@ -455,6 +477,7 @@ pub enum TestStatus {
     ConstraintsFailed,
     AssertFailed,
     UnableToRun,
+    Canceled,
 }
 
 #[wasm_bindgen(getter_with_clone, inspectable)]
@@ -551,6 +574,10 @@ fn serialize_value_counting_checks(value: &ResponseBamlValue) -> (serde_json::Va
     (json_value, check_count)
 }
 
+#[derive(Error, Debug)]
+#[error("test was canceled")]
+pub struct CanceledError;
+
 #[wasm_bindgen]
 impl WasmTestResponse {
     #[wasm_bindgen]
@@ -577,7 +604,13 @@ impl WasmTestResponse {
                     }
                 },
             },
-            Err(_) => TestStatus::UnableToRun,
+            Err(e) => {
+                if e.downcast_ref::<CanceledError>().is_some() {
+                    TestStatus::Canceled
+                } else {
+                    TestStatus::UnableToRun
+                }
+            }
         }
     }
 
@@ -1565,6 +1598,7 @@ impl WasmRuntime {
         on_partial_response: js_sys::Function,
         get_baml_src_cb: js_sys::Function,
         env: js_sys::Object,
+        WasmCancellationToken(cancellation_token): WasmCancellationToken,
     ) -> Result<WasmTestResponses, JsValue> {
         // Create a vector to store all test futures
         let mut test_futures = Vec::new();
@@ -1629,22 +1663,44 @@ impl WasmRuntime {
                     }
 
                     // Create a future for this test
+                    // NOTE: It is tempting to add cancellation only to the join_all() at the end,
+                    // but leaving the selects on each task will make it easier to make test status
+                    // UI more responsive.
+
+                    // clone the tokio::CancellationToken, which we know is safe to clone (refcount
+                    // behavior)
+                    // NOTE: should pass CancellationToken, we don't actually care about getting
+                    // the Wasm-tagged one. We should give the wasm-tagged version a kick.
+                    let cancellation_token_clone = cancellation_token.clone();
                     let future = async move {
-                        let (test_response, span) = rt
-                            .run_test(
-                                &function_name,
-                                &test_name,
-                                &ctx,
-                                Some(cb),
-                                None,
-                                env_vars.clone(),
-                            )
-                            .await;
+                        let test_run_fut = rt.run_test(
+                            &function_name,
+                            &test_name,
+                            &ctx,
+                            Some(cb),
+                            None,
+                            env_vars.clone(),
+                        );
+
+                        // FIXME: (before push): cancellation token should always be given? when is
+                        // it not going to be given?
+                        // Verify that the cancellation token is built inside runtime wasm and
+                        // given out to the UI code.
+                        let (test_response, span) = tokio::select! {
+                            (response, span) = test_run_fut => { (response, Some(span.to_string())) } ,
+                            _ = cancellation_token_clone.cancelled() => {
+                                 // FIXME: make sure this shows up when running wasm - could be
+                                 // interesting to just "bubble" the error without detecting
+                                 // that it was cancelled.
+
+                                 (Err(anyhow::anyhow!(CanceledError)), None)
+                             }
+                        };
 
                         // Return WasmTestResponse for this test
                         WasmTestResponse {
                             test_response,
-                            span: Some(span.to_string()),
+                            span,
                             tracing_project_id: rt
                                 .tracer_wrapper
                                 .get_or_create_tracer(&env_vars)

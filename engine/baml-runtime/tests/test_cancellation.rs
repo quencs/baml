@@ -146,7 +146,7 @@ mod cancellation_tests {
 
         assert!(result.is_ok(), "Stream should complete (with cancellation)");
         let (stream_result, _) = result.unwrap();
-        
+
         // Should be cancelled
         assert!(stream_result.is_err());
         let error_msg = stream_result.unwrap_err().to_string();
@@ -185,7 +185,8 @@ mod cancellation_tests {
             "##,
         );
 
-        let runtime = BamlRuntime::from_file_content(".", &files, HashMap::new()).unwrap();
+        let runtime =
+            BamlRuntime::from_file_content(".", &files, HashMap::<&str, &str>::new()).unwrap();
         let ctx = runtime.create_ctx_manager(BamlValue::String("test".to_string()), None);
 
         // Create a stream
@@ -364,10 +365,13 @@ mod cancellation_tests {
 
         // Should be cancelled
         assert!(result.is_err());
-        
+
         // Callback should not have been called due to immediate cancellation
         let final_count = *callback_count.lock().unwrap();
-        assert_eq!(final_count, 0, "Callbacks should not be invoked after cancellation");
+        assert_eq!(
+            final_count, 0,
+            "Callbacks should not be invoked after cancellation"
+        );
     }
 
     /// Test that cancellation works with sync runtime
@@ -375,7 +379,7 @@ mod cancellation_tests {
     #[test]
     fn test_sync_stream_cancellation() {
         let rt = tokio::runtime::Runtime::new().unwrap();
-        
+
         rt.block_on(async {
             let mut files = HashMap::new();
             files.insert(
@@ -452,23 +456,24 @@ mod unit_tests {
     #[tokio::test]
     async fn test_cancellation_token_basic() {
         let token = CancellationToken::new();
-        
+
         // Initially not cancelled
         assert!(!token.is_cancelled());
-        
+
         // Cancel the token
         token.cancel();
-        
+
         // Now should be cancelled
         assert!(token.is_cancelled());
-        
+
         // cancelled() future should complete immediately
-        let result = tokio::time::timeout(
-            std::time::Duration::from_millis(100),
-            token.cancelled()
-        ).await;
-        
-        assert!(result.is_ok(), "cancelled() future should complete immediately");
+        let result =
+            tokio::time::timeout(std::time::Duration::from_millis(100), token.cancelled()).await;
+
+        assert!(
+            result.is_ok(),
+            "cancelled() future should complete immediately"
+        );
     }
 
     /// Test CancellationToken with tokio::select!
@@ -476,13 +481,13 @@ mod unit_tests {
     async fn test_cancellation_with_select() {
         let token = CancellationToken::new();
         let token_clone = token.clone();
-        
+
         // Spawn a task that cancels after delay
         tokio::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             token_clone.cancel();
         });
-        
+
         // Use select to race between work and cancellation
         let result = tokio::select! {
             _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
@@ -492,7 +497,7 @@ mod unit_tests {
                 "cancelled"
             }
         };
-        
+
         assert_eq!(result, "cancelled");
     }
 
@@ -501,14 +506,14 @@ mod unit_tests {
     async fn test_child_token_cancellation() {
         let parent_token = CancellationToken::new();
         let child_token = parent_token.child_token();
-        
+
         // Initially neither is cancelled
         assert!(!parent_token.is_cancelled());
         assert!(!child_token.is_cancelled());
-        
+
         // Cancel parent
         parent_token.cancel();
-        
+
         // Both should be cancelled
         assert!(parent_token.is_cancelled());
         assert!(child_token.is_cancelled());

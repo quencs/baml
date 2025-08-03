@@ -11,7 +11,7 @@ import { ViewSelector } from '../ViewSelector';
 export const TestMenu = () => {
   const [selectedHistoryIndex] = useAtom(selectedHistoryIndexAtom);
   const testHistory = useAtomValue(testHistoryAtom);
-  const runBamlTests = useRunBamlTests();
+  const { runTests } = useRunBamlTests()
 
   if (testHistory.length === 0) {
     return (
@@ -45,7 +45,7 @@ export const TestMenu = () => {
                     functionName: test.functionName,
                     testName: test.testName,
                   }));
-                  runBamlTests(allTests);
+                  runTests(allTests);
                 }}
               >
                 <Play className="w-4 h-4" fill="#a855f7" stroke="#a855f7" />

@@ -74,7 +74,7 @@ const getHistoryButtonColor = (tests: TestHistoryEntry[], isSelected: boolean) =
 export const TestMenu = () => {
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useAtom(selectedHistoryIndexAtom)
   const testHistory = useAtomValue(testHistoryAtom)
-  const runBamlTests = useRunBamlTests()
+  const { runTests } = useRunBamlTests()
   if (testHistory.length === 0) {
     return (
       <div className='flex justify-end items-center pr-2 mb-3 space-x-2'>
@@ -126,7 +126,7 @@ export const TestMenu = () => {
                     functionName: test.functionName,
                     testName: test.testName,
                   }))
-                  runBamlTests(allTests)
+                  runTests(allTests)
                 }}
               >
                 <Play className='w-4 h-4' fill='#a855f7' stroke='#a855f7' />
@@ -159,7 +159,7 @@ export const TestMenu = () => {
                       testName: test.testName,
                     }))
                   if (failedTests.length > 0) {
-                    runBamlTests(failedTests)
+                    runTests(failedTests)
                   }
                 }}
               >

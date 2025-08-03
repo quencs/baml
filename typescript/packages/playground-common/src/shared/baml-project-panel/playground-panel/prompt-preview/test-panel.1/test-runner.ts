@@ -3,6 +3,7 @@ import type {
   WasmSpan,
   WasmTestResponse,
 } from '@gloo-ai/baml-schema-wasm-web';
+import { TestStatus } from '@gloo-ai/baml-schema-wasm-web';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import { useCallback } from 'react';
@@ -14,6 +15,7 @@ import {
   selectedFunctionAtom,
   selectedTestcaseAtom,
   testCaseAtom,
+  type DoneTestStatusType,
 } from '../../atoms';
 import { isClientCallGraphEnabledAtom } from '../../preview-toolbar';
 import { findMediaFile } from '../media-utils';
@@ -24,6 +26,7 @@ import {
   testHistoryAtom,
 } from './atoms';
 import { apiKeysAtom } from '../../../../../components/api-keys-dialog/atoms';
+import { activeCancellationTokenAtom, isCancellingAtom } from '../test-panel/atoms';
 
 // Helper function to clear highlights if in VSCode
 const clearHighlights = () => {
@@ -188,7 +191,7 @@ const useRunTests = (maxBatchSize = 5) => {
             setState(test, {
               status: 'done',
               response: result,
-              response_status: responseStatusMap[response_status] || 'error',
+              response_status: (responseStatusMap as any)[response_status] || 'error',
               latency_ms: endTime - startTime,
             });
 
@@ -381,6 +384,9 @@ const useParallelRunTests = (maxBatchSize = 5) => {
             const startTime = performance.now();
             set(areTestsRunningAtom, true);
 
+            const token = new wasm.WasmCancellationToken()
+            set(activeCancellationTokenAtom, token)
+
             // Call `run_tests` on the runtime
             const results = await rt.run_tests(
               testCases,
@@ -396,18 +402,20 @@ const useParallelRunTests = (maxBatchSize = 5) => {
               },
               findMediaFile,
               apiKeys,
+              token,
             );
 
             const endTime = performance.now();
             const responseStatusMap = {
-              [wasm.TestStatus.Passed]: 'passed',
-              [wasm.TestStatus.LLMFailure]: 'llm_failed',
-              [wasm.TestStatus.ParseFailure]: 'parse_failed',
-              [wasm.TestStatus.ConstraintsFailed]: 'constraints_failed',
-              [wasm.TestStatus.AssertFailed]: 'assert_failed',
-              [wasm.TestStatus.UnableToRun]: 'error',
-              [wasm.TestStatus.FinishReasonFailed]: 'error',
-            } as const;
+              [TestStatus.Passed]: 'passed',
+              [TestStatus.LLMFailure]: 'llm_failed',
+              [TestStatus.ParseFailure]: 'parse_failed',
+              [TestStatus.ConstraintsFailed]: 'constraints_failed',
+              [TestStatus.AssertFailed]: 'assert_failed',
+              [TestStatus.UnableToRun]: 'error',
+              [TestStatus.FinishReasonFailed]: 'error',
+              [TestStatus.Canceled]: 'cancelled',
+            } as any;
 
             // Process results
             // TODO: is there a better way to handle Rust's Option? Or do we even need Option?
@@ -420,7 +428,7 @@ const useParallelRunTests = (maxBatchSize = 5) => {
                 {
                   status: 'done',
                   response: response,
-                  response_status: responseStatusMap[status] || 'error',
+                  response_status: (responseStatusMap[status] || 'error') as DoneTestStatusType,
                   latency_ms: endTime - startTime,
                 },
               );
@@ -451,6 +459,7 @@ export const useRunBamlTests = () => {
   const { setRunningTests } = useRunTests();
   const { setParallelTests } = useParallelRunTests();
   const isParallelTestsEnabled = useAtomValue(isParallelTestsEnabledAtom);
+  const setIsCancelling = useSetAtom(isCancellingAtom);
 
   const runTests = (tests: { functionName: string; testName: string }[]) => {
     if (isParallelTestsEnabled) {
@@ -460,5 +469,13 @@ export const useRunBamlTests = () => {
     }
   };
 
-  return runTests;
+  const cancelTests = useAtomCallback((get, set) => {
+    set(isCancellingAtom, true);
+    const token = get(activeCancellationTokenAtom)
+    if (token) {
+      token.cancel()
+    }
+  });
+
+  return { runTests, cancelTests };
 };

@@ -9,7 +9,7 @@ import {
   selectedTestcaseAtom,
   updateCursorAtom,
 } from '@baml/playground-common';
-import { useRunBamlTests } from '@baml/playground-common';
+import { useRunBamlTests } from '../shared/baml-project-panel/playground-panel/prompt-preview/test-panel/test-runner';
 import { orchIndexAtom } from '@baml/playground-common';
 import { useDebounceCallback } from '@react-hook/debounce';
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -123,7 +123,7 @@ export const EventListener: React.FC = () => {
   const setSelectedTestcase = useSetAtom(selectedTestcaseAtom)
   const setBamlConfig = useSetAtom(bamlConfig)
   const [bamlCliVersion, setBamlCliVersion] = useAtom(bamlCliVersionAtom)
-  const runBamlTests = useRunBamlTests()
+  const { runTests } = useRunBamlTests()
   const wasm = useAtomValue(wasmAtom)
   useEffect(() => {
     if (wasm) {
@@ -323,7 +323,7 @@ export const EventListener: React.FC = () => {
 
     return () => window.removeEventListener('message', fn);
     // If we dont add the jotai atom callbacks here like setRunningTests, this will call an old version of the atom (e.g. runTests which may have undefined dependencies).
-  }, [selectedFunc, runBamlTests, updateCursor, setSelectedTestcase]);
+  }, [selectedFunc, runTests, updateCursor, setSelectedTestcase]);
 
   return (
     <>

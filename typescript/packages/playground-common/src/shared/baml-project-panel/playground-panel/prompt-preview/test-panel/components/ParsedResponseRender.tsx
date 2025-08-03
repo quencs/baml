@@ -5,6 +5,7 @@ import { type WasmFunctionResponse, type WasmTestResponse } from '@gloo-ai/baml-
 import { useTheme } from 'next-themes'
 import { RenderPromptPart } from '../../render-text'
 import { ScrollArea } from '@baml/ui/scroll-area'
+import { DoneTestStatusType } from '../atoms'
 
 const ErrorText = ({ text }: { text: string }) => {
   return <pre className='text-xs text-red-500 whitespace-pre-wrap'>{text}</pre>

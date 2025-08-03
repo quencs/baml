@@ -44,6 +44,7 @@ export function TestingSidebar() {
     new Set(),
   );
   const runBamlTests = useRunBamlTests();
+  const { runTests } = useRunBamlTests()
   const selectedItem = useAtomValue(selectedItemAtom);
 
   const filteredFunctions = functions.filter(
@@ -61,7 +62,7 @@ export function TestingSidebar() {
         testName: test,
       })),
     );
-    runBamlTests(testsToRun);
+    runTests(testsToRun);
   };
 
   const handleToggleAll = () => {
@@ -124,10 +125,61 @@ export function TestingSidebar() {
                     onClick={handleRunFilteredTests}
                     className="flex justify-between items-center w-full cursor-pointer"
                   >
+<<<<<<< HEAD
                     <span>Run all tests</span>
                     <Play className="w-3 h-3" />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+=======
+                    <SidebarMenuItem>
+                      <FunctionItem
+                        functionName={func.name}
+                        tests={func.tests}
+                      />
+                      {func.tests?.length > 0 && (
+                        <>
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuAction className="bg-sidebar-accent text-sidebar-accent-foreground left-2 data-[state=open]:rotate-90 cursor-pointer">
+                              <ChevronRight />
+                            </SidebarMenuAction>
+                          </CollapsibleTrigger>
+                          <SidebarMenuAction
+                            className="cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const testsToRun = func.tests.map((test) => ({
+                                functionName: func.name,
+                                testName: test,
+                              }));
+                              runTests(testsToRun);
+                            }}
+                          >
+                            <Play />
+                          </SidebarMenuAction>
+                        </>
+                      )}
+                      {func.tests?.length ? (
+                        <CollapsibleContent>
+                          <SidebarMenuSub className="pl-8 pr-0 mr-0">
+                            {func.tests.map((test) => (
+                              <TestItem
+                                key={test}
+                                label={test}
+                                isSelected={
+                                  selectedItem?.[0] === func.name &&
+                                  selectedItem?.[1] === test
+                                }
+                                searchTerm={searchTerm}
+                                functionName={func.name}
+                              />
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      ) : null}
+                    </SidebarMenuItem>
+                  </Collapsible>
+                ))}
+>>>>>>> 1ca932ee9 ([not working] add cancellation via token)
               </SidebarMenu>
             </SidebarGroup>
           )}

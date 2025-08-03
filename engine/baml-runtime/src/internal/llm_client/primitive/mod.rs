@@ -31,7 +31,7 @@ mod anthropic;
 mod aws;
 mod google;
 mod openai;
-pub(super) mod request;
+pub mod request;
 mod stream_request;
 mod vertex;
 
@@ -439,6 +439,7 @@ mod tests {
             allow_proxy: bool,
             stream: bool,
             expose_secrets: bool,
+            cancellation_token: Option<tokio_util::sync::CancellationToken>,
         ) -> Result<reqwest::RequestBuilder> {
             unimplemented!("Not used in tests")
         }

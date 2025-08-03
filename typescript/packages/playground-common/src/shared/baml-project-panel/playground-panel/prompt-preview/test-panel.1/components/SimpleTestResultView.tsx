@@ -26,6 +26,7 @@ const STATUS_COLORS = {
   parse_failed: 'border-[var(--vscode-charts-orange)]',
   constraints_failed: 'border-[var(--vscode-charts-orange)]',
   assert_failed: 'border-[var(--vscode-charts-red)]',
+  cancelled: 'border-[var(--vscode-charts-gray)]',
 } as const;
 
 // Status text mapping
@@ -39,6 +40,7 @@ const STATUS_TEXT = {
   parse_failed: 'Parse Failed',
   constraints_failed: 'Constraints Failed',
   assert_failed: 'Assert Failed',
+  cancelled: 'Cancelled',
 } as const;
 
 // Types
@@ -149,6 +151,9 @@ const getResponseContent = (response: TestState | undefined): string => {
           return errorMsg;
         }
         return 'Test execution error';
+
+      case 'cancelled':
+        return 'Test was cancelled';
 
       default:
         return 'Unknown status';

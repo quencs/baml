@@ -43,7 +43,7 @@ interface TestResultProps {
 const TestResult = ({ testId, historicalResponse }: TestResultProps) => {
   const response = useAtomValue(testCaseResponseAtom(testId))
   const displayResponse = historicalResponse || response
-  const runBamlTests = useRunBamlTests()
+  const { runTests } = useRunBamlTests()
   const setSelectedItem = useSetAtom(selectedItemAtom)
   const selectedItem = useAtomValue(selectedItemAtom)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -66,8 +66,8 @@ const TestResult = ({ testId, historicalResponse }: TestResultProps) => {
 
   // Use useCallback to create a stable retry function
   const handleRetry = useCallback(() => {
-    runBamlTests([{ functionName: testId.functionName, testName: testId.testName }]);
-  }, [runBamlTests, testId.functionName, testId.testName]);
+    runTests([{ functionName: testId.functionName, testName: testId.testName }]);
+  }, [runTests, testId.functionName, testId.testName]);
 
   return (
     <div
@@ -88,7 +88,7 @@ const TestResult = ({ testId, historicalResponse }: TestResultProps) => {
                   size='icon'
                   className='w-6 h-6 shrink-0'
                   onClick={() => {
-                    runBamlTests([testId])
+                    runTests([testId])
                   }}
                 >
                   <Play className='w-4 h-4' fill='#a855f7' stroke='#a855f7' />

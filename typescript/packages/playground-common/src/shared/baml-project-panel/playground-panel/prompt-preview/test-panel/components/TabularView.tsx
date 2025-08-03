@@ -116,7 +116,7 @@ const ResponseContent = ({
 
 export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
   const [config, setConfig] = useAtom(tabularViewConfigAtom)
-  const runBamlTests = useRunBamlTests()
+  const { runTests } = useRunBamlTests()
   const [selectedItem, setSelectedItem] = useAtom(selectedItemAtom)
 
   const toggleConfig = (key: keyof typeof config) => {
@@ -163,11 +163,11 @@ export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
     return (test: any) => {
       const key = `${test.functionName}-${test.testName}`;
       if (!handlers.has(key)) {
-        handlers.set(key, () => runBamlTests([{ functionName: test.functionName, testName: test.testName }]));
+        handlers.set(key, () => runTests([{ functionName: test.functionName, testName: test.testName }]));
       }
       return handlers.get(key);
     };
-  }, [runBamlTests]);
+  }, [runTests]);
 
   return (
     <div className='space-y-4'>
@@ -253,7 +253,7 @@ export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
                       size='icon'
                       onClick={(e) => {
                         e.stopPropagation() // Prevent row selection when clicking the button
-                        runBamlTests([
+                        runTests([
                           {
                             functionName: test.functionName,
                             testName: test.testName,

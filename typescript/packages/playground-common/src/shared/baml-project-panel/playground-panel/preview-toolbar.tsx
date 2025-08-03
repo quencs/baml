@@ -59,20 +59,11 @@ const RunButton: React.FC<{ className?: string }> = ({ className }) => {
   };
 
   const handleCancel = () => {
+    vscode.postMessage({ command: 'waka waka'})
     // Cancel the tests using the test runner
     cancelTests();
+    vscode.postMessage({ command: 'waka waka 2'})
     setHasCanceled(true);
-    
-    // Send cancel message to VSCode extension
-    try {
-      vscode.postMessage({
-        command: 'cancelTestRun',
-      });
-    } catch (e) {
-      console.error('Failed to send cancel message:', e);
-      // Fallback for non-VSCode environments
-      console.log('Cancel button clicked - tests should be cancelled');
-    }
   };
 
   // Reset cancel state when tests stop running
@@ -88,8 +79,7 @@ const RunButton: React.FC<{ className?: string }> = ({ className }) => {
         <Button
           variant="default"
           size="xs"
-          className={cn('items-center gap-2 flex-shrink-0 min-w-fit', className)}
-          style={{ backgroundColor: '#ff746c' }}
+          className={cn('cursor-pointer items-center gap-2 flex-shrink-0 min-w-fit bg-purple-600 hover:bg-purple-700 text-white', className)}
           onClick={handleCancel}
           disabled={hasCanceled}
         >

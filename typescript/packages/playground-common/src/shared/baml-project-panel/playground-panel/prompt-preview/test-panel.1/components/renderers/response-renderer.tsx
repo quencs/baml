@@ -41,6 +41,14 @@ export const ResponseRenderer: React.FC<ResponseRendererProps> = ({
   const [parsedCopied, setParsedCopied] = useState(false);
   const [llmCopied, setLlmCopied] = useState(false);
 
+  if (status === 'canceled' as DoneTestStatusType) {
+    return (
+      <div className="text-xs text-muted-foreground">
+        Test was canceled
+      </div>
+    );
+  }
+
   if (!response) {
     return (
       <div className="text-xs text-muted-foreground">
@@ -142,7 +150,15 @@ export const ResponseRenderer: React.FC<ResponseRendererProps> = ({
 // Renders the raw response only
 export const RawResponseRenderer: React.FC<{
   response?: WasmFunctionResponse | WasmTestResponse;
-}> = ({ response }) => {
+  status?: DoneTestStatusType;
+}> = ({ response, status }) => {
+  if (status === 'canceled' as DoneTestStatusType) {
+    return (
+      <div className="text-xs text-muted-foreground">
+        Test was canceled
+      </div>
+    );
+  }
   if (!response) {
     return (
       <div className="text-xs text-muted-foreground">

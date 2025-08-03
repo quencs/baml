@@ -44,7 +44,8 @@ mod integration_cancellation_tests {
             "##,
         );
 
-        let runtime = BamlRuntime::from_file_content(".", &files, HashMap::new()).unwrap();
+        let runtime =
+            BamlRuntime::from_file_content(".", &files, HashMap::<&str, &str>::new()).unwrap();
         let ctx = runtime.create_ctx_manager(BamlValue::String("test".to_string()), None);
 
         // Create a stream (simulating TypeScript BamlStream creation)
@@ -93,12 +94,12 @@ mod integration_cancellation_tests {
 
         // Should complete within timeout due to cancellation
         assert!(result.is_ok(), "Stream should complete due to cancellation");
-        
+
         let (stream_result, _) = result.unwrap();
-        
+
         // Should be cancelled (not a successful completion)
         assert!(stream_result.is_err(), "Stream should be cancelled");
-        
+
         // Should be much faster than the 10-second delay endpoint
         assert!(
             elapsed < Duration::from_secs(2),
@@ -143,7 +144,8 @@ mod integration_cancellation_tests {
             "##,
         );
 
-        let runtime = BamlRuntime::from_file_content(".", &files, HashMap::new()).unwrap();
+        let runtime =
+            BamlRuntime::from_file_content(".", &files, HashMap::<&str, &str>::new()).unwrap();
         let ctx = runtime.create_ctx_manager(BamlValue::String("test".to_string()), None);
 
         // Create multiple streams
@@ -167,7 +169,7 @@ mod integration_cancellation_tests {
 
             let token = CancellationToken::new();
             stream.set_cancellation_token(token.clone());
-            
+
             streams.push(stream);
             tokens.push(token);
         }
@@ -190,7 +192,8 @@ mod integration_cancellation_tests {
                         None,
                         HashMap::new(),
                     ),
-                ).await;
+                )
+                .await;
                 (i, result)
             });
             handles.push(handle);
@@ -201,13 +204,21 @@ mod integration_cancellation_tests {
 
         // Check results
         for (handle_result, (stream_index, timeout_result)) in results.into_iter().enumerate() {
-            assert!(handle_result.is_ok(), "Task {} should complete", stream_index);
-            
+            assert!(
+                handle_result.is_ok(),
+                "Task {} should complete",
+                stream_index
+            );
+
             let (stream_result, _) = timeout_result.unwrap().unwrap();
-            
+
             if stream_index == 1 {
                 // Middle stream should be cancelled
-                assert!(stream_result.is_err(), "Stream {} should be cancelled", stream_index);
+                assert!(
+                    stream_result.is_err(),
+                    "Stream {} should be cancelled",
+                    stream_index
+                );
                 let error_msg = stream_result.unwrap_err().to_string();
                 assert!(
                     error_msg.contains("cancelled") || error_msg.contains("canceled"),
@@ -249,7 +260,8 @@ mod integration_cancellation_tests {
             "##,
         );
 
-        let runtime = BamlRuntime::from_file_content(".", &files, HashMap::new()).unwrap();
+        let runtime =
+            BamlRuntime::from_file_content(".", &files, HashMap::<&str, &str>::new()).unwrap();
         let ctx = runtime.create_ctx_manager(BamlValue::String("test".to_string()), None);
 
         let mut stream = runtime
@@ -299,7 +311,7 @@ mod integration_cancellation_tests {
 
         // Should be cancelled
         assert!(result.is_err());
-        
+
         // Events should be minimal due to quick cancellation
         let final_count = *event_count.lock().unwrap();
         assert!(
@@ -356,7 +368,7 @@ mod integration_cancellation_tests {
 
             let token = CancellationToken::new();
             stream.set_cancellation_token(token.clone());
-            
+
             streams.push(stream);
             tokens.push(token);
         }
@@ -368,19 +380,21 @@ mod integration_cancellation_tests {
 
         // Run all streams - they should all be cancelled quickly
         let start_time = std::time::Instant::now();
-        
+
         let mut handles = Vec::new();
         for mut stream in streams {
             let ctx_clone = ctx.clone();
             let handle = tokio::spawn(async move {
-                stream.run(
-                    None::<fn()>,
-                    None::<fn(baml_runtime::FunctionResult)>,
-                    &ctx_clone,
-                    None,
-                    None,
-                    HashMap::new(),
-                ).await
+                stream
+                    .run(
+                        None::<fn()>,
+                        None::<fn(baml_runtime::FunctionResult)>,
+                        &ctx_clone,
+                        None,
+                        None,
+                        HashMap::new(),
+                    )
+                    .await
             });
             handles.push(handle);
         }

@@ -175,6 +175,7 @@ export type DoneTestStatusType =
   | 'parse_failed'
   | 'constraints_failed'
   | 'assert_failed'
+  | 'cancelled'
   | 'error';
 export type TestState =
   | {
@@ -193,6 +194,10 @@ export type TestState =
   | {
       status: 'error';
       message: string;
+    }
+  | {
+      status: 'cancelled';
+      message?: string;
     };
 
 export const testCaseAtom = atomFamily(

@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle, XCircle, Ban } from 'lucide-react'
 import { TestState } from '../../../atoms'
 import { FinalTestStatus } from '../testStateUtils'
 import { Loader } from '../../components'
@@ -11,13 +11,16 @@ interface TestStatusProps {
 export const TestStatus = ({ status, finalState }: TestStatusProps) => {
   const getStatusColor = (status: TestState['status'], finalState?: FinalTestStatus) => {
     if (status === 'running') return 'text-blue-500'
+    if (status === 'cancelled') return 'text-orange-500'
     if (status === 'done') {
       if (!finalState) return 'text-gray-500'
       return finalState === 'passed'
         ? 'text-green-500'
         : finalState === 'constraints_failed'
           ? 'text-yellow-600'
-          : 'text-red-500'
+          : finalState === 'cancelled'
+            ? 'text-orange-500'
+            : 'text-red-500'
     }
     if (status === 'error') return 'text-red-500'
     return 'text-gray-500'
@@ -25,6 +28,7 @@ export const TestStatus = ({ status, finalState }: TestStatusProps) => {
 
   const getStatusText = () => {
     if (status === 'running') return 'Running'
+    if (status === 'cancelled') return 'Cancelled'
     if (status === 'done' && finalState) {
       switch (finalState) {
         case 'passed':
@@ -37,6 +41,8 @@ export const TestStatus = ({ status, finalState }: TestStatusProps) => {
           return 'Check Failed'
         case 'assert_failed':
           return 'Assert Failed'
+        case 'cancelled':
+          return 'Cancelled'
         case 'error':
           return 'Error'
       }
@@ -46,8 +52,10 @@ export const TestStatus = ({ status, finalState }: TestStatusProps) => {
 
   const getStatusIcon = () => {
     if (status === 'running') return <Loader />
+    if (status === 'cancelled') return <Ban className='w-4 h-4' />
     if (status === 'done') {
       if (finalState === 'passed') return <CheckCircle className='w-4 h-4' />
+      if (finalState === 'cancelled') return <Ban className='w-4 h-4' />
       if (finalState) return <XCircle className='w-4 h-4' />
     }
     if (status === 'error') return <AlertCircle className='w-4 h-4' />

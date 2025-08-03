@@ -46,7 +46,7 @@ export function TestItem({
 }: TestItemProps) {
   const testHistory = useAtomValue(testHistoryAtom);
   const selectedIndex = useAtomValue(selectedHistoryIndexAtom);
-  const runBamlTests = useRunBamlTests();
+  const { runTests } = useRunBamlTests()
   const setSelectedItem = useSetAtom(selectedItemAtom);
 
   const testAtom = useMemo(
@@ -83,7 +83,7 @@ export function TestItem({
 
   const handleRunTest = (e: React.MouseEvent) => {
     e.stopPropagation();
-    runBamlTests([{ functionName, testName: label }]);
+    runTests([{ functionName, testName: label }]);
   };
 
   return (

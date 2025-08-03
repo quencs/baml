@@ -1,10 +1,13 @@
 import type { DoneTestStatusType, TestState } from '../../atoms';
 
-export type FinalTestStatus = DoneTestStatusType | 'running' | 'idle';
+export type FinalTestStatus = DoneTestStatusType | 'running' | 'idle' | 'cancelled';
 
 export const getStatus = (response: TestState) => {
   if (response.status === 'running') {
     return 'running';
+  }
+  if (response.status === 'cancelled') {
+    return 'cancelled';
   }
   if (response.status === 'done') {
     return response.response_status;
