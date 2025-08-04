@@ -688,6 +688,12 @@ class LlmResponseParser:
         result = self.__options.merge_options(baml_options).parse_response(function_name="StreamOneBigNumber", llm_response=llm_response, mode="request")
         return typing.cast(int, result)
 
+    def StreamTest(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="StreamTest", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
     def StreamUnionIntegers(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> typing.List[typing.Union[int, str]]:
@@ -1955,6 +1961,12 @@ class LlmStreamParser:
     ) -> int:
         result = self.__options.merge_options(baml_options).parse_response(function_name="StreamOneBigNumber", llm_response=llm_response, mode="stream")
         return typing.cast(int, result)
+
+    def StreamTest(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="StreamTest", llm_response=llm_response, mode="stream")
+        return typing.cast(str, result)
 
     def StreamUnionIntegers(
         self, llm_response: str, baml_options: BamlCallOptions = {},

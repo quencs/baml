@@ -2055,6 +2055,21 @@ export const StreamOneBigNumber = async (
 };
 
 /**
+ * Executes the "StreamTest" BAML action.
+ *
+ * This server action calls the underlying BAML function "StreamTest"
+ * with the specified parameters.
+ *
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const StreamTest = async (
+): Promise<string> => {
+  return b.StreamTest(
+  );
+};
+
+/**
  * Executes the "StreamUnionIntegers" BAML action.
  *
  * This server action calls the underlying BAML function "StreamUnionIntegers"

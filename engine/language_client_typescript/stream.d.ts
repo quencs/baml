@@ -10,6 +10,7 @@ export declare class BamlStream<PartialOutputType, FinalOutputType> {
     private driveToCompletion;
     private driveToCompletionInBg;
     [Symbol.asyncIterator](): AsyncIterableIterator<PartialOutputType>;
+    [Symbol.iterator](): Iterator<PartialOutputType>;
     getFinalResponse(): Promise<FinalOutputType>;
     /**
      * Converts the BAML stream to a Next.js compatible stream.

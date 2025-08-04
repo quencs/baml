@@ -55,6 +55,9 @@ class BamlStream {
             }
         }
     }
+    [Symbol.iterator]() {
+        throw new Error('BamlStream requires async iteration. Use "for await...of" instead of "for...of"');
+    }
     async getFinalResponse() {
         const final = await this.driveToCompletionInBg();
         return this.finalCoerce(final.parsed(false));

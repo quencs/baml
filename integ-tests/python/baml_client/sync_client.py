@@ -862,6 +862,13 @@ class BamlSyncClient:
             "digits": digits,
         })
         return typing.cast(int, result.cast_to(types, types, stream_types, False, __runtime__))
+    def StreamTest(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).call_function_sync(function_name="StreamTest", args={
+            
+        })
+        return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
     def StreamUnionIntegers(self, digits: int,
         baml_options: BamlCallOptions = {},
     ) -> typing.List[typing.Union[int, str]]:
@@ -2896,6 +2903,18 @@ class BamlStreamClient:
           lambda x: typing.cast(int, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
+    def StreamTest(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="StreamTest", args={
+            
+        })
+        return baml_py.BamlSyncStream[str, str](
+          result,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     def StreamUnionIntegers(self, digits: int,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[typing.List[typing.Union[int, str]], typing.List[typing.Union[int, str]]]:
@@ -4869,6 +4888,13 @@ class BamlHttpRequestClient:
             "digits": digits,
         }, mode="request")
         return result
+    def StreamTest(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="StreamTest", args={
+            
+        }, mode="request")
+        return result
     def StreamUnionIntegers(self, digits: int,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -6345,6 +6371,13 @@ class BamlHttpStreamRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="StreamOneBigNumber", args={
             "digits": digits,
+        }, mode="stream")
+        return result
+    def StreamTest(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="StreamTest", args={
+            
         }, mode="stream")
         return result
     def StreamUnionIntegers(self, digits: int,

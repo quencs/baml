@@ -66,6 +66,10 @@ export class BamlStream<PartialOutputType, FinalOutputType> {
     }
   }
 
+  [Symbol.iterator](): Iterator<PartialOutputType> {
+    throw new Error('BamlStream requires async iteration. Use "for await...of" instead of "for...of"');
+  }
+
   async getFinalResponse(): Promise<FinalOutputType> {
     const final = await this.driveToCompletionInBg();
 

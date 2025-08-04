@@ -2166,6 +2166,22 @@ export const StreamOneBigNumber = async (
 };
 
 /**
+ * Executes the streaming variant of the "StreamTest" BAML action.
+ *
+ * This action initiates a streaming response by calling the corresponding
+ * BAML stream function. The returned stream yields incremental updates.
+ *
+ *
+ * @returns {ReadableStream<Uint8Array>} A stream that yields incremental updates from the action.
+ */
+export const StreamTest = async (
+): Promise<ReadableStream<Uint8Array>> => {
+  const stream = b.stream.StreamTest(
+  );
+  return Promise.resolve(stream.toStreamable());
+};
+
+/**
  * Executes the streaming variant of the "StreamUnionIntegers" BAML action.
  *
  * This action initiates a streaming response by calling the corresponding

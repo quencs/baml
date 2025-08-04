@@ -138,6 +138,7 @@ export type StreamingServerTypes = {
   StreamFailingAssertion: TwoStoriesOneTitle,
   StreamFailingCheck: TwoStoriesOneTitleCheck,
   StreamOneBigNumber: number,
+  StreamTest: string,
   StreamUnionIntegers: (number | string)[],
   StreamingCompoundNumbers: CompoundBigNumbers,
   StructureDocument1559: Document1559,
