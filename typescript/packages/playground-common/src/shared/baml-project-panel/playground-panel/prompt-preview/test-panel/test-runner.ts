@@ -440,13 +440,10 @@ export const useRunBamlTests = () => {
   }
 
   const cancelTests = useAtomCallback((get, set) => {
-    vscode.postMessage({ command: 'waka waka 3'})
     set(isCancellingAtom, true)
     const token = get(activeCancellationTokenAtom)
     if (token) {
-    vscode.postMessage({ command: 'waka waka 4'})
       token.cancel()
-    vscode.postMessage({ command: 'waka waka 5'})
     }
   })
 

@@ -10,9 +10,7 @@ mod tests {
 
     use std::collections::HashMap;
 
-    use baml_runtime::tracingv2::publisher::publisher::flush;
-    // pub static GLOBAL_TRACE_STORAGE: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(0));
-    use baml_runtime::{tracingv2::storage::storage::BAML_TRACER, InternalRuntimeInterface};
+    use baml_runtime::tracingv2::{publisher::publisher::flush, storage::storage::BAML_TRACER};
     use baml_schema_build::runtime_wasm::WasmProject;
     use serde_wasm_bindgen::to_value;
     use wasm_bindgen::JsValue;
@@ -21,54 +19,6 @@ mod tests {
     // instantiate logger
 
     wasm_bindgen_test_configure!(run_in_browser);
-
-    fn sample_baml_content() -> String {
-        r##"
-
-
-        class Email {
-            subject string
-            body string
-            from_address string
-        }
-
-        enum OrderStatus {
-            ORDERED
-            SHIPPED
-            DELIVERED
-            CANCELLED
-        }
-
-        class OrderInfo {
-            order_status OrderStatus
-            tracking_number string?
-            estimated_arrival_date string?
-        }
-
-        client<llm> GPT4Turbo {
-            provider baml-openai-chat
-            options {
-                model gpt-4-1106-preview
-                api_key env.OPENAI_API_KEY
-            }
-        }
-
-        function GetOrderInfo(input: string) -> OrderInfo {
-            client GPT4Turbo
-            prompt #"
-            Extract this info from the email in JSON format:
-            Before you output the JSON, please explain your
-            reasoning step-by-step. Here is an example on how to do this:
-            'If we think step by step we can see that ...
-             therefore the output JSON is:
-            {
-              ... the json schema ...
-            }'
-          "#
-        }
-        "##
-        .to_string()
-    }
 
     // TODO: add a flag to run_test that's debug, to attach a collector on every test. The collector can be created inside run_test. Make the collector call track_function(..)
     // Then we can check the baml_tracer events since they'll be kept.

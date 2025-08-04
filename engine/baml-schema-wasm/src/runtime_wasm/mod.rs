@@ -42,9 +42,8 @@ impl WasmCancellationToken {
 
     #[wasm_bindgen]
     pub fn cancel(&self) {
-        log::info!("AAAAAA");
+        log::info!("reached wasm");
         self.0.cancel();
-        log::info!("BBBBBB");
     }
 }
 
@@ -53,7 +52,6 @@ impl WasmCancellationToken {
         Self(shared)
     }
 }
-
 
 use wasm_bindgen::{prelude::*, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -271,7 +269,6 @@ impl WasmProject {
                 ))
             })?;
 
-
         BamlRuntime::from_file_content(&self.root_dir_name, &hm, env_vars)
             .map(|r| WasmRuntime { runtime: r })
             .map_err(|e| match e.downcast::<DiagnosticsError>() {
@@ -451,7 +448,6 @@ impl WasmTestResponses {
         self.responses
     }
 }
-
 
 #[wasm_bindgen]
 impl WasmTestResponses {
@@ -1007,7 +1003,6 @@ impl WasmRuntime {
 
 #[wasm_bindgen]
 impl WasmRuntime {
-
     #[wasm_bindgen]
     pub fn check_if_in_prompt(&self, cursor_idx: usize) -> bool {
         self.runtime.internal().ir().walk_functions().any(|f| {
@@ -1628,6 +1623,8 @@ impl WasmRuntime {
 
         for i in 0..function_test_pairs.length() {
             if let Ok(pair) = js_sys::Reflect::get(&function_test_pairs, &i.into()) {
+                // NOTE: get("functionName") will yield `Ok(undefined)`! This makes the function
+                // name "", which then confuses the runtime.
                 if let (Ok(function_name), Ok(test_name)) = (
                     js_sys::Reflect::get(&pair, &JsValue::from_str("functionName")),
                     js_sys::Reflect::get(&pair, &JsValue::from_str("testName")),
@@ -1708,14 +1705,10 @@ impl WasmRuntime {
                             Some(cancellation_token_clone.clone()),
                         );
 
-                        // FIXME: (before push): cancellation token should always be given? when is
-                        // it not going to be given?
-                        // Verify that the cancellation token is built inside runtime wasm and
-                        // given out to the UI code.
                         let (test_response, span) = tokio::select! {
                             (response, span) = test_run_fut => { (response, Some(span.to_string())) } ,
                             _ = cancellation_token_clone.cancelled() => {
-                                 // FIXME: make sure this shows up when running wasm - could be
+                                 // FIXME: make sure this shows up when running wasm in UI - could be
                                  // interesting to just "bubble" the error without detecting
                                  // that it was cancelled.
 

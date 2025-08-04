@@ -103,9 +103,7 @@ mod tests {
         let updated_content = "// A COMMENT".to_string();
         project.update_file("main.baml", Some(updated_content.clone()));
         let project_files = project.files();
-        assert!(project
-            .files()
-            .contains(&"main.bamlBAML_PATH_SPLTTER// A COMMENT".to_string()));
+        assert!(project_files.contains(&"main.bamlBAML_PATH_SPLTTER// A COMMENT".to_string()));
 
         // Remove BAML file
         project.update_file("main.baml", None);
