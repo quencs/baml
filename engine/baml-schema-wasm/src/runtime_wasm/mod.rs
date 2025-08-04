@@ -42,9 +42,19 @@ impl WasmCancellationToken {
 
     #[wasm_bindgen]
     pub fn cancel(&self) {
-        self.0.cancel()
+        log::info!("AAAAAA");
+        self.0.cancel();
+        log::info!("BBBBBB");
     }
 }
+
+impl WasmCancellationToken {
+    pub fn from_shared(shared: CancellationToken) -> Self {
+        Self(shared)
+    }
+}
+
+
 use wasm_bindgen::{prelude::*, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
@@ -261,10 +271,9 @@ impl WasmProject {
                 ))
             })?;
 
+
         BamlRuntime::from_file_content(&self.root_dir_name, &hm, env_vars)
-            .map(|r| WasmRuntime {
-                runtime: r,
-            })
+            .map(|r| WasmRuntime { runtime: r })
             .map_err(|e| match e.downcast::<DiagnosticsError>() {
                 Ok(e) => {
                     let wasm_error = WasmDiagnosticError {
@@ -437,6 +446,13 @@ pub struct WasmTestResponses {
     responses: Vec<WasmTestResponse>,
 }
 
+impl WasmTestResponses {
+    pub fn into_inner(self) -> Vec<WasmTestResponse> {
+        self.responses
+    }
+}
+
+
 #[wasm_bindgen]
 impl WasmTestResponses {
     // #[wasm_bindgen(typescript_type = "WasmTestResponse | null")]
@@ -454,6 +470,12 @@ pub struct WasmTestResponse {
     span: Option<String>,
     tracing_project_id: Option<String>,
     func_test_pair: WasmFunctionTestPair,
+}
+
+impl WasmTestResponse {
+    pub fn result(&self) -> &anyhow::Result<baml_runtime::TestResponse> {
+        &self.test_response
+    }
 }
 
 #[wasm_bindgen(getter_with_clone, inspectable)]
@@ -985,6 +1007,7 @@ impl WasmRuntime {
 
 #[wasm_bindgen]
 impl WasmRuntime {
+
     #[wasm_bindgen]
     pub fn check_if_in_prompt(&self, cursor_idx: usize) -> bool {
         self.runtime.internal().ir().walk_functions().any(|f| {
@@ -1673,13 +1696,16 @@ impl WasmRuntime {
                     // the Wasm-tagged one. We should give the wasm-tagged version a kick.
                     let cancellation_token_clone = cancellation_token.clone();
                     let future = async move {
-                        let test_run_fut = rt.run_test(
+                        // FIXME: use run_test & pass down the cancellation token.A
+                        let test_run_fut = rt.run_test_with_expr_events(
                             &function_name,
                             &test_name,
                             &ctx,
                             Some(cb),
                             None,
+                            None,
                             env_vars.clone(),
+                            Some(cancellation_token_clone.clone()),
                         );
 
                         // FIXME: (before push): cancellation token should always be given? when is
@@ -2028,6 +2054,7 @@ impl WasmFunction {
                 Some(tx),
                 None,
                 env_vars.clone(),
+                None, // No cancellation token for this method
             )
             .await;
 
@@ -2101,6 +2128,7 @@ impl WasmFunction {
             let value = arr.get(1).as_string().unwrap_or_default();
             env_vars.insert(key, value);
         }
+        // FIXME: make run_test accept & forward the cancellation token
         // Now pass collector_arc to your runtime's run_test
         let (test_response, span) = rt
             .run_test(

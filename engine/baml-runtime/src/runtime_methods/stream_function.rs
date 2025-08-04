@@ -15,6 +15,7 @@ use internal_baml_core::{
 };
 use internal_baml_jinja::RenderedPrompt;
 use internal_llm_client::{AllowedRoleMetadata, ClientSpec};
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     client_registry::ClientProperty,
@@ -49,6 +50,7 @@ impl InternalBamlRuntime {
         ctx: RuntimeContext,
         #[cfg(not(target_arch = "wasm32"))] tokio_runtime: Arc<tokio::runtime::Runtime>,
         collectors: Vec<Arc<Collector>>,
+        cancellation_token: Option<CancellationToken>,
     ) -> Result<FunctionResultStream> {
         let is_expr_fn = self.get_expr_function(&function_name, &ctx).is_ok();
         if is_expr_fn {
@@ -82,7 +84,7 @@ impl InternalBamlRuntime {
                 #[cfg(not(target_arch = "wasm32"))]
                 tokio_runtime,
                 collectors,
-                cancellation_token: None,
+                cancellation_token,
             })
         } else {
             let prepared = self
@@ -102,7 +104,7 @@ impl InternalBamlRuntime {
                 #[cfg(not(target_arch = "wasm32"))]
                 tokio_runtime,
                 collectors,
-                cancellation_token: None,
+                cancellation_token,
             })
         }
     }

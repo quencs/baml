@@ -88,6 +88,7 @@ pub(crate) use runtime_interface::InternalRuntimeInterface;
 use runtime_interface::{ExperimentalTracingInterface, InternalClientLookup, RuntimeConstructor};
 pub(crate) use runtime_methods::prepare_function::PreparedFunctionArgs;
 use serde_json::{self, json};
+use tokio_util::sync::CancellationToken;
 use tracing::{BamlTracer, TracingCall};
 use tracingv2::{
     publisher::flush,
@@ -405,6 +406,7 @@ impl BamlRuntime {
         expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
         collector: Option<Arc<Collector>>,
         env_vars: HashMap<String, String>,
+        cancellation_token: Option<CancellationToken>,
     ) -> (Result<TestResponse>, FunctionCallId)
     where
         F: Fn(FunctionResult),
@@ -525,6 +527,7 @@ impl BamlRuntime {
                 self.async_runtime.clone(),
                 // TODO: collectors here?
                 vec![],
+                cancellation_token,
             )?;
             let (response_res, call_uuid) = stream
                 .run(
@@ -629,6 +632,7 @@ impl BamlRuntime {
                 None,
                 collector,
                 env_vars,
+                None, // No cancellation token for this method
             )
             .await;
         res
@@ -923,6 +927,7 @@ impl BamlRuntime {
             #[cfg(not(target_arch = "wasm32"))]
             self.async_runtime.clone(),
             collectors.unwrap_or_default(),
+            None, // No cancellation token for this method
         )
     }
 

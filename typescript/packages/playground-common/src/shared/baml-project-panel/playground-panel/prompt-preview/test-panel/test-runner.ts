@@ -447,8 +447,6 @@ export const useRunBamlTests = () => {
     vscode.postMessage({ command: 'waka waka 4'})
       token.cancel()
     vscode.postMessage({ command: 'waka waka 5'})
-    } else {
-      console.error("cancelling when no tests are running? this is not a bug but is right now.")
     }
   })
 
