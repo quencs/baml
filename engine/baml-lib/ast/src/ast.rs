@@ -21,6 +21,8 @@ mod traits;
 mod type_builder_block;
 mod type_expression_block;
 mod value_expression_block;
+
+pub mod mermaid_debug;
 pub use app::App;
 pub use argument::{Argument, ArgumentId, ArgumentsList};
 pub use assignment::Assignment;
@@ -34,6 +36,7 @@ pub use field::{Field, FieldArity, FieldType};
 pub use identifier::{Identifier, RefIdentifier};
 pub use indentation_type::IndentationType;
 pub use internal_baml_diagnostics::Span;
+pub use mermaid_debug::MermaidDiagramGenerator;
 pub use newline_type::NewlineType;
 pub use stmt::{ForLoopStmt, Header, LetStmt, Stmt};
 pub use template_string::TemplateString;

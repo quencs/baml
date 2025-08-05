@@ -12,6 +12,7 @@ pub mod ast;
 mod formatter;
 mod parser;
 
+pub use ast::MermaidDiagramGenerator;
 pub use formatter::{format_schema, FormatOptions};
 
 /// Transform the input string into a valid (quoted and escaped) PSL string literal.
