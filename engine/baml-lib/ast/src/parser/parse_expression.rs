@@ -397,7 +397,7 @@ mod tests {
     use pest::{consumes_to, parses_to, Parser};
 
     use super::{
-        super::{BAMLParser, Rule},
+        super::{parse_expr::parse_expr_block, BAMLParser, Rule},
         *,
     };
 
@@ -455,6 +455,54 @@ mod tests {
         match expr {
             Expression::JinjaExpressionValue(JinjaExpression(s), _) => assert_eq!(s, "1 + 1"),
             _ => panic!("Expected JinjaExpression, got {expr:?}"),
+        }
+    }
+
+    #[test]
+    fn test_mdx_header_parsing() {
+        println!("\n=== Testing MDX Header Parsing ===");
+
+        let input = r#"{
+            # Level 1 Header
+            let x = "hello";
+            
+            ## Level 2 Header
+            let y = "world";
+
+            ########### Level 11 Header
+            
+            ### Level 3 Headers
+            x + y
+        }"#;
+
+        let root_path = "test_file.baml";
+        let source = SourceFile::new_static(root_path.into(), input);
+        let mut diagnostics = Diagnostics::new(root_path.into());
+        diagnostics.set_source(&source);
+
+        println!("Parsing expression block with mdx headers...");
+
+        let pair_result = BAMLParser::parse(Rule::expr_block, input);
+        match pair_result {
+            Ok(mut pairs) => {
+                let pair = pairs.next().unwrap();
+                let expr = parse_expr_block(pair, &mut diagnostics);
+                match expr {
+                    Some(expr_block) => {
+                        println!("✓ Successfully parsed expression block: {:?}", expr_block)
+                    }
+                    None => println!("✗ Failed to parse expression block"),
+                }
+            }
+            Err(e) => println!("✗ Parse error: {:?}", e),
+        }
+
+        println!("Diagnostics:");
+        for error in diagnostics.errors() {
+            println!("  Error: {:?}", error);
+        }
+        for warning in diagnostics.warnings() {
+            println!("  Warning: {:?}", warning);
         }
     }
 }

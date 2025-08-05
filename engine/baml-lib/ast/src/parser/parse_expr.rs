@@ -177,17 +177,41 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                 }
             }
             Rule::mdx_header => {
-                let mut mdx_header_tokens = item.into_inner();
-                let header_level = mdx_header_tokens.next()?;
-                let header_title = mdx_header_tokens.next()?;
-                let header_span = diagnostics.span(header_title.as_span());
-                let header_title_str = header_title.as_str();
-                let header_level_str = header_level.as_str();
-                // Some(Header {
-                //     level: header_level_str.parse().unwrap(),
-                //     title: header_title_str.to_string(),
-                //     span: header_span,
-                // })
+                // Extract full text and span before consuming the item
+                let full_text = item.as_str();
+                let header_span = diagnostics.span(item.as_span());
+
+                // The mdx_header rule captures: "#"+ ~ unquoted_string_literal? ~ NEWLINE?
+                // We need to get all inner tokens and figure out which is which.
+                let mut hash_symbols = String::new();
+                let mut title_text = String::new();
+
+                // If we didn't find hash symbols, extract them from the full item text
+                if hash_symbols.is_empty() {
+                    let hash_count = full_text.chars().take_while(|&c| c == '#').count();
+                    hash_symbols = "#".repeat(hash_count);
+
+                    // If title is empty, extract it from the full text
+                    if title_text.is_empty() {
+                        title_text = full_text.trim_start_matches('#').trim().to_string();
+                    }
+                }
+
+                let level = hash_symbols.chars().filter(|&c| c == '#').count() as u8;
+
+                // Print debug information about the annotation with visual indentation
+                let indent = " ".repeat(level as usize);
+                println!(
+                    "{}└ ANNOTATION Level {}: '{}' (hash symbols: '{}', hash count: {})",
+                    indent, level, title_text, hash_symbols, level
+                );
+
+                // Create the header (currently not stored anywhere, but parsed for debug)
+                let _header = Header {
+                    level,
+                    title: title_text,
+                    span: header_span,
+                };
             }
             Rule::BLOCK_CLOSE => {
                 // we check this later based on the kind of block we're in
