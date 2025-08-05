@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use super::{
     App, Argument, ArgumentsList, Assignment, Ast, Attribute, BlockArgs, ClassConstructor,
-    ClassConstructorField, ExprFn, Expression, ExpressionBlock, Field, FieldType, Identifier,
-    RawString, Stmt, TemplateString, Top, TopLevelAssignment, TypeExpressionBlock, ValueExprBlock,
-    WithIdentifier, WithName, WithSpan,
+    ClassConstructorField, ExprFn, Expression, ExpressionBlock, Field, FieldType, Header,
+    Identifier, RawString, Stmt, TemplateString, Top, TopLevelAssignment, TypeExpressionBlock,
+    ValueExprBlock, WithIdentifier, WithName, WithSpan,
 };
 
 /// A debug utility for converting AST structures to Mermaid diagrams
@@ -479,7 +479,20 @@ impl MermaidDiagramGenerator {
         let expr_id = self.visit_expression(&block.expr);
         self.connect(&block_id, &expr_id, Some("expr"));
 
+        // Visit headers that apply to the final expression
+        for (idx, header) in block.expr_headers.iter().enumerate() {
+            let header_id = self.visit_header(header, idx);
+            self.connect(&expr_id, &header_id, Some("annotation"));
+        }
+
         block_id
+    }
+
+    /// Visit a header
+    fn visit_header(&mut self, header: &Header, index: usize) -> String {
+        let key = format!("header_{}_{:p}", index, header);
+        let label = format!("Header L{}: {}", header.level, header.title);
+        self.get_node_id(&key, &label)
     }
 
     /// Visit a statement
@@ -490,6 +503,13 @@ impl MermaidDiagramGenerator {
             Stmt::Let(let_stmt) => {
                 let label = format!("Let: {}", let_stmt.identifier.name());
                 let stmt_id = self.get_node_id(&key, &label);
+
+                // Visit annotations
+                for (idx, annotation) in let_stmt.annotations.iter().enumerate() {
+                    let annotation_id = self.visit_header(annotation, idx);
+                    self.connect(&stmt_id, &annotation_id, Some("annotation"));
+                }
+
                 let expr_id = self.visit_expression(&let_stmt.expr);
                 self.connect(&stmt_id, &expr_id, Some("value"));
                 stmt_id
@@ -497,6 +517,13 @@ impl MermaidDiagramGenerator {
             Stmt::ForLoop(for_stmt) => {
                 let label = format!("For: {}", for_stmt.identifier.name());
                 let stmt_id = self.get_node_id(&key, &label);
+
+                // Visit annotations
+                for (idx, annotation) in for_stmt.annotations.iter().enumerate() {
+                    let annotation_id = self.visit_header(annotation, idx);
+                    self.connect(&stmt_id, &annotation_id, Some("annotation"));
+                }
+
                 let iterable_id = self.visit_expression(&for_stmt.iterator);
                 let body_id = self.visit_expression_block(&for_stmt.body);
                 self.connect(&stmt_id, &iterable_id, Some("iterable"));

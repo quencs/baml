@@ -1,13 +1,19 @@
 fn SimpleForLoop() -> string {
+    # Processing stuff!
     let items = ["a", "b", "c"];
     let output = "";
+
+    ## For loop with items
     for item in items {
+        # Process items
         if item == "b" {
             output + item + "b"
         } else {
             output + item
         }
     }
+
+    ## Result
     output
 }
 

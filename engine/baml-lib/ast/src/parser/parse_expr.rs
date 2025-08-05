@@ -156,16 +156,22 @@ pub fn parse_statement(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option
 
 pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<ExpressionBlock> {
     assert_correct_parser!(token, Rule::expr_block);
-    let span = diagnostics.span(token.as_span());
+    let _span = diagnostics.span(token.as_span());
     let mut tokens = token.into_inner();
     let mut stmts = Vec::new();
     let mut expr = None;
     let _open_bracket = tokens.next()?;
+
+    // Track headers with their hierarchy
+    let mut pending_headers: Vec<std::sync::Arc<Header>> = Vec::new();
+
     for item in tokens {
         match item.as_rule() {
             Rule::stmt => {
                 let maybe_stmt = parse_statement(item, diagnostics);
-                if let Some(stmt) = maybe_stmt {
+                if let Some(mut stmt) = maybe_stmt {
+                    // Bind pending headers to this statement
+                    bind_headers_to_statement(&mut stmt, &mut pending_headers);
                     stmts.push(stmt);
                 }
             }
@@ -177,50 +183,19 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                 }
             }
             Rule::mdx_header => {
-                // Extract full text and span before consuming the item
-                let full_text = item.as_str();
-                let header_span = diagnostics.span(item.as_span());
+                let header = parse_header(item, diagnostics);
+                if let Some(header) = header {
+                    let header_arc = std::sync::Arc::new(header);
 
-                // The mdx_header rule captures: "#"+ ~ unquoted_string_literal? ~ NEWLINE?
-                // We need to get all inner tokens and figure out which is which.
-                let mut hash_symbols = String::new();
-                let mut title_text = String::new();
+                    // Implement header hierarchy logic
+                    filter_headers_by_hierarchy(&mut pending_headers, &header_arc);
 
-                // If we didn't find hash symbols, extract them from the full item text
-                if hash_symbols.is_empty() {
-                    let hash_count = full_text.chars().take_while(|&c| c == '#').count();
-                    hash_symbols = "#".repeat(hash_count);
-
-                    // If title is empty, extract it from the full text
-                    if title_text.is_empty() {
-                        title_text = full_text.trim_start_matches('#').trim().to_string();
-                    }
+                    // Add to pending headers
+                    pending_headers.push(header_arc.clone());
                 }
-
-                let level = hash_symbols.chars().filter(|&c| c == '#').count() as u8;
-
-                // Print debug information about the annotation with visual indentation
-                let indent = " ".repeat(level as usize);
-                println!(
-                    "{}└ ANNOTATION Level {}: '{}' (hash symbols: '{}', hash count: {})",
-                    indent, level, title_text, hash_symbols, level
-                );
-
-                // Create the header (currently not stored anywhere, but parsed for debug)
-                let _header = Header {
-                    level,
-                    title: title_text,
-                    span: header_span,
-                };
             }
             Rule::BLOCK_CLOSE => {
-                // we check this later based on the kind of block we're in
-                // if expr.is_none() {
-                //     diagnostics.push_error(DatamodelError::new_static(
-                //         "Function must end in an expression.",
-                //         span.clone(),
-                //     ));
-                // }
+                // Block termination ends header scope
                 break;
             }
             Rule::NEWLINE => {
@@ -248,7 +223,60 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
     expr.map(|e| ExpressionBlock {
         stmts,
         expr: Box::new(e),
+        expr_headers: pending_headers,
     })
+}
+
+/// Parse a single header from an MDX header token
+fn parse_header(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<Header> {
+    let full_text = token.as_str();
+    let header_span = diagnostics.span(token.as_span());
+
+    let hash_count = full_text.chars().take_while(|&c| c == '#').count();
+    let title_text = full_text.trim_start_matches('#').trim().to_string();
+
+    let level = hash_count as u8;
+
+    // Print debug information about the header
+    let indent = " ".repeat(level as usize);
+    println!(
+        "{}└ HEADER Level {}: '{}' (hash count: {})",
+        indent, level, title_text, level
+    );
+
+    Some(Header {
+        level,
+        title: title_text,
+        span: header_span,
+    })
+}
+
+/// Filter headers based on hierarchy rules (markdown-style nesting)
+fn filter_headers_by_hierarchy(
+    pending_headers: &mut Vec<std::sync::Arc<Header>>,
+    new_header: &std::sync::Arc<Header>,
+) {
+    // Remove headers that are at the same level or deeper than the new header
+    // This implements the markdown hierarchy where:
+    // - A new header at level N closes all headers at level N or higher
+    // - Headers at level N+1, N+2, etc. nest under the header at level N
+    pending_headers.retain(|header| header.level < new_header.level);
+}
+
+/// Bind pending headers to a statement based on scope rules
+fn bind_headers_to_statement(stmt: &mut Stmt, pending_headers: &mut Vec<std::sync::Arc<Header>>) {
+    match stmt {
+        Stmt::Let(let_stmt) => {
+            let_stmt.annotations.extend(pending_headers.clone());
+        }
+        Stmt::ForLoop(for_stmt) => {
+            for_stmt.annotations.extend(pending_headers.clone());
+        }
+    }
+
+    // Clear headers after binding them to the statement
+    // Each statement consumes the headers that precede it
+    pending_headers.clear();
 }
 
 fn parse_fn_args(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Vec<Expression> {

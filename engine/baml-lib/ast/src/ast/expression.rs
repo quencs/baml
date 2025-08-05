@@ -8,7 +8,7 @@ use std::fmt;
 use baml_types::JinjaExpression;
 use bstd::dedent;
 
-use super::{app::App, ArgumentsList, Identifier, Stmt, WithName, WithSpan};
+use super::{app::App, ArgumentsList, Header, Identifier, Stmt, WithName, WithSpan};
 use crate::ast::Span;
 
 #[derive(Debug, Clone)]
@@ -598,6 +598,8 @@ impl ClassConstructorField {
 pub struct ExpressionBlock {
     pub stmts: Vec<Stmt>,
     pub expr: Box<Expression>,
+    /// Headers that apply to the final expression
+    pub expr_headers: Vec<std::sync::Arc<Header>>,
 }
 
 // TODO: How do we indent the inner statements?
@@ -621,5 +623,6 @@ impl ExpressionBlock {
                 a.assert_eq_up_to_span(b);
             });
         self.expr.assert_eq_up_to_span(&other.expr);
+        // Note: headers are not compared as they don't affect semantic equality
     }
 }
