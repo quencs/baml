@@ -726,7 +726,26 @@ impl MermaidDiagramGenerator {
         let mut all_headers = header_tree.all_headers();
         all_headers.sort_by_key(|h| h.span.start);
 
-        // Headers are collected and normalized within their local AST scopes
+        // Parse original header levels directly from source to build proper markdown hierarchy
+        let mut original_levels: std::collections::HashMap<String, u8> =
+            std::collections::HashMap::new();
+
+        // Extract original levels by parsing the source directly
+        for header in &all_headers {
+            let source_content = header.span.file.as_str();
+            let header_start = header.span.start;
+            let header_end = header.span.end;
+
+            if let Some(header_text) = source_content.get(header_start..header_end) {
+                // Count the hash characters to get original level
+                let hash_count = header_text.chars().take_while(|&c| c == '#').count();
+                let unique_key = format!(
+                    "{}_{}_{}",
+                    header.header.title, header.span.start, header.span.end
+                );
+                original_levels.insert(unique_key.clone(), hash_count as u8);
+            }
+        }
 
         // Create all header nodes first (using unique keys to avoid duplicates)
         let mut header_ids = std::collections::HashMap::new();
@@ -748,96 +767,159 @@ impl MermaidDiagramGenerator {
             }
         }
 
-        // Remove unused code since we'll handle hierarchy differently
+        // New approach: Group by AST scope, apply markdown within scope, then AST connections
 
-        // Build the proper header hierarchy according to the user's specification:
-        // - Main Function should be parent of Processing Loop, Final Processing, and Return Result
-        // - Processing Loop should have children Item Analysis, Validation, and Result
-        // - Validation should have child Accumulation
-
-        // Find key headers by name patterns and actual levels from collector
-        let mut main_function_id: Option<String> = None;
-        let mut processing_loop_id: Option<String> = None;
-        let mut _validation_id: Option<String> = None;
+        // Group headers by their scope ID (same ExpressionBlock)
+        let mut scope_groups: std::collections::HashMap<
+            String,
+            Vec<&super::header_collector::ContextualHeader>,
+        > = std::collections::HashMap::new();
 
         for header in &all_headers {
-            let header_id = header_ids.get(&header.header.title).unwrap();
-            let title = &header.header.title;
+            // Use the parent scope as the key - find the nearest meaningful container
+            // Headers that are siblings (in same container) should have markdown hierarchy
+            let scope_key = header.scope_id.clone();
+            scope_groups
+                .entry(scope_key)
+                .or_insert_with(Vec::new)
+                .push(header);
+        }
 
-            if title.contains("Main Function") && header.header.level == 1 {
-                main_function_id = Some(header_id.clone());
-            } else if title.contains("Processing Loop") && header.header.level == 2 {
-                processing_loop_id = Some(header_id.clone());
-            } else if title.contains("Validation") && header.header.level == 2 {
-                // Updated to match actual level found by collector
-                _validation_id = Some(header_id.clone());
+        let mut headers_with_connections: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
+
+        // FIRST: Within each scope group, apply markdown hierarchy
+        for (_scope_path, mut headers_in_scope) in scope_groups {
+            // Sort by order in source to maintain proper hierarchy building
+            headers_in_scope.sort_by_key(|h| h.span.start);
+            let mut header_stack: Vec<(String, u8)> = Vec::new(); // (header_id, original_level)
+
+            for header in headers_in_scope {
+                let header_id = header_ids.get(&header.header.title).unwrap();
+
+                let unique_key = format!(
+                    "{}_{}_{}",
+                    header.header.title, header.span.start, header.span.end
+                );
+                let original_level = original_levels.get(&unique_key).unwrap_or(&1);
+
+                // Find markdown parent: the nearest previous header with a lower level in the same scope
+                while let Some((_, stack_level)) = header_stack.last() {
+                    if *stack_level < *original_level {
+                        // Found a markdown parent
+                        break;
+                    } else {
+                        // Remove headers at same or higher level
+                        header_stack.pop();
+                    }
+                }
+
+                // Connect to markdown parent if one exists
+                if let Some((parent_id, _)) = header_stack.last() {
+                    self.connect(parent_id, header_id, Some("markdown"));
+                    headers_with_connections.insert(header_id.clone());
+                }
+
+                // Add current header to stack
+                header_stack.push((header_id.clone(), *original_level));
             }
         }
 
-        // Build connections based on actual AST structure and normalized levels
+        // SECOND: For headers without markdown connections, find AST parent connections
         for header in &all_headers {
             let header_id = header_ids.get(&header.header.title).unwrap();
-            let title = &header.header.title;
-            let level = header.header.level;
 
-            // Based on the actual headers found by the collector:
-            // 1. "Main Function" (Level 1) - function level
-            // 2. "Initialization" (Level 1) - let statement
-            // 3. "Processing Loop" (Level 2) - for statement
-            // 4. "Item Analysis" (Level 1) - let statement (within for scope)
-            // 5. "Validation" (Level 2) - expr_headers of for body (within for scope)
-            // 6. "Result" (Level 3) - expr_headers of function body (within function scope)
+            // Skip if this header already has a markdown connection
+            if headers_with_connections.contains(header_id) {
+                continue;
+            }
 
-            match title.as_str() {
-                // Main Function children - direct children at function level
-                title if title.contains("Processing Loop") && level == 2 => {
-                    if let Some(main_id) = &main_function_id {
-                        self.connect(main_id, header_id, Some("child"));
-                    }
-                }
-                title if title.contains("Initialization") && level == 1 => {
-                    if let Some(main_id) = &main_function_id {
-                        self.connect(main_id, header_id, Some("child"));
-                    }
-                }
-                title if title.contains("Result") && level == 3 => {
-                    // This "Result" is actually at the function level (final expr)
-                    if let Some(main_id) = &main_function_id {
-                        self.connect(main_id, header_id, Some("child"));
-                    }
-                }
+            let ast_context = &header.ast_context;
 
-                // Processing Loop children - within for loop scope
-                title if title.contains("Item Analysis") && level == 1 => {
-                    // Item Analysis is level 1 within for loop scope
-                    if let Some(proc_id) = &processing_loop_id {
-                        self.connect(proc_id, header_id, Some("child"));
-                    }
+            // Find potential AST parent based on context and hierarchy
+            match ast_context {
+                super::header_collector::ASTContext::TopLevel(_) => {
+                    // Top-level headers (function, class, etc.) - no AST parent needed
                 }
-                title if title.contains("Validation") && level == 2 => {
-                    // Validation is level 2 within for loop scope
-                    if let Some(proc_id) = &processing_loop_id {
-                        self.connect(proc_id, header_id, Some("child"));
-                    }
+                super::header_collector::ASTContext::Statement => {
+                    // Statement headers - find the most immediate parent in enclosing scope
+                    self.find_immediate_ast_parent(header, &all_headers, &header_ids);
                 }
-
-                _ => {} // No connection for other headers
+                super::header_collector::ASTContext::ExpressionBlockFinal => {
+                    // Expression block final headers - find the most immediate parent in enclosing scope
+                    self.find_immediate_ast_parent(header, &all_headers, &header_ids);
+                }
             }
         }
     }
 
+    /// Find the most immediate AST parent for a header
+    /// Returns true if a parent was found and connected, false otherwise
+    fn find_immediate_ast_parent(
+        &mut self,
+        header: &super::header_collector::ContextualHeader,
+        all_headers: &[std::sync::Arc<super::header_collector::ContextualHeader>],
+        header_ids: &std::collections::HashMap<String, String>,
+    ) -> bool {
+        let header_id = header_ids.get(&header.header.title).unwrap();
+        let mut best_parent: Option<&super::header_collector::ContextualHeader> = None;
+        let mut best_parent_depth = 0;
+
+        // Look for the most immediate parent (longest matching AST path)
+        for potential_parent in all_headers {
+            // ExpressionBlockFinal headers (like "Return Result") should not be parents of other headers
+            // They are peers, not parents
+            if matches!(
+                potential_parent.ast_context,
+                super::header_collector::ASTContext::ExpressionBlockFinal
+            ) {
+                continue;
+            }
+
+            // Check if potential parent is in an enclosing scope
+            if potential_parent.ast_path.len() < header.ast_path.len()
+                && header.ast_path.starts_with(&potential_parent.ast_path)
+            {
+                // Keep the parent with the longest path (most immediate)
+                if potential_parent.ast_path.len() > best_parent_depth {
+                    best_parent = Some(potential_parent);
+                    best_parent_depth = potential_parent.ast_path.len();
+                }
+            }
+        }
+
+        // Connect to the most immediate parent if found
+        if let Some(parent) = best_parent {
+            let parent_id = header_ids.get(&parent.header.title).unwrap();
+            // Debug: Print AST connections (disabled)
+            // println!("AST connection: '{}' -> '{}'", parent.header.title, header.header.title);
+            // println!("  Parent path: {:?}", parent.ast_path);
+            // println!("  Child path: {:?}", header.ast_path);
+            self.connect(parent_id, header_id, Some("nested"));
+            true
+        } else {
+            false
+        }
+    }
+
     /// Visit a header with annotation information
-    fn visit_header_with_annotation(&mut self, header: &Header, annotates: &str) -> String {
+    fn visit_header_with_annotation(&mut self, header: &Header, _annotates: &str) -> String {
         let key = format!("header_annotated_{:p}", header);
+        let span_info = format!(
+            "{}:{}-{}",
+            header.span.file.path(),
+            header.span.start,
+            header.span.end
+        );
         let label = if self.use_styling {
             format!(
-                "<b>{}</b><br/><b>Level:</b> {}<br/><b>Annotates:</b> {}",
-                header.title, header.level, annotates
+                "<b>{}</b><br/><b>Level:</b> {}<br/><b>Span:</b> {}",
+                header.title, header.level, span_info
             )
         } else {
             format!(
-                "{} (Level: {}, Annotates: {})",
-                header.title, header.level, annotates
+                "{} (Level: {}, Span: {})",
+                header.title, header.level, span_info
             )
         };
         self.get_node_id_with_class(&key, &label, "headerNode")

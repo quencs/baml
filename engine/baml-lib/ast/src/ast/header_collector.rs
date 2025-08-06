@@ -50,6 +50,8 @@ pub struct ContextualHeader {
     pub header_children: Vec<Arc<ContextualHeader>>,
     /// Span information for the header
     pub span: Span,
+    /// The scope ID for grouping headers that should have markdown hierarchy together
+    pub scope_id: String,
 }
 
 /// A tree structure representing the hierarchical relationships between headers
@@ -97,6 +99,10 @@ pub struct HeaderCollector {
     context_stack: Vec<ASTContext>,
     /// Current AST node stack for tracking AST hierarchy
     ast_node_stack: Vec<ASTNodeRef>,
+    /// Scope ID counter for generating unique scope identifiers
+    scope_counter: usize,
+    /// Stack of scope IDs corresponding to ExpressionBlocks that can contain headers
+    scope_stack: Vec<String>,
     /// Collected headers
     collected_headers: Vec<Arc<ContextualHeader>>,
 }
@@ -114,6 +120,8 @@ impl HeaderCollector {
             current_path: Vec::new(),
             context_stack: Vec::new(),
             ast_node_stack: Vec::new(),
+            scope_counter: 0,
+            scope_stack: Vec::new(),
             collected_headers: Vec::new(),
         }
     }
@@ -161,6 +169,26 @@ impl HeaderCollector {
         self.ast_node_stack.pop();
     }
 
+    /// Enter a new scope (called when visiting ExpressionBlocks that can contain headers)
+    fn enter_scope(&mut self) {
+        self.scope_counter += 1;
+        let scope_id = format!("scope_{}", self.scope_counter);
+        self.scope_stack.push(scope_id);
+    }
+
+    /// Exit the current scope
+    fn exit_scope(&mut self) {
+        self.scope_stack.pop();
+    }
+
+    /// Get the current scope ID for header grouping
+    fn current_scope_id(&self) -> String {
+        self.scope_stack
+            .last()
+            .cloned()
+            .unwrap_or_else(|| "root_scope".to_string())
+    }
+
     /// Pop the last context from the stack
     fn pop_context(&mut self) {
         if self.config.include_context {
@@ -183,6 +211,9 @@ impl HeaderCollector {
         // println!("COLLECTOR: Found header '{}' (Level: {}) at path: {} | Context: {:?} | Parent: {:?}",
         //          header.title, header.level, self.current_path.join(" -> "), context, ast_parent);
 
+        // Get the current scope ID for grouping headers that should have markdown hierarchy together
+        let scope_id = self.current_scope_id();
+
         let contextual_header = Arc::new(ContextualHeader {
             header: header.clone(),
             ast_context: context,
@@ -192,6 +223,7 @@ impl HeaderCollector {
             header_parent: None, // Will be set when building the header hierarchy
             header_children: Vec::new(),
             span: header.span.clone(),
+            scope_id,
         });
 
         self.collected_headers.push(contextual_header);
@@ -493,12 +525,9 @@ impl HeaderCollector {
         self.push_context(context.clone());
         self.push_ast_node(node_ref);
 
-        // Debug: Print information about this expression block (disabled)
-        // println!("COLLECTOR: Visiting ExpressionBlock at path '{}' with {} statements and {} expr_headers",
-        //          self.current_path.join(" -> "), block.stmts.len(), block.expr_headers.len());
-        // for (i, header) in block.expr_headers.iter().enumerate() {
-        //     println!("COLLECTOR:   expr_header[{}]: '{}'", i, header.title);
-        // }
+        // Enter a new scope for header grouping - this is key!
+        // All headers within this ExpressionBlock should be grouped for markdown hierarchy
+        self.enter_scope();
 
         // Visit statements
         for (idx, stmt) in block.stmts.iter().enumerate() {
@@ -518,6 +547,8 @@ impl HeaderCollector {
         self.visit_expression(&block.expr);
         self.pop_path();
 
+        // Exit the scope
+        self.exit_scope();
         self.pop_context();
         self.pop_ast_node();
     }

@@ -1,62 +1,68 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
-use internal_baml_ast::{ast::HeaderCollector, parse};
+use internal_baml_ast::{
+    ast::header_collector::{HeaderCollector, HeaderCollectorConfig},
+    parse,
+};
 use internal_baml_diagnostics::SourceFile;
 
 fn main() {
-    // Read the complex headers test file
-    let baml_content = std::fs::read_to_string("examples/complex_headers_test.baml")
-        .expect("Failed to read test file");
+    // Test with the complex headers test file
+    let file_path = "baml-lib/ast/examples/complex_headers_test.baml";
+    let content = fs::read_to_string(file_path).expect("Failed to read test file");
 
-    // Create a SourceFile and parse the BAML file
-    let source = SourceFile::from((
-        Path::new("complex_headers_test.baml").to_path_buf(),
-        baml_content,
-    ));
+    println!("=== TESTING HEADER COLLECTOR ===");
+    println!("File: {}", file_path);
+    println!("Content:\n{}", content);
+    println!("\n=== PARSING AST ===");
+
+    // Parse the AST
     let root_path = Path::new(".");
-    let (ast, _diagnostics) = parse(root_path, &source).expect("Failed to parse BAML file");
+    let source_file = SourceFile::new_allocated(file_path.into(), content.into());
+    let (ast, _diagnostics) = parse(root_path, &source_file).expect("Failed to parse AST");
 
-    // Collect headers using our refactored collector
+    // Print the raw AST structure (focused on headers)
+    println!("\n=== RAW AST STRUCTURE ===");
+    dbg!(&ast);
+
+    println!("\n=== COLLECTING HEADERS ===");
+
+    // Collect headers using the header collector
     let header_tree = HeaderCollector::collect_headers(&ast);
 
-    // Print the header tree
-    println!("=== Header Tree Structure ===");
+    // Print collected headers
+    println!("\n=== COLLECTED HEADERS ===");
+    dbg!(&header_tree);
+
+    println!("\n=== HEADER TREE STRING ===");
     println!("{}", header_tree.to_tree_string());
 
-    // Print headers by context
-    println!("\n=== Headers in Functions ===");
-    let function_headers = header_tree.headers_in_functions();
-    for header in function_headers {
-        println!(
-            "Function Header: {} (Level: {}, AST Path: {})",
-            header.title(),
-            header.level(),
-            header.ast_path_string()
-        );
+    println!("\n=== HEADERS BY CONTEXT ===");
+    for (context, headers) in &header_tree.headers_by_context {
+        println!("Context: {:?}", context);
+        for header in headers {
+            println!(
+                "  - {} (Level: {}) at path: {}",
+                header.title(),
+                header.level(),
+                header.ast_path_string()
+            );
+        }
     }
 
-    // Print headers for final expressions
-    println!("\n=== Headers for Final Expressions ===");
-    let final_headers = header_tree.headers_for_final_expressions();
-    for header in final_headers {
-        println!(
-            "Final Expression Header: {} (Level: {}, AST Path: {})",
-            header.title(),
-            header.level(),
-            header.ast_path_string()
-        );
-    }
-
-    // Print all headers with hierarchy information
-    println!("\n=== All Headers with Hierarchy ===");
+    println!("\n=== VERIFICATION ===");
+    // Let's manually verify some key headers
     let all_headers = header_tree.all_headers();
+    println!("Total headers collected: {}", all_headers.len());
+
+    // Look for specific headers we expect
     for header in all_headers {
         println!(
-            "Header: {} (Level: {}) - AST Parent: {:?}, Header Parent: {}",
+            "Header: '{}' | Level: {} | Context: {:?} | Path: {}",
             header.title(),
             header.level(),
-            header.ast_parent,
-            header.has_header_parent()
+            header.ast_context,
+            header.ast_path_string()
         );
     }
 }
