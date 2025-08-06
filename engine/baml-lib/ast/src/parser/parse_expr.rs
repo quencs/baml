@@ -49,6 +49,7 @@ pub fn parse_expr_fn(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<e
             return_type,
             body,
             span,
+            annotations: vec![],
         }),
         _ => None,
     }
@@ -162,36 +163,80 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
     let mut expr = None;
     let _open_bracket = tokens.next()?;
 
-    // Track headers with their hierarchy
-    let mut pending_headers: Vec<std::sync::Arc<Header>> = Vec::new();
-
+    // Collect all items first to process headers together
+    let mut items: Vec<Pair<'_>> = Vec::new();
     for item in tokens {
+        items.push(item);
+    }
+
+    // Track headers with their hierarchy
+    let mut all_headers_in_block: Vec<std::sync::Arc<Header>> = Vec::new();
+
+    // First pass: collect all headers
+    for item in &items {
+        match item.as_rule() {
+            Rule::mdx_header => {
+                let header = parse_header(item.clone(), diagnostics);
+                if let Some(header) = header {
+                    let header_arc = std::sync::Arc::new(header);
+                    all_headers_in_block.push(header_arc.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Normalize all headers in the block together
+    normalize_headers(&mut all_headers_in_block);
+
+    // Debug: Print normalized headers (disabled)
+    // println!("PARSER: Normalized headers in block:");
+    // for (i, header) in all_headers_in_block.iter().enumerate() {
+    //     println!("  [{}] '{}' (Level: {})", i, header.title, header.level);
+    // }
+
+    // Second pass: process statements and expressions with normalized headers
+    let mut current_headers: Vec<std::sync::Arc<Header>> = Vec::new();
+    let mut headers_since_last_stmt: Vec<std::sync::Arc<Header>> = Vec::new();
+
+    for item in items {
         match item.as_rule() {
             Rule::stmt => {
                 let maybe_stmt = parse_statement(item, diagnostics);
                 if let Some(mut stmt) = maybe_stmt {
-                    // Bind pending headers to this statement
-                    bind_headers_to_statement(&mut stmt, &mut pending_headers);
+                    // Bind only the headers that were declared since the last statement
+                    bind_headers_to_statement(&mut stmt, &headers_since_last_stmt);
                     stmts.push(stmt);
+
+                    // Clear headers since last statement
+                    headers_since_last_stmt.clear();
                 }
             }
             Rule::expression => {
                 let maybe_expr = parse_expression(item, diagnostics);
                 if let Some(parsed_expr) = maybe_expr {
                     expr = Some(parsed_expr);
-                    break;
+                    continue;
                 }
             }
             Rule::mdx_header => {
+                // Headers are already processed, just update current headers
                 let header = parse_header(item, diagnostics);
                 if let Some(header) = header {
                     let header_arc = std::sync::Arc::new(header);
 
-                    // Implement header hierarchy logic
-                    filter_headers_by_hierarchy(&mut pending_headers, &header_arc);
+                    // Find the corresponding normalized header
+                    if let Some(normalized_header) = all_headers_in_block
+                        .iter()
+                        .find(|h| h.title == header_arc.title)
+                    {
+                        // Implement header hierarchy logic
+                        filter_headers_by_hierarchy(&mut current_headers, normalized_header);
 
-                    // Add to pending headers
-                    pending_headers.push(header_arc.clone());
+                        // Add to current headers and headers since last statement
+                        current_headers.push(normalized_header.clone());
+                        headers_since_last_stmt.push(normalized_header.clone());
+                    }
                 }
             }
             Rule::BLOCK_CLOSE => {
@@ -220,29 +265,44 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
             _ => parsing_catch_all(item, "block"),
         }
     }
+
     expr.map(|e| ExpressionBlock {
         stmts,
         expr: Box::new(e),
-        expr_headers: pending_headers,
+        expr_headers: headers_since_last_stmt,
     })
 }
 
 /// Parse a single header from an MDX header token
-fn parse_header(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<Header> {
+pub fn parse_header(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<Header> {
     let full_text = token.as_str();
     let header_span = diagnostics.span(token.as_span());
 
-    let hash_count = full_text.chars().take_while(|&c| c == '#').count();
-    let title_text = full_text.trim_start_matches('#').trim().to_string();
+    // Find the start of the hash sequence
+    let hash_start = full_text.find('#')?;
+    let after_whitespace = full_text[hash_start..].trim_start();
+
+    // Count consecutive hash characters
+    let hash_count = after_whitespace.chars().take_while(|&c| c == '#').count();
+
+    // Extract the title after the hash sequence and whitespace
+    let after_hashes = &after_whitespace[hash_count..];
+    let title_text = after_hashes.trim().to_string();
+
+    // Remove trailing newline if present
+    let title_text = title_text
+        .trim_end_matches('\n')
+        .trim_end_matches('\r')
+        .to_string();
 
     let level = hash_count as u8;
 
-    // Print debug information about the header
-    let indent = " ".repeat(level as usize);
-    println!(
-        "{}└ HEADER Level {}: '{}' (hash count: {})",
-        indent, level, title_text, level
-    );
+    // Print debug information about the header (disabled)
+    // let indent = " ".repeat(level as usize);
+    // println!(
+    //     "{}└ HEADER Level {}: '{}' (hash count: {})",
+    //     indent, level, title_text, level
+    // );
 
     Some(Header {
         level,
@@ -263,8 +323,43 @@ fn filter_headers_by_hierarchy(
     pending_headers.retain(|header| header.level < new_header.level);
 }
 
+/// Normalize headers within a single block according to the normalization rules:
+/// - All headers within a block scope should start from level 1
+/// - Maintain relative hierarchy between headers
+fn normalize_headers(headers: &mut Vec<std::sync::Arc<Header>>) {
+    if headers.is_empty() {
+        return;
+    }
+
+    // Find the minimum level to normalize from
+    let min_level = headers.iter().map(|h| h.level).min().unwrap();
+
+    // Only normalize if headers don't already start from level 1
+    if min_level > 1 {
+        // Create new normalized headers
+        let mut normalized_headers = Vec::new();
+
+        for header in headers.iter() {
+            // Normalize by adjusting all levels to start from 1
+            let new_level = header.level - min_level + 1;
+
+            // Create new header with normalized level
+            let normalized_header = std::sync::Arc::new(Header {
+                level: new_level,
+                title: header.title.clone(),
+                span: header.span.clone(),
+            });
+
+            normalized_headers.push(normalized_header);
+        }
+
+        // Replace the original headers with normalized ones
+        *headers = normalized_headers;
+    }
+}
+
 /// Bind pending headers to a statement based on scope rules
-fn bind_headers_to_statement(stmt: &mut Stmt, pending_headers: &mut Vec<std::sync::Arc<Header>>) {
+fn bind_headers_to_statement(stmt: &mut Stmt, pending_headers: &Vec<std::sync::Arc<Header>>) {
     match stmt {
         Stmt::Let(let_stmt) => {
             let_stmt.annotations.extend(pending_headers.clone());
@@ -273,10 +368,6 @@ fn bind_headers_to_statement(stmt: &mut Stmt, pending_headers: &mut Vec<std::syn
             for_stmt.annotations.extend(pending_headers.clone());
         }
     }
-
-    // Clear headers after binding them to the statement
-    // Each statement consumes the headers that precede it
-    pending_headers.clear();
 }
 
 fn parse_fn_args(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Vec<Expression> {
@@ -362,11 +453,11 @@ pub fn parse_if_expression(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Op
     let condition = parse_expression(tokens.next()?, diagnostics)?;
     let then_branch = parse_expr_block(tokens.next()?, diagnostics)?;
     let else_branch = parse_expr_block(tokens.next()?, diagnostics);
+    // Use ExprBlock to preserve the full structure including headers and statements
     Some(Expression::If(
         Box::new(condition),
-        // TODO: Get the full statements heres.
-        then_branch.expr,
-        else_branch.map(|e| e.expr),
+        Box::new(Expression::ExprBlock(then_branch, span.clone())),
+        else_branch.map(|e| Box::new(Expression::ExprBlock(e, span.clone()))),
         span,
     ))
 }

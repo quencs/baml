@@ -22,6 +22,7 @@ mod type_builder_block;
 mod type_expression_block;
 mod value_expression_block;
 
+pub mod header_collector;
 pub mod mermaid_debug;
 pub use app::App;
 pub use argument::{Argument, ArgumentId, ArgumentsList};
@@ -33,6 +34,9 @@ pub use expression::{
     ClassConstructor, ClassConstructorField, Expression, ExpressionBlock, RawString,
 };
 pub use field::{Field, FieldArity, FieldType};
+pub use header_collector::{
+    ASTContext, ASTNodeRef, ContextualHeader, HeaderCollector, HeaderCollectorConfig, HeaderTree,
+};
 pub use identifier::{Identifier, RefIdentifier};
 pub use indentation_type::IndentationType;
 pub use internal_baml_diagnostics::Span;

@@ -172,6 +172,7 @@ pub(crate) fn parse_value_expression_block(
             span: diagnostics.span(pair_span),
             type_builder,
             block_type: sub_type.unwrap_or(ValueExprBlockType::Function),
+            annotations: vec![],
         });
     }
 

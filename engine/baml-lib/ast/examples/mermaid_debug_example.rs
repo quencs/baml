@@ -7,13 +7,18 @@ fn main() {
     // Get command line arguments
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 2 {
-        eprintln!("Usage: {} <path-to-baml-file>", args[0]);
+    if args.len() < 2 || args.len() > 3 {
+        eprintln!("Usage: {} [--fancy] <path-to-baml-file>", args[0]);
         eprintln!("Example: {} example.baml", args[0]);
+        eprintln!("Example: {} --fancy example.baml", args[0]);
         std::process::exit(1);
     }
 
-    let baml_file_path = &args[1];
+    let (baml_file_path, use_fancy) = if args.len() == 3 && args[1] == "--fancy" {
+        (&args[2], true)
+    } else {
+        (&args[1], false)
+    };
 
     // Check if file exists and has .baml extension
     let path = Path::new(baml_file_path);
@@ -46,10 +51,18 @@ fn main() {
     // Parse the BAML source code
     match parse(root_path, &source) {
         Ok((ast, _diagnostics)) => {
-            // Generate Mermaid diagram
-            let mermaid_diagram = MermaidDiagramGenerator::generate_ast_diagram(&ast);
+            // Print the AST
+            dbg!(&ast);
 
-            println!("Generated Mermaid Diagram for '{}':", baml_file_path);
+            // Generate Mermaid diagram with optional styling
+            let mermaid_diagram =
+                MermaidDiagramGenerator::generate_ast_diagram_with_styling(&ast, use_fancy);
+
+            println!(
+                "Generated Mermaid Diagram for '{}' (styling: {}):",
+                baml_file_path,
+                if use_fancy { "enabled" } else { "disabled" }
+            );
             println!("{}", mermaid_diagram);
 
             // You can copy the output and paste it into any Mermaid renderer

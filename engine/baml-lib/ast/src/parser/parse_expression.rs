@@ -505,4 +505,75 @@ mod tests {
             println!("  Warning: {:?}", warning);
         }
     }
+
+    #[test]
+    fn test_complex_header_hierarchy() {
+        println!("\n=== Testing Complex Header Hierarchy ===");
+
+        let input = r#"# Loop Processing
+fn ForLoopWithHeaders() -> int {
+    let items = [1, 2, 3, 4, 5];
+    let result = 0;
+    
+    ## Main Loop
+    for (item in items) {
+        ### Item Processing
+        let processed = item * 2;
+        
+        #### Accumulation
+        result = result + processed;
+    }
+    
+    ## Final Result
+    result
+}"#;
+
+        let root_path = "test_file.baml";
+        let source = SourceFile::new_static(root_path.into(), input);
+        let mut diagnostics = Diagnostics::new(root_path.into());
+        diagnostics.set_source(&source);
+
+        println!("Parsing function with complex header hierarchy...");
+
+        let pair_result = BAMLParser::parse(Rule::schema, input);
+        match pair_result {
+            Ok(mut pairs) => {
+                let schema_pair = pairs.next().unwrap();
+                println!("✓ Successfully parsed schema");
+
+                // Look for expr_fn within the schema
+                for item in schema_pair.into_inner() {
+                    match item.as_rule() {
+                        Rule::expr_fn => {
+                            let expr_fn = parse_expr_fn(item, &mut diagnostics);
+                            match expr_fn {
+                                Some(expr_fn) => {
+                                    println!(
+                                        "✓ Found and parsed function: {}",
+                                        expr_fn.name.name()
+                                    );
+                                }
+                                None => println!("✗ Failed to parse function"),
+                            }
+                        }
+                        Rule::comment_block => {
+                            println!("✓ Found top-level comment block");
+                        }
+                        _ => {
+                            println!("Found other item: {:?}", item.as_rule());
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                println!("✗ Parse error: {:?}", e);
+                return;
+            }
+        }
+
+        println!("Diagnostics errors: {}", diagnostics.errors().len());
+        for error in diagnostics.errors() {
+            println!("  Error: {:?}", error);
+        }
+    }
 }
