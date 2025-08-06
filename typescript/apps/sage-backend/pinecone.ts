@@ -1,12 +1,12 @@
-import { populatePinecone, searchPinecone } from './app/actions/rag';
+import { populatePinecone } from './lib/pinecone-api';
 
 async function main() {
-  await populatePinecone();
+  await populatePinecone('/Users/sam/baml2/fern/docs.yml');
   // await testPopulatePinecone();
 
-  const results = await searchPinecone('is there a baml zed extension?');
-  console.log(results);
-  return;
+  // const results = await searchPinecone('is there a baml zed extension?');
+  // console.log(results);
+  // return;
 
   // for (const result of results) {
   //   // console.log(result);
