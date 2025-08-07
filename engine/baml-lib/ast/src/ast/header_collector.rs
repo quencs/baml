@@ -1,653 +1,423 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use internal_baml_diagnostics::Span;
 
 use super::{
-    Ast, ExprFn, Expression, ExpressionBlock, Field, Header, Stmt, Top, ValueExprBlock, WithName,
-    WithSpan,
+    Ast, ExprFn, Expression, ExpressionBlock, Field, Header, Stmt, Top, TopId, ValExpId,
+    ValueExprBlock, WithName, WithSpan,
 };
 
-/// Reference to an AST node for tracking structural hierarchy
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ASTNodeRef {
-    Function(String),
-    ExprFunction(String),
-    LetStatement(String),
-    ForLoopStatement(String),
-    ExpressionBlock,
-    IfExpression,
-    LambdaExpression,
-}
+/// A simple numeric identifier for a logical header scope (any block: function, for-loop body, expr block, etc.)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ScopeId(pub u32);
 
-/// Represents the contextual location where a header appears in the AST
-/// Uses existing AST enums to avoid duplication
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ASTContext {
-    /// Header at the top-level (function, class, enum, etc.)
-    TopLevel(String), // The type from Top::get_type()
-    /// Header within a statement
-    Statement, // Uses Stmt enum internally
-    /// Header within an expression block (applies to final expression)
-    ExpressionBlockFinal,
-}
-
-/// Represents a header with its full contextual information
+/// Minimal header representation for rendering and navigation
 #[derive(Debug, Clone)]
-pub struct ContextualHeader {
-    /// The original header data
-    pub header: Arc<Header>,
-    /// The AST context where this header appears
-    pub ast_context: ASTContext,
-    /// The AST node that contains this header (for AST hierarchy)
-    pub ast_parent: Option<ASTNodeRef>,
-    /// AST children (other AST nodes contained within this header's scope)
-    pub ast_children: Vec<ASTNodeRef>,
-    /// The path through the AST to reach this header
-    pub ast_path: Vec<String>,
-    /// Header-level parent (based on markdown hierarchy within the same block)
-    pub header_parent: Option<Arc<ContextualHeader>>,
-    /// Header-level children (based on markdown hierarchy within the same block)
-    pub header_children: Vec<Arc<ContextualHeader>>,
-    /// Span information for the header
+pub struct RenderableHeader {
+    pub id: String,
+    pub title: String,
+    /// Normalized within its scope so the first header is level 1
+    pub level: u8,
     pub span: Span,
-    /// The scope ID for grouping headers that should have markdown hierarchy together
-    pub scope_id: String,
+    pub scope: ScopeId,
+    /// Markdown parent within the same scope
+    pub parent_id: Option<String>,
+    /// Next element in control flow (stubbed)
+    pub next_id: Option<String>,
 }
 
-/// A tree structure representing the hierarchical relationships between headers
-#[derive(Debug, Clone)]
-pub struct HeaderTree {
-    /// Root headers (those with no parent in the hierarchy)
-    pub roots: Vec<Arc<ContextualHeader>>,
-    /// All headers indexed by their unique identifier
-    pub headers_by_id: HashMap<String, Arc<ContextualHeader>>,
-    /// Headers grouped by their context type
-    pub headers_by_context: HashMap<ASTContext, Vec<Arc<ContextualHeader>>>,
-    /// Headers in the order they appear in the source
-    pub headers_in_order: Vec<Arc<ContextualHeader>>,
+/// Collected index of headers with simple querying APIs
+#[derive(Debug, Default, Clone)]
+pub struct HeaderIndex {
+    pub headers: Vec<RenderableHeader>,
+    by_scope: HashMap<ScopeId, Vec<usize>>, // header indexes in source order
+    /// Cross-scope/navigational edges between headers (e.g., control-flow nesting)
+    pub nested_edges: Vec<(String, String)>, // (from_id, to_id)
+    /// Root header id per scope (first header encountered in the scope)
+    pub scope_root_header: HashMap<ScopeId, String>,
 }
 
-/// Configuration for header collection behavior
-#[derive(Debug, Clone)]
-pub struct HeaderCollectorConfig {
-    /// Whether to preserve hierarchy relationships based on header levels
-    pub preserve_hierarchy: bool,
-    /// Whether to include context information
-    pub include_context: bool,
-    /// Whether to track AST paths
-    pub track_ast_paths: bool,
-}
+impl HeaderIndex {
+    pub fn headers_in_scope(&self, scope: ScopeId) -> Vec<&RenderableHeader> {
+        self.by_scope
+            .get(&scope)
+            .into_iter()
+            .flat_map(|idxs| idxs.iter().map(|i| &self.headers[*i]))
+            .collect()
+    }
 
-impl Default for HeaderCollectorConfig {
-    fn default() -> Self {
-        Self {
-            preserve_hierarchy: true,
-            include_context: true,
-            track_ast_paths: true,
-        }
+    pub fn find_by_id(&self, id: &str) -> Option<&RenderableHeader> {
+        self.headers.iter().find(|h| h.id == id)
     }
 }
 
-/// The main header collector that walks the AST and extracts headers
+/// Internal collector to walk AST and build a HeaderIndex
 #[derive(Debug)]
 pub struct HeaderCollector {
-    /// Configuration for collection behavior
-    config: HeaderCollectorConfig,
-    /// Current AST path being traversed
-    current_path: Vec<String>,
-    /// Current context stack
-    context_stack: Vec<ASTContext>,
-    /// Current AST node stack for tracking AST hierarchy
-    ast_node_stack: Vec<ASTNodeRef>,
-    /// Scope ID counter for generating unique scope identifiers
-    scope_counter: usize,
-    /// Stack of scope IDs corresponding to ExpressionBlocks that can contain headers
-    scope_stack: Vec<String>,
-    /// Collected headers
-    collected_headers: Vec<Arc<ContextualHeader>>,
+    scope_counter: u32,
+    scope_stack: Vec<ScopeId>,
+    // Raw headers by scope before normalization and parenting
+    raw_by_scope: HashMap<ScopeId, Vec<RawHeader>>, // source order
+    // Track last header produced in each scope (by id)
+    last_header_in_scope: HashMap<ScopeId, String>,
+    // When entering a new scope, we record the parent header id from the enclosing scope
+    // so that the first header in the new scope can be connected via a nested edge.
+    pending_parent_for_scope: HashMap<ScopeId, Option<String>>,
+    // Accumulated nested edges (from_id, to_id)
+    nested_edges: Vec<(String, String)>,
+    // Root header of a scope (first header encountered in that scope)
+    scope_root_header: HashMap<ScopeId, String>,
+    // Whether we already connected root -> first child within the same scope
+    scope_root_connected: HashMap<ScopeId, bool>,
+    // Track last header that was marked as final expression header within the scope
+    last_final_in_scope: HashMap<ScopeId, String>,
+    // Whether a scope is a top-level (direct child of Top)
+    scope_is_top_level: HashMap<ScopeId, bool>,
+}
+
+#[derive(Debug, Clone)]
+struct RawHeader {
+    id: String,
+    title: String,
+    original_level: u8,
+    span: Span,
+    // origin is tracked during traversal only; we don't need it after building
 }
 
 impl HeaderCollector {
-    /// Create a new header collector with default configuration
-    pub fn new() -> Self {
-        Self::new_with_config(HeaderCollectorConfig::default())
-    }
-
-    /// Create a new header collector with custom configuration
-    pub fn new_with_config(config: HeaderCollectorConfig) -> Self {
-        Self {
-            config,
-            current_path: Vec::new(),
-            context_stack: Vec::new(),
-            ast_node_stack: Vec::new(),
+    pub fn collect(ast: &Ast) -> HeaderIndex {
+        let mut c = Self {
             scope_counter: 0,
             scope_stack: Vec::new(),
-            collected_headers: Vec::new(),
-        }
+            raw_by_scope: HashMap::new(),
+            last_header_in_scope: HashMap::new(),
+            pending_parent_for_scope: HashMap::new(),
+            nested_edges: Vec::new(),
+            scope_root_header: HashMap::new(),
+            scope_root_connected: HashMap::new(),
+            last_final_in_scope: HashMap::new(),
+            scope_is_top_level: HashMap::new(),
+        };
+        c.visit_ast(ast);
+        c.build_index()
     }
 
-    /// Collect all headers from an AST into a structured tree
-    pub fn collect_headers(ast: &Ast) -> HeaderTree {
-        Self::collect_headers_with_config(ast, HeaderCollectorConfig::default())
-    }
+    fn push_scope(&mut self) -> ScopeId {
+        // Determine potential parent header from the current scope before pushing
+        let parent_header_id = self
+            .current_scope()
+            .and_then(|parent_scope| self.last_header_in_scope.get(&parent_scope).cloned());
 
-    /// Collect all headers from an AST with custom configuration
-    pub fn collect_headers_with_config(ast: &Ast, config: HeaderCollectorConfig) -> HeaderTree {
-        let mut collector = Self::new_with_config(config);
-        collector.visit_ast(ast);
-        collector.build_header_tree()
-    }
-
-    /// Add a path component to the current AST path
-    fn push_path(&mut self, component: String) {
-        if self.config.track_ast_paths {
-            self.current_path.push(component);
-        }
-    }
-
-    /// Remove the last path component
-    fn pop_path(&mut self) {
-        if self.config.track_ast_paths {
-            self.current_path.pop();
-        }
-    }
-
-    /// Push a new context onto the stack
-    fn push_context(&mut self, context: ASTContext) {
-        if self.config.include_context {
-            self.context_stack.push(context);
-        }
-    }
-
-    /// Push a new AST node onto the stack
-    fn push_ast_node(&mut self, node_ref: ASTNodeRef) {
-        self.ast_node_stack.push(node_ref);
-    }
-
-    /// Pop the last AST node from the stack
-    fn pop_ast_node(&mut self) {
-        self.ast_node_stack.pop();
-    }
-
-    /// Enter a new scope (called when visiting ExpressionBlocks that can contain headers)
-    fn enter_scope(&mut self) {
         self.scope_counter += 1;
-        let scope_id = format!("scope_{}", self.scope_counter);
-        self.scope_stack.push(scope_id);
+        let id = ScopeId(self.scope_counter);
+        self.scope_stack.push(id);
+        // Record pending parent for this new scope
+        self.pending_parent_for_scope.insert(id, parent_header_id);
+        id
     }
 
-    /// Exit the current scope
-    fn exit_scope(&mut self) {
+    fn pop_scope(&mut self) {
         self.scope_stack.pop();
     }
 
-    /// Get the current scope ID for header grouping
-    fn current_scope_id(&self) -> String {
-        self.scope_stack
-            .last()
-            .cloned()
-            .unwrap_or_else(|| "root_scope".to_string())
+    fn current_scope(&self) -> Option<ScopeId> {
+        self.scope_stack.last().copied()
     }
 
-    /// Pop the last context from the stack
-    fn pop_context(&mut self) {
-        if self.config.include_context {
-            self.context_stack.pop();
-        }
-    }
-
-    /// Collect headers from a vector of header Arc references
-    fn collect_headers_from_vec(&mut self, headers: &[Arc<Header>], context: ASTContext) {
-        for header in headers {
-            self.collect_single_header(header.clone(), context.clone());
-        }
-    }
-
-    /// Collect a single header and add it to the collection
-    fn collect_single_header(&mut self, header: Arc<Header>, context: ASTContext) {
-        let ast_parent = self.ast_node_stack.last().cloned();
-
-        // Debug print to see what headers are being collected (disabled)
-        // println!("COLLECTOR: Found header '{}' (Level: {}) at path: {} | Context: {:?} | Parent: {:?}",
-        //          header.title, header.level, self.current_path.join(" -> "), context, ast_parent);
-
-        // Get the current scope ID for grouping headers that should have markdown hierarchy together
-        let scope_id = self.current_scope_id();
-
-        let contextual_header = Arc::new(ContextualHeader {
-            header: header.clone(),
-            ast_context: context,
-            ast_parent,
-            ast_children: Vec::new(), // Will be populated during tree building
-            ast_path: self.current_path.clone(),
-            header_parent: None, // Will be set when building the header hierarchy
-            header_children: Vec::new(),
-            span: header.span.clone(),
-            scope_id,
-        });
-
-        self.collected_headers.push(contextual_header);
-    }
-
-    /// Build the final header tree from collected headers
-    fn build_header_tree(self) -> HeaderTree {
-        let mut headers_by_id = HashMap::new();
-        let mut headers_by_context: HashMap<ASTContext, Vec<Arc<ContextualHeader>>> =
-            HashMap::new();
-        let mut headers_in_order = Vec::new();
-
-        // First pass: index all headers and group by context
-        for header in &self.collected_headers {
-            // Create unique ID using span position and scope to avoid collisions
-            // when headers have the same title/level in different AST scopes
+    fn add_header(&mut self, title: String, level: u8, span: Span, is_final_expr: bool) {
+        if let Some(scope) = self.current_scope() {
+            let entry = self.raw_by_scope.entry(scope).or_default();
             let id = format!(
-                "{}_{}_{}_{}_{}_{}",
-                header.ast_path.len(),
-                header.header.level,
-                header.header.title,
-                header.span.start,
-                header.span.end,
-                header.scope_id
+                "{}:{}-{}:{}:{}",
+                title,
+                span.file.path(),
+                span.start,
+                span.end,
+                scope.0
             );
-            headers_by_id.insert(id, header.clone());
+            let is_first_in_scope = entry.is_empty();
+            entry.push(RawHeader {
+                id: id.clone(),
+                title: title.clone(),
+                original_level: level,
+                span: span.clone(),
+            });
 
-            headers_by_context
-                .entry(header.ast_context.clone())
-                .or_default()
-                .push(header.clone());
+            // If first header in this scope and we have a pending parent, add nested edge
+            if is_first_in_scope {
+                if let Some(Some(parent_id)) = self.pending_parent_for_scope.get(&scope) {
+                    // Only connect parent -> child for nested scopes, not for top-level scopes
+                    let is_top = self
+                        .scope_is_top_level
+                        .get(&scope)
+                        .copied()
+                        .unwrap_or(false);
+                    if !is_top {
+                        self.nested_edges.push((parent_id.clone(), id.clone()));
+                    }
+                }
+                // Remember root for same-scope hierarchy
+                self.scope_root_header.insert(scope, id.clone());
+                self.scope_root_connected.insert(scope, false);
+            }
+            // If this is the first non-root header, connect root -> this within same scope
+            if !is_first_in_scope {
+                if let Some(root) = self.scope_root_header.get(&scope) {
+                    let already = self
+                        .scope_root_connected
+                        .get(&scope)
+                        .copied()
+                        .unwrap_or(false);
+                    if !already && *root != id {
+                        // For top-level scope we DO want root -> next nested edge; for inner scopes we skip
+                        let is_top = self
+                            .scope_is_top_level
+                            .get(&scope)
+                            .copied()
+                            .unwrap_or(false);
+                        if is_top {
+                            self.nested_edges.push((root.clone(), id.clone()));
+                        }
+                        self.scope_root_connected.insert(scope, true);
+                    }
+                }
+            }
 
-            headers_in_order.push(header.clone());
-        }
+            // Track last final header in scope, and propagate to nearest top-level ancestor
+            if is_final_expr {
+                self.last_final_in_scope.insert(scope, id.clone());
+                // Also set last final for nearest top-level ancestor so we can draw
+                // a nested edge root(top-level) -> final header, matching reference
+                if let Some(&ancestor_scope) = self
+                    .scope_stack
+                    .iter()
+                    .rev()
+                    .find(|s| self.scope_is_top_level.get(*s).copied().unwrap_or(false))
+                {
+                    self.last_final_in_scope.insert(ancestor_scope, id.clone());
+                }
+            }
 
-        // Second pass: build both hierarchy relationships if enabled
-        let roots = if self.config.preserve_hierarchy {
-            // Return headers that are direct children of functions as roots
-            // TODO: Implement proper header-level hierarchy with RefCell
-            self.collected_headers
-                .iter()
-                .filter(|h| {
-                    // Headers are roots if they're direct children of functions
-                    matches!(
-                        h.ast_parent,
-                        Some(ASTNodeRef::Function(_) | ASTNodeRef::ExprFunction(_))
-                    )
-                })
-                .cloned()
-                .collect()
-        } else {
-            // If not preserving hierarchy, all headers are roots
-            self.collected_headers
-        };
-
-        HeaderTree {
-            roots,
-            headers_by_id,
-            headers_by_context,
-            headers_in_order,
+            // Update last header in scope
+            self.last_header_in_scope.insert(scope, id);
         }
     }
 
-    /// Visit the root AST node
     fn visit_ast(&mut self, ast: &Ast) {
-        self.push_path("ast".to_string());
-
-        for (idx, top) in ast.tops.iter().enumerate() {
-            self.push_path(format!("top[{}]", idx));
+        for top in &ast.tops {
             self.visit_top(top);
-            self.pop_path();
         }
-
-        self.pop_path();
     }
 
-    /// Visit a top-level AST node
     fn visit_top(&mut self, top: &Top) {
         match top {
-            Top::Function(value_expr) => {
-                self.push_path(format!("function[{}]", value_expr.name()));
-                let context = ASTContext::TopLevel("function".to_string());
-                let node_ref = ASTNodeRef::Function(value_expr.name().to_string());
-                self.push_context(context.clone());
-                self.push_ast_node(node_ref);
-                self.visit_value_expression_block(value_expr);
-                self.pop_context();
-                self.pop_ast_node();
-                self.pop_path();
+            Top::Function(block)
+            | Top::Client(block)
+            | Top::Generator(block)
+            | Top::TestCase(block)
+            | Top::RetryPolicy(block) => {
+                // ValueExprBlock is a root scope
+                let _scope = self.push_scope();
+                self.scope_is_top_level.insert(_scope, true);
+                // Block-level headers label this scope
+                for h in &block.annotations {
+                    // Function-level headers live in this scope
+                    self.add_header(h.title.clone(), h.level, h.span.clone(), false);
+                }
+                // Visit fields/expressions inside
+                for field in &block.fields {
+                    self.visit_field_expression(field);
+                }
+                self.pop_scope();
             }
             Top::ExprFn(expr_fn) => {
-                self.push_path(format!("expr_fn[{}]", expr_fn.name.name()));
-                let context = ASTContext::TopLevel("expr_function".to_string());
-                let node_ref = ASTNodeRef::ExprFunction(expr_fn.name.name().to_string());
-                self.push_context(context.clone());
-                self.push_ast_node(node_ref);
-                self.visit_expr_fn(expr_fn);
-                self.pop_context();
-                self.pop_ast_node();
-                self.pop_path();
+                // Use the body ExpressionBlock as the scope for expr fn
+                let _scope = self.push_scope();
+                self.scope_is_top_level.insert(_scope, true);
+                for h in &expr_fn.annotations {
+                    self.add_header(h.title.clone(), h.level, h.span.clone(), false);
+                }
+                self.visit_expression_block(&expr_fn.body);
+                self.pop_scope();
             }
-            Top::Client(value_expr)
-            | Top::Generator(value_expr)
-            | Top::TestCase(value_expr)
-            | Top::RetryPolicy(value_expr) => {
-                self.push_path(format!("value_expr[{}]", value_expr.name()));
-                self.visit_value_expression_block(value_expr);
-                self.pop_path();
-            }
-            _ => {
-                // Other top-level nodes don't typically have headers
-            }
+            _ => {}
         }
     }
 
-    /// Visit a value expression block (function, client, etc.)
-    fn visit_value_expression_block(&mut self, value_expr: &ValueExprBlock) {
-        // Collect annotations (headers) at the function level
-        if !value_expr.annotations.is_empty() {
-            let context = ASTContext::TopLevel("function".to_string());
-            self.collect_headers_from_vec(&value_expr.annotations, context);
-        }
-
-        // Visit fields (expressions)
-        for (idx, field) in value_expr.fields.iter().enumerate() {
-            self.push_path(format!("field[{}]", idx));
-            self.visit_field_expression(field);
-            self.pop_path();
-        }
-    }
-
-    /// Visit an expression function
-    fn visit_expr_fn(&mut self, expr_fn: &ExprFn) {
-        // Collect annotations (headers) at the function level
-        if !expr_fn.annotations.is_empty() {
-            let context = ASTContext::TopLevel("expr_function".to_string());
-            self.collect_headers_from_vec(&expr_fn.annotations, context);
-        }
-
-        // Visit the body expression block
-        self.push_path("body".to_string());
-        self.visit_expression_block(&expr_fn.body);
-        self.pop_path();
-    }
-
-    /// Visit a field with Expression
     fn visit_field_expression(&mut self, field: &Field<Expression>) {
-        // Visit the expression if present
         if let Some(expr) = &field.expr {
-            self.push_path(format!("expr[{}]", field.name.name()));
             self.visit_expression(expr);
-            self.pop_path();
         }
     }
 
-    /// Visit an expression
     fn visit_expression(&mut self, expr: &Expression) {
         match expr {
             Expression::ExprBlock(block, _) => {
-                self.push_path("expr_block".to_string());
                 self.visit_expression_block(block);
-                self.pop_path();
             }
             Expression::If(_cond, then_expr, else_expr, _) => {
-                self.push_path("if_then".to_string());
                 self.visit_expression(then_expr);
-                self.pop_path();
-
                 if let Some(else_expr) = else_expr {
-                    self.push_path("if_else".to_string());
                     self.visit_expression(else_expr);
-                    self.pop_path();
                 }
             }
             Expression::Lambda(_args, body, _) => {
-                self.push_path("lambda_body".to_string());
                 self.visit_expression_block(body);
-                self.pop_path();
             }
             Expression::Array(exprs, _) => {
-                for (idx, expr) in exprs.iter().enumerate() {
-                    self.push_path(format!("array[{}]", idx));
-                    self.visit_expression(expr);
-                    self.pop_path();
+                for e in exprs {
+                    self.visit_expression(e);
                 }
             }
             Expression::Map(map, _) => {
-                for (idx, (key_expr, value_expr)) in map.iter().enumerate() {
-                    self.push_path(format!("map_key[{}]", idx));
-                    self.visit_expression(key_expr);
-                    self.pop_path();
-
-                    self.push_path(format!("map_value[{}]", idx));
-                    self.visit_expression(value_expr);
-                    self.pop_path();
+                for (k, v) in map {
+                    self.visit_expression(k);
+                    self.visit_expression(v);
                 }
             }
-            Expression::ClassConstructor(constructor, _) => {
-                for (idx, field) in constructor.fields.iter().enumerate() {
-                    self.push_path(format!("constructor_field[{}]", idx));
-                    match field {
-                        super::ClassConstructorField::Named(_name, expr) => {
-                            self.visit_expression(expr);
-                        }
-                        super::ClassConstructorField::Spread(expr) => {
-                            self.visit_expression(expr);
-                        }
+            Expression::ClassConstructor(cons, _) => {
+                for f in &cons.fields {
+                    match f {
+                        super::ClassConstructorField::Named(_, e) => self.visit_expression(e),
+                        super::ClassConstructorField::Spread(e) => self.visit_expression(e),
                     }
-                    self.pop_path();
                 }
             }
-            Expression::Not(expr, _) => {
-                self.push_path("not_expr".to_string());
-                self.visit_expression(expr);
-                self.pop_path();
-            }
-            _ => {
-                // Other expressions (primitives, identifiers, etc.) don't contain headers
-            }
+            Expression::Not(e, _) => self.visit_expression(e),
+            _ => {}
         }
     }
 
-    /// Visit an expression block
     fn visit_expression_block(&mut self, block: &ExpressionBlock) {
-        let context = ASTContext::Statement;
-        let node_ref = ASTNodeRef::ExpressionBlock;
-        self.push_context(context.clone());
-        self.push_ast_node(node_ref);
+        let _scope = self.push_scope();
 
-        // Enter a new scope for header grouping - this is key!
-        // All headers within this ExpressionBlock should be grouped for markdown hierarchy
-        self.enter_scope();
-
-        // Visit statements
-        for (idx, stmt) in block.stmts.iter().enumerate() {
-            self.push_path(format!("stmt[{}]", idx));
-            self.visit_stmt(stmt);
-            self.pop_path();
+        // Visit statements first (preserve source order for MD parenting)
+        for stmt in &block.stmts {
+            match stmt {
+                Stmt::Let(let_stmt) => {
+                    for h in &let_stmt.annotations {
+                        // Statement labels live in the current scope
+                        self.add_header(h.title.clone(), h.level, h.span.clone(), false);
+                    }
+                    self.visit_expression(&let_stmt.expr);
+                }
+                Stmt::ForLoop(for_stmt) => {
+                    // Record for-loop annotation headers in the current (outer) scope
+                    for h in &for_stmt.annotations {
+                        self.add_header(h.title.clone(), h.level, h.span.clone(), false);
+                    }
+                    // Iterate expression evaluated in current scope
+                    self.visit_expression(&for_stmt.iterator);
+                    // Now visit the body in its own scope (no prefixed headers)
+                    self.visit_expression_block(&for_stmt.body);
+                }
+            }
         }
 
-        // Visit headers that apply to the final expression
-        if !block.expr_headers.is_empty() {
-            let final_expr_context = ASTContext::ExpressionBlockFinal;
-            self.collect_headers_from_vec(&block.expr_headers, final_expr_context);
+        // Headers that apply to the final expression belong to this scope and come last
+        for h in &block.expr_headers {
+            self.add_header(h.title.clone(), h.level, h.span.clone(), true);
         }
 
-        // Visit the final expression
-        self.push_path("final_expr".to_string());
+        // Final expr
         self.visit_expression(&block.expr);
-        self.pop_path();
 
-        // Exit the scope
-        self.exit_scope();
-        self.pop_context();
-        self.pop_ast_node();
+        self.pop_scope();
     }
 
-    /// Visit a statement
-    fn visit_stmt(&mut self, stmt: &Stmt) {
-        match stmt {
-            Stmt::Let(let_stmt) => {
-                let context = ASTContext::Statement;
-                let node_ref = ASTNodeRef::LetStatement(let_stmt.identifier.name().to_string());
-                self.push_context(context.clone());
-                self.push_ast_node(node_ref);
+    // Helper removed; for-loop annotations are now added to outer scope
 
-                // Collect headers for the let statement
-                if !let_stmt.annotations.is_empty() {
-                    self.collect_headers_from_vec(&let_stmt.annotations, context);
-                }
+    fn build_index(mut self) -> HeaderIndex {
+        let mut index = HeaderIndex {
+            headers: Vec::new(),
+            by_scope: HashMap::new(),
+            nested_edges: Vec::new(),
+            scope_root_header: HashMap::new(),
+        };
 
-                // Visit the expression
-                self.push_path("let_expr".to_string());
-                self.visit_expression(&let_stmt.expr);
-                self.pop_path();
+        // Do not inject implicit headers; only render actual source headers
 
-                self.pop_context();
-                self.pop_ast_node();
+        // Build normalized headers and parent relationships per scope
+        for (scope, raw_list) in &self.raw_by_scope {
+            if raw_list.is_empty() {
+                continue;
             }
-            Stmt::ForLoop(for_stmt) => {
-                let context = ASTContext::Statement;
-                let node_ref = ASTNodeRef::ForLoopStatement(for_stmt.identifier.name().to_string());
-                self.push_context(context.clone());
-                self.push_ast_node(node_ref);
+            let min_level = raw_list.iter().map(|r| r.original_level).min().unwrap_or(1);
 
-                // Collect headers for the for loop
-                if !for_stmt.annotations.is_empty() {
-                    self.collect_headers_from_vec(&for_stmt.annotations, context);
-                }
+            // Stack of (header_id, level)
+            let mut stack: Vec<(String, u8)> = Vec::new();
 
-                // Visit the iterable expression
-                self.push_path("for_iterator".to_string());
-                self.visit_expression(&for_stmt.iterator);
-                self.pop_path();
+            for raw in raw_list {
+                let norm_level = raw
+                    .original_level
+                    .saturating_sub(min_level)
+                    .saturating_add(1);
+                let id = raw.id.clone();
 
-                // Visit the body
-                self.push_path("for_body".to_string());
-                self.visit_expression_block(&for_stmt.body);
-                self.pop_path();
+                // Find markdown parent within scope
+                let parent_id = loop {
+                    if let Some((parent, plevel)) = stack.last() {
+                        if *plevel < norm_level {
+                            break Some(parent.clone());
+                        } else {
+                            stack.pop();
+                        }
+                    } else {
+                        break None;
+                    }
+                };
 
-                self.pop_context();
-                self.pop_ast_node();
+                let header = RenderableHeader {
+                    id: id.clone(),
+                    title: raw.title.clone(),
+                    level: norm_level,
+                    span: raw.span.clone(),
+                    scope: *scope,
+                    parent_id,
+                    next_id: None, // stub
+                };
+
+                let idx = index.headers.len();
+                index.headers.push(header);
+                index.by_scope.entry(*scope).or_default().push(idx);
+
+                stack.push((id, norm_level));
             }
         }
+
+        // Add edges root -> last final header only for top-level scopes, avoiding self-loops
+        for (scope, root_id) in &self.scope_root_header {
+            let is_top = self.scope_is_top_level.get(scope).copied().unwrap_or(false);
+            if !is_top {
+                continue;
+            }
+            if let Some(final_id) = self.last_final_in_scope.get(scope) {
+                if final_id != root_id {
+                    self.nested_edges.push((root_id.clone(), final_id.clone()));
+                }
+            }
+        }
+        // Carry over nested edges collected during traversal
+        index.nested_edges = self.nested_edges;
+        // Expose scope roots
+        index.scope_root_header = self.scope_root_header;
+        index
     }
 }
 
 impl Default for HeaderCollector {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl HeaderTree {
-    /// Get all headers in a flat list
-    pub fn all_headers(&self) -> Vec<Arc<ContextualHeader>> {
-        self.headers_in_order.clone()
-    }
-
-    /// Get headers by their context type
-    pub fn headers_in_context(&self, context: &ASTContext) -> Vec<Arc<ContextualHeader>> {
-        self.headers_by_context
-            .get(context)
-            .cloned()
-            .unwrap_or_default()
-    }
-
-    /// Get root headers (those with no parent)
-    pub fn root_headers(&self) -> &[Arc<ContextualHeader>] {
-        &self.roots
-    }
-
-    /// Find a header by its title
-    pub fn find_header_by_title(&self, title: &str) -> Option<Arc<ContextualHeader>> {
-        self.headers_in_order
-            .iter()
-            .find(|h| h.header.title == title)
-            .cloned()
-    }
-
-    /// Get headers within functions (both regular and expression functions)
-    pub fn headers_in_functions(&self) -> Vec<Arc<ContextualHeader>> {
-        let function_context = ASTContext::TopLevel("function".to_string());
-        let expr_function_context = ASTContext::TopLevel("expr_function".to_string());
-
-        let mut result = self.headers_in_context(&function_context);
-        result.extend(self.headers_in_context(&expr_function_context));
-        result
-    }
-
-    /// Get headers that apply to final expressions in blocks
-    pub fn headers_for_final_expressions(&self) -> Vec<Arc<ContextualHeader>> {
-        let context = ASTContext::ExpressionBlockFinal;
-        self.headers_in_context(&context)
-    }
-
-    /// Generate a textual representation of the header tree
-    pub fn to_tree_string(&self) -> String {
-        let mut result = String::new();
-        result.push_str("Header Tree:\n");
-
-        for root in &self.roots {
-            self.append_header_to_string(&mut result, root, 0);
+        Self {
+            scope_counter: 0,
+            scope_stack: Vec::new(),
+            raw_by_scope: HashMap::new(),
+            last_header_in_scope: HashMap::new(),
+            pending_parent_for_scope: HashMap::new(),
+            nested_edges: Vec::new(),
+            scope_root_header: HashMap::new(),
+            scope_root_connected: HashMap::new(),
+            last_final_in_scope: HashMap::new(),
+            scope_is_top_level: HashMap::new(),
         }
-
-        if result == "Header Tree:\n" {
-            result.push_str("  (no headers found)\n");
-        }
-
-        result
-    }
-
-    /// Helper method to recursively append headers to string representation
-    fn append_header_to_string(
-        &self,
-        result: &mut String,
-        header: &ContextualHeader,
-        indent_level: usize,
-    ) {
-        let indent = "  ".repeat(indent_level);
-        result.push_str(&format!(
-            "{}├─ {} (Level: {}, Context: {:?})\n",
-            indent, header.header.title, header.header.level, header.ast_context
-        ));
-
-        for child in &header.header_children {
-            self.append_header_to_string(result, child, indent_level + 1);
-        }
-    }
-}
-
-impl ContextualHeader {
-    /// Get the header title
-    pub fn title(&self) -> &str {
-        &self.header.title
-    }
-
-    /// Get the header level
-    pub fn level(&self) -> u8 {
-        self.header.level
-    }
-
-    /// Check if this header has a header-level parent
-    pub fn has_header_parent(&self) -> bool {
-        self.header_parent.is_some()
-    }
-
-    /// Check if this header has header-level children
-    pub fn has_header_children(&self) -> bool {
-        !self.header_children.is_empty()
-    }
-
-    /// Check if this header has an AST parent
-    pub fn has_ast_parent(&self) -> bool {
-        self.ast_parent.is_some()
-    }
-
-    /// Check if this header has AST children
-    pub fn has_ast_children(&self) -> bool {
-        !self.ast_children.is_empty()
-    }
-
-    /// Get the full AST path as a string
-    pub fn ast_path_string(&self) -> String {
-        self.ast_path.join(" -> ")
     }
 }

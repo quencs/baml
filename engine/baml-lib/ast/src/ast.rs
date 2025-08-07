@@ -34,9 +34,7 @@ pub use expression::{
     ClassConstructor, ClassConstructorField, Expression, ExpressionBlock, RawString,
 };
 pub use field::{Field, FieldArity, FieldType};
-pub use header_collector::{
-    ASTContext, ASTNodeRef, ContextualHeader, HeaderCollector, HeaderCollectorConfig, HeaderTree,
-};
+pub use header_collector::{HeaderCollector, HeaderIndex, RenderableHeader, ScopeId};
 pub use identifier::{Identifier, RefIdentifier};
 pub use indentation_type::IndentationType;
 pub use internal_baml_diagnostics::Span;
@@ -103,6 +101,18 @@ pub struct TypeExpId(u32);
 impl From<u32> for TypeExpId {
     fn from(id: u32) -> Self {
         TypeExpId(id)
+    }
+}
+
+impl From<u32> for ValExpId {
+    fn from(id: u32) -> Self {
+        ValExpId(id)
+    }
+}
+
+impl From<u32> for ExprFnId {
+    fn from(id: u32) -> Self {
+        ExprFnId(id)
     }
 }
 
@@ -258,6 +268,13 @@ impl TopId {
     pub fn as_client_id(self) -> Option<ValExpId> {
         match self {
             TopId::Client(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn as_generator_id(self) -> Option<ValExpId> {
+        match self {
+            TopId::Generator(id) => Some(id),
             _ => None,
         }
     }

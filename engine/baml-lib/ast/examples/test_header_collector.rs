@@ -1,9 +1,6 @@
 use std::{fs, path::Path};
 
-use internal_baml_ast::{
-    ast::header_collector::{HeaderCollector, HeaderCollectorConfig},
-    parse,
-};
+use internal_baml_ast::{ast::HeaderCollector, parse};
 use internal_baml_diagnostics::SourceFile;
 
 fn main() {
@@ -27,42 +24,14 @@ fn main() {
 
     println!("\n=== COLLECTING HEADERS ===");
 
-    // Collect headers using the header collector
-    let header_tree = HeaderCollector::collect_headers(&ast);
+    // Collect headers using the new API
+    let index = HeaderCollector::collect(&ast);
 
-    // Print collected headers
     println!("\n=== COLLECTED HEADERS ===");
-    dbg!(&header_tree);
-
-    println!("\n=== HEADER TREE STRING ===");
-    println!("{}", header_tree.to_tree_string());
-
-    println!("\n=== HEADERS BY CONTEXT ===");
-    for (context, headers) in &header_tree.headers_by_context {
-        println!("Context: {:?}", context);
-        for header in headers {
-            println!(
-                "  - {} (Level: {}) at path: {}",
-                header.title(),
-                header.level(),
-                header.ast_path_string()
-            );
-        }
-    }
-
-    println!("\n=== VERIFICATION ===");
-    // Let's manually verify some key headers
-    let all_headers = header_tree.all_headers();
-    println!("Total headers collected: {}", all_headers.len());
-
-    // Look for specific headers we expect
-    for header in all_headers {
+    for h in &index.headers {
         println!(
-            "Header: '{}' | Level: {} | Context: {:?} | Path: {}",
-            header.title(),
-            header.level(),
-            header.ast_context,
-            header.ast_path_string()
+            "- '{}' (L: {}) scope={} parent={:?}",
+            h.title, h.level, h.scope.0, h.parent_id
         );
     }
 }
