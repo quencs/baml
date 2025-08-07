@@ -8,7 +8,7 @@ use internal_baml_diagnostics::SourceFile;
 
 fn main() {
     // Test with the complex headers test file
-    let file_path = "baml-lib/ast/examples/complex_headers_test.baml";
+    let file_path = "examples/complex_headers_test.baml";
     let content = fs::read_to_string(file_path).expect("Failed to read test file");
 
     println!("=== TESTING HEADER COLLECTOR ===");

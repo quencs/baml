@@ -238,11 +238,16 @@ impl HeaderCollector {
 
         // First pass: index all headers and group by context
         for header in &self.collected_headers {
+            // Create unique ID using span position and scope to avoid collisions
+            // when headers have the same title/level in different AST scopes
             let id = format!(
-                "{}_{}_{}",
+                "{}_{}_{}_{}_{}_{}",
                 header.ast_path.len(),
                 header.header.level,
-                header.header.title
+                header.header.title,
+                header.span.start,
+                header.span.end,
+                header.scope_id
             );
             headers_by_id.insert(id, header.clone());
 

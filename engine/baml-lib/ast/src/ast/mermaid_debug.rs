@@ -749,6 +749,8 @@ impl MermaidDiagramGenerator {
 
         // Create all header nodes first (using unique keys to avoid duplicates)
         let mut header_ids = std::collections::HashMap::new();
+        let mut header_to_unique_key = std::collections::HashMap::new();
+
         for header in &all_headers {
             // Create a unique key based on title, level, and position to handle duplicates
             let unique_key = format!(
@@ -759,11 +761,9 @@ impl MermaidDiagramGenerator {
             if !header_ids.contains_key(&unique_key) {
                 let header_id = self.visit_header_with_annotation(&header.header, &header.title());
                 header_ids.insert(unique_key.clone(), header_id);
-                // Also map by title for easier lookup in hierarchy building
-                header_ids.insert(
-                    header.header.title.clone(),
-                    header_ids.get(&unique_key).unwrap().clone(),
-                );
+                // Map each header instance to its unique key for lookup
+                let header_instance_key = format!("{:p}", header.as_ref());
+                header_to_unique_key.insert(header_instance_key, unique_key);
             }
         }
 
@@ -795,7 +795,9 @@ impl MermaidDiagramGenerator {
             let mut header_stack: Vec<(String, u8)> = Vec::new(); // (header_id, original_level)
 
             for header in headers_in_scope {
-                let header_id = header_ids.get(&header.header.title).unwrap();
+                let header_instance_key = format!("{:p}", header);
+                let unique_key = header_to_unique_key.get(&header_instance_key).unwrap();
+                let header_id = header_ids.get(unique_key).unwrap();
 
                 let unique_key = format!(
                     "{}_{}_{}",
@@ -827,7 +829,9 @@ impl MermaidDiagramGenerator {
 
         // SECOND: For headers without markdown connections, find AST parent connections
         for header in &all_headers {
-            let header_id = header_ids.get(&header.header.title).unwrap();
+            let header_instance_key = format!("{:p}", header.as_ref());
+            let unique_key = header_to_unique_key.get(&header_instance_key).unwrap();
+            let header_id = header_ids.get(unique_key).unwrap();
 
             // Skip if this header already has a markdown connection
             if headers_with_connections.contains(header_id) {
@@ -843,11 +847,21 @@ impl MermaidDiagramGenerator {
                 }
                 super::header_collector::ASTContext::Statement => {
                     // Statement headers - find the most immediate parent in enclosing scope
-                    self.find_immediate_ast_parent(header, &all_headers, &header_ids);
+                    self.find_immediate_ast_parent(
+                        header,
+                        &all_headers,
+                        &header_ids,
+                        &header_to_unique_key,
+                    );
                 }
                 super::header_collector::ASTContext::ExpressionBlockFinal => {
                     // Expression block final headers - find the most immediate parent in enclosing scope
-                    self.find_immediate_ast_parent(header, &all_headers, &header_ids);
+                    self.find_immediate_ast_parent(
+                        header,
+                        &all_headers,
+                        &header_ids,
+                        &header_to_unique_key,
+                    );
                 }
             }
         }
@@ -860,8 +874,11 @@ impl MermaidDiagramGenerator {
         header: &super::header_collector::ContextualHeader,
         all_headers: &[std::sync::Arc<super::header_collector::ContextualHeader>],
         header_ids: &std::collections::HashMap<String, String>,
+        header_to_unique_key: &std::collections::HashMap<String, String>,
     ) -> bool {
-        let header_id = header_ids.get(&header.header.title).unwrap();
+        let header_instance_key = format!("{:p}", header);
+        let unique_key = header_to_unique_key.get(&header_instance_key).unwrap();
+        let header_id = header_ids.get(unique_key).unwrap();
         let mut best_parent: Option<&super::header_collector::ContextualHeader> = None;
         let mut best_parent_depth = 0;
 
@@ -890,7 +907,9 @@ impl MermaidDiagramGenerator {
 
         // Connect to the most immediate parent if found
         if let Some(parent) = best_parent {
-            let parent_id = header_ids.get(&parent.header.title).unwrap();
+            let parent_instance_key = format!("{:p}", parent);
+            let parent_unique_key = header_to_unique_key.get(&parent_instance_key).unwrap();
+            let parent_id = header_ids.get(parent_unique_key).unwrap();
             // Debug: Print AST connections (disabled)
             // println!("AST connection: '{}' -> '{}'", parent.header.title, header.header.title);
             // println!("  Parent path: {:?}", parent.ast_path);
