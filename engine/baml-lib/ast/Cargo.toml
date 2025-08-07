@@ -35,6 +35,10 @@ unindent = "0.2.3"
 name = "mermaid_debug_example"
 path = "examples/mermaid_debug_example.rs"
 
+[[example]]
+name = "baml_vis_example"
+path = "examples/baml_vis_example.rs"
+
 [features]
 debug_parser = []
 # default = ["debug_parser"]
