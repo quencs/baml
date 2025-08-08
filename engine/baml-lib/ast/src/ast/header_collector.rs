@@ -11,6 +11,16 @@ use super::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ScopeId(pub u32);
 
+/// Classification of scope kinds for visualization semantics
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ScopeKind {
+    TopLevel,
+    ForBody,
+    IfThen,
+    IfElse,
+    Generic,
+}
+
 /// Minimal header representation for rendering and navigation
 #[derive(Debug, Clone)]
 pub struct RenderableHeader {
@@ -35,6 +45,8 @@ pub struct HeaderIndex {
     pub nested_edges: Vec<(String, String)>, // (from_id, to_id)
     /// Root header id per scope (first header encountered in the scope)
     pub scope_root_header: HashMap<ScopeId, String>,
+    /// Kind classification per scope
+    pub scope_kind: HashMap<ScopeId, ScopeKind>,
 }
 
 impl HeaderIndex {
@@ -73,6 +85,12 @@ pub struct HeaderCollector {
     last_final_in_scope: HashMap<ScopeId, String>,
     // Whether a scope is a top-level (direct child of Top)
     scope_is_top_level: HashMap<ScopeId, bool>,
+    // Classification per scope
+    scope_kind: HashMap<ScopeId, ScopeKind>,
+    // Pending classification for the next scope to be pushed
+    pending_next_scope_kind: Option<ScopeKind>,
+    // Simple counters per type label for auto-generated headers
+    auto_counters: HashMap<String, u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -97,6 +115,9 @@ impl HeaderCollector {
             scope_root_connected: HashMap::new(),
             last_final_in_scope: HashMap::new(),
             scope_is_top_level: HashMap::new(),
+            scope_kind: HashMap::new(),
+            pending_next_scope_kind: None,
+            auto_counters: HashMap::new(),
         };
         c.visit_ast(ast);
         c.build_index()
@@ -113,6 +134,10 @@ impl HeaderCollector {
         self.scope_stack.push(id);
         // Record pending parent for this new scope
         self.pending_parent_for_scope.insert(id, parent_header_id);
+        // Classify this scope when requested
+        if let Some(kind) = self.pending_next_scope_kind.take() {
+            self.scope_kind.insert(id, kind);
+        }
         id
     }
 
@@ -203,6 +228,36 @@ impl HeaderCollector {
         }
     }
 
+    fn ensure_default_header_current_scope(
+        &mut self,
+        type_label: &str,
+        span: Span,
+        override_title: Option<String>,
+    ) {
+        let Some(scope) = self.current_scope() else {
+            return;
+        };
+        let has_any = self
+            .raw_by_scope
+            .get(&scope)
+            .map(|v| !v.is_empty())
+            .unwrap_or(false);
+        if has_any {
+            return;
+        }
+        let title = if let Some(t) = override_title {
+            t
+        } else {
+            let counter = self
+                .auto_counters
+                .entry(type_label.to_string())
+                .and_modify(|c| *c += 1)
+                .or_insert(1);
+            format!("{} {}", type_label, *counter)
+        };
+        self.add_header(title, 1, span, false);
+    }
+
     fn visit_ast(&mut self, ast: &Ast) {
         for top in &ast.tops {
             self.visit_top(top);
@@ -217,12 +272,27 @@ impl HeaderCollector {
             | Top::TestCase(block)
             | Top::RetryPolicy(block) => {
                 // ValueExprBlock is a root scope
+                self.pending_next_scope_kind = Some(ScopeKind::TopLevel);
                 let _scope = self.push_scope();
                 self.scope_is_top_level.insert(_scope, true);
                 // Block-level headers label this scope
                 for h in &block.annotations {
                     // Function-level headers live in this scope
                     self.add_header(h.title.clone(), h.level, h.span.clone(), false);
+                }
+                // Default header logic for top-level blocks
+                if block.annotations.is_empty() {
+                    let type_label = block.get_type();
+                    let override_title = if type_label == "function" {
+                        Some(block.name().to_string())
+                    } else {
+                        None
+                    };
+                    self.ensure_default_header_current_scope(
+                        type_label,
+                        block.span().clone(),
+                        override_title,
+                    );
                 }
                 // Visit fields/expressions inside
                 for field in &block.fields {
@@ -232,10 +302,18 @@ impl HeaderCollector {
             }
             Top::ExprFn(expr_fn) => {
                 // Use the body ExpressionBlock as the scope for expr fn
+                self.pending_next_scope_kind = Some(ScopeKind::TopLevel);
                 let _scope = self.push_scope();
                 self.scope_is_top_level.insert(_scope, true);
                 for h in &expr_fn.annotations {
                     self.add_header(h.title.clone(), h.level, h.span.clone(), false);
+                }
+                if expr_fn.annotations.is_empty() {
+                    self.ensure_default_header_current_scope(
+                        "function",
+                        expr_fn.span.clone(),
+                        Some(expr_fn.name.name().to_string()),
+                    );
                 }
                 self.visit_expression_block(&expr_fn.body);
                 self.pop_scope();
@@ -252,16 +330,34 @@ impl HeaderCollector {
 
     fn visit_expression(&mut self, expr: &Expression) {
         match expr {
-            Expression::ExprBlock(block, _) => {
+            Expression::ExprBlock(block, _span) => {
+                // Generic expression block scope
+                if self.pending_next_scope_kind.is_none() {
+                    self.pending_next_scope_kind = Some(ScopeKind::Generic);
+                }
                 self.visit_expression_block(block);
             }
-            Expression::If(_cond, then_expr, else_expr, _) => {
+            Expression::If(_cond, then_expr, else_expr, span) => {
+                // Ensure a container header in the current (outer) scope for this if
+                let label = "if statement";
+                let counter = self
+                    .auto_counters
+                    .entry(label.to_string())
+                    .and_modify(|c| *c += 1)
+                    .or_insert(1);
+                let title = format!("{} {}", label, *counter);
+                self.add_header(title, 1, span.clone(), false);
+                self.pending_next_scope_kind = Some(ScopeKind::IfThen);
                 self.visit_expression(then_expr);
                 if let Some(else_expr) = else_expr {
+                    self.pending_next_scope_kind = Some(ScopeKind::IfElse);
                     self.visit_expression(else_expr);
                 }
             }
             Expression::Lambda(_args, body, _) => {
+                // Treat lambda body like a generic scope, but do not auto-inject headers
+                self.pending_next_scope_kind = Some(ScopeKind::Generic);
+                // Lambda's body span isn't tracked directly; skip span assignment here
                 self.visit_expression_block(body);
             }
             Expression::Array(exprs, _) => {
@@ -308,7 +404,20 @@ impl HeaderCollector {
                     }
                     // Iterate expression evaluated in current scope
                     self.visit_expression(&for_stmt.iterator);
+                    // Ensure a default for-loop header in the outer scope if none was provided
+                    if for_stmt.annotations.is_empty() {
+                        let label = "for loop";
+                        let counter = self
+                            .auto_counters
+                            .entry(label.to_string())
+                            .and_modify(|c| *c += 1)
+                            .or_insert(1);
+                        // Use level 2 so it nests under the current root header (e.g., function)
+                        let title = format!("{} {}", label, *counter);
+                        self.add_header(title, 2, for_stmt.span.clone(), false);
+                    }
                     // Now visit the body in its own scope (no prefixed headers)
+                    self.pending_next_scope_kind = Some(ScopeKind::ForBody);
                     self.visit_expression_block(&for_stmt.body);
                 }
             }
@@ -322,6 +431,21 @@ impl HeaderCollector {
         // Final expr
         self.visit_expression(&block.expr);
 
+        // After visiting this block, if no headers were added for this scope, inject defaults
+        let kind_for_scope = self
+            .scope_kind
+            .get(&_scope)
+            .copied()
+            .unwrap_or(ScopeKind::Generic);
+        let type_label = match kind_for_scope {
+            ScopeKind::ForBody => "for loop",
+            ScopeKind::IfThen | ScopeKind::IfElse => "if statement",
+            ScopeKind::TopLevel => "block",
+            ScopeKind::Generic => "block",
+        };
+        let span_for_default = block.expr.span().clone();
+        self.ensure_default_header_current_scope(type_label, span_for_default, None);
+
         self.pop_scope();
     }
 
@@ -333,6 +457,7 @@ impl HeaderCollector {
             by_scope: HashMap::new(),
             nested_edges: Vec::new(),
             scope_root_header: HashMap::new(),
+            scope_kind: HashMap::new(),
         };
 
         // Do not inject implicit headers; only render actual source headers
@@ -385,7 +510,9 @@ impl HeaderCollector {
             }
         }
 
-        // Add edges root -> last final header only for top-level scopes, avoiding self-loops
+        // Add one extra edge root -> last final header only for top-level scopes,
+        // avoiding self-loops and duplicates (the same edge may have been created when
+        // the child scope's first header connected to the parent's last header).
         for (scope, root_id) in &self.scope_root_header {
             let is_top = self.scope_is_top_level.get(scope).copied().unwrap_or(false);
             if !is_top {
@@ -393,7 +520,13 @@ impl HeaderCollector {
             }
             if let Some(final_id) = self.last_final_in_scope.get(scope) {
                 if final_id != root_id {
-                    self.nested_edges.push((root_id.clone(), final_id.clone()));
+                    let exists = self
+                        .nested_edges
+                        .iter()
+                        .any(|(a, b)| a == root_id && b == final_id);
+                    if !exists {
+                        self.nested_edges.push((root_id.clone(), final_id.clone()));
+                    }
                 }
             }
         }
@@ -401,6 +534,8 @@ impl HeaderCollector {
         index.nested_edges = self.nested_edges;
         // Expose scope roots
         index.scope_root_header = self.scope_root_header;
+        // Expose scope kinds
+        index.scope_kind = self.scope_kind;
         index
     }
 }
@@ -418,6 +553,9 @@ impl Default for HeaderCollector {
             scope_root_connected: HashMap::new(),
             last_final_in_scope: HashMap::new(),
             scope_is_top_level: HashMap::new(),
+            scope_kind: HashMap::new(),
+            pending_next_scope_kind: None,
+            auto_counters: HashMap::new(),
         }
     }
 }
