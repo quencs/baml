@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, BTreeSet as _, HashMap, HashSet};
 
 use super::{Ast, HeaderCollector, HeaderIndex, RenderableHeader, ScopeId, WithSpan};
 
@@ -18,6 +18,12 @@ pub struct BamlVisDiagramGenerator {
     header_node_ids: HashMap<String, String>,
     // Cache header.id -> subgraph id for container headers
     header_subgraph_ids: HashMap<String, String>,
+    // Track scopes we've already rendered to avoid duplicate emissions
+    visited_scopes: HashSet<ScopeId>,
+    // Track subgraphs we've already emitted (by subgraph id like sg0, sg1, ...)
+    emitted_subgraphs: HashSet<String>,
+    // Track linear edges we've already emitted to avoid duplicates (from_id, to_id)
+    emitted_edges: BTreeSet<(String, String)>,
 }
 
 impl BamlVisDiagramGenerator {
@@ -27,6 +33,9 @@ impl BamlVisDiagramGenerator {
             id_counter: 0,
             header_node_ids: HashMap::new(),
             header_subgraph_ids: HashMap::new(),
+            visited_scopes: HashSet::new(),
+            emitted_subgraphs: HashSet::new(),
+            emitted_edges: BTreeSet::new(),
         }
     }
 
@@ -82,13 +91,18 @@ impl BamlVisDiagramGenerator {
         let mut container_to_children: HashMap<&str, Vec<&str>> = HashMap::new();
         for (from, to) in &index.nested_edges {
             if let (Some(f), Some(t)) = (by_id.get(from.as_str()), by_id.get(to.as_str())) {
-                // Only consider cross-scope nested edges for containerization
+                // Only consider cross-scope nested edges where the target is the ROOT of its scope.
+                // This avoids treating auxiliary edges like root->final as separate children.
                 if f.scope != t.scope {
-                    nested_targets.insert(t.id.as_str());
-                    container_to_children
-                        .entry(f.id.as_str())
-                        .or_default()
-                        .push(t.id.as_str());
+                    if let Some(root_id_for_child_scope) = index.scope_root_header.get(&t.scope) {
+                        if root_id_for_child_scope == &t.id {
+                            nested_targets.insert(t.id.as_str());
+                            container_to_children
+                                .entry(f.id.as_str())
+                                .or_default()
+                                .push(t.id.as_str());
+                        }
+                    }
                 }
             }
         }
@@ -127,6 +141,10 @@ impl BamlVisDiagramGenerator {
         by_id: &HashMap<&str, &RenderableHeader>,
         container_to_children: &HashMap<&str, Vec<&str>>,
     ) {
+        // Prevent duplicate rendering of the same scope (can be reached via multiple paths)
+        if !self.visited_scopes.insert(scope) {
+            return;
+        }
         // Collect all headers in this scope in source order so markdown children
         // are included inside their container sequences.
         let mut items: Vec<&RenderableHeader> = index.headers_in_scope(scope);
@@ -152,40 +170,45 @@ impl BamlVisDiagramGenerator {
                         .get(header.id.as_str())
                         .cloned()
                         .expect("subgraph id must exist");
-                    self.content.push(format!(
-                        "  subgraph {}[\"{}\"]",
-                        subgraph_id,
-                        escape_label(&header.title)
-                    ));
-                    self.content.push("    direction TB".to_string());
+                    // Only emit the subgraph and its contents once
+                    let should_render_subgraph = self.emitted_subgraphs.insert(subgraph_id.clone());
+                    if should_render_subgraph {
+                        self.content.push(format!(
+                            "  subgraph {}[\"{}\"]",
+                            subgraph_id,
+                            escape_label(&header.title)
+                        ));
+                        self.content.push("    direction TB".to_string());
 
-                    // Inside the container, render each child scope sequence
-                    let mut representative_ids: Vec<String> = Vec::new();
-                    for child_root in children_sorted {
-                        let child_scope = child_root.scope;
-                        // Render full child scope contents (may include nested subgraphs)
-                        self.render_scope_sequence(
-                            index,
-                            child_scope,
-                            by_id,
-                            container_to_children,
-                        );
-                        // Use the child root as representative for inter-child linear connection
-                        let rep_id = if container_to_children.contains_key(child_root.id.as_str()) {
-                            // child is a container; connect via its subgraph id
-                            self.ensure_subgraph(child_root)
-                        } else {
-                            // simple node representative
-                            self.ensure_node(child_root)
-                        };
-                        representative_ids.push(rep_id);
+                        // Inside the container, render each child scope sequence
+                        let mut representative_ids: Vec<String> = Vec::new();
+                        for child_root in children_sorted {
+                            let child_scope = child_root.scope;
+                            // Render full child scope contents (may include nested subgraphs)
+                            self.render_scope_sequence(
+                                index,
+                                child_scope,
+                                by_id,
+                                container_to_children,
+                            );
+                            // Use the child root as representative for inter-child linear connection
+                            let rep_id =
+                                if container_to_children.contains_key(child_root.id.as_str()) {
+                                    // child is a container; connect via its subgraph id
+                                    self.ensure_subgraph(child_root)
+                                } else {
+                                    // simple node representative (ensure exists but do not duplicate)
+                                    self.ensure_node(child_root)
+                                };
+                            representative_ids.push(rep_id);
+                        }
+
+                        // Connect child containers/nodes linearly
+                        self.connect_sequence(&representative_ids, 4);
+
+                        // Close subgraph
+                        self.content.push("  end".to_string());
                     }
-
-                    // Connect child containers/nodes linearly
-                    self.connect_sequence(&representative_ids, 4);
-
-                    // Close subgraph
-                    self.content.push("  end".to_string());
                     subgraph_id
                 } else {
                     // No children recorded; still emit empty subgraph
@@ -194,13 +217,15 @@ impl BamlVisDiagramGenerator {
                         .get(header.id.as_str())
                         .cloned()
                         .expect("subgraph id must exist");
-                    self.content.push(format!(
-                        "  subgraph {}[\"{}\"]",
-                        subgraph_id,
-                        escape_label(&header.title)
-                    ));
-                    self.content.push("    direction TB".to_string());
-                    self.content.push("  end".to_string());
+                    if self.emitted_subgraphs.insert(subgraph_id.clone()) {
+                        self.content.push(format!(
+                            "  subgraph {}[\"{}\"]",
+                            subgraph_id,
+                            escape_label(&header.title)
+                        ));
+                        self.content.push("    direction TB".to_string());
+                        self.content.push("  end".to_string());
+                    }
                     subgraph_id
                 }
             } else {
@@ -247,7 +272,10 @@ impl BamlVisDiagramGenerator {
         for pair in ids.windows(2) {
             let a = &pair[0];
             let b = &pair[1];
-            self.content.push(format!("{}{} --> {}", indent, a, b));
+            // Avoid emitting duplicate edges
+            if self.emitted_edges.insert((a.clone(), b.clone())) {
+                self.content.push(format!("{}{} --> {}", indent, a, b));
+            }
         }
     }
 
