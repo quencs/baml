@@ -36,25 +36,25 @@ client<llm> GPT4 {
 }
 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_complex_workflow.baml:2
+//   -->  headers/mdx_headers_complex_workflow.baml:2
 //    | 
 //  1 | // Complex expression function that calls LLM functions
 //  2 | function ProcessVideo(transcript: string, title: string?) -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_complex_workflow.baml:20
+//   -->  headers/mdx_headers_complex_workflow.baml:20
 //    | 
 // 19 | // LLM helper functions
 // 20 | function GenerateTitle(transcript: string) -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_complex_workflow.baml:25
+//   -->  headers/mdx_headers_complex_workflow.baml:25
 //    | 
 // 24 | 
 // 25 | function SummarizeVideo(transcript: string) -> string {
 //    | 
 // error: Error validating: Type mismatch in if
-//   -->  expr/mdx_headers_complex_workflow.baml:5
+//   -->  headers/mdx_headers_complex_workflow.baml:5
 //    | 
 //  4 |     
 //  5 |     let computed_title = if !title {
@@ -64,3 +64,5 @@ client<llm> GPT4 {
 //  9 |         title
 // 10 |     };
 //    | 
+
+

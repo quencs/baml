@@ -152,62 +152,64 @@ function HeaderOnlyFunction() -> string {
 }
 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:3
+//   -->  headers/mdx_headers_edge_cases.baml:3
 //    | 
 //  2 | 
 //  3 | function UnicodeHeaders() -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:15
+//   -->  headers/mdx_headers_edge_cases.baml:15
 //    | 
 // 14 | 
 // 15 | function HeaderLevels() -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:29
+//   -->  headers/mdx_headers_edge_cases.baml:29
 //    | 
 // 28 | 
 // 29 | function HeadersWithWhitespace() -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:42
+//   -->  headers/mdx_headers_edge_cases.baml:42
 //    | 
 // 41 | 
 // 42 | function HeadersAndComments() -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:57
+//   -->  headers/mdx_headers_edge_cases.baml:57
 //    | 
 // 56 | 
 // 57 | function HeadersInComplexNesting() -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:86
+//   -->  headers/mdx_headers_edge_cases.baml:86
 //    | 
 // 85 | 
 // 86 | function HeadersWithSpecialChars() -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:97
+//   -->  headers/mdx_headers_edge_cases.baml:97
 //    | 
 // 96 | 
 // 97 | function ConsecutiveHeaders() -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:109
+//   -->  headers/mdx_headers_edge_cases.baml:109
 //    | 
 // 108 | 
 // 109 | function HeadersAroundExpressions() -> string {
 //    | 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_edge_cases.baml:143
+//   -->  headers/mdx_headers_edge_cases.baml:143
 //    | 
 // 142 | 
 // 143 | function HeaderOnlyFunction() -> string {
 //    | 
 // error: Unknown variable deep
-//   -->  expr/mdx_headers_edge_cases.baml:72
+//   -->  headers/mdx_headers_edge_cases.baml:72
 //    | 
 // 71 |             ### Back to If Level
 // 72 |             deep
 //    | 
+
+

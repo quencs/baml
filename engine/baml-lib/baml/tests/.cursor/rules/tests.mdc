@@ -1,0 +1,41 @@
+---
+globs: *
+alwaysApply: false
+---
+## How to run
+
+- Run the Mermaid headers tests (concise PASS/FAIL/SKIP output):
+  - `cargo test --test mermaid_headers -p baml-lib -- --nocapture`
+- Update snapshots (write .mmd next to .baml, only should be ran by the user manually):
+  - `UPDATE_EXPECT=1 cargo test --test mermaid_headers -p baml-lib -- --nocapture`
+
+## Test structure
+
+- Fixture directory: `engine/baml-lib/baml/tests/validation_files/headers/`
+- Each fixture has:
+  - `.baml` input
+  - `.mmd` expected output (Mermaid flowchart)
+- The test `tests/mermaid_headers.rs`:
+  - Parses each `.baml` to `Ast`
+  - Renders with `BamlVisDiagramGenerator::generate_headers_flowchart`
+  - Compares to sibling `.mmd` (line-ending-insensitive)
+  - Prints one line per file: `PASS |`, `FAIL |`, `UPDATED |`, or `SKIP(panic/parse/expect) |`
+  - End-of-run summary block with totals
+
+## Authoring fixtures
+
+- Prefer small, focused `.baml` inputs covering one behavior at a time
+- Use descriptive names: `mdx_headers_<case>.baml`
+- If a case is not currently supported, prefix the fixture with `_skip_` or include `invalid` in the name
+- Keep `.mmd` deterministic: avoid cosmetic modes; rely on `BamlVisDiagramGenerator::generate_headers_flowchart`
+- Do not refresh the `.mmd` yourself, leave this to the user to decide
+
+## Debugging
+
+- If a mismatch occurs, the failure line shows the file. The diff is printed inline.
+- You can open Mermaid with any Mermaid viewer; diagrams are standard `flowchart LR`
+
+## Maintenance
+
+- Keep fixtures minimal to reduce churn
+

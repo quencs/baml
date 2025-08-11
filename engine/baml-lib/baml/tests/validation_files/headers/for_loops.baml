@@ -10,6 +10,8 @@ function ForLoopWithHeaders() -> int {
         
         #### Accumulation
         result = result + processed;
+
+        processed
     }
     
     ## Final Result
@@ -17,8 +19,10 @@ function ForLoopWithHeaders() -> int {
 }
 
 // warning: Workflow functions are experimental, and will break in the future.
-//   -->  expr/mdx_headers_for_loops.baml:1
+//   -->  headers/mdx_headers_for_loops.baml:1
 //    | 
 //    | 
 //  1 | function ForLoopWithHeaders() -> int {
 //    | 
+
+

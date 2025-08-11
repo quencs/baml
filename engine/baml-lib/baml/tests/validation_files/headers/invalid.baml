@@ -77,9 +77,11 @@ client<llm> GPT4 {
 }
 
 // error: Error validating: This line is invalid. It does not start with any known Baml schema keyword.
-//   -->  expr/mdx_headers_invalid.baml:4
+//   -->  headers/mdx_headers_invalid.baml:4
 //    | 
 //  3 | // Headers outside function body (should fail)
 //  4 | # Top Level Header
 //  5 | // This should not be allowed
 //    | 
+
+

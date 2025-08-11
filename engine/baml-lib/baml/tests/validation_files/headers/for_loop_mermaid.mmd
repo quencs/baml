@@ -1,0 +1,15 @@
+flowchart LR
+  subgraph sg0["Loop Processing"]
+    direction LR
+  subgraph sg1["Main Loop"]
+    direction LR
+  n2["Item Processing"]
+  class n2 loopContainer;
+  n3["Accumulation"]
+  class n3 loopContainer;
+n2 --> n3
+  class n2 loopContainer;
+  end
+  n4["Final Result"]
+sg1 --> n4
+  end

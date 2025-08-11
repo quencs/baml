@@ -12,3 +12,5 @@ function NestedScopes() -> string {
         "goodbye"
     }
 }
+
+
