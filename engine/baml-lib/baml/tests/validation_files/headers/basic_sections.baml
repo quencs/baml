@@ -1,4 +1,4 @@
-function BasicSections() -> string {
+fn BasicSections() -> string {
     # Main Processing
     let title = "hello";
     

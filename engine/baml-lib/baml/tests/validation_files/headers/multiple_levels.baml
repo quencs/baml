@@ -1,4 +1,4 @@
-function MultipleHeaderLevels() -> string {
+fn MultipleHeaderLevels() -> string {
     # Section One
     let a = "one";
     

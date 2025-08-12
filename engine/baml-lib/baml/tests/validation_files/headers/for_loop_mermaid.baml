@@ -9,7 +9,7 @@ fn ForLoopWithHeaders() -> int {
         let processed = item * 2;
         
         ### Accumulation
-        result = result + processed;
+        result = result + processed
 
         processed
     }

@@ -1,0 +1,13 @@
+flowchart LR
+  subgraph sg0["Basic test"]
+    direction LR
+  subgraph sg1["This is a named statement"]
+    direction LR
+  n2{"This is a named statement"}
+  class n2 decisionNode;
+  n3["Then Statement"]
+    n2 --> n3
+  n4["Else Statement"]
+    n2 --> n4
+  end
+  end

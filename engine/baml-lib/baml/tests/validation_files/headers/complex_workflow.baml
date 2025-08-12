@@ -1,5 +1,5 @@
 // Complex expression function that calls LLM functions
-function ProcessVideo(transcript: string, title: string?) -> string {
+fn ProcessVideo(transcript: string, title: string?) -> string {
     # Main Processing Pipeline
     
     let computed_title = if !title {

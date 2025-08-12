@@ -1,4 +1,4 @@
-function ForLoopWithHeaders() -> int {
+fn ForLoopWithHeaders() -> int {
     # Loop Processing
     let items = [1, 2, 3, 4, 5];
     let result = 0;
@@ -9,7 +9,7 @@ function ForLoopWithHeaders() -> int {
         let processed = item * 2;
         
         #### Accumulation
-        result = result + processed;
+        result = result + processed
 
         processed
     }

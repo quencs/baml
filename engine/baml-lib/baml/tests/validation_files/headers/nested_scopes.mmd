@@ -1,0 +1,16 @@
+flowchart LR
+  subgraph sg0["NestedScopes"]
+    direction LR
+  subgraph sg1["Top Level"]
+    direction LR
+  subgraph sg2["First Section"]
+    direction LR
+  n3{"First Section"}
+  class n3 decisionNode;
+  n4["Inside If Block"]
+    n3 --> n4
+  n5["Inside Else Block"]
+    n3 --> n5
+  end
+  end
+  end

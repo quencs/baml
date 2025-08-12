@@ -1,0 +1,17 @@
+flowchart LR
+  subgraph sg0["ForLoopWithHeaders"]
+    direction LR
+  subgraph sg1["Loop Processing"]
+    direction LR
+  subgraph sg2["Main Loop"]
+    direction LR
+  subgraph sg3["Item Processing"]
+    direction LR
+  n4["Accumulation"]
+  class n4 loopContainer;
+  end
+  end
+  n5["Final Result"]
+    sg2 --> n5
+  end
+  end

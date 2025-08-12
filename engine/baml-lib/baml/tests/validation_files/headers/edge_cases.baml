@@ -1,6 +1,6 @@
 // Edge cases for MDX headers
 
-function UnicodeHeaders() -> string {
+fn UnicodeHeaders() -> string {
     # 你好世界
     // Unicode header test
     
@@ -12,7 +12,7 @@ function UnicodeHeaders() -> string {
     "test"
 }
 
-function HeaderLevels() -> string {
+fn HeaderLevels() -> string {
     # Level 1
     ## Level 2
     ### Level 3
@@ -26,7 +26,7 @@ function HeaderLevels() -> string {
     "deep nesting"
 }
 
-function HeadersWithWhitespace() -> string {
+fn HeadersWithWhitespace() -> string {
     #    Extra Spaces Before Title    
     ##  	Mixed Tabs And Spaces	  
     ###			All Tabs			
@@ -39,7 +39,7 @@ function HeadersWithWhitespace() -> string {
     x
 }
 
-function HeadersAndComments() -> string {
+fn HeadersAndComments() -> string {
     # Header Before Comment
     // This is a regular comment
     
@@ -54,7 +54,7 @@ function HeadersAndComments() -> string {
     x
 }
 
-function HeadersInComplexNesting() -> string {
+fn HeadersInComplexNesting() -> string {
     # Main Function
     
     let result = {
@@ -83,7 +83,7 @@ function HeadersInComplexNesting() -> string {
     result
 }
 
-function HeadersWithSpecialChars() -> string {
+fn HeadersWithSpecialChars() -> string {
     # Header-With-Dashes
     ## Header_With_Underscores
     ### Header.With.Dots
@@ -94,7 +94,7 @@ function HeadersWithSpecialChars() -> string {
     "special chars"
 }
 
-function ConsecutiveHeaders() -> string {
+fn ConsecutiveHeaders() -> string {
     # First Header
     # Second Header
     # Third Header
@@ -106,7 +106,7 @@ function ConsecutiveHeaders() -> string {
     "multiple consecutive headers"
 }
 
-function HeadersAroundExpressions() -> string {
+fn HeadersAroundExpressions() -> string {
     # Before Let
     let x = 5;
     ## After Let
@@ -132,7 +132,7 @@ function HeadersAroundExpressions() -> string {
     x
 }
 
-function VeryLongHeaderTitle() -> string {
+fn VeryLongHeaderTitle() -> string {
     # This Is An Extremely Long Header Title That Goes On And On And On And Contains Many Words To Test How The Parser Handles Very Long Header Titles That Might Span Multiple Lines In Some Editors But Should Still Be Parsed As A Single Header
     
     ## Another Long Title With Special Characters !@#$%^&*()_+-=[]{}|;':",./<>? And Numbers 1234567890
@@ -140,7 +140,7 @@ function VeryLongHeaderTitle() -> string {
     "long headers"
 }
 
-function HeaderOnlyFunction() -> string {
+fn HeaderOnlyFunction() -> string {
     # Just Headers
     ## No Code
     ### Only Documentation

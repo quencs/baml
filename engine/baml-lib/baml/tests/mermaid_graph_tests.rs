@@ -17,13 +17,12 @@ fn headers_mermaid_snapshots() {
         panic!("fixtures dir missing: {}", ROOT);
     }
 
-    let mut ran = 0usize;
-    let mut passed = 0usize;
-    let mut updated = 0usize;
-    let mut skipped_panic = 0usize;
-    let mut skipped_parse = 0usize;
-    let mut missing_expect = 0usize;
-    let mut failed = 0usize;
+    let mut ran: usize = 0;
+    let mut passed: usize = 0;
+    let mut updated: usize = 0;
+    let mut skipped_panic: usize = 0;
+    let mut missing_expect: usize = 0;
+    let mut failed: usize = 0;
     for entry in fs::read_dir(dir).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
@@ -51,42 +50,107 @@ fn headers_mermaid_snapshots() {
             continue;
         };
 
-        let Ok((ast, _diags)) = parse_result else {
-            eprintln!("[mermaid] {:<12} | {}", "SKIP(parse)", rel_name);
-            skipped_parse += 1;
-            continue;
-        };
-
-        let got = BamlVisDiagramGenerator::generate_headers_flowchart(&ast);
-
-        let mut exp_path = path.clone();
-        exp_path.set_extension("mmd");
-        if std::env::var("UPDATE_EXPECT").ok().as_deref() == Some("1") {
-            fs::write(&exp_path, got).unwrap();
-            println!("[mermaid] {:<12} | {}", "UPDATED", rel_name);
-            ran += 1;
-            updated += 1;
-            continue;
-        }
-
-        match fs::read_to_string(&exp_path) {
-            Ok(expected) => {
-                let got_n = normalize(&got);
-                let exp_n = normalize(&expected);
-                if got_n == exp_n {
-                    println!("[mermaid] {:<12} | {}", "PASS", rel_name);
-                    passed += 1;
-                    ran += 1;
+        match parse_result {
+            // Parsing produced an AST; check diagnostics for errors.
+            Ok((ast, diags)) => {
+                if diags.has_errors() {
+                    let got_err = diags.to_pretty_string();
+                    let mut exp_path = path.clone();
+                    exp_path.set_extension("err");
+                    if std::env::var("UPDATE").ok().as_deref() == Some("1") {
+                        fs::write(&exp_path, got_err).unwrap();
+                        println!("[mermaid] {:<12} | {}", "UPDATED(err)", rel_name);
+                        ran += 1;
+                        updated += 1;
+                        continue;
+                    }
+                    match fs::read_to_string(&exp_path) {
+                        Ok(expected) => {
+                            let got_n = normalize(&got_err);
+                            let exp_n = normalize(&expected);
+                            if got_n == exp_n {
+                                println!("[mermaid] {:<12} | {}", "PASS(err)", rel_name);
+                                passed += 1;
+                                ran += 1;
+                            } else {
+                                eprintln!("[mermaid] {:<12} | {}", "FAIL(err)", rel_name);
+                                failed += 1;
+                                assert_eq!(got_n, exp_n, "mismatch in {}", rel_name);
+                            }
+                        }
+                        Err(_) => {
+                            eprintln!("[mermaid] {:<12} | {}", "SKIP(err-expect)", rel_name);
+                            missing_expect += 1;
+                            continue;
+                        }
+                    }
                 } else {
-                    eprintln!("[mermaid] {:<12} | {}", "FAIL", rel_name);
-                    failed += 1;
-                    assert_eq!(got_n, exp_n, "mismatch in {}", rel_name);
+                    // No errors: compare Mermaid graph
+                    let got = BamlVisDiagramGenerator::generate_headers_flowchart(&ast);
+                    let mut exp_path = path.clone();
+                    exp_path.set_extension("mmd");
+                    if std::env::var("UPDATE").ok().as_deref() == Some("1") {
+                        fs::write(&exp_path, got).unwrap();
+                        println!("[mermaid] {:<12} | {}", "UPDATED", rel_name);
+                        ran += 1;
+                        updated += 1;
+                        continue;
+                    }
+                    match fs::read_to_string(&exp_path) {
+                        Ok(expected) => {
+                            let got_n = normalize(&got);
+                            let exp_n = normalize(&expected);
+                            if got_n == exp_n {
+                                println!("[mermaid] {:<12} | {}", "PASS", rel_name);
+                                passed += 1;
+                                ran += 1;
+                            } else {
+                                eprintln!("[mermaid] {:<12} | {}", "FAIL", rel_name);
+                                failed += 1;
+                                assert_eq!(got_n, exp_n, "mismatch in {}", rel_name);
+                            }
+                        }
+                        Err(_) => {
+                            eprintln!("[mermaid] {:<12} | {}", "SKIP(expect)", rel_name);
+                            missing_expect += 1;
+                            continue;
+                        }
+                    }
                 }
             }
-            Err(_) => {
-                eprintln!("[mermaid] {:<12} | {}", "SKIP(expect)", rel_name);
-                missing_expect += 1;
-                continue;
+            // Parsing failed with diagnostics: assert error output
+            Err(diags) => {
+                // Parse failed: assert error output
+                let got_err = diags.to_pretty_string();
+                let mut exp_path = path.clone();
+                exp_path.set_extension("err");
+                if std::env::var("UPDATE").ok().as_deref() == Some("1") {
+                    fs::write(&exp_path, got_err).unwrap();
+                    println!("[mermaid] {:<12} | {}", "UPDATED(err)", rel_name);
+                    ran += 1;
+                    updated += 1;
+                    continue;
+                }
+                match fs::read_to_string(&exp_path) {
+                    Ok(expected) => {
+                        let got_n = normalize(&got_err);
+                        let exp_n = normalize(&expected);
+                        if got_n == exp_n {
+                            println!("[mermaid] {:<12} | {}", "PASS(err)", rel_name);
+                            passed += 1;
+                            ran += 1;
+                        } else {
+                            eprintln!("[mermaid] {:<12} | {}", "FAIL(err)", rel_name);
+                            failed += 1;
+                            assert_eq!(got_n, exp_n, "mismatch in {}", rel_name);
+                        }
+                    }
+                    Err(_) => {
+                        eprintln!("[mermaid] {:<12} | {}", "SKIP(err-expect)", rel_name);
+                        missing_expect += 1;
+                        continue;
+                    }
+                }
             }
         }
     }
@@ -98,13 +162,35 @@ fn headers_mermaid_snapshots() {
     println!("  updated: {}", updated);
     println!("  skip:");
     println!("    panic:  {}", skipped_panic);
-    println!("    parse:  {}", skipped_parse);
     println!("    expect: {}", missing_expect);
     println!("  fail:    {}", failed);
 }
 
 fn normalize(s: &str) -> String {
-    s.replace("\r\n", "\n").trim().to_string()
+    strip_ansi(s).replace("\r\n", "\n").trim().to_string()
+}
+
+// Simple ANSI escape stripper to keep error snapshots stable across environments.
+fn strip_ansi(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' {
+            if let Some('[') = chars.peek().copied() {
+                // Consume '['
+                chars.next();
+                // Consume until we hit a letter (commonly 'm', 'K', 'G', etc.)
+                while let Some(ch) = chars.next() {
+                    if ch.is_alphabetic() {
+                        break;
+                    }
+                }
+                continue;
+            }
+        }
+        out.push(c);
+    }
+    out
 }
 
 // verbose mode removed for simplicity; panics print naturally and we tag the file in output

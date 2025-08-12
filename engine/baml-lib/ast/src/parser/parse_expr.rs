@@ -169,6 +169,24 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
         items.push(item);
     }
 
+    // Debug: print item kinds in this block to help diagnose header/stmt ordering
+    #[allow(clippy::print_stdout)]
+    {
+        let kinds: Vec<&'static str> = items
+            .iter()
+            .map(|i| match i.as_rule() {
+                Rule::mdx_header => "mdx_header",
+                Rule::stmt => "stmt",
+                Rule::expression => "expression",
+                Rule::comment_block => "comment_block",
+                Rule::empty_lines => "empty_lines",
+                Rule::BLOCK_LEVEL_CATCH_ALL => "block_catch_all",
+                _ => "other",
+            })
+            .collect();
+        println!("PARSER: expr_block items = {:?}", kinds);
+    }
+
     // Track headers with their hierarchy
     let mut all_headers_in_block: Vec<std::sync::Arc<Header>> = Vec::new();
 
@@ -266,11 +284,22 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
         }
     }
 
-    expr.map(|e| ExpressionBlock {
+    let result = expr.map(|e| ExpressionBlock {
         stmts,
         expr: Box::new(e),
         expr_headers: headers_since_last_stmt,
-    })
+    });
+
+    #[allow(clippy::print_stdout)]
+    if let Some(ref blk) = result {
+        println!(
+            "PARSER: expr_block constructed with {} stmts and {} expr_headers",
+            blk.stmts.len(),
+            blk.expr_headers.len()
+        );
+    }
+
+    result
 }
 
 /// Parse a single header from an MDX header token

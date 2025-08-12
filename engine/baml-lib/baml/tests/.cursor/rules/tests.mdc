@@ -1,13 +1,16 @@
 ---
-globs: *
-alwaysApply: false
+alwaysApply: true
 ---
 ## How to run
 
 - Run the Mermaid headers tests (concise PASS/FAIL/SKIP output):
   - `cargo test --test mermaid_headers -p baml-lib -- --nocapture`
-- Update snapshots (write .mmd next to .baml, only should be ran by the user manually):
+- Update snapshots (write .mmd next to .baml):
   - `UPDATE_EXPECT=1 cargo test --test mermaid_headers -p baml-lib -- --nocapture`
+- Create a full mermaid ast + output debug ast of baml file:
+  - `cargo run --example mermaid_debug_example baml/tests/validation_files/headers/complex_workflow.baml`
+- Create a full mermaid ast with human readable formatting:
+  - `cargo run --example mermaid_debug_example -- --fancy baml/tests/validation_files/headers/complex_workflow.baml`
 
 ## Test structure
 
@@ -28,7 +31,6 @@ alwaysApply: false
 - Use descriptive names: `mdx_headers_<case>.baml`
 - If a case is not currently supported, prefix the fixture with `_skip_` or include `invalid` in the name
 - Keep `.mmd` deterministic: avoid cosmetic modes; rely on `BamlVisDiagramGenerator::generate_headers_flowchart`
-- Do not refresh the `.mmd` yourself, leave this to the user to decide
 
 ## Debugging
 

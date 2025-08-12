@@ -1,0 +1,24 @@
+flowchart LR
+  subgraph sg0["ProcessVideo"]
+    direction LR
+  subgraph sg1["Main Processing Pipeline"]
+    direction LR
+  n2{"Main Processing Pipeline"}
+  class n2 decisionNode;
+  n3["Generate Title"]
+    n2 --> n3
+    n4["GenerateTitle"]
+    class n4 callNode;
+    n4 --> n3
+  n5["Generate Summary"]
+  n6["Create Final Output"]
+    n3 --> n5
+    n5 --> n6
+    n7["SummarizeVideo"]
+    class n7 callNode;
+    n7 --> n5
+  end
+  end
+  n8["GenerateTitle"]
+  n9["SummarizeVideo"]
+  n10["client 1"]

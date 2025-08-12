@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, BTreeSet as _, HashMap, HashSet};
 
 use super::{
-    header_collector::ScopeKind, Ast, HeaderCollector, HeaderIndex, RenderableHeader, ScopeId,
-    WithSpan,
+    header_collector::{HeaderLabelKind, ScopeKind},
+    Ast, HeaderCollector, HeaderIndex, RenderableHeader, ScopeId, WithSpan,
 };
 
 /// A Mermaid flowchart (LR) generator focused on headers and control-flow-like structure.
@@ -29,6 +29,8 @@ pub struct BamlVisDiagramGenerator {
     emitted_edges: BTreeSet<(String, String)>,
     // For branching nodes (e.g., if), map the node rep id -> list of branch terminal rep ids
     branch_endpoints: HashMap<String, Vec<String>>,
+    // Cache for helper call nodes to avoid duplicates. Keyed by (container_id, callee_name)
+    call_node_ids: HashMap<(String, String), String>,
 }
 
 impl BamlVisDiagramGenerator {
@@ -42,6 +44,7 @@ impl BamlVisDiagramGenerator {
             emitted_subgraphs: HashSet::new(),
             emitted_edges: BTreeSet::new(),
             branch_endpoints: HashMap::new(),
+            call_node_ids: HashMap::new(),
         }
     }
 
@@ -68,7 +71,11 @@ impl BamlVisDiagramGenerator {
                 "classDef decisionNode fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000"
                     .to_string(),
             );
-            styled.push(String::new());
+            styled.push("".to_string());
+            styled.push(
+                "classDef callNode fill:#fffde7,stroke:#f9a825,stroke-width:2px,color:#000"
+                    .to_string(),
+            );
             // Insert after the first line (the 'flowchart LR' declaration)
             if let Some(pos) = out.find('\n') {
                 let (first, rest) = out.split_at(pos + 1);
@@ -243,68 +250,182 @@ impl BamlVisDiagramGenerator {
             .cloned()
             .unwrap_or_default();
         let has_nested_children = !nested_children.is_empty();
-        let is_branching = nested_children.len() > 1;
+        let is_if_label = header.label_kind == HeaderLabelKind::If;
+        let is_branching = is_if_label && nested_children.len() >= 1;
 
         if !has_md_children && !has_nested_children {
-            return self.ensure_node_styled(index, header);
+            // Simple leaf node: container context (if any) will handle call rendering
+            return if is_if_label {
+                self.ensure_decision_node(index, header)
+            } else {
+                self.ensure_node_styled(index, header)
+            };
         }
 
-        // Special case: branching header (e.g., if statement). Render as a node that fans out
+        // Special case: branching header (e.g., if statement). Render as a container
+        // subgraph that contains a decision node, the branch scopes, and any markdown
+        // children following the branch. Branch endpoints are either connected to the
+        // first markdown child (if present) or carried outward to connect to the next
+        // sibling in the parent sequence.
         if is_branching {
-            let parent_node_id = self.ensure_decision_node(index, header);
+            // Prepare a subgraph to represent the branching header as a container
+            self.ensure_subgraph(header);
+            let subgraph_id = self
+                .header_subgraph_ids
+                .get(header.id.as_str())
+                .cloned()
+                .expect("subgraph id must exist");
 
-            let mut branch_last_ids: Vec<String> = Vec::new();
-            for child_id in nested_children {
-                if let Some(child_root) = by_id.get(child_id) {
-                    // Render the child branch scope
-                    let child_scope = child_root.scope;
-                    self.render_scope_sequence(
-                        index,
-                        child_scope,
-                        by_id,
-                        container_to_children,
-                        markdown_children,
-                        has_markdown_parent,
-                    );
-                    // Determine representative start id for this branch
-                    let start_rep_id = if container_to_children.contains_key(child_root.id.as_str())
-                        || markdown_children
-                            .get(child_root.id.as_str())
-                            .map(|v| !v.is_empty())
-                            .unwrap_or(false)
-                    {
-                        self.ensure_subgraph(child_root)
-                    } else {
-                        self.ensure_node_styled(index, child_root)
-                    };
-                    // Connect parent to branch start
-                    self.connect_sequence(&vec![parent_node_id.clone(), start_rep_id], 0);
+            let should_render_subgraph = self.emitted_subgraphs.insert(subgraph_id.clone());
+            if should_render_subgraph {
+                // Open container
+                self.content.push(format!(
+                    "  subgraph {}[\"{}\"]",
+                    subgraph_id,
+                    escape_label(&header.title)
+                ));
+                self.content.push("    direction LR".to_string());
 
-                    // Compute last representative in this branch scope
-                    let scope_headers = index.headers_in_scope(child_scope);
-                    if let Some(last_hdr) = scope_headers.last() {
-                        let end_rep_id = if container_to_children.contains_key(last_hdr.id.as_str())
+                // Decision node representing the branching header
+                let decision_id = self.ensure_decision_node(index, header);
+                // Render calls attached to this header (if any) within the container
+                self.render_calls_for_header(index, header, Some(&subgraph_id), &decision_id, 4);
+
+                // Render branch child scopes and connect from decision node to branch starts
+                let mut branch_last_ids: Vec<String> = Vec::new();
+                for child_id in nested_children {
+                    if let Some(child_root) = by_id.get(child_id) {
+                        let child_scope = child_root.scope;
+                        self.render_scope_sequence(
+                            index,
+                            child_scope,
+                            by_id,
+                            container_to_children,
+                            markdown_children,
+                            has_markdown_parent,
+                        );
+                        // Determine representative start id for this branch
+                        let start_rep_id = if container_to_children
+                            .contains_key(child_root.id.as_str())
                             || markdown_children
-                                .get(last_hdr.id.as_str())
+                                .get(child_root.id.as_str())
                                 .map(|v| !v.is_empty())
                                 .unwrap_or(false)
                         {
-                            self.ensure_subgraph(last_hdr)
+                            self.ensure_subgraph(child_root)
                         } else {
-                            self.ensure_node_styled(index, last_hdr)
+                            self.ensure_node_styled(index, child_root)
                         };
-                        branch_last_ids.push(end_rep_id);
+                        // Connect decision node -> branch start
+                        self.connect_sequence(&vec![decision_id.clone(), start_rep_id], 4);
+
+                        // Render calls for the branch root header inside this container
+                        let child_rep_for_calls = if container_to_children
+                            .contains_key(child_root.id.as_str())
+                            || markdown_children
+                                .get(child_root.id.as_str())
+                                .map(|v| !v.is_empty())
+                                .unwrap_or(false)
+                        {
+                            self.ensure_subgraph(child_root)
+                        } else {
+                            self.ensure_node_styled(index, child_root)
+                        };
+                        self.render_calls_for_header(
+                            index,
+                            child_root,
+                            Some(&subgraph_id),
+                            &child_rep_for_calls,
+                            4,
+                        );
+
+                        // Compute last representative id in this branch scope
+                        let scope_headers = index.headers_in_scope(child_scope);
+                        if let Some(last_hdr) = scope_headers.last() {
+                            let end_rep_id = if container_to_children
+                                .contains_key(last_hdr.id.as_str())
+                                || markdown_children
+                                    .get(last_hdr.id.as_str())
+                                    .map(|v| !v.is_empty())
+                                    .unwrap_or(false)
+                            {
+                                self.ensure_subgraph(last_hdr)
+                            } else {
+                                self.ensure_node_styled(index, last_hdr)
+                            };
+                            branch_last_ids.push(end_rep_id);
+                        }
                     }
                 }
+
+                // Now render markdown children for this header and connect them linearly
+                // Track both rep ids and headers to avoid re-emitting style when rendering call nodes
+                let mut md_rep_and_headers: Vec<(String, String, &RenderableHeader)> = Vec::new();
+                if let Some(md_children) = markdown_children.get(header.id.as_str()) {
+                    for ch in md_children.iter() {
+                        let rep_id = self.render_header_with_hierarchy(
+                            index,
+                            ch,
+                            by_id,
+                            container_to_children,
+                            markdown_children,
+                            has_markdown_parent,
+                        );
+                        let pos_key = format!("{}:{:010}", ch.span.file.path(), ch.span.start);
+                        md_rep_and_headers.push((pos_key, rep_id, *ch));
+                    }
+                }
+                md_rep_and_headers.sort_by(|a, b| a.0.cmp(&b.0));
+                let md_ids_only: Vec<String> = md_rep_and_headers
+                    .iter()
+                    .map(|(_, id, _)| id.clone())
+                    .collect();
+
+                if !md_ids_only.is_empty() {
+                    // Connect branch endpoints to the first markdown child, or the decision to it if no branches
+                    let first_md = md_ids_only[0].clone();
+                    if !branch_last_ids.is_empty() {
+                        for end_id in branch_last_ids.iter().cloned() {
+                            self.connect_sequence(&vec![end_id, first_md.clone()], 4);
+                        }
+                    } else {
+                        self.connect_sequence(&vec![decision_id.clone(), first_md.clone()], 4);
+                    }
+                    // Connect markdown children linearly
+                    if md_ids_only.len() >= 2 {
+                        for i in 0..md_ids_only.len() - 1 {
+                            let cur = &md_ids_only[i];
+                            let next = &md_ids_only[i + 1];
+                            if let Some(branch_ends) = self.branch_endpoints.get(cur).cloned() {
+                                for end_id in branch_ends {
+                                    self.connect_sequence(&vec![end_id.clone(), next.clone()], 4);
+                                }
+                            } else {
+                                self.connect_sequence(&vec![cur.clone(), next.clone()], 4);
+                            }
+                        }
+                    }
+                } else {
+                    // No markdown children; carry branch endpoints outward via the container rep id
+                    if !branch_last_ids.is_empty() {
+                        self.branch_endpoints
+                            .insert(subgraph_id.clone(), branch_last_ids);
+                    }
+                }
+
+                // Render call targets for markdown children using their existing rep ids
+                for (_pos, rep_id, ch) in md_rep_and_headers.iter() {
+                    self.render_calls_for_header(index, ch, Some(&subgraph_id), rep_id, 4);
+                }
+
+                // Close container
+                self.content.push("  end".to_string());
             }
-            if !branch_last_ids.is_empty() {
-                self.branch_endpoints
-                    .insert(parent_node_id.clone(), branch_last_ids);
-            }
-            return parent_node_id;
+
+            return subgraph_id;
         }
 
-        // Ensure subgraph id exists
+        // Ensure subgraph id exists for non-branching containers (markdown hierarchy or single nested child)
         self.ensure_subgraph(header);
         let subgraph_id = self
             .header_subgraph_ids
@@ -324,7 +445,7 @@ impl BamlVisDiagramGenerator {
             self.content.push("    direction LR".to_string());
 
             // 1) Render markdown children and connect them linearly to reflect markdown hierarchy
-            let mut md_rep_ids: Vec<(String, String)> = Vec::new();
+            let mut md_rep_and_headers: Vec<(String, String, &RenderableHeader)> = Vec::new();
             if let Some(md_children) = markdown_children.get(header.id.as_str()) {
                 for ch in md_children.iter() {
                     let rep_id = self.render_header_with_hierarchy(
@@ -336,11 +457,14 @@ impl BamlVisDiagramGenerator {
                         has_markdown_parent,
                     );
                     let pos_key = format!("{}:{:010}", ch.span.file.path(), ch.span.start);
-                    md_rep_ids.push((pos_key, rep_id));
+                    md_rep_and_headers.push((pos_key, rep_id, *ch));
                 }
             }
-            md_rep_ids.sort_by(|a, b| a.0.cmp(&b.0));
-            let md_ids_only: Vec<String> = md_rep_ids.into_iter().map(|(_, id)| id).collect();
+            md_rep_and_headers.sort_by(|a, b| a.0.cmp(&b.0));
+            let md_ids_only: Vec<String> = md_rep_and_headers
+                .iter()
+                .map(|(_, id, _)| id.clone())
+                .collect();
             // Connect markdown children linearly, but if a child is a branching node,
             // connect each branch endpoint to the next markdown sibling
             if md_ids_only.len() >= 2 {
@@ -383,11 +507,36 @@ impl BamlVisDiagramGenerator {
                             .map(|v| !v.is_empty())
                             .unwrap_or(false)
                     {
-                        let _ = self.ensure_subgraph(child_root);
+                        let rep_id = self.ensure_subgraph(child_root);
+                        // Render call targets for nested child headers inside this container
+                        self.render_calls_for_header(
+                            index,
+                            child_root,
+                            Some(&subgraph_id),
+                            &rep_id,
+                            4,
+                        );
                     } else {
-                        let _ = self.ensure_node_styled(index, child_root);
+                        let rep_id = self.ensure_node_styled(index, child_root);
+                        // Render call targets for nested child headers inside this container
+                        self.render_calls_for_header(
+                            index,
+                            child_root,
+                            Some(&subgraph_id),
+                            &rep_id,
+                            4,
+                        );
                     }
                 }
+            }
+
+            // Render any calls associated with this header within the container
+            let container_rep_id = self.ensure_subgraph(header);
+            self.render_calls_for_header(index, header, Some(&subgraph_id), &container_rep_id, 4);
+
+            // Render calls for markdown children using their existing rep ids
+            for (_pos, rep_id, ch) in md_rep_and_headers.iter() {
+                self.render_calls_for_header(index, ch, Some(&subgraph_id), rep_id, 4);
             }
 
             // Close subgraph
@@ -475,4 +624,60 @@ impl BamlVisDiagramGenerator {
 #[inline]
 fn escape_label(s: &str) -> String {
     s.replace('"', "&quot;")
+}
+
+impl BamlVisDiagramGenerator {
+    /// Render helper call nodes for a header and connect from the header representative id.
+    /// If `container_subgraph_id` is provided, nodes are deduped within that container; otherwise, globally.
+    fn render_calls_for_header(
+        &mut self,
+        index: &HeaderIndex,
+        header: &RenderableHeader,
+        container_subgraph_id: Option<&str>,
+        header_rep_id: &str,
+        indent_spaces: usize,
+    ) {
+        if let Some(callees) = index.header_calls.get(&header.id) {
+            for callee in callees {
+                let call_node_id = if let Some(container_id) = container_subgraph_id {
+                    let key = (container_id.to_string(), callee.clone());
+                    if let Some(id) = self.call_node_ids.get(&key) {
+                        id.clone()
+                    } else {
+                        let id = self.next_id("n");
+                        self.call_node_ids.insert(key, id.clone());
+                        self.content.push(format!(
+                            "{}{}[\"{}\"]",
+                            " ".repeat(indent_spaces),
+                            id,
+                            escape_label(callee)
+                        ));
+                        self.content.push(format!(
+                            "{}class {} callNode;",
+                            " ".repeat(indent_spaces),
+                            id
+                        ));
+                        id
+                    }
+                } else {
+                    let key = (String::new(), callee.clone());
+                    if let Some(id) = self.call_node_ids.get(&key) {
+                        id.clone()
+                    } else {
+                        let id = self.next_id("n");
+                        self.call_node_ids.insert(key, id.clone());
+                        self.content
+                            .push(format!("  {}[\"{}\"]", id, escape_label(callee)));
+                        self.content.push(format!("  class {} callNode;", id));
+                        id
+                    }
+                };
+                // Reverse: function (callee) -> header (caller)
+                self.connect_sequence(
+                    &vec![call_node_id, header_rep_id.to_string()],
+                    indent_spaces,
+                );
+            }
+        }
+    }
 }
