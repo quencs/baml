@@ -241,7 +241,8 @@ expr_fn = { ("fn" ) ~ identifier ~ named_argument_list ~ ARROW? ~ field_type_cha
 // Body of a function (including curly brackets).
 expr_block = { BLOCK_OPEN ~ empty_lines? ~ (mdx_header | stmt | comment_block | empty_lines | expression | BLOCK_LEVEL_CATCH_ALL)* ~ BLOCK_CLOSE }
 
-mdx_header = { WHITESPACE* ~ "#"+ ~ WHITESPACE* ~ unquoted_string_literal? ~ NEWLINE? }
+// Headers can include any characters except a newline; do not use unquoted_string_literal restrictions
+mdx_header = { WHITESPACE* ~ "#"+ ~ WHITESPACE* ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
 
 // Statement.
 // Currently the only statement is a let-binding.

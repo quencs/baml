@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use internal_baml_diagnostics::Span;
 
@@ -6,6 +6,9 @@ use super::{
     Ast, ExprFn, Expression, ExpressionBlock, Field, Header, Stmt, Top, TopId, ValExpId,
     ValueExprBlock, WithName, WithSpan,
 };
+
+/// Alias for header identifiers for improved readability
+type HeaderId = String;
 
 /// A simple numeric identifier for a logical header scope (any block: function, for-loop body, expr block, etc.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -41,9 +44,9 @@ pub struct RenderableHeader {
     pub span: Span,
     pub scope: ScopeId,
     /// Markdown parent within the same scope
-    pub parent_id: Option<String>,
+    pub parent_id: Option<HeaderId>,
     /// Next element in control flow (stubbed)
-    pub next_id: Option<String>,
+    pub next_id: Option<HeaderId>,
     /// What kind of statement this header labels
     pub label_kind: HeaderLabelKind,
 }
@@ -54,15 +57,15 @@ pub struct HeaderIndex {
     pub headers: Vec<RenderableHeader>,
     by_scope: HashMap<ScopeId, Vec<usize>>, // header indexes in source order
     /// Cross-scope/navigational edges between headers (e.g., control-flow nesting)
-    pub nested_edges: Vec<(String, String)>, // (from_id, to_id)
+    pub nested_edges: Vec<(HeaderId, HeaderId)>, // (from_id, to_id)
     /// Root header id per scope (first header encountered in the scope)
-    pub scope_root_header: HashMap<ScopeId, String>,
+    pub scope_root_header: HashMap<ScopeId, HeaderId>,
     /// Kind classification per scope
     pub scope_kind: HashMap<ScopeId, ScopeKind>,
     /// Explicit mapping of container headers (e.g., if-labeled) to their child scope roots
-    pub branch_children: HashMap<String, Vec<String>>, // parent_header_id -> [child_root_header_id]
+    pub branch_children: HashMap<HeaderId, Vec<HeaderId>>, // parent_header_id -> [child_root_header_id]
     /// Mapping of header id -> names of functions called by the expression this header labels
-    pub header_calls: HashMap<String, Vec<String>>, // header_id -> [callee_name]
+    pub header_calls: HashMap<HeaderId, Vec<String>>, // header_id -> [callee_name]
 }
 
 impl HeaderIndex {
@@ -86,33 +89,16 @@ pub struct HeaderCollector {
     scope_stack: Vec<ScopeId>,
     // Raw headers by scope before normalization and parenting
     raw_by_scope: HashMap<ScopeId, Vec<RawHeader>>, // source order
-    // Track last header produced in each scope (by id)
-    last_header_in_scope: HashMap<ScopeId, String>,
-    // When entering a new scope, we record the parent header id from the enclosing scope
-    // so that the first header in the new scope can be connected via a nested edge.
-    pending_parent_for_scope: HashMap<ScopeId, Option<String>>,
     // Accumulated nested edges (from_id, to_id)
-    nested_edges: Vec<(String, String)>,
-    // Root header of a scope (first header encountered in that scope)
-    scope_root_header: HashMap<ScopeId, String>,
-    // Whether we already connected root -> first child within the same scope
-    scope_root_connected: HashMap<ScopeId, bool>,
-    // Track last header that was marked as final expression header within the scope
-    last_final_in_scope: HashMap<ScopeId, String>,
-    // Whether a scope is a top-level (direct child of Top)
-    scope_is_top_level: HashMap<ScopeId, bool>,
+    nested_edges: Vec<(HeaderId, HeaderId)>,
     // Classification per scope
     scope_kind: HashMap<ScopeId, ScopeKind>,
     // Pending classification for the next scope to be pushed
     pending_next_scope_kind: Option<ScopeKind>,
     // Simple counters per type label for auto-generated headers
     auto_counters: HashMap<String, u32>,
-    // Mapping for branches collected during traversal
-    branch_children: HashMap<String, Vec<String>>, // parent -> [child_root]
-    // Parent header (if any) to attach the next new scope's first header to (used for if branches)
-    pending_branch_parent: Option<String>,
     // Mapping during collection: header id -> function names called by the labeled expression
-    header_fn_calls: HashMap<String, Vec<String>>,
+    header_fn_calls: HashMap<HeaderId, Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -131,18 +117,10 @@ impl HeaderCollector {
             scope_counter: 0,
             scope_stack: Vec::new(),
             raw_by_scope: HashMap::new(),
-            last_header_in_scope: HashMap::new(),
-            pending_parent_for_scope: HashMap::new(),
             nested_edges: Vec::new(),
-            scope_root_header: HashMap::new(),
-            scope_root_connected: HashMap::new(),
-            last_final_in_scope: HashMap::new(),
-            scope_is_top_level: HashMap::new(),
             scope_kind: HashMap::new(),
             pending_next_scope_kind: None,
             auto_counters: HashMap::new(),
-            branch_children: HashMap::new(),
-            pending_branch_parent: None,
             header_fn_calls: HashMap::new(),
         };
         c.visit_ast(ast);
@@ -150,16 +128,9 @@ impl HeaderCollector {
     }
 
     fn push_scope(&mut self) -> ScopeId {
-        // Determine potential parent header from the current scope before pushing
-        let parent_header_id = self
-            .current_scope()
-            .and_then(|parent_scope| self.last_header_in_scope.get(&parent_scope).cloned());
-
         self.scope_counter += 1;
         let id = ScopeId(self.scope_counter);
         self.scope_stack.push(id);
-        // Record pending parent for this new scope
-        self.pending_parent_for_scope.insert(id, parent_header_id);
         // Classify this scope when requested
         if let Some(kind) = self.pending_next_scope_kind.take() {
             self.scope_kind.insert(id, kind);
@@ -175,6 +146,25 @@ impl HeaderCollector {
         self.scope_stack.last().copied()
     }
 
+    /// Returns the last header id in the current scope (if any).
+    fn current_parent_header(&self) -> Option<HeaderId> {
+        let scope = self.current_scope()?;
+        self.raw_by_scope
+            .get(&scope)
+            .and_then(|v| v.last().map(|r| r.id.clone()))
+    }
+
+    /// Returns the last header id in the immediate parent scope (if any).
+    fn parent_scope_last_header(&self) -> Option<HeaderId> {
+        if self.scope_stack.len() < 2 {
+            return None;
+        }
+        let parent_scope = self.scope_stack[self.scope_stack.len() - 2];
+        self.raw_by_scope
+            .get(&parent_scope)
+            .and_then(|v| v.last().map(|r| r.id.clone()))
+    }
+
     fn add_header(
         &mut self,
         title: String,
@@ -182,10 +172,10 @@ impl HeaderCollector {
         span: Span,
         is_final_expr: bool,
         label_kind: HeaderLabelKind,
-    ) -> String {
+    ) -> HeaderId {
         if let Some(scope) = self.current_scope() {
             let entry = self.raw_by_scope.entry(scope).or_default();
-            let id = format!(
+            let id: HeaderId = format!(
                 "{}:{}-{}:{}:{}",
                 title,
                 span.file.path(),
@@ -206,45 +196,20 @@ impl HeaderCollector {
                 label_kind,
             });
 
-            // If first header in this scope and we have a pending parent, add nested edge
+            // If first header in this scope and we have a parent header in the outer scope, add nested edge
             if is_first_in_scope {
-                if let Some(Some(parent_id)) = self.pending_parent_for_scope.get(&scope) {
+                if let Some(parent_id) = self.parent_scope_last_header() {
                     // Only connect parent -> child for nested scopes, not for top-level scopes
-                    let is_top = self
-                        .scope_is_top_level
-                        .get(&scope)
-                        .copied()
-                        .unwrap_or(false);
-                    if !is_top {
+                    let is_top_level =
+                        matches!(self.scope_kind.get(&scope), Some(ScopeKind::TopLevel));
+                    if !is_top_level {
                         self.nested_edges.push((parent_id.clone(), id.clone()));
                     }
                 }
-                // Also record explicit branch child mapping when present
-                if let Some(parent) = &self.pending_branch_parent {
-                    self.branch_children
-                        .entry(parent.clone())
-                        .or_default()
-                        .push(id.clone());
-                }
-                // Remember root for same-scope hierarchy
-                self.scope_root_header.insert(scope, id.clone());
-                self.scope_root_connected.insert(scope, false);
-            }
-            // Do not create same-scope edges here; nested_edges is for cross-scope relationships
-
-            // Track last final header in scope
-            if is_final_expr {
-                self.last_final_in_scope.insert(scope, id.clone());
             }
 
-            // Update last header in scope
-            self.last_header_in_scope.insert(scope, id);
             // Return the last inserted header id
-            return self
-                .last_header_in_scope
-                .get(&scope)
-                .cloned()
-                .expect("header id must exist");
+            return self.current_parent_header().expect("header id must exist");
         }
         String::new()
     }
@@ -280,6 +245,53 @@ impl HeaderCollector {
         self.add_header(title, 1, span, false, label_kind);
     }
 
+    /// Add a set of headers (annotations) into the current scope with a fixed
+    /// label kind and final-expression flag. Returns the created header ids in
+    /// source order.
+    fn add_headers_for_annotations(
+        &mut self,
+        headers: &[Arc<Header>],
+        label_kind: HeaderLabelKind,
+        is_final_expr: bool,
+    ) -> Vec<HeaderId> {
+        let mut header_ids: Vec<HeaderId> = Vec::new();
+        for h in headers {
+            let hid = self.add_header(
+                h.title.clone(),
+                h.level,
+                h.span.clone(),
+                is_final_expr,
+                label_kind,
+            );
+            if !hid.is_empty() {
+                header_ids.push(hid);
+            }
+        }
+        header_ids
+    }
+
+    /// Determine how to label headers for a given expression.
+    fn label_kind_for_expr(expr: &Expression) -> HeaderLabelKind {
+        match expr {
+            Expression::If(_, _, _, _) => HeaderLabelKind::If,
+            _ => HeaderLabelKind::Expression,
+        }
+    }
+
+    /// Attribute top-level call names in `expr` to all `header_ids`.
+    fn attribute_calls_to_headers(&mut self, header_ids: &[HeaderId], expr: &Expression) {
+        let top_calls = collect_top_level_calls(expr);
+        if top_calls.is_empty() {
+            return;
+        }
+        for hid in header_ids {
+            self.header_fn_calls
+                .entry(hid.clone())
+                .or_default()
+                .extend(top_calls.clone());
+        }
+    }
+
     fn visit_ast(&mut self, ast: &Ast) {
         for top in &ast.tops {
             self.visit_top(top);
@@ -295,19 +307,13 @@ impl HeaderCollector {
             | Top::RetryPolicy(block) => {
                 // ValueExprBlock is a root scope
                 self.pending_next_scope_kind = Some(ScopeKind::TopLevel);
-                let _scope = self.push_scope();
-                self.scope_is_top_level.insert(_scope, true);
+                let _ = self.push_scope();
                 // Block-level headers label this scope
-                for h in &block.annotations {
-                    // Function-level headers live in this scope
-                    let _ = self.add_header(
-                        h.title.clone(),
-                        h.level,
-                        h.span.clone(),
-                        false,
-                        HeaderLabelKind::Function,
-                    );
-                }
+                let _ = self.add_headers_for_annotations(
+                    &block.annotations,
+                    HeaderLabelKind::Function,
+                    false,
+                );
                 // Default header logic for top-level blocks
                 if block.annotations.is_empty() {
                     let type_label = block.get_type();
@@ -332,17 +338,12 @@ impl HeaderCollector {
             Top::ExprFn(expr_fn) => {
                 // Use the body ExpressionBlock as the scope for expr fn
                 self.pending_next_scope_kind = Some(ScopeKind::TopLevel);
-                let _scope = self.push_scope();
-                self.scope_is_top_level.insert(_scope, true);
-                for h in &expr_fn.annotations {
-                    let _ = self.add_header(
-                        h.title.clone(),
-                        h.level,
-                        h.span.clone(),
-                        false,
-                        HeaderLabelKind::Function,
-                    );
-                }
+                let _ = self.push_scope();
+                let _ = self.add_headers_for_annotations(
+                    &expr_fn.annotations,
+                    HeaderLabelKind::Function,
+                    false,
+                );
                 if expr_fn.annotations.is_empty() {
                     self.ensure_default_header_current_scope(
                         "function",
@@ -375,31 +376,16 @@ impl HeaderCollector {
             }
             Expression::If(_cond, then_expr, else_expr, _span) => {
                 println!("IF expression encountered; preparing THEN and ELSE scopes");
-                // Attach the next new scopes (then/else) to the last header in the current scope
-                let parent_for_branches = self
-                    .current_scope()
-                    .and_then(|s| self.last_header_in_scope.get(&s).cloned());
-
                 self.pending_next_scope_kind = Some(ScopeKind::IfThen);
-                self.pending_branch_parent = parent_for_branches.clone();
-                println!(
-                    "-- entering THEN branch (parent: {:?})",
-                    parent_for_branches
-                );
+                println!("-- entering THEN branch");
                 self.visit_expression(then_expr);
                 println!("-- exited THEN branch");
-                self.pending_branch_parent = None;
 
                 if let Some(else_expr) = else_expr {
                     self.pending_next_scope_kind = Some(ScopeKind::IfElse);
-                    println!(
-                        "-- entering ELSE branch (parent: {:?})",
-                        parent_for_branches
-                    );
-                    self.pending_branch_parent = parent_for_branches;
+                    println!("-- entering ELSE branch");
                     self.visit_expression(else_expr);
                     println!("-- exited ELSE branch");
-                    self.pending_branch_parent = None;
                 }
             }
             Expression::Lambda(_args, body, _) => {
@@ -433,12 +419,12 @@ impl HeaderCollector {
     }
 
     fn visit_expression_block(&mut self, block: &ExpressionBlock) {
-        let _scope = self.push_scope();
+        let scope_id = self.push_scope();
 
         // Visit statements first (preserve source order for MD parenting)
         println!(
             "ENTER BLOCK scope {:?} with {} stmts",
-            _scope,
+            scope_id,
             block.stmts.len()
         );
         for stmt in &block.stmts {
@@ -453,35 +439,11 @@ impl HeaderCollector {
                             .map(|h| h.title.as_str())
                             .collect::<Vec<_>>()
                     );
-                    let mut stmt_header_ids: Vec<String> = Vec::new();
-                    for h in &let_stmt.annotations {
-                        // Determine label kind by the expression bound by this let
-                        let label_kind = match &let_stmt.expr {
-                            Expression::If(_, _, _, _) => HeaderLabelKind::If,
-                            _ => HeaderLabelKind::Expression,
-                        };
-                        // Statement labels live in the current scope
-                        let hid = self.add_header(
-                            h.title.clone(),
-                            h.level,
-                            h.span.clone(),
-                            false,
-                            label_kind,
-                        );
-                        if !hid.is_empty() {
-                            stmt_header_ids.push(hid);
-                        }
-                    }
+                    let label_kind = Self::label_kind_for_expr(&let_stmt.expr);
+                    let stmt_header_ids =
+                        self.add_headers_for_annotations(&let_stmt.annotations, label_kind, false);
                     // Collect top-level calls for the statement expression and attribute to all headers
-                    let top_calls = collect_top_level_calls(&let_stmt.expr);
-                    if !top_calls.is_empty() {
-                        for hid in stmt_header_ids {
-                            self.header_fn_calls
-                                .entry(hid)
-                                .or_default()
-                                .extend(top_calls.clone());
-                        }
-                    }
+                    self.attribute_calls_to_headers(&stmt_header_ids, &let_stmt.expr);
                     self.visit_expression(&let_stmt.expr);
                 }
                 Stmt::ForLoop(for_stmt) => {
@@ -495,15 +457,11 @@ impl HeaderCollector {
                             .collect::<Vec<_>>()
                     );
                     // Record for-loop annotation headers in the current (outer) scope
-                    for h in &for_stmt.annotations {
-                        let _ = self.add_header(
-                            h.title.clone(),
-                            h.level,
-                            h.span.clone(),
-                            false,
-                            HeaderLabelKind::For,
-                        );
-                    }
+                    let _ = self.add_headers_for_annotations(
+                        &for_stmt.annotations,
+                        HeaderLabelKind::For,
+                        false,
+                    );
                     // Iterate expression evaluated in current scope
                     self.visit_expression(&for_stmt.iterator);
                     // Now visit the body in its own scope (no prefixed headers)
@@ -514,38 +472,20 @@ impl HeaderCollector {
         }
 
         // Headers that apply to the final expression belong to this scope and come last
-        let mut expr_header_ids: Vec<String> = Vec::new();
-        for h in &block.expr_headers {
-            let label_kind = match block.expr.as_ref() {
-                Expression::If(_, _, _, _) => HeaderLabelKind::If,
-                _ => HeaderLabelKind::Expression,
-            };
-            let hid = self.add_header(h.title.clone(), h.level, h.span.clone(), true, label_kind);
-            if !hid.is_empty() {
-                expr_header_ids.push(hid);
-            }
-        }
+        let label_kind = Self::label_kind_for_expr(block.expr.as_ref());
+        let expr_header_ids =
+            self.add_headers_for_annotations(&block.expr_headers, label_kind, true);
 
         // Final expr
         self.visit_expression(&block.expr);
 
         // Attribute top-level calls of the final expression to its headers
-        if !expr_header_ids.is_empty() {
-            let top_calls = collect_top_level_calls(&block.expr);
-            if !top_calls.is_empty() {
-                for hid in expr_header_ids {
-                    self.header_fn_calls
-                        .entry(hid)
-                        .or_default()
-                        .extend(top_calls.clone());
-                }
-            }
-        }
+        self.attribute_calls_to_headers(&expr_header_ids, &block.expr);
 
         // Default header fallback for blocks without any headers
         let kind_for_scope = self
             .scope_kind
-            .get(&_scope)
+            .get(&scope_id)
             .copied()
             .unwrap_or(ScopeKind::Generic);
         // Do not inject synthetic headers for if-branches.
@@ -570,8 +510,6 @@ impl HeaderCollector {
 
         self.pop_scope();
     }
-
-    // Helper removed; for-loop annotations are now added to outer scope
 
     fn build_index(self) -> HeaderIndex {
         let mut index = HeaderIndex {
@@ -637,12 +575,38 @@ impl HeaderCollector {
 
         // Carry over nested edges collected during traversal
         index.nested_edges = self.nested_edges;
-        // Expose scope roots
-        index.scope_root_header = self.scope_root_header;
+        // Compute scope roots as the first header per scope
+        for (scope, idxs) in &index.by_scope {
+            if let Some(first_idx) = idxs.first().copied() {
+                let root_id = index.headers[first_idx].id.clone();
+                index.scope_root_header.insert(*scope, root_id);
+            }
+        }
         // Expose scope kinds
         index.scope_kind = self.scope_kind;
-        // Expose explicit branch mapping
-        index.branch_children = self.branch_children;
+        // Compute branch children mapping from nested_edges filtered by child being scope root
+        let id_to_scope: HashMap<String, ScopeId> = index
+            .headers
+            .iter()
+            .map(|h| (h.id.clone(), h.scope))
+            .collect();
+        let mut branch_pairs: Vec<(String, String)> = Vec::new();
+        for (from, to) in &index.nested_edges {
+            if let Some(scope) = id_to_scope.get(to) {
+                if let Some(root_id) = index.scope_root_header.get(scope) {
+                    if root_id == to {
+                        branch_pairs.push((from.clone(), to.clone()));
+                    }
+                }
+            }
+        }
+        for (from, child_root) in branch_pairs {
+            index
+                .branch_children
+                .entry(from)
+                .or_default()
+                .push(child_root);
+        }
         // Expose header -> call mapping
         index.header_calls = self.header_fn_calls;
         index
@@ -806,18 +770,10 @@ impl Default for HeaderCollector {
             scope_counter: 0,
             scope_stack: Vec::new(),
             raw_by_scope: HashMap::new(),
-            last_header_in_scope: HashMap::new(),
-            pending_parent_for_scope: HashMap::new(),
             nested_edges: Vec::new(),
-            scope_root_header: HashMap::new(),
-            scope_root_connected: HashMap::new(),
-            last_final_in_scope: HashMap::new(),
-            scope_is_top_level: HashMap::new(),
             scope_kind: HashMap::new(),
             pending_next_scope_kind: None,
             auto_counters: HashMap::new(),
-            branch_children: HashMap::new(),
-            pending_branch_parent: None,
             header_fn_calls: HashMap::new(),
         }
     }
