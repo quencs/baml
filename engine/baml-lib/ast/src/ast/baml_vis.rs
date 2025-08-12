@@ -6,6 +6,8 @@ use std::collections::{BTreeMap, BTreeSet, BTreeSet as _, HashMap, HashSet};
 /// For example, with `1` (default), containers with 0 or 1 child are flattened.
 /// Top-level scopes are never flattened if they have any children, regardless of this value.
 const MAX_CHILDREN_TO_FLATTEN: usize = 1;
+// Toggle: render function call nodes (e.g., SummarizeVideo, CreatePR) alongside headers.
+const SHOW_CALL_NODES: bool = false;
 
 use super::{
     header_collector::{HeaderLabelKind, ScopeKind},
@@ -71,10 +73,10 @@ impl BamlVisDiagramGenerator {
     pub fn generate_with_styling(ast: &Ast, use_fancy: bool) -> String {
         let out = Self::generate_headers_flowchart(ast);
         if use_fancy {
-            // Prepend a few cosmetic styles supported by Mermaid flowcharts
+            // Prepend styles (Mermaid 10 shapes). Use processes shape for loop containers.
             let mut styled: Vec<String> = Vec::new();
             styled.push(
-                "classDef loopContainer fill:#e0f7fa,stroke:#006064,stroke-width:2px,color:#000"
+                "classDef loopContainer shape:processes,fill:#e0f7fa,stroke:#006064,stroke-width:2px,color:#000"
                     .to_string(),
             );
             styled.push(
@@ -82,10 +84,12 @@ impl BamlVisDiagramGenerator {
                     .to_string(),
             );
             styled.push("".to_string());
-            styled.push(
-                "classDef callNode fill:#fffde7,stroke:#f9a825,stroke-width:2px,color:#000"
-                    .to_string(),
-            );
+            if SHOW_CALL_NODES {
+                styled.push(
+                    "classDef callNode fill:#fffde7,stroke:#f9a825,stroke-width:2px,color:#000"
+                        .to_string(),
+                );
+            }
             // Insert after the first line (the 'flowchart LR' declaration)
             if let Some(pos) = out.find('\n') {
                 let (first, rest) = out.split_at(pos + 1);
@@ -861,9 +865,12 @@ impl BamlVisDiagramGenerator {
         header_rep_id: &str,
         indent_spaces: usize,
     ) {
+        if !SHOW_CALL_NODES {
+            return;
+        }
         if let Some(callees) = index.header_calls.get(&header.id) {
             for callee in callees {
-                let call_node_id = if let Some(container_id) = container_subgraph_id {
+                let call_node_id = if let Some(_container_id) = container_subgraph_id {
                     // Deduplicate per header within a container, not across different headers
                     let key = (format!("hdr:{}", header.id), callee.clone());
                     if let Some(id) = self.call_node_ids.get(&key) {
@@ -877,11 +884,13 @@ impl BamlVisDiagramGenerator {
                             id,
                             escape_label(callee)
                         ));
-                        self.content.push(format!(
-                            "{}class {} callNode;",
-                            " ".repeat(indent_spaces),
-                            id
-                        ));
+                        if SHOW_CALL_NODES {
+                            self.content.push(format!(
+                                "{}class {} callNode;",
+                                " ".repeat(indent_spaces),
+                                id
+                            ));
+                        }
                         id
                     }
                 } else {
@@ -894,7 +903,9 @@ impl BamlVisDiagramGenerator {
                         self.call_node_ids.insert(key, id.clone());
                         self.content
                             .push(format!("  {}[\"{}\"]", id, escape_label(callee)));
-                        self.content.push(format!("  class {} callNode;", id));
+                        if SHOW_CALL_NODES {
+                            self.content.push(format!("  class {} callNode;", id));
+                        }
                         id
                     }
                 };

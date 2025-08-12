@@ -184,7 +184,7 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                 _ => "other",
             })
             .collect();
-        println!("PARSER: expr_block items = {:?}", kinds);
+        // println!("PARSER: expr_block items = {:?}", kinds);
     }
 
     // Track headers with their hierarchy

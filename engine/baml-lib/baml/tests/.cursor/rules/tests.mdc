@@ -4,9 +4,9 @@ alwaysApply: true
 ## How to run
 
 - Run the Mermaid headers tests (concise PASS/FAIL/SKIP output):
-  - `cargo test --test mermaid_headers -p baml-lib -- --nocapture`
+  - `cargo test --test mermaid_graph_tests -p baml-lib -- --nocapture`
 - Update snapshots (write .mmd next to .baml):
-  - `UPDATE_EXPECT=1 cargo test --test mermaid_headers -p baml-lib -- --nocapture`
+  - `UPDATE=1 cargo test --test mermaid_graph_tests -p baml-lib -- --nocapture`
 - Create a full mermaid ast + output debug ast of baml file:
   - `cargo run --example mermaid_debug_example baml/tests/validation_files/headers/complex_workflow.baml`
 - Create a full mermaid ast with human readable formatting:
@@ -18,10 +18,10 @@ alwaysApply: true
 - Each fixture has:
   - `.baml` input
   - `.mmd` expected output (Mermaid flowchart)
-- The test `tests/mermaid_headers.rs`:
+- The test `tests/mermaid_graph_tests.rs`:
   - Parses each `.baml` to `Ast`
   - Renders with `BamlVisDiagramGenerator::generate_headers_flowchart`
-  - Compares to sibling `.mmd` (line-ending-insensitive)
+  - Compares to sibling `.mmd` (line-ending-insensitive, outputs real newlines in diffs)
   - Prints one line per file: `PASS |`, `FAIL |`, `UPDATED |`, or `SKIP(panic/parse/expect) |`
   - End-of-run summary block with totals
 

@@ -107,7 +107,6 @@ struct RawHeader {
     title: String,
     original_level: u8,
     span: Span,
-    // origin is tracked during traversal only; we don't need it after building
     label_kind: HeaderLabelKind,
 }
 
@@ -283,13 +282,24 @@ impl HeaderCollector {
         is_final_expr: bool,
     ) -> Vec<HeaderId> {
         let mut header_ids: Vec<HeaderId> = Vec::new();
+        if headers.is_empty() {
+            return header_ids;
+        }
+        // Only the deepest-level header inherits the expression's label kind.
+        // Outer headers act as structural containers and keep a neutral label.
+        let deepest_level = headers.iter().map(|h| h.level).max().unwrap_or(1);
         for h in headers {
+            let effective_label = if h.level == deepest_level {
+                label_kind
+            } else {
+                HeaderLabelKind::None
+            };
             let hid = self.add_header(
                 h.title.clone(),
                 h.level,
                 h.span.clone(),
                 is_final_expr,
-                label_kind,
+                effective_label,
             );
             if !hid.is_empty() {
                 header_ids.push(hid);
@@ -396,16 +406,32 @@ impl HeaderCollector {
     fn visit_expression(&mut self, expr: &Expression) {
         match expr {
             Expression::ExprBlock(block, _span) => {
-                // Generic expression block scope
                 if self.pending_next_scope_kind.is_none() {
                     self.pending_next_scope_kind = Some(ScopeKind::Generic);
                 }
-                // Ensure parent default header based on pending scope kind (Generic)
+                // Ensure parent default header based on pending scope kind
                 let parent_span = block.expr.span().clone();
                 self.ensure_parent_default_header_for_next_scope(parent_span);
                 self.visit_expression_block(block);
             }
-            Expression::If(_cond, then_expr, else_expr, _span) => {
+            Expression::If(_cond, then_expr, else_expr, span) => {
+                // If this scope has no headers yet, synthesize a branching container header
+                // so THEN/ELSE child scopes render inside a decision within this scope.
+                if let Some(scope) = self.current_scope() {
+                    let has_any = self
+                        .raw_by_scope
+                        .get(&scope)
+                        .map(|v| !v.is_empty())
+                        .unwrap_or(false);
+                    if !has_any {
+                        self.ensure_default_header_current_scope(
+                            "if",
+                            span.clone(),
+                            None,
+                            HeaderLabelKind::If,
+                        );
+                    }
+                }
                 println!("IF expression encountered; preparing THEN and ELSE scopes");
                 self.pending_next_scope_kind = Some(ScopeKind::IfThen);
                 println!("-- entering THEN branch");
@@ -420,9 +446,7 @@ impl HeaderCollector {
                 }
             }
             Expression::Lambda(_args, body, _) => {
-                // Treat lambda body like a generic scope, but do not auto-inject headers
                 self.pending_next_scope_kind = Some(ScopeKind::Generic);
-                // Lambda's body span isn't tracked directly; skip span assignment here
                 self.visit_expression_block(body);
             }
             Expression::Array(exprs, _) => {
@@ -497,21 +521,28 @@ impl HeaderCollector {
                     self.visit_expression(&for_stmt.iterator);
                     // Ensure a parent container header exists for the upcoming loop body.
                     // If there are no explicit loop annotations, insert a synthetic
-                    // top-level (level 1) "loop N" header to act as the loop container.
+                    // top-level (level 1) "loop N" header to act as the loop container,
+                    // except when the loop body is a simple if-branch container; in that case,
+                    // avoid creating an extra synthetic header to prevent redundant containers.
                     if for_stmt.annotations.is_empty() {
-                        let counter = self
-                            .auto_counters
-                            .entry("loop".to_string())
-                            .and_modify(|c| *c += 1)
-                            .or_insert(1);
-                        let title = format!("loop {}", *counter);
-                        let _ = self.add_header(
-                            title,
-                            1, // ensure sibling at top level within the scope
-                            for_stmt.span.clone(),
-                            false,
-                            HeaderLabelKind::For,
-                        );
+                        let body_expr = &for_stmt.body.expr;
+                        let body_is_simple_if_container =
+                            matches!(body_expr.as_ref(), Expression::If(_, _, _, _));
+                        if !body_is_simple_if_container {
+                            let counter = self
+                                .auto_counters
+                                .entry("loop".to_string())
+                                .and_modify(|c| *c += 1)
+                                .or_insert(1);
+                            let title = format!("loop {}", *counter);
+                            let _ = self.add_header(
+                                title,
+                                1, // ensure sibling at top level within the scope
+                                for_stmt.span.clone(),
+                                false,
+                                HeaderLabelKind::For,
+                            );
+                        }
                     }
                     // Mark next scope as loop body and visit it
                     self.pending_next_scope_kind = Some(ScopeKind::ForBody);
@@ -542,20 +573,23 @@ impl HeaderCollector {
         // These create confusing extra nodes like "if statement 1" when an ELSE branch
         // has no explicit headers. We only auto-inject for generic/loop scopes.
         if !matches!(kind_for_scope, ScopeKind::IfThen | ScopeKind::IfElse) {
-            let (type_label, default_label_kind) = match kind_for_scope {
-                ScopeKind::ForBody => ("loop", HeaderLabelKind::For),
-                ScopeKind::TopLevel => ("block", HeaderLabelKind::None),
-                ScopeKind::Generic => ("block", HeaderLabelKind::None),
-                // The if branches are handled above with the guard.
+            let maybe_defaults: Option<(&str, HeaderLabelKind)> = match kind_for_scope {
+                // Do not inject synthetic headers for loop bodies; the loop container is represented
+                // by the outer header annotations (e.g., "Content Loop").
+                ScopeKind::ForBody => None,
+                ScopeKind::TopLevel => Some(("block", HeaderLabelKind::None)),
+                ScopeKind::Generic => Some(("block", HeaderLabelKind::None)),
                 ScopeKind::IfThen | ScopeKind::IfElse => unreachable!(),
             };
-            let span_for_default = block.expr.span().clone();
-            self.ensure_default_header_current_scope(
-                type_label,
-                span_for_default,
-                None,
-                default_label_kind,
-            );
+            if let Some((type_label, default_label_kind)) = maybe_defaults {
+                let span_for_default = block.expr.span().clone();
+                self.ensure_default_header_current_scope(
+                    type_label,
+                    span_for_default,
+                    None,
+                    default_label_kind,
+                );
+            }
         }
 
         self.pop_scope();

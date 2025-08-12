@@ -1,0 +1,79 @@
+---
+config:
+  layout: elk
+---
+flowchart TB
+ subgraph sg1["Fetch Resources"]
+    direction LR
+        n2["Queue Processing"]
+        n3["Validate Environment"]
+        n4["Process Video"]
+        n5["Load Video"]
+  end
+ subgraph sg7["Summarization"]
+    direction LR
+        n9["Generate Summary"]
+        n10["Save Summary"]
+        n8{"Summarization"}
+        n11["Skip Summarization"]
+  end
+ subgraph sg12["Luma Event Cache"]
+    direction LR
+        n14["Return Cached Event"]
+        n13{"Luma Event Cache"}
+        n15["Fetch Next Event"]
+        n16["Save Event To Cache"]
+  end
+ subgraph sg6["Generate Content"]
+    direction LR
+        sg7
+        sg12
+        n17["Generate Drafts"]
+  end
+ subgraph sg19["if 1"]
+    direction LR
+        n21["Refine Email"]
+        n20{"if 1"}
+        n22["Refine Social"]
+  end
+ subgraph sg23["Prepare Pull Request"]
+    direction LR
+        n25["Create GitHub PR"]
+        n24{"Prepare Pull Request"}
+        n26["Missing Summary"]
+  end
+ subgraph sg0["AI Content Pipeline"]
+    direction LR
+        sg1
+        sg6
+        n18["Refine Content"]
+        sg19
+        sg23
+        n27["Complete"]
+  end
+    n2 --> n3
+    n3 --> n4
+    n4 --> n5
+    n9 --> n10
+    n8 --> n9 & n11
+    n13 --> n14 & n15
+    n15 --> n16
+    n10 --> n13
+    n11 --> n13
+    n14 --> n17
+    n16 --> n17
+    n20 --> n21 & n22
+    n18 --> n20
+    n24 --> n25 & n26
+    n5 --> n8
+    n17 --> n18
+    n21 --> n24
+    n22 --> n24
+    n25 --> n27
+    n26 --> n27
+     n8:::decisionNode
+     n13:::decisionNode
+     n20:::decisionNode
+     n24:::decisionNode
+    classDef loopContainer shape:processes,fill:#e0f7fa,stroke:#006064,stroke-width:2px,color:#000
+    classDef decisionNode fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000

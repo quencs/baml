@@ -106,7 +106,6 @@ fn headers_mermaid_snapshots() {
                                 ran += 1;
                             } else {
                                 eprintln!("[mermaid] {:<12} | {}", "FAIL", rel_name);
-                                failed += 1;
                                 eprintln!("EXPECTED ({}):\n{}\n---", rel_name, exp_n);
                                 eprintln!("GOT      ({}):\n{}\n---", rel_name, got_n);
                                 panic!("mismatch in {}", rel_name);
@@ -143,7 +142,6 @@ fn headers_mermaid_snapshots() {
                             ran += 1;
                         } else {
                             eprintln!("[mermaid] {:<12} | {}", "FAIL(err)", rel_name);
-                            failed += 1;
                             eprintln!("EXPECTED ({}):\n{}\n---", rel_name, exp_n);
                             eprintln!("GOT      ({}):\n{}\n---", rel_name, got_n);
                             panic!("mismatch in {}", rel_name);
