@@ -1,5 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet, BTreeSet as _, HashMap, HashSet};
 
+/// Config: maximum number of direct children (markdown + nested) a non-branching
+/// container may have to be flattened into a linear sequence instead of a subgraph.
+///
+/// For example, with `1` (default), containers with 0 or 1 child are flattened.
+/// Top-level scopes are never flattened if they have any children, regardless of this value.
+const MAX_CHILDREN_TO_FLATTEN: usize = 1;
+
 use super::{
     header_collector::{HeaderLabelKind, ScopeKind},
     Ast, HeaderCollector, HeaderIndex, RenderableHeader, ScopeId, WithSpan,
@@ -294,7 +301,7 @@ impl BamlVisDiagramGenerator {
 
         let total_children = md_children_count + nested_children_count;
         let should_flatten = !is_branching
-            && total_children <= 1
+            && total_children <= MAX_CHILDREN_TO_FLATTEN
             && !(is_top_level_scope && total_children >= 1)
             && !(nested_children_count == 1 && single_nested_child_has_multiple_items);
 
@@ -671,7 +678,7 @@ impl BamlVisDiagramGenerator {
                         child_root,
                     ));
 
-                    // Render call targets for nested child headers inside this container
+                    // Render call targets for nested child root header inside this container
                     self.render_calls_for_header(
                         index,
                         child_root,
@@ -708,13 +715,8 @@ impl BamlVisDiagramGenerator {
                 (fallback.clone(), vec![fallback])
             };
 
-            self.render_calls_for_header(
-                index,
-                header,
-                Some(&subgraph_id),
-                &container_first_rep_id,
-                4,
-            );
+            // Do not render calls for the container header itself in non-branching containers;
+            // calls should be associated with concrete child headers within.
 
             // Render calls for markdown children using their existing rep ids
             for (_pos, rep_id, ch) in md_rep_and_headers.iter() {
@@ -862,7 +864,8 @@ impl BamlVisDiagramGenerator {
         if let Some(callees) = index.header_calls.get(&header.id) {
             for callee in callees {
                 let call_node_id = if let Some(container_id) = container_subgraph_id {
-                    let key = (container_id.to_string(), callee.clone());
+                    // Deduplicate per header within a container, not across different headers
+                    let key = (format!("hdr:{}", header.id), callee.clone());
                     if let Some(id) = self.call_node_ids.get(&key) {
                         id.clone()
                     } else {
@@ -882,7 +885,8 @@ impl BamlVisDiagramGenerator {
                         id
                     }
                 } else {
-                    let key = (String::new(), callee.clone());
+                    // Deduplicate per header at the top level as well
+                    let key = (format!("hdr:{}", header.id), callee.clone());
                     if let Some(id) = self.call_node_ids.get(&key) {
                         id.clone()
                     } else {

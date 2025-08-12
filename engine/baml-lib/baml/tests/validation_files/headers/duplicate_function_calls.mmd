@@ -1,0 +1,12 @@
+flowchart LR
+  subgraph sg0["Pipeline"]
+    direction LR
+  n1["Step A"]
+  n2["Step B"]
+  n3["Step C"]
+n1 --> n2
+n2 --> n3
+    n4["Foo"]
+    class n4 callNode;
+    n4 --> n1
+  end

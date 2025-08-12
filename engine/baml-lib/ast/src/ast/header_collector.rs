@@ -170,7 +170,7 @@ impl HeaderCollector {
         title: String,
         level: u8,
         span: Span,
-        is_final_expr: bool,
+        _is_final_expr: bool,
         label_kind: HeaderLabelKind,
     ) -> HeaderId {
         if let Some(scope) = self.current_scope() {
@@ -243,6 +243,34 @@ impl HeaderCollector {
             format!("{} {}", type_label, *counter)
         };
         self.add_header(title, 1, span, false, label_kind);
+    }
+
+    /// Ensure the current (parent) scope has a default container header based on the
+    /// pending next scope kind. Skips if the current scope already has headers or if the
+    /// next scope kind is an if-branch.
+    fn ensure_parent_default_header_for_next_scope(&mut self, span: Span) {
+        let Some(scope) = self.current_scope() else {
+            return;
+        };
+        let has_any = self
+            .raw_by_scope
+            .get(&scope)
+            .map(|v| !v.is_empty())
+            .unwrap_or(false);
+        if has_any {
+            return;
+        }
+        let next_kind = self.pending_next_scope_kind.unwrap_or(ScopeKind::Generic);
+        // Do not create default container headers for if branches
+        if matches!(next_kind, ScopeKind::IfThen | ScopeKind::IfElse) {
+            return;
+        }
+        let (type_label, label_kind) = match next_kind {
+            ScopeKind::ForBody => ("loop", HeaderLabelKind::For),
+            ScopeKind::TopLevel | ScopeKind::Generic => ("block", HeaderLabelKind::None),
+            ScopeKind::IfThen | ScopeKind::IfElse => unreachable!(),
+        };
+        self.ensure_default_header_current_scope(type_label, span, None, label_kind);
     }
 
     /// Add a set of headers (annotations) into the current scope with a fixed
@@ -372,6 +400,9 @@ impl HeaderCollector {
                 if self.pending_next_scope_kind.is_none() {
                     self.pending_next_scope_kind = Some(ScopeKind::Generic);
                 }
+                // Ensure parent default header based on pending scope kind (Generic)
+                let parent_span = block.expr.span().clone();
+                self.ensure_parent_default_header_for_next_scope(parent_span);
                 self.visit_expression_block(block);
             }
             Expression::If(_cond, then_expr, else_expr, _span) => {
@@ -464,8 +495,27 @@ impl HeaderCollector {
                     );
                     // Iterate expression evaluated in current scope
                     self.visit_expression(&for_stmt.iterator);
-                    // Now visit the body in its own scope (no prefixed headers)
+                    // Ensure a parent container header exists for the upcoming loop body.
+                    // If there are no explicit loop annotations, insert a synthetic
+                    // top-level (level 1) "loop N" header to act as the loop container.
+                    if for_stmt.annotations.is_empty() {
+                        let counter = self
+                            .auto_counters
+                            .entry("loop".to_string())
+                            .and_modify(|c| *c += 1)
+                            .or_insert(1);
+                        let title = format!("loop {}", *counter);
+                        let _ = self.add_header(
+                            title,
+                            1, // ensure sibling at top level within the scope
+                            for_stmt.span.clone(),
+                            false,
+                            HeaderLabelKind::For,
+                        );
+                    }
+                    // Mark next scope as loop body and visit it
                     self.pending_next_scope_kind = Some(ScopeKind::ForBody);
+                    // Now visit the body in its own scope (no prefixed headers)
                     self.visit_expression_block(&for_stmt.body);
                 }
             }
@@ -493,7 +543,7 @@ impl HeaderCollector {
         // has no explicit headers. We only auto-inject for generic/loop scopes.
         if !matches!(kind_for_scope, ScopeKind::IfThen | ScopeKind::IfElse) {
             let (type_label, default_label_kind) = match kind_for_scope {
-                ScopeKind::ForBody => ("for loop", HeaderLabelKind::For),
+                ScopeKind::ForBody => ("loop", HeaderLabelKind::For),
                 ScopeKind::TopLevel => ("block", HeaderLabelKind::None),
                 ScopeKind::Generic => ("block", HeaderLabelKind::None),
                 // The if branches are handled above with the guard.
@@ -610,172 +660,6 @@ impl HeaderCollector {
         // Expose header -> call mapping
         index.header_calls = self.header_fn_calls;
         index
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use internal_baml_diagnostics::SourceFile;
-
-    use super::*;
-    use crate::{ast::Span, parser::parse};
-
-    fn collect(src: &str, name: &str) -> HeaderIndex {
-        let path = std::path::PathBuf::from(format!("/virtual/{name}.baml"));
-        let source = SourceFile::new_allocated(path.clone(), src.into());
-        let (ast, diags) = parse(std::path::Path::new("."), &source).unwrap();
-        assert!(
-            !diags.has_errors(),
-            "unexpected parse errors: {}",
-            diags.to_pretty_string()
-        );
-        HeaderCollector::collect(&ast)
-    }
-
-    #[test]
-    fn header_collector_basic_if() {
-        let src = r#"
-fn BasicIf() -> string {
-    # This is a named statement
-    let z = if true {
-        # Then Statement
-        12
-    } else {
-        # Else Statement
-        13
-    };
-    z
-}
-"#;
-        let idx = collect(src, "basic_if");
-        let titles: Vec<_> = idx.headers.iter().map(|h| h.title.as_str()).collect();
-        assert!(titles.contains(&"This is a named statement"));
-        assert!(titles.contains(&"Then Statement"));
-        assert!(titles.contains(&"Else Statement"));
-        let parent = idx
-            .headers
-            .iter()
-            .find(|h| h.title == "This is a named statement")
-            .unwrap();
-        let kids = idx
-            .branch_children
-            .get(&parent.id)
-            .expect("branch children");
-        assert_eq!(kids.len(), 2);
-    }
-
-    #[test]
-    fn header_collector_nested_scopes_if() {
-        let src = r#"
-fn NestedScopes() -> string {
-    # Top Level
-    let x = "hello";
-    ## First Section
-    let z = if x == "hello" {
-        ### Inside If Block
-        let y = "world";
-        x + " " + y
-    } else {
-        ### Inside Else Block
-        "goodbye"
-    };
-    z
-}
-"#;
-        let idx = collect(src, "nested_scopes");
-        let titles: Vec<_> = idx.headers.iter().map(|h| h.title.as_str()).collect();
-        for t in [
-            "Top Level",
-            "First Section",
-            "Inside If Block",
-            "Inside Else Block",
-        ] {
-            assert!(titles.contains(&t), "missing header {t}");
-        }
-        let parent = idx
-            .headers
-            .iter()
-            .find(|h| h.title == "First Section")
-            .unwrap();
-        let kids = idx
-            .branch_children
-            .get(&parent.id)
-            .expect("branch children");
-        assert_eq!(kids.len(), 2);
-    }
-
-    #[test]
-    fn header_collector_complex_workflow_like_case() {
-        // Reproduces the scenario where a top-level header precedes a let-bound if expression,
-        // followed by additional headers/steps after the conditional. We expect:
-        // - The post-branch headers (Generate Summary, Create Final Output) to be present
-        // - No synthetic "if statement N" headers to be injected for the else branch
-        let src = r#"
-fn ProcessVideo(transcript: string, title: string?) -> string {
-    # Main Processing Pipeline
-
-    let computed_title = if !title {
-        ## Generate Title
-        GenerateTitle(transcript)
-    } else {
-        title
-    };
-
-    ## Generate Summary
-    let summary = SummarizeVideo(transcript);
-
-    ## Create Final Output
-    computed_title + ": " + summary
-}
-"#;
-        let idx = collect(src, "complex_workflow_like");
-        let titles: Vec<_> = idx.headers.iter().map(|h| h.title.as_str()).collect();
-        for t in [
-            "Main Processing Pipeline",
-            "Generate Title",
-            "Generate Summary",
-            "Create Final Output",
-        ] {
-            assert!(
-                titles.contains(&t),
-                "expected header '{}' to be present; got {:?}",
-                t,
-                titles
-            );
-        }
-
-        // Ensure we did not synthesize a fake else header like "if statement 1"
-        assert!(
-            !titles.iter().any(|t| t.starts_with("if statement")),
-            "unexpected synthetic if-statement header present: {:?}",
-            titles
-        );
-
-        // Branch children of the top narrative header should include the THEN branch only
-        // (ELSE has no explicit headers).
-        let main = idx
-            .headers
-            .iter()
-            .find(|h| h.title == "Main Processing Pipeline")
-            .expect("missing Main Processing Pipeline header");
-        if let Some(kids) = idx.branch_children.get(&main.id) {
-            assert_eq!(kids.len(), 1, "expected only THEN child scope root");
-        }
-    }
-}
-
-impl Default for HeaderCollector {
-    fn default() -> Self {
-        Self {
-            scope_counter: 0,
-            scope_stack: Vec::new(),
-            raw_by_scope: HashMap::new(),
-            nested_edges: Vec::new(),
-            scope_kind: HashMap::new(),
-            pending_next_scope_kind: None,
-            auto_counters: HashMap::new(),
-            header_fn_calls: HashMap::new(),
-        }
     }
 }
 

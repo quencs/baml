@@ -107,7 +107,9 @@ fn headers_mermaid_snapshots() {
                             } else {
                                 eprintln!("[mermaid] {:<12} | {}", "FAIL", rel_name);
                                 failed += 1;
-                                assert_eq!(got_n, exp_n, "mismatch in {}", rel_name);
+                                eprintln!("EXPECTED ({}):\n{}\n---", rel_name, exp_n);
+                                eprintln!("GOT      ({}):\n{}\n---", rel_name, got_n);
+                                panic!("mismatch in {}", rel_name);
                             }
                         }
                         Err(_) => {
@@ -142,7 +144,9 @@ fn headers_mermaid_snapshots() {
                         } else {
                             eprintln!("[mermaid] {:<12} | {}", "FAIL(err)", rel_name);
                             failed += 1;
-                            assert_eq!(got_n, exp_n, "mismatch in {}", rel_name);
+                            eprintln!("EXPECTED ({}):\n{}\n---", rel_name, exp_n);
+                            eprintln!("GOT      ({}):\n{}\n---", rel_name, got_n);
+                            panic!("mismatch in {}", rel_name);
                         }
                     }
                     Err(_) => {
@@ -167,7 +171,13 @@ fn headers_mermaid_snapshots() {
 }
 
 fn normalize(s: &str) -> String {
-    strip_ansi(s).replace("\r\n", "\n").trim().to_string()
+    // Ensure we compare literal newlines rather than escaped sequences.
+    let s = strip_ansi(s);
+    // Convert CRLF to LF
+    let s = s.replace("\r\n", "\n");
+    // Unescape any accidental escaped newlines so diffs show proper lines
+    let s = s.replace("\\n", "\n");
+    s.trim().to_string()
 }
 
 // Simple ANSI escape stripper to keep error snapshots stable across environments.

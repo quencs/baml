@@ -1,0 +1,43 @@
+flowchart LR
+  subgraph sg0["Main Function"]
+    direction LR
+  n1["Initialization"]
+  n3{"Processing Loop"}
+  class n3 decisionNode;
+  subgraph sg2["Processing Loop"]
+    direction LR
+  subgraph sg4["Markdown Header tester"]
+    direction LR
+  n5["Item Analysis"]
+  n7{"Validation"}
+  class n7 decisionNode;
+  subgraph sg6["Validation"]
+    direction LR
+  subgraph sg8["Markdown Header tester in statement"]
+    direction LR
+  n9["another header in the statement"]
+  n10["True totally"]
+    n9 --> n10
+  end
+    n7 --> n9
+  n11["False other branch"]
+    n7 --> n11
+  end
+  n12["very useful header"]
+  n13["Result"]
+n12 --> n13
+    n5 --> n7
+    n10 --> n12
+    n11 --> n12
+  end
+    n3 --> n5
+  n14["False other branch"]
+    n3 --> n14
+  end
+n1 --> n3
+  n15["Final Processing"]
+  n16["Return Result"]
+n13 --> n15
+n14 --> n15
+n15 --> n16
+  end
