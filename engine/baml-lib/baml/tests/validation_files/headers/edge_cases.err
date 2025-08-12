@@ -1,7 +1,0 @@
-[1;91merror[0m: [1mError validating: This is not a valid expression.[0m
-  [1;94m-->[0m  [4m/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml:138[0m
-[1;94m   | [0m
-[1;94m137 | [0m    
-[1;94m138 | [0m    ## Another Long Title With Special Characters ![1;91m@#$%^&*()_+-=[]{}|;':",./<>? And Numbers 1234567890[0m
-[1;94m139 | [0m    
-[1;94m   | [0m

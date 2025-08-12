@@ -1,10 +1,10 @@
 flowchart LR
   subgraph sg0["ProcessVideo"]
     direction LR
-  subgraph sg1["Main Processing Pipeline"]
-    direction LR
   n2{"Main Processing Pipeline"}
   class n2 decisionNode;
+  subgraph sg1["Main Processing Pipeline"]
+    direction LR
   n3["Generate Title"]
     n2 --> n3
     n4["GenerateTitle"]

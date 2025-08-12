@@ -5,7 +5,11 @@ fn BasicSections() -> string {
     ## Generate Summary
     let summary = "world";
     
+    ## Make Space
     let space = " ";
+
+    ### Prepare Final Output
+    let something = "something";
 
     ### Final Output
     title + space + summary

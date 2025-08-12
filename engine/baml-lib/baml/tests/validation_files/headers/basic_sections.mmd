@@ -3,9 +3,13 @@ flowchart LR
     direction LR
   subgraph sg1["Main Processing"]
     direction LR
-  subgraph sg2["Generate Summary"]
+  n2["Generate Summary"]
+  subgraph sg3["Make Space"]
     direction LR
-  n3["Final Output"]
+  n4["Prepare Final Output"]
+  n5["Final Output"]
+    n4 --> n5
   end
+    n2 --> n4
   end
   end

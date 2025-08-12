@@ -1,7 +1,0 @@
-error: Error validating: This is not a valid expression.
-  -->  /Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/complex_headers_test.baml:57
-   | 
-56 |         ### Accumulation
-57 |         result = result + processed;
-58 | 
-   | 

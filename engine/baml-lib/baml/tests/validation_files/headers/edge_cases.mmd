@@ -1,82 +1,66 @@
 flowchart LR
   subgraph sg0["UnicodeHeaders"]
     direction LR
-  subgraph sg1["你好世界"]
-    direction LR
-  subgraph sg2["Émojis 🎉🎊"]
-    direction LR
+  n1["你好世界"]
+  n2["Émojis 🎉🎊"]
   n3["Special «Characters» ™"]
-  end
-  end
+n2 --> n3
+n1 --> n2
   end
   subgraph sg4["HeaderLevels"]
     direction LR
-  subgraph sg5["Level 1"]
-    direction LR
-  subgraph sg6["Level 2"]
-    direction LR
-  subgraph sg7["Level 3"]
-    direction LR
-  subgraph sg8["Level 4"]
-    direction LR
-  subgraph sg9["Level 5"]
-    direction LR
-  subgraph sg10["Level 6"]
-    direction LR
-  subgraph sg11["Level 7 - More than 6 levels"]
-    direction LR
-  subgraph sg12["Level 8"]
-    direction LR
+  n5["Level 1"]
+  n6["Level 2"]
+  n7["Level 3"]
+  n8["Level 4"]
+  n9["Level 5"]
+  n10["Level 6"]
+  n11["Level 7 - More than 6 levels"]
+  n12["Level 8"]
   n13["Level 9"]
-  end
-  end
-  end
-  end
-  end
-  end
-  end
-  end
+n12 --> n13
+n11 --> n12
+n10 --> n11
+n9 --> n10
+n8 --> n9
+n7 --> n8
+n6 --> n7
+n5 --> n6
   end
   subgraph sg14["HeadersWithWhitespace"]
     direction LR
-  subgraph sg15["Extra Spaces Before Title"]
-    direction LR
-  subgraph sg16["Mixed Tabs And Spaces"]
-    direction LR
+  n15["Extra Spaces Before Title"]
+  n16["Mixed Tabs And Spaces"]
   n17["All Tabs"]
-  end
-  end
-  subgraph sg18["Trailing Spaces"]
-    direction LR
+n16 --> n17
+n15 --> n16
+  n18["Trailing Spaces"]
   n19["Multiple  Spaces  Between  Words"]
-  end
-sg15 --> sg18
+n18 --> n19
+n17 --> n18
   end
   subgraph sg20["HeadersAndComments"]
     direction LR
-  subgraph sg21["Header Before Comment"]
-    direction LR
-  subgraph sg22["Header After Comment"]
-    direction LR
+  n21["Header Before Comment"]
+  n22["Header After Comment"]
   n23["Header After Doc Comment"]
-  end
-  end
+n22 --> n23
+n21 --> n22
   end
   subgraph sg24["HeadersInComplexNesting"]
     direction LR
   subgraph sg25["Main Function"]
     direction LR
-  subgraph sg26["Inside Block Expression"]
-    direction LR
   n27{"Inside Block Expression"}
   class n27 decisionNode;
-  subgraph sg28["Inside If True"]
+  subgraph sg26["Inside Block Expression"]
     direction LR
+  n28["Inside If True"]
   n29["Very Deep Block"]
-  end
+n28 --> n29
   n30["Back to If Level"]
-sg28 --> n30
-    n27 --> sg28
+n29 --> n30
+    n27 --> n28
   n31["Inside Else"]
     n27 --> n31
   end
@@ -85,26 +69,21 @@ n30 --> n32
 n31 --> n32
   end
   n33["Back to Function Level"]
-sg25 --> n33
+n32 --> n33
   end
   subgraph sg34["HeadersWithSpecialChars"]
     direction LR
-  subgraph sg35["Header-With-Dashes"]
-    direction LR
-  subgraph sg36["Header_With_Underscores"]
-    direction LR
-  subgraph sg37["Header.With.Dots"]
-    direction LR
-  subgraph sg38["Header/With/Slashes"]
-    direction LR
-  subgraph sg39["Header\With\Backslashes"]
-    direction LR
+  n35["Header-With-Dashes"]
+  n36["Header_With_Underscores"]
+  n37["Header.With.Dots"]
+  n38["Header/With/Slashes"]
+  n39["Header\With\Backslashes"]
   n40["Header|With|Pipes"]
-  end
-  end
-  end
-  end
-  end
+n39 --> n40
+n38 --> n39
+n37 --> n38
+n36 --> n37
+n35 --> n36
   end
   subgraph sg41["ConsecutiveHeaders"]
     direction LR
@@ -119,7 +98,7 @@ sg25 --> n33
     n46 --> n47
   end
 n42 --> n43
-n43 --> sg44
+n43 --> n45
   end
   subgraph sg48["HeadersAroundExpressions"]
     direction LR
@@ -131,42 +110,34 @@ n43 --> sg44
   n52["After If"]
     n51 --> n52
   end
-  subgraph sg53["Before For"]
-    direction LR
+  n53["Before For"]
   n54["Inside For"]
   class n54 loopContainer;
-  class n54 loopContainer;
-  end
+n53 --> n54
   n55["After For"]
-    sg50 --> sg53
-    sg53 --> n55
+    n52 --> n53
+    n54 --> n55
   end
   n56["Final Section"]
-sg49 --> n56
+n55 --> n56
   end
   subgraph sg57["VeryLongHeaderTitle"]
     direction LR
-  subgraph sg58["This Is An Extremely Long Header Title That Goes On And On And On And Contains Many Words To Test How The Parser Handles Very Long Header Titles That Might Span Multiple Lines In Some Editors But Should Still Be Parsed As A Single Header"]
-    direction LR
+  n58["This Is An Extremely Long Header Title That Goes On And On And On And Contains Many Words To Test How The Parser Handles Very Long Header Titles That Might Span Multiple Lines In Some Editors But Should Still Be Parsed As A Single Header"]
   n59["Another Long Title With Special Characters !@#$%^&*()_+-=[]{}|;':&quot;,./<>? And Numbers 1234567890"]
-  end
+n58 --> n59
   end
   subgraph sg60["HeaderOnlyFunction"]
     direction LR
-  subgraph sg61["Just Headers"]
-    direction LR
-  subgraph sg62["No Code"]
-    direction LR
-  subgraph sg63["Only Documentation"]
-    direction LR
-  subgraph sg64["Pure Annotation"]
-    direction LR
-  subgraph sg65["No Expressions"]
-    direction LR
+  n61["Just Headers"]
+  n62["No Code"]
+  n63["Only Documentation"]
+  n64["Pure Annotation"]
+  n65["No Expressions"]
   n66["Until The End"]
-  end
-  end
-  end
-  end
-  end
+n65 --> n66
+n64 --> n65
+n63 --> n64
+n62 --> n63
+n61 --> n62
   end

@@ -5,13 +5,13 @@ flowchart LR
     direction LR
   subgraph sg2["Main Loop"]
     direction LR
-  subgraph sg3["Item Processing"]
-    direction LR
+  n3["Item Processing"]
+  class n3 loopContainer;
   n4["Accumulation"]
   class n4 loopContainer;
-  end
+n3 --> n4
   end
   n5["Final Result"]
-    sg2 --> n5
+    n4 --> n5
   end
   end
