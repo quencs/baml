@@ -63,6 +63,7 @@ impl SyncRequestHandler for CodeActionHandler {
             .get_session_playground_port()
             .unwrap_or_else(|| session.baml_settings.playground_port.unwrap_or(3030));
 
+        #[cfg(feature = "playground-server")]
         let action = CodeActionOrCommand::CodeAction(CodeAction {
             title: format!("Open Playground Localhost:{port}"),
             kind: Some(CodeActionKind::EMPTY),
@@ -77,6 +78,7 @@ impl SyncRequestHandler for CodeActionHandler {
             disabled: None,
             data: None,
         });
+        #[cfg(feature = "playground-server")]
         actions.push(action);
 
         Ok(Some(actions))

@@ -91,7 +91,7 @@ namespaced_identifier = ${ single_word ~ ("::" ~ single_word)+ }
 // ######################################
 // Type Alias
 // ######################################
-type_alias = { "type" ~ identifier ~ assignment ~ field_type_with_attr }
+type_alias = { identifier ~ identifier ~ assignment ~ field_type_with_attr }
 
 // ######################################
 // Arguments
@@ -174,7 +174,7 @@ numeric_literal = @{ ("-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 // ######################################
 // String literals. These behave specially in BAML.
 // ######################################
-banned_chars            = @{ "#" | "@" | "{" | "(" | "[" | "<" | "}" | ")" | "]" | ">" | "," | "'" | ";" | " //" | "if " | "else " | NEWLINE }
+banned_chars            = @{ "#" | "@" | "{" | "(" | "[" | "<" | "}" | ")" | "]" | ">" | "," | "'" | ";" | " //" | NEWLINE }
 banned_start_chars      =  { WHITESPACE | banned_chars }
 banned_end_chars        =  { WHITESPACE | banned_chars }
 unquoted_string_literal = @{ (!banned_start_chars ~ ANY) ~ (!banned_chars ~ !"\"" ~ ANY)* ~ (!banned_end_chars ~ ANY)* }
@@ -294,16 +294,16 @@ NEG = { "-" } // NOTE: Can't reuse SUB here. Read this: https://docs.rs/pest/lat
 
 // Constant applicative form.
 // e.g. top-level
-// - `let x = go(1,2)`
-// - `let z = { let b = 2; [b, 3] }
+//   - `let x = go(1,2)`
+//   - `let z = { let b = 2; [b, 3] }
 top_level_assignment = { stmt }
 
 // Regular function.
 // e.g.:
 // function foo(x:int, y: bool?) -> string {
-// go(x,y)
+//   go(x,y)
 // }
-expr_fn = { ("fn" ) ~ identifier ~ named_argument_list ~ ARROW? ~ field_type_chain? ~ expr_block }
+expr_fn = { ("function" | "fn") ~ identifier ~ named_argument_list ~ ARROW? ~ field_type_chain? ~ expr_block }
 
 // Body of a function (including curly brackets).
 expr_block = { BLOCK_OPEN ~ NEWLINE? ~ (mdx_header | stmt | comment_block | empty_lines)* ~ expression? ~ NEWLINE? ~ BLOCK_CLOSE }
@@ -357,16 +357,16 @@ if_expression = { "if" ~ expression ~ expr_block ~ ( "else" ~ (expr_block | if_e
 
 // For loop, e.g.
 // for (r in resumes) {
-// ExtractResume(x)
+//   ExtractResume(x)
 // }
-for_loop = { "for" ~ (("(" ~ identifier ~ "in" ~ expression ~ ")") | (identifier ~ "in" ~ expression)) ~ expr_block }
+for_loop = { "for" ~ "(" ~ identifier ~ "in" ~ expression ~ ")" ~ expr_block }
 
 // Anonymous function.
 lambda = { named_argument_list ~ "=>" ~ expression }
 
 // Class constructors.
 // e.g. `new MyClass { x = 1, y = 2 }`.
-// 
+//
 class_constructor = { identifier ~ "{" ~ NEWLINE? ~ (class_field_value_pair ~ COMMA? ~ NEWLINE?)* ~ NEWLINE? ~ "}" }
 
 // A single field in a class constructor.

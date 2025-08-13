@@ -668,10 +668,14 @@ impl MermaidDiagramGenerator {
                 self.connect(&stmt_id, &body_id, Some("body"));
                 stmt_id
             }
-            Stmt::Expression(expr) => {
+            Stmt::Expression(es) => {
                 let label = "ExprStmt".to_string();
                 let stmt_id = self.get_node_id_with_class(&key, &label, "statementNode");
-                let expr_id = self.visit_expression(expr);
+                for (idx, annotation) in es.annotations.iter().enumerate() {
+                    let annotation_id = self.visit_header(annotation, idx);
+                    self.connect(&stmt_id, &annotation_id, Some("annotation"));
+                }
+                let expr_id = self.visit_expression(&es.expr);
                 self.connect(&stmt_id, &expr_id, Some("expr"));
                 stmt_id
             }
@@ -803,11 +807,13 @@ impl MermaidDiagramGenerator {
             header_node_ids.insert(header.id.clone(), node_id);
         }
 
-        // Build set of headers that have at least one incoming nested edge
+        // Build set of headers that have at least one incoming nested edge (via Hid)
         let mut has_incoming_nested: std::collections::HashSet<&str> =
             std::collections::HashSet::new();
-        for (_from, to) in &index.nested_edges {
-            has_incoming_nested.insert(to.as_str());
+        for (_from_hid, to_hid) in index.nested_edges_hid_iter() {
+            if let Some(to_hdr) = index.get_by_hid(*to_hid) {
+                has_incoming_nested.insert(to_hdr.id.as_str());
+            }
         }
 
         // Connect markdown edges only for headers that do NOT have incoming nested edges
@@ -824,24 +830,21 @@ impl MermaidDiagramGenerator {
             }
         }
 
-        // Render nested edges
-        for (from_id, to_id) in &index.nested_edges {
-            if let (Some(from_node), Some(to_node)) =
-                (header_node_ids.get(from_id), header_node_ids.get(to_id))
+        // Render nested edges from Hid pairs
+        for (from_hid, to_hid) in index.nested_edges_hid_iter() {
+            if let (Some(from_hdr), Some(to_hdr)) =
+                (index.get_by_hid(*from_hid), index.get_by_hid(*to_hid))
             {
-                self.connect(from_node, to_node, Some("nested"));
+                if let (Some(from_node), Some(to_node)) = (
+                    header_node_ids.get(&from_hdr.id),
+                    header_node_ids.get(&to_hdr.id),
+                ) {
+                    self.connect(from_node, to_node, Some("nested"));
+                }
             }
         }
 
-        // Ensure top-level root connects to last header in top-level scope (to match reference)
-        for (_scope, root_id) in &index.scope_root_header {
-            if let Some(root_node) = header_node_ids.get(root_id) {
-                // Find the last header in the same top-level scope with nested incoming from root
-                // Already added by nested_edges; no-op here unless a missing edge is detected
-                // Leaving hook for future adjustments if needed
-                let _ = root_node; // silence unused var if styling disabled
-            }
-        }
+        // Note: scope roots can be obtained from the first header per scope via by_scope
     }
 }
 

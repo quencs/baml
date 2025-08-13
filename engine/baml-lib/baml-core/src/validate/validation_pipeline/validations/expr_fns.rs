@@ -132,8 +132,8 @@ fn validate_stmt(ctx: &mut Context<'_>, stmt: &Stmt, scope: &HashSet<String>) {
                 validate_expression(ctx, expr, &loop_scope);
             }
         }
-        Stmt::Expression(expr) => {
-            validate_expression(ctx, expr, scope);
+        Stmt::Expression(es) => {
+            validate_expression(ctx, &es.expr, scope);
         }
     }
 }

@@ -1,17 +1,13 @@
 flowchart LR
-  subgraph sg0["ForLoopWithHeaders"]
+  subgraph sg0["Loop Processing"]
     direction LR
-  subgraph sg1["Loop Processing"]
+  subgraph sg1["Main Loop"]
     direction LR
-  subgraph sg2["Main Loop"]
+  subgraph sg2["Item Processing"]
     direction LR
-  n3["Item Processing"]
-  class n3 loopContainer;
-  n4["Accumulation"]
-  class n4 loopContainer;
-n3 --> n4
+  n3["Accumulation"]
   end
-  n5["Final Result"]
-    n4 --> n5
   end
+  n4["Final Result"]
+    n3 --> n4
   end

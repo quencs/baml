@@ -1,48 +1,59 @@
 # Main Function
-fn ComplexHeaderTest() -> string {
-    # Initialization
-    let items = ["a", "b", "c"];
-    let result = "";
-    
-    ## Processing Loop
+fn NestedIfStatements() -> string {
+    ## If statement 1
     let e = if true {
 
-        # Markdown Header tester
-        let hello = "Hello";
-
-        ### Item Analysis
-        let processed = 2;
-        
-        ### Validation
+        ### If statement 2.1
         let z = if true {
+            ### If statement 3.1
+            let a = if true {
+                ### True
+                12
+            } else {
+                ### Third False
+                13
+            };
 
-            # Markdown Header tester in statement
-            let hello = "Hello";
-
-            ### another header in the statement
-            let hello = "Hello";
-
-            ### True totally
-            12
+            242
         } else {
-            ### False other branch
+            ### If statement 3.2
+            let a = if true {
+                ### True
+                12
+            } else {
+                ### Third False
+                13
+            };
             13
         };
 
-        ## very useful header
-        let hello = "Hello";
-
-        ### Result
-        result
-
+        2
     } else {
-        ### False other branch
+        ### If statement 2.2
+        let z = if true {
+            ### If statement 3.1
+            let a = if true {
+                ### True
+                12
+            } else {
+                ### Third False
+                13
+            };
+
+            242
+        } else {
+            ### If statement 3.2
+            let a = if true {
+                ### True
+                12
+            } else {
+                ### Third False
+                13
+            };
+            13
+        };
         13
     };
     
-    # Final Processing
-    let final_result = result.reverse();
-    
-    # Return Result
-    final_result
+    e
 } 

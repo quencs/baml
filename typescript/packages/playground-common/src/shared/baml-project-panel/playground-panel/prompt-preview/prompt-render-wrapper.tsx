@@ -13,6 +13,7 @@ import { PromptPreviewContent } from './prompt-preview-content';
 import { renderedPromptAtom } from './prompt-preview-content';
 import { PromptPreviewCurl } from './prompt-preview-curl';
 import { ClientGraphView } from './test-panel/components/ClientGraphView';
+import { MermaidGraphView } from './test-panel/components/MermaidGraphView';
 
 // FunctionMetadata component
 const FunctionMetadata: React.FC = () => {
@@ -116,6 +117,7 @@ export const PromptRenderWrapper = () => {
             <TabsTrigger value="preview">Preview</TabsTrigger>
             <TabsTrigger value="curl">cURL</TabsTrigger>
             <TabsTrigger value="client-graph">Client Graph</TabsTrigger>
+            <TabsTrigger value="mermaid-graph">Mermaid Graph</TabsTrigger>
           </TabsList>
           <FunctionMetadata />
           <Button

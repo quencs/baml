@@ -1,143 +1,149 @@
 flowchart LR
-  subgraph sg0["UnicodeHeaders"]
+  subgraph sg0["你好世界"]
     direction LR
-  n1["你好世界"]
-  n2["Émojis 🎉🎊"]
-  n3["Special «Characters» ™"]
-n2 --> n3
-n1 --> n2
+  subgraph sg1["Émojis 🎉🎊"]
+    direction LR
+  n2["Special «Characters» ™"]
   end
-  subgraph sg4["HeaderLevels"]
-    direction LR
-  n5["Level 1"]
-  n6["Level 2"]
-  n7["Level 3"]
-  n8["Level 4"]
-  n9["Level 5"]
-  n10["Level 6"]
-  n11["Level 7 - More than 6 levels"]
-  n12["Level 8"]
-  n13["Level 9"]
-n12 --> n13
-n11 --> n12
-n10 --> n11
-n9 --> n10
-n8 --> n9
-n7 --> n8
-n6 --> n7
-n5 --> n6
   end
-  subgraph sg14["HeadersWithWhitespace"]
+  subgraph sg3["Level 1"]
     direction LR
-  n15["Extra Spaces Before Title"]
-  n16["Mixed Tabs And Spaces"]
-  n17["All Tabs"]
-n16 --> n17
-n15 --> n16
-  n18["Trailing Spaces"]
-  n19["Multiple  Spaces  Between  Words"]
-n18 --> n19
-n17 --> n18
+  subgraph sg4["Level 2"]
+    direction LR
+  subgraph sg5["Level 3"]
+    direction LR
+  subgraph sg6["Level 4"]
+    direction LR
+  subgraph sg7["Level 5"]
+    direction LR
+  subgraph sg8["Level 6"]
+    direction LR
+  subgraph sg9["Level 7 - More than 6 levels"]
+    direction LR
+  subgraph sg10["Level 8"]
+    direction LR
+  n11["Level 9"]
   end
-  subgraph sg20["HeadersAndComments"]
-    direction LR
-  n21["Header Before Comment"]
-  n22["Header After Comment"]
-  n23["Header After Doc Comment"]
-n22 --> n23
-n21 --> n22
   end
-  subgraph sg24["HeadersInComplexNesting"]
-    direction LR
-  subgraph sg25["Main Function"]
-    direction LR
-  n27{"Inside Block Expression"}
-  class n27 decisionNode;
-  subgraph sg26["Inside Block Expression"]
-    direction LR
-  n28["Inside If True"]
-  n29["Very Deep Block"]
-n28 --> n29
-  n30["Back to If Level"]
-n29 --> n30
-    n27 --> n28
-  n31["Inside Else"]
-    n27 --> n31
   end
-  n32["Back to Block Level"]
-n30 --> n32
-n31 --> n32
   end
-  n33["Back to Function Level"]
-n32 --> n33
   end
-  subgraph sg34["HeadersWithSpecialChars"]
+  end
+  end
+  end
+  subgraph sg12["Extra Spaces Before Title"]
     direction LR
-  n35["Header-With-Dashes"]
-  n36["Header_With_Underscores"]
-  n37["Header.With.Dots"]
-  n38["Header/With/Slashes"]
-  n39["Header\With\Backslashes"]
-  n40["Header|With|Pipes"]
-n39 --> n40
-n38 --> n39
-n37 --> n38
-n36 --> n37
+  subgraph sg13["Mixed Tabs And Spaces"]
+    direction LR
+  n14["All Tabs"]
+  end
+  end
+  subgraph sg15["Trailing Spaces"]
+    direction LR
+  n16["Multiple  Spaces  Between  Words"]
+  end
+n14 --> n16
+  subgraph sg17["Header Before Comment"]
+    direction LR
+  subgraph sg18["Header After Comment"]
+    direction LR
+  n19["Header After Doc Comment"]
+  end
+  end
+  subgraph sg20["Main Function"]
+    direction LR
+  n22{"Inside Block Expression"}
+  class n22 decisionNode;
+  subgraph sg21["Inside Block Expression"]
+    direction LR
+  subgraph sg23["Inside If True"]
+    direction LR
+  n24["Very Deep Block"]
+  end
+  n25["Back to If Level"]
+n24 --> n25
+    n22 --> n24
+  n26["Inside Else"]
+    n22 --> n26
+  end
+  n27["Back to Block Level"]
+n25 --> n27
+n26 --> n27
+  end
+  n28["Back to Function Level"]
+n27 --> n28
+  subgraph sg29["Header-With-Dashes"]
+    direction LR
+  subgraph sg30["Header_With_Underscores"]
+    direction LR
+  subgraph sg31["Header.With.Dots"]
+    direction LR
+  subgraph sg32["Header/With/Slashes"]
+    direction LR
+  subgraph sg33["Header\With\Backslashes"]
+    direction LR
+  n34["Header|With|Pipes"]
+  end
+  end
+  end
+  end
+  end
+  n35["First Header"]
+  n36["Second Header"]
+  subgraph sg37["Third Header"]
+    direction LR
+  n38["Subsection A"]
+  n39["Subsection B"]
+  n40["Subsection C"]
+    n38 --> n39
+    n39 --> n40
+  end
 n35 --> n36
+n36 --> n38
+  subgraph sg41["Before Let"]
+    direction LR
+  subgraph sg42["After Let"]
+    direction LR
+  n44{"Before If"}
+  class n44 decisionNode;
+  subgraph sg43["Before If"]
+    direction LR
+  n45["Inside If"]
+    n44 --> n45
+  n46["Inside Else"]
+    n44 --> n46
   end
-  subgraph sg41["ConsecutiveHeaders"]
-    direction LR
-  n42["First Header"]
-  n43["Second Header"]
-  subgraph sg44["Third Header"]
-    direction LR
-  n45["Subsection A"]
-  n46["Subsection B"]
-  n47["Subsection C"]
-    n45 --> n46
+  n47["After If"]
+    n45 --> n47
     n46 --> n47
   end
-n42 --> n43
-n43 --> n45
-  end
-  subgraph sg48["HeadersAroundExpressions"]
+  subgraph sg48["Before For"]
     direction LR
-  subgraph sg49["Before Let"]
-    direction LR
-  subgraph sg50["After Let"]
-    direction LR
-  n51["Before If"]
-  n52["After If"]
-    n51 --> n52
+  n49["Inside For"]
   end
-  n53["Before For"]
-  n54["Inside For"]
-  class n54 loopContainer;
-n53 --> n54
-  n55["After For"]
-    n52 --> n53
-    n54 --> n55
+  n50["After For"]
+    n47 --> n49
+    n49 --> n50
   end
-  n56["Final Section"]
-n55 --> n56
-  end
-  subgraph sg57["VeryLongHeaderTitle"]
+  n51["Final Section"]
+n50 --> n51
+  subgraph sg52["This Is An Extremely Long Header Title That Goes On And On And On And Contains Many Words To Test How The Parser Handles Very Long Header Titles That Might Span Multiple Lines In Some Editors But Should Still Be Parsed As A Single Header"]
     direction LR
-  n58["This Is An Extremely Long Header Title That Goes On And On And On And Contains Many Words To Test How The Parser Handles Very Long Header Titles That Might Span Multiple Lines In Some Editors But Should Still Be Parsed As A Single Header"]
-  n59["Another Long Title With Special Characters !@#$%^&*()_+-=[]{}|;':&quot;,./<>? And Numbers 1234567890"]
-n58 --> n59
+  n53["Another Long Title With Special Characters !@#$%^&*()_+-=[]{}|;':&quot;,./<>? And Numbers 1234567890"]
   end
-  subgraph sg60["HeaderOnlyFunction"]
+  subgraph sg54["Just Headers"]
     direction LR
-  n61["Just Headers"]
-  n62["No Code"]
-  n63["Only Documentation"]
-  n64["Pure Annotation"]
-  n65["No Expressions"]
-  n66["Until The End"]
-n65 --> n66
-n64 --> n65
-n63 --> n64
-n62 --> n63
-n61 --> n62
+  subgraph sg55["No Code"]
+    direction LR
+  subgraph sg56["Only Documentation"]
+    direction LR
+  subgraph sg57["Pure Annotation"]
+    direction LR
+  subgraph sg58["No Expressions"]
+    direction LR
+  n59["Until The End"]
+  end
+  end
+  end
+  end
   end

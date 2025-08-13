@@ -372,25 +372,25 @@ impl Block {
                         span: span.clone(),
                     });
                 }
-                ast::Stmt::Expression(expr) => {
-                    let hir_expr = Expression::from_ast(expr);
+                ast::Stmt::Expression(es) => {
+                    let hir_expr = Expression::from_ast(&es.expr);
 
                     // Expressions that contain blocks themselves will deal with
                     // return expressions recursively. But expressions that have
                     // no blocks (like function calls or 2 + 2) must drop the
                     // returned value, so we insert semicolon expressions.
                     if matches!(
-                        expr,
+                        es.expr,
                         ast::Expression::If(..) | ast::Expression::ExprBlock(..)
                     ) {
                         statements.push(Statement::Expression {
                             expr: hir_expr,
-                            span: expr.span().clone(),
+                            span: es.span.clone(),
                         });
                     } else {
                         statements.push(Statement::SemicolonExpression {
                             expr: hir_expr,
-                            span: expr.span().clone(),
+                            span: es.span.clone(),
                         });
                     }
                 }
@@ -504,7 +504,7 @@ impl Expression {
                     span.clone(),
                 )
             }
-            ast::Expression::Lambda(_args, _body, span) => {
+            ast::Expression::Lambda(_args, _body, _span) => {
                 todo!("lambdas are not yet implemented")
             }
             ast::Expression::ClassConstructor(cc, span) => {

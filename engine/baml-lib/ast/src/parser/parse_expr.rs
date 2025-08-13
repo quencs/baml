@@ -8,8 +8,8 @@ use super::{
 use crate::{
     assert_correct_parser,
     ast::{
-        self, expr::ExprFn, App, ArgumentsList, AssignOp, AssignOpStmt, AssignStmt, Expression,
-        ExpressionBlock, ForLoopStmt, LetStmt, Stmt, TopLevelAssignment, *,
+        self, expr::ExprFn, App, ArgumentsList, AssignOp, AssignOpStmt, AssignStmt, ExprStmt,
+        Expression, ExpressionBlock, ForLoopStmt, LetStmt, Stmt, TopLevelAssignment, *,
     },
     parser::{
         parse_arguments::parse_arguments_list, parse_expression::parse_expression,
@@ -93,10 +93,10 @@ pub fn parse_top_level_assignment(
             None
         }
 
-        Stmt::Expression(expr) => {
+        Stmt::Expression(es) => {
             diagnostics.push_error(DatamodelError::new_static(
                 "expressions are not allowed at top level, only let statements are allowed",
-                expr.span().clone(),
+                es.span.clone(),
             ));
 
             None
@@ -204,9 +204,27 @@ pub fn parse_statement(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option
             })
         }
         Rule::for_loop => parse_for_loop(stmt_token, diagnostics),
-        Rule::if_expression => parse_if_expression(stmt_token, diagnostics).map(Stmt::Expression),
-        Rule::fn_app => parse_fn_app(stmt_token, diagnostics).map(Stmt::Expression),
-        Rule::generic_fn_app => parse_generic_fn_app(stmt_token, diagnostics).map(Stmt::Expression),
+        Rule::if_expression => parse_if_expression(stmt_token, diagnostics).map(|expr| {
+            Stmt::Expression(ExprStmt {
+                expr,
+                annotations: vec![],
+                span: span.clone(),
+            })
+        }),
+        Rule::fn_app => parse_fn_app(stmt_token, diagnostics).map(|expr| {
+            Stmt::Expression(ExprStmt {
+                expr,
+                annotations: vec![],
+                span: span.clone(),
+            })
+        }),
+        Rule::generic_fn_app => parse_generic_fn_app(stmt_token, diagnostics).map(|expr| {
+            Stmt::Expression(ExprStmt {
+                expr,
+                annotations: vec![],
+                span: span.clone(),
+            })
+        }),
         _ => {
             diagnostics.push_error(DatamodelError::new_static(
                 "Expected let expression or for loop",
@@ -377,8 +395,16 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
     // TODO: Likely there's no need to separate statements and final expression
     // since a statement can now be an expression. We just need to allow any
     // random expression as a statement as mentioned in the grammar file.
-    if return_expr.is_none() && matches!(stmts.last(), Some(Stmt::Expression(Expression::If(..)))) {
-        let Some(Stmt::Expression(e)) = stmts.pop() else {
+    if return_expr.is_none()
+        && matches!(
+            stmts.last(),
+            Some(Stmt::Expression(ExprStmt {
+                expr: Expression::If(..),
+                ..
+            }))
+        )
+    {
+        let Some(Stmt::Expression(ExprStmt { expr: e, .. })) = stmts.pop() else {
             unreachable!();
         };
 
@@ -486,8 +512,8 @@ fn bind_headers_to_statement(stmt: &mut Stmt, pending_headers: &Vec<std::sync::A
         Stmt::ForLoop(for_stmt) => {
             for_stmt.annotations.extend(pending_headers.clone());
         }
-        Stmt::Expression(_) => {
-            // Expressions do not carry annotations
+        Stmt::Expression(es) => {
+            es.annotations.extend(pending_headers.clone());
         }
         Stmt::Assign(_) => {
             // Assignments do not carry annotations

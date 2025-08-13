@@ -100,6 +100,11 @@ pub(crate) fn parse_value_expression_block(
                         }
 
                         Rule::comment_block => pending_field_comment = Some(item),
+                        // Ignore markdown headers inside value expression blocks.
+                        // Top-level headers are handled in parse.rs and bound as annotations.
+                        Rule::mdx_header => {
+                            // no-op: prevent unreachable panic via parsing_catch_all
+                        }
                         Rule::block_attribute => {
                             let span = item.as_span();
                             let attribute = parse_attribute(item, false, diagnostics);

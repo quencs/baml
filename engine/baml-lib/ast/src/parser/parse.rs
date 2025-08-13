@@ -109,16 +109,11 @@ pub fn parse(root_path: &Path, source: &SourceFile) -> Result<(Ast, Diagnostics)
                         );
                         match val_expr {
                             Ok(mut val) => {
-                                // Bind pending headers to functions (but not other value expression types)
-                                if matches!(val.block_type, ValueExprBlockType::Function) {
-                                    val.annotations = pending_headers
-                                        .drain(..)
-                                        .map(|h| std::sync::Arc::new(h))
-                                        .collect();
-                                } else {
-                                    // Clear pending headers for non-function value expressions
-                                    pending_headers.clear();
-                                }
+                                // Bind pending headers to all value expression blocks (function, client, test, generator, retry_policy)
+                                val.annotations = pending_headers
+                                    .drain(..)
+                                    .map(|h| std::sync::Arc::new(h))
+                                    .collect();
                                 top_level_definitions.push(match val.block_type {
                                     ValueExprBlockType::Function => Top::Function(val),
                                     ValueExprBlockType::Test => Top::TestCase(val),

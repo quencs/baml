@@ -1,13 +1,12 @@
 flowchart LR
-  subgraph sg0["MultipleHeaderLevels"]
+  n0["Section One"]
+  subgraph sg1["Section Two"]
     direction LR
-  n1["Section One"]
-  n2["Section Two"]
-  n3["Subsection 2.1"]
-  n4["Subsubsection 2.1.1"]
-n3 --> n4
-n2 --> n3
-  n5["Section Three"]
-n1 --> n2
-n4 --> n5
+  subgraph sg2["Subsection 2.1"]
+    direction LR
+  n3["Subsubsection 2.1.1"]
   end
+  end
+  n4["Section Three"]
+n0 --> n3
+n3 --> n4

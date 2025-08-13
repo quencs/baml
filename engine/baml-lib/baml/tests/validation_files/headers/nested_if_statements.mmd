@@ -1,43 +1,61 @@
 flowchart LR
   subgraph sg0["Main Function"]
     direction LR
-  n1["Initialization"]
-  n3{"Processing Loop"}
-  class n3 decisionNode;
-  subgraph sg2["Processing Loop"]
+  n2{"If statement 1"}
+  class n2 decisionNode;
+  subgraph sg1["If statement 1"]
     direction LR
-  subgraph sg4["Markdown Header tester"]
+  n4{"If statement 2.1"}
+  class n4 decisionNode;
+  subgraph sg3["If statement 2.1"]
     direction LR
-  n5["Item Analysis"]
-  n7{"Validation"}
-  class n7 decisionNode;
-  subgraph sg6["Validation"]
+  n6{"If statement 3.1"}
+  class n6 decisionNode;
+  subgraph sg5["If statement 3.1"]
     direction LR
-  subgraph sg8["Markdown Header tester in statement"]
-    direction LR
-  n9["another header in the statement"]
-  n10["True totally"]
-    n9 --> n10
+  n7["True"]
+    n6 --> n7
+  n8["Third False"]
+    n6 --> n8
   end
-    n7 --> n9
-  n11["False other branch"]
-    n7 --> n11
-  end
-  n12["very useful header"]
-  n13["Result"]
-n12 --> n13
-    n5 --> n7
+    n4 --> n6
+  n10{"If statement 3.2"}
+  class n10 decisionNode;
+  subgraph sg9["If statement 3.2"]
+    direction LR
+  n11["True"]
+    n10 --> n11
+  n12["Third False"]
     n10 --> n12
-    n11 --> n12
   end
-    n3 --> n5
-  n14["False other branch"]
-    n3 --> n14
+    n4 --> n10
   end
-n1 --> n3
-  n15["Final Processing"]
-  n16["Return Result"]
-n13 --> n15
-n14 --> n15
-n15 --> n16
+    n2 --> n4
+  n14{"If statement 2.2"}
+  class n14 decisionNode;
+  subgraph sg13["If statement 2.2"]
+    direction LR
+  n16{"If statement 3.1"}
+  class n16 decisionNode;
+  subgraph sg15["If statement 3.1"]
+    direction LR
+  n17["True"]
+    n16 --> n17
+  n18["Third False"]
+    n16 --> n18
+  end
+    n14 --> n16
+  n20{"If statement 3.2"}
+  class n20 decisionNode;
+  subgraph sg19["If statement 3.2"]
+    direction LR
+  n21["True"]
+    n20 --> n21
+  n22["Third False"]
+    n20 --> n22
+  end
+    n14 --> n20
+  end
+    n2 --> n14
+  end
   end

@@ -1,13 +1,13 @@
 flowchart LR
   subgraph sg0["Main Function"]
     direction LR
-  n1["Initialization"]
+  subgraph sg1["Initialization"]
+    direction LR
   subgraph sg2["Processing Loop"]
     direction LR
   subgraph sg3["Markdown Header tester"]
     direction LR
   n4["Item Analysis"]
-  class n4 loopContainer;
   n6{"Validation"}
   class n6 decisionNode;
   subgraph sg5["Validation"]
@@ -22,17 +22,16 @@ flowchart LR
   n10["False other branch"]
     n6 --> n10
   end
-  n11["very useful header"]
-  class n11 loopContainer;
+  subgraph sg11["very useful header"]
+    direction LR
   n12["Result"]
-  class n12 loopContainer;
-n11 --> n12
+  end
     n4 --> n6
-    n9 --> n11
-    n10 --> n11
+    n9 --> n12
+    n10 --> n12
   end
   end
-n1 --> n4
+  end
   n13["Final Processing"]
   n14["Return Result"]
 n12 --> n13
@@ -43,9 +42,7 @@ n13 --> n14
   subgraph sg16["Main Loop"]
     direction LR
   n17["Item Processing"]
-  class n17 loopContainer;
   n18["Accumulation"]
-  class n18 loopContainer;
 n17 --> n18
   end
   n19["Final Result"]

@@ -1,17 +1,17 @@
-use std::collections::{BTreeMap, BTreeSet, BTreeSet as _, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 /// Config: maximum number of direct children (markdown + nested) a non-branching
 /// container may have to be flattened into a linear sequence instead of a subgraph.
 ///
 /// For example, with `1` (default), containers with 0 or 1 child are flattened.
 /// Top-level scopes are never flattened if they have any children, regardless of this value.
-const MAX_CHILDREN_TO_FLATTEN: usize = 1;
+const MAX_CHILDREN_TO_FLATTEN: usize = 0;
 // Toggle: render function call nodes (e.g., SummarizeVideo, CreatePR) alongside headers.
 const SHOW_CALL_NODES: bool = false;
 
 use super::{
-    header_collector::{HeaderLabelKind, ScopeKind},
-    Ast, HeaderCollector, HeaderIndex, RenderableHeader, ScopeId, WithSpan,
+    header_collector::HeaderLabelKind, Ast, HeaderCollector, HeaderIndex, RenderableHeader,
+    ScopeId, WithSpan,
 };
 
 /// A Mermaid flowchart (LR) generator focused on headers and control-flow-like structure.
@@ -42,6 +42,8 @@ pub struct BamlVisDiagramGenerator {
     call_node_ids: HashMap<(String, String), String>,
     // Track which node ids have had a style class emitted to avoid duplicate class lines
     styled_node_ids: HashSet<String>,
+    // Cache representative id for a header id to avoid recomputation
+    header_rep_cache: HashMap<String, String>,
 }
 
 impl BamlVisDiagramGenerator {
@@ -57,6 +59,7 @@ impl BamlVisDiagramGenerator {
             branch_endpoints: HashMap::new(),
             call_node_ids: HashMap::new(),
             styled_node_ids: HashSet::new(),
+            header_rep_cache: HashMap::new(),
         }
     }
 
@@ -114,22 +117,21 @@ impl BamlVisDiagramGenerator {
             by_id.insert(&h.id, h);
         }
 
-        // Build set of headers that are targets of nested edges (child scope roots)
+        // Build child scope roots from Hid edges directly
         let mut nested_targets: BTreeSet<&str> = BTreeSet::new();
-        // Map of container header id -> child scope root header ids (preserve stable order)
         let mut container_to_children: HashMap<&str, Vec<&str>> = HashMap::new();
-        for (from, to) in &index.nested_edges {
-            if let (Some(f), Some(t)) = (by_id.get(from.as_str()), by_id.get(to.as_str())) {
-                // Only consider cross-scope nested edges where the target is the ROOT of its scope.
-                // This avoids treating auxiliary edges like root->final as separate children.
-                if f.scope != t.scope {
-                    if let Some(root_id_for_child_scope) = index.scope_root_header.get(&t.scope) {
-                        if root_id_for_child_scope == &t.id {
-                            nested_targets.insert(t.id.as_str());
+        for (p_hid, c_hid) in index.nested_edges_hid_iter() {
+            if let (Some(parent_hdr), Some(child_hdr)) =
+                (index.get_by_hid(*p_hid), index.get_by_hid(*c_hid))
+            {
+                if parent_hdr.scope != child_hdr.scope {
+                    if let Some(root_hdr) = index.headers_in_scope_iter(child_hdr.scope).next() {
+                        if root_hdr.id == child_hdr.id {
+                            nested_targets.insert(child_hdr.id.as_str());
                             container_to_children
-                                .entry(f.id.as_str())
+                                .entry(parent_hdr.id.as_str())
                                 .or_default()
-                                .push(t.id.as_str());
+                                .push(child_hdr.id.as_str());
                         }
                     }
                 }
@@ -155,29 +157,32 @@ impl BamlVisDiagramGenerator {
         }
         // Sort markdown children for each parent by source position
         for children in markdown_children.values_mut() {
-            children.sort_by_key(|h| (h.span.file.path().to_string(), h.span.start));
+            children.sort_by(|a, b| {
+                a.span
+                    .file
+                    .path_buf()
+                    .cmp(b.span.file.path_buf())
+                    .then(a.span.start.cmp(&b.span.start))
+            });
         }
 
-        // Determine top-level scopes as those scope roots that are not nested targets
-        // Render all scopes (including nested) starting from top-level ones, and allow
-        // nested scopes to be drawn inside the parent's markdown container when possible.
-        let mut top_scopes_ordered: BTreeMap<(String, u32, u32), ScopeId> = BTreeMap::new();
-        for (_scope, root_id) in &index.scope_root_header {
-            if !nested_targets.contains(root_id.as_str()) {
-                if let Some(root) = index.find_by_id(root_id) {
-                    top_scopes_ordered.insert(
-                        (
-                            root.span.file.path().to_string(),
-                            root.span.start as u32,
-                            root.span.end as u32,
-                        ),
-                        root.scope,
-                    );
+        // Determine top-level scopes: those whose root is not a nested target
+        // Collect scopes present
+        let mut top_scopes: Vec<(&std::path::Path, usize, usize, ScopeId)> = Vec::new();
+        let mut seen_scopes: HashSet<ScopeId> = HashSet::new();
+        for h in &index.headers {
+            if seen_scopes.insert(h.scope) {
+                if let Some(root) = index.headers_in_scope_iter(h.scope).next() {
+                    if !nested_targets.contains(root.id.as_str()) {
+                        let p = root.span.file.path_buf().as_path();
+                        top_scopes.push((p, root.span.start, root.span.end, root.scope));
+                    }
                 }
             }
         }
+        top_scopes.sort_by(|a, b| a.0.cmp(b.0).then(a.1.cmp(&b.1)).then(a.2.cmp(&b.2)));
 
-        for (_k, scope) in top_scopes_ordered {
+        for (_p, _s, _e, scope) in top_scopes {
             self.render_scope_sequence(
                 index,
                 scope,
@@ -206,12 +211,17 @@ impl BamlVisDiagramGenerator {
         }
         // Collect root headers in this scope (those without markdown parents)
         let mut items: Vec<&RenderableHeader> = index
-            .headers_in_scope(scope)
-            .into_iter()
+            .headers_in_scope_iter(scope)
             .filter(|h| !has_markdown_parent.contains(h.id.as_str()))
             .collect();
         // Sort by source order for stability
-        items.sort_by_key(|h| (h.span.file.path().to_string(), h.span.start));
+        items.sort_by(|a, b| {
+            a.span
+                .file
+                .path_buf()
+                .cmp(b.span.file.path_buf())
+                .then(a.span.start.cmp(&b.span.start))
+        });
 
         // Materialize items into visual ids (node or subgraph ids)
         let mut visual_ids: Vec<String> = Vec::new();
@@ -234,10 +244,10 @@ impl BamlVisDiagramGenerator {
                 let next = &visual_ids[i + 1];
                 if let Some(branch_ends) = self.branch_endpoints.get(cur).cloned() {
                     for end_id in branch_ends {
-                        self.connect_sequence(&vec![end_id.clone(), next.clone()], 0);
+                        self.connect_pair(&end_id, next, 0);
                     }
                 } else {
-                    self.connect_sequence(&vec![cur.clone(), next.clone()], 0);
+                    self.connect_pair(cur, next, 0);
                 }
             }
         }
@@ -255,6 +265,9 @@ impl BamlVisDiagramGenerator {
         markdown_children: &HashMap<&str, Vec<&RenderableHeader>>,
         has_markdown_parent: &HashSet<&str>,
     ) -> String {
+        if let Some(rep) = self.header_rep_cache.get(header.id.as_str()) {
+            return rep.clone();
+        }
         let has_md_children = markdown_children
             .get(header.id.as_str())
             .map(|v| !v.is_empty())
@@ -266,18 +279,17 @@ impl BamlVisDiagramGenerator {
         let has_nested_children = !nested_children.is_empty();
         let is_if_label = header.label_kind == HeaderLabelKind::If;
         let is_branching = is_if_label && nested_children.len() >= 1;
-        let is_top_level_scope = matches!(
-            index.scope_kind.get(&header.scope),
-            Some(ScopeKind::TopLevel)
-        );
+        let _is_top_level_scope = false; // simplified: no special top-level handling
 
         if !has_md_children && !has_nested_children {
             // Simple leaf node: container context (if any) will handle call rendering
-            return if is_if_label {
+            let rep = if is_if_label {
                 self.ensure_decision_node(index, header)
             } else {
                 self.ensure_node_styled(index, header)
             };
+            self.header_rep_cache.insert(header.id.clone(), rep.clone());
+            return rep;
         }
 
         // Flatten rule: if a non-branching container has only one (or zero) child,
@@ -295,7 +307,7 @@ impl BamlVisDiagramGenerator {
             if let Some(child_id) = nested_children.get(0) {
                 if let Some(child_root) = by_id.get(*child_id) {
                     let child_scope = child_root.scope;
-                    let num_in_child_scope = index.headers_in_scope(child_scope).len();
+                    let num_in_child_scope = index.headers_in_scope_iter(child_scope).count();
                     if num_in_child_scope > 1 {
                         single_nested_child_has_multiple_items = true;
                     }
@@ -306,7 +318,6 @@ impl BamlVisDiagramGenerator {
         let total_children = md_children_count + nested_children_count;
         let should_flatten = !is_branching
             && total_children <= MAX_CHILDREN_TO_FLATTEN
-            && !(is_top_level_scope && total_children >= 1)
             && !(nested_children_count == 1 && single_nested_child_has_multiple_items);
 
         if should_flatten {
@@ -332,10 +343,7 @@ impl BamlVisDiagramGenerator {
                             markdown_children,
                             has_markdown_parent,
                         );
-                        self.connect_sequence(
-                            &vec![parent_rep_id.clone(), child_rep_id.clone()],
-                            0,
-                        );
+                        self.connect_pair(&parent_rep_id, &child_rep_id, 0);
                         let endpoints = self
                             .branch_endpoints
                             .get(&child_rep_id)
@@ -368,17 +376,15 @@ impl BamlVisDiagramGenerator {
                             markdown_children,
                             has_markdown_parent,
                         );
-                        self.connect_sequence(
-                            &vec![parent_rep_id.clone(), start_rep_id.clone()],
-                            0,
-                        );
+                        self.connect_pair(&parent_rep_id, &start_rep_id, 0);
 
                         // Render calls for the child at the current scope level anchored to its rep id
                         self.render_calls_for_header(index, child_root, None, &start_rep_id, 0);
 
                         // Determine the terminal representative in the child scope
                         // Determine the terminal representative in the child scope
-                        let scope_headers = index.headers_in_scope(child_scope);
+                        let scope_headers: Vec<&RenderableHeader> =
+                            index.headers_in_scope_iter(child_scope).collect();
                         if let Some(last_hdr) = scope_headers.last() {
                             // Use the child's own endpoints if any; otherwise, its rep id
                             let last_rep = self.render_header_with_hierarchy(
@@ -404,6 +410,8 @@ impl BamlVisDiagramGenerator {
                 }
             }
 
+            self.header_rep_cache
+                .insert(header.id.clone(), parent_rep_id.clone());
             return parent_rep_id;
         }
 
@@ -459,7 +467,7 @@ impl BamlVisDiagramGenerator {
                             has_markdown_parent,
                         );
                         // Connect decision node -> branch start
-                        self.connect_sequence(&vec![decision_id.clone(), start_rep_id.clone()], 4);
+                        self.connect_pair(&decision_id, &start_rep_id, 4);
 
                         // Render calls for the branch root header inside this container
                         self.render_calls_for_header(
@@ -471,7 +479,8 @@ impl BamlVisDiagramGenerator {
                         );
 
                         // Compute outward endpoints for this branch scope: from last header's rep id
-                        let scope_headers = index.headers_in_scope(child_scope);
+                        let scope_headers: Vec<&RenderableHeader> =
+                            index.headers_in_scope_iter(child_scope).collect();
                         if let Some(last_hdr) = scope_headers.last() {
                             let last_rep = self.render_header_with_hierarchy(
                                 index,
@@ -493,7 +502,11 @@ impl BamlVisDiagramGenerator {
 
                 // Now render markdown children for this header and connect them linearly
                 // Track both rep ids and headers to avoid re-emitting style when rendering call nodes
-                let mut md_rep_and_headers: Vec<(String, String, &RenderableHeader)> = Vec::new();
+                let mut md_rep_and_headers: Vec<(
+                    (&std::path::Path, usize),
+                    String,
+                    &RenderableHeader,
+                )> = Vec::new();
                 if let Some(md_children) = markdown_children.get(header.id.as_str()) {
                     for ch in md_children.iter() {
                         let rep_id = self.render_header_with_hierarchy(
@@ -504,7 +517,7 @@ impl BamlVisDiagramGenerator {
                             markdown_children,
                             has_markdown_parent,
                         );
-                        let pos_key = format!("{}:{:010}", ch.span.file.path(), ch.span.start);
+                        let pos_key = (ch.span.file.path_buf().as_path(), ch.span.start);
                         md_rep_and_headers.push((pos_key, rep_id, *ch));
                     }
                 }
@@ -519,10 +532,10 @@ impl BamlVisDiagramGenerator {
                     let first_md = md_ids_only[0].clone();
                     if !branch_last_ids.is_empty() {
                         for end_id in branch_last_ids.iter().cloned() {
-                            self.connect_sequence(&vec![end_id, first_md.clone()], 4);
+                            self.connect_pair(&end_id, &first_md, 4);
                         }
                     } else {
-                        self.connect_sequence(&vec![decision_id.clone(), first_md.clone()], 4);
+                        self.connect_pair(&decision_id, &first_md, 4);
                     }
                     // Connect markdown children linearly
                     if md_ids_only.len() >= 2 {
@@ -531,10 +544,10 @@ impl BamlVisDiagramGenerator {
                             let next = &md_ids_only[i + 1];
                             if let Some(branch_ends) = self.branch_endpoints.get(cur).cloned() {
                                 for end_id in branch_ends {
-                                    self.connect_sequence(&vec![end_id.clone(), next.clone()], 4);
+                                    self.connect_pair(&end_id, next, 4);
                                 }
                             } else {
-                                self.connect_sequence(&vec![cur.clone(), next.clone()], 4);
+                                self.connect_pair(cur, next, 4);
                             }
                         }
                     }
@@ -563,6 +576,8 @@ impl BamlVisDiagramGenerator {
                 self.content.push("  end".to_string());
             }
 
+            self.header_rep_cache
+                .insert(header.id.clone(), decision_id.clone());
             return decision_id;
         }
 
@@ -586,7 +601,11 @@ impl BamlVisDiagramGenerator {
             self.content.push("    direction LR".to_string());
 
             // 1) Render markdown children and connect them linearly to reflect markdown hierarchy
-            let mut md_rep_and_headers: Vec<(String, String, &RenderableHeader)> = Vec::new();
+            let mut md_rep_and_headers: Vec<(
+                (&std::path::Path, usize),
+                String,
+                &RenderableHeader,
+            )> = Vec::new();
             if let Some(md_children) = markdown_children.get(header.id.as_str()) {
                 for ch in md_children.iter() {
                     let rep_id = self.render_header_with_hierarchy(
@@ -597,7 +616,7 @@ impl BamlVisDiagramGenerator {
                         markdown_children,
                         has_markdown_parent,
                     );
-                    let pos_key = format!("{}:{:010}", ch.span.file.path(), ch.span.start);
+                    let pos_key = (ch.span.file.path_buf().as_path(), ch.span.start);
                     md_rep_and_headers.push((pos_key, rep_id, *ch));
                 }
             }
@@ -614,24 +633,33 @@ impl BamlVisDiagramGenerator {
                     let next = &md_ids_only[i + 1];
                     if let Some(branch_ends) = self.branch_endpoints.get(cur).cloned() {
                         for end_id in branch_ends {
-                            self.connect_sequence(&vec![end_id.clone(), next.clone()], 4);
+                            self.connect_pair(&end_id, next, 4);
                         }
                     } else {
-                        self.connect_sequence(&vec![cur.clone(), next.clone()], 4);
+                        self.connect_pair(cur, next, 4);
                     }
                 }
             }
 
             // 2) Render nested child scopes (e.g., loop bodies) and collect their start reps and end endpoints
-            let mut nested_rep_with_pos: Vec<(String, String, Vec<String>, &RenderableHeader)> =
-                Vec::new();
+            let mut nested_rep_with_pos: Vec<(
+                (&std::path::Path, usize),
+                String,
+                Vec<String>,
+                &RenderableHeader,
+            )> = Vec::new();
             if let Some(nested_child_ids) = container_to_children.get(header.id.as_str()) {
                 let mut nested_children_headers: Vec<&RenderableHeader> = nested_child_ids
                     .iter()
                     .filter_map(|cid| by_id.get(*cid).copied())
                     .collect();
-                nested_children_headers
-                    .sort_by_key(|h| (h.span.file.path().to_string(), h.span.start));
+                nested_children_headers.sort_by(|a, b| {
+                    a.span
+                        .file
+                        .path_buf()
+                        .cmp(b.span.file.path_buf())
+                        .then(a.span.start.cmp(&b.span.start))
+                });
 
                 for child_root in nested_children_headers {
                     let child_scope = child_root.scope;
@@ -652,13 +680,13 @@ impl BamlVisDiagramGenerator {
                         markdown_children,
                         has_markdown_parent,
                     );
-                    let pos_key = format!(
-                        "{}:{:010}",
-                        child_root.span.file.path(),
-                        child_root.span.start
+                    let pos_key = (
+                        child_root.span.file.path_buf().as_path(),
+                        child_root.span.start,
                     );
                     // Determine end endpoints for this nested child scope (last header's rep or its endpoints)
-                    let scope_headers = index.headers_in_scope(child_scope);
+                    let scope_headers: Vec<&RenderableHeader> =
+                        index.headers_in_scope_iter(child_scope).collect();
                     let end_endpoints: Vec<String> = if let Some(last_hdr) = scope_headers.last() {
                         let last_rep = self.render_header_with_hierarchy(
                             index,
@@ -695,17 +723,17 @@ impl BamlVisDiagramGenerator {
 
             // Render any calls associated with this header within the container, anchored to the container's first internal rep id
             // Determine first rep id and outward endpoints across markdown and nested children
-            let mut all_items: Vec<(String, String, Vec<String>)> = Vec::new();
+            let mut all_items: Vec<((&std::path::Path, usize), String, Vec<String>)> = Vec::new();
             for (pos, id, _h) in md_rep_and_headers.iter() {
                 let endpoints = self
                     .branch_endpoints
                     .get(id)
                     .cloned()
                     .unwrap_or_else(|| vec![id.clone()]);
-                all_items.push((pos.clone(), id.clone(), endpoints));
+                all_items.push((*pos, id.clone(), endpoints));
             }
             for (pos, start_id, end_endpoints, _h) in nested_rep_with_pos.iter() {
-                all_items.push((pos.clone(), start_id.clone(), end_endpoints.clone()));
+                all_items.push((*pos, start_id.clone(), end_endpoints.clone()));
             }
             all_items.sort_by(|a, b| a.0.cmp(&b.0));
 
@@ -733,6 +761,9 @@ impl BamlVisDiagramGenerator {
             // Propagate container endpoints outward: from first internal rep id to the last's endpoints
             self.branch_endpoints
                 .insert(container_first_rep_id.clone(), outward_endpoints);
+            // Cache before returning
+            self.header_rep_cache
+                .insert(header.id.clone(), container_first_rep_id.clone());
             // Return the first internal representative id as the container's rep id
             return container_first_rep_id;
         }
@@ -743,7 +774,7 @@ impl BamlVisDiagramGenerator {
             .get(header.id.as_str())
             .and_then(|v| v.first().copied())
         {
-            return self.render_header_with_hierarchy(
+            let rep = self.render_header_with_hierarchy(
                 index,
                 first_md,
                 by_id,
@@ -751,6 +782,8 @@ impl BamlVisDiagramGenerator {
                 markdown_children,
                 has_markdown_parent,
             );
+            self.header_rep_cache.insert(header.id.clone(), rep.clone());
+            return rep;
         }
         // Otherwise, if there are nested children, use the first one's representative
         if let Some(first_nested_id) = container_to_children
@@ -758,7 +791,7 @@ impl BamlVisDiagramGenerator {
             .and_then(|v| v.first().copied())
         {
             if let Some(child_root) = by_id.get(first_nested_id) {
-                return self.render_header_with_hierarchy(
+                let rep = self.render_header_with_hierarchy(
                     index,
                     child_root,
                     by_id,
@@ -766,10 +799,14 @@ impl BamlVisDiagramGenerator {
                     markdown_children,
                     has_markdown_parent,
                 );
+                self.header_rep_cache.insert(header.id.clone(), rep.clone());
+                return rep;
             }
         }
         // Fallback
-        self.ensure_node_styled(index, header)
+        let rep = self.ensure_node_styled(index, header);
+        self.header_rep_cache.insert(header.id.clone(), rep.clone());
+        rep
     }
 
     /// Ensure a simple node exists for the header and return its id.
@@ -787,16 +824,7 @@ impl BamlVisDiagramGenerator {
     /// Ensure a simple node with class based on scope kind
     fn ensure_node_styled(&mut self, index: &HeaderIndex, header: &RenderableHeader) -> String {
         let id = self.ensure_node(header);
-        if let Some(kind) = index.scope_kind.get(&header.scope) {
-            match kind {
-                ScopeKind::ForBody => {
-                    if self.styled_node_ids.insert(id.clone()) {
-                        self.content.push(format!("  class {} loopContainer;", id));
-                    }
-                }
-                _ => {}
-            }
-        }
+        // styling based on scope kind removed in simplified model
         id
     }
 
@@ -810,8 +838,10 @@ impl BamlVisDiagramGenerator {
         // Rhombus node: use {label} in Mermaid
         self.content
             .push(format!("  {}{{\"{}\"}}", id, escape_label(&header.title)));
-        // Apply decisionNode class
-        self.content.push(format!("  class {} decisionNode;", id));
+        // Apply decisionNode class once
+        if self.styled_node_ids.insert(id.clone()) {
+            self.content.push(format!("  class {} decisionNode;", id));
+        }
         id
     }
 
@@ -826,19 +856,11 @@ impl BamlVisDiagramGenerator {
         id
     }
 
-    /// Connect a sequence of ids linearly with `-->` at given indent level (spaces).
-    fn connect_sequence(&mut self, ids: &[String], indent_spaces: usize) {
-        if ids.len() < 2 {
-            return;
-        }
+    /// Connect a single pair of ids without allocating a temporary Vec
+    fn connect_pair(&mut self, a: &str, b: &str, indent_spaces: usize) {
         let indent = " ".repeat(indent_spaces);
-        for pair in ids.windows(2) {
-            let a = &pair[0];
-            let b = &pair[1];
-            // Avoid emitting duplicate edges
-            if self.emitted_edges.insert((a.clone(), b.clone())) {
-                self.content.push(format!("{}{} --> {}", indent, a, b));
-            }
+        if self.emitted_edges.insert((a.to_string(), b.to_string())) {
+            self.content.push(format!("{}{} --> {}", indent, a, b));
         }
     }
 
@@ -868,7 +890,7 @@ impl BamlVisDiagramGenerator {
         if !SHOW_CALL_NODES {
             return;
         }
-        if let Some(callees) = index.header_calls.get(&header.id) {
+        if let Some(callees) = index.header_calls.get(&header.hid) {
             for callee in callees {
                 let call_node_id = if let Some(_container_id) = container_subgraph_id {
                     // Deduplicate per header within a container, not across different headers
@@ -910,10 +932,7 @@ impl BamlVisDiagramGenerator {
                     }
                 };
                 // Reverse: function (callee) -> header (caller)
-                self.connect_sequence(
-                    &vec![call_node_id, header_rep_id.to_string()],
-                    indent_spaces,
-                );
+                self.connect_pair(&call_node_id, header_rep_id, indent_spaces);
             }
         }
     }

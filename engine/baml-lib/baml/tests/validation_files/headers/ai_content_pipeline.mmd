@@ -1,0 +1,51 @@
+flowchart LR
+  subgraph sg0["AI Content Pipeline"]
+    direction LR
+  subgraph sg1["Fetch Resources"]
+    direction LR
+  n2["Retrieve Emails and Posts from Database"]
+  n3["Process and Load Video"]
+    n2 --> n3
+  end
+  subgraph sg4["Generate Content"]
+    direction LR
+  n6{"Video Summarization"}
+  class n6 decisionNode;
+  subgraph sg5["Video Summarization"]
+    direction LR
+  subgraph sg7["Generate Summary"]
+    direction LR
+  n8["Create Summary Text"]
+  n9["Label Summary Category"]
+    n8 --> n9
+  end
+  n10["Save Summary"]
+n9 --> n10
+    n6 --> n8
+  n11["Skip Summarization"]
+    n6 --> n11
+  end
+  subgraph sg12["Generate Drafts for Posts"]
+    direction LR
+  n13["Get Content Type and Generate Draft"]
+  n14["Save Draft"]
+n13 --> n14
+  end
+    n10 --> n13
+    n11 --> n13
+  end
+  n16{"Prepare Pull Request"}
+  class n16 decisionNode;
+  subgraph sg15["Prepare Pull Request"]
+    direction LR
+  n17["Create GitHub PR"]
+    n16 --> n17
+  n18["Missing Summary"]
+    n16 --> n18
+  end
+  n19["Complete"]
+n3 --> n6
+n14 --> n16
+n17 --> n19
+n18 --> n19
+  end

@@ -59,13 +59,20 @@ pub struct ForLoopStmt {
     pub annotations: Vec<std::sync::Arc<Header>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ExprStmt {
+    pub expr: Expression,
+    pub annotations: Vec<std::sync::Arc<Header>>,
+    pub span: Span,
+}
+
 // Stmt(statements) perform actions and not often return values.
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Let(LetStmt),
     ForLoop(ForLoopStmt),
     /// Expression with trailing semicolon.
-    Expression(Expression),
+    Expression(ExprStmt),
     Assign(AssignStmt),
     AssignOp(AssignOpStmt),
 }
@@ -99,7 +106,7 @@ impl fmt::Display for Stmt {
         match self {
             Stmt::Let(stmt) => write!(f, "let {} = {}", stmt.identifier, stmt.expr)?,
             Stmt::ForLoop(stmt) => write!(f, "for {} in {}", stmt.identifier, stmt.iterator)?,
-            Stmt::Expression(expr) => write!(f, "{expr}")?,
+            Stmt::Expression(es) => write!(f, "{}", es.expr)?,
             Stmt::Assign(stmt) => write!(f, "{} = {}", stmt.identifier, stmt.expr)?,
             Stmt::AssignOp(stmt) => {
                 write!(f, "{} {} {}", stmt.identifier, stmt.assign_op, stmt.expr)?
@@ -121,8 +128,8 @@ impl Stmt {
                 stmt1.iterator.assert_eq_up_to_span(&stmt2.iterator);
                 stmt1.body.assert_eq_up_to_span(&stmt2.body);
             }
-            (Stmt::Expression(expr1), Stmt::Expression(expr2)) => {
-                expr1.assert_eq_up_to_span(expr2);
+            (Stmt::Expression(es1), Stmt::Expression(es2)) => {
+                es1.expr.assert_eq_up_to_span(&es2.expr);
             }
 
             (Stmt::Assign(stmt1), Stmt::Assign(stmt2)) => {
@@ -139,7 +146,7 @@ impl Stmt {
         match self {
             Stmt::Let(stmt) => &stmt.identifier,
             Stmt::ForLoop(stmt) => &stmt.identifier,
-            Stmt::Expression(expr) => panic!("expressions don't have identifiers"),
+            Stmt::Expression(_es) => panic!("expressions don't have identifiers"),
             Stmt::Assign(stmt) => &stmt.identifier,
             Stmt::AssignOp(stmt) => &stmt.identifier,
         }
@@ -149,7 +156,7 @@ impl Stmt {
         match self {
             Stmt::Let(stmt) => &stmt.span,
             Stmt::ForLoop(stmt) => &stmt.span,
-            Stmt::Expression(expr) => expr.span(),
+            Stmt::Expression(es) => &es.span,
             Stmt::Assign(stmt) => &stmt.span,
             Stmt::AssignOp(stmt) => &stmt.span,
         }

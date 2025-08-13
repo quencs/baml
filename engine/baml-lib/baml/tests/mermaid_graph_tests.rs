@@ -57,31 +57,43 @@ fn headers_mermaid_snapshots() {
                     let got_err = diags.to_pretty_string();
                     let mut exp_path = path.clone();
                     exp_path.set_extension("err");
-                    if std::env::var("UPDATE").ok().as_deref() == Some("1") {
-                        fs::write(&exp_path, got_err).unwrap();
-                        println!("[mermaid] {:<12} | {}", "UPDATED(err)", rel_name);
+                    if rel_name != "invalid.baml" {
+                        eprintln!("[mermaid] {:<12} | {}", "FAIL(unexpected-error)", rel_name);
+                        eprintln!("{}", normalize(&got_err));
+                        failed += 1;
                         ran += 1;
-                        updated += 1;
                         continue;
-                    }
-                    match fs::read_to_string(&exp_path) {
-                        Ok(expected) => {
-                            let got_n = normalize(&got_err);
-                            let exp_n = normalize(&expected);
-                            if got_n == exp_n {
-                                println!("[mermaid] {:<12} | {}", "PASS(err)", rel_name);
-                                passed += 1;
-                                ran += 1;
-                            } else {
-                                eprintln!("[mermaid] {:<12} | {}", "FAIL(err)", rel_name);
-                                failed += 1;
-                                assert_eq!(got_n, exp_n, "mismatch in {}", rel_name);
-                            }
-                        }
-                        Err(_) => {
-                            eprintln!("[mermaid] {:<12} | {}", "SKIP(err-expect)", rel_name);
-                            missing_expect += 1;
+                    } else {
+                        if std::env::var("UPDATE").ok().as_deref() == Some("1") {
+                            fs::write(&exp_path, got_err).unwrap();
+                            println!("[mermaid] {:<12} | {}", "UPDATED(err)", rel_name);
+                            ran += 1;
+                            updated += 1;
                             continue;
+                        }
+                        match fs::read_to_string(&exp_path) {
+                            Ok(expected) => {
+                                let got_n = normalize(&got_err);
+                                let exp_n = normalize(&expected);
+                                if got_n == exp_n {
+                                    println!("[mermaid] {:<12} | {}", "PASS(err)", rel_name);
+                                    passed += 1;
+                                    ran += 1;
+                                } else {
+                                    eprintln!("[mermaid] {:<12} | {}", "FAIL(err)", rel_name);
+                                    eprintln!("EXPECTED ({}):\n{}\n---", rel_name, exp_n);
+                                    eprintln!("GOT      ({}):\n{}\n---", rel_name, got_n);
+                                    failed += 1;
+                                    ran += 1;
+                                    continue;
+                                }
+                            }
+                            Err(_) => {
+                                eprintln!("[mermaid] {:<12} | {}", "FAIL(err-noexpect)", rel_name);
+                                failed += 1;
+                                ran += 1;
+                                continue;
+                            }
                         }
                     }
                 } else {
@@ -108,7 +120,9 @@ fn headers_mermaid_snapshots() {
                                 eprintln!("[mermaid] {:<12} | {}", "FAIL", rel_name);
                                 eprintln!("EXPECTED ({}):\n{}\n---", rel_name, exp_n);
                                 eprintln!("GOT      ({}):\n{}\n---", rel_name, got_n);
-                                panic!("mismatch in {}", rel_name);
+                                failed += 1;
+                                ran += 1;
+                                continue;
                             }
                         }
                         Err(_) => {
@@ -125,32 +139,43 @@ fn headers_mermaid_snapshots() {
                 let got_err = diags.to_pretty_string();
                 let mut exp_path = path.clone();
                 exp_path.set_extension("err");
-                if std::env::var("UPDATE").ok().as_deref() == Some("1") {
-                    fs::write(&exp_path, got_err).unwrap();
-                    println!("[mermaid] {:<12} | {}", "UPDATED(err)", rel_name);
+                if rel_name != "invalid.baml" {
+                    eprintln!("[mermaid] {:<12} | {}", "FAIL(unexpected-error)", rel_name);
+                    eprintln!("{}", normalize(&got_err));
+                    failed += 1;
                     ran += 1;
-                    updated += 1;
                     continue;
-                }
-                match fs::read_to_string(&exp_path) {
-                    Ok(expected) => {
-                        let got_n = normalize(&got_err);
-                        let exp_n = normalize(&expected);
-                        if got_n == exp_n {
-                            println!("[mermaid] {:<12} | {}", "PASS(err)", rel_name);
-                            passed += 1;
-                            ran += 1;
-                        } else {
-                            eprintln!("[mermaid] {:<12} | {}", "FAIL(err)", rel_name);
-                            eprintln!("EXPECTED ({}):\n{}\n---", rel_name, exp_n);
-                            eprintln!("GOT      ({}):\n{}\n---", rel_name, got_n);
-                            panic!("mismatch in {}", rel_name);
-                        }
-                    }
-                    Err(_) => {
-                        eprintln!("[mermaid] {:<12} | {}", "SKIP(err-expect)", rel_name);
-                        missing_expect += 1;
+                } else {
+                    if std::env::var("UPDATE").ok().as_deref() == Some("1") {
+                        fs::write(&exp_path, got_err).unwrap();
+                        println!("[mermaid] {:<12} | {}", "UPDATED(err)", rel_name);
+                        ran += 1;
+                        updated += 1;
                         continue;
+                    }
+                    match fs::read_to_string(&exp_path) {
+                        Ok(expected) => {
+                            let got_n = normalize(&got_err);
+                            let exp_n = normalize(&expected);
+                            if got_n == exp_n {
+                                println!("[mermaid] {:<12} | {}", "PASS(err)", rel_name);
+                                passed += 1;
+                                ran += 1;
+                            } else {
+                                eprintln!("[mermaid] {:<12} | {}", "FAIL(err)", rel_name);
+                                eprintln!("EXPECTED ({}):\n{}\n---", rel_name, exp_n);
+                                eprintln!("GOT      ({}):\n{}\n---", rel_name, got_n);
+                                failed += 1;
+                                ran += 1;
+                                continue;
+                            }
+                        }
+                        Err(_) => {
+                            eprintln!("[mermaid] {:<12} | {}", "FAIL(err-noexpect)", rel_name);
+                            failed += 1;
+                            ran += 1;
+                            continue;
+                        }
                     }
                 }
             }
@@ -158,6 +183,11 @@ fn headers_mermaid_snapshots() {
     }
 
     assert!(ran > 0, "no valid fixtures were executed in {}", ROOT);
+    assert!(
+        failed == 0,
+        "{} fixtures failed; see output for details",
+        failed
+    );
     println!("[mermaid] Summary");
     println!("  ran:     {}", ran);
     println!("  pass:    {}", passed);

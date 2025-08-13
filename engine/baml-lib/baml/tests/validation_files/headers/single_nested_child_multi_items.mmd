@@ -1,12 +1,7 @@
 flowchart LR
   subgraph sg0["Parent"]
     direction LR
-  subgraph sg1["loop 1"]
-    direction LR
-  n2["First"]
-  class n2 loopContainer;
-  n3["Second"]
-  class n3 loopContainer;
-n2 --> n3
-  end
+  n1["First"]
+  n2["Second"]
+n1 --> n2
   end

@@ -1,3 +1,4 @@
+
 # Main Function
 fn ComplexHeaderTest() -> string {
     # Initialization
@@ -30,14 +31,14 @@ fn ComplexHeaderTest() -> string {
         };
 
         ## very useful header
-        let hello = "Hello";
+        let hello2 = "Hello";
 
         ### Result
         result
     }
     
     # Final Processing
-    let final_result = result.reverse();
+    let final_result = 213;
     
     # Return Result
     final_result

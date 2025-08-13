@@ -1,15 +1,12 @@
 flowchart LR
-  subgraph sg0["BasicSections"]
+  subgraph sg0["Main Processing"]
     direction LR
-  subgraph sg1["Main Processing"]
+  n1["Generate Summary"]
+  subgraph sg2["Make Space"]
     direction LR
-  n2["Generate Summary"]
-  subgraph sg3["Make Space"]
-    direction LR
-  n4["Prepare Final Output"]
-  n5["Final Output"]
-    n4 --> n5
+  n3["Prepare Final Output"]
+  n4["Final Output"]
+    n3 --> n4
   end
-    n2 --> n4
-  end
+    n1 --> n3
   end

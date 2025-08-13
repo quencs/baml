@@ -1,15 +1,13 @@
 flowchart LR
-  subgraph sg0["NestedScopes"]
+  subgraph sg0["Top Level"]
     direction LR
-  n1["Top Level"]
-  n3{"First Section"}
-  class n3 decisionNode;
-  subgraph sg2["First Section"]
+  n2{"First Section"}
+  class n2 decisionNode;
+  subgraph sg1["First Section"]
     direction LR
-  n4["Inside If Block"]
-    n3 --> n4
-  n5["Inside Else Block"]
-    n3 --> n5
+  n3["Inside If Block"]
+    n2 --> n3
+  n4["Inside Else Block"]
+    n2 --> n4
   end
-n1 --> n3
   end
