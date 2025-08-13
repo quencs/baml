@@ -298,8 +298,34 @@ impl<'g> HirCompiler<'g> {
                 self.track_local(name);
             }
 
-            hir::Statement::Assign { name, value } => {
+            hir::Statement::Assign { name, value, .. } => {
                 self.compile_expression(value);
+                self.emit(Instruction::StoreVar(self.locals[name]));
+            }
+
+            hir::Statement::AssignOp {
+                name,
+                value,
+                assign_op,
+                ..
+            } => {
+                self.emit(Instruction::LoadVar(self.locals[name]));
+                self.compile_expression(value);
+
+                self.emit(match assign_op {
+                    hir::AssignOp::AddAssign => Instruction::BinOp(BinOp::Add),
+                    hir::AssignOp::SubAssign => Instruction::BinOp(BinOp::Sub),
+                    hir::AssignOp::MulAssign => Instruction::BinOp(BinOp::Mul),
+                    hir::AssignOp::DivAssign => Instruction::BinOp(BinOp::Div),
+                    hir::AssignOp::ModAssign => Instruction::BinOp(BinOp::Mod),
+
+                    hir::AssignOp::BitAndAssign => Instruction::BinOp(BinOp::BitAnd),
+                    hir::AssignOp::BitOrAssign => Instruction::BinOp(BinOp::BitOr),
+                    hir::AssignOp::BitXorAssign => Instruction::BinOp(BinOp::BitXor),
+                    hir::AssignOp::ShlAssign => Instruction::BinOp(BinOp::Shl),
+                    hir::AssignOp::ShrAssign => Instruction::BinOp(BinOp::Shr),
+                });
+
                 self.emit(Instruction::StoreVar(self.locals[name]));
             }
 
@@ -1509,6 +1535,31 @@ mod tests {
                     Instruction::LoadConst(0),
                     Instruction::LoadConst(1),
                     Instruction::BinOp(BinOp::Add),
+                    Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn basic_assign_add() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn main() -> int {
+                    let mut x = 1;
+                    x += 2;
+                    x
+                }
+            "#,
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(1),
+                    Instruction::LoadConst(1),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(1),
                     Instruction::LoadVar(1),
                     Instruction::Return,
                 ],
