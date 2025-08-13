@@ -33,7 +33,8 @@ pub use baml_vis::BamlVisDiagramGenerator;
 pub use config::ConfigBlockProperty;
 pub use expr::{ExprFn, TopLevelAssignment};
 pub use expression::{
-    ClassConstructor, ClassConstructorField, Expression, ExpressionBlock, RawString,
+    BinaryOperator, ClassConstructor, ClassConstructorField, Expression, ExpressionBlock,
+    RawString, UnaryOperator,
 };
 pub use field::{Field, FieldArity, FieldType};
 pub use header_collector::{HeaderCollector, HeaderIndex, RenderableHeader, ScopeId};
@@ -42,7 +43,7 @@ pub use indentation_type::IndentationType;
 pub use internal_baml_diagnostics::Span;
 pub use mermaid_debug::MermaidDiagramGenerator;
 pub use newline_type::NewlineType;
-pub use stmt::{ForLoopStmt, Header, LetStmt, Stmt};
+pub use stmt::{AssignOp, AssignOpStmt, AssignStmt, ForLoopStmt, Header, LetStmt, Stmt};
 pub use template_string::TemplateString;
 pub use top::Top;
 pub use traits::{WithAttributes, WithDocumentation, WithIdentifier, WithName, WithSpan};

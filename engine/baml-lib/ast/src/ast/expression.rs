@@ -127,7 +127,105 @@ pub enum Expression {
         Option<Box<Expression>>,
         Span,
     ),
-    Not(Box<Expression>, Span),
+    /// Array/Map access, e.g. `arr[0]` or `map["key"]`
+    ArrayAccess(Box<Expression>, Box<Expression>, Span),
+    /// Field access, e.g. `obj.field`
+    FieldAccess(Box<Expression>, Identifier, Span),
+    /// Any form of binary operation.
+    BinaryOperation {
+        left: Box<Expression>,
+        operator: BinaryOperator,
+        right: Box<Expression>,
+        span: Span,
+    },
+    /// Any form of unary operation.
+    UnaryOperation {
+        operator: UnaryOperator,
+        expr: Box<Expression>,
+        span: Span,
+    },
+    // No-op, just so we can keep track of parenthesis (Pratt Parser discards them).
+    Paren(Box<Expression>, Span),
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum BinaryOperator {
+    /// The `==` operator (equal).
+    Eq,
+    /// The `!=` operator (not equal).
+    Neq,
+    /// The `<` operator (less than).
+    Lt,
+    /// The `<=` operator (less than or equal).
+    LtEq,
+    /// The `>` operator (greater than).
+    Gt,
+    /// The `>=` operator (greater than or equal).
+    GtEq,
+    /// The `+` operator (addition).
+    Add,
+    /// The `-` operator (subtraction).
+    Sub,
+    /// The `*` operator (multiplication).
+    Mul,
+    /// The `/` operator (division).
+    Div,
+    /// The `%` operator (modulus).
+    Mod,
+    /// The `&` operator (bitwise and).
+    BitAnd,
+    /// The `|` operator (bitwise or).
+    BitOr,
+    /// The `^` operator (bitwise xor).
+    BitXor,
+    /// The `<<` operator (shift left).
+    Shl,
+    /// The `>>` operator (shift right).
+    Shr,
+    /// The `&&` operator (logical and).
+    And,
+    /// The `||` operator (logical or).
+    Or,
+}
+
+impl fmt::Display for BinaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BinaryOperator::Eq => write!(f, "=="),
+            BinaryOperator::Neq => write!(f, "!="),
+            BinaryOperator::Lt => write!(f, "<"),
+            BinaryOperator::LtEq => write!(f, "<="),
+            BinaryOperator::Gt => write!(f, ">"),
+            BinaryOperator::GtEq => write!(f, ">="),
+            BinaryOperator::Add => write!(f, "+"),
+            BinaryOperator::Sub => write!(f, "-"),
+            BinaryOperator::Mul => write!(f, "*"),
+            BinaryOperator::Div => write!(f, "/"),
+            BinaryOperator::Mod => write!(f, "%"),
+            BinaryOperator::BitAnd => write!(f, "&"),
+            BinaryOperator::BitOr => write!(f, "|"),
+            BinaryOperator::BitXor => write!(f, "^"),
+            BinaryOperator::Shl => write!(f, "<<"),
+            BinaryOperator::Shr => write!(f, ">>"),
+            BinaryOperator::And => write!(f, "&&"),
+            BinaryOperator::Or => write!(f, "||"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum UnaryOperator {
+    Not,
+    Neg,
+}
+
+impl fmt::Display for UnaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UnaryOperator::Not => write!(f, "!"),
+            UnaryOperator::Neg => write!(f, "-"),
+        }
+    }
 }
 
 impl fmt::Display for Expression {
@@ -187,14 +285,29 @@ impl fmt::Display for Expression {
                 for stmt in &block.stmts {
                     write!(f, "{stmt};")?;
                 }
-                write!(f, "{}", block.expr)?;
+                if let Some(expr) = &block.expr {
+                    write!(f, "{expr}")?;
+                }
                 write!(f, "}}")
             }
             Expression::If(cond, then, else_, _span) => match else_ {
                 Some(else_) => write!(f, "if {cond} {{ {then} }} else {{ {else_} }}"),
                 None => write!(f, "if {cond} {{ {then} }}"),
             },
-            Expression::Not(expr, _span) => write!(f, "!{expr}"),
+            Expression::ArrayAccess(base, index, _span) => write!(f, "{base}[{index}]"),
+            Expression::FieldAccess(base, field, _span) => write!(f, "{base}.{}", field.name()),
+            Expression::BinaryOperation {
+                left,
+                operator,
+                right,
+                ..
+            } => {
+                write!(f, "({left} {operator} {right})")
+            }
+            Expression::UnaryOperation { operator, expr, .. } => {
+                write!(f, "{operator}{expr}")
+            }
+            Expression::Paren(expr, _span) => write!(f, "({expr})"),
         }
     }
 }
@@ -310,7 +423,11 @@ impl Expression {
             Self::App(app) => app.span(),
             Self::ExprBlock(_, span) => span,
             Self::If(_, _, _, span) => span,
-            Self::Not(_, span) => span,
+            Self::ArrayAccess(_, _, span) => span,
+            Self::FieldAccess(_, _, span) => span,
+            Self::BinaryOperation { span, .. } => span,
+            Self::UnaryOperation { span, .. } => span,
+            Self::Paren(_, span) => span,
         }
     }
 
@@ -340,7 +457,11 @@ impl Expression {
             Expression::App(_) => "function_application",
             Expression::ExprBlock(_, _) => "expression_block",
             Expression::If(_, _, _, _) => "if_expression",
-            Expression::Not(_, _) => "not_expression",
+            Expression::ArrayAccess(_, _, _) => "array_access",
+            Expression::FieldAccess(_, _, _) => "field_access",
+            Expression::BinaryOperation { .. } => "binary_operation",
+            Expression::UnaryOperation { .. } => "unary_operation",
+            Expression::Paren(_, _) => "parenthesized_expression",
         }
     }
 
@@ -424,10 +545,7 @@ impl Expression {
             }
             (App(_), _) => panic!("Types do not match: {self:?} and {other:?}"),
             (ExprBlock(block1, _), ExprBlock(block2, _)) => {
-                for (stmt1, stmt2) in block1.stmts.iter().zip(block2.stmts.iter()) {
-                    stmt1.assert_eq_up_to_span(stmt2);
-                }
-                block1.expr.assert_eq_up_to_span(&block2.expr);
+                block1.assert_eq_up_to_span(block2);
             }
             (ExprBlock(_, _), _) => panic!("Types do not match: {self:?} and {other:?}"),
             (If(cond1, then1, else1, _), If(cond2, then2, else2, _)) => {
@@ -438,6 +556,51 @@ impl Expression {
                 }
             }
             (If(_, _, _, _), _) => panic!("Types do not match: {self:?} and {other:?}"),
+            (ArrayAccess(base1, index1, _), ArrayAccess(base2, index2, _)) => {
+                base1.assert_eq_up_to_span(base2);
+                index1.assert_eq_up_to_span(index2);
+            }
+            (ArrayAccess(_, _, _), _) => panic!("Types do not match: {self:?} and {other:?}"),
+            (FieldAccess(base1, field1, _), FieldAccess(base2, field2, _)) => {
+                base1.assert_eq_up_to_span(base2);
+                field1.assert_eq_up_to_span(field2);
+            }
+            (FieldAccess(_, _, _), _) => panic!("Types do not match: {self:?} and {other:?}"),
+            (
+                BinaryOperation {
+                    left,
+                    right,
+                    operator,
+                    ..
+                },
+                BinaryOperation {
+                    left: left2,
+                    right: right2,
+                    operator: operator2,
+                    ..
+                },
+            ) => {
+                left.assert_eq_up_to_span(left2);
+                right.assert_eq_up_to_span(right2);
+                assert_eq!(operator, operator2);
+            }
+            (BinaryOperation { .. }, _) => panic!("Types do not match: {self:?} and {other:?}"),
+            (
+                UnaryOperation { expr, operator, .. },
+                UnaryOperation {
+                    expr: expr2,
+                    operator: operator2,
+                    ..
+                },
+            ) => {
+                expr.assert_eq_up_to_span(expr2);
+                assert_eq!(operator, operator2);
+            }
+            (UnaryOperation { .. }, _) => panic!("Types do not match: {self:?} and {other:?}"),
+            (Paren(expr1, _), Paren(expr2, _)) => {
+                expr1.assert_eq_up_to_span(expr2);
+            }
+            (Paren(_, _), _) => panic!("Types do not match: {self:?} and {other:?}"),
         }
     }
 
@@ -536,6 +699,11 @@ impl Expression {
             Expression::App(_) => None,          // Is this right?
             Expression::ExprBlock(_, _) => None, // Is this right?
             Expression::If(_, _, _, _) => None,
+            Expression::ArrayAccess(_, _, _) => None,
+            Expression::FieldAccess(_, _, _) => None,
+            Expression::BinaryOperation { .. } => None,
+            Expression::UnaryOperation { .. } => None,
+            Expression::Paren(_, _) => None,
         }
     }
 }
@@ -597,7 +765,7 @@ impl ClassConstructorField {
 #[derive(Debug, Clone)]
 pub struct ExpressionBlock {
     pub stmts: Vec<Stmt>,
-    pub expr: Box<Expression>,
+    pub expr: Option<Box<Expression>>,
     /// Headers that apply to the final expression
     pub expr_headers: Vec<std::sync::Arc<Header>>,
 }
@@ -609,7 +777,9 @@ impl fmt::Display for ExpressionBlock {
         for stmt in &self.stmts {
             write!(f, "{stmt}")?;
         }
-        write!(f, "{}", self.expr)?;
+        if let Some(expr) = &self.expr {
+            write!(f, "{expr}")?;
+        }
         write!(f, "}}")
     }
 }
@@ -622,7 +792,11 @@ impl ExpressionBlock {
             .for_each(|(a, b)| {
                 a.assert_eq_up_to_span(b);
             });
-        self.expr.assert_eq_up_to_span(&other.expr);
-        // Note: headers are not compared as they don't affect semantic equality
+
+        match (&self.expr, &other.expr) {
+            (Some(expr1), Some(expr2)) => expr1.assert_eq_up_to_span(expr2),
+            (None, None) => {}
+            _ => panic!("Types do not match: {self:?} and {other:?}"),
+        }
     }
 }
