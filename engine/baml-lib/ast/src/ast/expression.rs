@@ -122,7 +122,6 @@ pub enum Expression {
     /// An if expression, e.g. `if x == 1 { "one" } else { "not one" }`.
     If(
         Box<Expression>,
-        // this needs to be a block.
         Box<Expression>,
         Option<Box<Expression>>,
         Span,
@@ -487,8 +486,6 @@ impl Expression {
     pub fn assert_eq_up_to_span(&self, other: &Expression) {
         use Expression::*;
         match (self, other) {
-            (Not(e1, _), Not(e2, _)) => e1.assert_eq_up_to_span(e2),
-            (Not(_, _), _) => panic!("Types do not match: {self:?} and {other:?}"),
             (BoolValue(v1, _), BoolValue(v2, _)) => assert_eq!(v1, v2),
             (BoolValue(_, _), _) => panic!("Types do not match: {self:?} and {other:?}"),
             (NumericValue(n1, _), NumericValue(n2, _)) => assert_eq!(n1, n2),
@@ -611,13 +608,6 @@ impl Expression {
         use baml_types::StringOr;
 
         match self {
-            Expression::Not(expr, span) => {
-                let value = expr.to_unresolved_value(_diagnostics)?;
-                let Ok((bool_value, _)) = value.into_bool() else {
-                    return None;
-                };
-                Some(UnresolvedValue::Bool(!bool_value, span.clone()))
-            }
             Expression::BoolValue(val, span) => Some(UnresolvedValue::Bool(*val, span.clone())),
             Expression::NumericValue(val, span) => {
                 Some(UnresolvedValue::Numeric(val.clone(), span.clone()))

@@ -256,7 +256,7 @@ fn parse_assignment_expr(
 
 pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<ExpressionBlock> {
     assert_correct_parser!(token, Rule::expr_block);
-    let _span = diagnostics.span(token.as_span());
+    let span = diagnostics.span(token.as_span());
     let mut tokens = token.into_inner();
     let mut stmts = Vec::new();
     let mut expr = None;
@@ -266,24 +266,6 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
     let mut items: Vec<Pair<'_>> = Vec::new();
     for item in tokens {
         items.push(item);
-    }
-
-    // Debug: print item kinds in this block to help diagnose header/stmt ordering
-    #[allow(clippy::print_stdout)]
-    {
-        let kinds: Vec<&'static str> = items
-            .iter()
-            .map(|i| match i.as_rule() {
-                Rule::mdx_header => "mdx_header",
-                Rule::stmt => "stmt",
-                Rule::expression => "expression",
-                Rule::comment_block => "comment_block",
-                Rule::empty_lines => "empty_lines",
-                Rule::BLOCK_LEVEL_CATCH_ALL => "block_catch_all",
-                _ => "other",
-            })
-            .collect();
-        // println!("PARSER: expr_block items = {:?}", kinds);
     }
 
     // Track headers with their hierarchy
@@ -380,15 +362,12 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                 // Skip empty lines in function bodies
                 continue;
             }
-            Rule::BLOCK_LEVEL_CATCH_ALL => {
-                diagnostics.push_error(
-                    internal_baml_diagnostics::DatamodelError::new_validation_error(
-                        "This is not a valid expression.",
-                        diagnostics.span(item.as_span()),
-                    ),
-                );
+            _ => {
+                diagnostics.push_error(DatamodelError::new_static(
+                    "Internal Error: Parser only allows statements and expressions in function body.",
+                    span.clone()
+                ));
             }
-            _ => parsing_catch_all(item, "block"),
         }
     }
 
@@ -410,18 +389,7 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
         stmts,
         expr: return_expr,
         expr_headers: headers_since_last_stmt,
-    });
-
-    #[allow(clippy::print_stdout)]
-    if let Some(ref blk) = result {
-        println!(
-            "PARSER: expr_block constructed with {} stmts and {} expr_headers",
-            blk.stmts.len(),
-            blk.expr_headers.len()
-        );
-    }
-
-    result
+    })
 }
 
 /// Parse a single header from an MDX header token
@@ -517,6 +485,15 @@ fn bind_headers_to_statement(stmt: &mut Stmt, pending_headers: &Vec<std::sync::A
         }
         Stmt::ForLoop(for_stmt) => {
             for_stmt.annotations.extend(pending_headers.clone());
+        }
+        Stmt::Expression(_) => {
+            // Expressions do not carry annotations
+        }
+        Stmt::Assign(_) => {
+            // Assignments do not carry annotations
+        }
+        Stmt::AssignOp(_) => {
+            // Assignment operations do not carry annotations
         }
     }
 }

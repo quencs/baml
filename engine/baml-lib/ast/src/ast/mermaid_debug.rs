@@ -513,11 +513,48 @@ impl MermaidDiagramGenerator {
                 }
                 expr_id
             }
-            Expression::Not(expr, _) => {
-                let label = "Not".to_string();
+            Expression::UnaryOperation { operator, expr, .. } => {
+                let label = format!("Unary: {}", operator);
                 let expr_id = self.get_node_id(&key, &label);
                 let child_id = self.visit_expression(expr);
                 self.connect(&expr_id, &child_id, Some("expr"));
+                expr_id
+            }
+            Expression::ArrayAccess(base, index, _) => {
+                let label = "ArrayAccess".to_string();
+                let expr_id = self.get_node_id_with_class(&key, &label, "expressionNode");
+                let base_id = self.visit_expression(base);
+                let index_id = self.visit_expression(index);
+                self.connect(&expr_id, &base_id, Some("base"));
+                self.connect(&expr_id, &index_id, Some("index"));
+                expr_id
+            }
+            Expression::FieldAccess(base, field, _) => {
+                let label = format!("FieldAccess: {}", field.name());
+                let expr_id = self.get_node_id_with_class(&key, &label, "expressionNode");
+                let base_id = self.visit_expression(base);
+                self.connect(&expr_id, &base_id, Some("base"));
+                expr_id
+            }
+            Expression::BinaryOperation {
+                left,
+                operator,
+                right,
+                ..
+            } => {
+                let label = format!("Binary: {}", operator);
+                let expr_id = self.get_node_id_with_class(&key, &label, "expressionNode");
+                let left_id = self.visit_expression(left);
+                let right_id = self.visit_expression(right);
+                self.connect(&expr_id, &left_id, Some("left"));
+                self.connect(&expr_id, &right_id, Some("right"));
+                expr_id
+            }
+            Expression::Paren(inner, _) => {
+                let label = "Paren".to_string();
+                let expr_id = self.get_node_id_with_class(&key, &label, "expressionNode");
+                let inner_id = self.visit_expression(inner);
+                self.connect(&expr_id, &inner_id, Some("expr"));
                 expr_id
             }
         };
@@ -570,9 +607,11 @@ impl MermaidDiagramGenerator {
             self.connect(&block_id, &stmt_id, Some("stmt"));
         }
 
-        // Visit the final expression
-        let expr_id = self.visit_expression(&block.expr);
-        self.connect(&block_id, &expr_id, Some("expr"));
+        // Visit the final expression (if present)
+        if let Some(expr) = &block.expr {
+            let expr_id = self.visit_expression(expr);
+            self.connect(&block_id, &expr_id, Some("expr"));
+        }
 
         // Visit headers that apply to the final expression - attach to block instead of expr
         for (idx, header) in block.expr_headers.iter().enumerate() {
@@ -627,6 +666,31 @@ impl MermaidDiagramGenerator {
                 let body_id = self.visit_expression_block(&for_stmt.body);
                 self.connect(&stmt_id, &iterable_id, Some("iterable"));
                 self.connect(&stmt_id, &body_id, Some("body"));
+                stmt_id
+            }
+            Stmt::Expression(expr) => {
+                let label = "ExprStmt".to_string();
+                let stmt_id = self.get_node_id_with_class(&key, &label, "statementNode");
+                let expr_id = self.visit_expression(expr);
+                self.connect(&stmt_id, &expr_id, Some("expr"));
+                stmt_id
+            }
+            Stmt::Assign(assign_stmt) => {
+                let label = format!("Assign: {}", assign_stmt.identifier.name());
+                let stmt_id = self.get_node_id_with_class(&key, &label, "statementNode");
+                let expr_id = self.visit_expression(&assign_stmt.expr);
+                self.connect(&stmt_id, &expr_id, Some("value"));
+                stmt_id
+            }
+            Stmt::AssignOp(assign_op_stmt) => {
+                let label = format!(
+                    "AssignOp: {} {}",
+                    assign_op_stmt.identifier.name(),
+                    assign_op_stmt.assign_op
+                );
+                let stmt_id = self.get_node_id_with_class(&key, &label, "statementNode");
+                let expr_id = self.visit_expression(&assign_op_stmt.expr);
+                self.connect(&stmt_id, &expr_id, Some("value"));
                 stmt_id
             }
         }

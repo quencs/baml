@@ -140,9 +140,6 @@ fn validate_stmt(ctx: &mut Context<'_>, stmt: &Stmt, scope: &HashSet<String>) {
 
 fn validate_expression(ctx: &mut Context<'_>, expr: &Expression, scope: &HashSet<String>) {
     match &expr {
-        Expression::Not(expr, _) => {
-            validate_expression(ctx, expr, scope);
-        }
         Expression::Identifier(identifier) => {
             if !scope.contains(&identifier.to_string()) {
                 ctx.push_error(DatamodelError::new_anyhow_error(

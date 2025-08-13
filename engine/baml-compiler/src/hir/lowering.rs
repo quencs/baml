@@ -333,6 +333,7 @@ impl Block {
                     is_mutable,
                     expr,
                     span,
+                    ..
                 }) => {
                     let lifted_expr = Expression::from_ast(expr);
 
@@ -358,6 +359,7 @@ impl Block {
                     iterator,
                     body,
                     span,
+                    ..
                 }) => {
                     // Lower for loop to HIR
                     let lifted_iterator = Expression::from_ast(iterator);

@@ -405,13 +405,12 @@ impl HeaderCollector {
 
     fn visit_expression(&mut self, expr: &Expression) {
         match expr {
-            Expression::ExprBlock(block, _span) => {
+            Expression::ExprBlock(block, block_span) => {
                 if self.pending_next_scope_kind.is_none() {
                     self.pending_next_scope_kind = Some(ScopeKind::Generic);
                 }
                 // Ensure parent default header based on pending scope kind
-                let parent_span = block.expr.span().clone();
-                self.ensure_parent_default_header_for_next_scope(parent_span);
+                self.ensure_parent_default_header_for_next_scope(block_span.clone());
                 self.visit_expression_block(block);
             }
             Expression::If(_cond, then_expr, else_expr, span) => {
@@ -468,7 +467,7 @@ impl HeaderCollector {
                     }
                 }
             }
-            Expression::Not(e, _) => self.visit_expression(e),
+            Expression::UnaryOperation { expr, .. } => self.visit_expression(expr),
             _ => {}
         }
     }
@@ -527,7 +526,7 @@ impl HeaderCollector {
                     if for_stmt.annotations.is_empty() {
                         let body_expr = &for_stmt.body.expr;
                         let body_is_simple_if_container =
-                            matches!(body_expr.as_ref(), Expression::If(_, _, _, _));
+                            matches!(body_expr.as_deref(), Some(Expression::If(_, _, _, _)));
                         if !body_is_simple_if_container {
                             let counter = self
                                 .auto_counters
@@ -549,19 +548,39 @@ impl HeaderCollector {
                     // Now visit the body in its own scope (no prefixed headers)
                     self.visit_expression_block(&for_stmt.body);
                 }
+                Stmt::Expression(expr) => {
+                    // Plain expression statements – just visit the expression
+                    self.visit_expression(expr);
+                }
+                Stmt::Assign(assign_stmt) => {
+                    // Visit the RHS expression so calls/headers inside are discovered
+                    self.visit_expression(&assign_stmt.expr);
+                }
+                Stmt::AssignOp(assign_op_stmt) => {
+                    // Visit the RHS expression so calls/headers inside are discovered
+                    self.visit_expression(&assign_op_stmt.expr);
+                }
             }
         }
 
         // Headers that apply to the final expression belong to this scope and come last
-        let label_kind = Self::label_kind_for_expr(block.expr.as_ref());
+        let label_kind = block
+            .expr
+            .as_deref()
+            .map(Self::label_kind_for_expr)
+            .unwrap_or(HeaderLabelKind::Expression);
         let expr_header_ids =
             self.add_headers_for_annotations(&block.expr_headers, label_kind, true);
 
         // Final expr
-        self.visit_expression(&block.expr);
+        if let Some(expr) = &block.expr {
+            self.visit_expression(expr);
+        }
 
         // Attribute top-level calls of the final expression to its headers
-        self.attribute_calls_to_headers(&expr_header_ids, &block.expr);
+        if let Some(expr) = &block.expr {
+            self.attribute_calls_to_headers(&expr_header_ids, expr);
+        }
 
         // Default header fallback for blocks without any headers
         let kind_for_scope = self
@@ -582,7 +601,17 @@ impl HeaderCollector {
                 ScopeKind::IfThen | ScopeKind::IfElse => unreachable!(),
             };
             if let Some((type_label, default_label_kind)) = maybe_defaults {
-                let span_for_default = block.expr.span().clone();
+                // Pick a reasonable span for the default header
+                let span_for_default = if let Some(expr) = &block.expr {
+                    expr.span().clone()
+                } else if let Some(first_stmt) = block.stmts.first() {
+                    first_stmt.span().clone()
+                } else {
+                    // If there is nothing, skip creating a default header
+                    // as we do not have a meaningful span.
+                    self.pop_scope();
+                    return;
+                };
                 self.ensure_default_header_current_scope(
                     type_label,
                     span_for_default,
@@ -703,7 +732,13 @@ impl HeaderCollector {
 fn collect_top_level_calls(expr: &Expression) -> Vec<String> {
     match expr {
         // If the expression is a block, the top-level expression is inside it
-        Expression::ExprBlock(block, _span) => collect_top_level_calls(&block.expr),
+        Expression::ExprBlock(block, _span) => {
+            if let Some(inner) = &block.expr {
+                collect_top_level_calls(inner)
+            } else {
+                Vec::new()
+            }
+        }
         // For an if-expression, the top-level construct is branching, not a direct call
         Expression::If(_cond, _then_expr, _else_expr, _span) => Vec::new(),
         // For a direct function application, capture its name
