@@ -18,23 +18,25 @@ type BamlSerializer interface {
 type InternalBamlSerializer interface {
 	InternalBamlSerializer()
 	Encode() (*cffi.CFFIValueHolder, error)
+	Type() (*cffi.CFFIFieldTypeHolder, error)
 }
 
 // implment BamlSerializer for anything that implements BamlClassSerializer, BamlEnumSerializer, or BamlUnionSerializer
 func EncodeClass(nameEncoder func() *cffi.CFFITypeName, fields map[string]any, dynamicFields *map[string]any) (*cffi.CFFIValueHolder, error) {
-	// Encode Static Fields
-	staticFields, err := EncodeMapEntries(fields, "static class")
-	if err != nil {
-		return nil, err // Error already includes context
+	all_fields := make(map[string]any)
+	for k, v := range fields {
+		all_fields[k] = v
+	}
+	if dynamicFields != nil {
+		for k, v := range *dynamicFields {
+			all_fields[k] = v
+		}
 	}
 
-	// Encode Dynamic Fields
-	var dynamicFieldsEncoded []*cffi.CFFIMapEntry
-	if dynamicFields != nil {
-		dynamicFieldsEncoded, err = EncodeMapEntries(*dynamicFields, "dynamic class")
-		if err != nil {
-			return nil, err // Error already includes context
-		}
+	// Encode Static Fields
+	staticFields, err := EncodeMapEntries(all_fields, "static class")
+	if err != nil {
+		return nil, err // Error already includes context
 	}
 
 	// Create the CFFIValueClass table
@@ -43,7 +45,6 @@ func EncodeClass(nameEncoder func() *cffi.CFFITypeName, fields map[string]any, d
 	class := cffi.CFFIValueClass{
 		Name:          name,
 		Fields:        staticFields,
-		DynamicFields: dynamicFieldsEncoded,
 	}
 
 	return &cffi.CFFIValueHolder{
@@ -91,7 +92,7 @@ func EncodeUnion(nameEncoder func() *cffi.CFFITypeName, variantName string, valu
 // encodeValue is the core recursive helper for Encode
 // It takes a Go value, encodes it using the builder, and returns
 func encodeValue(value any) (*cffi.CFFIValueHolder, error) {
-	value_type, err := encodeFieldType(reflect.TypeOf(value))
+	value_type, err := encodeFieldType(reflect.TypeOf(value),)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +126,10 @@ func encodeValue(value any) (*cffi.CFFIValueHolder, error) {
 	// Handle concrete types (Checked, StreamState) before general kinds
 	// Use the potentially dereferenced value 'rv.Interface()' here if concrete types are structs
 	concreteValue := rv.Interface() // Get the concrete value (dereferenced if original was pointer)
+
+	if internalObject, ok := originalValue.(InternalBamlSerializer); ok {
+		return internalObject.Encode()
+	}
 
 	// Check for custom serializers first using the original value (could be pointer or value)
 	if serializer, ok := originalValue.(BamlSerializer); ok {
@@ -290,6 +295,10 @@ func EncodeMapEntries(fields map[string]any, context string) ([]*cffi.CFFIMapEnt
 	return entries, nil
 }
 
+func EncodeValue(value any) (*cffi.CFFIValueHolder, error) {
+	return encodeValue(value)
+}
+
 func EncodeEnvVar(fields map[string]string) ([]*cffi.CFFIEnvVar, error) {
 	if len(fields) == 0 || fields == nil {
 		return nil, nil
@@ -366,6 +375,8 @@ func encodeStreamState(streamStateVal shared.StreamState[any]) (*cffi.CFFIValueH
 }
 
 func encodeFieldType(fieldType reflect.Type) (*cffi.CFFIFieldTypeHolder, error) {
+	debugLog("encoding fieldType: %+v\n", fieldType)
+
 	// Someone passed in a `nil` directly
 	if fieldType == nil {
 		return &cffi.CFFIFieldTypeHolder{
@@ -376,6 +387,54 @@ func encodeFieldType(fieldType reflect.Type) (*cffi.CFFIFieldTypeHolder, error) 
 	}
 
 	switch fieldType.Kind() {
+	case reflect.Interface:
+		// check if known interface
+		if fieldType.Implements(reflect.TypeOf((*InternalBamlSerializer)(nil)).Elem()) {
+			// Handle specific media interfaces that implement InternalBamlSerializer
+			switch fieldType.Name() {
+			case "Image":
+				return &cffi.CFFIFieldTypeHolder{
+					Type: &cffi.CFFIFieldTypeHolder_MediaType{
+						MediaType: &cffi.CFFIFieldTypeMedia{
+							Media: cffi.MediaTypeEnum_IMAGE,
+						},
+					},
+				}, nil
+			case "Audio":
+				return &cffi.CFFIFieldTypeHolder{
+					Type: &cffi.CFFIFieldTypeHolder_MediaType{
+						MediaType: &cffi.CFFIFieldTypeMedia{
+							Media: cffi.MediaTypeEnum_AUDIO,
+						},
+					},
+				}, nil
+			case "PDF":
+				return &cffi.CFFIFieldTypeHolder{
+					Type: &cffi.CFFIFieldTypeHolder_MediaType{
+						MediaType: &cffi.CFFIFieldTypeMedia{
+							Media: cffi.MediaTypeEnum_PDF,
+						},
+					},
+				}, nil
+			case "Video":
+				return &cffi.CFFIFieldTypeHolder{
+					Type: &cffi.CFFIFieldTypeHolder_MediaType{
+						MediaType: &cffi.CFFIFieldTypeMedia{
+							Media: cffi.MediaTypeEnum_VIDEO,
+						},
+					},
+				}, nil
+			case "Type":
+				return &cffi.CFFIFieldTypeHolder{
+					Type: nil,
+				}, nil
+			default:
+				// For other interfaces that implement InternalBamlSerializer,
+				// we can't instantiate them with reflect.New() since they're interfaces
+				return nil, fmt.Errorf("cannot instantiate interface %s that implements InternalBamlSerializer", fieldType.Name())
+			}
+		}
+		return nil, fmt.Errorf("interface %s does not implement InternalBamlSerializer", fieldType.Name())
 	case reflect.Ptr:
 		inner, err := encodeFieldType(fieldType.Elem())
 		if err != nil {
@@ -457,6 +516,10 @@ func encodeFieldType(fieldType reflect.Type) (*cffi.CFFIFieldTypeHolder, error) 
 			},
 		}, nil
 	case reflect.Struct:
+		if serializer, ok := reflect.New(fieldType).Interface().(InternalBamlSerializer); ok {
+			return serializer.Type()
+		}
+
 		// determine if the struct implements BamlSerializer
 		if fieldType.Implements(reflect.TypeOf((*BamlSerializer)(nil)).Elem()) {
 			serializer := reflect.New(fieldType).Interface().(BamlSerializer)
@@ -472,7 +535,7 @@ func encodeFieldType(fieldType reflect.Type) (*cffi.CFFIFieldTypeHolder, error) 
 			return nil, fmt.Errorf("struct %s does not implement BamlSerializer", fieldType.Name())
 		}
 	default:
-		return nil, fmt.Errorf("unexpected field type: %s", fieldType.Kind())
+		return nil, fmt.Errorf("unexpected field type: %+v %s", fieldType, fieldType.Kind())
 	}
 }
 

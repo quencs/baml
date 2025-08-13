@@ -42,15 +42,12 @@ func (d *DynamicClass) Decode(holder *cffi.CFFIValueClass, typeMap TypeMap) {
 		panic(fmt.Sprintf("DynamicClass.Decode: typeName is nil, holder=%+v", holder))
 	}
 	d.Name = string(typeName.Name)
-	if len(holder.Fields) > 0 {
-		panic(fmt.Sprintf("DynamicClass.Decode: unexpected fields present, holder.Fields=%+v", holder.Fields))
-	}
-	fieldCount := len(holder.DynamicFields)
+	fieldCount := len(holder.Fields)
 	d.Fields = make(map[string]any, fieldCount)
 	for i := 0; i < fieldCount; i++ {
-		field := holder.DynamicFields[i]
+		field := holder.Fields[i]
 		if field == nil {
-			panic(fmt.Sprintf("DynamicClass.Decode: field[%d] is nil, holder.DynamicFields=%+v", i, holder.DynamicFields))
+			panic(fmt.Sprintf("DynamicClass.Decode: field[%d] is nil, holder.Fields=%+v", i, holder.Fields))
 		}
 		key := field.Key
 		valueHolder := field.Value
@@ -69,6 +66,16 @@ func (d *DynamicEnum) Decode(holder *cffi.CFFIValueEnum) {
 	}
 	d.Name = string(holder.Name.Name)
 	d.Value = string(holder.Value)
+}
+
+type DynamicUnion struct {
+	Variant string
+	Value   any
+}
+
+func (d *DynamicUnion) Decode(holder *cffi.CFFIValueUnionVariant, typeMap TypeMap) {
+	d.Variant = string(holder.VariantName)
+	d.Value = Decode(holder.Value, typeMap).Interface()
 }
 
 func decodeListValue(valueList *cffi.CFFIValueList, typeMap TypeMap) reflect.Value {
@@ -207,13 +214,18 @@ func decodeUnionValue(valueUnion *cffi.CFFIValueUnionVariant, typeMap TypeMap) r
 		return Decode(value, typeMap)
 	}
 
+	debugLog("decodeUnionValue: unionName: %s, namespace: %s\n", unionName, namespace)
 	found, ok := typeMap[namespace+"."+unionName]
 	if !ok {
+		// Union not found
 		// This is a fully dynamic union, so we
 		// decode the value as the value and drop
 		// union type information
-		value := valueUnion.Value
-		return Decode(value, typeMap)
+		dynamicUnion := DynamicUnion{
+			Variant: unionName,
+			Value:   Decode(valueUnion.Value, typeMap).Interface(),
+		}
+		return reflect.ValueOf(dynamicUnion)
 	}
 
 	union := reflect.New(found)
@@ -280,12 +292,29 @@ func convertFieldTypeToGoType(fieldType *cffi.CFFIFieldTypeHolder, typeMap TypeM
 		return reflect.TypeOf(float64(0))
 	}
 
+	if literal, ok := type_.(*cffi.CFFIFieldTypeHolder_LiteralType); ok {
+		literalType := literal.LiteralType
+		switch literalType.Literal.(type) {
+		case *cffi.CFFIFieldTypeLiteral_BoolLiteral:
+			return reflect.TypeOf(false)
+		case *cffi.CFFIFieldTypeLiteral_IntLiteral:
+			return reflect.TypeOf(int64(0))
+		case *cffi.CFFIFieldTypeLiteral_StringLiteral:
+			return reflect.TypeOf("")
+		default:
+			panic(fmt.Sprintf("unexpected cffi.isCFFIFieldTypeLiteral_Literal: %#v", literalType.Literal))
+		}
+	}
+
 	if class, ok := type_.(*cffi.CFFIFieldTypeHolder_ClassType); ok {
 		name := class.ClassType.Name.Name
 		namespace := class.ClassType.Name.Namespace.Enum().String()
 		goType, ok := typeMap[namespace+"."+name]
 		if !ok {
-			panic("error decoding value, class not found: " + namespace + "." + name)
+			// going to be a dynamic class
+			return reflect.TypeOf(DynamicClass{
+				Name: name,
+			})
 		}
 		return goType
 	}
@@ -295,7 +324,11 @@ func convertFieldTypeToGoType(fieldType *cffi.CFFIFieldTypeHolder, typeMap TypeM
 		namespace := cffi.CFFITypeNamespace_TYPES.String()
 		goType, ok := typeMap[namespace+"."+name]
 		if !ok {
-			panic("error decoding value, enum not found: " + namespace + "." + name)
+			// going to be a dynamic enum
+			return reflect.TypeOf(DynamicEnum{
+				Name: name,
+				Value: "",
+			})
 		}
 		return goType
 	}
@@ -306,7 +339,11 @@ func convertFieldTypeToGoType(fieldType *cffi.CFFIFieldTypeHolder, typeMap TypeM
 		unionVariantNamespace := unionVariantType.Name.Namespace.Enum().String()
 		goType, ok := typeMap[unionVariantNamespace+"."+unionVariantName]
 		if !ok {
-			panic("error decoding value, union not found: " + unionVariantNamespace + "." + unionVariantName)
+			// going to be a dynamic union
+			return reflect.TypeOf(DynamicUnion{
+				Variant: unionVariantName,
+				Value:   nil,
+			})
 		}
 		return goType
 	}
@@ -394,7 +431,7 @@ func maybeDecodePrimitive(holder *cffi.CFFIValueHolder) (*reflect.Value, bool) {
 // Used when we have a nil value but its of unknown type
 
 func maybeOptional(value reflect.Value, targetType *cffi.CFFIFieldTypeHolder, isUnion bool, typeMap TypeMap) reflect.Value {
-	// debugLog("decoding value: %v\n", targetType)
+	debugLog("maybeOptional: value: %v, targetType: %v\n", value, targetType)
 	if optional, ok := targetType.Type.(*cffi.CFFIFieldTypeHolder_OptionalType); ok {
 		optionalType := optional.OptionalType
 		if optionalType.Value.GetUnionVariantType() != nil {
@@ -416,6 +453,8 @@ func maybeOptional(value reflect.Value, targetType *cffi.CFFIFieldTypeHolder, is
 
 func Decode(holder *cffi.CFFIValueHolder, typeMap TypeMap) reflect.Value {
 	value := holder.Value
+
+	debugLog("Decode: holder.Value: %v\n", value)
 
 	if _, ok := value.(*cffi.CFFIValueHolder_NullValue); ok {
 		retType := convertFieldTypeToGoType(holder.Type, typeMap)
@@ -449,7 +488,9 @@ func Decode(holder *cffi.CFFIValueHolder, typeMap TypeMap) reflect.Value {
 	}
 
 	if checkedVal, ok := value.(*cffi.CFFIValueHolder_CheckedValue); ok {
-		return maybeOptional(reflect.ValueOf(decodeCheckedValue[any](checkedVal.CheckedValue, typeMap)).Elem(), holder.Type, false, typeMap)
+		checked := decodeCheckedValue[any](checkedVal.CheckedValue, typeMap)
+		// checks cannot be optional, so we don't need to maybeOptional
+		return reflect.ValueOf(checked)
 	}
 
 	if streamingVal, ok := value.(*cffi.CFFIValueHolder_StreamingStateValue); ok {
@@ -468,4 +509,39 @@ func DecodeStreamingState[T any](holder *cffi.CFFIValueHolder, decodeFunc func(i
 		}
 	}
 	panic("error decoding streaming state: " + holder.String())
+}
+
+func DecodeChecked[T any](holder *cffi.CFFIValueHolder, decodeFunc func(inner *cffi.CFFIValueHolder) T) shared.Checked[T] {
+	value := holder.Value
+	if checkedVal, ok := value.(*cffi.CFFIValueHolder_CheckedValue); ok {
+		checks := make(map[string]shared.Check, len(checkedVal.CheckedValue.Checks))
+		for _, check := range checkedVal.CheckedValue.Checks {
+			checks[string(check.Name)] = shared.Check{
+				Name:       string(check.Name),
+				Expression: string(check.Expression),
+				Status:     string(check.Status),
+			}
+		}
+		return shared.Checked[T]{
+			Value: decodeFunc(checkedVal.CheckedValue.Value),
+			Checks: checks,
+		}
+	}
+	panic("error decoding checked value: " + holder.String())
+}
+
+func CastChecked[T any](value any, castFunc func(inner any) T) shared.Checked[T] {
+	checked := value.(shared.Checked[any])
+	return shared.Checked[T]{
+		Value: castFunc(checked.Value),
+		Checks: checked.Checks,
+	}
+}
+
+func CastStreamState[T any](value any, castFunc func(inner any) T) shared.StreamState[T] {
+	streamState := value.(shared.StreamState[any])
+	return shared.StreamState[T]{
+		Value: castFunc(streamState.Value),
+		State: streamState.State,
+	}
 }

@@ -18,14 +18,16 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+
+	"unions/baml_client/types"
 )
 
 type ExistingSystemComponent struct {
-	Id          *int64                     `json:"id"`
-	Name        *string                    `json:"name"`
-	Type        *string                    `json:"type"`
-	Category    *Union2KresourceOrKservice `json:"category"`
-	Explanation *string                    `json:"explanation"`
+	Id          *int64                           `json:"id"`
+	Name        *string                          `json:"name"`
+	Type        *string                          `json:"type"`
+	Category    *types.Union2KresourceOrKservice `json:"category"`
+	Explanation *string                          `json:"explanation"`
 }
 
 func (c *ExistingSystemComponent) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
@@ -52,13 +54,15 @@ func (c *ExistingSystemComponent) Decode(holder *cffi.CFFIValueClass, typeMap ba
 			c.Type = baml.Decode(valueHolder).Interface().(*string)
 
 		case "category":
-			c.Category = baml.Decode(valueHolder).Interface().(*Union2KresourceOrKservice)
+			c.Category = baml.Decode(valueHolder).Interface().(*types.Union2KresourceOrKservice)
 
 		case "explanation":
 			c.Explanation = baml.Decode(valueHolder).Interface().(*string)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class ExistingSystemComponent", key))
+
 		}
 	}
 
@@ -113,7 +117,9 @@ func (c *UseMyUnion) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
 			c.U = baml.Decode(valueHolder).Interface().(*Union3IntOrRecursive1OrString)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class UseMyUnion", key))
+
 		}
 	}
 

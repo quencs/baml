@@ -64,6 +64,10 @@ func (*stream) TestEmptyArrays(ctx context.Context, input string, opts ...CallOp
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -140,6 +144,10 @@ func (*stream) TestLargeArrays(ctx context.Context, input string, opts ...CallOp
 
 	if callOpts.collectors != nil {
 		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
 	}
 
 	encoded, err := args.Encode()
@@ -220,6 +228,10 @@ func (*stream) TestMixedArrays(ctx context.Context, input string, opts ...CallOp
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -296,6 +308,10 @@ func (*stream) TestNestedArrays(ctx context.Context, input string, opts ...CallO
 
 	if callOpts.collectors != nil {
 		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
 	}
 
 	encoded, err := args.Encode()
@@ -376,6 +392,10 @@ func (*stream) TestObjectArrays(ctx context.Context, input string, opts ...CallO
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -452,6 +472,10 @@ func (*stream) TestSimpleArrays(ctx context.Context, input string, opts ...CallO
 
 	if callOpts.collectors != nil {
 		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
 	}
 
 	encoded, err := args.Encode()
@@ -532,6 +556,10 @@ func (*stream) TestTopLevel3DArray(ctx context.Context, input string, opts ...Ca
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -608,6 +636,10 @@ func (*stream) TestTopLevelArrayOfMaps(ctx context.Context, input string, opts .
 
 	if callOpts.collectors != nil {
 		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
 	}
 
 	encoded, err := args.Encode()
@@ -688,6 +720,10 @@ func (*stream) TestTopLevelBoolArray(ctx context.Context, input string, opts ...
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -764,6 +800,10 @@ func (*stream) TestTopLevelEmptyArray(ctx context.Context, input string, opts ..
 
 	if callOpts.collectors != nil {
 		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
 	}
 
 	encoded, err := args.Encode()
@@ -844,6 +884,10 @@ func (*stream) TestTopLevelFloatArray(ctx context.Context, input string, opts ..
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -922,6 +966,10 @@ func (*stream) TestTopLevelIntArray(ctx context.Context, input string, opts ...C
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -980,7 +1028,7 @@ func (*stream) TestTopLevelIntArray(ctx context.Context, input string, opts ...C
 }
 
 // / Streaming version of TestTopLevelMixedArray
-func (*stream) TestTopLevelMixedArray(ctx context.Context, input string, opts ...CallOptionFunc) (<-chan StreamValue[[]stream_types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString], error) {
+func (*stream) TestTopLevelMixedArray(ctx context.Context, input string, opts ...CallOptionFunc) (<-chan StreamValue[[]types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString], error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -1000,6 +1048,10 @@ func (*stream) TestTopLevelMixedArray(ctx context.Context, input string, opts ..
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -1014,7 +1066,7 @@ func (*stream) TestTopLevelMixedArray(ctx context.Context, input string, opts ..
 		return nil, err
 	}
 
-	channel := make(chan StreamValue[[]stream_types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString])
+	channel := make(chan StreamValue[[]types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString])
 	go func() {
 		defer func() {
 			internal_ctx.Done()
@@ -1031,7 +1083,7 @@ func (*stream) TestTopLevelMixedArray(ctx context.Context, input string, opts ..
 					return
 				}
 				if result.Error != nil {
-					channel <- StreamValue[[]stream_types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString]{
+					channel <- StreamValue[[]types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString]{
 						IsError: true,
 						Error:   result.Error,
 					}
@@ -1040,13 +1092,13 @@ func (*stream) TestTopLevelMixedArray(ctx context.Context, input string, opts ..
 				}
 				if result.HasData {
 					data := (result.Data).([]types.Union3BoolOrIntOrString)
-					channel <- StreamValue[[]stream_types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString]{
+					channel <- StreamValue[[]types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString]{
 						IsFinal:  true,
 						as_final: &data,
 					}
 				} else {
-					data := (result.StreamData).([]stream_types.Union3BoolOrIntOrString)
-					channel <- StreamValue[[]stream_types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString]{
+					data := (result.StreamData).([]types.Union3BoolOrIntOrString)
+					channel <- StreamValue[[]types.Union3BoolOrIntOrString, []types.Union3BoolOrIntOrString]{
 						IsFinal:   false,
 						as_stream: &data,
 					}
@@ -1076,6 +1128,10 @@ func (*stream) TestTopLevelNestedArray(ctx context.Context, input string, opts .
 
 	if callOpts.collectors != nil {
 		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
 	}
 
 	encoded, err := args.Encode()
@@ -1156,6 +1212,10 @@ func (*stream) TestTopLevelNullableArray(ctx context.Context, input string, opts
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -1234,6 +1294,10 @@ func (*stream) TestTopLevelObjectArray(ctx context.Context, input string, opts .
 		args.Collectors = callOpts.collectors
 	}
 
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
 	encoded, err := args.Encode()
 	if err != nil {
 		// This should never happen. if it does, please file an issue at https://github.com/boundaryml/baml/issues
@@ -1310,6 +1374,10 @@ func (*stream) TestTopLevelStringArray(ctx context.Context, input string, opts .
 
 	if callOpts.collectors != nil {
 		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
 	}
 
 	encoded, err := args.Encode()

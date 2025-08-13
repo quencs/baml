@@ -6,7 +6,7 @@ import (
 )
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../include
+#cgo CFLAGS: -I${SRCDIR}
 #cgo CFLAGS: -O3 -g
 #include <baml_cffi_wrapper.h>
 #include <stdlib.h>
@@ -42,13 +42,14 @@ func BamlVersion() string {
 }
 
 func InvokeRuntimeCli(args []string) (int, error) {
-	arg_c_strings := make([]*C.char, len(args))
+	arg_c_strings := make([]*C.char, len(args)+1)
 	for i, arg := range args {
 		arg_c_strings[i] = C.CString(arg)
 	}
+	
 	defer func() {
-		for _, arg_c_string := range arg_c_strings {
-			C.free(unsafe.Pointer(arg_c_string))
+		for i := 0; i < len(args); i++ {
+			C.free(unsafe.Pointer(arg_c_strings[i]))
 		}
 	}()
 
@@ -80,6 +81,17 @@ func CallFunctionStreamFromC(runtime unsafe.Pointer, functionName string, encode
 	cEncodedArgs := (*C.char)(unsafe.Pointer(&encodedArgs[0]))
 
 	result := C.WrapCallFunctionStreamFromC(runtime, cFunctionName, cEncodedArgs, C.uintptr_t(len(encodedArgs)), C.uint32_t(id))
+
+	return result, nil
+}
+
+func CallFunctionParseFromC(runtime unsafe.Pointer, functionName string, encodedArgs []byte, id uint32) (unsafe.Pointer, error) {
+	cFunctionName := C.CString(functionName)
+	defer C.free(unsafe.Pointer(cFunctionName))
+
+	cEncodedArgs := (*C.char)(unsafe.Pointer(&encodedArgs[0]))
+
+	result := C.WrapCallFunctionParseFromC(runtime, cFunctionName, cEncodedArgs, C.uintptr_t(len(encodedArgs)), C.uint32_t(id))
 
 	return result, nil
 }

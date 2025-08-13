@@ -165,6 +165,14 @@ impl<'a> Walker<'a, &'a Enum> {
             .transpose()
     }
 
+    pub fn description(&self, ctx: &EvaluationContext<'_>) -> Result<Option<String>> {
+        self.item
+            .attributes
+            .description()
+            .map(|v| v.resolve(ctx))
+            .transpose()
+    }
+
     pub fn walk_values(&'a self) -> impl Iterator<Item = Walker<'a, &'a EnumValue>> {
         self.item.elem.values.iter().map(|v| Walker {
             ir: self.ir,
@@ -328,6 +336,14 @@ impl<'a> Walker<'a, &'a Class> {
         self.item
             .attributes
             .alias()
+            .map(|v| v.resolve(ctx))
+            .transpose()
+    }
+
+    pub fn description(&self, ctx: &EvaluationContext<'_>) -> Result<Option<String>> {
+        self.item
+            .attributes
+            .description()
             .map(|v| v.resolve(ctx))
             .transpose()
     }

@@ -172,7 +172,7 @@ impl TypeGo {
             TypeGo::Media(media_type_go, _) => match media_type_go {
                 MediaTypeGo::Image => "Image".to_string(),
                 MediaTypeGo::Audio => "Audio".to_string(),
-                MediaTypeGo::Pdf => "Pdf".to_string(),
+                MediaTypeGo::Pdf => "PDF".to_string(),
                 MediaTypeGo::Video => "Video".to_string(),
             },
             TypeGo::TypeAlias { name, .. } => name.clone(),
@@ -192,6 +192,9 @@ impl TypeGo {
     pub fn zero_value(&self, pkg: &CurrentRenderPackage) -> String {
         if matches!(self.meta().type_wrapper, TypeWrapper::Optional(_)) {
             return "nil".to_string();
+        }
+        if matches!(self.meta().type_wrapper, TypeWrapper::Checked(_)) {
+            return format!("{}{{}}", self.serialize_type(pkg));
         }
         match self {
             TypeGo::String(val, _) => val.as_ref().map_or("\"\"".to_string(), |v| {
@@ -275,7 +278,29 @@ impl TypeGo {
     }
 
     pub fn cast_from_function(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
-        format!("({param}).({})", self.serialize_type(pkg))
+        if self.meta().is_checked() {
+            let mut without_checked = self.clone();
+            without_checked.meta_mut().type_wrapper.pop_checked();
+            format!(
+                "baml.CastChecked({param}, func(inner any) {t} {{
+                return {casted}
+            }})",
+                t = without_checked.serialize_type(pkg),
+                casted = without_checked.cast_from_function("inner", pkg)
+            )
+        } else if self.meta().wrap_stream_state {
+            let mut without_stream_state = self.clone();
+            without_stream_state.meta_mut().wrap_stream_state = false;
+            format!(
+                "baml.CastStreamState({param}, func(inner any) {t} {{
+                return {casted}
+            }})",
+                t = without_stream_state.serialize_type(pkg),
+                casted = without_stream_state.cast_from_function("inner", pkg)
+            )
+        } else {
+            format!("({param}).({})", self.serialize_type(pkg))
+        }
     }
 
     pub fn decode_from_any(&self, param: &str, pkg: &CurrentRenderPackage) -> String {
@@ -389,10 +414,10 @@ impl SerializeType for TypeGo {
 impl SerializeType for MediaTypeGo {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String {
         match self {
-            MediaTypeGo::Image => "any".to_string(), // format!("{}Image", Package::imported_base().relative_from(pkg)),
-            MediaTypeGo::Audio => "any".to_string(), // format!("{}Audio", Package::imported_base().relative_from(pkg)),
-            MediaTypeGo::Pdf => "any".to_string(), // format!("{}Pdf", Package::imported_base().relative_from(pkg)),
-            MediaTypeGo::Video => "any".to_string(), // format!("{}Video", Package::imported_base().relative_from(pkg)),
+            MediaTypeGo::Image => format!("{}Image", Package::types().relative_from(pkg)),
+            MediaTypeGo::Audio => format!("{}Audio", Package::types().relative_from(pkg)),
+            MediaTypeGo::Pdf => format!("{}PDF", Package::types().relative_from(pkg)),
+            MediaTypeGo::Video => format!("{}Video", Package::types().relative_from(pkg)),
         }
     }
 }

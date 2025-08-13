@@ -18,6 +18,8 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+
+	"map_types/baml_client/types"
 )
 
 type ComplexMaps struct {
@@ -58,7 +60,9 @@ func (c *ComplexMaps) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) 
 			c.MapArray = baml.Decode(valueHolder).Interface().([]map[string]string)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class ComplexMaps", key))
+
 		}
 	}
 
@@ -121,7 +125,9 @@ func (c *Config) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
 			c.Debug = baml.Decode(valueHolder).Interface().(*bool)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class Config", key))
+
 		}
 	}
 
@@ -151,10 +157,10 @@ func (u Config) BamlEncodeName() *cffi.CFFITypeName {
 }
 
 type EdgeCaseMaps struct {
-	EmptyMap       map[string]string                  `json:"emptyMap"`
-	NullableValues map[string]*string                 `json:"nullableValues"`
-	OptionalValues map[string]*string                 `json:"optionalValues"`
-	UnionValues    map[string]Union3BoolOrIntOrString `json:"unionValues"`
+	EmptyMap       map[string]string                        `json:"emptyMap"`
+	NullableValues map[string]*string                       `json:"nullableValues"`
+	OptionalValues map[string]*string                       `json:"optionalValues"`
+	UnionValues    map[string]types.Union3BoolOrIntOrString `json:"unionValues"`
 }
 
 func (c *EdgeCaseMaps) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
@@ -181,10 +187,12 @@ func (c *EdgeCaseMaps) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap)
 			c.OptionalValues = baml.Decode(valueHolder).Interface().(map[string]*string)
 
 		case "unionValues":
-			c.UnionValues = baml.Decode(valueHolder).Interface().(map[string]Union3BoolOrIntOrString)
+			c.UnionValues = baml.Decode(valueHolder).Interface().(map[string]types.Union3BoolOrIntOrString)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class EdgeCaseMaps", key))
+
 		}
 	}
 
@@ -249,7 +257,9 @@ func (c *MixedKeyMaps) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap)
 			c.LiteralMap = baml.Decode(valueHolder).Interface().(map[string]Config)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class MixedKeyMaps", key))
+
 		}
 	}
 
@@ -318,7 +328,9 @@ func (c *NestedMaps) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
 			c.MapOfMaps = baml.Decode(valueHolder).Interface().(map[string]map[string]float64)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class NestedMaps", key))
+
 		}
 	}
 
@@ -385,7 +397,9 @@ func (c *Product) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
 			c.Tags = baml.Decode(valueHolder).Interface().([]string)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class Product", key))
+
 		}
 	}
 
@@ -454,7 +468,9 @@ func (c *SimpleMaps) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
 			c.IntToString = baml.Decode(valueHolder).Interface().(map[string]string)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class SimpleMaps", key))
+
 		}
 	}
 
@@ -521,7 +537,9 @@ func (c *User) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
 			c.Active = baml.Decode(valueHolder).Interface().(*bool)
 
 		default:
-			panic(fmt.Sprintf("unexpected field: %s", key))
+
+			panic(fmt.Sprintf("unexpected field: %s in class User", key))
+
 		}
 	}
 

@@ -11,6 +11,7 @@ use crate::{
         baml_type_encode::UnionAllowance,
         utils::{Encode, WithIr},
     },
+    raw_ptr_wrapper::RawPtrWrapper,
 };
 
 impl<'a, TypeLookups> Encode<CffiValueHolder> for WithIr<'a, BamlValue, TypeLookups>
@@ -36,6 +37,7 @@ where
                             WithIr {
                                 value,
                                 lookup: self.lookup,
+                                mode: self.mode,
                             }
                             .encode(),
                         ),
@@ -47,11 +49,13 @@ where
                 let key_type = WithIr {
                     value: &(key_type.as_ref(), UnionAllowance::Disallow),
                     lookup: self.lookup,
+                    mode: self.mode,
                 }
                 .encode();
                 let value_type = WithIr {
                     value: &(value_type.as_ref(), UnionAllowance::Disallow),
                     lookup: self.lookup,
+                    mode: self.mode,
                 }
                 .encode();
                 cValue::MapValue(CffiValueMap {
@@ -67,6 +71,7 @@ where
                         WithIr {
                             value,
                             lookup: self.lookup,
+                            mode: self.mode,
                         }
                         .encode(),
                     );
@@ -77,6 +82,7 @@ where
                 let value_type = WithIr {
                     value: &(value_type.as_ref(), UnionAllowance::Disallow),
                     lookup: self.lookup,
+                    mode: self.mode,
                 }
                 .encode();
                 cValue::ListValue(CffiValueList {
@@ -84,8 +90,16 @@ where
                     values,
                 })
             }
-            BamlValue::Media(_) => {
-                panic!("Unsupported BamlValue::Media is not supported")
+            BamlValue::Media(media) => {
+                let media_object = crate::raw_ptr_wrapper::RawPtrType::Media(
+                    RawPtrWrapper::from_object(media.clone()),
+                );
+                let media_object = crate::raw_ptr_wrapper::RawPtrType::encode(media_object);
+                cValue::ObjectValue(crate::baml::cffi::CffiValueRawObject {
+                    object: Some(crate::baml::cffi::cffi_value_raw_object::Object::Media(
+                        media_object,
+                    )),
+                })
             }
             BamlValue::Enum(name, value) => cValue::EnumValue(CffiValueEnum {
                 name: Some(CffiTypeName {
@@ -100,7 +114,7 @@ where
                     namespace: CffiTypeNamespace::Internal.into(),
                     name: name.clone(),
                 }),
-                dynamic_fields: vec![],
+                // dynamic_fields: vec![],
                 fields: fields
                     .iter()
                     .map(|(name, value)| CffiMapEntry {
@@ -109,6 +123,7 @@ where
                             WithIr {
                                 value,
                                 lookup: self.lookup,
+                                mode: self.mode,
                             }
                             .encode(),
                         ),
@@ -122,6 +137,7 @@ where
                 WithIr {
                     value: &(&type_ir, UnionAllowance::Disallow),
                     lookup: self.lookup,
+                    mode: self.mode,
                 }
                 .encode(),
             ),
@@ -174,11 +190,13 @@ where
                 let key_type = WithIr {
                     value: &(key_type.as_ref(), UnionAllowance::Disallow),
                     lookup: self.lookup,
+                    mode: self.mode,
                 }
                 .encode();
                 let value_type = WithIr {
                     value: &(value_type.as_ref(), UnionAllowance::Disallow),
                     lookup: self.lookup,
+                    mode: self.mode,
                 }
                 .encode();
                 CffiFieldTypeHolder {
@@ -197,6 +215,7 @@ where
                 let item_type = WithIr {
                     value: &(item_type.as_ref(), UnionAllowance::Disallow),
                     lookup: self.lookup,
+                    mode: self.mode,
                 }
                 .encode();
                 CffiFieldTypeHolder {
@@ -210,6 +229,7 @@ where
             other => WithIr {
                 value: &(&other.to_type_ir(), UnionAllowance::Disallow),
                 lookup: self.lookup,
+                mode: self.mode,
             }
             .encode(),
         }
