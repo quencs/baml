@@ -373,8 +373,6 @@ pub enum Statement {
         block: Block,
         span: Span,
     },
-    Break(Span),
-    Continue(Span),
 }
 
 #[derive(Debug, Clone, Copy)]
