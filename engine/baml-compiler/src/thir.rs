@@ -3,6 +3,7 @@
 use crate::hir::{BinaryOperator, Class, Enum, LlmFunction, Type, UnaryOperator};
 
 pub mod typecheck;
+pub mod interpret;
 
 use std::{
     collections::{HashSet, VecDeque},
