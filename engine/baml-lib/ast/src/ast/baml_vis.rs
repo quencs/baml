@@ -9,6 +9,9 @@ const MAX_CHILDREN_TO_FLATTEN: usize = 0;
 // Toggle: render function call nodes (e.g., SummarizeVideo, CreatePR) alongside headers.
 const SHOW_CALL_NODES: bool = false;
 
+use internal_baml_diagnostics::SerializedSpan;
+use serde_json;
+
 use super::{
     header_collector::HeaderLabelKind, Ast, HeaderCollector, HeaderIndex, RenderableHeader,
     ScopeId, WithSpan,
@@ -44,12 +47,21 @@ pub struct BamlVisDiagramGenerator {
     styled_node_ids: HashSet<String>,
     // Cache representative id for a header id to avoid recomputation
     header_rep_cache: HashMap<String, String>,
+    // Map from visual id (e.g. n0, n1) to serialized span for click callbacks
+    rep_id_to_span: HashMap<String, SerializedSpan>,
 }
 
 impl BamlVisDiagramGenerator {
     pub fn new() -> Self {
         Self {
-            content: vec!["flowchart LR".to_string()],
+            content: vec![
+                "---".to_string(),
+                "config:".to_string(),
+                "  layout: elk".to_string(),
+                "---".to_string(),
+                "".to_string(),
+                "flowchart LR".to_string(),
+            ],
             id_counter: 0,
             header_node_ids: HashMap::new(),
             header_subgraph_ids: HashMap::new(),
@@ -60,6 +72,7 @@ impl BamlVisDiagramGenerator {
             call_node_ids: HashMap::new(),
             styled_node_ids: HashSet::new(),
             header_rep_cache: HashMap::new(),
+            rep_id_to_span: HashMap::new(),
         }
     }
 
@@ -192,6 +205,22 @@ impl BamlVisDiagramGenerator {
                 &has_markdown_parent,
             );
         }
+
+        // After rendering all nodes and edges, append a JSON mapping comment and click callbacks
+        if !self.rep_id_to_span.is_empty() {
+            if let Ok(json) = serde_json::to_string(&self.rep_id_to_span) {
+                // Mermaid ignores %% comments; frontend can parse this
+                self.content.push(format!("%%__BAML_SPANMAP__={}", json));
+            }
+            // Emit click callbacks for each representative id
+            // Use a shared global callback name expected by the frontend: bamlMermaidNodeClick
+            for rep_id in self.rep_id_to_span.keys() {
+                self.content.push(format!(
+                    "  click {} call bamlMermaidNodeClick() \"Go to source\"",
+                    rep_id
+                ));
+            }
+        }
     }
 
     /// Render a scope sequence (top-level or nested) as a set of nodes/subgraphs and
@@ -288,6 +317,7 @@ impl BamlVisDiagramGenerator {
             } else {
                 self.ensure_node_styled(index, header)
             };
+            self.register_rep_span(&rep, &header.span);
             self.header_rep_cache.insert(header.id.clone(), rep.clone());
             return rep;
         }
@@ -327,6 +357,7 @@ impl BamlVisDiagramGenerator {
             } else {
                 self.ensure_node_styled(index, header)
             };
+            self.register_rep_span(&parent_rep_id, &header.span);
             // Render calls associated with this header at the current scope level
             self.render_calls_for_header(index, header, None, &parent_rep_id, 0);
 
@@ -431,6 +462,7 @@ impl BamlVisDiagramGenerator {
 
             // Decision node representing the branching header (defined outside to be in scope for return)
             let decision_id = self.ensure_decision_node(index, header);
+            self.register_rep_span(&decision_id, &header.span);
 
             let should_render_subgraph = self.emitted_subgraphs.insert(subgraph_id.clone());
             if should_render_subgraph {
@@ -680,6 +712,8 @@ impl BamlVisDiagramGenerator {
                         markdown_children,
                         has_markdown_parent,
                     );
+                    // Register span for the representative of this nested child root
+                    self.register_rep_span(&start_rep_id, &child_root.span);
                     let pos_key = (
                         child_root.span.file.path_buf().as_path(),
                         child_root.span.start,
@@ -744,6 +778,7 @@ impl BamlVisDiagramGenerator {
             } else {
                 // Fallback to a styled node for the container header if somehow empty
                 let fallback = self.ensure_node_styled(index, header);
+                self.register_rep_span(&fallback, &header.span);
                 (fallback.clone(), vec![fallback])
             };
 
@@ -782,6 +817,7 @@ impl BamlVisDiagramGenerator {
                 markdown_children,
                 has_markdown_parent,
             );
+            self.register_rep_span(&rep, &first_md.span);
             self.header_rep_cache.insert(header.id.clone(), rep.clone());
             return rep;
         }
@@ -799,12 +835,14 @@ impl BamlVisDiagramGenerator {
                     markdown_children,
                     has_markdown_parent,
                 );
+                self.register_rep_span(&rep, &child_root.span);
                 self.header_rep_cache.insert(header.id.clone(), rep.clone());
                 return rep;
             }
         }
         // Fallback
         let rep = self.ensure_node_styled(index, header);
+        self.register_rep_span(&rep, &header.span);
         self.header_rep_cache.insert(header.id.clone(), rep.clone());
         rep
     }
@@ -822,7 +860,7 @@ impl BamlVisDiagramGenerator {
     }
 
     /// Ensure a simple node with class based on scope kind
-    fn ensure_node_styled(&mut self, index: &HeaderIndex, header: &RenderableHeader) -> String {
+    fn ensure_node_styled(&mut self, _index: &HeaderIndex, header: &RenderableHeader) -> String {
         let id = self.ensure_node(header);
         // styling based on scope kind removed in simplified model
         id
@@ -868,6 +906,15 @@ impl BamlVisDiagramGenerator {
         let id = format!("{}{}", prefix, self.id_counter);
         self.id_counter += 1;
         id
+    }
+
+    fn register_rep_span(&mut self, rep_id: &str, span: &internal_baml_diagnostics::Span) {
+        // Only record once per rep id
+        if self.rep_id_to_span.contains_key(rep_id) {
+            return;
+        }
+        let serialized = SerializedSpan::serialize(span);
+        self.rep_id_to_span.insert(rep_id.to_string(), serialized);
     }
 }
 

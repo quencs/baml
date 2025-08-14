@@ -95,11 +95,21 @@ export const functionGraphAtom = atom(
     const func = get(selectedFunctionObjectAtom);
     const runtime = get(runtimeAtom).rt;
     if (!func || !runtime) {
+      console.debug('[functionGraphAtom] No func/runtime', { hasFunc: !!func, hasRuntime: !!runtime });
       return { graph: '' };
     }
 
-    const graph = func.function_graph(runtime);
-    return { graph };
+    try {
+      const graph = func.function_graph(runtime);
+      console.debug('[functionGraphAtom] graph generated', {
+        length: typeof graph === 'string' ? graph.length : undefined,
+        preview: typeof graph === 'string' ? graph.slice(0, 160) : graph,
+      });
+      return { graph };
+    } catch (e) {
+      console.error('[functionGraphAtom] failed to generate graph', e);
+      return { graph: '' };
+    }
   },
 );
 

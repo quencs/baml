@@ -110,7 +110,7 @@ export const PromptRenderWrapper = () => {
   };
 
   return (
-    <Tabs defaultValue="preview">
+    <Tabs defaultValue="preview" className="flex flex-col h-full min-h-0">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TabsList>
@@ -162,10 +162,10 @@ export const PromptRenderWrapper = () => {
       <TabsContent value="curl">
         <PromptPreviewCurl />
       </TabsContent>
-      <TabsContent value="client-graph">
+      <TabsContent value="client-graph" className="flex-1 min-h-0">
         <ClientGraphView />
       </TabsContent>
-      <TabsContent value="mermaid-graph">
+      <TabsContent value="mermaid-graph" className="flex-1 min-h-0">
         <MermaidGraphView />
       </TabsContent>
     </Tabs>
