@@ -53,18 +53,18 @@ fn NestedFor(as: int[], bs: int[]) -> int {
 // 3   1    LOAD_VAR 1           (xs)
 //     2    ARRAY_LENGTH         
 //     3    LOAD_CONST 0         (0)
-//     4    LOAD_VAR 5           (__baml for loop index0)
-//     5    LOAD_VAR 4           (__baml for loop array length0)
+//     4    LOAD_VAR 5           (__baml for loop index 0)
+//     5    LOAD_VAR 4           (__baml for loop array length 0)
 //     6    CMP_OP <             
 //     7    JUMP_IF_FALSE +17    (to 24)
 //     8    POP 1                
-//     9    LOAD_VAR 3           (__baml for loop iterated array0)
-//     10   LOAD_VAR 5           (__baml for loop index0)
+//     9    LOAD_VAR 3           (__baml for loop iterated array 0)
+//     10   LOAD_VAR 5           (__baml for loop index 0)
 //     11   LOAD_ARRAY_ELEMENT   
-//     12   LOAD_VAR 5           (__baml for loop index0)
+//     12   LOAD_VAR 5           (__baml for loop index 0)
 //     13   LOAD_CONST 1         (1)
 //     14   BIN_OP +             
-//     15   STORE_VAR 5          (__baml for loop index0)
+//     15   STORE_VAR 5          (__baml for loop index 0)
 //     16   LOAD_VAR 2           (result)
 //
 // 4   17   LOAD_VAR 6           (x)
@@ -86,18 +86,18 @@ fn NestedFor(as: int[], bs: int[]) -> int {
 // 13   1    LOAD_VAR 1           (xs)
 //      2    ARRAY_LENGTH         
 //      3    LOAD_CONST 0         (0)
-//      4    LOAD_VAR 5           (__baml for loop index1)
-//      5    LOAD_VAR 4           (__baml for loop array length1)
+//      4    LOAD_VAR 5           (__baml for loop index 1)
+//      5    LOAD_VAR 4           (__baml for loop array length 1)
 //      6    CMP_OP <             
 //      7    JUMP_IF_FALSE +25    (to 32)
 //      8    POP 1                
-//      9    LOAD_VAR 3           (__baml for loop iterated array1)
-//      10   LOAD_VAR 5           (__baml for loop index1)
+//      9    LOAD_VAR 3           (__baml for loop iterated array 1)
+//      10   LOAD_VAR 5           (__baml for loop index 1)
 //      11   LOAD_ARRAY_ELEMENT   
-//      12   LOAD_VAR 5           (__baml for loop index1)
+//      12   LOAD_VAR 5           (__baml for loop index 1)
 //      13   LOAD_CONST 1         (1)
 //      14   BIN_OP +             
-//      15   STORE_VAR 5          (__baml for loop index1)
+//      15   STORE_VAR 5          (__baml for loop index 1)
 //
 // 14   16   LOAD_VAR 6           (x)
 //      17   LOAD_CONST 2         (10)
@@ -128,18 +128,18 @@ fn NestedFor(as: int[], bs: int[]) -> int {
 // 26   1    LOAD_VAR 1           (xs)
 //      2    ARRAY_LENGTH         
 //      3    LOAD_CONST 0         (0)
-//      4    LOAD_VAR 5           (__baml for loop index2)
-//      5    LOAD_VAR 4           (__baml for loop array length2)
+//      4    LOAD_VAR 5           (__baml for loop index 2)
+//      5    LOAD_VAR 4           (__baml for loop array length 2)
 //      6    CMP_OP <             
 //      7    JUMP_IF_FALSE +25    (to 32)
 //      8    POP 1                
-//      9    LOAD_VAR 3           (__baml for loop iterated array2)
-//      10   LOAD_VAR 5           (__baml for loop index2)
+//      9    LOAD_VAR 3           (__baml for loop iterated array 2)
+//      10   LOAD_VAR 5           (__baml for loop index 2)
 //      11   LOAD_ARRAY_ELEMENT   
-//      12   LOAD_VAR 5           (__baml for loop index2)
+//      12   LOAD_VAR 5           (__baml for loop index 2)
 //      13   LOAD_CONST 1         (1)
 //      14   BIN_OP +             
-//      15   STORE_VAR 5          (__baml for loop index2)
+//      15   STORE_VAR 5          (__baml for loop index 2)
 //
 // 27   16   LOAD_VAR 6           (x)
 //      17   LOAD_CONST 2         (10)
@@ -170,34 +170,34 @@ fn NestedFor(as: int[], bs: int[]) -> int {
 // 40   1    LOAD_VAR 1           (as)
 //      2    ARRAY_LENGTH         
 //      3    LOAD_CONST 0         (0)
-//      4    LOAD_VAR 6           (__baml for loop index3)
-//      5    LOAD_VAR 5           (__baml for loop array length3)
+//      4    LOAD_VAR 6           (__baml for loop index 3)
+//      5    LOAD_VAR 5           (__baml for loop array length 3)
 //      6    CMP_OP <             
 //      7    JUMP_IF_FALSE +40    (to 47)
 //      8    POP 1                
-//      9    LOAD_VAR 4           (__baml for loop iterated array3)
-//      10   LOAD_VAR 6           (__baml for loop index3)
+//      9    LOAD_VAR 4           (__baml for loop iterated array 3)
+//      10   LOAD_VAR 6           (__baml for loop index 3)
 //      11   LOAD_ARRAY_ELEMENT   
-//      12   LOAD_VAR 6           (__baml for loop index3)
+//      12   LOAD_VAR 6           (__baml for loop index 3)
 //      13   LOAD_CONST 1         (1)
 //      14   BIN_OP +             
-//      15   STORE_VAR 6          (__baml for loop index3)
+//      15   STORE_VAR 6          (__baml for loop index 3)
 //
 // 41   16   LOAD_VAR 2           (bs)
 //      17   ARRAY_LENGTH         
 //      18   LOAD_CONST 0         (0)
-//      19   LOAD_VAR 10          (__baml for loop index4)
-//      20   LOAD_VAR 9           (__baml for loop array length4)
+//      19   LOAD_VAR 10          (__baml for loop index 4)
+//      20   LOAD_VAR 9           (__baml for loop array length 4)
 //      21   CMP_OP <             
 //      22   JUMP_IF_FALSE +19    (to 41)
 //      23   POP 1                
-//      24   LOAD_VAR 8           (__baml for loop iterated array4)
-//      25   LOAD_VAR 10          (__baml for loop index4)
+//      24   LOAD_VAR 8           (__baml for loop iterated array 4)
+//      25   LOAD_VAR 10          (__baml for loop index 4)
 //      26   LOAD_ARRAY_ELEMENT   
-//      27   LOAD_VAR 10          (__baml for loop index4)
+//      27   LOAD_VAR 10          (__baml for loop index 4)
 //      28   LOAD_CONST 1         (1)
 //      29   BIN_OP +             
-//      30   STORE_VAR 10         (__baml for loop index4)
+//      30   STORE_VAR 10         (__baml for loop index 4)
 //      31   LOAD_VAR 3           (result)
 //
 // 42   32   LOAD_VAR 7           (a)
@@ -222,3 +222,4 @@ fn NestedFor(as: int[], bs: int[]) -> int {
 //      50   RETURN               
 //
 // Class: std::Request with 3 fields
+// Function: len

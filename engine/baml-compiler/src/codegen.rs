@@ -57,6 +57,12 @@ fn compile_hir_to_bytecode(hir: &hir::Hir) -> anyhow::Result<BamlVmProgram> {
         resolved_classes.insert(class.name.clone(), class_fields);
     }
 
+    let native_fns = baml_vm::native::functions();
+
+    for name in native_fns.keys() {
+        resolved_globals.insert(name.clone(), resolved_globals.len());
+    }
+
     let mut objects = Vec::with_capacity(resolved_globals.len());
     let mut globals = Vec::with_capacity(resolved_globals.len());
 
@@ -100,6 +106,19 @@ fn compile_hir_to_bytecode(hir: &hir::Hir) -> anyhow::Result<BamlVmProgram> {
 
         globals.push(Value::Object(objects.len()));
         objects.push(Object::Class(bytecode_class));
+    }
+
+    for (name, (func, arity)) in native_fns {
+        let native_function = Object::Function(Function {
+            name: name.clone(),
+            arity,
+            bytecode: Bytecode::new(),
+            kind: FunctionKind::Native(func),
+            locals_in_scope: vec![], // TODO.
+        });
+
+        globals.push(Value::Object(objects.len()));
+        objects.push(native_function);
     }
 
     let resolved_function_names = objects
@@ -663,7 +682,7 @@ impl<'g> HirCompiler<'g> {
             }
 
             hir::Expression::FieldAccess { .. } => {
-                unimplemented!("Array access compilation")
+                unimplemented!("field access compilation")
             }
 
             hir::Expression::NumericValue(num, _) => {
@@ -737,6 +756,29 @@ impl<'g> HirCompiler<'g> {
                 } else {
                     self.emit(Instruction::Call(args.len()));
                 }
+            }
+
+            hir::Expression::MethodCall {
+                receiver,
+                method,
+                args,
+                span,
+            } => {
+                // Push the function onto the stack
+                let Some(&index) = self.globals.get(method) else {
+                    panic!("undefined method: {method}");
+                };
+
+                self.emit(Instruction::LoadGlobal(index));
+
+                self.compile_expression(receiver);
+
+                for arg in args {
+                    self.compile_expression(arg);
+                }
+
+                // `self` counts as one argument.
+                self.emit(Instruction::Call(1 + args.len()));
             }
 
             hir::Expression::ClassConstructor(constructor, _) => {
@@ -2110,6 +2152,280 @@ mod tests {
                     Instruction::Jump(2),
                     Instruction::Pop(1),
                     Instruction::LoadVar(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn builtin_method_call() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn main() -> int {
+                    let arr = [1, 2, 3];
+                    arr.len()
+                }
+            "#,
+            expected: vec![(
+                "main",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadConst(1),
+                    Instruction::LoadConst(2),
+                    Instruction::AllocArray(3),
+                    Instruction::LoadGlobal(2),
+                    Instruction::LoadVar(1),
+                    // call with one argument (self)
+                    Instruction::Call(1),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn for_loop_sum() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn Sum(xs: int[]) -> int {
+                    let mut result = 0;
+
+                    for x in xs {
+                        result += x;
+                    }
+
+                    result
+                }
+                "#,
+            expected: vec![(
+                "Sum",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(1),
+                    Instruction::ArrayLength,
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(5),
+                    Instruction::LoadVar(4),
+                    Instruction::CmpOp(CmpOp::Lt),
+                    Instruction::JumpIfFalse(17),
+                    Instruction::Pop(1),
+                    Instruction::LoadVar(3),
+                    Instruction::LoadVar(5),
+                    Instruction::LoadArrayElement,
+                    Instruction::LoadVar(5),
+                    Instruction::LoadConst(1),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(5),
+                    Instruction::LoadVar(2),
+                    Instruction::LoadVar(6),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(2),
+                    Instruction::Pop(1),
+                    Instruction::Jump(-17),
+                    Instruction::Pop(1),
+                    Instruction::Jump(2),
+                    Instruction::Pop(1),
+                    Instruction::Pop(3),
+                    Instruction::LoadVar(2),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn for_with_break() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn ForWithBreak(xs: int[]) -> int {
+                    let mut result = 0;
+
+                    for x in xs {
+                        if x > 10 {
+                            break;
+                        }
+                        result += x;
+                    }
+
+                    result
+                }
+                "#,
+            expected: vec![(
+                "ForWithBreak",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(1),
+                    Instruction::ArrayLength,
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(5),
+                    Instruction::LoadVar(4),
+                    Instruction::CmpOp(CmpOp::Lt),
+                    Instruction::JumpIfFalse(25),
+                    Instruction::Pop(1),
+                    Instruction::LoadVar(3),
+                    Instruction::LoadVar(5),
+                    Instruction::LoadArrayElement,
+                    Instruction::LoadVar(5),
+                    Instruction::LoadConst(1),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(5),
+                    Instruction::LoadVar(6),
+                    Instruction::LoadConst(2),
+                    Instruction::CmpOp(CmpOp::Gt),
+                    Instruction::JumpIfFalse(4),
+                    Instruction::Pop(1),
+                    Instruction::Jump(9),
+                    Instruction::Jump(2),
+                    Instruction::Pop(1),
+                    Instruction::LoadVar(2),
+                    Instruction::LoadVar(6),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(2),
+                    Instruction::Pop(1),
+                    Instruction::Jump(-25),
+                    Instruction::Pop(1),
+                    Instruction::Jump(2),
+                    Instruction::Pop(1),
+                    Instruction::Pop(3),
+                    Instruction::LoadVar(2),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn for_with_continue() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn ForWithContinue(xs: int[]) -> int {
+                    let mut result = 0;
+
+                    for x in xs {
+                        if x > 10 {
+                            continue;
+                        }
+                        result += x;
+                    }
+
+                    result
+                }
+                "#,
+            expected: vec![(
+                "ForWithContinue",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(1),
+                    Instruction::ArrayLength,
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(5),
+                    Instruction::LoadVar(4),
+                    Instruction::CmpOp(CmpOp::Lt),
+                    Instruction::JumpIfFalse(25),
+                    Instruction::Pop(1),
+                    Instruction::LoadVar(3),
+                    Instruction::LoadVar(5),
+                    Instruction::LoadArrayElement,
+                    Instruction::LoadVar(5),
+                    Instruction::LoadConst(1),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(5),
+                    Instruction::LoadVar(6),
+                    Instruction::LoadConst(2),
+                    Instruction::CmpOp(CmpOp::Gt),
+                    Instruction::JumpIfFalse(4),
+                    Instruction::Pop(1),
+                    Instruction::Jump(7),
+                    Instruction::Jump(2),
+                    Instruction::Pop(1),
+                    Instruction::LoadVar(2),
+                    Instruction::LoadVar(6),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(2),
+                    Instruction::Pop(1),
+                    Instruction::Jump(-25),
+                    Instruction::Pop(1),
+                    Instruction::Jump(2),
+                    Instruction::Pop(1),
+                    Instruction::Pop(3),
+                    Instruction::LoadVar(2),
+                    Instruction::Return,
+                ],
+            )],
+        })
+    }
+
+    #[test]
+    fn for_nested() -> anyhow::Result<()> {
+        assert_compiles(Program {
+            source: r#"
+                fn NestedFor(as: int[], bs: int[]) -> int {
+
+                    let mut result = 0;
+
+                    for a in as {
+                        for b in bs {
+                            result += a * b;
+                        }
+                    }
+
+                    result
+                }
+                "#,
+            expected: vec![(
+                "NestedFor",
+                vec![
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(1),
+                    Instruction::ArrayLength,
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(6),
+                    Instruction::LoadVar(5),
+                    Instruction::CmpOp(CmpOp::Lt),
+                    Instruction::JumpIfFalse(40),
+                    Instruction::Pop(1),
+                    Instruction::LoadVar(4),
+                    Instruction::LoadVar(6),
+                    Instruction::LoadArrayElement,
+                    Instruction::LoadVar(6),
+                    Instruction::LoadConst(1),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(6),
+                    Instruction::LoadVar(2),
+                    Instruction::ArrayLength,
+                    Instruction::LoadConst(0),
+                    Instruction::LoadVar(10),
+                    Instruction::LoadVar(9),
+                    Instruction::CmpOp(CmpOp::Lt),
+                    Instruction::JumpIfFalse(19),
+                    Instruction::Pop(1),
+                    Instruction::LoadVar(8),
+                    Instruction::LoadVar(10),
+                    Instruction::LoadArrayElement,
+                    Instruction::LoadVar(10),
+                    Instruction::LoadConst(1),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(10),
+                    Instruction::LoadVar(3),
+                    Instruction::LoadVar(7),
+                    Instruction::LoadVar(11),
+                    Instruction::BinOp(BinOp::Mul),
+                    Instruction::BinOp(BinOp::Add),
+                    Instruction::StoreVar(3),
+                    Instruction::Pop(1),
+                    Instruction::Jump(-19),
+                    Instruction::Pop(1),
+                    Instruction::Jump(2),
+                    Instruction::Pop(1),
+                    Instruction::Pop(3),
+                    Instruction::Pop(1),
+                    Instruction::Jump(-40),
+                    Instruction::Pop(5),
+                    Instruction::Jump(2),
+                    Instruction::Pop(1),
+                    Instruction::Pop(3),
+                    Instruction::LoadVar(3),
                     Instruction::Return,
                 ],
             )],
