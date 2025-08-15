@@ -1,149 +1,181 @@
+---
+config:
+  layout: elk
+---
+
 flowchart LR
+  n10["Back to Function Level"]
+  n12["First Header"]
+  n13["Second Header"]
+  n23["Final Section"]
   subgraph sg0["你好世界"]
     direction LR
-  subgraph sg1["Émojis 🎉🎊"]
+    subgraph sg1["Émojis 🎉🎊"]
+      direction LR
+      n0["Special «Characters» ™"]
+    end
+  end
+  subgraph sg2["Level 1"]
     direction LR
-  n2["Special «Characters» ™"]
+    subgraph sg3["Level 2"]
+      direction LR
+      subgraph sg4["Level 3"]
+        direction LR
+        subgraph sg5["Level 4"]
+          direction LR
+          subgraph sg6["Level 5"]
+            direction LR
+            subgraph sg7["Level 6"]
+              direction LR
+              subgraph sg8["Level 7 - More than 6 levels"]
+                direction LR
+                subgraph sg9["Level 8"]
+                  direction LR
+                  n1["Level 9"]
+                end
+              end
+            end
+          end
+        end
+      end
+    end
   end
-  end
-  subgraph sg3["Level 1"]
+  subgraph sg10["Extra Spaces Before Title"]
     direction LR
-  subgraph sg4["Level 2"]
+    subgraph sg11["Mixed Tabs And Spaces"]
+      direction LR
+      n2["All Tabs"]
+    end
+  end
+  subgraph sg12["Trailing Spaces"]
     direction LR
-  subgraph sg5["Level 3"]
+    n3["Multiple  Spaces  Between  Words"]
+  end
+  subgraph sg13["Header Before Comment"]
     direction LR
-  subgraph sg6["Level 4"]
+    subgraph sg14["Header After Comment"]
+      direction LR
+      n4["Header After Doc Comment"]
+    end
+  end
+  subgraph sg15["Main Function"]
     direction LR
-  subgraph sg7["Level 5"]
+    n9["Back to Block Level"]
+    subgraph sg16["Inside Block Expression"]
+      direction LR
+      n5{"Inside Block Expression"}
+      class n5 decisionNode;
+      n7["Back to If Level"]
+      n8["Inside Else"]
+      subgraph sg17["Inside If True"]
+        direction LR
+        n6["Very Deep Block"]
+      end
+    end
+  end
+  subgraph sg18["Header-With-Dashes"]
     direction LR
-  subgraph sg8["Level 6"]
+    subgraph sg19["Header_With_Underscores"]
+      direction LR
+      subgraph sg20["Header.With.Dots"]
+        direction LR
+        subgraph sg21["Header/With/Slashes"]
+          direction LR
+          subgraph sg22["Header\With\Backslashes"]
+            direction LR
+            n11["Header|With|Pipes"]
+          end
+        end
+      end
+    end
+  end
+  subgraph sg23["Third Header"]
     direction LR
-  subgraph sg9["Level 7 - More than 6 levels"]
+    n14["Subsection A"]
+    n15["Subsection B"]
+    n16["Subsection C"]
+  end
+  subgraph sg24["Before Let"]
     direction LR
-  subgraph sg10["Level 8"]
+    n22["After For"]
+    subgraph sg25["After Let"]
+      direction LR
+      n20["After If"]
+      subgraph sg26["Before If"]
+        direction LR
+        n17{"Before If"}
+        class n17 decisionNode;
+        n18["Inside If"]
+        n19["Inside Else"]
+      end
+    end
+    subgraph sg27["Before For"]
+      direction LR
+      n21["Inside For"]
+    end
+  end
+  subgraph sg28["This Is An Extremely Long Header Title That Goes On And On And On And Contains Many Words To Test How The Parser Handles Very Long Header Titles That Might Span Multiple Lines In Some Editors But Should Still Be Parsed As A Single Header"]
     direction LR
-  n11["Level 9"]
+    n24["Another Long Title With Special Characters !@#$%^&*()_+-=[]{}|;':&quot;,./<>? And Numbers 1234567890"]
   end
-  end
-  end
-  end
-  end
-  end
-  end
-  end
-  subgraph sg12["Extra Spaces Before Title"]
+  subgraph sg29["Just Headers"]
     direction LR
-  subgraph sg13["Mixed Tabs And Spaces"]
-    direction LR
-  n14["All Tabs"]
+    subgraph sg30["No Code"]
+      direction LR
+      subgraph sg31["Only Documentation"]
+        direction LR
+        subgraph sg32["Pure Annotation"]
+          direction LR
+          subgraph sg33["No Expressions"]
+            direction LR
+            n25["Until The End"]
+          end
+        end
+      end
+    end
   end
-  end
-  subgraph sg15["Trailing Spaces"]
-    direction LR
-  n16["Multiple  Spaces  Between  Words"]
-  end
-n14 --> n16
-  subgraph sg17["Header Before Comment"]
-    direction LR
-  subgraph sg18["Header After Comment"]
-    direction LR
-  n19["Header After Doc Comment"]
-  end
-  end
-  subgraph sg20["Main Function"]
-    direction LR
-  n22{"Inside Block Expression"}
-  class n22 decisionNode;
-  subgraph sg21["Inside Block Expression"]
-    direction LR
-  subgraph sg23["Inside If True"]
-    direction LR
-  n24["Very Deep Block"]
-  end
-  n25["Back to If Level"]
-n24 --> n25
-    n22 --> n24
-  n26["Inside Else"]
-    n22 --> n26
-  end
-  n27["Back to Block Level"]
-n25 --> n27
-n26 --> n27
-  end
-  n28["Back to Function Level"]
-n27 --> n28
-  subgraph sg29["Header-With-Dashes"]
-    direction LR
-  subgraph sg30["Header_With_Underscores"]
-    direction LR
-  subgraph sg31["Header.With.Dots"]
-    direction LR
-  subgraph sg32["Header/With/Slashes"]
-    direction LR
-  subgraph sg33["Header\With\Backslashes"]
-    direction LR
-  n34["Header|With|Pipes"]
-  end
-  end
-  end
-  end
-  end
-  n35["First Header"]
-  n36["Second Header"]
-  subgraph sg37["Third Header"]
-    direction LR
-  n38["Subsection A"]
-  n39["Subsection B"]
-  n40["Subsection C"]
-    n38 --> n39
-    n39 --> n40
-  end
-n35 --> n36
-n36 --> n38
-  subgraph sg41["Before Let"]
-    direction LR
-  subgraph sg42["After Let"]
-    direction LR
-  n44{"Before If"}
-  class n44 decisionNode;
-  subgraph sg43["Before If"]
-    direction LR
-  n45["Inside If"]
-    n44 --> n45
-  n46["Inside Else"]
-    n44 --> n46
-  end
-  n47["After If"]
-    n45 --> n47
-    n46 --> n47
-  end
-  subgraph sg48["Before For"]
-    direction LR
-  n49["Inside For"]
-  end
-  n50["After For"]
-    n47 --> n49
-    n49 --> n50
-  end
-  n51["Final Section"]
-n50 --> n51
-  subgraph sg52["This Is An Extremely Long Header Title That Goes On And On And On And Contains Many Words To Test How The Parser Handles Very Long Header Titles That Might Span Multiple Lines In Some Editors But Should Still Be Parsed As A Single Header"]
-    direction LR
-  n53["Another Long Title With Special Characters !@#$%^&*()_+-=[]{}|;':&quot;,./<>? And Numbers 1234567890"]
-  end
-  subgraph sg54["Just Headers"]
-    direction LR
-  subgraph sg55["No Code"]
-    direction LR
-  subgraph sg56["Only Documentation"]
-    direction LR
-  subgraph sg57["Pure Annotation"]
-    direction LR
-  subgraph sg58["No Expressions"]
-    direction LR
-  n59["Until The End"]
-  end
-  end
-  end
-  end
-  end
+  n2 --> n3
+  n6 --> n7
+  n5 --> n6
+  n5 --> n8
+  n6 --> n9
+  n8 --> n9
+  n9 --> n10
+  n12 --> n13
+  n14 --> n15
+  n15 --> n16
+  n13 --> n14
+  n17 --> n18
+  n17 --> n19
+  n18 --> n20
+  n19 --> n20
+  n20 --> n21
+  n21 --> n22
+  n22 --> n23
+%%__BAML_SPANMAP__={"n11":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":91,"start":23,"end_line":93,"end":14},"n16":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":104,"start":3,"end_line":105,"end":14},"n23":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":131,"start":3,"end_line":134,"end":10},"n18":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":116,"start":4,"end_line":117,"end":9},"n4":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":51,"start":23,"end_line":56,"end":5},"n5":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":60,"start":27,"end_line":62,"end":10},"n6":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":66,"start":35,"end_line":67,"end":19},"n1":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":24,"start":1,"end_line":25,"end":14},"n7":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":70,"start":31,"end_line":72,"end":2},"n8":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":74,"start":3,"end_line":74,"end":19},"n9":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":77,"start":27,"end_line":79,"end":5},"n17":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":114,"start":5,"end_line":115,"end":2},"n19":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":119,"start":2,"end_line":121,"end":3},"n20":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":123,"start":1,"end_line":123,"end":14},"n2":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":32,"start":1,"end_line":33,"end":14},"n21":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":126,"start":4,"end_line":128,"end":3},"n14":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":102,"start":3,"end_line":102,"end":19},"n13":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":99,"start":3,"end_line":100,"end":0},"n15":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":103,"start":3,"end_line":103,"end":19},"n22":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":130,"start":1,"end_line":130,"end":14},"n24":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":137,"start":23,"end_line":139,"end":14},"n25":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":148,"start":23,"end_line":151,"end":0},"n0":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":9,"start":19,"end_line":14,"end":0},"n12":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":98,"start":4,"end_line":98,"end":19},"n3":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":36,"start":23,"end_line":41,"end":5},"n10":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/edge_cases.baml","start_line":81,"start":23,"end_line":85,"end":5}}
+  click n11 call bamlMermaidNodeClick() "Go to source"
+  click n16 call bamlMermaidNodeClick() "Go to source"
+  click n23 call bamlMermaidNodeClick() "Go to source"
+  click n18 call bamlMermaidNodeClick() "Go to source"
+  click n4 call bamlMermaidNodeClick() "Go to source"
+  click n5 call bamlMermaidNodeClick() "Go to source"
+  click n6 call bamlMermaidNodeClick() "Go to source"
+  click n1 call bamlMermaidNodeClick() "Go to source"
+  click n7 call bamlMermaidNodeClick() "Go to source"
+  click n8 call bamlMermaidNodeClick() "Go to source"
+  click n9 call bamlMermaidNodeClick() "Go to source"
+  click n17 call bamlMermaidNodeClick() "Go to source"
+  click n19 call bamlMermaidNodeClick() "Go to source"
+  click n20 call bamlMermaidNodeClick() "Go to source"
+  click n2 call bamlMermaidNodeClick() "Go to source"
+  click n21 call bamlMermaidNodeClick() "Go to source"
+  click n14 call bamlMermaidNodeClick() "Go to source"
+  click n13 call bamlMermaidNodeClick() "Go to source"
+  click n15 call bamlMermaidNodeClick() "Go to source"
+  click n22 call bamlMermaidNodeClick() "Go to source"
+  click n24 call bamlMermaidNodeClick() "Go to source"
+  click n25 call bamlMermaidNodeClick() "Go to source"
+  click n0 call bamlMermaidNodeClick() "Go to source"
+  click n12 call bamlMermaidNodeClick() "Go to source"
+  click n3 call bamlMermaidNodeClick() "Go to source"
+  click n10 call bamlMermaidNodeClick() "Go to source"

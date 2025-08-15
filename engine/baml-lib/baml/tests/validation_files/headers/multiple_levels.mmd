@@ -1,12 +1,21 @@
+---
+config:
+  layout: elk
+---
+
 flowchart LR
   n0["Section One"]
-  subgraph sg1["Section Two"]
+  n2["Section Three"]
+  subgraph sg0["Section Two"]
     direction LR
-  subgraph sg2["Subsection 2.1"]
-    direction LR
-  n3["Subsubsection 2.1.1"]
+    subgraph sg1["Subsection 2.1"]
+      direction LR
+      n1["Subsubsection 2.1.1"]
+    end
   end
-  end
-  n4["Section Three"]
-n0 --> n3
-n3 --> n4
+  n0 --> n1
+  n1 --> n2
+%%__BAML_SPANMAP__={"n1":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/multiple_levels.baml","start_line":10,"start":4,"end_line":11,"end":0},"n2":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/multiple_levels.baml","start_line":13,"start":4,"end_line":14,"end":0},"n0":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/multiple_levels.baml","start_line":1,"start":4,"end_line":2,"end":0}}
+  click n1 call bamlMermaidNodeClick() "Go to source"
+  click n2 call bamlMermaidNodeClick() "Go to source"
+  click n0 call bamlMermaidNodeClick() "Go to source"

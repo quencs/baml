@@ -7,15 +7,117 @@ import svgPanZoom from 'svg-pan-zoom';
 import { functionGraphAtom } from '../../../atoms-orch-graph';
 import { vscode } from '../../../../vscode';
 
+// === BAML Mermaid CSS Override (media-like styling) ===
+// This CSS is injected into the generated Mermaid SVG so it overrides Mermaid's defaults.
+// It aligns the graph visuals with the media panel styling (rounded corners, thicker borders,
+// VS Code theme colors) and adds hover feedback for clickable nodes.
+const MERMAID_CSS_OVERRIDE = `
+  /* Container font + base text color */
+  #bamlMermaidSvg {
+    font-family: inherit !important; /* use playground default font */
+    color: var(--vscode-foreground) !important;
+    /* Diagram-specific border color (solid by default; never transparent) */
+    --baml-diagram-border-color: var(--vscode-panel-border);
+    background: transparent !important; /* ensure SVG background is transparent */
+  }
+
+  /* Labels and text should match editor foreground */
+  #bamlMermaidSvg .label text,
+  #bamlMermaidSvg .nodeLabel,
+  #bamlMermaidSvg .cluster-label text,
+  #bamlMermaidSvg .cluster-label span,
+  #bamlMermaidSvg .edgeLabel,
+  #bamlMermaidSvg span { 
+    fill: var(--vscode-foreground) !important;
+    color: var(--vscode-foreground) !important;
+    font-family: inherit !important;
+    font-size: 1em !important;
+  }
+
+  /* Ensure foreignObject HTML content also inherits playground font/size */
+  #bamlMermaidSvg foreignObject,
+  #bamlMermaidSvg foreignObject div,
+  #bamlMermaidSvg foreignObject span,
+  #bamlMermaidSvg foreignObject p {
+    font-family: inherit !important;
+    font-size: 1em !important;
+    line-height: 1.4;
+  }
+
+  /* Prevent cluster titles from being clipped by the foreignObject box */
+  #bamlMermaidSvg .cluster-label foreignObject,
+  #bamlMermaidSvg .cluster-label div {
+    overflow: visible !important;
+    max-width: none !important;
+  }
+
+  /* Node shapes: use editor bg fill and panel border stroke, thicker borders, rounded joins */
+  #bamlMermaidSvg .node rect,
+  #bamlMermaidSvg .node circle,
+  #bamlMermaidSvg .node ellipse,
+  #bamlMermaidSvg .node polygon,
+  #bamlMermaidSvg .node path {
+    fill: var(--vscode-editor-background) !important;
+    stroke: var(--baml-diagram-border-color) !important;
+    stroke-width: 5.4px !important; /* 1.5x thicker */
+    stroke-linejoin: round !important;
+    transition: fill 150ms ease, stroke 150ms ease, stroke-width 150ms ease, filter 150ms ease;
+  }
+
+  /* Cluster containers: subtle sidebar background with stronger border */
+  #bamlMermaidSvg .cluster rect {
+    fill: var(--vscode-sideBar-background) !important;
+    stroke: var(--baml-diagram-border-color) !important;
+    stroke-width: 5.4px !important; /* 1.5x thicker */
+  }
+
+  /* Edge labels: badge-like background with border and rounding */
+  #bamlMermaidSvg .edgeLabel rect {
+    fill: var(--vscode-editor-background) !important;
+    stroke: var(--baml-diagram-border-color) !important;
+    stroke-width: 3.6px !important; /* 1.5x thicker */
+    opacity: 1 !important;
+    rx: 6; ry: 6;
+  }
+
+  /* Links/edges: round caps/joins and thicker strokes to match media borders */
+  #bamlMermaidSvg .flowchart-link,
+  #bamlMermaidSvg .edgePath .path {
+    stroke: var(--baml-diagram-border-color) !important;
+    stroke-width: 5.7px !important; /* 1.5x thicker */
+    // stroke-linecap: round !important;
+    // stroke-linejoin: round !important;
+  }
+
+  /* Normalize Mermaid thickness utility classes to our desired thickness */
+  #bamlMermaidSvg .edge-thickness-normal { stroke-width: 5.7px !important; }
+  #bamlMermaidSvg .edge-thickness-thick { stroke-width: 6.9px !important; }
+  #bamlMermaidSvg .edge-thickness-invisible { stroke-width: 0 !important; fill: none !important; }
+
+  /* Arrowheads/markers use the same border color */
+  #bamlMermaidSvg .arrowheadPath,
+  #bamlMermaidSvg .marker,
+  #bamlMermaidSvg .marker.cross {
+    fill: var(--baml-diagram-border-color) !important;
+    stroke: var(--baml-diagram-border-color) !important;
+  }
+
+  /* Clickable node hover: subtle fill shift, stronger stroke, and glow */
+  #bamlMermaidSvg g.node.clickable:hover rect,
+  #bamlMermaidSvg g.node.clickable:hover circle,
+  #bamlMermaidSvg g.node.clickable:hover ellipse,
+  #bamlMermaidSvg g.node.clickable:hover polygon,
+  #bamlMermaidSvg g.node.clickable:hover path {
+    fill: var(--vscode-sideBar-background) !important;
+    stroke: var(--vscode-foreground) !important;
+    stroke-width: 6.0px !important; /* keep hover slightly stronger than base */
+    filter: drop-shadow(0 0 0.25rem rgba(0, 0, 0, 0.52));
+  }
+`;
+
 const MermaidHeader: React.FC = () => {
   return (
     <div className="pt-4">
-      <div className="text-sm font-bold">Function Flow Diagram</div>
-      <div className="flex flex-col-reverse items-start gap-0.5">
-        <span className="pl-2 text-xs text-muted-foreground flex flex-row flex-wrap items-center gap-0.5">
-          Mermaid diagram visualization
-        </span>
-      </div>
     </div>
   );
 };
@@ -64,13 +166,25 @@ export const MermaidGraphView: React.FC = () => {
       try {
         mermaid.initialize({
           startOnLoad: false,
+          elk: {
+            mergeEdges: false,
+            nodePlacementStrategy: 'SIMPLE',
+            cycleBreakingStrategy: 'GREEDY',
+          },
           theme: 'dark',
           themeCSS: '.mermaid svg { max-width: none !important; }',
-          // flowchart: {
-          //   nodeSpacing: 50,
-          //   rankSpacing: 50,
-          //   curve: 'basis',
-          // },
+          flowchart: {
+            arrowMarkerAbsolute: true,
+            diagramPadding: 0,
+            htmlLabels: true,
+            // nodeSpacing: 42,
+            rankSpacing: 10,
+            curve: 'monotoneX',
+            padding: 14,
+            defaultRenderer: 'elk',
+            wrappingWidth: 220,
+            inheritDir: true,
+          },
           securityLevel: 'loose',
         });
 
@@ -146,6 +260,42 @@ export const MermaidGraphView: React.FC = () => {
         svgEl.style.height = '100%';
         svgEl.style.display = 'block';
 
+        // Inject CSS override so it takes precedence over Mermaid defaults inside the SVG
+        try {
+          const styleEl = document.createElement('style');
+          styleEl.setAttribute('data-baml', 'mermaid-css-override');
+          styleEl.textContent = MERMAID_CSS_OVERRIDE;
+          svgEl.appendChild(styleEl);
+        } catch {}
+
+        // Programmatically round rect corners (CSS cannot set rx/ry reliably on SVG rects)
+        try {
+          svgEl.querySelectorAll('g.node rect, g.cluster rect, .edgeLabel rect').forEach((el) => {
+            (el as SVGRectElement).setAttribute('rx', '10');
+            (el as SVGRectElement).setAttribute('ry', '10');
+          });
+        } catch {}
+
+        // Expand cluster label foreignObjects to fit content after font/styling changes
+        try {
+          svgEl.querySelectorAll('g .cluster-label').forEach((label) => {
+            const fo = label.querySelector('foreignObject') as SVGForeignObjectElement | null;
+            const div = fo?.querySelector('div') as HTMLElement | null;
+            if (fo && div) {
+              div.style.display = 'inline-block';
+              div.style.whiteSpace = 'nowrap';
+              div.style.maxWidth = 'none';
+              // Measure actual content size in CSS pixels
+              const rect = div.getBoundingClientRect();
+              // Use measured size to update the foreignObject box (SVG user units ~= CSS px here)
+              if (rect.width > 0) fo.setAttribute('width', String(rect.width));
+              if (rect.height > 0) fo.setAttribute('height', String(rect.height));
+            }
+          });
+        } catch {}
+
+        // Keep arrowhead markers near default sizing (no scaling), only color is overridden via CSS
+
         // Initialize svg-pan-zoom on the generated SVG
         panZoomRef.current = svgPanZoom(svgEl as unknown as SVGElement, {
           panEnabled: true,
@@ -209,6 +359,7 @@ export const MermaidGraphView: React.FC = () => {
               .find((el) => !!el);
             if (!target) return;
             target.style.cursor = 'pointer';
+            try { target.setAttribute('data-baml-node-id', nodeId); } catch {}
             const onClick = (ev: Event) => {
               ev.stopPropagation();
               console.log('[MermaidGraphView] node click (manual handler)', { nodeId, span, target: (ev.target as Element)?.tagName });
@@ -223,14 +374,32 @@ export const MermaidGraphView: React.FC = () => {
             (el as SVGGraphicsElement).style.pointerEvents = 'all';
           });
           // Attach generic listener to any node group; derive nodeId from its id content
+          const extractNodeId = (rawId?: string | null): string | null => {
+            if (!rawId) return null;
+            let id = rawId;
+            if (id.startsWith('flowchart-')) {
+              id = id.slice('flowchart-'.length);
+            }
+            const firstSegment = id.split('-')[0];
+            return firstSegment || null;
+          };
+
           const generic = (ev: Event) => {
             const el = ev.target as Element | null;
             if (!el) return;
-            const g = el.closest('g[id]');
-            const id = g?.getAttribute('id') || '';
-            const key = Object.keys(spanMap!).find((k) => id.includes(k));
+            const g = el.closest('g[id]') as Element | null;
+            if (!g) return;
+            const rawId = g.getAttribute('id');
+            const baseId = extractNodeId(rawId);
+            let key: string | undefined;
+            if (baseId && spanMap![baseId]) {
+              key = baseId;
+            } else {
+              const dataId = g.getAttribute('data-baml-node-id');
+              if (dataId && spanMap![dataId]) key = dataId;
+            }
             if (key) {
-              console.log('[MermaidGraphView] node click (generic)', { rawId: id, key });
+              console.log('[MermaidGraphView] node click (generic)', { rawId, baseId, key });
               triggerSpan(key);
             }
           };
@@ -286,8 +455,11 @@ export const MermaidGraphView: React.FC = () => {
       <MermaidHeader />
       <div
         ref={containerRef}
-        className="relative flex-1 min-h-0 overflow-hidden"
-        style={{ backgroundColor: '#0f172a' }}
+        className="relative flex-1 min-h-0 overflow-hidden border rounded bg-transparent"
+        style={{
+          borderColor: 'var(--vscode-panel-border)',
+          backgroundColor: 'transparent',
+        }}
       >
         <div
           ref={mermaidRef}

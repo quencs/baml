@@ -1,13 +1,22 @@
+---
+config:
+  layout: elk
+---
+
 flowchart LR
   subgraph sg0["Basic test"]
     direction LR
-  n2{"This is a named statement"}
-  class n2 decisionNode;
-  subgraph sg1["This is a named statement"]
-    direction LR
-  n3["Then Statement"]
-    n2 --> n3
-  n4["Else Statement"]
-    n2 --> n4
+    subgraph sg1["This is a named statement"]
+      direction LR
+      n0{"This is a named statement"}
+      class n0 decisionNode;
+      n1["Then Statement"]
+      n2["Else Statement"]
+    end
   end
-  end
+  n0 --> n1
+  n0 --> n2
+%%__BAML_SPANMAP__={"n1":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/basic_if.baml","start_line":7,"start":8,"end_line":8,"end":0},"n2":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/basic_if.baml","start_line":10,"start":8,"end_line":11,"end":0},"n0":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/basic_if.baml","start_line":5,"start":4,"end_line":6,"end":0}}
+  click n1 call bamlMermaidNodeClick() "Go to source"
+  click n2 call bamlMermaidNodeClick() "Go to source"
+  click n0 call bamlMermaidNodeClick() "Go to source"

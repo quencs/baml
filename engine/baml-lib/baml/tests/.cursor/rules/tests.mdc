@@ -3,6 +3,8 @@ alwaysApply: true
 ---
 ## How to run
 
+NOTE: The baml_vis children collapse config will effect these tests and can prevent them from passing
+
 - Run the Mermaid headers tests (concise PASS/FAIL/SKIP output):
   - `cargo test --test mermaid_graph_tests -p baml-lib -- --nocapture`
 - Update snapshots (write .mmd next to .baml):
@@ -27,10 +29,7 @@ alwaysApply: true
 
 ## Authoring fixtures
 
-- Prefer small, focused `.baml` inputs covering one behavior at a time
-- Use descriptive names: `mdx_headers_<case>.baml`
 - If a case is not currently supported, prefix the fixture with `_skip_` or include `invalid` in the name
-- Keep `.mmd` deterministic: avoid cosmetic modes; rely on `BamlVisDiagramGenerator::generate_headers_flowchart`
 
 ## Debugging
 

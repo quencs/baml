@@ -1,13 +1,22 @@
+---
+config:
+  layout: elk
+---
+
 flowchart LR
   subgraph sg0["Top Level"]
     direction LR
-  n2{"First Section"}
-  class n2 decisionNode;
-  subgraph sg1["First Section"]
-    direction LR
-  n3["Inside If Block"]
-    n2 --> n3
-  n4["Inside Else Block"]
-    n2 --> n4
+    subgraph sg1["First Section"]
+      direction LR
+      n0{"First Section"}
+      class n0 decisionNode;
+      n1["Inside If Block"]
+      n2["Inside Else Block"]
+    end
   end
-  end
+  n0 --> n1
+  n0 --> n2
+%%__BAML_SPANMAP__={"n1":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_scopes.baml","start_line":6,"start":8,"end_line":7,"end":0},"n0":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_scopes.baml","start_line":4,"start":4,"end_line":5,"end":0},"n2":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_scopes.baml","start_line":10,"start":8,"end_line":11,"end":0}}
+  click n1 call bamlMermaidNodeClick() "Go to source"
+  click n0 call bamlMermaidNodeClick() "Go to source"
+  click n2 call bamlMermaidNodeClick() "Go to source"

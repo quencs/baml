@@ -1,61 +1,82 @@
+---
+config:
+  layout: elk
+---
+
 flowchart LR
   subgraph sg0["Main Function"]
     direction LR
-  n2{"If statement 1"}
-  class n2 decisionNode;
-  subgraph sg1["If statement 1"]
-    direction LR
-  n4{"If statement 2.1"}
-  class n4 decisionNode;
-  subgraph sg3["If statement 2.1"]
-    direction LR
-  n6{"If statement 3.1"}
-  class n6 decisionNode;
-  subgraph sg5["If statement 3.1"]
-    direction LR
-  n7["True"]
-    n6 --> n7
-  n8["Third False"]
-    n6 --> n8
+    subgraph sg1["If statement 1"]
+      direction LR
+      n0{"If statement 1"}
+      class n0 decisionNode;
+      subgraph sg2["If statement 2.1"]
+        direction LR
+        n1{"If statement 2.1"}
+        class n1 decisionNode;
+        subgraph sg3["If statement 3.1"]
+          direction LR
+          n2{"If statement 3.1"}
+          class n2 decisionNode;
+          n3["True"]
+          n4["Third False"]
+        end
+        subgraph sg4["If statement 3.2"]
+          direction LR
+          n5{"If statement 3.2"}
+          class n5 decisionNode;
+          n6["True"]
+          n7["Third False"]
+        end
+      end
+      subgraph sg5["If statement 2.2"]
+        direction LR
+        n8{"If statement 2.2"}
+        class n8 decisionNode;
+        subgraph sg6["If statement 3.1"]
+          direction LR
+          n9{"If statement 3.1"}
+          class n9 decisionNode;
+          n10["True"]
+          n11["Third False"]
+        end
+        subgraph sg7["If statement 3.2"]
+          direction LR
+          n12{"If statement 3.2"}
+          class n12 decisionNode;
+          n13["True"]
+          n14["Third False"]
+        end
+      end
+    end
   end
-    n4 --> n6
-  n10{"If statement 3.2"}
-  class n10 decisionNode;
-  subgraph sg9["If statement 3.2"]
-    direction LR
-  n11["True"]
-    n10 --> n11
-  n12["Third False"]
-    n10 --> n12
-  end
-    n4 --> n10
-  end
-    n2 --> n4
-  n14{"If statement 2.2"}
-  class n14 decisionNode;
-  subgraph sg13["If statement 2.2"]
-    direction LR
-  n16{"If statement 3.1"}
-  class n16 decisionNode;
-  subgraph sg15["If statement 3.1"]
-    direction LR
-  n17["True"]
-    n16 --> n17
-  n18["Third False"]
-    n16 --> n18
-  end
-    n14 --> n16
-  n20{"If statement 3.2"}
-  class n20 decisionNode;
-  subgraph sg19["If statement 3.2"]
-    direction LR
-  n21["True"]
-    n20 --> n21
-  n22["Third False"]
-    n20 --> n22
-  end
-    n14 --> n20
-  end
-    n2 --> n14
-  end
-  end
+  n2 --> n3
+  n2 --> n4
+  n1 --> n2
+  n5 --> n6
+  n5 --> n7
+  n1 --> n5
+  n0 --> n1
+  n9 --> n10
+  n9 --> n11
+  n8 --> n9
+  n12 --> n13
+  n12 --> n14
+  n8 --> n12
+  n0 --> n8
+%%__BAML_SPANMAP__={"n7":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":23,"start":16,"end_line":24,"end":0},"n0":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":2,"start":4,"end_line":3,"end":0},"n6":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":20,"start":16,"end_line":21,"end":0},"n9":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":33,"start":12,"end_line":34,"end":0},"n12":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":44,"start":12,"end_line":45,"end":0},"n5":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":18,"start":12,"end_line":19,"end":0},"n11":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":38,"start":16,"end_line":39,"end":0},"n14":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":49,"start":16,"end_line":50,"end":0},"n2":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":7,"start":12,"end_line":8,"end":0},"n8":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":31,"start":8,"end_line":32,"end":0},"n3":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":9,"start":16,"end_line":10,"end":0},"n13":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":46,"start":16,"end_line":47,"end":0},"n4":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":12,"start":16,"end_line":13,"end":0},"n1":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":5,"start":8,"end_line":6,"end":0},"n10":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/nested_if_statements.baml","start_line":35,"start":16,"end_line":36,"end":0}}
+  click n7 call bamlMermaidNodeClick() "Go to source"
+  click n0 call bamlMermaidNodeClick() "Go to source"
+  click n6 call bamlMermaidNodeClick() "Go to source"
+  click n9 call bamlMermaidNodeClick() "Go to source"
+  click n12 call bamlMermaidNodeClick() "Go to source"
+  click n5 call bamlMermaidNodeClick() "Go to source"
+  click n11 call bamlMermaidNodeClick() "Go to source"
+  click n14 call bamlMermaidNodeClick() "Go to source"
+  click n2 call bamlMermaidNodeClick() "Go to source"
+  click n8 call bamlMermaidNodeClick() "Go to source"
+  click n3 call bamlMermaidNodeClick() "Go to source"
+  click n13 call bamlMermaidNodeClick() "Go to source"
+  click n4 call bamlMermaidNodeClick() "Go to source"
+  click n1 call bamlMermaidNodeClick() "Go to source"
+  click n10 call bamlMermaidNodeClick() "Go to source"

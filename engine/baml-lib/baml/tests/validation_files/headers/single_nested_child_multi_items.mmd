@@ -1,7 +1,15 @@
+---
+config:
+  layout: elk
+---
+
 flowchart LR
   subgraph sg0["Parent"]
     direction LR
-  n1["First"]
-  n2["Second"]
-n1 --> n2
+    n0["First"]
+    n1["Second"]
   end
+  n0 --> n1
+%%__BAML_SPANMAP__={"n1":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/single_nested_child_multi_items.baml","start_line":8,"start":8,"end_line":9,"end":0},"n0":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/single_nested_child_multi_items.baml","start_line":5,"start":8,"end_line":6,"end":0}}
+  click n1 call bamlMermaidNodeClick() "Go to source"
+  click n0 call bamlMermaidNodeClick() "Go to source"

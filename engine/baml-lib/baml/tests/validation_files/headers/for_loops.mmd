@@ -1,13 +1,21 @@
+---
+config:
+  layout: elk
+---
+
 flowchart LR
   subgraph sg0["Loop Processing"]
     direction LR
-  subgraph sg1["Main Loop"]
-    direction LR
-  subgraph sg2["Item Processing"]
-    direction LR
-  n3["Accumulation"]
+    n1["Final Result"]
+    subgraph sg1["Main Loop"]
+      direction LR
+      subgraph sg2["Item Processing"]
+        direction LR
+        n0["Accumulation"]
+      end
+    end
   end
-  end
-  n4["Final Result"]
-    n3 --> n4
-  end
+  n0 --> n1
+%%__BAML_SPANMAP__={"n0":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/for_loops.baml","start_line":10,"start":8,"end_line":11,"end":0},"n1":{"file_path":"/Users/egor/Documents/boundary/baml-main/baml/engine/baml-lib/baml/tests/validation_files/headers/for_loops.baml","start_line":16,"start":4,"end_line":17,"end":0}}
+  click n0 call bamlMermaidNodeClick() "Go to source"
+  click n1 call bamlMermaidNodeClick() "Go to source"
