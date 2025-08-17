@@ -1,0 +1,6 @@
+{"input": {"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello"}], "stream": true}, "output": {"error": {"message": "Streaming is not yet implemented", "type": "not_implemented"}}}
+{"input": {"model": "gpt-3.5-turbo", "prompt": "Hello", "stream": true}, "output": {"error": {"message": "Streaming is not yet implemented", "type": "not_implemented"}}}
+{"input": {"model": "invalid-model", "messages": [{"role": "user", "content": "Test"}]}, "output": {"error": {"message": "Model 'invalid-model' not found", "type": "invalid_request_error", "code": "model_not_found"}}}
+{"input": {"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": ""}], "max_tokens": -1}, "output": {"error": {"message": "max_tokens must be positive", "type": "invalid_request_error", "code": "invalid_parameter"}}}
+{"input": {"model": "gpt-3.5-turbo", "messages": [{"role": "invalid_role", "content": "Test"}]}, "output": {"error": {"message": "Invalid role 'invalid_role'. Valid roles are: system, user, assistant", "type": "invalid_request_error", "code": "invalid_parameter"}}}
+{"input": {"model": "gpt-3.5-turbo"}, "output": {"error": {"message": "Either 'prompt' or 'messages' is required", "type": "invalid_request_error", "code": "missing_parameter"}}}

@@ -1,0 +1,1 @@
+{"input": {"model": "test-model", "prompt": "duplicate test"}, "output": {"id": "test-2", "object": "text_completion", "created": 1672531260, "model": "test-model", "choices": [{"text": "Second response - different!", "index": 0, "finish_reason": "stop"}], "usage": {"prompt_tokens": 4, "completion_tokens": 12, "total_tokens": 16}}}

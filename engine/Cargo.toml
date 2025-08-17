@@ -22,7 +22,7 @@ members = [
   "generators/languages/*",
   "sandbox",
   "llm-response-parser",
-  "boundary-udf",
+  "boundary-udf", "mock-openai",
 ]
 default-members = [
   "baml-compiler",
