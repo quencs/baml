@@ -72,8 +72,6 @@ pub fn parse_top_level_assignment(
 
     match parse_statement(tokens.next()?, diagnostics)? {
         Stmt::Let(stmt) => Some(TopLevelAssignment { stmt }),
-        // NOTE: (Jesus) top-level is generally regarded as order-independent,
-        // and assignments need an order of execution.
         Stmt::Assign(stmt) => only_let_stmt("assignments", stmt.span, diagnostics),
         Stmt::AssignOp(stmt) => only_let_stmt("assignments", stmt.span, diagnostics),
         Stmt::ForLoop(ForLoopStmt { span, .. }) | Stmt::CForLoop(CForLoopStmt { span, .. }) => {
@@ -85,6 +83,9 @@ pub fn parse_top_level_assignment(
         Stmt::Continue(span) => only_let_stmt("continue statements", span, diagnostics),
         Stmt::Return(ReturnStmt { span, .. }) => {
             only_let_stmt("return statements", span, diagnostics)
+        }
+        Stmt::Assert(AssertStmt { span, .. }) => {
+            only_let_stmt("assert statements", span, diagnostics)
         }
     }
 }
@@ -224,6 +225,13 @@ fn parse_statement_inner_rule(
     diagnostics: &mut Diagnostics,
 ) -> Option<Stmt> {
     match stmt_token.as_rule() {
+        Rule::assert_stmt => {
+            let assert_value = stmt_token.into_inner().next()?;
+            let value = parse_expression(assert_value, diagnostics)?;
+
+            Some(Stmt::Assert(AssertStmt { value, span }))
+        }
+
         Rule::return_stmt => {
             let return_value = stmt_token.into_inner().next()?;
             let value = parse_expression(return_value, diagnostics)?;
