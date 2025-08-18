@@ -312,7 +312,7 @@ where
         let request_builder = self
             .build_request(
                 either::Right(&chat_messages),
-                false,
+                true,
                 render_settings.stream && self.supports_streaming(),
                 render_settings.expose_secrets,
             )

@@ -1,13 +1,12 @@
 use axum::{
-    extract::{Json, State},
-    http::StatusCode,
+    extract::{Json, State, Query},
+    http::{HeaderMap, StatusCode, Method, Uri},
     response::IntoResponse,
-    routing::post,
     Router,
 };
 use chrono::Utc;
 use clap::Parser;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use similar::{ChangeTag, TextDiff};
 use std::collections::HashMap;
@@ -18,7 +17,6 @@ use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
-use uuid::Uuid;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -43,69 +41,9 @@ struct TestPairInfo {
 
 #[derive(Debug, Clone)]
 struct AppState {
-    model_name: String,
     test_pairs: HashMap<String, TestPairInfo>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct CompletionRequest {
-    model: String,
-    prompt: Option<String>,
-    messages: Option<Vec<Message>>,
-    max_tokens: Option<u32>,
-    temperature: Option<f32>,
-    top_p: Option<f32>,
-    n: Option<u32>,
-    stream: Option<bool>,
-    stop: Option<Vec<String>>,
-    presence_penalty: Option<f32>,
-    frequency_penalty: Option<f32>,
-    user: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct Message {
-    role: String,
-    content: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct CompletionResponse {
-    id: String,
-    object: String,
-    created: i64,
-    model: String,
-    choices: Vec<Choice>,
-    usage: Usage,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Choice {
-    text: Option<String>,
-    message: Option<Message>,
-    index: u32,
-    finish_reason: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Usage {
-    prompt_tokens: u32,
-    completion_tokens: u32,
-    total_tokens: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ErrorResponse {
-    error: ErrorDetail,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ErrorDetail {
-    message: String,
-    #[serde(rename = "type")]
-    error_type: String,
-    code: Option<String>,
-}
 
 fn remove_line_from_file(file_path: &Path, line_number: usize) -> Result<(), Box<dyn std::error::Error>> {
     let content = fs::read_to_string(file_path)?;
@@ -267,6 +205,20 @@ fn load_test_pairs(test_pairs_dir: &Path) -> HashMap<String, TestPairInfo> {
     }
 
     info!("Loaded {} test pairs", test_pairs.len());
+    
+    // Log some sample keys for debugging
+    if !test_pairs.is_empty() {
+        info!("Sample test pair keys (first 3):");
+        for (i, key) in test_pairs.keys().take(3).enumerate() {
+            info!("  {}: {} chars", i + 1, key.len());
+            if key.len() < 200 {
+                info!("    Key: {}", key);
+            } else {
+                info!("    Key (truncated): {}...", &key[..200]);
+            }
+        }
+    }
+    
     test_pairs
 }
 
@@ -285,18 +237,16 @@ async fn main() {
     let test_pairs = load_test_pairs(&args.test_pairs_dir);
 
     let state = Arc::new(AppState {
-        model_name: "gpt-3.5-turbo".to_string(),
         test_pairs,
     });
 
     let app = Router::new()
-        .route("/v1/completions", post(handle_completions))
-        .route("/v1/chat/completions", post(handle_chat_completions))
+        .fallback(handle_request)
         .layer(CorsLayer::permissive())
         .with_state(state);
 
     let addr = "127.0.0.1:3000";
-    info!("Mock OpenAI server listening on {}", addr);
+    info!("Generic HTTP mock server listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
@@ -307,169 +257,74 @@ async fn main() {
         .expect("Failed to start server");
 }
 
-async fn handle_completions(
+async fn handle_request(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CompletionRequest>,
+    method: Method,
+    uri: Uri,
+    headers: HeaderMap,
+    Query(query_params): Query<HashMap<String, String>>,
+    body: Option<Json<Value>>,
 ) -> impl IntoResponse {
-    info!("Received completion request: {:?}", req);
+    info!("Received {} request to {}", method, uri);
+
+    // Extract baml-original-url header if present
+    let original_url = headers
+        .get("baml-original-url")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("http://localhost:3000{}", uri));
+
+    // Create headers map excluding baml-original-url
+    let mut headers_map = HashMap::new();
+    for (name, value) in headers.iter() {
+        if name.as_str() != "baml-original-url" {
+            if let Ok(v) = value.to_str() {
+                headers_map.insert(name.as_str().to_string(), v.to_string());
+            }
+        }
+    }
+
+    // Create input object matching BAML test pair format
+    let input_obj = serde_json::json!({
+        "url": original_url,
+        "method": method.to_string(),
+        "headers": headers_map,
+        "body": body.map(|Json(v)| v).unwrap_or(Value::Null)
+    });
 
     // Check for test pair match first
-    let input_key = serde_json::to_string(&req).unwrap_or_default();
+    let input_key = serde_json::to_string(&input_obj).unwrap_or_default();
+    info!("Looking for test pair with key length: {} chars", input_key.len());
+    info!("Using original URL: {}", original_url);
+    
     if let Some(test_info) = state.test_pairs.get(&input_key) {
-        info!("Using test pair response for completion request");
+        info!("✅ Found test pair match from {}, line {}", test_info.file_path.display(), test_info.line_number);
         
         // Check if the test output is an error response
-        if let Some(_error_obj) = test_info.output.get("error") {
-            let error_response: ErrorResponse = serde_json::from_value(test_info.output.clone())
-                .unwrap_or_else(|_| ErrorResponse {
-                    error: ErrorDetail {
-                        message: "Invalid test pair error format".to_string(),
-                        error_type: "test_error".to_string(),
-                        code: None,
-                    },
-                });
-            return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+        if let Some(error_obj) = test_info.output.get("error") {
+            let status_code = error_obj.get("code")
+                .and_then(|c| c.as_u64())
+                .map(|c| StatusCode::from_u16(c as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR))
+                .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+            
+            return (status_code, Json(test_info.output.clone())).into_response();
         }
         
-        // Parse the test output as a completion response
-        if let Ok(response) = serde_json::from_value::<CompletionResponse>(test_info.output.clone()) {
-            return (StatusCode::OK, Json(response)).into_response();
-        }
+        // Return the test output as a successful response
+        return (StatusCode::OK, Json(test_info.output.clone())).into_response();
+    } else {
+        info!("❌ No test pair match found");
     }
 
-    // Fall back to original mock behavior
-    if req.stream == Some(true) {
-        return (
-            StatusCode::NOT_IMPLEMENTED,
-            Json(ErrorResponse {
-                error: ErrorDetail {
-                    message: "Streaming is not yet implemented".to_string(),
-                    error_type: "not_implemented".to_string(),
-                    code: None,
-                },
-            }),
-        )
-            .into_response();
-    }
+    // Fall back to generic mock behavior
+    let mock_response = serde_json::json!({
+        "message": format!("Mock response for {} {}", method, uri),
+        "timestamp": Utc::now().timestamp(),
+        "path": uri.to_string(),
+        "method": method.to_string(),
+        "query_params": query_params,
+        "note": "This is a fallback mock response. No test pair was found for this request."
+    });
 
-    let prompt = req.prompt.unwrap_or_default();
-    let mock_response = generate_mock_completion(&prompt, &req.model);
-
-    let response = CompletionResponse {
-        id: format!("cmpl-{}", Uuid::new_v4()),
-        object: "text_completion".to_string(),
-        created: Utc::now().timestamp(),
-        model: req.model.clone(),
-        choices: vec![Choice {
-            text: Some(mock_response.clone()),
-            message: None,
-            index: 0,
-            finish_reason: "stop".to_string(),
-        }],
-        usage: Usage {
-            prompt_tokens: prompt.split_whitespace().count() as u32 * 2,
-            completion_tokens: mock_response.split_whitespace().count() as u32 * 2,
-            total_tokens: (prompt.split_whitespace().count() + mock_response.split_whitespace().count()) as u32 * 2,
-        },
-    };
-
-    (StatusCode::OK, Json(response)).into_response()
-}
-
-async fn handle_chat_completions(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<CompletionRequest>,
-) -> impl IntoResponse {
-    info!("Received chat completion request: {:?}", req);
-
-    // Check for test pair match first
-    let input_key = serde_json::to_string(&req).unwrap_or_default();
-    if let Some(test_info) = state.test_pairs.get(&input_key) {
-        info!("Using test pair response for chat completion request");
-        
-        // Check if the test output is an error response
-        if let Some(_error_obj) = test_info.output.get("error") {
-            let error_response: ErrorResponse = serde_json::from_value(test_info.output.clone())
-                .unwrap_or_else(|_| ErrorResponse {
-                    error: ErrorDetail {
-                        message: "Invalid test pair error format".to_string(),
-                        error_type: "test_error".to_string(),
-                        code: None,
-                    },
-                });
-            return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
-        }
-        
-        // Parse the test output as a completion response
-        if let Ok(response) = serde_json::from_value::<CompletionResponse>(test_info.output.clone()) {
-            return (StatusCode::OK, Json(response)).into_response();
-        }
-    }
-
-    // Fall back to original mock behavior
-    if req.stream == Some(true) {
-        return (
-            StatusCode::NOT_IMPLEMENTED,
-            Json(ErrorResponse {
-                error: ErrorDetail {
-                    message: "Streaming is not yet implemented".to_string(),
-                    error_type: "not_implemented".to_string(),
-                    code: None,
-                },
-            }),
-        )
-            .into_response();
-    }
-
-    let messages = req.messages.unwrap_or_default();
-    let default_content = String::new();
-    let last_message = messages
-        .last()
-        .map(|m| &m.content)
-        .unwrap_or(&default_content);
-
-    let mock_response = generate_mock_chat_response(last_message, &req.model);
-
-    let response = CompletionResponse {
-        id: format!("chatcmpl-{}", Uuid::new_v4()),
-        object: "chat.completion".to_string(),
-        created: Utc::now().timestamp(),
-        model: req.model.clone(),
-        choices: vec![Choice {
-            text: None,
-            message: Some(Message {
-                role: "assistant".to_string(),
-                content: mock_response.clone(),
-            }),
-            index: 0,
-            finish_reason: "stop".to_string(),
-        }],
-        usage: Usage {
-            prompt_tokens: messages.iter().map(|m| m.content.split_whitespace().count()).sum::<usize>() as u32 * 2,
-            completion_tokens: mock_response.split_whitespace().count() as u32 * 2,
-            total_tokens: (messages.iter().map(|m| m.content.split_whitespace().count()).sum::<usize>() 
-                + mock_response.split_whitespace().count()) as u32 * 2,
-        },
-    };
-
-    (StatusCode::OK, Json(response)).into_response()
-}
-
-fn generate_mock_completion(prompt: &str, model: &str) -> String {
-    match prompt.to_lowercase() {
-        p if p.contains("hello") => "Hello! How can I assist you today?".to_string(),
-        p if p.contains("weather") => "I'm a mock API and cannot provide real weather information.".to_string(),
-        p if p.contains("test") => "This is a test response from the mock OpenAI API.".to_string(),
-        _ => format!("Mock response for prompt: '{}' using model: {}", prompt, model),
-    }
-}
-
-fn generate_mock_chat_response(message: &str, model: &str) -> String {
-    match message.to_lowercase() {
-        m if m.contains("hello") => "Hello! I'm a mock assistant. How can I help you today?".to_string(),
-        m if m.contains("weather") => "I'm a mock API and cannot provide real weather information, but I can tell you it's always sunny in the mock world!".to_string(),
-        m if m.contains("test") => "This is a test response from the mock OpenAI chat API.".to_string(),
-        m if m.contains("who are you") => format!("I'm a mock version of {} running on a local server.", model),
-        _ => format!("Mock chat response for: '{}' using model: {}", message, model),
-    }
+    (StatusCode::OK, Json(mock_response)).into_response()
 }

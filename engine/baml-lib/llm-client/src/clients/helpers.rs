@@ -597,13 +597,7 @@ fn ensure_int<Meta: Clone>(
 }
 
 pub(crate) fn get_proxy_url(ctx: &impl GetEnvVar) -> Option<String> {
-    if cfg!(target_arch = "wasm32") {
-        // We don't want to accidentally set this unless the user explicitly
-        // specifies it, so we enforce allow_missing_env_var=false here
-        StringOr::EnvVar("BOUNDARY_PROXY_URL".to_string())
-            .resolve(&ctx.set_allow_missing_env_var(false))
-            .ok()
-    } else {
-        None
-    }
+    StringOr::EnvVar("BOUNDARY_PROXY_URL".to_string())
+        .resolve(&ctx.set_allow_missing_env_var(false))
+        .ok()
 }
