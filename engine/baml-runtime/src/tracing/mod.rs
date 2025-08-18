@@ -1,4 +1,5 @@
 pub mod api_wrapper;
+pub mod test_pair_collector;
 
 use std::{
     collections::HashMap,

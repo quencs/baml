@@ -16,11 +16,13 @@ use std::{
 use baml_ids::{FunctionCallId, HttpRequestId};
 use baml_types::{
     tracing::events::{
-        FunctionEnd, FunctionStart, HTTPRequest, HTTPResponse, HTTPResponseStream,
+        ClientDetails, FunctionEnd, FunctionStart, HTTPBody, HTTPRequest, HTTPResponse, HTTPResponseStream,
         LoggedLLMRequest, LoggedLLMResponse, SSEEvent, TraceData, TraceEvent,
     },
     HasType,
 };
+
+use crate::tracing::test_pair_collector::TestPairCollector;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use serde::Serialize;
@@ -37,7 +39,6 @@ pub static BAML_TRACER: Lazy<Mutex<TraceStorage>> =
 /// 2) A map of FunctionCallId -> reference count (how many "owners" are tracking it).
 /// 3) A cache of FunctionCallId -> Arc<Mutex<FunctionLogInner>> to avoid rebuilding
 ///    the same FunctionLogInner multiple times.
-#[derive(Default)]
 pub struct TraceStorage {
     /// For each function (call), we keep a vector of TraceEvents.
     /// This data is only kept while ref_count > 0.
@@ -49,6 +50,20 @@ pub struct TraceStorage {
     /// for the same FunctionCallId share the same Arc. Because we may need to modify this
     /// while holding only an &TraceStorage, we wrap it in a Mutex for interior mutability.
     function_inners: Mutex<HashMap<FunctionCallId, Arc<Mutex<FunctionLogInner>>>>,
+    
+    /// Test pair collector for generating mock data from HTTP requests/responses
+    test_pair_collector: Option<Arc<TestPairCollector>>,
+}
+
+impl Default for TraceStorage {
+    fn default() -> Self {
+        Self {
+            call_map: HashMap::new(),
+            ref_counts: HashMap::new(),
+            function_inners: Mutex::new(HashMap::new()),
+            test_pair_collector: None,
+        }
+    }
 }
 
 impl fmt::Debug for TraceStorage {
@@ -98,6 +113,98 @@ impl TraceStorage {
         }
     }
 
+    /// Set the test pair collector for this trace storage
+    pub fn set_test_pair_collector(&mut self, collector: Option<Arc<TestPairCollector>>) {
+        self.test_pair_collector = collector;
+    }
+
+    /// Handle test pair collection for HTTP request/response events
+    fn handle_test_pair_collection(&self, event: &TraceEventWithMeta) {
+        if let Some(collector) = &self.test_pair_collector {
+            if !collector.is_enabled() {
+                return;
+            }
+
+            // We need to match request and response events
+            match &event.content {
+                TraceData::RawLLMRequest(request) => {
+                    // Store the request for later matching with response
+                    let http_request = HTTPRequest::new(
+                        request.id().clone(),
+                        request.url().to_string(),
+                        request.method().to_string(),
+                        request.headers().clone(),
+                        HTTPBody::new(request.body().raw().to_vec()),
+                    );
+                    
+                    // Store the request using the collector's API
+                    collector.store_request(http_request);
+                    
+                    log::trace!("Test pair collector: Captured HTTP request to {}", request.url());
+                }
+                TraceData::RawLLMResponse(response) => {
+                    // Look for the matching request using the collector's API
+                    if let Some(request) = collector.take_request(&response.request_id) {
+                        if let Err(e) = collector.capture_request_response(&request, response) {
+                            log::warn!("Failed to capture test pair: {}", e);
+                        } else {
+                            log::info!("Captured test pair for {}", request.url());
+                        }
+                    }
+                }
+                TraceData::RawLLMResponseStream(response_stream) => {
+                    
+                    // For streaming responses, let's capture the first stream event as our "response"
+                    if let Some(request) = collector.take_request(&response_stream.request_id) {
+                        
+                        // Create a synthetic HTTP response from the stream event
+                        let synthetic_response = HTTPResponse::new(
+                            response_stream.request_id.clone(),
+                            200, // Assume success for stream events
+                            None, // No headers in stream events
+                            HTTPBody::new(response_stream.event.data.as_bytes().to_vec()),
+                            ClientDetails {
+                                name: "Unknown".to_string(),
+                                provider: "openai".to_string(), // Guess based on URL
+                                options: Default::default(),
+                            }
+                        );
+                        
+                        if let Err(e) = collector.capture_request_response(&request, &synthetic_response) {
+                            log::warn!("Failed to capture test pair from stream: {}", e);
+                        } else {
+                            log::info!("Captured test pair from stream for {}", request.url());
+                        }
+                    }
+                }
+                _ => {
+                    // Other events we don't care about for test pair generation
+                }
+            }
+        }
+    }
+
+    /// Find a matching request for a given response
+    fn find_request_for_response(&self, response_request_id: &HttpRequestId) -> Option<HTTPRequest> {
+        // Search through recent events to find the corresponding request
+        for events in self.call_map.values() {
+            for event in events.iter().rev() { // Search in reverse order (most recent first)
+                if let TraceData::RawLLMRequest(request) = &event.content {
+                    if request.id() == response_request_id {
+                        return Some(HTTPRequest::new(
+                            request.id().clone(),
+                            request.url().to_string(),
+                            request.method().to_string(),
+                            request.headers().clone(),
+                            HTTPBody::new(request.body().raw().to_vec()),
+                        ));
+                    }
+                }
+            }
+        }
+        None
+    }
+
     /// Append a new event for the given function ID, but only if ref_count > 0.
     pub fn put(&mut self, event: Arc<TraceEventWithMeta>) {
         // log::debug!(
@@ -108,6 +215,9 @@ impl TraceStorage {
         if let Err(e) = crate::tracingv2::publisher::publish_trace_event(event.clone()) {
             log::warn!("Failed to publish trace event: {e:?}");
         }
+
+        // Handle test pair collection for HTTP events
+        self.handle_test_pair_collection(&event);
 
         let Some(&count) = self.ref_counts.get(&event.call_id) else {
             // If no references exist, skip or handle otherwise

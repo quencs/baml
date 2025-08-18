@@ -7,7 +7,10 @@ use indexmap::{IndexMap, IndexSet};
 use internal_baml_core::ir::TypeIR;
 use thiserror::Error;
 
-use crate::{internal::llm_client::llm_provider::LLMProvider, tracing::BamlTracer};
+use crate::{
+    internal::llm_client::llm_provider::LLMProvider, 
+    tracing::{BamlTracer, test_pair_collector::TestPairCollector}
+};
 
 #[derive(Debug, Clone)]
 pub struct CallCtx {
@@ -89,6 +92,7 @@ impl RuntimeContext {
         recursive_class_overrides: Vec<IndexSet<String>>,
         recursive_type_alias_overrides: Vec<IndexMap<String, TypeIR>>,
         call_id_stack: Vec<FunctionCallId>,
+        _test_pair_collector: Option<Arc<TestPairCollector>>, // Unused, kept for compatibility
     ) -> RuntimeContext {
         RuntimeContext {
             baml_src,

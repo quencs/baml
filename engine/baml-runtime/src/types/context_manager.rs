@@ -10,7 +10,9 @@ use baml_types::{tracing::events::TraceEvent, BamlValue};
 
 use super::runtime_context::BamlSrcReader;
 use crate::{
-    client_registry::ClientRegistry, tracing::BamlTracer, tracingv2::storage::storage::BAML_TRACER,
+    client_registry::ClientRegistry, 
+    tracing::{BamlTracer, test_pair_collector::{TestPairCollector, create_from_env}}, 
+    tracingv2::storage::storage::BAML_TRACER,
     type_builder::TypeBuilder, CallCtx, RuntimeContext,
 };
 pub type BamlContext = (
@@ -80,6 +82,24 @@ impl RuntimeContextManager {
     }
 
     pub fn new(baml_src_reader: BamlSrcReader) -> Self {
+        // Try to create test pair collector from environment variable and register it globally
+        // Get current environment variables
+        let env_vars: HashMap<String, String> = std::env::vars().collect();
+        
+        match create_from_env(env_vars) {
+            Ok(Some(collector)) => {
+                println!("✅ Test pair collector enabled: writing to {:?}", collector.output_dir());
+                // Register the collector with the global tracer
+                BAML_TRACER.lock().unwrap().set_test_pair_collector(Some(Arc::new(collector)));
+            }
+            Ok(None) => {
+                // No test pair collection requested
+            }
+            Err(e) => {
+                log::error!("⚠️ Failed to initialize test pair collector: {}", e);
+            }
+        };
+
         Self {
             baml_src_reader: Arc::new(baml_src_reader),
             context: Default::default(),
@@ -239,6 +259,7 @@ impl RuntimeContextManager {
             rec_cls,
             rec_als,
             call_id_stack,
+            None, // Test pair collector is now managed globally
         );
 
         ctx.client_overrides = match client_registry {
@@ -267,6 +288,7 @@ impl RuntimeContextManager {
             Default::default(),
             Default::default(),
             vec![FunctionCallId::new()],
+            None, // Test pair collector is now managed globally
         )
     }
 
