@@ -125,10 +125,10 @@ const ProjectViewImpl = ({ project }: { project: BAMLProject }) => {
               className="flex flex-row h-full overflow-hidden"
             >
               <ResizablePanelGroup
-                className="min-h-[200px] w-full rounded-lg overflow-clip"
+                className="w-full h-full rounded-lg overflow-hidden"
                 direction="horizontal"
               >
-                <ResizablePanel defaultSize={50}>
+                <ResizablePanel defaultSize={50} className="h-full">
                   <div className="flex flex-col py-1 pl-2 w-full text-xs whitespace-nowrap border-none items-left h-fit">
                     <Editable
                       text={description}
@@ -149,7 +149,7 @@ const ProjectViewImpl = ({ project }: { project: BAMLProject }) => {
                   </div>
 
                   <div className="flex pl-1 w-full h-full tour-editor dark:bg-muted/70">
-                    <ScrollArea className="w-full h-full">
+                    <ScrollArea className="w-full h-full overflow-hidden">
                       {activeFileName && (
                         <CodeMirrorViewer
                           lang="baml"
@@ -169,8 +169,8 @@ const ProjectViewImpl = ({ project }: { project: BAMLProject }) => {
                 <ResizableHandle />
 
                 {!isMobile && (
-                  <ResizablePanel defaultSize={50} className="tour-playground">
-                    <div className="flex flex-col h-full overflow-y-auto">
+                  <ResizablePanel defaultSize={50} className="tour-playground h-full">
+                    <div className="flex flex-col h-full overflow-hidden">
                       <PlaygroundView />
                     </div>
                   </ResizablePanel>
@@ -238,7 +238,9 @@ export const ProjectView = ({ project }: { project: BAMLProject }) => (
 const PlaygroundView = () => (
   <ErrorBoundaryWrapper message="Error loading playground">
     <Suspense fallback={<div>Loading...</div>}>
-      <PromptPreview />
+      <div className="w-full h-full">
+        <PromptPreview />
+      </div>
     </Suspense>
   </ErrorBoundaryWrapper>
 );

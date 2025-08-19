@@ -74,17 +74,18 @@ export const PromptPreview = () => {
 
   return (
     <>
-      <SidebarProvider defaultOpen={vscode.isVscode()}>
-        <SidebarInset>
-          {wasm ? (
-            <div className="h-full flex flex-col overflow-hidden relative">
+      <SidebarProvider defaultOpen={vscode.isVscode()} className="h-full">
+        {wasm ? (
+          <div className="flex h-full w-full">
+            {/* Main content area */}
+            <div className="flex-1 flex flex-col overflow-hidden relative">
               {/* Header - always at top */}
-              <div className="flex-shrink-0 px-4 py-2 min-w-0 overflow-hidden">
+              <div className="flex-shrink-0 px-4 py-3 min-h-[60px] min-w-0 overflow-visible border-b border-border/50 relative z-30 bg-background shadow-sm">
                 <PreviewToolbar />
               </div>
 
               {/* Scrollable Body - takes remaining space */}
-              <div className="flex-1 overflow-y-auto min-h-0 pb-14 px-4 min-w-0">
+              <div className="flex-1 overflow-y-auto min-h-0 px-4 min-w-0">
                 {selectedTc ? (
                   <>
                     <PromptRenderWrapper />
@@ -96,15 +97,17 @@ export const PromptPreview = () => {
               </div>
 
               {/* Footer - always at bottom */}
-              <div className="flex-shrink-0 absolute bottom-0 left-0 right-0 flex">
+              <div className="flex-shrink-0 px-4 py-2 border-t border-border/50 bg-background">
                 <StatusBar />
               </div>
             </div>
-          ) : (
-            <Loader message="Loading..." />
-          )}
-        </SidebarInset>
-        <TestingSidebar />
+
+            {/* Testing Sidebar - now part of the flexbox layout */}
+            <TestingSidebar />
+          </div>
+        ) : (
+          <Loader message="Loading..." />
+        )}
       </SidebarProvider>
       <ApiKeysDialog />
     </>

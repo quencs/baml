@@ -89,7 +89,7 @@ export function PreviewToolbar() {
   const proxySettings = useAtomValue(proxyUrlAtom);
   const setBamlConfig = useSetAtom(bamlConfig);
 
-  // Hide text when sidebar is open or on smaller screens
+  // Simple responsive behavior - just hide text when sidebar is open
   const getButtonTextClass = () => {
     if (isSidebarOpen) {
       return 'text-sm hidden whitespace-nowrap';
@@ -98,13 +98,10 @@ export function PreviewToolbar() {
   };
 
   return (
-    <div className="flex flex-col gap-1 overflow-hidden w-full">
-      <div
-        className={cn(
-          'flex flex-row gap-1 items-center min-w-0 w-full',
-          selectedFn === undefined ? 'justify-end' : 'justify-between',
-        )}
-      >
+    <div className="flex flex-col gap-1 overflow-visible w-full">
+      {/* Debug info - only in development */}
+
+      <div className="flex flex-row gap-2 items-center min-w-0 w-full">
         {selectedFn !== undefined && (
           <div className="flex flex-col gap-1 min-w-0 flex-1 overflow-hidden">
             <div className="flex flex-row items-center gap-2 min-w-0">
@@ -115,12 +112,12 @@ export function PreviewToolbar() {
                 />
               </div>
 
-              <RunButton />
+              <RunButton className="flex-shrink-0" />
             </div>
           </div>
         )}
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           <TooltipProvider>
             <Tooltip delayDuration={100}>
               <TooltipTrigger asChild>
@@ -155,18 +152,6 @@ export function PreviewToolbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-fit p-0">
-              {/* <DropdownMenuLabel>Display</DropdownMenuLabel> */}
-              {/* {options.map((option) => (
-                <DropdownMenuCheckboxItem
-                  key={option.label}
-                  checked={displaySettings. === option.value}
-                  onCheckedChange={() => setDisplaySettings(option.value)}
-                >
-                  <option.icon className='mr-2 size-4' />
-                  {option.label}
-                </DropdownMenuCheckboxItem>
-              ))} */}
-              {/* <DropdownMenuSeparator /> */}
               <DropdownMenuLabel className="text-xs px-2 py-1.5">
                 Testing
               </DropdownMenuLabel>

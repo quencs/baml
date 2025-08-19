@@ -158,12 +158,12 @@ function EmbedComponentInner({ files }: EmbedComponentProps) {
 
         <div className="flex-1 flex flex-col w-full h-full">
           <ResizablePanelGroup
-            className="min-h-[200px] w-full rounded-lg overflow-clip"
+            className="w-full h-full rounded-lg overflow-hidden"
             direction="horizontal"
           >
             {uiToggles.showFile && (
-              <ResizablePanel defaultSize={uiToggles.showPlayground && !isMobile ? 50 : 100}>
-                <div className="flex pl-1 w-full h-full tour-editor dark:bg-muted/70 overflow-y-auto">
+              <ResizablePanel defaultSize={uiToggles.showPlayground && !isMobile ? 50 : 100} className="h-full">
+                <div className="flex pl-1 w-full h-full tour-editor dark:bg-muted/70 overflow-hidden">
                   {activeFileName && (
                     <CodeMirrorViewer
                       lang="baml"
@@ -188,8 +188,8 @@ function EmbedComponentInner({ files }: EmbedComponentProps) {
             )}
             {uiToggles.showFile && uiToggles.showPlayground && !isMobile && <ResizableHandle className="" />}
             {uiToggles.showPlayground && !isMobile && (
-              <ResizablePanel defaultSize={uiToggles.showFile ? 50 : 100} className="tour-playground">
-                <div className="flex flex-row h-full">
+              <ResizablePanel defaultSize={uiToggles.showFile ? 50 : 100} className="tour-playground h-full">
+                <div className="flex flex-row h-full overflow-hidden">
                   <PlaygroundView onReady={() => { /* handled by RAF hook */ }} />
                 </div>
               </ResizablePanel>
