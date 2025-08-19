@@ -441,6 +441,8 @@ mod tests {
         };
         let openapi_class = convert_ir_type(&ir, &class_type);
 
+        println!("{:?}", openapi_class);
+
         match openapi_class {
             TypeOpenApi::Ref { r#ref, .. } => {
                 assert_eq!(r#ref, "#/components/schemas/Person");
