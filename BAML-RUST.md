@@ -44,8 +44,8 @@ BAML has a multi-layered client generation architecture:
 ```mermaid
 graph TB
     subgraph "BAML Engine Core"
-        CFFI[language_client_cffi<br/>C FFI Interface]
         Codegen[language_client_codegen<br/>Code Generation Framework]
+        CFFI[language_client_cffi<br/>C FFI Interface]
         Server[language_server<br/>LSP Server]
     end
     
@@ -55,16 +55,16 @@ graph TB
         TS[language_client_typescript<br/>TypeScript Runtime + Generated Code]
         Ruby[language_client_ruby<br/>Ruby Runtime + Generated Code]
     end
+
+    Codegen --> Go
+    Codegen --> Python
+    Codegen --> TS
+    Codegen --> Ruby
     
     CFFI --> Go
     CFFI --> Python  
     CFFI --> TS
     CFFI --> Ruby
-    
-    Codegen --> Go
-    Codegen --> Python
-    Codegen --> TS
-    Codegen --> Ruby
     
     Server -.-> Go
     Server -.-> Python

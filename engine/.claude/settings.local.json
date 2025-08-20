@@ -3,6 +3,9 @@
     "allow": [
       "Bash(cargo check:*)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "/Users/ceciliazhang/Code/baml"
+    ]
   }
 }

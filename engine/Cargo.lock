@@ -2862,6 +2862,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "generators-rust"
+version = "0.205.0"
+dependencies = [
+ "anyhow",
+ "askama",
+ "baml-types",
+ "dir-writer",
+ "internal-baml-core",
+ "prettydiff",
+ "test-harness",
+]
+
+[[package]]
 name = "generators-typescript"
 version = "0.205.0"
 dependencies = [
