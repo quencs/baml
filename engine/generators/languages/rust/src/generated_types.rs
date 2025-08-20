@@ -1,5 +1,110 @@
 use crate::{package::CurrentRenderPackage, r#type::{SerializeType, TypeRust}};
+use askama::Template;
 
+mod filters {
+    use crate::utils::to_snake_case;
+    
+    pub fn snake_case(s: &str, _args: &dyn askama::Values) -> askama::Result<String> {
+        Ok(to_snake_case(s))
+    }
+}
+
+// Template structs for Askama-based code generation
+mod class {
+    use super::*;
+
+    #[derive(askama::Template)]
+    #[template(path = "struct.rs.j2", escape = "none")]
+    pub struct ClassRust<'a> {
+        pub name: String,
+        pub docstring: Option<String>,
+        pub fields: Vec<FieldRust<'a>>,
+        pub dynamic: bool,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+
+    #[derive(Clone)]
+    pub struct FieldRust<'a> {
+        pub name: String,
+        pub docstring: Option<String>,
+        pub rust_type: TypeRust,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+    
+    impl std::fmt::Debug for FieldRust<'_> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "FieldRust {{name: {}, rust_type: <<TypeRust>>, pkg: <<Mutex>> }}",
+                self.name
+            )
+        }
+    }
+}
+
+pub use class::*;
+
+mod r#enum {
+    use super::*;
+
+    #[derive(askama::Template)]
+    #[template(path = "enum.rs.j2", escape = "none")]
+    pub struct EnumRust<'a> {
+        pub name: String,
+        pub docstring: Option<String>,
+        pub values: Vec<String>,
+        pub dynamic: bool,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+}
+
+pub use r#enum::*;
+
+mod union {
+    use super::*;
+
+    #[derive(askama::Template)]
+    #[template(path = "union.rs.j2", escape = "none")]
+    pub struct UnionRust<'a> {
+        pub name: String,
+        pub docstring: Option<String>,
+        pub variants: Vec<UnionVariantRust>,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+    
+    #[derive(Debug, Clone)]
+    pub struct UnionVariantRust {
+        pub name: String,
+        pub docstring: Option<String>,
+        pub rust_type: TypeRust,
+        pub literal_value: Option<String>,
+    }
+}
+
+pub use union::*;
+
+mod type_alias {
+    use super::*;
+
+    #[derive(askama::Template)]
+    #[template(in_doc = true, escape = "none", ext = "txt")]
+    /// ```askama
+    /// {% if let Some(docstring) = docstring -%}
+    /// /// {{ docstring }}
+    /// {% endif -%}
+    /// pub type {{ name }} = {{ type_.serialize_type(pkg) }};
+    /// ```
+    pub struct TypeAliasRust<'a> {
+        pub name: String,
+        pub type_: TypeRust,
+        pub docstring: Option<String>,
+        pub pkg: &'a CurrentRenderPackage,
+    }
+}
+
+pub use type_alias::*;
+
+// Backward compatibility structs for ir_to_rust modules
 #[derive(Debug, Clone)]
 pub struct RustClass {
     pub name: String,
@@ -25,80 +130,68 @@ pub struct RustUnion {
     pub variants: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct TypeAliasRust<'a> {
-    pub name: String,
-    pub type_: TypeRust,
-    pub docstring: Option<String>,
-    pub pkg: &'a CurrentRenderPackage,
+/// A list of types in Rust.
+/// 
+/// ```askama
+/// use serde::{Deserialize, Serialize};
+/// use std::collections::HashMap;
+/// 
+/// {% for item in items -%}
+/// {{ item.render()? }}
+/// 
+/// {% endfor %}
+/// ```
+#[derive(askama::Template)]
+#[template(in_doc = true, escape = "none", ext = "txt")]
+pub struct RustTypes<'ir, T: askama::Template> {
+    items: &'ir [T],
 }
 
-pub fn render_rust_types(
-    classes: &[RustClass],
-    enums: &[RustEnum],
-    unions: &[RustUnion],
-    type_aliases: &[TypeAliasRust],
+pub(crate) fn render_rust_types<T: askama::Template>(
+    items: &[T],
     _pkg: &CurrentRenderPackage,
-) -> Result<String, anyhow::Error> {
+) -> Result<String, askama::Error> {
+    use askama::Template;
+    
+    RustTypes { items }.render()
+}
+
+// Convenience function for mixed type rendering
+pub fn render_all_rust_types(
+    classes: &[ClassRust],
+    enums: &[EnumRust], 
+    unions: &[UnionRust],
+    type_aliases: &[TypeAliasRust],
+    pkg: &CurrentRenderPackage,
+) -> Result<String, askama::Error> {
     let mut output = String::new();
     
     output.push_str("use serde::{Deserialize, Serialize};\n");
     output.push_str("use std::collections::HashMap;\n\n");
-
-    // Generate enums
-    for enum_type in enums {
-        output.push_str(&format!(
-            "#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]\npub enum {} {{\n",
-            enum_type.name
-        ));
-        for value in &enum_type.values {
-            output.push_str(&format!("    {},\n", value));
-        }
-        output.push_str("}\n\n");
+    
+    // Render classes
+    if !classes.is_empty() {
+        output.push_str(&render_rust_types(classes, pkg)?);
+        output.push_str("\n");
     }
-
-    // Generate classes (structs)
-    for class in classes {
-        output.push_str(&format!(
-            "#[derive(Debug, Clone, Serialize, Deserialize)]\npub struct {} {{\n",
-            class.name
-        ));
-        for field in &class.fields {
-            let field_type = if field.optional {
-                format!("Option<{}>", field.rust_type)
-            } else {
-                field.rust_type.clone()
-            };
-            output.push_str(&format!("    pub {}: {},\n", field.name, field_type));
-        }
-        output.push_str("}\n\n");
+    
+    // Render enums  
+    if !enums.is_empty() {
+        output.push_str(&render_rust_types(enums, pkg)?);
+        output.push_str("\n");
     }
-
-    // Generate unions (for now as enums)
-    for union in unions {
-        output.push_str(&format!(
-            "#[derive(Debug, Clone, Serialize, Deserialize)]\n#[serde(untagged)]\npub enum {} {{\n",
-            union.name
-        ));
-        for (i, variant) in union.variants.iter().enumerate() {
-            output.push_str(&format!("    Variant{}({}),\n", i, variant));
-        }
-        output.push_str("}\n\n");
+    
+    // Render unions
+    if !unions.is_empty() {
+        output.push_str(&render_rust_types(unions, pkg)?);
+        output.push_str("\n");
     }
-
-    // Generate type aliases
-    for type_alias in type_aliases {
-        if let Some(ref docstring) = type_alias.docstring {
-            for line in docstring.lines() {
-                output.push_str(&format!("/// {}\n", line));
-            }
-        }
-        output.push_str(&format!(
-            "pub type {} = {};\n\n",
-            type_alias.name,
-            type_alias.type_.serialize_type(type_alias.pkg)
-        ));
+    
+    // Render type aliases
+    if !type_aliases.is_empty() {
+        output.push_str(&render_rust_types(type_aliases, pkg)?);
+        output.push_str("\n");
     }
-
+    
     Ok(output)
 }

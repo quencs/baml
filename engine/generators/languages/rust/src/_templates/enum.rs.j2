@@ -1,0 +1,86 @@
+{% if let Some(docstring) = docstring -%}
+/// {{ docstring }}
+{% endif -%}
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+{% if dynamic -%}
+#[serde(rename_all = "snake_case")]
+{% endif -%}
+pub enum {{ name }} {
+    {%- for value in values %}
+    /// {{ value }} variant
+    {{ value }},
+    {%- endfor %}
+}
+
+impl {{ name }} {
+    /// Get all possible values for this enum
+    pub fn values() -> Vec<Self> {
+        vec![
+            {%- for value in values %}
+            Self::{{ value }},
+            {%- endfor %}
+        ]
+    }
+    
+    /// Get the string representation of this enum variant
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            {%- for value in values %}
+            Self::{{ value }} => "{{ value }}",
+            {%- endfor %}
+        }
+    }
+    
+    /// Create enum from string, if valid
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            {%- for value in values %}
+            "{{ value }}" => Some(Self::{{ value }}),
+            {%- endfor %}
+            _ => None,
+        }
+    }
+    
+    /// Check if this enum variant is valid
+    pub fn is_valid(&self) -> bool {
+        {% if dynamic -%}
+        // Dynamic enums are always valid
+        true
+        {% else -%}
+        Self::values().contains(self)
+        {% endif -%}
+    }
+}
+
+impl std::fmt::Display for {{ name }} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl std::str::FromStr for {{ name }} {
+    type Err = String;
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_str(s).ok_or_else(|| {
+            format!("Invalid {{ name }} value: '{}'. Valid values are: [{}]", 
+                s, 
+                Self::values().iter()
+                    .map(|v| v.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })
+    }
+}
+
+impl Default for {{ name }} {
+    fn default() -> Self {
+        {%- if values.len() > 0 %}
+        Self::{{ values[0] }}
+        {%- else %}
+        // No default value for empty enum
+        panic!("Cannot create default value for empty enum {{ name }}")
+        {%- endif %}
+    }
+}

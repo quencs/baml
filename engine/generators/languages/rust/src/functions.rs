@@ -1,6 +1,14 @@
 use crate::package::CurrentRenderPackage;
+use crate::r#type::{SerializeType, TypeRust};
+use askama::Template;
 
-use crate::r#type::TypeRust;
+mod filters {
+    use crate::utils::to_snake_case;
+    
+    pub fn snake_case(s: &str, _args: &dyn askama::Values) -> askama::Result<String> {
+        Ok(to_snake_case(s))
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct FunctionRust {
@@ -11,59 +19,47 @@ pub struct FunctionRust {
     pub stream_return_type: TypeRust,
 }
 
-use crate::r#type::SerializeType;
+
+/// Template for the complete functions module
+#[derive(askama::Template)]
+#[template(path = "client.rs.j2", escape = "none")]
+pub struct RustFunctions<'a> {
+    functions: &'a [SingleFunctionRust<'a>],
+}
+
+/// Individual function template
+#[derive(askama::Template, Clone)]
+#[template(path = "function.rs.j2", escape = "none")]
+pub struct SingleFunctionRust<'a> {
+    pub documentation: Option<String>,
+    pub name: String,
+    pub args: Vec<(String, TypeRust)>,
+    pub return_type: TypeRust,
+    pub stream_return_type: TypeRust,
+    pub pkg: &'a CurrentRenderPackage,
+}
 
 pub fn render_functions(
     functions: &[FunctionRust],
     pkg: &CurrentRenderPackage,
-) -> Result<String, anyhow::Error> {
-    let mut output = String::new();
-    output.push_str("use crate::runtime::BamlClient;\n");
-    output.push_str("use crate::types::*;\n");
-    output.push_str("use baml_client_rust::{BamlResult, StreamState};\n");
-    output.push_str("use std::collections::HashMap;\n\n");
-
-    for func in functions {
-        // Generate synchronous function
-        let args_str = func
-            .args
-            .iter()
-            .map(|(name, ty)| format!("{}: {}", name, ty.serialize_type(pkg)))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let return_type = func.return_type.serialize_type(pkg);
-        let stream_return_type = func.stream_return_type.serialize_type(pkg);
-
-        output.push_str(&format!(
-            r#"impl BamlClient {{
-    pub async fn {}(&self, {}) -> BamlResult<{}> {{
-        // TODO: Implement actual function call
-        todo!("Function {} not yet implemented")
-    }}
-
-    pub async fn {}_stream(&self, {}) -> BamlResult<impl futures::Stream<Item = {}>> {{
-        // TODO: Implement streaming function call
-        todo!("Streaming function {} not yet implemented")
-    }}
-}}
-
-"#,
-            func.name.to_lowercase(),
-            args_str,
-            return_type,
-            func.name,
-            func.name.to_lowercase(),
-            args_str,
-            stream_return_type,
-            func.name
-        ));
-    }
-
-    Ok(output)
+) -> Result<String, askama::Error> {
+    use askama::Template;
+    
+    let single_functions: Vec<SingleFunctionRust> = functions.iter().map(|f| {
+        SingleFunctionRust {
+            documentation: f.documentation.clone(),
+            name: f.name.clone(),
+            args: f.args.clone(),
+            return_type: f.return_type.clone(),
+            stream_return_type: f.stream_return_type.clone(),
+            pkg,
+        }
+    }).collect();
+    
+    RustFunctions { functions: &single_functions }.render()
 }
 
-pub fn render_runtime_code(_pkg: &CurrentRenderPackage) -> Result<String, anyhow::Error> {
+pub fn render_runtime_code(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
     Ok(
         r#"use baml_client_rust::{BamlRuntime as CoreRuntime, BamlClient as CoreClient};
 
@@ -81,7 +77,7 @@ impl BamlClient {
     )
 }
 
-pub fn render_source_files(_file_map: Vec<(String, String)>) -> Result<String, anyhow::Error> {
+pub fn render_source_files(_file_map: Vec<(String, String)>) -> Result<String, askama::Error> {
     Ok(r#"// Source file mapping
 // TODO: Implement source map functionality
 "#

@@ -1,0 +1,62 @@
+//! BAML Generated Rust Client
+//! 
+//! This crate provides a type-safe Rust client for your BAML functions.
+//! 
+//! # Usage
+//! 
+//! ```rust
+//! use {{ crate_name }}::*;
+//! 
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let client = BamlClient::new()?;
+//!     
+//!     // Use your BAML functions here
+//!     
+//!     Ok(())
+//! }
+//! ```
+
+pub mod types;
+pub mod functions;
+pub mod runtime;
+
+// Re-exports for convenience
+pub use types::*;
+pub use functions::BamlClient;
+pub use runtime::{
+    BamlRuntime, 
+    BamlResult, 
+    BamlError,
+    BamlContext,
+    StreamState,
+    Checked,
+    init_runtime,
+    init_runtime_from_file,
+    init_runtime_with_settings,
+};
+
+// Version information
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const BAML_VERSION: &str = "{{ baml_version }}";
+
+/// Get the current version of this generated client
+pub fn client_version() -> &'static str {
+    VERSION
+}
+
+/// Get the version of BAML that generated this client
+pub fn baml_version() -> &'static str {
+    BAML_VERSION
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_version_info() {
+        assert!(!client_version().is_empty());
+        assert!(!baml_version().is_empty());
+    }
+}

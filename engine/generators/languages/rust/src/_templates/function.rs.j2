@@ -1,0 +1,43 @@
+impl BamlClient {
+    {% if let Some(documentation) = documentation -%}
+    /// {{ documentation }}
+    {% else -%}
+    /// {{ name }} - Generated BAML function
+    {% endif -%}
+    pub async fn {{ name|snake_case }}(
+        &self,
+        {%- for (arg_name, arg_type) in args %}
+        {{ arg_name }}: {{ arg_type.serialize_type(pkg) }},
+        {%- endfor %}
+    ) -> BamlResult<{{ return_type.serialize_type(pkg) }}> {
+        use baml_client_rust::BamlContext;
+        
+        let ctx = BamlContext::new();
+        {%- for (arg_name, arg_type) in args %}
+        ctx.set_arg("{{ arg_name }}", &{{ arg_name }})?;
+        {%- endfor %}
+        
+        self.runtime.invoke_function("{{ name }}", &ctx).await
+    }
+    
+    {% if let Some(documentation) = documentation -%}
+    /// {{ documentation }} (streaming variant)
+    {% else -%}
+    /// {{ name }} (streaming) - Generated BAML function  
+    {% endif -%}
+    pub async fn {{ name|snake_case }}_stream(
+        &self,
+        {%- for (arg_name, arg_type) in args %}
+        {{ arg_name }}: {{ arg_type.serialize_type(pkg) }},
+        {%- endfor %}
+    ) -> BamlResult<impl futures::Stream<Item = BamlResult<StreamState<{{ stream_return_type.serialize_type(pkg) }}>>>> {
+        use baml_client_rust::BamlContext;
+        
+        let ctx = BamlContext::new();
+        {%- for (arg_name, arg_type) in args %}
+        ctx.set_arg("{{ arg_name }}", &{{ arg_name }})?;
+        {%- endfor %}
+        
+        self.runtime.invoke_function_stream("{{ name }}", &ctx).await
+    }
+}

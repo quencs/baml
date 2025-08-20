@@ -1,0 +1,63 @@
+//! Generated BAML types for Rust
+//!
+//! This module contains all the generated types from your BAML schema,
+//! including classes, enums, unions, and type aliases.
+
+// Generated structs (classes)
+{%- for class in classes %}
+mod {{ class.name|snake_case }};
+pub use {{ class.name|snake_case }}::{{ class.name }};
+{%- endfor %}
+
+// Generated enums
+{%- for enum in enums %}
+mod {{ enum.name|snake_case }};
+pub use {{ enum.name|snake_case }}::{{ enum.name }};
+{%- endfor %}
+
+// Generated unions
+{%- for union in unions %}
+mod {{ union.name|snake_case }};
+pub use {{ union.name|snake_case }}::{{ union.name }};
+{%- endfor %}
+
+// Generated type aliases
+{%- for type_alias in type_aliases %}
+pub type {{ type_alias.name }} = {{ type_alias.rust_type.serialize_type(pkg) }};
+{%- endfor %}
+
+// Common imports used by generated types
+pub use serde::{Serialize, Deserialize};
+pub use std::collections::HashMap;
+pub use baml_client_rust::{Checked, StreamState};
+
+/// Trait for all BAML generated types that can be validated
+pub trait BamlType {
+    /// Validate this instance according to BAML constraints
+    fn validate(&self) -> Result<(), String> {
+        Ok(())
+    }
+}
+
+// Implement BamlType for generated structs
+{%- for class in classes %}
+impl BamlType for {{ class.name }} {}
+{%- endfor %}
+
+// Implement BamlType for generated enums  
+{%- for enum in enums %}
+impl BamlType for {{ enum.name }} {
+    fn validate(&self) -> Result<(), String> {
+        if self.is_valid() {
+            Ok(())
+        } else {
+            Err(format!("Invalid enum value: {}", self))
+        }
+    }
+}
+{%- endfor %}
+
+// Implement BamlType for generated unions
+{%- for union in unions %}
+impl BamlType for {{ union.name }} {}
+{%- endfor %}

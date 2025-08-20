@@ -1,0 +1,50 @@
+use baml_client_rust::{BamlRuntime, BamlResult};
+use crate::types::*;
+use std::sync::Arc;
+use futures::Stream;
+
+/// Main BAML client for executing functions
+#[derive(Debug, Clone)]
+pub struct BamlClient {
+    runtime: Arc<BamlRuntime>,
+}
+
+impl BamlClient {
+    /// Create a new BAML client with default configuration
+    pub fn new() -> BamlResult<Self> {
+        let runtime = BamlRuntime::from_env()?;
+        Ok(Self {
+            runtime: Arc::new(runtime),
+        })
+    }
+    
+    /// Create a new BAML client from a configuration file
+    pub fn from_config(config_path: &str) -> BamlResult<Self> {
+        let runtime = BamlRuntime::from_file(config_path)?;
+        Ok(Self {
+            runtime: Arc::new(runtime),
+        })
+    }
+    
+    /// Create a new BAML client with a custom runtime
+    pub fn with_runtime(runtime: BamlRuntime) -> Self {
+        Self {
+            runtime: Arc::new(runtime),
+        }
+    }
+    
+    /// Get access to the underlying runtime
+    pub fn runtime(&self) -> &BamlRuntime {
+        &self.runtime
+    }
+}
+
+impl Default for BamlClient {
+    fn default() -> Self {
+        Self::new().expect("Failed to create default BamlClient")
+    }
+}
+
+{%- for function in functions %}
+{{ function.render()? }}
+{%- endfor %}

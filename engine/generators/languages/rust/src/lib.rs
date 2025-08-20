@@ -1,6 +1,5 @@
 use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeatures};
 use functions::{render_functions, render_runtime_code, render_source_files};
-use generated_types::render_rust_types;
 
 mod functions;
 mod generated_types;
@@ -55,19 +54,66 @@ impl LanguageFeatures for RustLanguageFeatures {
             .collect::<Vec<_>>();
         collector.add_file("functions.rs", render_functions(&functions, &pkg)?)?;
 
-        // Generate types
-        let rust_classes = ir
+        // Generate types  
+        let rust_classes: Vec<generated_types::ClassRust> = ir
             .walk_classes()
-            .map(|c| ir_to_rust::classes::ir_class_to_rust(c.item, &pkg))
-            .collect::<Vec<_>>();
-        let enums = ir
+            .map(|c| {
+                let class_data = ir_to_rust::classes::ir_class_to_rust(c.item, &pkg);
+                generated_types::ClassRust {
+                    name: class_data.name,
+                    docstring: None, // TODO: Extract docstring from class
+                    fields: class_data.fields.into_iter().map(|field| {
+                        generated_types::FieldRust {
+                            name: field.name,
+                            docstring: None,
+                            rust_type: r#type::TypeRust::String(None, r#type::TypeMetaRust {
+                                type_wrapper: r#type::TypeWrapper::None,
+                                wrap_stream_state: false,
+                            }), // TODO: Proper conversion
+                            pkg: &pkg,
+                        }
+                    }).collect(),
+                    dynamic: false, // TODO: Determine from class metadata
+                    pkg: &pkg,
+                }
+            })
+            .collect();
+        let enums: Vec<generated_types::EnumRust> = ir
             .walk_enums()
-            .map(|e| ir_to_rust::enums::ir_enum_to_rust(e.item, &pkg))
-            .collect::<Vec<_>>();
-        let unions = {
+            .map(|e| {
+                let enum_data = ir_to_rust::enums::ir_enum_to_rust(e.item, &pkg);
+                generated_types::EnumRust {
+                    name: enum_data.name,
+                    docstring: None, // TODO: Extract docstring from enum
+                    values: enum_data.values,
+                    dynamic: false, // TODO: Determine from enum metadata
+                    pkg: &pkg,
+                }
+            })
+            .collect();
+        let unions: Vec<generated_types::UnionRust> = {
             let mut unions = ir
                 .walk_all_non_streaming_unions()
-                .filter_map(|t| ir_to_rust::unions::ir_union_to_rust(&t, &pkg))
+                .filter_map(|t| {
+                    ir_to_rust::unions::ir_union_to_rust(&t, &pkg).map(|union_data| {
+                        generated_types::UnionRust {
+                            name: union_data.name,
+                            docstring: None, // TODO: Extract docstring from union
+                            variants: union_data.variants.into_iter().map(|variant_name| {
+                                generated_types::UnionVariantRust {
+                                    name: variant_name,
+                                    docstring: None,
+                                    rust_type: r#type::TypeRust::String(None, r#type::TypeMetaRust {
+                                type_wrapper: r#type::TypeWrapper::None,
+                                wrap_stream_state: false,
+                            }), // TODO: Proper conversion
+                                    literal_value: None,
+                                }
+                            }).collect(),
+                            pkg: &pkg,
+                        }
+                    })
+                })
                 .collect::<Vec<_>>();
             unions.sort_by_key(|u| u.name.clone());
             unions.dedup_by_key(|u| u.name.clone());
@@ -75,46 +121,53 @@ impl LanguageFeatures for RustLanguageFeatures {
         };
 
         let type_aliases = vec![]; // TODO: Generate type aliases from IR
-        collector.add_file("types.rs", render_rust_types(&rust_classes, &enums, &unions, &type_aliases, &pkg)?)?;
+        collector.add_file("types.rs", generated_types::render_all_rust_types(&rust_classes, &enums, &unions, &type_aliases, &pkg)?)?;
 
         Ok(())
     }
 }
 
-fn render_lib_rs(_pkg: &package::CurrentRenderPackage) -> Result<String, anyhow::Error> {
-    let template = r#"//! BAML Generated Rust Client
-//! 
-//! This crate provides a type-safe Rust client for your BAML functions.
-
-pub mod types;
-pub mod functions;
-pub mod runtime;
-
-// Re-exports for convenience
-pub use types::*;
-pub use functions::*;
-pub use runtime::{BamlRuntime, BamlClient};
-
-// Common types
-pub use baml_client_rust::{StreamState, Checked, BamlError, BamlResult};
-"#;
-    Ok(template.to_string())
+fn render_lib_rs(pkg: &package::CurrentRenderPackage) -> Result<String, anyhow::Error> {
+    use askama::Template;
+    
+    #[derive(askama::Template)]
+    #[template(path = "lib.rs.j2", escape = "none")]
+    struct LibRs<'a> {
+        crate_name: &'a str,
+        baml_version: &'a str,
+        pkg: &'a package::CurrentRenderPackage,
+    }
+    
+    LibRs {
+        crate_name: "baml_client",
+        baml_version: "0.1.0", // TODO: Get actual BAML version
+        pkg,
+    }.render().map_err(|e| anyhow::anyhow!("Template error: {}", e))
 }
 
 fn render_cargo_toml() -> Result<String, anyhow::Error> {
-    let template = r#"[package]
-name = "baml-client"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-baml-client-rust = "0.1.0"
-tokio = { version = "1.0", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-anyhow = "1.0"
-"#;
-    Ok(template.to_string())
+    use askama::Template;
+    use std::time::SystemTime;
+    
+    #[derive(askama::Template)]
+    #[template(path = "cargo.toml.j2", escape = "none")]
+    struct CargoToml {
+        package_name: &'static str,
+        lib_name: &'static str,
+        version: &'static str,
+        baml_version: &'static str,
+        baml_client_version: &'static str,
+        generation_timestamp: String,
+    }
+    
+    CargoToml {
+        package_name: "baml-client",
+        lib_name: "baml_client",
+        version: "0.1.0",
+        baml_version: "0.1.0", // TODO: Get actual BAML version
+        baml_client_version: "0.1.0",
+        generation_timestamp: format!("{:?}", SystemTime::now()),
+    }.render().map_err(|e| anyhow::anyhow!("Template error: {}", e))
 }
 
 #[cfg(test)]

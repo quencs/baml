@@ -1,0 +1,61 @@
+{% if let Some(docstring) = docstring -%}
+/// {{ docstring }}
+{% endif -%}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+{% if dynamic -%}
+#[serde(flatten)]
+{% endif -%}
+pub struct {{ name }} {
+    {%- for field in fields %}
+    {% if let Some(docstring) = field.docstring %}
+    /// {{ docstring }}
+    {% endif %}
+    pub {{ field.name }}: {{ field.rust_type.serialize_type(pkg) }},
+    {%- endfor %}
+    {%- if dynamic %}
+    /// Additional dynamic properties
+    #[serde(flatten)]
+    pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
+    {%- endif %}
+}
+
+impl {{ name }} {
+    /// Create a new {{ name }} instance
+    pub fn new(
+        {%- for field in fields %}
+        {{ field.name }}: {{ field.rust_type.serialize_type(pkg) }},
+        {%- endfor %}
+    ) -> Self {
+        Self {
+            {%- for field in fields %}
+            {{ field.name }},
+            {%- endfor %}
+            {%- if dynamic %}
+            additional_properties: std::collections::HashMap::new(),
+            {%- endif %}
+        }
+    }
+    
+    {% if dynamic -%}
+    /// Add a dynamic property
+    pub fn with_property(mut self, key: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
+        self.additional_properties.insert(key.into(), value.into());
+        self
+    }
+    
+    /// Get a dynamic property
+    pub fn get_property(&self, key: &str) -> Option<&serde_json::Value> {
+        self.additional_properties.get(key)
+    }
+    {% endif -%}
+}
+
+impl Default for {{ name }} {
+    fn default() -> Self {
+        Self::new(
+            {%- for field in fields %}
+            {{ field.rust_type.default_value(pkg) }},
+            {%- endfor %}
+        )
+    }
+}

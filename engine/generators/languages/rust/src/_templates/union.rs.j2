@@ -1,0 +1,127 @@
+{% if let Some(docstring) = docstring -%}
+/// {{ docstring }}
+{% endif -%}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum {{ name }} {
+    {%- for variant in variants %}
+    {%- if let Some(docstring) = variant.docstring %}
+    /// {{ docstring }}
+    {%- endif %}
+    {%- if let Some(literal) = variant.literal_value %}
+    /// Literal value: {{ literal }}
+    {{ variant.name }},
+    {%- else %}
+    {{ variant.name }}({{ variant.rust_type.serialize_type(pkg) }}),
+    {%- endif %}
+    {%- endfor %}
+}
+
+impl {{ name }} {
+    {%- for variant in variants %}
+    
+    /// Check if this union is a {{ variant.name }} variant
+    pub fn is_{{ variant.name|snake_case }}(&self) -> bool {
+        matches!(self, Self::{{ variant.name }}{% if variant.literal_value.is_none() %}(_){% endif %})
+    }
+    
+    {%- if variant.literal_value.is_none() %}
+    /// Get the {{ variant.name }} value if this union contains it
+    pub fn as_{{ variant.name|snake_case }}(&self) -> Option<&{{ variant.rust_type.serialize_type(pkg) }}> {
+        match self {
+            Self::{{ variant.name }}(v) => Some(v),
+            _ => None,
+        }
+    }
+    
+    /// Extract the {{ variant.name }} value, consuming the union
+    pub fn into_{{ variant.name|snake_case }}(self) -> Option<{{ variant.rust_type.serialize_type(pkg) }}> {
+        match self {
+            Self::{{ variant.name }}(v) => Some(v),
+            _ => None,
+        }
+    }
+    
+    /// Get a mutable reference to the {{ variant.name }} value if this union contains it
+    pub fn as_{{ variant.name|snake_case }}_mut(&mut self) -> Option<&mut {{ variant.rust_type.serialize_type(pkg) }}> {
+        match self {
+            Self::{{ variant.name }}(v) => Some(v),
+            _ => None,
+        }
+    }
+    {%- endif %}
+    
+    /// Create a new {{ name }} with a {{ variant.name }} variant
+    {%- if let Some(literal) = variant.literal_value %}
+    pub fn {{ variant.name|snake_case }}() -> Self {
+        Self::{{ variant.name }}
+    }
+    {%- else %}
+    pub fn {{ variant.name|snake_case }}(value: {{ variant.rust_type.serialize_type(pkg) }}) -> Self {
+        Self::{{ variant.name }}(value)
+    }
+    {%- endif %}
+    {%- endfor %}
+}
+
+/// Pattern matching helper for {{ name }}
+impl {{ name }} {
+    /// Match on the union variant and apply the corresponding function
+    pub fn match_variant<T>(
+        &self,
+        {%- for variant in variants %}
+        {%- if let Some(literal) = variant.literal_value %}
+        {{ variant.name|snake_case }}: impl FnOnce() -> T,
+        {%- else %}
+        {{ variant.name|snake_case }}: impl FnOnce(&{{ variant.rust_type.serialize_type(pkg) }}) -> T,
+        {%- endif %}
+        {%- endfor %}
+    ) -> T {
+        match self {
+            {%- for variant in variants %}
+            {%- if let Some(literal) = variant.literal_value %}
+            Self::{{ variant.name }} => {{ variant.name|snake_case }}(),
+            {%- else %}
+            Self::{{ variant.name }}(v) => {{ variant.name|snake_case }}(v),
+            {%- endif %}
+            {%- endfor %}
+        }
+    }
+    
+    /// Match on the union variant and apply the corresponding function, consuming the union
+    pub fn match_variant_owned<T>(
+        self,
+        {%- for variant in variants %}
+        {%- if let Some(literal) = variant.literal_value %}
+        {{ variant.name|snake_case }}: impl FnOnce() -> T,
+        {%- else %}
+        {{ variant.name|snake_case }}: impl FnOnce({{ variant.rust_type.serialize_type(pkg) }}) -> T,
+        {%- endif %}
+        {%- endfor %}
+    ) -> T {
+        match self {
+            {%- for variant in variants %}
+            {%- if let Some(literal) = variant.literal_value %}
+            Self::{{ variant.name }} => {{ variant.name|snake_case }}(),
+            {%- else %}
+            Self::{{ variant.name }}(v) => {{ variant.name|snake_case }}(v),
+            {%- endif %}
+            {%- endfor %}
+        }
+    }
+}
+
+/// Display implementation that shows the variant name and value
+impl std::fmt::Display for {{ name }} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            {%- for variant in variants %}
+            {%- if let Some(literal) = variant.literal_value %}
+            Self::{{ variant.name }} => write!(f, "{{ variant.name }}"),
+            {%- else %}
+            Self::{{ variant.name }}(v) => write!(f, "{{ variant.name }}({:?})", v),
+            {%- endif %}
+            {%- endfor %}
+        }
+    }
+}
