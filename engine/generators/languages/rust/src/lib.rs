@@ -74,13 +74,14 @@ impl LanguageFeatures for RustLanguageFeatures {
             unions
         };
 
-        collector.add_file("types.rs", render_rust_types(&rust_classes, &enums, &unions, &pkg)?)?;
+        let type_aliases = vec![]; // TODO: Generate type aliases from IR
+        collector.add_file("types.rs", render_rust_types(&rust_classes, &enums, &unions, &type_aliases, &pkg)?)?;
 
         Ok(())
     }
 }
 
-fn render_lib_rs(pkg: &package::CurrentRenderPackage) -> Result<String, anyhow::Error> {
+fn render_lib_rs(_pkg: &package::CurrentRenderPackage) -> Result<String, anyhow::Error> {
     let template = r#"//! BAML Generated Rust Client
 //! 
 //! This crate provides a type-safe Rust client for your BAML functions.

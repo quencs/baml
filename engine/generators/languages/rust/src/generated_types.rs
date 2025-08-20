@@ -1,4 +1,4 @@
-use crate::package::CurrentRenderPackage;
+use crate::{package::CurrentRenderPackage, r#type::{SerializeType, TypeRust}};
 
 #[derive(Debug, Clone)]
 pub struct RustClass {
@@ -25,10 +25,19 @@ pub struct RustUnion {
     pub variants: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct TypeAliasRust<'a> {
+    pub name: String,
+    pub type_: TypeRust,
+    pub docstring: Option<String>,
+    pub pkg: &'a CurrentRenderPackage,
+}
+
 pub fn render_rust_types(
     classes: &[RustClass],
     enums: &[RustEnum],
     unions: &[RustUnion],
+    type_aliases: &[TypeAliasRust],
     _pkg: &CurrentRenderPackage,
 ) -> Result<String, anyhow::Error> {
     let mut output = String::new();
@@ -75,6 +84,20 @@ pub fn render_rust_types(
             output.push_str(&format!("    Variant{}({}),\n", i, variant));
         }
         output.push_str("}\n\n");
+    }
+
+    // Generate type aliases
+    for type_alias in type_aliases {
+        if let Some(ref docstring) = type_alias.docstring {
+            for line in docstring.lines() {
+                output.push_str(&format!("/// {}\n", line));
+            }
+        }
+        output.push_str(&format!(
+            "pub type {} = {};\n\n",
+            type_alias.name,
+            type_alias.type_.serialize_type(type_alias.pkg)
+        ));
     }
 
     Ok(output)

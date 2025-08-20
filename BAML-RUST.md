@@ -56,15 +56,15 @@ graph TB
         Ruby[language_client_ruby<br/>Ruby Runtime + Generated Code]
     end
 
-    Codegen --> Go
-    Codegen --> Python
-    Codegen --> TS
-    Codegen --> Ruby
-    
     CFFI --> Go
     CFFI --> Python  
     CFFI --> TS
     CFFI --> Ruby
+
+    Codegen --> Go
+    Codegen --> Python
+    Codegen --> TS
+    Codegen --> Ruby
     
     Server -.-> Go
     Server -.-> Python
