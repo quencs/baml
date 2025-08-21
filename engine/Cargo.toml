@@ -14,6 +14,7 @@ members = [
   "language_client_codegen",
   "language_client_python",
   "language_client_ruby/ext/ruby_ffi",
+  "language_client_rust",
   "language_client_typescript",
   "language_server",
   "language_client_cffi",
