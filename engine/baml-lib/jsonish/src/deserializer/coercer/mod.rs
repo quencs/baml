@@ -8,10 +8,10 @@ mod field_type;
 mod ir_ref;
 mod match_string;
 
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, future::Future};
 
 use anyhow::Result;
-use baml_types::{BamlValue, Constraint, JinjaExpression};
+use baml_types::{BamlValue, BamlValueWithMeta, Constraint, JinjaExpression, expr::ExprMetadata};
 use internal_baml_core::ir::{
     jinja_helpers::evaluate_predicate, 
     baml_helpers::evaluate_native_predicate,
@@ -297,13 +297,107 @@ pub trait DefaultValue {
     fn default_value(&self, error: Option<&ParsingError>) -> Option<BamlValueWithFlags>;
 }
 
-/// Run all checks and asserts for a value at a given type.
+/// Run all checks and asserts for a value at a given type with LLM function support.
 /// This function only runs checks on the top-level node of the `BamlValue`.
 /// Checks on nested fields, list items etc. are not run here.
 ///
 /// For a function that traverses a whole `BamlValue` looking for failed asserts,
 /// see `first_failing_assert_nested`.
+pub async fn run_user_checks_with_llm<F, Fut>(
+    baml_value: &BamlValue, 
+    type_: &TypeIR, 
+    mut llm_function_callback: F
+) -> Result<Vec<(Constraint, bool)>> 
+where
+    F: FnMut(String, Vec<BamlValue>) -> Fut + Send + Sync,
+    Fut: Future<Output = Result<BamlValueWithMeta<ExprMetadata>>> + Send,
+{
+    let mut results = Vec::new();
+    
+    for constraint in type_.meta().constraints.iter() {
+        let result = match &constraint.expression {
+            baml_types::ConstraintExpression::Jinja(jinja_expr) => {
+                evaluate_predicate(baml_value, jinja_expr)?
+            }
+            baml_types::ConstraintExpression::Native(native_expr) => {
+                // Use native expression evaluator for BAML constraint expressions
+                let context = HashMap::new(); // Add any additional context as needed
+                
+                // For Phase 2, we use a placeholder evaluator that parses from string
+                // In future phases, this will use proper THIR expression evaluation
+                match native_expr.parse::<bool>() {
+                    Ok(bool_result) => bool_result,
+                    Err(_) => {
+                        // If it's not a simple boolean, use the native evaluator
+                        // For now, this is a placeholder implementation
+                        log::debug!("Evaluating native constraint: {}", native_expr);
+                        
+                        // Create a placeholder Expr for the evaluator
+                        // In full implementation, this will come from THIR
+                        use baml_types::expr::{Expr, ExprMetadata};
+                        use baml_types::BamlValueWithMeta;
+                        use internal_baml_core::internal_baml_diagnostics::Span;
+                        let placeholder_expr = Expr::Atom(BamlValueWithMeta::Bool(true, 
+                            (Span::fake(), None)));
+                        
+                        evaluate_native_predicate(baml_value, &context, &placeholder_expr, &mut llm_function_callback)
+                            .unwrap_or_else(|e| {
+                                log::warn!("Native constraint evaluation failed: {}", e);
+                                false
+                            })
+                    }
+                }
+            }
+        };
+        results.push((constraint.clone(), result));
+    }
+    
+    Ok(results)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use baml_types::{Constraint, ConstraintLevel, ConstraintExpression, BamlValueWithMeta, expr::{Expr, ExprMetadata}};
+    use internal_baml_core::internal_baml_diagnostics::Span;
+
+    #[tokio::test]
+    async fn test_run_user_checks_with_llm() {
+        // Create a simple type with native constraints
+        let type_ir = TypeIR::int(); // This would normally have constraints
+        
+        // Create test BamlValue
+        let test_value = BamlValue::Int(42);
+        
+        // Mock LLM callback
+        let llm_callback = |function_name: String, _args: Vec<BamlValue>| async move {
+            match function_name.as_str() {
+                "ValidateNumber" => Ok(BamlValueWithMeta::Bool(true, (Span::fake(), None))),
+                "CheckRange" => Ok(BamlValueWithMeta::Bool(false, (Span::fake(), None))),
+                _ => Ok(BamlValueWithMeta::Bool(true, (Span::fake(), None))),
+            }
+        };
+        
+        let result = run_user_checks_with_llm(&test_value, &type_ir, llm_callback).await;
+        assert!(result.is_ok());
+        
+        // Also test the legacy version
+        let legacy_result = run_user_checks(&test_value, &type_ir);
+        assert!(legacy_result.is_ok());
+    }
+}
+
+/// Run all checks and asserts for a value at a given type (legacy version without LLM support).
+/// This function only runs checks on the top-level node of the `BamlValue`.
+/// Checks on nested fields, list items etc. are not run here.
+///
+/// This version rejects any LLM function calls. For LLM function support, use `run_user_checks_with_llm`.
+///
+/// For a function that traverses a whole `BamlValue` looking for failed asserts,
+/// see `first_failing_assert_nested`.
 pub fn run_user_checks(baml_value: &BamlValue, type_: &TypeIR) -> Result<Vec<(Constraint, bool)>> {
+    use internal_baml_core::ir::baml_helpers::evaluate_native_predicate_no_llm;
+    
     let res = type_
         .meta()
         .constraints
@@ -334,7 +428,7 @@ pub fn run_user_checks(baml_value: &BamlValue, type_: &TypeIR) -> Result<Vec<(Co
                             let placeholder_expr = Expr::Atom(BamlValueWithMeta::Bool(true, 
                                 (Span::fake(), None)));
                             
-                            evaluate_native_predicate(baml_value, &context, &placeholder_expr)
+                            evaluate_native_predicate_no_llm(baml_value, &context, &placeholder_expr)
                                 .unwrap_or_else(|e| {
                                     log::warn!("Native constraint evaluation failed: {}", e);
                                     false

@@ -1622,20 +1622,7 @@ pub fn typecheck_expression(
             let mut typed_expr = typecheck_expression(expr, context, diagnostics);
 
             // Ensure expression evaluates to boolean
-            let bool_type = TypeIR::bool();
-            match &mut typed_expr.meta_mut().1 {
-                Some(cur_type) => {
-                    if !cur_type.eq_up_to_span(&bool_type) {
-                        diagnostics.push_error(DatamodelError::new_type_mismatch_error(
-                            &bool_type.name_for_user(),
-                            &cur_type.name_for_user(),
-                            &render_doc_to_string(expr.to_doc()),
-                            span.clone(),
-                        ));
-                    }
-                }
-                cond @ None => *cond = Some(bool_type),
-            }
+            ensure_boolean_type(&mut typed_expr, expr, span, diagnostics);
 
             typed_expr
         }
@@ -1866,6 +1853,29 @@ impl TypeCompatibility for TypeIR {
     }
 }
 
+/// Ensures an expression has boolean type, adding type information if missing
+fn ensure_boolean_type(
+    typed_expr: &mut thir::Expr<ExprMetadata>,
+    expr: &hir::Expression,
+    span: &Span,
+    diagnostics: &mut Diagnostics,
+) {
+    let bool_type = TypeIR::bool();
+    match &mut typed_expr.meta_mut().1 {
+        Some(cur_type) => {
+            if !cur_type.eq_up_to_span(&bool_type) {
+                diagnostics.push_error(DatamodelError::new_type_mismatch_error(
+                    &bool_type.name_for_user(),
+                    &cur_type.name_for_user(),
+                    &render_doc_to_string(expr.to_doc()),
+                    span.clone(),
+                ));
+            }
+        }
+        cond @ None => *cond = Some(bool_type),
+    }
+}
+
 /// Typecheck a constraint expression with proper 'this' context typing
 /// This function adds the 'this' variable to the typing context based on the field type
 pub fn typecheck_constraint_expression(
@@ -1888,20 +1898,7 @@ pub fn typecheck_constraint_expression(
     let mut typed_expr = typecheck_expression(expr, &constraint_context, diagnostics);
 
     // Ensure result is boolean
-    let bool_type = TypeIR::bool();
-    match &mut typed_expr.meta_mut().1 {
-        Some(cur_type) => {
-            if !cur_type.eq_up_to_span(&bool_type) {
-                diagnostics.push_error(DatamodelError::new_type_mismatch_error(
-                    &bool_type.name_for_user(),
-                    &cur_type.name_for_user(),
-                    &render_doc_to_string(expr.to_doc()),
-                    expr.span(),
-                ));
-            }
-        }
-        cond @ None => *cond = Some(bool_type),
-    }
+    ensure_boolean_type(&mut typed_expr, expr, &expr.span(), diagnostics);
 
     typed_expr
 }

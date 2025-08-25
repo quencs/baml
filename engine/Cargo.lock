@@ -3709,6 +3709,7 @@ dependencies = [
  "strsim",
  "strum",
  "textwrap",
+ "tokio",
  "whoami",
 ]
 
