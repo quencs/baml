@@ -1188,7 +1188,68 @@ fn values_equal(
         (BamlValueWithMeta::Int(a, _), BamlValueWithMeta::Float(b, _)) => *a as f64 == *b,
         (BamlValueWithMeta::Float(a, _), BamlValueWithMeta::Int(b, _)) => *a == *b as f64,
         (BamlValueWithMeta::String(a, _), BamlValueWithMeta::String(b, _)) => a == b,
+        (BamlValueWithMeta::Bool(a, _), BamlValueWithMeta::Bool(b, _)) => a == b,
         (BamlValueWithMeta::Null(_), BamlValueWithMeta::Null(_)) => true,
+        
+        // Map equality: same keys with equal values
+        (BamlValueWithMeta::Map(a, _), BamlValueWithMeta::Map(b, _)) => {
+            if a.len() != b.len() {
+                return false;
+            }
+            for (key, a_val) in a.iter() {
+                match b.get(key) {
+                    Some(b_val) => {
+                        if !values_equal(a_val, b_val) {
+                            return false;
+                        }
+                    }
+                    None => return false,
+                }
+            }
+            true
+        }
+        
+        // List equality: same length with equal elements in order
+        (BamlValueWithMeta::List(a, _), BamlValueWithMeta::List(b, _)) => {
+            if a.len() != b.len() {
+                return false;
+            }
+            for (a_val, b_val) in a.iter().zip(b.iter()) {
+                if !values_equal(a_val, b_val) {
+                    return false;
+                }
+            }
+            true
+        }
+        
+        // Enum equality: same enum name and value
+        (BamlValueWithMeta::Enum(a_name, a_value, _), BamlValueWithMeta::Enum(b_name, b_value, _)) => {
+            a_name == b_name && a_value == b_value
+        }
+        
+        // Class equality: same class name with equal field values
+        (BamlValueWithMeta::Class(a_name, a_fields, _), BamlValueWithMeta::Class(b_name, b_fields, _)) => {
+            if a_name != b_name || a_fields.len() != b_fields.len() {
+                return false;
+            }
+            for (key, a_val) in a_fields.iter() {
+                match b_fields.get(key) {
+                    Some(b_val) => {
+                        if !values_equal(a_val, b_val) {
+                            return false;
+                        }
+                    }
+                    None => return false,
+                }
+            }
+            true
+        }
+        
+        // Media equality: compare media type and content
+        (BamlValueWithMeta::Media(a, _), BamlValueWithMeta::Media(b, _)) => {
+            a.media_type == b.media_type && a.content == b.content
+        }
+        
         _ => false,
     }
 }

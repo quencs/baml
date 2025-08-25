@@ -220,7 +220,7 @@ mod try_cast_tests {
         int_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this > 100".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 100".to_string())),
                 label: Some("value_check".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -268,7 +268,7 @@ mod try_cast_tests {
         string_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Assert,
-                expression: JinjaExpression("this|length > 0".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this|length > 0".to_string())),
                 label: Some("name_assert".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -304,12 +304,12 @@ mod try_cast_tests {
             constraints: vec![
                 Constraint {
                     level: ConstraintLevel::Check,
-                    expression: JinjaExpression("this > 100".to_string()),
+                    expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 100".to_string())),
                     label: Some("value_check".to_string()),
                 },
                 Constraint {
                     level: ConstraintLevel::Assert,
-                    expression: JinjaExpression("this > 0".to_string()),
+                    expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 0".to_string())),
                     label: Some("positive_assert".to_string()),
                 },
             ],
@@ -363,7 +363,7 @@ mod try_cast_tests {
         string_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this|length > 10".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this|length > 10".to_string()),
                 label: Some("length_check".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -388,7 +388,7 @@ mod try_cast_tests {
         bool_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this == true".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this == true".to_string()),
                 label: Some("must_be_true".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -403,7 +403,7 @@ mod try_cast_tests {
         float_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Assert,
-                expression: JinjaExpression("this > 0.0".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 0.0".to_string()),
                 label: Some("positive_float".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -434,7 +434,7 @@ mod try_cast_tests {
         literal_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this == \"hello\"".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this == \"hello\"".to_string()),
                 label: Some("literal_check".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -467,7 +467,7 @@ mod try_cast_tests {
         array_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this|length > 2".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this|length > 2".to_string()),
                 label: Some("array_length_check".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -515,7 +515,7 @@ mod try_cast_tests {
         map_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this|length > 0".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this|length > 0".to_string())),
                 label: Some("map_not_empty".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -554,7 +554,7 @@ mod try_cast_tests {
         union_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("true".to_string()), // Always passes
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("true".to_string()), // Always passes
                 label: Some("union_check".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -586,7 +586,7 @@ mod try_cast_tests {
         int_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this > 0".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 0".to_string())),
                 label: Some("positive_check".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -640,17 +640,17 @@ mod try_cast_tests {
             constraints: vec![
                 Constraint {
                     level: ConstraintLevel::Check,
-                    expression: JinjaExpression("this > 10".to_string()),
+                    expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 10".to_string()),
                     label: Some("gt_10".to_string()),
                 },
                 Constraint {
                     level: ConstraintLevel::Check,
-                    expression: JinjaExpression("this < 100".to_string()),
+                    expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this < 100".to_string())),
                     label: Some("lt_100".to_string()),
                 },
                 Constraint {
                     level: ConstraintLevel::Assert,
-                    expression: JinjaExpression("this > 0".to_string()),
+                    expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 0".to_string())),
                     label: Some("positive".to_string()),
                 },
             ],
@@ -715,7 +715,7 @@ mod try_cast_tests {
         enum_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this == \"RED\"".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this == \"RED\"".to_string()),
                 label: Some("must_be_red".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -758,12 +758,12 @@ mod try_cast_tests {
             constraints: vec![
                 Constraint {
                     level: ConstraintLevel::Check,
-                    expression: JinjaExpression("this.age > 18".to_string()),
+                    expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this.age > 18".to_string()),
                     label: Some("adult_check".to_string()),
                 },
                 Constraint {
                     level: ConstraintLevel::Assert,
-                    expression: JinjaExpression("this.name|length > 0".to_string()),
+                    expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this.name|length > 0".to_string()),
                     label: Some("name_not_empty".to_string()),
                 },
             ],
@@ -842,7 +842,7 @@ mod try_cast_tests {
         alias_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this > 0".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 0".to_string())),
                 label: Some("positive".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -887,7 +887,7 @@ mod try_cast_tests {
         string_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this|length > 5".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this|length > 5".to_string()),
                 label: Some("length_check".to_string()),
             }],
             streaming_behavior: Default::default(),
@@ -919,7 +919,7 @@ mod try_cast_tests {
         int_type.set_meta(TypeMeta {
             constraints: vec![Constraint {
                 level: ConstraintLevel::Check,
-                expression: JinjaExpression("this > 0".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(JinjaExpression("this > 0".to_string())),
                 label: Some("positive".to_string()),
             }],
             streaming_behavior: Default::default(),

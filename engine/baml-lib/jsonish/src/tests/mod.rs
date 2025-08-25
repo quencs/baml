@@ -8,6 +8,7 @@ mod test_class;
 mod test_class_2;
 mod test_code;
 mod test_constraints;
+mod test_native_constraints;
 mod test_enum;
 mod test_international;
 mod test_lists;

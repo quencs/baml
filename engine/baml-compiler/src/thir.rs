@@ -7,6 +7,9 @@ use crate::hir::{self, AssignOp, BinaryOperator, Enum, LlmFunction, UnaryOperato
 pub mod interpret;
 pub mod typecheck;
 
+#[cfg(test)]
+mod tests_native_constraints;
+
 use std::{
     collections::{HashSet, VecDeque},
     sync::Arc,
