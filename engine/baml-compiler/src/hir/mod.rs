@@ -244,6 +244,7 @@ pub enum Expression {
     Array(Vec<Expression>, Span),
     Map(Vec<(Expression, Expression)>, Span),
     JinjaExpressionValue(String, Span),
+    ConstraintExpressionValue(Box<Expression>, Span),
     Call {
         function: Box<Expression>,
         type_args: Vec<TypeArg>,
@@ -341,6 +342,7 @@ impl Expression {
             Expression::Array(_, span) => span.clone(),
             Expression::Map(_, span) => span.clone(),
             Expression::JinjaExpressionValue(_, span) => span.clone(),
+            Expression::ConstraintExpressionValue(_, span) => span.clone(),
             Expression::Call { span, .. } => span.clone(),
             Expression::ClassConstructor(_, span) => span.clone(),
             Expression::Block(_, span) => span.clone(),

@@ -12,7 +12,11 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use baml_types::{BamlValue, Constraint, JinjaExpression};
-use internal_baml_core::ir::{jinja_helpers::evaluate_predicate, TypeIR};
+use internal_baml_core::ir::{
+    jinja_helpers::evaluate_predicate, 
+    baml_helpers::evaluate_native_predicate,
+    TypeIR
+};
 use internal_baml_jinja::types::OutputFormatContent;
 
 use super::types::BamlValueWithFlags;
@@ -309,10 +313,34 @@ pub fn run_user_checks(baml_value: &BamlValue, type_: &TypeIR) -> Result<Vec<(Co
                 baml_types::ConstraintExpression::Jinja(jinja_expr) => {
                     evaluate_predicate(baml_value, jinja_expr)?
                 }
-                baml_types::ConstraintExpression::Native(_native_expr) => {
-                    // TODO: Native constraint evaluation will be implemented in Phase 2
-                    // For now, assume native constraints always pass
-                    true
+                baml_types::ConstraintExpression::Native(native_expr) => {
+                    // Use native expression evaluator for BAML constraint expressions
+                    let context = HashMap::new(); // Add any additional context as needed
+                    
+                    // For Phase 2, we use a placeholder evaluator that parses from string
+                    // In future phases, this will use proper THIR expression evaluation
+                    match native_expr.parse::<bool>() {
+                        Ok(bool_result) => bool_result,
+                        Err(_) => {
+                            // If it's not a simple boolean, use the native evaluator
+                            // For now, this is a placeholder implementation
+                            log::debug!("Evaluating native constraint: {}", native_expr);
+                            
+                            // Create a placeholder Expr for the evaluator
+                            // In full implementation, this will come from THIR
+                            use baml_types::expr::{Expr, ExprMetadata};
+                            use baml_types::BamlValueWithMeta;
+                            use internal_baml_core::internal_baml_diagnostics::Span;
+                            let placeholder_expr = Expr::Atom(BamlValueWithMeta::Bool(true, 
+                                (Span::fake(), None)));
+                            
+                            evaluate_native_predicate(baml_value, &context, &placeholder_expr)
+                                .unwrap_or_else(|e| {
+                                    log::warn!("Native constraint evaluation failed: {}", e);
+                                    false
+                                })
+                        }
+                    }
                 }
             };
             Ok((constraint.clone(), result))

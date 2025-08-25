@@ -120,6 +120,44 @@ fn validate_type_allowed(ctx: &mut Context<'_>, field_type: &FieldType) {
     }
 }
 
+fn validate_native_constraint_expression(
+    ctx: &mut Context<'_>,
+    expr: &Expression,
+    span: &Span,
+    field_type: &FieldType,
+) {
+    // For now, do basic validation of native constraint expressions
+    // This will be enhanced in Phase 4 with full THIR type checking
+    
+    // Basic validation: check for obviously problematic expressions
+    let expr_string = format!("{}", expr);
+    
+    if expr_string.trim().is_empty() {
+        ctx.push_error(DatamodelError::new_validation_error(
+            "Empty constraint expression",
+            span.clone(),
+        ));
+        return;
+    }
+    
+    // Check for obviously invalid syntax patterns
+    if expr_string.contains("&&&&") || expr_string.contains("||||") {
+        ctx.push_error(DatamodelError::new_validation_error(
+            &format!("Invalid constraint expression syntax: {}", expr_string),
+            span.clone(),
+        ));
+        return;
+    }
+    
+    // TODO: In Phase 4, this will be replaced with full THIR type checking:
+    // - Convert AST expression to HIR expression
+    // - Use typecheck_constraint_expression with proper 'this' context
+    // - Validate that the expression returns boolean
+    // - Check that referenced fields exist and have correct types
+    
+    log::debug!("Native constraint expression validated: {} on field type {:?}", expr_string, field_type);
+}
+
 fn validate_type_constraints(ctx: &mut Context<'_>, field_type: &FieldType) {
     let constraint_attrs = field_type
         .attributes()
@@ -140,6 +178,7 @@ fn validate_type_constraints(ctx: &mut Context<'_>, field_type: &FieldType) {
             .collect::<Vec<_>>();
 
         match arg_expressions.as_slice() {
+            // Named constraint with Jinja expression
             [Expression::Identifier(Identifier::Local(s, _)), Expression::JinjaExpressionValue(expr, span)] =>
             {
                 let mut defined_types = internal_baml_jinja_types::PredefinedTypes::default(
@@ -187,6 +226,12 @@ fn validate_type_constraints(ctx: &mut Context<'_>, field_type: &FieldType) {
                     }
                 }
             }
+            // Named constraint with native BAML expression
+            [Expression::Identifier(Identifier::Local(_s, _)), Expression::ConstraintExpressionValue(expr, span)] =>
+            {
+                validate_native_constraint_expression(ctx, expr, span, field_type);
+            }
+            // Unnamed constraint with Jinja expression  
             [Expression::JinjaExpressionValue(expr, span)] => {
                 let mut defined_types = internal_baml_jinja_types::PredefinedTypes::default(
                     internal_baml_jinja_types::JinjaContext::Parsing,
@@ -243,13 +288,30 @@ Check constraints must have a valid identifier. e.g.:
                     ))
                 }
             }
+            // Unnamed constraint with native BAML expression
+            [Expression::ConstraintExpressionValue(expr, span)] => {
+                validate_native_constraint_expression(ctx, expr, span, field_type);
+
+                if name.to_string() == "check" {
+                    ctx.push_error(DatamodelError::new_validation_error(
+                        r#"
+Check constraints must have a valid identifier. e.g.:
+@check( valid_name_length, this > 0 )
+                        "#,
+                        span.clone(),
+                    ))
+                }
+            }
             _ => {
                 ctx.push_error(DatamodelError::new_validation_error(
                     r#"
-A check or assert has an optional identifier and a Jinja argument. e.g.:
+A check or assert has an optional identifier and a Jinja or native BAML expression. e.g.:
 @check( valid_name_length, {{ this|length > 0 }} )
+@check( valid_name_length, this > 0 )
 @assert( {{ this|length > 0 }} )
+@assert( this > 0 )
 @assert( valid_name_length, {{ this|length > 0 }} )
+@assert( valid_name_length, this > 0 )
                         "#,
                     span.clone(),
                 ));

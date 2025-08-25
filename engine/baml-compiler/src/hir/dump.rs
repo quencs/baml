@@ -436,6 +436,7 @@ impl Expression {
                 doc
             }
             Expression::JinjaExpressionValue(val, _) => RcDoc::text(val.clone()),
+            Expression::ConstraintExpressionValue(expr, _) => expr.to_doc(),
             Expression::Call {
                 function,
                 type_args,

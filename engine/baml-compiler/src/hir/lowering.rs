@@ -569,9 +569,8 @@ impl Expression {
                 Expression::JinjaExpressionValue(jinja.to_string(), span.clone())
             }
             ast::Expression::ConstraintExpressionValue(expr, span) => {
-                // For now, convert constraint expressions to their string representation
-                // This will be improved in later phases when we add proper constraint evaluation
-                Expression::JinjaExpressionValue(format!("{}", expr), span.clone())
+                // Convert native BAML constraint expressions to HIR ConstraintExpressionValue
+                Expression::ConstraintExpressionValue(Box::new(Self::from_ast(expr)), span.clone())
             }
             ast::Expression::BinaryOperation {
                 left,

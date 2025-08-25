@@ -1,3 +1,4 @@
+pub mod baml_helpers;
 pub mod builtin;
 pub mod ir_hasher;
 pub mod ir_helpers;
