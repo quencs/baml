@@ -110,6 +110,8 @@ pub enum Expression {
     Map(Vec<(Expression, Expression)>, Span),
     /// A JinjaExpression. e.g. "this|length > 5".
     JinjaExpressionValue(JinjaExpression, Span),
+    /// A native BAML expression for constraints
+    ConstraintExpressionValue(Box<Expression>, Span),
     /// Function abstraction.
     Lambda(ArgumentsList, Box<ExpressionBlock>, Span),
     /// Function Application
@@ -244,6 +246,7 @@ impl fmt::Display for Expression {
                 write!(f, "{}", crate::string_literal(val.value()))
             }
             Expression::JinjaExpressionValue(val, ..) => fmt::Display::fmt(val, f),
+            Expression::ConstraintExpressionValue(val, ..) => fmt::Display::fmt(val, f),
             Expression::Array(vals, _) => {
                 let vals = vals
                     .iter()
@@ -435,6 +438,7 @@ impl Expression {
             Self::StringValue(_, span) => span,
             Self::RawStringValue(r) => r.span(),
             Self::JinjaExpressionValue(_, span) => span,
+            Self::ConstraintExpressionValue(_, span) => span,
             Self::Identifier(id) => id.span(),
             Self::Map(_, span) => span,
             Self::Array(_, span) => span,
@@ -464,6 +468,7 @@ impl Expression {
             Expression::StringValue(_, _) => "string",
             Expression::RawStringValue(_) => "raw_string",
             Expression::JinjaExpressionValue(_, _) => "jinja_expression",
+            Expression::ConstraintExpressionValue(_, _) => "constraint_expression",
             Expression::Identifier(id) => match id {
                 Identifier::String(_, _) => "string",
                 Identifier::Local(_, _) => "local_type",
@@ -521,6 +526,12 @@ impl Expression {
             (RawStringValue(_), _) => panic!("Types do not match: {self:?} and {other:?}"),
             (JinjaExpressionValue(j1, _), JinjaExpressionValue(j2, _)) => assert_eq!(j1, j2),
             (JinjaExpressionValue(_, _), _) => {
+                panic!("Types do not match: {self:?} and {other:?}")
+            }
+            (ConstraintExpressionValue(e1, _), ConstraintExpressionValue(e2, _)) => {
+                e1.assert_eq_up_to_span(e2)
+            }
+            (ConstraintExpressionValue(_, _), _) => {
                 panic!("Types do not match: {self:?} and {other:?}")
             }
             (Array(xs, _), Array(ys, _)) => {
@@ -718,6 +729,7 @@ impl Expression {
                     span.clone(),
                 ))
             }
+            Expression::ConstraintExpressionValue(_, _) => None, // Constraint expressions don't convert to unresolved values
             Expression::ClassConstructor(cc, span) => {
                 let fields = cc
                     .fields

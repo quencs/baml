@@ -361,6 +361,14 @@ impl WithRepr<Expr<ExprMetadata>> for ast::Expression {
             ast::Expression::JinjaExpressionValue(val, span) => Ok(Expr::Atom(
                 BamlValueWithMeta::String(val.to_string(), (span.clone(), Some(TypeIR::string()))),
             )),
+            ast::Expression::ConstraintExpressionValue(expr, span) => {
+                // For now, convert constraint expressions to strings
+                // This will be improved in later phases
+                Ok(Expr::Atom(BamlValueWithMeta::String(
+                    format!("{}", expr), 
+                    (span.clone(), Some(TypeIR::string()))
+                )))
+            }
             ast::Expression::Array(vals, span) => {
                 let new_items = vals
                     .iter()
@@ -1531,7 +1539,7 @@ impl WithRepr<TypeIR> for ast::FieldType {
                 }?;
                 Some(Constraint {
                     level,
-                    expression,
+                    expression: baml_types::ConstraintExpression::Jinja(expression),
                     label,
                 })
             })

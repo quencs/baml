@@ -524,7 +524,15 @@ pub fn apply_constraints(
             .filter_map(|(maybe_check, result)| {
                 maybe_check
                     .as_check()
-                    .map(|(label, expr)| (label, expr, result))
+                    .map(|(label, expr)| {
+                        let jinja_expr = match expr {
+                            baml_types::ConstraintExpression::Jinja(jinja) => jinja,
+                            baml_types::ConstraintExpression::Native(native) => {
+                                baml_types::JinjaExpression(native)
+                            }
+                        };
+                        (label, jinja_expr, result)
+                    })
             })
             .collect();
         value.add_flag(Flag::ConstraintResults(check_results));

@@ -305,7 +305,16 @@ pub fn run_user_checks(baml_value: &BamlValue, type_: &TypeIR) -> Result<Vec<(Co
         .constraints
         .iter()
         .map(|constraint| {
-            let result = evaluate_predicate(baml_value, &constraint.expression)?;
+            let result = match &constraint.expression {
+                baml_types::ConstraintExpression::Jinja(jinja_expr) => {
+                    evaluate_predicate(baml_value, jinja_expr)?
+                }
+                baml_types::ConstraintExpression::Native(_native_expr) => {
+                    // TODO: Native constraint evaluation will be implemented in Phase 2
+                    // For now, assume native constraints always pass
+                    true
+                }
+            };
             Ok((constraint.clone(), result))
         })
         .collect::<Result<Vec<_>>>();

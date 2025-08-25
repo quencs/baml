@@ -2,7 +2,7 @@ use core::result::Result;
 use std::path::PathBuf;
 
 use baml_types::{
-    BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel,
+    BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta, Constraint, ConstraintExpression, ConstraintLevel,
     LiteralValue, TypeIR, TypeValue,
 };
 
@@ -375,7 +375,11 @@ impl ArgCoercer {
             Some(Constraint {
                 label, expression, ..
             }) => {
-                let msg = label.as_ref().unwrap_or(&expression.0);
+                let expression_str = match expression {
+                    ConstraintExpression::Jinja(jinja) => jinja.0.clone(),
+                    ConstraintExpression::Native(native) => native.clone(),
+                };
+                let msg = label.as_ref().map(|s| s.as_str()).unwrap_or(&expression_str);
                 scope.push_error(format!("Failed assert: {msg}"));
                 Err(ArgCoerceError)
             }
@@ -401,9 +405,18 @@ fn first_failing_assert_nested<'a>(
                 .filter_map(|c| {
                     let constraint = c.clone();
                     let baml_value: BamlValue = value_node.into();
-                    let result = evaluate_predicate(&baml_value, &c.expression).map_err(|e| {
-                        anyhow::anyhow!(format!("Error evaluating constraint: {:?}", e))
-                    });
+                    let result = match &c.expression {
+                        ConstraintExpression::Jinja(jinja_expr) => {
+                            evaluate_predicate(&baml_value, jinja_expr).map_err(|e| {
+                                anyhow::anyhow!(format!("Error evaluating constraint: {:?}", e))
+                            })
+                        }
+                        ConstraintExpression::Native(_native_expr) => {
+                            // TODO: Native constraint evaluation will be implemented in Phase 2
+                            // For now, skip native constraints
+                            return None;
+                        }
+                    };
                     match result {
                         Ok(false) => {
                             if c.level == ConstraintLevel::Assert {
@@ -457,7 +470,7 @@ mod tests {
             TypeMeta {
                 constraints: vec![Constraint {
                     level: ConstraintLevel::Assert,
-                    expression: JinjaExpression("this.length() > 0".to_string()),
+                    expression: ConstraintExpression::Jinja(JinjaExpression("this.length() > 0".to_string())),
                     label: Some("foo".to_string()),
                 }],
                 streaming_behavior: StreamingBehavior::default(),

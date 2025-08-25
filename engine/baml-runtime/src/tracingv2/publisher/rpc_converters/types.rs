@@ -255,6 +255,19 @@ impl<'a> IntoRpcEvent<'a, baml_rpc::Expression> for baml_types::JinjaExpression 
     }
 }
 
+impl<'a> IntoRpcEvent<'a, baml_rpc::Expression> for baml_types::ConstraintExpression {
+    fn to_rpc_event(&'a self, lookup: &(impl IRRpcState + ?Sized)) -> baml_rpc::Expression {
+        match self {
+            baml_types::ConstraintExpression::Jinja(jinja) => jinja.to_rpc_event(lookup),
+            baml_types::ConstraintExpression::Native(native) => {
+                // For now, convert native expressions to Jinja for RPC
+                // TODO: Add proper native expression RPC type in Phase 2
+                baml_rpc::Expression::Jinja(native.clone())
+            }
+        }
+    }
+}
+
 impl<'a> IntoRpcEvent<'a, baml_rpc::runtime_api::Media<'a>> for baml_types::BamlMedia {
     fn to_rpc_event(
         &'a self,

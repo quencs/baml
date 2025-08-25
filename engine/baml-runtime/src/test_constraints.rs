@@ -152,7 +152,16 @@ fn step_constraints(
     )
     .collect();
 
-    let constraint_result_str = render_expression(&constraint.expression, &ctx);
+    let constraint_result_str = match &constraint.expression {
+        baml_types::ConstraintExpression::Jinja(jinja_expr) => {
+            render_expression(jinja_expr, &ctx)
+        }
+        baml_types::ConstraintExpression::Native(native_expr) => {
+            // TODO: Native expression rendering will be implemented in Phase 2
+            // For now, just return the string representation
+            Ok(native_expr.clone())
+        }
+    };
     let bool_result_or_internal_error: Result<bool, String> =
         match constraint_result_str.as_ref().map(|s| s.as_str()) {
             Ok("true") => Ok(true),

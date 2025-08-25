@@ -553,6 +553,7 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
         | Expression::RawStringValue(..)
         | Expression::NumericValue(..)
         | Expression::JinjaExpressionValue(..)
+        | Expression::ConstraintExpressionValue(..)
         | Expression::Identifier(..)
         | Expression::App(..)
         | Expression::MethodCall { .. }

@@ -4,7 +4,7 @@
 
 use baml_types::{
     type_meta::{self, base::StreamingBehavior},
-    Constraint, ConstraintLevel, TypeIR, TypeValue,
+    Constraint, ConstraintExpression, ConstraintLevel, TypeIR, TypeValue,
 };
 use internal_baml_ast::ast::{self, App, AssertStmt, Attribute, ReturnStmt, WithName, WithSpan};
 
@@ -81,13 +81,21 @@ pub fn type_ir_from_ast(type_: &ast::FieldType) -> TypeIR {
                     .collect();
 
                 let (label, expression) = match arguments.as_slice() {
-                    // Single argument: just the expression
+                    // Single argument: just the jinja expression
                     [ast::Expression::JinjaExpressionValue(jinja_expr, _)] => {
-                        (None, Some(jinja_expr.clone()))
+                        (None, Some(ConstraintExpression::Jinja(jinja_expr.clone())))
                     }
-                    // Two arguments: label and expression
+                    // Two arguments: label and jinja expression
                     [ast::Expression::Identifier(label_id), ast::Expression::JinjaExpressionValue(jinja_expr, _)] => {
-                        (Some(label_id.to_string()), Some(jinja_expr.clone()))
+                        (Some(label_id.to_string()), Some(ConstraintExpression::Jinja(jinja_expr.clone())))
+                    }
+                    // Single argument: native constraint expression
+                    [ast::Expression::ConstraintExpressionValue(expr, _)] => {
+                        (None, Some(ConstraintExpression::Native(format!("{}", expr))))
+                    }
+                    // Two arguments: label and native constraint expression
+                    [ast::Expression::Identifier(label_id), ast::Expression::ConstraintExpressionValue(expr, _)] => {
+                        (Some(label_id.to_string()), Some(ConstraintExpression::Native(format!("{}", expr))))
                     }
                     _ => {
                         // Skip invalid constraint formats
@@ -559,6 +567,11 @@ impl Expression {
             }
             ast::Expression::JinjaExpressionValue(jinja, span) => {
                 Expression::JinjaExpressionValue(jinja.to_string(), span.clone())
+            }
+            ast::Expression::ConstraintExpressionValue(expr, span) => {
+                // For now, convert constraint expressions to their string representation
+                // This will be improved in later phases when we add proper constraint evaluation
+                Expression::JinjaExpressionValue(format!("{}", expr), span.clone())
             }
             ast::Expression::BinaryOperation {
                 left,

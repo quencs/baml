@@ -3,8 +3,16 @@ use crate::JinjaExpression;
 #[derive(Clone, Debug, serde::Serialize, PartialEq, Eq, Hash)]
 pub struct Constraint {
     pub level: ConstraintLevel,
-    pub expression: JinjaExpression,
+    pub expression: ConstraintExpression,
     pub label: Option<String>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq, Hash)]
+pub enum ConstraintExpression {
+    Jinja(JinjaExpression),
+    // For now, we'll just store native expressions as a placeholder
+    // The actual parsing logic will handle converting from AST variants
+    Native(String), // We'll store the string representation for now
 }
 
 impl Constraint {
@@ -12,7 +20,7 @@ impl Constraint {
         Self {
             label: Some(label.to_string()),
             level: ConstraintLevel::Check,
-            expression: JinjaExpression(expr.to_string()),
+            expression: ConstraintExpression::Jinja(JinjaExpression(expr.to_string())),
         }
     }
 
@@ -20,11 +28,11 @@ impl Constraint {
         Self {
             label: Some(label.to_string()),
             level: ConstraintLevel::Assert,
-            expression: JinjaExpression(expr.to_string()),
+            expression: ConstraintExpression::Jinja(JinjaExpression(expr.to_string())),
         }
     }
 
-    pub fn as_check(self) -> Option<(String, JinjaExpression)> {
+    pub fn as_check(self) -> Option<(String, ConstraintExpression)> {
         match self.level {
             ConstraintLevel::Check => Some((
                 self.label
@@ -72,9 +80,13 @@ impl ResponseCheck {
                 } else {
                     "failed".to_string()
                 };
+                let expr_string = match expression {
+                    ConstraintExpression::Jinja(jinja) => jinja.0,
+                    ConstraintExpression::Native(native) => native,
+                };
                 Some(ResponseCheck {
                     name: label,
-                    expression: expression.0,
+                    expression: expr_string,
                     status,
                 })
             }

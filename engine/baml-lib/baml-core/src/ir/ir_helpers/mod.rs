@@ -1601,7 +1601,7 @@ mod subtype_tests {
         let mut y = TypeIR::class("Foo");
         y.set_meta(TypeMeta {
             constraints: vec![Constraint {
-                expression: baml_types::JinjaExpression("this is a test".to_string()),
+                expression: baml_types::ConstraintExpression::Jinja(baml_types::JinjaExpression("this is a test".to_string())),
                 label: Some("test".to_string()),
                 level: ConstraintLevel::Check,
             }],

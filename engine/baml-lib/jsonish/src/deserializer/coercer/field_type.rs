@@ -63,7 +63,15 @@ impl TypeCoercer for TypeIR {
                         maybe_check
                             .clone()
                             .as_check()
-                            .map(|(label, expr)| (label, expr, *result))
+                            .map(|(label, expr)| {
+                                let jinja_expr = match expr {
+                                    baml_types::ConstraintExpression::Jinja(jinja) => jinja,
+                                    baml_types::ConstraintExpression::Native(native) => {
+                                        baml_types::JinjaExpression(native)
+                                    }
+                                };
+                                (label, jinja_expr, *result)
+                            })
                     })
                     .collect::<Vec<_>>();
 
@@ -193,7 +201,15 @@ impl TypeCoercer for TypeIR {
                     .filter_map(|(maybe_check, result)| {
                         maybe_check
                             .as_check()
-                            .map(|(label, expr)| (label, expr, result))
+                            .map(|(label, expr)| {
+                                let jinja_expr = match expr {
+                                    baml_types::ConstraintExpression::Jinja(jinja) => jinja,
+                                    baml_types::ConstraintExpression::Native(native) => {
+                                        baml_types::JinjaExpression(native)
+                                    }
+                                };
+                                (label, jinja_expr, result)
+                            })
                     })
                     .collect();
                 coerced_value.add_flag(Flag::ConstraintResults(check_results));
@@ -244,7 +260,10 @@ pub fn validate_asserts(constraints: &[(Constraint, bool)]) -> Result<(), Parsin
             reason: format!(
                 "Failed: {}{}",
                 label.as_ref().map_or("".to_string(), |l| format!("{l} ")),
-                expr.0
+                match expr {
+                    baml_types::ConstraintExpression::Jinja(jinja) => &jinja.0,
+                    baml_types::ConstraintExpression::Native(native) => native,
+                }
             ),
             scope: vec![],
         })

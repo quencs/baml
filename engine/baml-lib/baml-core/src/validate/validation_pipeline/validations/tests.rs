@@ -63,7 +63,11 @@ pub(super) fn validate(ctx: &mut Context<'_>) {
             if let (ConstraintLevel::Check, Some(check_name)) = (level, label) {
                 check_names.push(check_name.to_string());
             }
-            match validate_expression(expression.0.as_str(), &mut defined_types) {
+            let expression_str = match expression {
+                baml_types::ConstraintExpression::Jinja(jinja) => jinja.0.as_str(),
+                baml_types::ConstraintExpression::Native(native) => native.as_str(),
+            };
+            match validate_expression(expression_str, &mut defined_types) {
                 Ok(_) => {}
                 Err(e) => {
                     if let Some(e) = e.parsing_errors {

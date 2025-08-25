@@ -1,4 +1,4 @@
-use baml_types::{Constraint, ConstraintLevel};
+use baml_types::{Constraint, ConstraintLevel, ConstraintExpression};
 use internal_baml_ast::ast::{Argument, Attribute, Expression};
 use internal_baml_diagnostics::{DatamodelError, Span};
 
@@ -37,12 +37,29 @@ pub fn attribute_as_constraint(
                     span.clone(),
                 ));
             }
-            (None, expression.clone(), expr_span.clone())
+            (None, ConstraintExpression::Jinja(expression.clone()), expr_span.clone())
         }
         [Expression::Identifier(label), Expression::JinjaExpressionValue(expression, expr_span)] => {
             (
                 Some(label.to_string()),
-                expression.clone(),
+                ConstraintExpression::Jinja(expression.clone()),
+                expr_span.clone(),
+            )
+        }
+        [Expression::ConstraintExpressionValue(expr, expr_span)] => {
+            if level == ConstraintLevel::Check {
+                datamodel_errors.push(DatamodelError::new_attribute_validation_error(
+                    "Checks must specify a label.",
+                    attribute_name.as_str(),
+                    span.clone(),
+                ));
+            }
+            (None, ConstraintExpression::Native(format!("{}", expr)), expr_span.clone())
+        }
+        [Expression::Identifier(label), Expression::ConstraintExpressionValue(expr, expr_span)] => {
+            (
+                Some(label.to_string()),
+                ConstraintExpression::Native(format!("{}", expr)),
                 expr_span.clone(),
             )
         }
@@ -99,10 +116,23 @@ pub(super) fn visit_constraint_attributes(
                     span,
                 ));
             }
-            (None, expression.clone())
+            (None, ConstraintExpression::Jinja(expression.clone()))
         }
         [Expression::Identifier(label), Expression::JinjaExpressionValue(expression, _)] => {
-            (Some(label.to_string()), expression.clone())
+            (Some(label.to_string()), ConstraintExpression::Jinja(expression.clone()))
+        }
+        [Expression::ConstraintExpressionValue(expr, _)] => {
+            if level == ConstraintLevel::Check {
+                ctx.push_error(DatamodelError::new_attribute_validation_error(
+                    "Checks must specify a label.",
+                    attribute_name.as_str(),
+                    span,
+                ));
+            }
+            (None, ConstraintExpression::Native(format!("{}", expr)))
+        }
+        [Expression::Identifier(label), Expression::ConstraintExpressionValue(expr, _)] => {
+            (Some(label.to_string()), ConstraintExpression::Native(format!("{}", expr)))
         }
         _ => {
             ctx.push_error(
