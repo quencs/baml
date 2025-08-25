@@ -32,10 +32,7 @@ async fn mock_llm_function(
 async fn test_constraint_boolean_expressions() {
     let thir = empty_thir();
     let mut context = baml_types::BamlMap::new();
-    context.insert(
-        "this".to_string(),
-        BamlValueWithMeta::Bool(true, meta()),
-    );
+    context.insert("this".to_string(), BamlValueWithMeta::Bool(true, meta()));
 
     // Test: this == true
     let expr = Expr::BinaryOperation {
@@ -60,7 +57,7 @@ async fn test_constraint_boolean_expressions() {
 async fn test_constraint_complex_equality_expressions() {
     let thir = empty_thir();
     let mut context = baml_types::BamlMap::new();
-    
+
     // Test list equality: [1, 2, 3] == [1, 2, 3]
     context.insert(
         "this".to_string(),
@@ -134,7 +131,11 @@ async fn test_constraint_complex_equality_expressions() {
     let expr3 = Expr::BinaryOperation {
         left: Arc::new(Expr::Var("this".to_string(), meta())),
         operator: crate::hir::BinaryOperator::Eq,
-        right: Arc::new(Expr::Value(BamlValueWithMeta::Enum("Color".to_string(), "RED".to_string(), meta()))),
+        right: Arc::new(Expr::Value(BamlValueWithMeta::Enum(
+            "Color".to_string(),
+            "RED".to_string(),
+            meta(),
+        ))),
         meta: meta(),
     };
 
@@ -149,11 +150,17 @@ async fn test_constraint_complex_equality_expressions() {
 
     // Test class equality: Person{name: "John", age: 25} == Person{name: "John", age: 25}
     let mut class_fields1 = baml_types::BamlMap::new();
-    class_fields1.insert("name".to_string(), BamlValueWithMeta::String("John".to_string(), meta()));
+    class_fields1.insert(
+        "name".to_string(),
+        BamlValueWithMeta::String("John".to_string(), meta()),
+    );
     class_fields1.insert("age".to_string(), BamlValueWithMeta::Int(25, meta()));
 
     let mut class_fields2 = baml_types::BamlMap::new();
-    class_fields2.insert("name".to_string(), BamlValueWithMeta::String("John".to_string(), meta()));
+    class_fields2.insert(
+        "name".to_string(),
+        BamlValueWithMeta::String("John".to_string(), meta()),
+    );
     class_fields2.insert("age".to_string(), BamlValueWithMeta::Int(25, meta()));
 
     context.clear();
@@ -165,7 +172,11 @@ async fn test_constraint_complex_equality_expressions() {
     let expr4 = Expr::BinaryOperation {
         left: Arc::new(Expr::Var("this".to_string(), meta())),
         operator: crate::hir::BinaryOperator::Eq,
-        right: Arc::new(Expr::Value(BamlValueWithMeta::Class("Person".to_string(), class_fields2, meta()))),
+        right: Arc::new(Expr::Value(BamlValueWithMeta::Class(
+            "Person".to_string(),
+            class_fields2,
+            meta(),
+        ))),
         meta: meta(),
     };
 

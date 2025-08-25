@@ -954,6 +954,53 @@ where
                     )?);
                 }
 
+                // First, try user-defined methods for class instances
+                if let BamlValueWithMeta::Class(class_name, _, _) = &receiver_val {
+                    if let Some(class_def) = thir.classes.get(class_name) {
+                        if let Some(method_def) =
+                            class_def.methods.iter().find(|m| m.name == method_name)
+                        {
+                            // Check arity (excluding implicit self parameter)
+                            if method_def.parameters.len() != args.len() + 1 {
+                                bail!(
+                                    "method arity mismatch: expected {} args (excluding self), got {} at {:?}",
+                                    method_def.parameters.len() - 1,
+                                    args.len(),
+                                    meta.0
+                                );
+                            }
+
+                            // Create a scope binding parameters to their argument values
+                            // The first parameter is always 'self', bound to the receiver
+                            let mut param_bindings = BamlMap::new();
+                            param_bindings.insert(
+                                method_def.parameters[0].name.clone(),
+                                RefCell::new(receiver_val.clone()),
+                            );
+
+                            // Bind remaining parameters to arguments
+                            for (param, arg_val) in
+                                method_def.parameters[1..].iter().zip(arg_vals.iter())
+                            {
+                                param_bindings
+                                    .insert(param.name.clone(), RefCell::new(arg_val.clone()));
+                            }
+
+                            scopes.push(Scope {
+                                variables: param_bindings,
+                            });
+
+                            // Execute the method body
+                            let result =
+                                evaluate_block(&method_def.body, scopes, thir, run_llm_function)
+                                    .await?;
+                            scopes.pop();
+                            return Ok(EvalValue::Value(result));
+                        }
+                    }
+                }
+
+                // Fall back to built-in methods
                 let result = evaluate_method_call(&receiver_val, &method_name, &arg_vals, meta)?;
                 EvalValue::Value(result)
             }
@@ -1190,7 +1237,7 @@ fn values_equal(
         (BamlValueWithMeta::String(a, _), BamlValueWithMeta::String(b, _)) => a == b,
         (BamlValueWithMeta::Bool(a, _), BamlValueWithMeta::Bool(b, _)) => a == b,
         (BamlValueWithMeta::Null(_), BamlValueWithMeta::Null(_)) => true,
-        
+
         // Map equality: same keys with equal values
         (BamlValueWithMeta::Map(a, _), BamlValueWithMeta::Map(b, _)) => {
             if a.len() != b.len() {
@@ -1208,7 +1255,7 @@ fn values_equal(
             }
             true
         }
-        
+
         // List equality: same length with equal elements in order
         (BamlValueWithMeta::List(a, _), BamlValueWithMeta::List(b, _)) => {
             if a.len() != b.len() {
@@ -1221,14 +1268,18 @@ fn values_equal(
             }
             true
         }
-        
+
         // Enum equality: same enum name and value
-        (BamlValueWithMeta::Enum(a_name, a_value, _), BamlValueWithMeta::Enum(b_name, b_value, _)) => {
-            a_name == b_name && a_value == b_value
-        }
-        
+        (
+            BamlValueWithMeta::Enum(a_name, a_value, _),
+            BamlValueWithMeta::Enum(b_name, b_value, _),
+        ) => a_name == b_name && a_value == b_value,
+
         // Class equality: same class name with equal field values
-        (BamlValueWithMeta::Class(a_name, a_fields, _), BamlValueWithMeta::Class(b_name, b_fields, _)) => {
+        (
+            BamlValueWithMeta::Class(a_name, a_fields, _),
+            BamlValueWithMeta::Class(b_name, b_fields, _),
+        ) => {
             if a_name != b_name || a_fields.len() != b_fields.len() {
                 return false;
             }
@@ -1244,12 +1295,12 @@ fn values_equal(
             }
             true
         }
-        
+
         // Media equality: compare media type and content
         (BamlValueWithMeta::Media(a, _), BamlValueWithMeta::Media(b, _)) => {
             a.media_type == b.media_type && a.content == b.content
         }
-        
+
         _ => false,
     }
 }
@@ -1539,6 +1590,181 @@ mod tests {
             super::interpret_thir(thir, method_call, mock_llm_function, BamlMap::new()).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("unknown method"));
+    }
+
+    #[tokio::test]
+    async fn test_user_defined_method() {
+        use baml_types::ir_type::TypeIR;
+
+        use crate::{
+            hir::Field,
+            thir::{Block, Class, ExprFunction, Parameter},
+        };
+
+        // Test user-defined method on a class
+        // Define a simple class with a method
+        // class Person {
+        //   name: string
+        //   age: int
+        //
+        //   fn greet(self) -> string {
+        //     "Hello, " + self.name
+        //   }
+        //
+        //   fn add_years(self, years: int) -> int {
+        //     self.age + years
+        //   }
+        // }
+
+        // Create greet method: "Hello, " + self.name
+        let greet_body = Block {
+            env: BamlMap::new(),
+            statements: vec![],
+            trailing_expr: Some(Expr::BinaryOperation {
+                left: Arc::new(Expr::Value(BamlValueWithMeta::String(
+                    "Hello, ".to_string(),
+                    meta(),
+                ))),
+                operator: crate::hir::BinaryOperator::Add,
+                right: Arc::new(Expr::FieldAccess {
+                    base: Arc::new(Expr::Var("self".to_string(), meta())),
+                    field: "name".to_string(),
+                    meta: meta(),
+                }),
+                meta: meta(),
+            }),
+            ty: Some(TypeIR::string()),
+            span: Span::fake(),
+        };
+
+        let greet_method = ExprFunction {
+            name: "greet".to_string(),
+            parameters: vec![Parameter {
+                name: "self".to_string(),
+                r#type: TypeIR::string(), // This would be the class type in reality
+                span: Span::fake(),
+            }],
+            return_type: TypeIR::string(),
+            body: greet_body,
+            span: Span::fake(),
+        };
+
+        // Create add_years method: self.age + years
+        let add_years_body = Block {
+            env: BamlMap::new(),
+            statements: vec![],
+            trailing_expr: Some(Expr::BinaryOperation {
+                left: Arc::new(Expr::FieldAccess {
+                    base: Arc::new(Expr::Var("self".to_string(), meta())),
+                    field: "age".to_string(),
+                    meta: meta(),
+                }),
+                operator: crate::hir::BinaryOperator::Add,
+                right: Arc::new(Expr::Var("years".to_string(), meta())),
+                meta: meta(),
+            }),
+            ty: Some(TypeIR::int()),
+            span: Span::fake(),
+        };
+
+        let add_years_method = ExprFunction {
+            name: "add_years".to_string(),
+            parameters: vec![
+                Parameter {
+                    name: "self".to_string(),
+                    r#type: TypeIR::string(), // This would be the class type in reality
+                    span: Span::fake(),
+                },
+                Parameter {
+                    name: "years".to_string(),
+                    r#type: TypeIR::int(),
+                    span: Span::fake(),
+                },
+            ],
+            return_type: TypeIR::int(),
+            body: add_years_body,
+            span: Span::fake(),
+        };
+
+        // Create the Person class
+        let person_class = Class {
+            name: "Person".to_string(),
+            fields: vec![
+                Field {
+                    name: "name".to_string(),
+                    r#type: TypeIR::string(),
+                    span: Span::fake(),
+                },
+                Field {
+                    name: "age".to_string(),
+                    r#type: TypeIR::int(),
+                    span: Span::fake(),
+                },
+            ],
+            methods: vec![greet_method, add_years_method],
+            span: Span::fake(),
+        };
+
+        let mut thir = empty_thir();
+        thir.classes.insert("Person".to_string(), person_class);
+
+        // Test 1: Create a person instance and call greet()
+        let person_instance = BamlValueWithMeta::Class(
+            "Person".to_string(),
+            BamlMap::from_iter(vec![
+                (
+                    "name".to_string(),
+                    BamlValueWithMeta::String("Alice".to_string(), meta()),
+                ),
+                ("age".to_string(), BamlValueWithMeta::Int(30, meta())),
+            ]),
+            meta(),
+        );
+
+        let greet_call = Expr::MethodCall {
+            receiver: Arc::new(Expr::Value(person_instance.clone())),
+            method: Arc::new(Expr::Var("greet".to_string(), meta())),
+            args: vec![],
+            meta: meta(),
+        };
+
+        let result =
+            super::interpret_thir(thir.clone(), greet_call, mock_llm_function, BamlMap::new())
+                .await
+                .unwrap();
+
+        match result {
+            BamlValueWithMeta::String(greeting, _) => {
+                assert_eq!(greeting, "Hello, Alice");
+            }
+            v => panic!("Expected string result for greet(), got {:?}", v),
+        }
+
+        // Test 2: Call add_years(5)
+        let add_years_call = Expr::MethodCall {
+            receiver: Arc::new(Expr::Value(person_instance)),
+            method: Arc::new(Expr::Var("add_years".to_string(), meta())),
+            args: vec![Expr::Value(BamlValueWithMeta::Int(5, meta()))],
+            meta: meta(),
+        };
+
+        let result = super::interpret_thir(
+            thir.clone(),
+            add_years_call,
+            mock_llm_function,
+            BamlMap::new(),
+        )
+        .await
+        .unwrap();
+
+        match result {
+            BamlValueWithMeta::Int(new_age, _) => {
+                assert_eq!(new_age, 35);
+            }
+            v => panic!("Expected int result for add_years(), got {:?}", v),
+        }
+
+        println!("✅ All user-defined method tests passed!");
     }
 
     #[tokio::test]

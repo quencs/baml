@@ -1620,7 +1620,7 @@ pub fn typecheck_expression(
         hir::Expression::ConstraintExpressionValue(expr, span) => {
             // Typecheck native constraint expressions
             let mut typed_expr = typecheck_expression(expr, context, diagnostics);
-            
+
             // Ensure expression evaluates to boolean
             let bool_type = TypeIR::bool();
             match &mut typed_expr.meta_mut().1 {
@@ -1636,7 +1636,7 @@ pub fn typecheck_expression(
                 }
                 cond @ None => *cond = Some(bool_type),
             }
-            
+
             typed_expr
         }
         // TODO: Typecheck operations.
@@ -1883,10 +1883,10 @@ pub fn typecheck_constraint_expression(
             mut_var_info: None, // 'this' is immutable in constraint context
         },
     );
-    
+
     // Typecheck expression with enhanced context
     let mut typed_expr = typecheck_expression(expr, &constraint_context, diagnostics);
-    
+
     // Ensure result is boolean
     let bool_type = TypeIR::bool();
     match &mut typed_expr.meta_mut().1 {
@@ -1902,7 +1902,7 @@ pub fn typecheck_constraint_expression(
         }
         cond @ None => *cond = Some(bool_type),
     }
-    
+
     typed_expr
 }
 
