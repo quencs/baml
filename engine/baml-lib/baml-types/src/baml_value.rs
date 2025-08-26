@@ -152,14 +152,12 @@ impl BamlValue {
                 }
             }
             BamlValue::Media(media) => format_media(media),
-            BamlValue::Enum(enum_name, variant) => {
-                RcDoc::text(format!("{}::{}", enum_name, variant))
-            }
+            BamlValue::Enum(enum_name, variant) => RcDoc::text(format!("{enum_name}::{variant}")),
             BamlValue::Class(class_name, fields) => {
                 if fields.is_empty() {
-                    RcDoc::text(format!("{} {{}}", class_name))
+                    RcDoc::text(format!("{class_name} {{}}"))
                 } else {
-                    RcDoc::text(format!("{} {{", class_name))
+                    RcDoc::text(format!("{class_name} {{"))
                         .append(RcDoc::softline())
                         .append(
                             RcDoc::intersperse(
@@ -952,13 +950,13 @@ impl<T> BamlValueWithMeta<T> {
             }
             BamlValueWithMeta::Media(media, _) => format_media(media),
             BamlValueWithMeta::Enum(enum_name, variant, _) => {
-                RcDoc::text(format!("{}::{}", enum_name, variant))
+                RcDoc::text(format!("{enum_name}::{variant}"))
             }
             BamlValueWithMeta::Class(class_name, fields, _) => {
                 if fields.is_empty() {
-                    RcDoc::text(format!("{} {{}}", class_name))
+                    RcDoc::text(format!("{class_name} {{}}"))
                 } else {
-                    RcDoc::text(format!("{} {{", class_name))
+                    RcDoc::text(format!("{class_name} {{"))
                         .append(RcDoc::softline())
                         .append(
                             RcDoc::intersperse(

@@ -45,7 +45,7 @@ pub fn parse_standalone_expression(
             Ok(expression)
         }
         Err(err) => {
-            panic!("BAMLParser failed: Handle this error: {:?}", err);
+            panic!("BAMLParser failed: Handle this error: {err:?}");
         }
     }
 }

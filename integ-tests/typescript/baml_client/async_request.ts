@@ -1013,6 +1013,31 @@ export class AsyncHttpRequest {
     }
   }
   
+  async ExtractName(
+      text: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+        "ExtractName",
+        {
+          "text": text
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   async ExtractNames(
       input: string,
       __baml_options__?: BamlCallOptions
@@ -1226,6 +1251,56 @@ export class AsyncHttpRequest {
         "FnEnumOutput",
         {
           "input": input
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async FnFailRetryConstantDelay(
+      retries: number,delay_ms: number,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+        "FnFailRetryConstantDelay",
+        {
+          "retries": retries,"delay_ms": delay_ms
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async FnFailRetryExponentialDelay(
+      retries: number,initial_delay_ms: number,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+        "FnFailRetryExponentialDelay",
+        {
+          "retries": retries,"initial_delay_ms": initial_delay_ms
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -3051,6 +3126,31 @@ export class AsyncHttpRequest {
         "TellStory",
         {
           "story": story
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async TestAbortFallbackChain(
+      input: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+        "TestAbortFallbackChain",
+        {
+          "input": input
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -6394,6 +6494,31 @@ export class AsyncHttpStreamRequest {
     }
   }
   
+  async ExtractName(
+      text: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+        "ExtractName",
+        {
+          "text": text
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   async ExtractNames(
       input: string,
       __baml_options__?: BamlCallOptions
@@ -6607,6 +6732,56 @@ export class AsyncHttpStreamRequest {
         "FnEnumOutput",
         {
           "input": input
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async FnFailRetryConstantDelay(
+      retries: number,delay_ms: number,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+        "FnFailRetryConstantDelay",
+        {
+          "retries": retries,"delay_ms": delay_ms
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async FnFailRetryExponentialDelay(
+      retries: number,initial_delay_ms: number,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+        "FnFailRetryExponentialDelay",
+        {
+          "retries": retries,"initial_delay_ms": initial_delay_ms
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -8432,6 +8607,31 @@ export class AsyncHttpStreamRequest {
         "TellStory",
         {
           "story": story
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async TestAbortFallbackChain(
+      input: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+        "TestAbortFallbackChain",
+        {
+          "input": input
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

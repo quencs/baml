@@ -634,6 +634,20 @@ class BamlSyncClient:
                 "text": text,
             })
             return typing.cast(typing.List[typing.Union[types.Hobby, str]], result.cast_to(types, types, stream_types, False, __runtime__))
+    def ExtractName(self, text: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            stream = self.stream.ExtractName(text=text,
+                baml_options=baml_options)
+            return stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = self.__options.merge_options(baml_options).call_function_sync(function_name="ExtractName", args={
+                "text": text,
+            })
+            return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
     def ExtractNames(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> typing.List[str]:
@@ -760,6 +774,34 @@ class BamlSyncClient:
                 "input": input,
             })
             return typing.cast(types.EnumOutput, result.cast_to(types, types, stream_types, False, __runtime__))
+    def FnFailRetryConstantDelay(self, retries: int,delay_ms: int,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            stream = self.stream.FnFailRetryConstantDelay(retries=retries,delay_ms=delay_ms,
+                baml_options=baml_options)
+            return stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = self.__options.merge_options(baml_options).call_function_sync(function_name="FnFailRetryConstantDelay", args={
+                "retries": retries,"delay_ms": delay_ms,
+            })
+            return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
+    def FnFailRetryExponentialDelay(self, retries: int,initial_delay_ms: int,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            stream = self.stream.FnFailRetryExponentialDelay(retries=retries,initial_delay_ms=initial_delay_ms,
+                baml_options=baml_options)
+            return stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = self.__options.merge_options(baml_options).call_function_sync(function_name="FnFailRetryExponentialDelay", args={
+                "retries": retries,"initial_delay_ms": initial_delay_ms,
+            })
+            return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
     def FnLiteralClassInputOutput(self, input: types.LiteralClassHello,
         baml_options: BamlCallOptions = {},
     ) -> types.LiteralClassHello:
@@ -1780,6 +1822,20 @@ class BamlSyncClient:
             # Original non-streaming code
             result = self.__options.merge_options(baml_options).call_function_sync(function_name="TellStory", args={
                 "story": story,
+            })
+            return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
+    def TestAbortFallbackChain(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            stream = self.stream.TestAbortFallbackChain(input=input,
+                baml_options=baml_options)
+            return stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = self.__options.merge_options(baml_options).call_function_sync(function_name="TestAbortFallbackChain", args={
+                "input": input,
             })
             return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
     def TestAnthropic(self, input: str,
@@ -3799,6 +3855,18 @@ class BamlStreamClient:
           lambda x: typing.cast(typing.List[typing.Union[types.Hobby, str]], x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
+    def ExtractName(self, text: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="ExtractName", args={
+            "text": text,
+        })
+        return baml_py.BamlSyncStream[str, str](
+          result,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     def ExtractNames(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[typing.List[str], typing.List[str]]:
@@ -3905,6 +3973,30 @@ class BamlStreamClient:
           result,
           lambda x: typing.cast(types.EnumOutput, x.cast_to(types, types, stream_types, True, __runtime__)),
           lambda x: typing.cast(types.EnumOutput, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def FnFailRetryConstantDelay(self, retries: int,delay_ms: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="FnFailRetryConstantDelay", args={
+            "retries": retries,"delay_ms": delay_ms,
+        })
+        return baml_py.BamlSyncStream[str, str](
+          result,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def FnFailRetryExponentialDelay(self, retries: int,initial_delay_ms: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="FnFailRetryExponentialDelay", args={
+            "retries": retries,"initial_delay_ms": initial_delay_ms,
+        })
+        return baml_py.BamlSyncStream[str, str](
+          result,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
     def FnLiteralClassInputOutput(self, input: types.LiteralClassHello,
@@ -4776,6 +4868,18 @@ class BamlStreamClient:
     ) -> baml_py.BamlSyncStream[str, str]:
         ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="TellStory", args={
             "story": story,
+        })
+        return baml_py.BamlSyncStream[str, str](
+          result,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def TestAbortFallbackChain(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="TestAbortFallbackChain", args={
+            "input": input,
         })
         return baml_py.BamlSyncStream[str, str](
           result,
@@ -6384,6 +6488,13 @@ class BamlHttpRequestClient:
             "text": text,
         }, mode="request")
         return result
+    def ExtractName(self, text: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="ExtractName", args={
+            "text": text,
+        }, mode="request")
+        return result
     def ExtractNames(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -6445,6 +6556,20 @@ class BamlHttpRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="FnEnumOutput", args={
             "input": input,
+        }, mode="request")
+        return result
+    def FnFailRetryConstantDelay(self, retries: int,delay_ms: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="FnFailRetryConstantDelay", args={
+            "retries": retries,"delay_ms": delay_ms,
+        }, mode="request")
+        return result
+    def FnFailRetryExponentialDelay(self, retries: int,initial_delay_ms: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="FnFailRetryExponentialDelay", args={
+            "retries": retries,"initial_delay_ms": initial_delay_ms,
         }, mode="request")
         return result
     def FnLiteralClassInputOutput(self, input: types.LiteralClassHello,
@@ -6956,6 +7081,13 @@ class BamlHttpRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TellStory", args={
             "story": story,
+        }, mode="request")
+        return result
+    def TestAbortFallbackChain(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TestAbortFallbackChain", args={
+            "input": input,
         }, mode="request")
         return result
     def TestAnthropic(self, input: str,
@@ -8009,6 +8141,13 @@ class BamlHttpStreamRequestClient:
             "text": text,
         }, mode="stream")
         return result
+    def ExtractName(self, text: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="ExtractName", args={
+            "text": text,
+        }, mode="stream")
+        return result
     def ExtractNames(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -8070,6 +8209,20 @@ class BamlHttpStreamRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="FnEnumOutput", args={
             "input": input,
+        }, mode="stream")
+        return result
+    def FnFailRetryConstantDelay(self, retries: int,delay_ms: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="FnFailRetryConstantDelay", args={
+            "retries": retries,"delay_ms": delay_ms,
+        }, mode="stream")
+        return result
+    def FnFailRetryExponentialDelay(self, retries: int,initial_delay_ms: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="FnFailRetryExponentialDelay", args={
+            "retries": retries,"initial_delay_ms": initial_delay_ms,
         }, mode="stream")
         return result
     def FnLiteralClassInputOutput(self, input: types.LiteralClassHello,
@@ -8581,6 +8734,13 @@ class BamlHttpStreamRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TellStory", args={
             "story": story,
+        }, mode="stream")
+        return result
+    def TestAbortFallbackChain(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TestAbortFallbackChain", args={
+            "input": input,
         }, mode="stream")
         return result
     def TestAnthropic(self, input: str,

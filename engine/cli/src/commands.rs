@@ -74,7 +74,7 @@ impl RuntimeCli {
             Ok(flags) => flags,
             Err(errors) => {
                 for error in errors {
-                    eprintln!("Error: {}", error);
+                    eprintln!("Error: {error}");
                 }
                 eprintln!("\nAvailable feature flags:");
                 eprintln!("  beta - Enable beta features and suppress experimental warnings");

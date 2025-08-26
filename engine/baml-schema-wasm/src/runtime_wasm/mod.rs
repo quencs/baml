@@ -25,11 +25,14 @@ use itertools::join;
 use js_sys::{Promise, Uint8Array};
 use jsonish::ResponseBamlValue;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::{prelude::*, JsValue};
+use wasm_bindgen::{prelude::*, JsError, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
 use self::runtime_prompt::WasmScope;
-use crate::runtime_wasm::runtime_prompt::WasmPrompt;
+use crate::{
+    abort_controller::{cleanup_operation, js_abort_signal_to_tripwire},
+    runtime_wasm::runtime_prompt::WasmPrompt,
+};
 
 type JsResult<T> = core::result::Result<T, JsError>;
 
@@ -253,7 +256,7 @@ impl WasmProject {
                     JsValue::from_str(&format!("Expected feature_flags to be Array<string>. {e}"))
                 })?;
             FeatureFlags::from_vec(flags)
-                .map_err(|e| JsValue::from_str(&format!("Invalid feature flags: {:?}", e)))?
+                .map_err(|e| JsValue::from_str(&format!("Invalid feature flags: {e:?}")))?
         };
 
         BamlRuntime::from_file_content(&self.root_dir_name, &hm, env_vars, feature_flags)
@@ -836,6 +839,9 @@ impl WithRenderError for baml_runtime::internal::llm_client::LLMResponse {
             }
             baml_runtime::internal::llm_client::LLMResponse::InternalFailure(e) => {
                 e.to_string().into()
+            }
+            baml_runtime::internal::llm_client::LLMResponse::Cancelled(msg) => {
+                format!("cancelled: {msg}").into()
             }
         }
     }
@@ -1585,7 +1591,18 @@ impl WasmRuntime {
         on_partial_response: js_sys::Function,
         get_baml_src_cb: js_sys::Function,
         env: js_sys::Object,
+        abort_signal: Option<js_sys::Object>,
     ) -> Result<WasmTestResponses, JsValue> {
+        // Convert abort signal to tripwire
+        let (operation_id, tripwire) =
+            match crate::abort_controller::js_abort_signal_to_tripwire(abort_signal) {
+                Ok((id, tw)) => (id, tw),
+                Err(_e) => {
+                    log::error!("WASM Parallel: Failed to setup abort handler");
+                    (0, None)
+                }
+            };
+
         // Create a vector to store all test futures
         let mut test_futures = Vec::new();
 
@@ -1634,6 +1651,10 @@ impl WasmRuntime {
                         env_vars.insert(key, value);
                     }
 
+                    // Clone tripwire for this test
+                    let test_tripwire = tripwire.clone();
+                    let on_tick = if false { Some(|| {}) } else { None };
+
                     // Create a future for this test
                     let future = async move {
                         let (test_response, span) = rt
@@ -1644,6 +1665,8 @@ impl WasmRuntime {
                                 Some(cb),
                                 None,
                                 env_vars.clone(),
+                                test_tripwire, // Pass tripwire to each test
+                                on_tick,
                             )
                             .await;
 
@@ -1670,6 +1693,12 @@ impl WasmRuntime {
 
         // Run all tests in parallel
         let results = futures::future::join_all(test_futures).await;
+
+        // Clean up operation if we had an abort signal
+        if operation_id > 0 {
+            crate::abort_controller::cleanup_operation(operation_id);
+        }
+
         Ok(WasmTestResponses { responses: results })
     }
 }
@@ -1902,7 +1931,12 @@ impl WasmFunction {
         get_baml_src_cb: js_sys::Function,
         on_expr_event: js_sys::Function,
         env: js_sys::Object,
+        abort_signal: Option<js_sys::Object>,
     ) -> Result<WasmTestResponse, JsValue> {
+        // Convert abort signal to tripwire
+        let (operation_id, tripwire) =
+            js_abort_signal_to_tripwire(abort_signal).map_err(JsValue::from)?;
+
         let rt = &rt.runtime;
         let function_name = self.name.clone();
 
@@ -1954,8 +1988,9 @@ impl WasmFunction {
             env_vars.insert(key, value);
         }
 
-        // Pass the sender to run_test_with_expr_events
-        let (test_response, span) = rt
+        // Pass the sender to run_test_with_expr_events with tripwire support
+        let on_tick = if false { Some(|| {}) } else { None };
+        let result = rt
             .run_test_with_expr_events(
                 &function_name,
                 &test_name,
@@ -1964,10 +1999,15 @@ impl WasmFunction {
                 Some(tx),
                 None,
                 env_vars.clone(),
+                tripwire,
+                on_tick,
             )
             .await;
 
-        log::info!("test_response: {test_response:#?}");
+        // Clean up the operation
+        cleanup_operation(operation_id);
+
+        let (test_response, span) = result;
 
         Ok(WasmTestResponse {
             test_response,
@@ -1991,7 +2031,12 @@ impl WasmFunction {
         on_partial_response: js_sys::Function,
         get_baml_src_cb: js_sys::Function,
         env: js_sys::Object,
+        abort_signal: Option<js_sys::Object>,
     ) -> Result<WasmTestResponse, JsValue> {
+        // Convert abort signal to tripwire
+        let (operation_id, tripwire) =
+            js_abort_signal_to_tripwire(abort_signal).map_err(JsValue::from)?;
+
         let rt = &rt.runtime;
         let function_name = self.name.clone();
 
@@ -2023,8 +2068,9 @@ impl WasmFunction {
             let value = arr.get(1).as_string().unwrap_or_default();
             env_vars.insert(key, value);
         }
-        // Now pass collector_arc to your runtime's run_test
-        let (test_response, span) = rt
+        // Now pass collector_arc to your runtime's run_test with tripwire support
+        let on_tick = if false { Some(|| {}) } else { None };
+        let result = rt
             .run_test(
                 &function_name,
                 &test_name,
@@ -2032,10 +2078,15 @@ impl WasmFunction {
                 Some(cb),
                 None,
                 env_vars.clone(),
+                tripwire,
+                on_tick,
             )
             .await;
 
-        log::info!("test_response: {test_response:#?}");
+        // Clean up the operation
+        cleanup_operation(operation_id);
+
+        let (test_response, span) = result;
 
         Ok(WasmTestResponse {
             test_response,

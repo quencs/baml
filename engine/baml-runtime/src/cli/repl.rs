@@ -174,7 +174,7 @@ impl ReplState {
         if diagnostics.has_errors() {
             output.push_str("Type Errors:\n");
             for error in diagnostics.errors() {
-                output.push_str(&format!("  {:?}\n", error));
+                output.push_str(&format!("  {error:?}\n"));
             }
             output.push('\n');
         }
@@ -279,7 +279,16 @@ impl ReplState {
                         let cxt =
                             runtime.create_ctx_manager(BamlValue::String("none".to_string()), None);
                         let res = runtime
-                            .call_function(function_name, &args, &cxt, None, None, None, env_vars)
+                            .call_function(
+                                function_name,
+                                &args,
+                                &cxt,
+                                None,
+                                None,
+                                None,
+                                env_vars,
+                                None,
+                            )
                             .await;
                         let function_result = res.0?;
                         match function_result.parsed() {
@@ -434,7 +443,7 @@ impl ReplState {
                 baml_types::ir_type::TypeValue::Bool => "bool".to_string(),
                 baml_types::ir_type::TypeValue::Null => "null".to_string(),
                 baml_types::ir_type::TypeValue::Media(media_type) => {
-                    format!("media({:?})", media_type)
+                    format!("media({media_type:?})")
                 }
             },
             TypeIR::Enum { name, .. } => name.clone(),
@@ -467,7 +476,7 @@ impl ReplState {
                 }
             }
             TypeIR::RecursiveTypeAlias { name, .. } => name.clone(),
-            TypeIR::Literal(literal, _) => format!("literal({:?})", literal),
+            TypeIR::Literal(literal, _) => format!("literal({literal:?})"),
             TypeIR::Tuple(types, _) => {
                 let type_names: Vec<String> = types.iter().map(ReplState::format_type).collect();
                 format!("({})", type_names.join(", "))
@@ -516,7 +525,7 @@ impl ReplArgs {
         // Try to load initial BAML sources if the directory exists
         if self.from.exists() {
             if let Err(e) = state.load_baml_sources(self.from.clone()) {
-                eprintln!("Warning: Could not load initial BAML sources: {}", e);
+                eprintln!("Warning: Could not load initial BAML sources: {e}");
                 eprintln!("Use :load <path> to load BAML sources");
             }
         } else {
@@ -530,11 +539,11 @@ impl ReplArgs {
         if let Some(expression) = &self.expression {
             match state.evaluate_expression(expression).await {
                 Ok(result) => {
-                    println!("{}", result);
+                    println!("{result}");
                     return Ok(());
                 }
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    eprintln!("Error: {e}");
                     std::process::exit(1);
                 }
             }
@@ -600,15 +609,15 @@ impl ReplArgs {
                     // Handle commands starting with ':'
                     if input.starts_with(':') {
                         match self.handle_command(&mut state, input) {
-                            Ok(Some(msg)) => println!("{}", msg),
+                            Ok(Some(msg)) => println!("{msg}"),
                             Ok(None) => break, // :quit
-                            Err(e) => eprintln!("Error: {}", e),
+                            Err(e) => eprintln!("Error: {e}"),
                         }
                     } else {
                         // Handle expression evaluation
                         match state.evaluate_expression(input).await {
-                            Ok(result) => println!("{}", result),
-                            Err(e) => eprintln!("Error: {}", e),
+                            Ok(result) => println!("{result}"),
+                            Err(e) => eprintln!("Error: {e}"),
                         }
                     }
                 }
@@ -617,7 +626,7 @@ impl ReplArgs {
                     break;
                 }
                 x => {
-                    println!("Event: {:?}", x);
+                    println!("Event: {x:?}");
                 }
             }
         }

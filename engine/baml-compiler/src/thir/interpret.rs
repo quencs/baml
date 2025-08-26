@@ -211,7 +211,7 @@ where
 
                     // Get current value of the variable
                     let current_val = lookup(scopes, var_name).with_context(|| {
-                        format!("assign op to undeclared variable `{}`", var_name)
+                        format!("assign op to undeclared variable `{var_name}`")
                     })?;
 
                     // Evaluate the right-hand side expression
@@ -236,7 +236,7 @@ where
                             (
                                 BamlValueWithMeta::String(a, meta),
                                 BamlValueWithMeta::String(b, _),
-                            ) => BamlValueWithMeta::String(format!("{}{}", a, b), meta),
+                            ) => BamlValueWithMeta::String(format!("{a}{b}"), meta),
                             _ => bail!("unsupported types for += operator"),
                         },
                         AssignOp::SubAssign => match (current_val.clone(), rhs_val.clone()) {
@@ -403,8 +403,7 @@ where
                                             let current_val = lookup(scopes, var_name)
                                                 .with_context(|| {
                                                     format!(
-                                                        "assign op to undeclared variable `{}`",
-                                                        var_name
+                                                        "assign op to undeclared variable `{var_name}`"
                                                     )
                                                 })?;
                                             let rhs_val = expect_value(
@@ -482,8 +481,7 @@ where
                                             let current_val = lookup(scopes, var_name)
                                                 .with_context(|| {
                                                     format!(
-                                                        "assign op to undeclared variable `{}`",
-                                                        var_name
+                                                        "assign op to undeclared variable `{var_name}`"
                                                     )
                                                 })?;
                                             let rhs_val = expect_value(
@@ -690,7 +688,7 @@ where
                             env: BamlMap::new(),
                             statements: vec![],
                             trailing_expr: Some(Expr::Value(BamlValueWithMeta::String(
-                                format!("__LLM_FUNCTION__{}", name),
+                                format!("__LLM_FUNCTION__{name}"),
                                 meta.clone(),
                             ))),
                             ty: None,
@@ -992,7 +990,7 @@ fn evaluate_binary_op(
                 BamlValueWithMeta::Float(a + (b as f64), meta.clone())
             }
             (BamlValueWithMeta::String(a, _), BamlValueWithMeta::String(b, _)) => {
-                BamlValueWithMeta::String(format!("{}{}", a, b), meta.clone())
+                BamlValueWithMeta::String(format!("{a}{b}"), meta.clone())
             }
             _ => bail!("unsupported types for + operator at {:?}", meta.0),
         },
@@ -1294,7 +1292,7 @@ mod tests {
             .unwrap();
         match out {
             BamlValueWithMeta::Int(i, _) => assert_eq!(i, 1),
-            v => panic!("expected int, got {:?}", v),
+            v => panic!("expected int, got {v:?}"),
         }
     }
 
@@ -1324,7 +1322,7 @@ mod tests {
             .unwrap();
         match out {
             BamlValueWithMeta::Int(i, _) => assert_eq!(i, 99),
-            v => panic!("expected int, got {:?}", v),
+            v => panic!("expected int, got {v:?}"),
         }
     }
 
@@ -1357,7 +1355,7 @@ mod tests {
             .unwrap();
         match out {
             BamlValueWithMeta::Int(i, _) => assert_eq!(i, 7),
-            v => panic!("expected int, got {:?}", v),
+            v => panic!("expected int, got {v:?}"),
         }
     }
 
@@ -1404,7 +1402,7 @@ mod tests {
         let out = result.unwrap();
         match out {
             BamlValueWithMeta::Int(i, _) => assert_eq!(i, 10),
-            v => panic!("expected int, got {:?}", v),
+            v => panic!("expected int, got {v:?}"),
         }
     }
 
@@ -1434,7 +1432,7 @@ mod tests {
 
         match result {
             BamlValueWithMeta::Int(len, _) => assert_eq!(len, 3),
-            v => panic!("expected int, got {:?}", v),
+            v => panic!("expected int, got {v:?}"),
         }
     }
 
@@ -1457,7 +1455,7 @@ mod tests {
 
         match result {
             BamlValueWithMeta::Int(len, _) => assert_eq!(len, 5),
-            v => panic!("expected int, got {:?}", v),
+            v => panic!("expected int, got {v:?}"),
         }
     }
 
@@ -1595,7 +1593,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            println!("Testing Fib({}) = {}", input, expected);
+            println!("Testing Fib({input}) = {expected}");
 
             // Create function call: Fib(input)
             let fib_call = Expr::Call {
@@ -1614,11 +1612,10 @@ mod tests {
                 BamlValueWithMeta::Int(actual, _) => {
                     assert_eq!(
                         actual, expected,
-                        "Fib({}) should be {}, got {}",
-                        input, expected, actual
+                        "Fib({input}) should be {expected}, got {actual}"
                     );
                 }
-                v => panic!("Expected int result for Fib({}), got {:?}", input, v),
+                v => panic!("Expected int result for Fib({input}), got {v:?}"),
             }
         }
 

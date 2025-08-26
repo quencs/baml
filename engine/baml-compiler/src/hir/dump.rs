@@ -62,7 +62,7 @@ impl TypeDocumentRender for TypeIR {
             TypeIR::Primitive(baml_types::TypeValue::Bool, _) => RcDoc::text("bool"),
             TypeIR::Primitive(baml_types::TypeValue::Null, _) => RcDoc::text("null"),
             TypeIR::Primitive(baml_types::TypeValue::Media(media_type), _) => {
-                RcDoc::text(format!("{}", media_type))
+                RcDoc::text(format!("{media_type}"))
             }
             TypeIR::List(inner, _) => RcDoc::text("array<")
                 .append(inner.to_doc())
@@ -91,7 +91,7 @@ impl TypeDocumentRender for TypeIR {
                 ))
                 .append(RcDoc::text(") -> "))
                 .append(arrow.return_type.to_doc()),
-            TypeIR::Literal(literal, _) => RcDoc::text(format!("{}", literal)),
+            TypeIR::Literal(literal, _) => RcDoc::text(format!("{literal}")),
             TypeIR::RecursiveTypeAlias { name, .. } => RcDoc::text(name.clone()),
             TypeIR::Tuple(types, _) => RcDoc::text("(")
                 .append(RcDoc::intersperse(
