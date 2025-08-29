@@ -2121,6 +2121,18 @@ impl WasmFunction {
         })
     }
 
+    pub fn function_graph(&self, rt: &WasmRuntime) -> Result<String, JsValue> {
+        let rt: &BamlRuntime = &rt.runtime;
+        let ctx = rt
+            .create_ctx_manager(BamlValue::String("wasm".to_string()), None)
+            .create_ctx_with_default();
+        let graph = rt
+            .internal()
+            .function_graph(&self.name, &ctx)
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
+        Ok(graph)
+    }
+
     pub fn orchestration_graph(&self, rt: &WasmRuntime) -> Result<Vec<WasmScope>, JsValue> {
         let rt: &BamlRuntime = &rt.runtime;
 

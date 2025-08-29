@@ -8,7 +8,7 @@ use super::{
 use crate::{
     assert_correct_parser,
     ast::{
-        self, expr::ExprFn, App, ArgumentsList, AssignOp, AssignOpStmt, AssignStmt, CForLoopStmt,
+        self, expr::ExprFn, App, ArgumentsList, AssignOp, AssignOpStmt, AssignStmt, ExprStmt,
         Expression, ExpressionBlock, ForLoopStmt, LetStmt, Stmt, TopLevelAssignment, *,
     },
     parser::{
@@ -49,6 +49,7 @@ pub fn parse_expr_fn(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<e
             return_type,
             body,
             span,
+            annotations: vec![],
         }),
         _ => None,
     }
@@ -77,7 +78,7 @@ pub fn parse_top_level_assignment(
         Stmt::ForLoop(ForLoopStmt { span, .. }) | Stmt::CForLoop(CForLoopStmt { span, .. }) => {
             only_let_stmt("for loops", span, diagnostics)
         }
-        Stmt::Expression(expr) => only_let_stmt("expressions", expr.span().clone(), diagnostics),
+        Stmt::Expression(expr) => only_let_stmt("expressions", expr.span.clone(), diagnostics),
         Stmt::Semicolon(expr) => {
             only_let_stmt("semicolon expressions", expr.span().clone(), diagnostics)
         }
@@ -87,6 +88,7 @@ pub fn parse_top_level_assignment(
         Stmt::Return(ReturnStmt { span, .. }) => {
             only_let_stmt("return statements", span, diagnostics)
         }
+
         Stmt::Assert(AssertStmt { span, .. }) => {
             only_let_stmt("assert statements", span, diagnostics)
         }
@@ -220,6 +222,7 @@ fn parse_iterator_for_loop(
         iterator,
         body,
         span,
+        annotations: vec![],
     })
 }
 
@@ -328,8 +331,8 @@ pub fn parse_statement(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option
 
     match tokens.next() {
         Some(maybe_semicolon) if maybe_semicolon.as_str() == ";" => {
-            if let Some(Stmt::Expression(expr)) = stmt {
-                stmt = Some(Stmt::Semicolon(expr));
+            if let Some(Stmt::Expression(es)) = stmt {
+                stmt = Some(Stmt::Semicolon(es.expr));
             }
         }
         _ => {
@@ -410,7 +413,8 @@ fn parse_statement_inner_rule(
                     identifier,
                     is_mutable,
                     expr: body,
-                    span,
+                    span: span.clone(),
+                    annotations: vec![],
                 })
             })
         }
@@ -418,10 +422,41 @@ fn parse_statement_inner_rule(
         Rule::CONTINUE_KEYWORD => Some(Stmt::Continue(diagnostics.span(stmt_token.as_span()))),
         Rule::while_loop => parse_while_loop(stmt_token, diagnostics),
         Rule::for_loop => parse_for_loop(stmt_token, diagnostics),
-        Rule::if_expression => parse_if_expression(stmt_token, diagnostics).map(Stmt::Expression),
-        Rule::expression => parse_expression(stmt_token, diagnostics).map(Stmt::Expression),
-        Rule::expr_block => parse_expr_block(stmt_token, diagnostics)
-            .map(|expr_block| Stmt::Expression(Expression::ExprBlock(expr_block, span.clone()))),
+        Rule::if_expression => parse_if_expression(stmt_token, diagnostics).map(|expr| {
+            Stmt::Expression(ExprStmt {
+                expr,
+                annotations: vec![],
+                span: span.clone(),
+            })
+        }),
+        Rule::fn_app => parse_fn_app(stmt_token, diagnostics).map(|expr| {
+            Stmt::Expression(ExprStmt {
+                expr,
+                annotations: vec![],
+                span: span.clone(),
+            })
+        }),
+        Rule::generic_fn_app => parse_generic_fn_app(stmt_token, diagnostics).map(|expr| {
+            Stmt::Expression(ExprStmt {
+                expr,
+                annotations: vec![],
+                span: span.clone(),
+            })
+        }),
+        Rule::expression => parse_expression(stmt_token, diagnostics).map(|expr| {
+            Stmt::Expression(ExprStmt {
+                expr,
+                annotations: vec![],
+                span: span.clone(),
+            })
+        }),
+        Rule::expr_block => parse_expr_block(stmt_token, diagnostics).map(|expr_block| {
+            Stmt::Expression(ExprStmt {
+                expr: Expression::ExprBlock(expr_block, span.clone()),
+                annotations: vec![],
+                span: span.clone(),
+            })
+        }),
         _ => {
             diagnostics.push_error(DatamodelError::new_static("Expected statement", span));
             None
@@ -491,11 +526,49 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
     let mut stmts = Vec::new();
     let mut expr = None;
     let _open_bracket = tokens.next()?;
+
+    // Collect all items first to process headers together
+    let mut items: Vec<Pair<'_>> = Vec::new();
     for item in tokens {
+        items.push(item);
+    }
+
+    // Track headers with their hierarchy
+    let mut all_headers_in_block: Vec<std::sync::Arc<Header>> = Vec::new();
+
+    // First pass: collect all headers
+    for item in &items {
+        if item.as_rule() == Rule::mdx_header {
+            let header = parse_header(item.clone(), diagnostics);
+            if let Some(header) = header {
+                let header_arc = std::sync::Arc::new(header);
+                all_headers_in_block.push(header_arc.clone());
+            }
+        }
+    }
+
+    // Normalize all headers in the block together
+    normalize_headers(&mut all_headers_in_block);
+
+    // Debug: Print normalized headers (disabled)
+    // println!("PARSER: Normalized headers in block:");
+    // for (i, header) in all_headers_in_block.iter().enumerate() {
+    //     println!("  [{}] '{}' (Level: {})", i, header.title, header.level);
+    // }
+
+    // Second pass: process statements and expressions with normalized headers
+    let mut current_headers: Vec<std::sync::Arc<Header>> = Vec::new();
+    let mut headers_since_last_stmt: Vec<std::sync::Arc<Header>> = Vec::new();
+
+    for item in items {
         match item.as_rule() {
             Rule::stmt => {
                 let maybe_stmt = parse_statement(item, diagnostics);
-                if let Some(stmt) = maybe_stmt {
+                if let Some(mut stmt) = maybe_stmt {
+                    // Clear headers since last statement & get an iterator for the current ones.
+                    // Better wrt mem::take() since it keeps Vec's allocation.
+                    let header_drain = headers_since_last_stmt.drain(..);
+                    bind_headers_to_statement(&mut stmt, header_drain);
                     stmts.push(stmt);
                 }
             }
@@ -503,7 +576,27 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                 let maybe_expr = parse_expression(item, diagnostics);
                 if let Some(parsed_expr) = maybe_expr {
                     expr = Some(parsed_expr);
-                    break;
+                    continue;
+                }
+            }
+            Rule::mdx_header => {
+                // Headers are already processed, just update current headers
+                let header = parse_header(item, diagnostics);
+                if let Some(header) = header {
+                    let header_arc = std::sync::Arc::new(header);
+
+                    // Find the corresponding normalized header
+                    if let Some(normalized_header) = all_headers_in_block
+                        .iter()
+                        .find(|h| h.title == header_arc.title)
+                    {
+                        // Implement header hierarchy logic
+                        filter_headers_by_hierarchy(&mut current_headers, normalized_header);
+
+                        // Add to current headers and headers since last statement
+                        current_headers.push(normalized_header.clone());
+                        headers_since_last_stmt.push(normalized_header.clone());
+                    }
                 }
             }
             Rule::BLOCK_CLOSE => {
@@ -585,7 +678,11 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
         expr.map(Box::new)
     } else {
         if let Some(expr) = expr {
-            stmts.push(Stmt::Expression(expr));
+            stmts.push(Stmt::Expression(ExprStmt {
+                expr: expr.clone(),
+                annotations: vec![],
+                span: expr.span().clone(),
+            }));
         }
 
         None
@@ -594,7 +691,138 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
     Some(ExpressionBlock {
         stmts,
         expr: trailing_expr,
+        expr_headers: headers_since_last_stmt,
     })
+}
+
+/// Parse a single header from an MDX header token
+pub fn parse_header(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<Header> {
+    let full_text = token.as_str();
+    let header_span = diagnostics.span(token.as_span());
+
+    // Find the start of the hash sequence
+    let hash_start = full_text.find('#')?;
+    let after_whitespace = full_text[hash_start..].trim_start();
+
+    // Count consecutive hash characters
+    let hash_count = after_whitespace.chars().take_while(|&c| c == '#').count();
+
+    // Extract the title after the hash sequence and whitespace
+    let after_hashes = &after_whitespace[hash_count..];
+    let title_text = after_hashes.trim().to_string();
+
+    // Remove trailing newline if present
+    let title_text = title_text
+        .trim_end_matches('\n')
+        .trim_end_matches('\r')
+        .to_string();
+
+    let level = hash_count as u8;
+
+    // Print debug information about the header (disabled)
+    // let indent = " ".repeat(level as usize);
+    // println!(
+    //     "{}└ HEADER Level {}: '{}' (hash count: {})",
+    //     indent, level, title_text, level
+    // );
+
+    Some(Header {
+        level,
+        title: title_text,
+        span: header_span,
+    })
+}
+
+/// Filter headers based on hierarchy rules (markdown-style nesting)
+fn filter_headers_by_hierarchy(
+    pending_headers: &mut Vec<std::sync::Arc<Header>>,
+    new_header: &std::sync::Arc<Header>,
+) {
+    // Remove headers that are at the same level or deeper than the new header
+    // This implements the markdown hierarchy where:
+    // - A new header at level N closes all headers at level N or higher
+    // - Headers at level N+1, N+2, etc. nest under the header at level N
+    pending_headers.retain(|header| header.level < new_header.level);
+}
+
+/// Normalize headers within a single block according to the normalization rules:
+/// - All headers within a block scope should start from level 1
+/// - Maintain relative hierarchy between headers
+fn normalize_headers(headers: &mut Vec<std::sync::Arc<Header>>) {
+    if headers.is_empty() {
+        return;
+    }
+
+    // Find the minimum level to normalize from
+    let min_level = headers.iter().map(|h| h.level).min().unwrap();
+
+    // Only normalize if headers don't already start from level 1
+    if min_level > 1 {
+        // Create new normalized headers
+        let mut normalized_headers = Vec::new();
+
+        for header in headers.iter() {
+            // Normalize by adjusting all levels to start from 1
+            let new_level = header.level - min_level + 1;
+
+            // Create new header with normalized level
+            let normalized_header = std::sync::Arc::new(Header {
+                level: new_level,
+                title: header.title.clone(),
+                span: header.span.clone(),
+            });
+
+            normalized_headers.push(normalized_header);
+        }
+
+        // Replace the original headers with normalized ones
+        *headers = normalized_headers;
+    }
+}
+
+/// Bind pending headers to a statement based on scope rules
+fn bind_headers_to_statement(
+    stmt: &mut Stmt,
+    pending_headers: impl IntoIterator<Item = std::sync::Arc<Header>>,
+) {
+    match stmt {
+        Stmt::Let(let_stmt) => {
+            let_stmt.annotations.extend(pending_headers);
+        }
+        Stmt::ForLoop(for_stmt) => {
+            for_stmt.annotations.extend(pending_headers);
+        }
+        Stmt::Expression(es) => {
+            es.annotations.extend(pending_headers);
+        }
+        Stmt::Assign(_) => {
+            // Assignments do not carry annotations
+        }
+        Stmt::AssignOp(_) => {
+            // Assignment operations do not carry annotations
+        }
+        Stmt::CForLoop(_) => {
+            // C-for loops do not carry annotations (for now)
+        }
+        Stmt::WhileLoop(_) => {
+            // While loops do not carry annotations (for now)
+        }
+        Stmt::Semicolon(_) => {
+            // Semicolon expressions do not carry annotations
+        }
+        Stmt::Break(_) => {
+            // Break statements do not carry annotations
+        }
+        Stmt::Continue(_) => {
+            // Continue statements do not carry annotations
+        }
+        Stmt::Return(_) => {
+            // Return statements do not carry annotations (for now)
+        }
+        Stmt::Assert(_) => {
+            // Assert statements do not carry annotations (for now)
+        }
+    }
 }
 
 fn parse_fn_args(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Vec<Expression> {
