@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [0.206.2](https://github.com/boundaryml/baml/compare/0.206.1..0.206.2) - 2025-08-29
+
+### Bug Fixes
+
+- use roles correctly in openai-responses (#2392) - Sam Lijin
+- Fix media file path resolution on Windows (#2391) - ([3950a49](https://github.com/boundaryml/baml/commit/3950a495a3f91ec9bf274ace91df9c05837a3e9f)) - Greg Hale
+
 ## [0.206.1](https://github.com/boundaryml/baml/compare/0.206.0..0.206.1) - 2025-08-28
 
 ### Bugfix
