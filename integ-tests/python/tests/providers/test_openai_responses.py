@@ -1,7 +1,7 @@
 import pytest
+from hamcrest import assert_that, equal_to
 from baml_py import Image, Audio, Pdf
-from ...baml_client import b
-from ...baml_client.sync_client import b as sync_b
+from baml_client import b
 
 
 @pytest.mark.asyncio
@@ -11,21 +11,26 @@ async def test_expose_request_openai_responses_multimodal():
     )
     request = await b.request.TestOpenAIResponsesImageInput(test_image)
 
-    assert request.body.json() == {
-        "model": "o1-mini",
-        "input": [
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": "what is in this content?"},
+                "model": "o1-mini",
+                "input": [
                     {
-                        "type": "input_image",
-                        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
-                    },
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": "what is in this content?"},
+                            {
+                                "type": "input_image",
+                                "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                            },
+                        ],
+                    }
                 ],
             }
-        ],
-    }
+        ),
+    )
 
 
 @pytest.mark.asyncio
@@ -34,24 +39,29 @@ async def test_expose_request_openai_responses_audio():
     test_audio = Audio.from_base64("audio/wav", test_audio_data)
     request = await b.request.TestOpenAIResponsesImageInput(test_audio)
 
-    assert request.body.json() == {
-        "model": "o1-mini",
-        "input": [
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": "what is in this content?"},
+                "model": "o1-mini",
+                "input": [
                     {
-                        "type": "input_audio",
-                        "input_audio": {
-                            "data": test_audio_data,
-                            "format": "wav",
-                        },
-                    },
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": "what is in this content?"},
+                            {
+                                "type": "input_audio",
+                                "input_audio": {
+                                    "data": test_audio_data,
+                                    "format": "wav",
+                                },
+                            },
+                        ],
+                    }
                 ],
             }
-        ],
-    }
+        ),
+    )
 
 
 @pytest.mark.asyncio
@@ -61,148 +71,178 @@ async def test_expose_request_openai_responses_pdf_base64():
     test_pdf = Pdf.from_base64(test_pdf_b64)
     request = await b.request.TestOpenAIResponsesImageInput(test_pdf)
 
-    assert request.body.json() == {
-        "model": "o1-mini",
-        "input": [
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": "what is in this content?"},
+                "model": "o1-mini",
+                "input": [
                     {
-                        "type": "input_file",
-                        "file_url": f"data:application/pdf;base64,{test_pdf_b64}",
-                    },
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": "what is in this content?"},
+                            {
+                                "type": "input_file",
+                                "file_url": f"data:application/pdf;base64,{test_pdf_b64}",
+                            },
+                        ],
+                    }
                 ],
             }
-        ],
-    }
+        ),
+    )
 
 
 @pytest.mark.asyncio
 async def test_openai_responses_basic():
     request = await b.request.TestOpenAIResponses("lorem ipsum")
-    
-    assert request.body.json() == {
-        "model": "gpt-4.1",
-        "input": [
+
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "user",
-                "content": [
+                "model": "gpt-4.1",
+                "input": [
                     {
-                        "type": "input_text",
-                        "text": "Write a short haiku about lorem ipsum. Make it simple and beautiful.",
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": "Write a short haiku about lorem ipsum. Make it simple and beautiful.",
+                            },
+                        ],
                     },
                 ],
-            },
-        ],
-    }
+            }
+        ),
+    )
 
 
 @pytest.mark.asyncio
 async def test_openai_responses_explicit():
     request = await b.request.TestOpenAIResponsesExplicit("lorem ipsum")
-    
-    assert request.body.json() == {
-        "model": "gpt-4.1",
-        "input": [
+
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "user",
-                "content": [
+                "model": "gpt-4.1",
+                "input": [
                     {
-                        "type": "input_text",
-                        "text": "Create a brief poem about lorem ipsum. Keep it under 50 words.",
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": "Create a brief poem about lorem ipsum. Keep it under 50 words.",
+                            },
+                        ],
                     },
                 ],
-            },
-        ],
-    }
+            }
+        ),
+    )
 
 
 @pytest.mark.asyncio
 async def test_openai_responses_custom_url():
     request = await b.request.TestOpenAIResponsesCustomURL("lorem ipsum")
-    
-    assert request.body.json() == {
-        "model": "gpt-4.1",
-        "input": [
+
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "user",
-                "content": [
+                "model": "gpt-4.1",
+                "input": [
                     {
-                        "type": "input_text",
-                        "text": "Tell me an interesting fact about lorem ipsum.",
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": "Tell me an interesting fact about lorem ipsum.",
+                            },
+                        ],
                     },
                 ],
-            },
-        ],
-    }
+            }
+        ),
+    )
 
 
 @pytest.mark.asyncio
 async def test_openai_responses_conversation():
     request = await b.request.TestOpenAIResponsesConversation("lorem ipsum")
-    
-    assert request.body.json() == {
-        "model": "gpt-4.1",
-        "input": [
+
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "system",
-                "content": [
+                "model": "gpt-4.1",
+                "input": [
                     {
-                        "type": "input_text",
-                        "text": "You are a helpful assistant that provides concise answers.",
+                        "role": "system",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": "You are a helpful assistant that provides concise answers.",
+                            },
+                        ],
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": "What is lorem ipsum?",
+                            },
+                        ],
+                    },
+                    {
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": "lorem ipsum is a fascinating subject. Let me explain briefly.",
+                            },
+                        ],
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": "Can you give me a simple example?",
+                            },
+                        ],
                     },
                 ],
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": "What is lorem ipsum?",
-                    },
-                ],
-            },
-            {
-                "role": "assistant",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": "lorem ipsum is a fascinating subject. Let me explain briefly.",
-                    },
-                ],
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": "Can you give me a simple example?",
-                    },
-                ],
-            },
-        ],
-    }
+            }
+        ),
+    )
 
 
 @pytest.mark.asyncio
 async def test_openai_responses_different_model():
     request = await b.request.TestOpenAIResponsesDifferentModel("lorem ipsum")
-    
-    assert request.body.json() == {
-        "model": "gpt-4",
-        "input": [
+
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "user",
-                "content": [
+                "model": "gpt-4",
+                "input": [
                     {
-                        "type": "input_text",
-                        "text": "Explain lorem ipsum in one sentence.",
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": "Explain lorem ipsum in one sentence.",
+                            },
+                        ],
                     },
                 ],
-            },
-        ],
-    }
+            }
+        ),
+    )
 
 
 @pytest.mark.asyncio
@@ -213,18 +253,23 @@ async def test_expose_request_openai_responses_pdf_url():
     )
     request = await b.request.TestOpenAIResponsesImageInput(test_pdf)
 
-    assert request.body.json() == {
-        "model": "o1-mini",
-        "input": [
+    assert_that(
+        request.body.json(),
+        equal_to(
             {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": "what is in this content?"},
+                "model": "o1-mini",
+                "input": [
                     {
-                        "type": "input_file",
-                        "file_url": "https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final85.pdf",
-                    },
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": "what is in this content?"},
+                            {
+                                "type": "input_file",
+                                "file_url": "https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final85.pdf",
+                            },
+                        ],
+                    }
                 ],
             }
-        ],
-    }
+        ),
+    )
