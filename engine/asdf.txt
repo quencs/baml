@@ -1,0 +1,197 @@
+#[macro_export]
+macro_rules! create_code_gen_test_suites {
+    ($generator_type:ty) => {
+        #[test]
+        fn test_array_types_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("array_types", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_array_types_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("array_types", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_asserts_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("asserts", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_asserts_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("asserts", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_classes_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("classes", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_classes_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("classes", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_edge_cases_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("edge_cases", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_edge_cases_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("edge_cases", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_enums_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("enums", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_enums_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("enums", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_literal_types_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("literal_types", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_literal_types_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("literal_types", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_map_types_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("map_types", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_map_types_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("map_types", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_mixed_complex_types_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("mixed_complex_types", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_mixed_complex_types_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("mixed_complex_types", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_nested_structures_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("nested_structures", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_nested_structures_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("nested_structures", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_optional_nullable_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("optional_nullable", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_optional_nullable_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("optional_nullable", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_primitive_types_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("primitive_types", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_primitive_types_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("primitive_types", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_recursive_types_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("recursive_types", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_recursive_types_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("recursive_types", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_sample_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("sample", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_sample_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("sample", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_semantic_streaming_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("semantic_streaming", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_semantic_streaming_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("semantic_streaming", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_union_types_extended_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("union_types_extended", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_union_types_extended_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("union_types_extended", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+        #[test]
+        fn test_unions_evaluate() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("unions", <$generator_type>::default(), true)?;
+            test_harness.run()
+        }
+
+        #[test]
+        fn test_unions_consistent() -> anyhow::Result<()> {
+            let test_harness = test_harness::TestHarness::load_test("unions", <$generator_type>::default(), false)?;
+            test_harness.ensure_consistent_codegen()
+        }
+
+    };
+}

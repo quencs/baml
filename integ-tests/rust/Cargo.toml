@@ -1,0 +1,45 @@
+[package]
+name = "baml-integ-tests-rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["BAML Team"]
+description = "Integration tests for BAML Rust client"
+
+[dependencies]
+# Generated BAML client - temporarily disabled due to compilation issues
+# baml_client = { path = "./baml_client" }
+# BAML runtime client 
+baml-client-rust = { path = "../../engine/language_client_rust" }
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"
+futures-util = "0.3"
+
+# Serialization  
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Testing utilities
+assert_matches = "1.5"
+tempfile = "3.0"
+env_logger = "0.10"
+log = "0.4"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = []
+
+[[bin]]
+name = "simple-test"
+path = "src/main.rs"
+
+[lib]
+name = "baml_integ_tests_rust"
+path = "src/lib.rs"
