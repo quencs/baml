@@ -49,5 +49,12 @@ generator lang_go {
   output_dir "../go"
   version "0.205.0"
   client_package_name "example.com/integ-tests"
-  on_generate "gofmt -w . && goimports -w . && go mod tidy"
+  // on_generate "gofmt -w . && goimports -w . && go mod tidy"
+}
+
+generator lang_rust {
+  output_type rust
+  output_dir "../rust"
+  version "0.205.0"
+  on_generate "cd .. && cargo fmt && cargo check"
 }

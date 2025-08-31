@@ -2850,6 +2850,7 @@ dependencies = [
  "generators-openapi",
  "generators-python",
  "generators-ruby",
+ "generators-rust",
  "generators-typescript",
  "indexmap 2.10.0",
  "internal-baml-core",

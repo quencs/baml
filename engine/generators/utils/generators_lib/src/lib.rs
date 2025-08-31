@@ -35,10 +35,9 @@ pub fn generate_sdk(
             features.generate_sdk(ir, gen)?
         }
         GeneratorOutputType::Rust => {
-            todo!()
-            // use generators_rust::RustLanguageFeatures;
-            // let features = RustLanguageFeatures::default();
-            // features.generate_sdk(ir, gen)?
+            use generators_rust::RustLanguageFeatures;
+            let features = RustLanguageFeatures::default();
+            features.generate_sdk(ir, gen)?
         }
     };
 

@@ -1,41 +1,40 @@
-use baml_client_rust::{BamlRuntime, BamlResult};
+use baml_client_rust::{BamlClient as CoreBamlClient, BamlClientBuilder, BamlContext, BamlResult};
 use crate::types::*;
-use std::sync::Arc;
 use futures::Stream;
 
 /// Main BAML client for executing functions
 #[derive(Debug, Clone)]
 pub struct BamlClient {
-    runtime: Arc<BamlRuntime>,
+    client: CoreBamlClient,
 }
 
 impl BamlClient {
     /// Create a new BAML client with default configuration
     pub fn new() -> BamlResult<Self> {
-        let runtime = BamlRuntime::from_env()?;
-        Ok(Self {
-            runtime: Arc::new(runtime),
-        })
+        let client = CoreBamlClient::from_env()?;
+        Ok(Self { client })
     }
     
-    /// Create a new BAML client from a configuration file
-    pub fn from_config(config_path: &str) -> BamlResult<Self> {
-        let runtime = BamlRuntime::from_file(config_path)?;
-        Ok(Self {
-            runtime: Arc::new(runtime),
-        })
+    /// Create a new BAML client from a directory containing BAML files
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_directory<P: AsRef<std::path::Path>>(path: P) -> BamlResult<Self> {
+        let client = CoreBamlClient::from_directory(path, std::env::vars().collect())?;
+        Ok(Self { client })
     }
     
-    /// Create a new BAML client with a custom runtime
-    pub fn with_runtime(runtime: BamlRuntime) -> Self {
-        Self {
-            runtime: Arc::new(runtime),
-        }
+    /// Create a new BAML client with custom configuration
+    pub fn builder() -> BamlClientBuilder {
+        BamlClientBuilder::new()
     }
     
-    /// Get access to the underlying runtime
-    pub fn runtime(&self) -> &BamlRuntime {
-        &self.runtime
+    /// Create a new BAML client with a custom core client
+    pub fn with_core_client(client: CoreBamlClient) -> Self {
+        Self { client }
+    }
+    
+    /// Get access to the underlying core client
+    pub fn core_client(&self) -> &CoreBamlClient {
+        &self.client
     }
 }
 

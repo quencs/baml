@@ -18,22 +18,19 @@
 //! ```
 
 pub mod types;
-pub mod functions;
-pub mod runtime;
+pub mod client;
 
 // Re-exports for convenience
 pub use types::*;
-pub use functions::BamlClient;
-pub use runtime::{
-    BamlRuntime, 
+pub use client::BamlClient;
+
+// Re-export core types from baml_client_rust
+pub use baml_client_rust::{
     BamlResult, 
     BamlError,
     BamlContext,
     StreamState,
-    Checked,
-    init_runtime,
-    init_runtime_from_file,
-    init_runtime_with_settings,
+    BamlClientBuilder,
 };
 
 // Version information

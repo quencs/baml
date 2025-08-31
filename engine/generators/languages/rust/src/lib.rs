@@ -1,5 +1,5 @@
 use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeatures};
-use functions::{render_functions, render_runtime_code, render_source_files};
+use functions::{render_functions, render_source_files};
 
 mod functions;
 mod generated_types;
@@ -42,7 +42,6 @@ impl LanguageFeatures for RustLanguageFeatures {
         
         // Generate core files
         collector.add_file("source_map.rs", render_source_files(file_map)?)?;
-        collector.add_file("runtime.rs", render_runtime_code(&pkg)?)?;
         collector.add_file("lib.rs", render_lib_rs(&pkg)?)?;
         collector.add_file("Cargo.toml", render_cargo_toml()?)?;
 
@@ -52,7 +51,7 @@ impl LanguageFeatures for RustLanguageFeatures {
             .iter()
             .map(|f| ir_to_rust::functions::ir_function_to_rust(f, &pkg))
             .collect::<Vec<_>>();
-        collector.add_file("functions.rs", render_functions(&functions, &pkg)?)?;
+        collector.add_file("client.rs", render_functions(&functions, &pkg)?)?;
 
         // Generate types  
         let rust_classes: Vec<generated_types::ClassRust> = ir

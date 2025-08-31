@@ -59,23 +59,6 @@ pub fn render_functions(
     RustFunctions { functions: &single_functions }.render()
 }
 
-pub fn render_runtime_code(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {
-    Ok(
-        r#"use baml_client_rust::{BamlRuntime as CoreRuntime, BamlClient as CoreClient};
-
-pub type BamlRuntime = CoreRuntime;
-pub type BamlClient = CoreClient;
-
-impl BamlClient {
-    pub fn new() -> Self {
-        // TODO: Initialize with proper configuration
-        todo!("BamlClient::new not yet implemented")
-    }
-}
-"#
-        .to_string(),
-    )
-}
 
 pub fn render_source_files(_file_map: Vec<(String, String)>) -> Result<String, askama::Error> {
     Ok(r#"// Source file mapping
