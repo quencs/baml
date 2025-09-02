@@ -14,9 +14,12 @@
 
 use std::{collections::HashMap, sync::Arc};
 
+use indexmap::IndexMap;
 use internal_baml_diagnostics::Span;
 
-use super::{Ast, Expression, ExpressionBlock, Field, Header, Stmt, Top, WithName, WithSpan};
+use crate::ast::{
+    Ast, ClassConstructorField, Expression, ExpressionBlock, Field, Header, Stmt, Top,
+};
 
 /// Alias for external header identifiers for public consumption
 type HeaderId = String;
@@ -28,16 +31,6 @@ pub struct Hid(pub u32);
 /// A simple numeric identifier for a logical header scope (any block: function, for-loop body, expr block, etc.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ScopeId(pub u32);
-
-/// Classification of scope kinds for visualization semantics
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ScopeKind {
-    TopLevel,
-    ForBody,
-    IfThen,
-    IfElse,
-    Generic,
-}
 
 /// Classification of what kind of statement a header labels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -70,8 +63,12 @@ pub struct RenderableHeader {
 pub struct HeaderIndex {
     /// All headers in source order per scope, flattened
     pub headers: Vec<RenderableHeader>,
-    // header indexes in source order per scope
-    by_scope: HashMap<ScopeId, Vec<usize>>,
+
+    /// Header indexes in source order per scope.
+    /// Uses [`IndexMap`] instead of BamlMap to always guarantee iteration order = insertion order
+    /// = source order.
+    /// See [`graph`](crate::ast::baml_vis::graph) module, where we add
+    by_scope: IndexMap<ScopeId, Vec<usize>>,
     /// Mapping of internal Hid -> names of functions called by the labeled expression
     pub header_calls: HashMap<Hid, Vec<String>>, // hid -> [callee_name]
     hid_to_idx: Vec<usize>,
@@ -81,11 +78,20 @@ pub struct HeaderIndex {
 
 impl HeaderIndex {
     /// Iterate headers in a scope without allocation
-    pub fn headers_in_scope_iter(&self, scope: ScopeId) -> impl Iterator<Item = &RenderableHeader> {
+    pub fn headers_in_scope_iter(
+        &self,
+        scope: ScopeId,
+    ) -> impl Iterator<Item = &RenderableHeader> + DoubleEndedIterator {
         self.by_scope
             .get(&scope)
             .into_iter()
             .flat_map(|idxs| idxs.iter().map(|i| &self.headers[*i]))
+    }
+
+    /// Iterates all scopes. Order of iteration is guaranteed to be
+    /// consistent with source order.
+    pub fn scopes<'iter>(&'iter self) -> impl Iterator<Item = ScopeId> + 'iter {
+        self.by_scope.keys().copied()
     }
 
     /// O(1) access to a header by its Hid via internal index
@@ -104,12 +110,13 @@ impl HeaderIndex {
 }
 
 /// Internal collector to walk AST and build a HeaderIndex
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct HeaderCollector {
     scope_counter: u32,
     scope_stack: Vec<ScopeId>,
-    // Raw headers by scope before normalization and in-scope parenting
-    raw_by_scope: HashMap<ScopeId, Vec<RawHeader>>, // source order
+    /// Raw headers by scope before normalization and in-scope parenting.
+    /// [`IndexMap`] to maintain source order.
+    raw_by_scope: IndexMap<ScopeId, Vec<RawHeader>>, // source order
     // Accumulated nested edges (Hid -> Hid)
     nested_edges_hid: Vec<(Hid, Hid)>,
     // Mapping during collection: header (by Hid) -> function names called by the labeled expression
@@ -131,15 +138,7 @@ struct RawHeader {
 
 impl HeaderCollector {
     pub fn collect(ast: &Ast) -> HeaderIndex {
-        let mut c = Self {
-            scope_counter: 0,
-            scope_stack: Vec::new(),
-            raw_by_scope: HashMap::new(),
-            nested_edges_hid: Vec::new(),
-            header_fn_calls: HashMap::new(),
-            next_hid: 0,
-            last_hdr_stack: Vec::new(),
-        };
+        let mut c = Self::default();
         c.visit_ast(ast);
         c.build_index()
     }
@@ -276,7 +275,7 @@ impl HeaderCollector {
             self.header_fn_calls
                 .entry(*hid)
                 .or_default()
-                .extend(top_calls.clone());
+                .extend(top_calls.iter().cloned());
         }
     }
 
@@ -348,8 +347,8 @@ impl HeaderCollector {
             Expression::ClassConstructor(cons, _) => {
                 for f in &cons.fields {
                     match f {
-                        super::ClassConstructorField::Named(_, e) => self.visit_expression(e),
-                        super::ClassConstructorField::Spread(e) => self.visit_expression(e),
+                        ClassConstructorField::Named(_, e) => self.visit_expression(e),
+                        ClassConstructorField::Spread(e) => self.visit_expression(e),
                     }
                 }
             }
@@ -461,7 +460,7 @@ impl HeaderCollector {
     fn build_index(self) -> HeaderIndex {
         let mut index = HeaderIndex {
             headers: Vec::new(),
-            by_scope: HashMap::new(),
+            by_scope: IndexMap::new(),
             header_calls: HashMap::new(),
             hid_to_idx: Vec::new(),
             nested_edges_hid: Vec::new(),
@@ -540,6 +539,7 @@ impl HeaderCollector {
 /// Only captures the outermost call(s) that structurally represent the expression,
 /// ignoring nested calls within arguments or sub-expressions.
 fn collect_top_level_calls(expr: &Expression) -> Vec<String> {
+    use crate::ast::WithName;
     match expr {
         // If the expression is a block, the top-level expression is inside it
         Expression::ExprBlock(block, _span) => {
