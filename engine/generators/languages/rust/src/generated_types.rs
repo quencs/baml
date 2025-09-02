@@ -127,7 +127,16 @@ pub struct RustEnum {
 #[derive(Debug, Clone)]
 pub struct RustUnion {
     pub name: String,
-    pub variants: Vec<String>,
+    pub variants: Vec<RustVariant>,
+    pub docstring: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RustVariant {
+    pub name: String,
+    pub rust_type: crate::r#type::TypeRust,
+    pub docstring: Option<String>,
+    pub literal_value: Option<String>,
 }
 
 /// A list of types in Rust.

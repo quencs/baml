@@ -116,6 +116,12 @@ impl<L: TestLanguageFeatures> TestStructure<L> {
                             .to_string(),
                         ]
                     }
+                    "rust" => {
+                        vec![
+                            "cargo fmt".to_string(),
+                            "cargo clippy --fix --allow-dirty --allow-staged".to_string(),
+                        ]
+                    }
                     "python" => vec!["ruff check --fix".to_string()],
                     "typescript" => vec![],
                     // "ruby" => vec!["bundle install".to_string(), "srb init".to_string(), "srb tc --typed=strict".to_string()],
@@ -189,6 +195,12 @@ impl<L: TestLanguageFeatures> TestStructure<L> {
                             .to_string(),
                     ]
                 }
+                "rust" => {
+                    vec![
+                        "cargo fmt".to_string(),
+                        "cargo clippy --fix --allow-dirty --allow-staged".to_string(),
+                    ]
+                }
                 "python" => vec!["ruff check --fix".to_string()],
                 "typescript" => vec![],
                 // "ruby" => vec!["bundle install".to_string(), "srb init".to_string(), "srb tc --typed=strict".to_string()],
@@ -217,20 +229,39 @@ impl<L: TestLanguageFeatures> TestStructure<L> {
         }
 
         if also_run_tests {
-            if let baml_types::GeneratorOutputType::Go = args.client_type {
-                // let mut cmd = Command::new(format!("./{}", self.project_name));
-                let mut cmd = Command::new("go");
-                cmd.args(vec!["test", "-v"]);
-                cmd.current_dir(&self.src_dir);
-                let dylib_path = get_cargo_root()?.join("target/debug/libbaml_cffi.dylib");
-                let so_path = get_cargo_root()?.join("target/debug/libbaml_cffi.so");
-                let cargo_target_dir = if dylib_path.exists() {
-                    dylib_path
-                } else {
-                    so_path
-                };
-                cmd.env("BAML_LIBRARY_PATH", cargo_target_dir);
-                run_and_stream(&mut cmd)?;
+            match args.client_type {
+                baml_types::GeneratorOutputType::Go => {
+                    // let mut cmd = Command::new(format!("./{}", self.project_name));
+                    let mut cmd = Command::new("go");
+                    cmd.args(vec!["test", "-v"]);
+                    cmd.current_dir(&self.src_dir);
+                    let dylib_path = get_cargo_root()?.join("target/debug/libbaml_cffi.dylib");
+                    let so_path = get_cargo_root()?.join("target/debug/libbaml_cffi.so");
+                    let cargo_target_dir = if dylib_path.exists() {
+                        dylib_path
+                    } else {
+                        so_path
+                    };
+                    cmd.env("BAML_LIBRARY_PATH", cargo_target_dir);
+                    run_and_stream(&mut cmd)?;
+                }
+                baml_types::GeneratorOutputType::Rust => {
+                    let mut cmd = Command::new("cargo");
+                    cmd.args(vec!["test", "--verbose"]);
+                    cmd.current_dir(&self.src_dir);
+                    let dylib_path = get_cargo_root()?.join("target/debug/libbaml_cffi.dylib");
+                    let so_path = get_cargo_root()?.join("target/debug/libbaml_cffi.so");
+                    let cargo_target_dir = if dylib_path.exists() {
+                        dylib_path
+                    } else {
+                        so_path
+                    };
+                    cmd.env("BAML_LIBRARY_PATH", cargo_target_dir);
+                    run_and_stream(&mut cmd)?;
+                }
+                _ => {
+                    // Other languages not implemented yet
+                }
             }
         } else {
             println!("Not running! Set RUN_GENERATOR_TESTS=1 to run tests");

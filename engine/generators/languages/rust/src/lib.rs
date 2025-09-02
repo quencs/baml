@@ -31,6 +31,18 @@ impl LanguageFeatures for RustLanguageFeatures {
         "rust"
     }
 
+    fn on_file_created(&self, path: &std::path::Path, content: &mut String) -> anyhow::Result<()> {
+        // Skip adding prefix for TOML files since they use # for comments, not //
+        if path.extension().and_then(|s| s.to_str()) == Some("toml") {
+            return Ok(());
+        }
+
+        // Add prefix for Rust source files
+        content.push_str(self.content_prefix());
+        content.push('\n');
+        Ok(())
+    }
+
     fn generate_sdk_files(
         &self,
         collector: &mut FileCollector<Self>,
@@ -39,10 +51,10 @@ impl LanguageFeatures for RustLanguageFeatures {
     ) -> Result<(), anyhow::Error> {
         let pkg = package::CurrentRenderPackage::new("baml_client", ir.clone());
         let file_map = args.file_map_as_json_string()?;
-        
-        // Generate core files
-        collector.add_file("source_map.rs", render_source_files(file_map)?)?;
-        collector.add_file("lib.rs", render_lib_rs(&pkg)?)?;
+
+        // Generate core files - put Rust source files in src/ directory
+        collector.add_file("src/source_map.rs", render_source_files(file_map)?)?;
+        collector.add_file("src/lib.rs", render_lib_rs(&pkg)?)?;
         collector.add_file("Cargo.toml", render_cargo_toml()?)?;
 
         // Generate function clients
@@ -51,9 +63,9 @@ impl LanguageFeatures for RustLanguageFeatures {
             .iter()
             .map(|f| ir_to_rust::functions::ir_function_to_rust(f, &pkg))
             .collect::<Vec<_>>();
-        collector.add_file("client.rs", render_functions(&functions, &pkg)?)?;
+        collector.add_file("src/client.rs", render_functions(&functions, &pkg)?)?;
 
-        // Generate types  
+        // Generate types
         let rust_classes: Vec<generated_types::ClassRust> = ir
             .walk_classes()
             .map(|c| {
@@ -61,17 +73,24 @@ impl LanguageFeatures for RustLanguageFeatures {
                 generated_types::ClassRust {
                     name: class_data.name,
                     docstring: None, // TODO: Extract docstring from class
-                    fields: class_data.fields.into_iter().map(|field| {
-                        generated_types::FieldRust {
-                            name: field.name,
-                            docstring: None,
-                            rust_type: r#type::TypeRust::String(None, r#type::TypeMetaRust {
-                                type_wrapper: r#type::TypeWrapper::None,
-                                wrap_stream_state: false,
-                            }), // TODO: Proper conversion
-                            pkg: &pkg,
-                        }
-                    }).collect(),
+                    fields: class_data
+                        .fields
+                        .into_iter()
+                        .map(|field| {
+                            generated_types::FieldRust {
+                                name: field.name,
+                                docstring: None,
+                                rust_type: r#type::TypeRust::String(
+                                    None,
+                                    r#type::TypeMetaRust {
+                                        type_wrapper: r#type::TypeWrapper::None,
+                                        wrap_stream_state: false,
+                                    },
+                                ), // TODO: Proper conversion
+                                pkg: &pkg,
+                            }
+                        })
+                        .collect(),
                     dynamic: false, // TODO: Determine from class metadata
                     pkg: &pkg,
                 }
@@ -98,17 +117,18 @@ impl LanguageFeatures for RustLanguageFeatures {
                         generated_types::UnionRust {
                             name: union_data.name,
                             docstring: None, // TODO: Extract docstring from union
-                            variants: union_data.variants.into_iter().map(|variant_name| {
-                                generated_types::UnionVariantRust {
-                                    name: variant_name,
-                                    docstring: None,
-                                    rust_type: r#type::TypeRust::String(None, r#type::TypeMetaRust {
-                                type_wrapper: r#type::TypeWrapper::None,
-                                wrap_stream_state: false,
-                            }), // TODO: Proper conversion
-                                    literal_value: None,
-                                }
-                            }).collect(),
+                            variants: union_data
+                                .variants
+                                .into_iter()
+                                .map(|variant| {
+                                    generated_types::UnionVariantRust {
+                                        name: variant.name,
+                                        docstring: variant.docstring,
+                                        rust_type: variant.rust_type,
+                                        literal_value: variant.literal_value,
+                                    }
+                                })
+                                .collect(),
                             pkg: &pkg,
                         }
                     })
@@ -120,7 +140,16 @@ impl LanguageFeatures for RustLanguageFeatures {
         };
 
         let type_aliases = vec![]; // TODO: Generate type aliases from IR
-        collector.add_file("types.rs", generated_types::render_all_rust_types(&rust_classes, &enums, &unions, &type_aliases, &pkg)?)?;
+        collector.add_file(
+            "src/types.rs",
+            generated_types::render_all_rust_types(
+                &rust_classes,
+                &enums,
+                &unions,
+                &type_aliases,
+                &pkg,
+            )?,
+        )?;
 
         Ok(())
     }
@@ -128,7 +157,7 @@ impl LanguageFeatures for RustLanguageFeatures {
 
 fn render_lib_rs(pkg: &package::CurrentRenderPackage) -> Result<String, anyhow::Error> {
     use askama::Template;
-    
+
     #[derive(askama::Template)]
     #[template(path = "lib.rs.j2", escape = "none")]
     struct LibRs<'a> {
@@ -136,18 +165,20 @@ fn render_lib_rs(pkg: &package::CurrentRenderPackage) -> Result<String, anyhow::
         baml_version: &'a str,
         pkg: &'a package::CurrentRenderPackage,
     }
-    
+
     LibRs {
         crate_name: "baml_client",
         baml_version: "0.1.0", // TODO: Get actual BAML version
         pkg,
-    }.render().map_err(|e| anyhow::anyhow!("Template error: {}", e))
+    }
+    .render()
+    .map_err(|e| anyhow::anyhow!("Template error: {}", e))
 }
 
 fn render_cargo_toml() -> Result<String, anyhow::Error> {
     use askama::Template;
     use std::time::SystemTime;
-    
+
     #[derive(askama::Template)]
     #[template(path = "cargo.toml.j2", escape = "none")]
     struct CargoToml {
@@ -158,7 +189,7 @@ fn render_cargo_toml() -> Result<String, anyhow::Error> {
         baml_client_version: &'static str,
         generation_timestamp: String,
     }
-    
+
     CargoToml {
         package_name: "baml-client",
         lib_name: "baml_client",
@@ -166,7 +197,9 @@ fn render_cargo_toml() -> Result<String, anyhow::Error> {
         baml_version: "0.1.0", // TODO: Get actual BAML version
         baml_client_version: "0.1.0",
         generation_timestamp: format!("{:?}", SystemTime::now()),
-    }.render().map_err(|e| anyhow::anyhow!("Template error: {}", e))
+    }
+    .render()
+    .map_err(|e| anyhow::anyhow!("Template error: {}", e))
 }
 
 #[cfg(test)]
@@ -185,11 +218,12 @@ mod rust_tests {
 mod tests {
     #[test]
     fn test_name() {
-        use std::str::FromStr;
         use dir_writer::LanguageFeatures;
+        use std::str::FromStr;
 
-        let gen_type = baml_types::GeneratorOutputType::from_str(crate::RustLanguageFeatures::name())
-            .expect("RustLanguageFeatures name should be a valid GeneratorOutputType");
+        let gen_type =
+            baml_types::GeneratorOutputType::from_str(crate::RustLanguageFeatures::name())
+                .expect("RustLanguageFeatures name should be a valid GeneratorOutputType");
         assert_eq!(gen_type, baml_types::GeneratorOutputType::Rust);
     }
 }

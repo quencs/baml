@@ -46,10 +46,7 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
             meta: cls_meta,
             ..
         } => TypeRust::Class {
-            package: match cls_meta.streaming_behavior.done {
-                true => types_pkg.clone(),
-                false => stream_pkg.clone(),
-            },
+            package: types_pkg.clone(), // Use types package for both streaming and non-streaming for now
             name: name.clone(),
             dynamic: *dynamic,
             meta,

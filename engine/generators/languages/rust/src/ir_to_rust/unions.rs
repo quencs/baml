@@ -1,5 +1,5 @@
 use baml_types::ir_type::TypeNonStreaming;
-use crate::{generated_types::RustUnion, package::CurrentRenderPackage, r#type::{SerializeType, TypeRust}};
+use crate::{generated_types::{RustUnion, RustVariant}, package::CurrentRenderPackage, r#type::TypeRust};
 
 pub fn ir_union_to_rust(
     union_type: &TypeNonStreaming,
@@ -18,29 +18,73 @@ pub fn ir_union_to_rust(
                     baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
                         let variants = type_generics
                             .into_iter()
-                            .map(|t| {
+                            .enumerate()
+                            .map(|(i, t)| {
                                 let rust_type = crate::ir_to_rust::type_to_rust(t, pkg.lookup());
-                                rust_type.serialize_type(pkg)
+                                let variant_name = match &rust_type {
+                                    TypeRust::String(_, _) => "String".to_string(),
+                                    TypeRust::Int(_, _) => "Int".to_string(),
+                                    TypeRust::Float(_) => "Float".to_string(),
+                                    TypeRust::Bool(_, _) => "Bool".to_string(),
+                                    TypeRust::Class { name, .. } => name.clone(),
+                                    TypeRust::Enum { name, .. } => name.clone(),
+                                    TypeRust::Union { name, .. } => name.clone(),
+                                    TypeRust::List(_, _) => format!("List{}", i),
+                                    TypeRust::Map(_, _, _) => format!("Map{}", i),
+                                    TypeRust::Media(_, _) => format!("Media{}", i),
+                                    TypeRust::TypeAlias { name, .. } => name.clone(),
+                                    TypeRust::Any { .. } => format!("Any{}", i),
+                                };
+                                
+                                RustVariant {
+                                    name: variant_name,
+                                    rust_type,
+                                    docstring: None,
+                                    literal_value: None,
+                                }
                             })
                             .collect();
                         
                         Some(RustUnion {
                             name,
                             variants,
+                            docstring: None,
                         })
                     }
                     baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
                         let variants = type_generics
                             .into_iter()
-                            .map(|t| {
+                            .enumerate()
+                            .map(|(i, t)| {
                                 let rust_type = crate::ir_to_rust::type_to_rust(t, pkg.lookup());
-                                rust_type.serialize_type(pkg)
+                                let variant_name = match &rust_type {
+                                    TypeRust::String(_, _) => "String".to_string(),
+                                    TypeRust::Int(_, _) => "Int".to_string(),
+                                    TypeRust::Float(_) => "Float".to_string(),
+                                    TypeRust::Bool(_, _) => "Bool".to_string(),
+                                    TypeRust::Class { name, .. } => name.clone(),
+                                    TypeRust::Enum { name, .. } => name.clone(),
+                                    TypeRust::Union { name, .. } => name.clone(),
+                                    TypeRust::List(_, _) => format!("List{}", i),
+                                    TypeRust::Map(_, _, _) => format!("Map{}", i),
+                                    TypeRust::Media(_, _) => format!("Media{}", i),
+                                    TypeRust::TypeAlias { name, .. } => name.clone(),
+                                    TypeRust::Any { .. } => format!("Any{}", i),
+                                };
+                                
+                                RustVariant {
+                                    name: variant_name,
+                                    rust_type,
+                                    docstring: None,
+                                    literal_value: None,
+                                }
                             })
                             .collect();
                         
                         Some(RustUnion {
                             name,
                             variants,
+                            docstring: None,
                         })
                     }
                 }

@@ -11,8 +11,9 @@ license = "MIT"
 # BAML version: {{ baml_version }}
 
 [dependencies]
-# Core BAML runtime
-baml-client-rust = "{{ baml_client_version }}"
+# Core BAML runtime - using local development path
+# Note: Change to published crate version when baml-client-rust is published to crates.io
+baml-client-rust = { path = "../../../../../../language_client_rust" }
 
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }
@@ -33,17 +34,14 @@ tokio-test = "0.4"
 default = []
 
 # Optional features
-tracing = ["baml-client-rust/tracing"]
-metrics = ["baml-client-rust/metrics"]
+# tracing = ["baml-client-rust/tracing"]
+# metrics = ["baml-client-rust/metrics"]
 
 [lib]
 name = "{{ lib_name }}"
 path = "src/lib.rs"
 
-[[bin]]
-name = "{{ package_name }}-cli"
-path = "src/bin/cli.rs"
-required-features = ["cli"]
+# Binary targets removed - this is a library crate
 
 [package.metadata.baml]
 version = "{{ baml_version }}"

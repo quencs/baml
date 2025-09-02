@@ -84,3 +84,24 @@ impl Default for {{ name }} {
         {%- endif %}
     }
 }
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for {{ name }} {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        Ok(baml_client_rust::types::BamlValue::Enum("{{ name }}".to_string(), self.as_str().to_string()))
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for {{ name }} {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        match value {
+            baml_client_rust::types::BamlValue::Enum(_enum_name, variant) => {
+                Self::from_str(&variant).map_err(|e| baml_client_rust::BamlError::deserialization(e))
+            }
+            baml_client_rust::types::BamlValue::String(s) => {
+                Self::from_str(&s).map_err(|e| baml_client_rust::BamlError::deserialization(e))
+            }
+            _ => Err(baml_client_rust::BamlError::deserialization(format!("Expected enum, got {:?}", value))),
+        }
+    }
+}

@@ -59,3 +59,56 @@ impl Default for {{ name }} {
         )
     }
 }
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for {{ name }} {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        let mut map = baml_client_rust::types::BamlMap::new();
+        {%- for field in fields %}
+        map.insert("{{ field.name }}".to_string(), self.{{ field.name }}.to_baml_value()?);
+        {%- endfor %}
+        {%- if dynamic %}
+        for (key, value) in self.additional_properties {
+            map.insert(key, serde_json::to_value(value).unwrap_or(serde_json::Value::Null).try_into().unwrap_or(baml_client_rust::types::BamlValue::Null));
+        }
+        {%- endif %}
+        Ok(baml_client_rust::types::BamlValue::Class("{{ name }}".to_string(), map))
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for {{ name }} {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        match value {
+            baml_client_rust::types::BamlValue::Class(_class_name, map) => {
+                {%- for field in fields %}
+                let {{ field.name }} = map
+                    .get("{{ field.name }}")
+                    .ok_or_else(|| baml_client_rust::BamlError::deserialization(format!("Missing field '{{ field.name }}' in {{ name }}")))
+                    .and_then(|v| baml_client_rust::types::FromBamlValue::from_baml_value(v.clone()))?;
+                {%- endfor %}
+                {%- if dynamic %}
+                let mut additional_properties = std::collections::HashMap::new();
+                for (key, value) in map {
+                    {%- for field in fields %}
+                    if key == "{{ field.name }}" { continue; }
+                    {%- endfor %}
+                    additional_properties.insert(key, serde_json::to_value(value).unwrap_or(serde_json::Value::Null));
+                }
+                Ok(Self { 
+                    {%- for field in fields %}
+                    {{ field.name }}, 
+                    {%- endfor %}
+                    additional_properties 
+                })
+                {%- else %}
+                Ok(Self::new(
+                    {%- for field in fields %}
+                    {{ field.name }},
+                    {%- endfor %}
+                ))
+                {%- endif %}
+            }
+            _ => Err(baml_client_rust::BamlError::deserialization(format!("Expected class, got {:?}", value))),
+        }
+    }
+}
