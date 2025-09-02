@@ -142,9 +142,6 @@ pub struct RustVariant {
 /// A list of types in Rust.
 /// 
 /// ```askama
-/// use serde::{Deserialize, Serialize};
-/// use std::collections::HashMap;
-/// 
 /// {% for item in items -%}
 /// {{ item.render()? }}
 /// 
