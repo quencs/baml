@@ -1,0 +1,444 @@
+---
+title: Runtime Events
+---
+
+<Info>
+This feature was added in TODO
+</Info>
+
+The BAML runtime events system allows you to receive real-time callbacks about workflow execution, including block progress and variable updates. This enables you to build responsive UIs, track progress, and access intermediate results during complex BAML workflows.
+
+## Event Types
+
+### VarEvent
+
+Represents an update to an emitted variable in your BAML workflow.
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+from typing import TypeVar, Generic
+from baml_client.types import VarEvent
+
+T = TypeVar('T')
+
+class VarEvent(Generic[T]):
+    """
+    Event fired when an emitted variable is updated
+    
+    Attributes:
+        variable_name: Name of the variable that was updated
+        value: The new value of the variable
+        timestamp: ISO timestamp when the update occurred
+        function_name: Name of the BAML function containing the variable
+    """
+    variable_name: str
+    value: T
+    timestamp: str
+    function_name: str
+
+# Usage examples:
+# VarEvent[int] for integer variables
+# VarEvent[str] for string variables  
+# VarEvent[List[Post]] for complex types
+```
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+```typescript
+import type { VarEvent } from './baml-client/types'
+
+interface VarEvent<T = any> {
+  /**
+   * Event fired when an emitted variable is updated
+   */
+  
+  /** Name of the variable that was updated */
+  variableName: string
+  
+  /** The new value of the variable */
+  value: T
+  
+  /** ISO timestamp when the update occurred */
+  timestamp: string
+  
+  /** Name of the BAML function containing the variable */
+  functionName: string
+}
+
+// Usage examples:
+// VarEvent<number> for integer variables
+// VarEvent<string> for string variables
+// VarEvent<Post[]> for complex types
+```
+</Tab>
+
+<Tab title="Go" language="go">
+```go
+package types
+
+import "time"
+
+// Since Go doesn't have user-defined generics, we generate specific types
+// for each emitted variable in your BAML functions
+
+// For a variable named "progress_percent" of type int
+type ProgressPercentVarEvent struct {
+    // Name of the variable that was updated
+    VariableName string `json:"variable_name"`
+    
+    // The new value of the variable
+    Value int `json:"value"`
+    
+    // Timestamp when the update occurred
+    Timestamp time.Time `json:"timestamp"`
+    
+    // Name of the BAML function containing the variable
+    FunctionName string `json:"function_name"`
+}
+
+// For a variable named "current_task" of type string  
+type CurrentTaskVarEvent struct {
+    VariableName string `json:"variable_name"`
+    Value string `json:"value"`
+    Timestamp time.Time `json:"timestamp"`
+    FunctionName string `json:"function_name"`
+}
+
+// For a variable named "completed_posts" of type []Post
+type CompletedPostsVarEvent struct {
+    VariableName string `json:"variable_name"`
+    Value []Post `json:"value"`
+    Timestamp time.Time `json:"timestamp"`
+    FunctionName string `json:"function_name"`
+}
+```
+</Tab>
+</Tabs>
+
+### BlockEvent
+
+Represents progress through a markdown block in your BAML workflow.
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+from baml_client.types import BlockEvent
+
+class BlockEvent:
+    """
+    Event fired when entering or exiting a markdown block
+    
+    Attributes:
+        block_label: The markdown header text (e.g., "# Summarize Source")
+        block_level: The markdown header level (1-6)
+        event_type: Whether we're entering or exiting the block
+        timestamp: ISO timestamp when the event occurred
+        function_name: Name of the BAML function containing the block
+    """
+    block_label: str
+    block_level: int  # 1-6 for # through ######
+    event_type: str   # "enter" | "exit"
+    timestamp: str
+    function_name: str
+```
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+```typescript
+import type { BlockEvent } from './baml-client/types'
+
+interface BlockEvent {
+  /**
+   * Event fired when entering or exiting a markdown block
+   */
+  
+  /** The markdown header text (e.g., "# Summarize Source") */
+  blockLabel: string
+  
+  /** The markdown header level (1-6) */
+  blockLevel: number
+  
+  /** Whether we're entering or exiting the block */
+  eventType: "enter" | "exit"
+  
+  /** ISO timestamp when the event occurred */
+  timestamp: string
+  
+  /** Name of the BAML function containing the block */
+  functionName: string
+}
+```
+</Tab>
+
+<Tab title="Go" language="go">
+```go
+package types
+
+import "time"
+
+type BlockEventType string
+
+const (
+    BlockEventEnter BlockEventType = "enter"
+    BlockEventExit  BlockEventType = "exit"
+)
+
+type BlockEvent struct {
+    // The markdown header text (e.g., "# Summarize Source")
+    BlockLabel string `json:"block_label"`
+    
+    // The markdown header level (1-6)
+    BlockLevel int `json:"block_level"`
+    
+    // Whether we're entering or exiting the block
+    EventType BlockEventType `json:"event_type"`
+    
+    // Timestamp when the event occurred
+    Timestamp time.Time `json:"timestamp"`
+    
+    // Name of the BAML function containing the block
+    FunctionName string `json:"function_name"`
+}
+```
+</Tab>
+</Tabs>
+
+## Usage Examples
+
+### Tracking Variable Updates
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+from baml_client import b, events
+from baml_client.types import VarEvent
+
+def track_progress(event: VarEvent[int]):
+    print(f"Progress updated: {event.value}% at {event.timestamp}")
+
+def track_current_task(event: VarEvent[str]):
+    print(f"Now working on: {event.value}")
+
+# Set up variable tracking
+ev = events.MakePosts()
+events.on_progress_percent(track_progress)
+events.on_current_task(track_current_task)
+
+# Run the function
+posts = await b.MakePosts("https://example.com", {"events": ev})
+```
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+```typescript
+import { b, events } from './baml-client'
+import type { VarEvent } from './baml-client/types'
+
+const trackProgress = (event: VarEvent<number>) => {
+  console.log(`Progress updated: ${event.value}% at ${event.timestamp}`)
+}
+
+const trackCurrentTask = (event: VarEvent<string>) => {
+  console.log(`Now working on: ${event.value}`)
+}
+
+// Set up variable tracking
+const ev = events.MakePosts()
+events.on_progress_percent(trackProgress)
+events.on_current_task(trackCurrentTask)
+
+// Run the function
+const posts = await b.MakePosts("https://example.com", { events: ev })
+```
+</Tab>
+
+<Tab title="Go" language="go">
+```go
+package main
+
+import (
+    "fmt"
+    b "example.com/myproject/baml_client"
+    "example.com/myproject/baml_client/events"
+    "example.com/myproject/baml_client/types"
+)
+
+func trackProgress(event *types.ProgressPercentVarEvent) {
+    fmt.Printf("Progress updated: %d%% at %s\n", 
+        event.Value, event.Timestamp.Format("15:04:05"))
+}
+
+func trackCurrentTask(event *types.CurrentTaskVarEvent) {
+    fmt.Printf("Now working on: %s\n", event.Value)
+}
+
+func main() {
+    ctx := context.Background()
+    
+    // Set up variable tracking
+    ev := events.NewMakePosts()
+    events.OnProgressPercent(trackProgress)
+    events.OnCurrentTask(trackCurrentTask)
+    
+    // Run the function
+    posts, err := b.MakePosts(ctx, "https://example.com", &b.MakePostsOptions{
+        Events: ev,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
+</Tab>
+</Tabs>
+
+### Tracking Block Progress
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+from baml_client import b, events
+from baml_client.types import BlockEvent
+
+def track_blocks(event: BlockEvent):
+    indent = "  " * (event.block_level - 1)
+    action = "Starting" if event.event_type == "enter" else "Completed"
+    print(f"{indent}{action}: {event.block_label}")
+
+# Set up block tracking
+ev = events.MakePosts()
+events.on_block(track_blocks)
+
+# Run the function
+posts = await b.MakePosts("https://example.com", {"events": ev})
+```
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+```typescript
+import { b, events } from './baml-client'
+import type { BlockEvent } from './baml-client/types'
+
+const trackBlocks = (event: BlockEvent) => {
+  const indent = "  ".repeat(event.blockLevel - 1)
+  const action = event.eventType === "enter" ? "Starting" : "Completed"
+  console.log(`${indent}${action}: ${event.blockLabel}`)
+}
+
+// Set up block tracking
+const ev = events.MakePosts()
+events.on_block(trackBlocks)
+
+// Run the function
+const posts = await b.MakePosts("https://example.com", { events: ev })
+```
+</Tab>
+
+<Tab title="Go" language="go">
+```go
+func trackBlocks(event *types.BlockEvent) {
+    indent := strings.Repeat("  ", event.BlockLevel - 1)
+    action := "Starting"
+    if event.EventType == types.BlockEventExit {
+        action = "Completed"
+    }
+    fmt.Printf("%s%s: %s\n", indent, action, event.BlockLabel)
+}
+
+func main() {
+    ctx := context.Background()
+    
+    // Set up block tracking
+    ev := events.NewMakePosts()
+    events.OnBlock(trackBlocks)
+    
+    // Run the function
+    posts, err := b.MakePosts(ctx, "https://example.com", &b.MakePostsOptions{
+        Events: ev,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Generated Event API
+
+<Tabs>
+<Tab title="Python" language="python">
+When you run `baml generate`, BAML analyzes your functions and creates type-safe event handlers with generic types:
+
+```python
+# For a function with `emit let progress: int = 0`
+events.on_progress(callback: (event: VarEvent[int]) -> None)
+
+# For a function with `emit let status: string = "starting"`  
+events.on_status(callback: (event: VarEvent[str]) -> None)
+
+# For all markdown blocks
+events.on_block(callback: (event: BlockEvent) -> None)
+```
+
+The generic `VarEvent[T]` type provides compile-time type safety, ensuring your event handlers receive the correct data types.
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+When you run `baml generate`, BAML analyzes your functions and creates type-safe event handlers with generic types:
+
+```typescript
+// For a function with `emit let progress: int = 0`
+events.on_progress(callback: (event: VarEvent<number>) => void)
+
+// For a function with `emit let status: string = "starting"`  
+events.on_status(callback: (event: VarEvent<string>) => void)
+
+// For all markdown blocks
+events.on_block(callback: (event: BlockEvent) => void)
+```
+
+The generic `VarEvent<T>` interface provides compile-time type safety, ensuring your event handlers receive the correct data types.
+</Tab>
+
+<Tab title="Go" language="go">
+When you run `baml generate`, BAML analyzes your functions and creates specific types for each emitted variable (since Go doesn't have user-defined generics):
+
+```go
+// Separate types generated for each emitted variable
+type ProgressVarEvent struct {
+    VariableName string
+    Value int
+    Timestamp time.Time
+    FunctionName string
+}
+
+type StatusVarEvent struct {
+    VariableName string
+    Value string  
+    Timestamp time.Time
+    FunctionName string
+}
+
+// Corresponding callback functions
+events.OnProgress(func(*types.ProgressVarEvent))
+events.OnStatus(func(*types.StatusVarEvent))
+events.OnBlock(func(*types.BlockEvent))
+```
+
+Each emitted variable gets its own dedicated event type, providing the same type safety as generics while working within Go's constraints.
+</Tab>
+</Tabs>
+
+## Best Practices
+
+1. **Performance**: Keep event handlers lightweight. They run sequentially in
+   a separate thread from the rest of the BAML runtime
+1. **Error Handling**: Always include error handling in event callbacks
+1. **Naming**: Use descriptive names for emitted variables to generate clear event handler names
+
+## Related Topics
+
+- [Runtime Events Guide](/guide/baml-advanced/runtime-events) - Learn how to use events in workflows
+- [Collector](/ref/baml_client/collector) - Comprehensive logging system

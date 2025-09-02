@@ -1,0 +1,295 @@
+---
+title: Runtime Events
+---
+
+<Info>
+This feature was added in TODO
+</Info>
+
+When running multi-step workflows, you need to be able to get information about
+the running workflow. You might need this information to show incremental
+results to your app’s users, or to debug a complex workflow combining multiple
+LLM calls.
+
+BAML makes this possible though an event system that connects variables in your
+BAML Workflow code to the Python/TypeScript/etc client code that you used to
+invoke the workflow.
+
+## Using Markdown blocks to track execution
+
+Markdown Blocks are automatically tracked when you run BAML
+workflows, and your client code can track which block is currently executing. In
+the following example, your client could directly use the markdown headers to
+render the current status on a status page:
+
+```baml BAML
+struct Post {
+  title string
+  content string
+}
+
+// Browse a URL and produce a number of posts describing
+// its what was found there for our marketing site.
+function MakePosts(source_url: string, count: int) -> Post[] {
+  # Summarize Source
+  let source = LLMSummarizeSource(source_url);
+  
+  # Determine Topic
+  let topic = LLMInferTopic(source);
+  
+  # Generate Marketing Post Ideas
+  let ideas: string[] = LLMIdeas(topic, source);
+  
+  # Generate posts
+  let posts: Post[] = [];
+  for (idea in ideas) {
+  
+    ## Create the post
+    let post = LLMGeneratePost(idea, source);
+    
+    ## Quality control
+    let quality = LLMJudgePost(post, idea, source);
+    if (quality > 8) {
+      posts.push(post);
+    }
+  }
+}
+```
+
+In your client code, you can bind events to callbacks:
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+ # app.py
+ from baml_client.sync_client import { b }
+ from baml_client.types import Event
+ import baml_client.events
+ 
+ def Example():
+   # Get an Events callback collector with the right type
+   # for your MakePosts() function.
+   ev = events.MakePosts()
+   
+   # Associate the block event with your own callback.
+   events.on_block(lambda ev: print(ev.block_label))
+   
+   # Invoke the function.
+   posts = b.MakePosts("https://wikipedia.org/wiki/DNA", {"events": ev})
+   print(posts)
+```
+</Tab>
+<Tab title="TypeScript" language="typescript">
+```typescript
+ // index.ts
+ import { b, events } from "./baml-client"
+ import type { Event } from "./baml-client/types"
+ 
+ async function Example() {
+   // Get an Events callback collector with the right type
+   // for your MakePosts() function.
+   let ev = events.MakePosts()
+
+   // Associate the block event with your own callback.
+   events.on_block((ev) => {
+     console.log(ev.block_label)
+   });
+   
+   // Invoke the function.
+   const posts = await b.MakePosts(
+     "https://wikipedia.org/wiki/DNA",
+     {"events": ev}
+   )
+   console.log(posts)
+ }
+```
+</Tab>
+<Tab title="Go" language="go">
+```go
+// main.go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    b "example.com/myproject/baml_client"
+    "example.com/myproject/baml_client/events"
+    "example.com/myproject/baml_client/types"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // Get an Events callback collector with the right type
+    // for your MakePosts() function.
+    ev := events.NewMakePosts()
+    
+    // Associate the block event with your own callback.
+    events.OnBlock(func(ev *types.BlockEvent) {
+        fmt.Println(ev.BlockLabel)
+    })
+    
+    // Invoke the function.
+    posts, err := b.MakePosts(ctx, "https://wikipedia.org/wiki/DNA", &b.MakePostsOptions{
+        Events: ev,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("%+v\n", posts)
+}
+```
+</Tab>
+</Tabs>
+
+## Using `emit` to track variables
+
+Variable update can also be tracked with events. To mark a variable as visible
+to the event system, use the `emit` keyword when you declare the variable. Let’s
+see how we would use this capability to track the progress of our marketing post
+generation workflow:
+
+```tsx
+function MakePosts(source_url: string) -> Post[] {
+  # Summarize Source
+  let source = LLMSummarizeSource(source_url);
+  
+  # Determine Topic
+  let topic = LLMInferTopic(source);
+  
+  # Generate Marketing Post Ideas
+  let ideas: string[] = LLMIdeas(topic, source);
+  
+  // Track how many posts we need to generate.    <-***
+  let posts_target_length = ideas.len();
+  emit let progress_percent: int = 0;
+  
+  # Generate posts
+  let posts: Post[] = [];
+  for ((i,idea) in ideas.enumerate()) {
+  
+    ## Create the post
+    let post = LLMGeneratePost(idea, source);
+    
+    ## Quality control
+    let quality = LLMJudgePost(post, idea, source);
+    if (quality > 8) {
+      posts.push(post);
+    } else {
+      posts_target_length -= 1;
+    }
+    
+    // *** This update will trigger events visible to the client.
+    progress_percent = i * 100 / posts_target_length
+  }
+}
+```
+
+When you generate a BAML client, the events structure for ` MakePosts` will
+accept callbacks for `progress_percent` because we marked that variable with
+`emit`, and the callbacks will receive an `int` data payload, because
+`progress_percent` is an `int`.
+
+In your client code, you can track these emitted variables:
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+# app.py
+from baml_client.sync_client import { b }
+from baml_client.types import Event
+import baml_client.events
+
+def Example():
+  # Get an Events callback collector with the right type
+  # for your MakePosts() function.
+  ev = events.MakePosts()
+  
+  # Track the progress_percent variable updates
+  events.on_progress_percent(lambda percent: print(f"Progress: {percent}%"))
+  
+  # Invoke the function.
+  posts = b.MakePosts("https://wikipedia.org/wiki/DNA", {"events": ev})
+  print(posts)
+```
+</Tab>
+<Tab title="TypeScript" language="typescript">
+```typescript
+// index.ts
+import { b, events } from "./baml-client"
+import type { Event } from "./baml-client/types"
+
+async function Example() {
+  // Get an Events callback collector with the right type
+  // for your MakePosts() function.
+  let ev = events.MakePosts()
+
+  // Track the progress_percent variable updates
+  events.on_progress_percent((percent) => {
+    console.log(`Progress: ${percent}%`)
+  });
+  
+  // Invoke the function.
+  const posts = await b.MakePosts(
+    "https://wikipedia.org/wiki/DNA",
+    {"events": ev}
+  )
+  console.log(posts)
+}
+```
+</Tab>
+<Tab title="Go" language="go">
+```go
+// main.go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    b "example.com/myproject/baml_client"
+    "example.com/myproject/baml_client/events"
+    "example.com/myproject/baml_client/types"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // Get an Events callback collector with the right type
+    // for your MakePosts() function.
+    ev := events.NewMakePosts()
+    
+    // Track the progress_percent variable updates
+    events.OnProgressPercent(func(percent int) {
+        fmt.Printf("Progress: %d%%\n", percent)
+    })
+    
+    // Invoke the function.
+    posts, err := b.MakePosts(ctx, "https://wikipedia.org/wiki/DNA", &b.MakePostsOptions{
+        Events: ev,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("%+v\n", posts)
+}
+```
+</Tab>
+</Tabs>
+
+For details about the types of events, see [BAML Language Reference](/ref/baml_client/events)
+
+# Event Details
+
+It helps to understand the following concepts when trying to do more complex
+things with Events:
+
+  1. **Separate Thread** To avoid interfering with the rest of your BAML code,
+     callbacks are run concurrently in a separate execution thread.
+  2. Events are meant for local tracking. If you asign a value to a new (non-
+     emit) variable, this new variable doesn't get its updates tracked. If you
+     pass a value as a parameter to a function, updates made within that
+     function will not be tracked.
