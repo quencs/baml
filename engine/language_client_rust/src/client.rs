@@ -1,7 +1,13 @@
+use baml_cffi as ffi;
+
 use crate::{
-    ffi,
+    // ffi,
     types::{BamlValue, FromBamlValue},
-    BamlContext, BamlError, BamlResult, FunctionResult, StreamState,
+    BamlContext,
+    BamlError,
+    BamlResult,
+    FunctionResult,
+    StreamState,
 };
 use futures::{Stream, StreamExt};
 use serde_json;
@@ -170,7 +176,24 @@ impl BamlClient {
         })?;
 
         // Create the BAML runtime via FFI
-        let runtime_ptr = ffi::create_baml_runtime(root_path, &src_files_json, &env_vars_json)?;
+        // Convert strings to C strings
+        let root_path_c = std::ffi::CString::new(root_path)
+            .map_err(|e| BamlError::invalid_argument(format!("Invalid root_path: {}", e)))?;
+        let src_files_json_c = std::ffi::CString::new(src_files_json)
+            .map_err(|e| BamlError::invalid_argument(format!("Invalid src_files_json: {}", e)))?;
+        let env_vars_json_c = std::ffi::CString::new(env_vars_json)
+            .map_err(|e| BamlError::invalid_argument(format!("Invalid env_vars_json: {}", e)))?;
+        
+        let runtime_ptr = ffi::create_baml_runtime(
+            root_path_c.as_ptr(),
+            src_files_json_c.as_ptr(),
+            env_vars_json_c.as_ptr(),
+        );
+        
+        // Check if runtime creation failed (null pointer indicates error)
+        if runtime_ptr.is_null() {
+            return Err(BamlError::Runtime(anyhow::anyhow!("Failed to create BAML runtime")));
+        }
 
         let callback_manager = Arc::new(CallbackManager::new());
 
@@ -223,7 +246,24 @@ impl BamlClient {
         let callback_receiver = self.callback_manager.register_call(call_id);
 
         // Make the FFI call
-        ffi::call_function_from_c(self.runtime_ptr, function_name, &encoded_args, call_id)?;
+        // Convert strings to C strings
+        let function_name_c = std::ffi::CString::new(function_name)
+            .map_err(|e| BamlError::invalid_argument(format!("Invalid function_name: {}", e)))?;
+        let encoded_args_c = std::ffi::CString::new(encoded_args.clone())
+            .map_err(|e| BamlError::invalid_argument(format!("Invalid encoded_args: {}", e)))?;
+        
+        let result_ptr = ffi::call_function_from_c(
+            self.runtime_ptr,
+            function_name_c.as_ptr(),
+            encoded_args_c.as_ptr(),
+            encoded_args.len(),
+            call_id as u32,
+        );
+        
+        // Check if the call failed (non-null pointer indicates error)
+        if !result_ptr.is_null() {
+            return Err(BamlError::Runtime(anyhow::anyhow!("FFI function call failed")));
+        }
 
         // Wait for the callback result
         let callback_result = callback_receiver
@@ -285,7 +325,24 @@ impl BamlClient {
         let stream_receiver = self.callback_manager.register_stream(call_id);
 
         // Make the FFI call
-        ffi::call_function_stream_from_c(self.runtime_ptr, function_name, &encoded_args, call_id)?;
+        // Convert strings to C strings
+        let function_name_c = std::ffi::CString::new(function_name)
+            .map_err(|e| BamlError::invalid_argument(format!("Invalid function_name: {}", e)))?;
+        let encoded_args_c = std::ffi::CString::new(encoded_args.clone())
+            .map_err(|e| BamlError::invalid_argument(format!("Invalid encoded_args: {}", e)))?;
+        
+        let result_ptr = ffi::call_function_stream_from_c(
+            self.runtime_ptr,
+            function_name_c.as_ptr(),
+            encoded_args_c.as_ptr(),
+            encoded_args.len(),
+            call_id as u32,
+        );
+        
+        // Check if the call failed (non-null pointer indicates error)
+        if !result_ptr.is_null() {
+            return Err(BamlError::Runtime(anyhow::anyhow!("FFI streaming function call failed")));
+        }
 
         Ok(BamlStream::new(stream_receiver))
     }

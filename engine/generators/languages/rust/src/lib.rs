@@ -77,16 +77,32 @@ impl LanguageFeatures for RustLanguageFeatures {
                         .fields
                         .into_iter()
                         .map(|field| {
-                            generated_types::FieldRust {
-                                name: field.name,
-                                docstring: None,
-                                rust_type: r#type::TypeRust::String(
+                            // Convert field type from string back to TypeRust
+                            // For now, we need to re-parse the field type properly
+                            let field_type_ir = c.item
+                                .elem
+                                .static_fields
+                                .iter()
+                                .find(|f| crate::utils::safe_rust_identifier(&f.elem.name) == field.name)
+                                .map(|f| &f.elem.r#type.elem);
+                            
+                            let rust_type = if let Some(field_type) = field_type_ir {
+                                crate::ir_to_rust::type_to_rust(&field_type.to_non_streaming_type(pkg.lookup()), pkg.lookup())
+                            } else {
+                                // Fallback to String if field not found
+                                r#type::TypeRust::String(
                                     None,
                                     r#type::TypeMetaRust {
                                         type_wrapper: r#type::TypeWrapper::None,
                                         wrap_stream_state: false,
                                     },
-                                ), // TODO: Proper conversion
+                                )
+                            };
+                            
+                            generated_types::FieldRust {
+                                name: field.name,
+                                docstring: None,
+                                rust_type,
                                 pkg: &pkg,
                             }
                         })

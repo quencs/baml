@@ -140,6 +140,46 @@ impl<T: FromBamlValue> FromBamlValue for Option<T> {
     }
 }
 
+// HashMap implementations
+impl<K, V> ToBamlValue for std::collections::HashMap<K, V>
+where
+    K: ToString,
+    V: ToBamlValue,
+{
+    fn to_baml_value(self) -> crate::BamlResult<BamlValue> {
+        let mut map = BamlMap::new();
+        for (key, value) in self {
+            map.insert(key.to_string(), value.to_baml_value()?);
+        }
+        Ok(BamlValue::Map(map))
+    }
+}
+
+impl<K, V> FromBamlValue for std::collections::HashMap<K, V>
+where
+    K: std::str::FromStr + std::hash::Hash + Eq,
+    K::Err: std::fmt::Debug,
+    V: FromBamlValue,
+{
+    fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
+        match value {
+            BamlValue::Map(map) => {
+                let mut result = std::collections::HashMap::new();
+                for (key_str, value) in map {
+                    let key = K::from_str(&key_str)
+                        .map_err(|e| crate::BamlError::deserialization(format!(
+                            "Could not parse key '{}': {:?}", key_str, e
+                        )))?;
+                    let parsed_value = V::from_baml_value(value)?;
+                    result.insert(key, parsed_value);
+                }
+                Ok(result)
+            }
+            _ => Err(crate::BamlError::deserialization(format!("Expected map, got {:?}", value))),
+        }
+    }
+}
+
 impl ToBamlValue for BamlMap<String, BamlValue> {
     fn to_baml_value(self) -> crate::BamlResult<BamlValue> {
         Ok(BamlValue::Map(self))

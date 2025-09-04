@@ -125,3 +125,82 @@ impl std::fmt::Display for {{ name }} {
         }
     }
 }
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for {{ name }} {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            {%- for variant in variants %}
+            {%- if let Some(literal) = variant.literal_value %}
+            Self::{{ variant.name }} => {
+                // Handle literal variant - convert literal value to BamlValue
+                {%- if literal.starts_with('"') %}
+                {%- if literal.ends_with('"') %}
+                Ok(baml_client_rust::types::BamlValue::String({{ literal }}.to_string()))
+                {%- else %}
+                Ok(baml_client_rust::types::BamlValue::String("{{ literal }}".to_string()))
+                {%- endif %}
+                {%- elif literal == "true" %}
+                Ok(baml_client_rust::types::BamlValue::Bool(true))
+                {%- elif literal == "false" %}
+                Ok(baml_client_rust::types::BamlValue::Bool(false))
+                {%- else %}
+                // Try to parse as number, fallback to string
+                Ok(baml_client_rust::types::BamlValue::String("{{ literal }}".to_string()))
+                {%- endif %}
+            }
+            {%- else %}
+            Self::{{ variant.name }}(v) => v.to_baml_value(),
+            {%- endif %}
+            {%- endfor %}
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for {{ name }} {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        {%- for variant in variants %}
+        {%- if let Some(literal) = variant.literal_value %}
+        // Try literal variant: {{ variant.name }}
+        {%- if literal.starts_with('"') %}
+        {%- if literal.ends_with('"') %}
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == {{ literal }} {
+                return Ok(Self::{{ variant.name }});
+            }
+        }
+        {%- endif %}
+        {%- elif literal == "true" %}
+        if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+            if *b == true {
+                return Ok(Self::{{ variant.name }});
+            }
+        }
+        {%- elif literal == "false" %}
+        if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+            if *b == false {
+                return Ok(Self::{{ variant.name }});
+            }
+        }
+        {%- else %}
+        // Try matching literal as string fallback
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "{{ literal }}" {
+                return Ok(Self::{{ variant.name }});
+            }
+        }
+        {%- endif %}
+        {%- else %}
+        // Try {{ variant.name }} variant
+        if let Ok(variant_value) = {{ variant.rust_type.serialize_type(pkg) }}::from_baml_value(value.clone()) {
+            return Ok(Self::{{ variant.name }}(variant_value));
+        }
+        {%- endif %}
+        {%- endfor %}
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to {{ name }}",
+            value
+        )))
+    }
+}

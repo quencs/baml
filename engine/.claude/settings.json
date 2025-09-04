@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/scripts/save-session.sh"
+            "command": "/Users/ceciliazhang/Code/baml/engine/.claude/scripts/save-session.sh"
           }
         ]
       }

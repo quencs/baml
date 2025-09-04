@@ -7,12 +7,9 @@ description = "Rust language client for BAML runtime"
 license-file.workspace = true
 
 [dependencies]
-# FFI for dynamic library loading
-libloading = "0.8"
-libc = "0.2"
-
 # Core BAML types (for serialization/deserialization)
 baml-types = { path = "../baml-lib/baml-types" }
+baml_cffi = { path = "../language_client_cffi", package = "baml_cffi" }
 
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }

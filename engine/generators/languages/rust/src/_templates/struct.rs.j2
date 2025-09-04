@@ -1,7 +1,7 @@
 {% if let Some(docstring) = docstring -%}
 /// {{ docstring }}
 {% endif -%}
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 {% if dynamic -%}
 #[serde(flatten)]
 {% endif -%}
