@@ -313,6 +313,45 @@ listener with your own callback functions, and finally supplying the listener
 when you invoke the function.
 
 ```go
+// baml_client/events.go
+package events
+
+import "time"
+
+type BlockEvent struct {
+    BlockLabel string    `json:"block_label"`
+    EventType  string    `json:"event_type"` // "enter" | "exit"
+    Timestamp  time.Time `json:"timestamp"`
+}
+
+type VarEvent[T any] struct {
+    VariableName string    `json:"variable_name"`
+    Value        T         `json:"value"`
+    Timestamp    time.Time `json:"timestamp"`
+    FunctionName string    `json:"function_name"`
+}
+
+type MakePostsEventCollector struct {
+    onBlockHandler              func(BlockEvent)
+    onVarProgressPercentHandler func(VarEvent[int])
+}
+
+func NewMakePostsEventCollector() *MakePostsEventCollector {
+    return &MakePostsEventCollector{}
+}
+
+// OnBlock registers a handler for block events
+func (c *MakePostsEventCollector) OnBlock(handler func(BlockEvent)) {
+    c.onBlockHandler = handler
+}
+
+// OnVarProgressPercent registers a handler for progress_percent variable updates
+func (c *MakePostsEventCollector) OnVarProgressPercent(handler func(VarEvent[int])) {
+    c.onVarProgressPercentHandler = handler
+}
+```
+
+```go
 // main.go
 package main
 

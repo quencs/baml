@@ -693,7 +693,7 @@ navigation:
             path: 03-reference/baml_client/ontick.mdx
           - page: Runtime Events
             slug: events
-            path: 03-reference/baml_client/events.mdx
+            path: 03-reference/baml_client/runtime-events.mdx
           - page: Multimodal
             slug: media
             path: 03-reference/baml_client/media.mdx
