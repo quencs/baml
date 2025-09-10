@@ -4,8 +4,8 @@
     <ExternalSystemSettings>
       <option name="env">
         <map>
-          <entry key="VSCODE_DEBUG_MODE" value="true" />
           <entry key="JETBRAINS_PROJECT_DIR" value="$PROJECT_DIR$" />
+          <entry key="VSCODE_DEBUG_MODE" value="true" />
         </map>
       </option>
       <option name="executionName" />
@@ -20,7 +20,6 @@
           <option value="runIde" />
         </list>
       </option>
-      <option name="vmOptions" value="-Didea.log.console.stdout.level=DEBUG" />
     </ExternalSystemSettings>
     <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
     <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
