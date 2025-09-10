@@ -223,6 +223,7 @@ fn build_function_log(
                     entry.usage = Some(Usage {
                         input_tokens: usage_info.input_tokens.map(|t| t as i64),
                         output_tokens: usage_info.output_tokens.map(|t| t as i64),
+                        cached_input_tokens: usage_info.cached_input_tokens.map(|t| t as i64),
                     });
                 }
 
@@ -299,6 +300,13 @@ fn build_function_log(
             (Some(i), None) => Some(i),
             (None, Some(j)) => Some(j),
         };
+        usage.cached_input_tokens =
+            match (usage.cached_input_tokens, local_usage.cached_input_tokens) {
+                (Some(i), Some(j)) => Some(i + j),
+                (None, None) => None,
+                (Some(i), None) => Some(i),
+                (None, Some(j)) => Some(j),
+            };
 
         if !is_stream {
             // Basic LLMCall
@@ -548,6 +556,7 @@ impl FunctionLogInner {
 pub struct Usage {
     pub input_tokens: Option<i64>,
     pub output_tokens: Option<i64>,
+    pub cached_input_tokens: Option<i64>,
 }
 
 #[derive(Debug, Default, Clone, Hash, Eq, PartialEq, Serialize)]
@@ -704,6 +713,13 @@ impl Collector {
                 (Some(a), None) => Some(a),
                 (None, None) => None,
             };
+            total_usage.cached_input_tokens =
+                match (total_usage.cached_input_tokens, usage.cached_input_tokens) {
+                    (Some(a), Some(b)) => Some(a + b),
+                    (None, Some(b)) => Some(b),
+                    (Some(a), None) => Some(a),
+                    (None, None) => None,
+                };
         }
         total_usage
     }
@@ -1277,6 +1293,7 @@ mod tests {
                             input_tokens: Some(12),
                             output_tokens: Some(8),
                             total_tokens: Some(20),
+                            cached_input_tokens: Some(0),
                         }),
                         raw_text_output: Some("Hello back".into()),
                         error_message: None,
@@ -1306,6 +1323,7 @@ mod tests {
                             input_tokens: Some(10),
                             output_tokens: Some(30),
                             total_tokens: Some(40),
+                            cached_input_tokens: Some(0),
                         }),
                         raw_text_output: Some("Super long response".into()),
                         error_message: None,
