@@ -9,6 +9,7 @@ use std::{
 
 use baml_cffi_macros::{define_raw_ptr_types, export_baml_new_fn};
 use baml_runtime::{
+    runtime::InternalBamlRuntime,
     tracingv2::storage::storage::{
         Collector, FunctionLog, LLMCall, LLMStreamCall, StreamTiming, Timing, Usage,
     },
@@ -27,11 +28,16 @@ use crate::{
 // use baml_type_builder::{
 //     ClassBuilder, ClassPropertyBuilder, EnumBuilder, EnumValueBuilder, TypeBuilder,
 // };
-type TypeBuilder = baml_type_builder::TypeBuilder<BamlRuntime>;
-type EnumBuilder = baml_type_builder::EnumBuilder<BamlRuntime>;
-type EnumValueBuilder = baml_type_builder::EnumValueBuilder<BamlRuntime>;
-type ClassBuilder = baml_type_builder::ClassBuilder<BamlRuntime>;
-type ClassPropertyBuilder = baml_type_builder::ClassPropertyBuilder<BamlRuntime>;
+/// cbindgen:ignore
+type TypeBuilder = baml_type_builder::TypeBuilder<InternalBamlRuntime>;
+/// cbindgen:ignore
+type EnumBuilder = baml_type_builder::EnumBuilder<InternalBamlRuntime>;
+/// cbindgen:ignore
+type EnumValueBuilder = baml_type_builder::EnumValueBuilder<InternalBamlRuntime>;
+/// cbindgen:ignore
+type ClassBuilder = baml_type_builder::ClassBuilder<InternalBamlRuntime>;
+/// cbindgen:ignore
+type ClassPropertyBuilder = baml_type_builder::ClassPropertyBuilder<InternalBamlRuntime>;
 
 pub struct RawPtrWrapper<T> {
     inner: Arc<T>,
@@ -193,7 +199,7 @@ impl RawPtrType {
 
     #[export_baml_new_fn(ObjectTypeBuilder)]
     fn new_type_builder() -> Result<TypeBuilderWrapper, String> {
-        let type_builder = TypeBuilder::default();
+        let type_builder = TypeBuilder::new(todo!("Fix this"));
         Ok(TypeBuilderWrapper::from_object(type_builder))
     }
 }

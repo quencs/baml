@@ -1,7 +1,6 @@
 use crate::{
     core::{self, TypeBuilder as CoreTypeBuilder, WithMeta},
     traits::{IRProvider, RuntimeProvider},
-    Meta,
 };
 use baml_types::{BamlValue, EvaluationContext, TypeIR};
 use indexmap::{IndexMap, IndexSet};
@@ -53,10 +52,16 @@ mod tests {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TypeBuilder<IR: IRProvider> {
     type_builder: RuntimeTypeBuilder,
     ir_provider: Arc<IR>,
+}
+
+impl<IR: IRProvider> std::fmt::Debug for TypeBuilder<IR> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.type_builder)
+    }
 }
 
 impl<IR: IRProvider> TypeBuilder<IR> {
@@ -208,12 +213,18 @@ impl<IR: IRProvider> TypeBuilder<IR> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ClassBuilder<IR: IRProvider> {
     type_builder: RuntimeTypeBuilder,
     ir_provider: Arc<IR>,
     pub class_name: String,
     mode: NodeRW,
+}
+
+impl<IR: IRProvider> std::fmt::Debug for ClassBuilder<IR> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ClassBuilder({})", self.class_name)
+    }
 }
 
 impl<IR: IRProvider> ClassBuilder<IR> {
@@ -456,7 +467,7 @@ impl<IR: IRProvider> ClassBuilder<IR> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ClassPropertyBuilder<IR: IRProvider> {
     type_builder: RuntimeTypeBuilder,
     ir_provider: Arc<IR>,
@@ -465,42 +476,11 @@ pub struct ClassPropertyBuilder<IR: IRProvider> {
     mode: NodeRW,
 }
 
-// impl<IR: IRProvider> WithMeta for ClassPropertyBuilder<IR> {
-//     fn get_meta(&self, key: &str) -> Option<BamlValue> {
-//         let prop = self.prop()?;
-
-//         let ast_description = || {
-//             let ir = self.ir_provider.get_ir();
-//             if let Ok(cls) = ir.find_class(self.class_name.as_str()) {
-//                 if let Some(field) = cls.find_field(&self.property_name) {
-//                     field.description(&Default::default()).ok().flatten()
-//                 } else {
-//                     None
-//                 }
-//             } else {
-//                 None
-//             }
-//         };
-//         let builder = prop.lock().unwrap();
-//         let result = builder
-//             .get_meta("description")
-//             .and_then(|value| value.as_str().map(|s| s.to_string()))
-//             .or_else(ast_description);
-//     }
-
-//     fn with_meta(&self, key: &str, value: BamlValue) -> &Self {
-//         match key {
-//             "alias" => {
-//                 self.set_alias(&value.as_str().unwrap()).unwrap();
-//             }
-//             "description" => {
-//                 self.set_description(&value.as_str().unwrap()).unwrap();
-//             }
-//             _ => {}
-//         }
-//         self
-//     }
-// }
+impl<IR: IRProvider> std::fmt::Debug for ClassPropertyBuilder<IR> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ClassPropertyBuilder({})", self.property_name)
+    }
+}
 
 impl<IR: IRProvider> ClassPropertyBuilder<IR> {
     fn new(
@@ -678,12 +658,18 @@ impl<IR: IRProvider> ClassPropertyBuilder<IR> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct EnumBuilder<IR: IRProvider> {
     type_builder: RuntimeTypeBuilder,
     ir_provider: Arc<IR>,
     pub enum_name: String,
     mode: NodeRW,
+}
+
+impl<IR: IRProvider> std::fmt::Debug for EnumBuilder<IR> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EnumBuilder({})", self.enum_name)
+    }
 }
 
 impl<IR: IRProvider> EnumBuilder<IR> {
@@ -900,13 +886,19 @@ impl<IR: IRProvider> EnumBuilder<IR> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct EnumValueBuilder<IR: IRProvider> {
     type_builder: RuntimeTypeBuilder,
     ir_provider: Arc<IR>,
     enum_name: String,
     pub value_name: String,
     mode: NodeRW,
+}
+
+impl<IR: IRProvider> std::fmt::Debug for EnumValueBuilder<IR> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EnumValueBuilder({})", self.value_name)
+    }
 }
 
 impl<IR: IRProvider> EnumValueBuilder<IR> {

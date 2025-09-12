@@ -3,8 +3,9 @@ use baml_types::{ir_type::UnionConstructor, BamlValue, TypeIR};
 
 use super::{BamlObjectResponse, BamlObjectResponseSuccess, CallMethod};
 use crate::raw_ptr_wrapper::{
-    ClassBuilderWrapper, ClassPropertyBuilderWrapper, EnumBuilderWrapper, EnumValueBuilderWrapper,
-    TypeBuilderWrapper, TypeWrapper,
+    ClassBuilder, ClassBuilderWrapper, ClassPropertyBuilder, ClassPropertyBuilderWrapper,
+    EnumBuilder, EnumBuilderWrapper, EnumValueBuilder, EnumValueBuilderWrapper, TypeBuilderWrapper,
+    TypeWrapper,
 };
 
 #[export_baml_fn]
@@ -77,7 +78,10 @@ impl TypeBuilderWrapper {
 
     #[export_baml_fn]
     fn add_enum(&self, name: &str) -> Result<EnumBuilderWrapper, String> {
-        self.inner.add_enum(name).map_err(|e| e.to_string())
+        self.inner
+            .add_enum(name)
+            .map(EnumBuilderWrapper::from_object)
+            .map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
@@ -97,23 +101,26 @@ impl TypeBuilderWrapper {
     }
 
     #[export_baml_fn]
-    fn enum_(&self, name: &str) -> Result<objects::EnumBuilder, String> {
-        self.inner.r#enum(name).map_err(|e| e.to_string())
+    fn enum_(&self, name: &str) -> Result<EnumBuilderWrapper, String> {
+        self.inner
+            .r#enum(name)
+            .map(EnumBuilderWrapper::from_object)
+            .map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
-    fn list_enums(&self) -> Vec<objects::EnumBuilder> {
+    fn list_enums(&self) -> Vec<EnumBuilder> {
         self.inner.list_enums()
     }
 
     #[export_baml_fn]
-    fn list_classes(&self) -> Vec<objects::ClassBuilder> {
+    fn list_classes(&self) -> Vec<ClassBuilder> {
         self.inner.list_classes()
     }
 
     #[export_baml_fn]
     fn __display__(&self) -> String {
-        self.inner.to_string()
+        todo!("implement this")
     }
 }
 
@@ -143,20 +150,23 @@ impl EnumBuilderWrapper {
     }
 
     #[export_baml_fn]
-    fn add_value(&self, value: &str) -> Result<objects::EnumValueBuilder, String> {
-        self.inner.add_value(value).map_err(|e| e.to_string())
+    fn add_value(&self, value: &str) -> Result<EnumValueBuilderWrapper, String> {
+        self.inner
+            .add_value(value)
+            .map(EnumValueBuilderWrapper::from_object)
+            .map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
     fn set_description(&self, description: &str) -> Result<(), String> {
         self.inner
-            .set_description(description)
+            .set_description(Some(description))
             .map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
     fn set_alias(&self, alias: &str) -> Result<(), String> {
-        self.inner.set_alias(alias).map_err(|e| e.to_string())
+        self.inner.set_alias(Some(alias)).map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
@@ -175,7 +185,7 @@ impl EnumBuilderWrapper {
     }
 
     #[export_baml_fn]
-    fn list_values(&self) -> Result<Vec<objects::EnumValueBuilder>, String> {
+    fn list_values(&self) -> Result<Vec<EnumValueBuilder>, String> {
         self.inner
             .list_values()
             .map(|builders| builders.into_iter().collect())
@@ -206,13 +216,13 @@ impl EnumValueBuilderWrapper {
     #[export_baml_fn]
     fn set_description(&self, description: &str) -> Result<(), String> {
         self.inner
-            .set_description(description)
+            .set_description(Some(description))
             .map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
     fn set_alias(&self, alias: &str) -> Result<(), String> {
-        self.inner.set_alias(alias).map_err(|e| e.to_string())
+        self.inner.set_alias(Some(alias)).map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
@@ -227,7 +237,7 @@ impl EnumValueBuilderWrapper {
 
     #[export_baml_fn]
     fn set_skip(&self, skip: bool) -> Result<(), String> {
-        self.inner.set_skip(skip).map_err(|e| e.to_string())
+        self.inner.set_skip(Some(skip)).map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
@@ -254,7 +264,7 @@ impl ClassBuilderWrapper {
     }
 
     #[export_baml_fn]
-    fn list_properties(&self) -> Result<Vec<objects::ClassPropertyBuilder>, String> {
+    fn list_properties(&self) -> Result<Vec<ClassPropertyBuilder>, String> {
         self.inner.list_properties().map_err(|e| e.to_string())
     }
 
@@ -285,15 +295,19 @@ impl ClassBuilderWrapper {
         &self,
         name: &str,
         field_type: &TypeWrapper,
-    ) -> Result<objects::ClassPropertyBuilder, String> {
+    ) -> Result<ClassPropertyBuilderWrapper, String> {
         self.inner
             .add_property(name, field_type.as_ref().clone())
+            .map(ClassPropertyBuilderWrapper::from_object)
             .map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
-    fn property(&self, name: &str) -> Result<objects::ClassPropertyBuilder, String> {
-        self.inner.property(name).map_err(|e| e.to_string())
+    fn property(&self, name: &str) -> Result<ClassPropertyBuilderWrapper, String> {
+        self.inner
+            .property(name)
+            .map(ClassPropertyBuilderWrapper::from_object)
+            .map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
@@ -312,13 +326,13 @@ impl ClassPropertyBuilderWrapper {
     #[export_baml_fn]
     fn set_description(&self, description: &str) -> Result<(), String> {
         self.inner
-            .set_description(description)
+            .set_description(Some(description))
             .map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]
     fn set_alias(&self, alias: &str) -> Result<(), String> {
-        self.inner.set_alias(alias).map_err(|e| e.to_string())
+        self.inner.set_alias(Some(alias)).map_err(|e| e.to_string())
     }
 
     #[export_baml_fn]

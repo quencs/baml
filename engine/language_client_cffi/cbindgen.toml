@@ -14,6 +14,6 @@ namespaces = ["baml"]
 [parse]
 parse_deps = false
 # include = []
-# exclude = []
+exclude = ["TypeBuilder", "TypeBuilderWrapper", "EnumBuilder", "EnumBuilderWrapper", "EnumValueBuilder", "EnumValueBuilderWrapper", "ClassBuilder", "ClassBuilderWrapper", "ClassPropertyBuilder", "ClassPropertyBuilderWrapper", "RawPtrType"]
 clean = false
 extra_bindings = []
