@@ -8,7 +8,10 @@ use baml_type_builder::{
     TypeBuilder as BamlTypeBuilder,
 };
 use baml_types::{ir_type::UnionConstructor, BamlValue};
-use napi::{bindgen_prelude::Array, Env};
+use napi::{
+    bindgen_prelude::{Array, JavaScriptClassExt},
+    Env,
+};
 use napi_derive::napi;
 
 // Create TypeScript-compatible wrappers for our Rust types
@@ -60,11 +63,11 @@ crate::lang_wrapper!(FieldType, baml_types::TypeIR, sync_thread_safe);
 // A complex struct that cannot be exposed to JavaScript directly.
 #[napi]
 impl TypeBuilder {
-    // #[napi(factory)]
-    // pub fn create(runtime: &crate::BamlRuntime) -> Self {
-    //     let tb = BamlTypeBuilder::new(runtime.inner.internal().clone());
-    //     tb.into()
-    // }
+    #[napi(factory)]
+    pub fn new(runtime: &crate::BamlRuntime) -> Self {
+        let tb = BamlTypeBuilder::new(runtime.inner.internal().clone());
+        tb.into()
+    }
 
     #[napi]
     pub fn reset(&self) {
@@ -202,9 +205,9 @@ impl EnumBuilder {
     }
 
     #[napi]
-    pub fn alias(&self, alias: Option<&str>) -> napi::Result<Self> {
+    pub fn alias(&self, alias: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_alias(alias)
+            .set_alias(alias.as_ref().map(|s| s.as_str()))
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(self.inner.clone().into())
     }
@@ -218,9 +221,9 @@ impl EnumBuilder {
 #[napi]
 impl EnumValueBuilder {
     #[napi]
-    pub fn alias(&self, alias: Option<&str>) -> napi::Result<Self> {
+    pub fn alias(&self, alias: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_alias(alias)
+            .set_alias(alias.as_ref().map(|s| s.as_str()))
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(self.inner.clone().into())
     }
@@ -234,9 +237,9 @@ impl EnumValueBuilder {
     }
 
     #[napi]
-    pub fn description(&self, description: Option<&str>) -> napi::Result<Self> {
+    pub fn description(&self, description: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_description(description)
+            .set_description(description.as_ref().map(|s| s.as_str()))
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(self.inner.clone().into())
     }
@@ -250,7 +253,7 @@ impl ClassBuilder {
     }
 
     #[napi]
-    pub fn list_properties(&self, env: Env) -> napi::Result<Array> {
+    pub fn list_properties<'e>(&self, env: &'e Env) -> napi::Result<Array<'e>> {
         let properties = self
             .inner
             .list_properties()
@@ -268,7 +271,7 @@ impl ClassBuilder {
         for (i, (name, prop_builder)) in properties.enumerate() {
             let mut tuple = env.create_array(2)?;
             tuple.set(0, env.create_string(&name)?)?;
-            tuple.set(1, prop_builder.into_instance(env)?)?;
+            tuple.set(1, prop_builder.into_instance(&env)?)?;
             js_array.set(i as u32, tuple)?;
         }
 
@@ -321,9 +324,9 @@ impl ClassPropertyBuilder {
     }
 
     #[napi]
-    pub fn alias(&self, alias: Option<&str>) -> napi::Result<Self> {
+    pub fn alias(&self, alias: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_alias(alias)
+            .set_alias(alias.as_ref().map(|s| s.as_str()))
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(Self {
             inner: self.inner.clone(),
@@ -331,9 +334,9 @@ impl ClassPropertyBuilder {
     }
 
     #[napi]
-    pub fn description(&self, description: Option<&str>) -> napi::Result<Self> {
+    pub fn description(&self, description: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_description(description)
+            .set_description(description.as_ref().map(|s| s.as_str()))
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(Self {
             inner: self.inner.clone(),

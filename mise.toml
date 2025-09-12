@@ -7,6 +7,7 @@ go = "1.23.11"
 python = "3.13"  # Will use uv for Python package management
 ruby = "3.2.2"
 node = "lts"     # For pnpm
+java = "temurin-23"
 
 # Rust tools
 "cargo:bacon" = "latest"
@@ -16,11 +17,8 @@ node = "lts"     # For pnpm
 
 # Go tools
 # locked to match the version in .github/actions/setup-go/action.yml
-"go:google.golang.org/protobuf/cmd/protoc-gen-go" = "v1.36.6"
-"go:golang.org/x/tools/cmd/goimports" = "latest"
-"go:github.com/chrishrb/go-grip" = "latest"
-
-
+"protoc-gen-go" = "1.34.1"
+"go:golang.org/x/tools/cmd/goimports" = "0.36.0"
 
 # Python tools
 "pipx:uv" = "latest"

@@ -15,6 +15,7 @@ use internal_baml_core::{
 };
 use internal_baml_jinja::RenderedPrompt;
 use internal_llm_client::{AllowedRoleMetadata, ClientSpec};
+use stream_cancel::Tripwire;
 
 use crate::{
     client_registry::ClientProperty,
@@ -36,7 +37,7 @@ use crate::{
     tracing::BamlTracer,
     tracingv2::storage::storage::{Collector, BAML_TRACER},
     FunctionResult, FunctionResultStream, InternalBamlRuntime, InternalRuntimeInterface,
-    RenderCurlSettings, RuntimeContext, RuntimeContextManager,
+    RenderCurlSettings, RuntimeContext, RuntimeContextManager, TripWire,
 };
 
 impl InternalBamlRuntime {
@@ -48,6 +49,7 @@ impl InternalBamlRuntime {
         ctx: RuntimeContext,
         #[cfg(not(target_arch = "wasm32"))] tokio_runtime: Arc<tokio::runtime::Runtime>,
         collectors: Vec<Arc<Collector>>,
+        cancel_tripwire: Arc<TripWire>,
     ) -> Result<FunctionResultStream> {
         let is_expr_fn = self.get_expr_function(&function_name, &ctx).is_ok();
         if is_expr_fn {
@@ -81,6 +83,7 @@ impl InternalBamlRuntime {
                 #[cfg(not(target_arch = "wasm32"))]
                 tokio_runtime,
                 collectors,
+                cancel_tripwire,
             })
         } else {
             let prepared = self
@@ -100,6 +103,7 @@ impl InternalBamlRuntime {
                 #[cfg(not(target_arch = "wasm32"))]
                 tokio_runtime,
                 collectors,
+                cancel_tripwire,
             })
         }
     }

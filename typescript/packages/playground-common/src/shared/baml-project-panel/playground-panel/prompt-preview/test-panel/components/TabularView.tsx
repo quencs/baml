@@ -1,3 +1,4 @@
+'use client';
 import { Label } from '@baml/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@baml/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@baml/ui/table'
@@ -116,7 +117,7 @@ const ResponseContent = ({
 
 export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
   const [config, setConfig] = useAtom(tabularViewConfigAtom)
-  const runBamlTests = useRunBamlTests()
+  const { runTests: runBamlTests } = useRunBamlTests()
   const [selectedItem, setSelectedItem] = useAtom(selectedItemAtom)
 
   const toggleConfig = (key: keyof typeof config) => {

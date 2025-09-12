@@ -42,7 +42,7 @@ export const selectedItemAtom = atom(
       string,
     ];
   },
-  (_, set, functionName: string, testcaseName: string) => {
+  (_, set, functionName: string, testcaseName: string | undefined) => {
     set(selectedFunctionAtom, functionName);
     set(selectedTestcaseAtom, testcaseName);
   },
@@ -237,6 +237,9 @@ export const areTestsRunningAtom = atom(false);
 export const runningTestsAtom = atom<
   { functionName: string; testName: string; state: TestState }[]
 >([]);
+
+// AbortController for cancelling running tests
+export const currentAbortControllerAtom = atom<AbortController | null>(null);
 
 export interface FlashRange {
   filePath: string;

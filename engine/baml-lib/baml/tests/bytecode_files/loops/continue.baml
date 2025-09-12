@@ -1,15 +1,15 @@
-fn Factorial(mut limit: int) -> int {
+fn Factorial(limit: int) -> int {
 
-	let mut result = 1;
+	let result = 1;
 
 
     // used to make the loop break without relying on `break` implementation.
-    let mut should_continue = true;
-	while should_continue {
+    let should_continue = true;
+	while (should_continue) {
 		result = result * limit;
 		limit = limit - 1;
 
-        if limit != 0 {
+        if (limit != 0) {
             continue;
         } else {
             should_continue = false;
@@ -21,11 +21,11 @@ fn Factorial(mut limit: int) -> int {
 }
 
 fn ContinueNested() -> int {
-    while true {
-        while false {
+    while (true) {
+        while (false) {
             continue;
         }
-        if false {
+        if (false) {
             continue;
         }
     }
@@ -93,4 +93,65 @@ fn ContinueNested() -> int {
 //      18   RETURN              
 //
 // Class: std::Request with 3 fields
-// Function: len
+// Enum std::HttpMethod
+// Function: std.Array.len
+//
+// Function: std.Map.len
+//
+// Function: std.Map.contains
+//
+// Function: std.media.image.from_url
+//
+// Function: std.media.audio.from_url
+//
+// Function: std.media.video.from_url
+//
+// Function: std.media.pdf.from_url
+//
+// Function: std.media.image.from_base64
+//
+// Function: std.media.audio.from_base64
+//
+// Function: std.media.video.from_base64
+//
+// Function: std.media.pdf.from_base64
+//
+// Function: std.media.image.is_url
+//
+// Function: std.media.video.is_url
+//
+// Function: std.media.audio.is_url
+//
+// Function: std.media.pdf.is_url
+//
+// Function: std.media.image.is_base64
+//
+// Function: std.media.video.is_base64
+//
+// Function: std.media.audio.is_base64
+//
+// Function: std.media.pdf.is_base64
+//
+// Function: std.media.image.as_url
+//
+// Function: std.media.video.as_url
+//
+// Function: std.media.audio.as_url
+//
+// Function: std.media.pdf.as_url
+//
+// Function: std.media.image.as_base64
+//
+// Function: std.media.video.as_base64
+//
+// Function: std.media.audio.as_base64
+//
+// Function: std.media.pdf.as_base64
+//
+// Function: std.media.image.mime
+//
+// Function: std.media.video.mime
+//
+// Function: std.media.audio.mime
+//
+// Function: std.media.pdf.mime

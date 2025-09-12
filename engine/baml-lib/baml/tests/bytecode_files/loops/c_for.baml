@@ -1,7 +1,7 @@
 fn SumToTen() -> int {
-	let mut s = 0;
+	let s = 0;
 
-	for (let mut i = 1; i <= 10; i += 1) {
+	for (let i = 1; i <= 10; i += 1) {
 		s += i;
 	}
 
@@ -9,14 +9,14 @@ fn SumToTen() -> int {
 }
 
 fn AfterWithBreakContinue() -> int {
-	let mut s = 0;
+	let s = 0;
 
-	for (let mut i = 0; ; s += i) {
+	for (let i = 0; ; s += i) {
 		i += 1;
-		if i > 10 {
+		if (i > 10) {
 			break;
 		}
-		if i == 5 {
+		if (i == 5) {
 			continue;
 		}
 	}
@@ -26,7 +26,7 @@ fn AfterWithBreakContinue() -> int {
 
 
 fn OnlyCond() -> int {
-	let mut s = 0;
+	let s = 0;
 
 	for (; false;) {
 	}
@@ -34,9 +34,9 @@ fn OnlyCond() -> int {
 	s
 }
 
- 
+
 fn Nothing() -> int {
-	let mut s = 0;
+	let s = 0;
 
 	for (;;) {
 		break;
@@ -130,4 +130,65 @@ fn Nothing() -> int {
 //      4   RETURN         
 //
 // Class: std::Request with 3 fields
-// Function: len
+// Enum std::HttpMethod
+// Function: std.Array.len
+//
+// Function: std.Map.len
+//
+// Function: std.Map.contains
+//
+// Function: std.media.image.from_url
+//
+// Function: std.media.audio.from_url
+//
+// Function: std.media.video.from_url
+//
+// Function: std.media.pdf.from_url
+//
+// Function: std.media.image.from_base64
+//
+// Function: std.media.audio.from_base64
+//
+// Function: std.media.video.from_base64
+//
+// Function: std.media.pdf.from_base64
+//
+// Function: std.media.image.is_url
+//
+// Function: std.media.video.is_url
+//
+// Function: std.media.audio.is_url
+//
+// Function: std.media.pdf.is_url
+//
+// Function: std.media.image.is_base64
+//
+// Function: std.media.video.is_base64
+//
+// Function: std.media.audio.is_base64
+//
+// Function: std.media.pdf.is_base64
+//
+// Function: std.media.image.as_url
+//
+// Function: std.media.video.as_url
+//
+// Function: std.media.audio.as_url
+//
+// Function: std.media.pdf.as_url
+//
+// Function: std.media.image.as_base64
+//
+// Function: std.media.video.as_base64
+//
+// Function: std.media.audio.as_base64
+//
+// Function: std.media.pdf.as_base64
+//
+// Function: std.media.image.mime
+//
+// Function: std.media.video.mime
+//
+// Function: std.media.audio.mime
+//
+// Function: std.media.pdf.mime

@@ -138,16 +138,7 @@ impl ProviderStrategy {
                         json!(prompt)
                     }
                     either::Either::Right(messages) => {
-                        // Check if we have any non-text content (multimodal)
-                        let has_media = messages.iter().any(|msg| {
-                            msg.parts
-                                .iter()
-                                .any(|part| !matches!(part, ChatMessagePart::Text(_)))
-                        });
-
-                        if has_media {
-                            // Use structured array format for multimodal content
-                            let structured_messages: Result<Vec<_>> = messages
+                        let structured_messages: Result<Vec<_>> = messages
                                 .iter()
                                 .map(|msg| {
                                     // Convert message parts to Responses API format
@@ -157,7 +148,7 @@ impl ProviderStrategy {
                                         .map(|part| match part {
                                             ChatMessagePart::Text(text) => {
                                                 Ok(json!({
-                                                    "type": "input_text",
+                                                    "type": if msg.role == "assistant" { "output_text" } else { "input_text" },
                                                     "text": text
                                                 }))
                                             }
@@ -174,7 +165,7 @@ impl ProviderStrategy {
                                                             }
                                                         };
                                                         Ok(json!({
-                                                            "type": "input_image",
+                                                            "type": if msg.role == "assistant" { "output_image" } else { "input_image" },
                                                             "image_url": image_url
                                                         }))
                                                     }
@@ -186,7 +177,7 @@ impl ProviderStrategy {
                                                                     .strip_prefix("audio/")
                                                                     .unwrap_or(&mime_type);
                                                                 Ok(json!({
-                                                                    "type": "input_audio",
+                                                                    "type": if msg.role == "assistant" { "output_audio" } else { "input_audio" },
                                                                     "input_audio": {
                                                                         "data": b64_media.base64,
                                                                         "format": format
@@ -202,7 +193,7 @@ impl ProviderStrategy {
                                                         match &media.content {
                                                             baml_types::BamlMediaContent::Url(url_content) => {
                                                                 Ok(json!({
-                                                                    "type": "input_file",
+                                                                    "type": if msg.role == "assistant" { "output_file" } else { "input_file" },
                                                                     "file_url": url_content.url
                                                                 }))
                                                             }
@@ -211,7 +202,7 @@ impl ProviderStrategy {
                                                             }
                                                             baml_types::BamlMediaContent::Base64(b64_media) => {
                                                                 Ok(json!({
-                                                                    "type": "input_file",
+                                                                    "type": if msg.role == "assistant" { "output_file" } else { "input_file" },
                                                                     "file_url": format!("data:{};base64,{}", media.mime_type_as_ok()?, b64_media.base64)
                                                                 }))
                                                             }
@@ -227,7 +218,7 @@ impl ProviderStrategy {
                                                 match inner_part.as_ref() {
                                                     ChatMessagePart::Text(text) => {
                                                         Ok(json!({
-                                                            "type": "input_text",
+                                                            "type": if msg.role == "assistant" { "output_text" } else { "input_text" },
                                                             "text": text
                                                         }))
                                                     }
@@ -245,7 +236,7 @@ impl ProviderStrategy {
                                                                     }
                                                                 };
                                                                 Ok(json!({
-                                                                    "type": "input_image",
+                                                                    "type": if msg.role == "assistant" { "output_image" } else { "input_image" },
                                                                     "image_url": image_url
                                                                 }))
                                                             }
@@ -268,28 +259,7 @@ impl ProviderStrategy {
                                     }))
                                 })
                                 .collect();
-                            json!(structured_messages?)
-                        } else {
-                            // For text-only content, we can use either string or structured format
-                            // Let's use string format for simplicity when there's only text
-                            let text_content = messages
-                                .iter()
-                                .map(|msg| {
-                                    let content_text = msg
-                                        .parts
-                                        .iter()
-                                        .filter_map(|part| match part {
-                                            ChatMessagePart::Text(text) => Some(text.as_str()),
-                                            _ => None,
-                                        })
-                                        .collect::<Vec<_>>()
-                                        .join(" ");
-                                    format!("{}: {}", msg.role, content_text)
-                                })
-                                .collect::<Vec<_>>()
-                                .join("\n");
-                            json!(text_content)
-                        }
+                        json!(structured_messages?)
                     }
                 };
                 body.insert("input".into(), input);
@@ -488,7 +458,12 @@ impl WithStreamChat for OpenAIClient {
 }
 
 macro_rules! make_openai_client {
-    ($client:ident, $properties:ident, $provider:expr, dynamic) => {
+    ($client:ident, $properties:ident, $provider:expr, dynamic) => {{
+        let resolve_pdf_urls = if $provider == "openai-responses" {
+            ResolveMediaUrls::Never
+        } else {
+            ResolveMediaUrls::Always
+        };
         Ok(Self {
             name: $client.name.clone(),
             provider: $provider.into(),
@@ -506,7 +481,7 @@ macro_rules! make_openai_client {
                 max_one_system_prompt: false,
                 resolve_audio_urls: ResolveMediaUrls::Always,
                 resolve_image_urls: ResolveMediaUrls::Never,
-                resolve_pdf_urls: ResolveMediaUrls::Never,
+                resolve_pdf_urls,
                 resolve_video_urls: ResolveMediaUrls::Never,
                 allowed_metadata: $properties.allowed_metadata.clone(),
             },
@@ -514,8 +489,13 @@ macro_rules! make_openai_client {
             retry_policy: $client.retry_policy.clone(),
             client: create_client()?,
         })
-    };
-    ($client:ident, $properties:ident, $provider:expr) => {
+    }};
+    ($client:ident, $properties:ident, $provider:expr) => {{
+        let resolve_pdf_urls = if $provider == "openai-responses" {
+            ResolveMediaUrls::Never
+        } else {
+            ResolveMediaUrls::Always
+        };
         Ok(Self {
             name: $client.name().into(),
             provider: $provider.into(),
@@ -533,7 +513,7 @@ macro_rules! make_openai_client {
                 max_one_system_prompt: false,
                 resolve_audio_urls: ResolveMediaUrls::Always,
                 resolve_image_urls: ResolveMediaUrls::Never,
-                resolve_pdf_urls: ResolveMediaUrls::Never,
+                resolve_pdf_urls,
                 resolve_video_urls: ResolveMediaUrls::Never,
                 allowed_metadata: $properties.allowed_metadata.clone(),
             },
@@ -545,7 +525,7 @@ macro_rules! make_openai_client {
                 .map(|s| s.to_string()),
             client: create_client()?,
         })
-    };
+    }};
 }
 
 impl OpenAIClient {
@@ -714,8 +694,12 @@ impl ToProviderMessage for OpenAIClient {
                 match &media.content {
                     BamlMediaContent::Url(url_content) => {
                         // For URLs, we need to resolve them to base64 first
-                        anyhow::bail!(
-                            "BAML internal error (openai): Pdf URL are not supported by OpenAI use base64."
+                        content.insert(
+                            payload_key.into(),
+                            json!({
+                                "type": "input_file",
+                                "file_url": url_content.url
+                            }),
                         );
                     }
                     BamlMediaContent::Base64(b64_media) => {

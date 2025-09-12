@@ -519,6 +519,10 @@ fn relevant_data_models<'a>(
             TypeIR::Literal(_, _) => {}
             TypeIR::Primitive(_, _) => {}
             TypeIR::Arrow(_, _) => {}
+            TypeIR::Top(_) => panic!(
+                "TypeIR::Top should have been resolved by the compiler before code generation. \
+                 This indicates a bug in the type resolution phase."
+            ),
         }
     }
 
@@ -535,6 +539,7 @@ mod tests {
     use std::collections::HashMap;
 
     use baml_ids::FunctionCallId;
+    use internal_baml_core::feature_flags::FeatureFlags;
     use internal_baml_jinja::types::RenderOptions;
 
     use super::*;
@@ -553,7 +558,9 @@ mod tests {
         .into_iter()
         .collect();
         let env_vars = HashMap::new();
-        let baml_runtime = BamlRuntime::from_file_content(".", &files, env_vars.clone()).unwrap();
+        let baml_runtime =
+            BamlRuntime::from_file_content(".", &files, env_vars.clone(), FeatureFlags::new())
+                .unwrap();
         let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
         let ctx: RuntimeContext = ctx_manager
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
@@ -617,7 +624,9 @@ class Resume {
         .into_iter()
         .collect();
         let env_vars = HashMap::new();
-        let baml_runtime = BamlRuntime::from_file_content(".", &files, env_vars.clone()).unwrap();
+        let baml_runtime =
+            BamlRuntime::from_file_content(".", &files, env_vars.clone(), FeatureFlags::new())
+                .unwrap();
         let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
         let ctx: RuntimeContext = ctx_manager
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
@@ -720,7 +729,9 @@ class Resume {
         .into_iter()
         .collect();
         let env_vars = HashMap::new();
-        let baml_runtime = BamlRuntime::from_file_content(".", &files, env_vars.clone()).unwrap();
+        let baml_runtime =
+            BamlRuntime::from_file_content(".", &files, env_vars.clone(), FeatureFlags::new())
+                .unwrap();
         let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
         let ctx: RuntimeContext = ctx_manager
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
@@ -796,7 +807,9 @@ Answer in JSON using this schema:
         .into_iter()
         .collect();
         let env_vars = HashMap::new();
-        let baml_runtime = BamlRuntime::from_file_content(".", &files, env_vars.clone()).unwrap();
+        let baml_runtime =
+            BamlRuntime::from_file_content(".", &files, env_vars.clone(), FeatureFlags::new())
+                .unwrap();
         let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
         let ctx: RuntimeContext = ctx_manager
             .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])

@@ -2441,6 +2441,68 @@ func ExtractHobby(ctx context.Context, text string, opts ...CallOptionFunc) ([]t
 	}
 }
 
+func ExtractName(ctx context.Context, text string, opts ...CallOptionFunc) (string, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"text": text},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		panic(err)
+	}
+
+	if callOpts.onTick == nil {
+		result, err := bamlRuntime.CallFunction(ctx, "ExtractName", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		if result.Error != nil {
+			return "", result.Error
+		}
+
+		casted := (result.Data).(string)
+
+		return casted, nil
+	} else {
+		channel, err := bamlRuntime.CallFunctionStream(ctx, "ExtractName", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		for result := range channel {
+			if result.Error != nil {
+				return "", result.Error
+			}
+
+			if result.HasData {
+				return result.Data.(string), nil
+			}
+		}
+
+		return "", fmt.Errorf("No data returned from stream")
+	}
+}
+
 func ExtractNames(ctx context.Context, input string, opts ...CallOptionFunc) ([]string, error) {
 
 	var callOpts callOption
@@ -2996,6 +3058,130 @@ func FnEnumOutput(ctx context.Context, input string, opts ...CallOptionFunc) (ty
 		}
 
 		return types.EnumOutput(""), fmt.Errorf("No data returned from stream")
+	}
+}
+
+func FnFailRetryConstantDelay(ctx context.Context, retries int64, delay_ms int64, opts ...CallOptionFunc) (string, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"retries": retries, "delay_ms": delay_ms},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		panic(err)
+	}
+
+	if callOpts.onTick == nil {
+		result, err := bamlRuntime.CallFunction(ctx, "FnFailRetryConstantDelay", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		if result.Error != nil {
+			return "", result.Error
+		}
+
+		casted := (result.Data).(string)
+
+		return casted, nil
+	} else {
+		channel, err := bamlRuntime.CallFunctionStream(ctx, "FnFailRetryConstantDelay", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		for result := range channel {
+			if result.Error != nil {
+				return "", result.Error
+			}
+
+			if result.HasData {
+				return result.Data.(string), nil
+			}
+		}
+
+		return "", fmt.Errorf("No data returned from stream")
+	}
+}
+
+func FnFailRetryExponentialDelay(ctx context.Context, retries int64, initial_delay_ms int64, opts ...CallOptionFunc) (string, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"retries": retries, "initial_delay_ms": initial_delay_ms},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		panic(err)
+	}
+
+	if callOpts.onTick == nil {
+		result, err := bamlRuntime.CallFunction(ctx, "FnFailRetryExponentialDelay", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		if result.Error != nil {
+			return "", result.Error
+		}
+
+		casted := (result.Data).(string)
+
+		return casted, nil
+	} else {
+		channel, err := bamlRuntime.CallFunctionStream(ctx, "FnFailRetryExponentialDelay", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		for result := range channel {
+			if result.Error != nil {
+				return "", result.Error
+			}
+
+			if result.HasData {
+				return result.Data.(string), nil
+			}
+		}
+
+		return "", fmt.Errorf("No data returned from stream")
 	}
 }
 
@@ -7531,6 +7717,68 @@ func TellStory(ctx context.Context, story string, opts ...CallOptionFunc) (strin
 	}
 }
 
+func TestAbortFallbackChain(ctx context.Context, input string, opts ...CallOptionFunc) (string, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"input": input},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		panic(err)
+	}
+
+	if callOpts.onTick == nil {
+		result, err := bamlRuntime.CallFunction(ctx, "TestAbortFallbackChain", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		if result.Error != nil {
+			return "", result.Error
+		}
+
+		casted := (result.Data).(string)
+
+		return casted, nil
+	} else {
+		channel, err := bamlRuntime.CallFunctionStream(ctx, "TestAbortFallbackChain", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		for result := range channel {
+			if result.Error != nil {
+				return "", result.Error
+			}
+
+			if result.HasData {
+				return result.Data.(string), nil
+			}
+		}
+
+		return "", fmt.Errorf("No data returned from stream")
+	}
+}
+
 func TestAnthropic(ctx context.Context, input string, opts ...CallOptionFunc) (string, error) {
 
 	var callOpts callOption
@@ -11171,6 +11419,68 @@ func TestOpenAIResponses(ctx context.Context, input string, opts ...CallOptionFu
 		return casted, nil
 	} else {
 		channel, err := bamlRuntime.CallFunctionStream(ctx, "TestOpenAIResponses", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		for result := range channel {
+			if result.Error != nil {
+				return "", result.Error
+			}
+
+			if result.HasData {
+				return result.Data.(string), nil
+			}
+		}
+
+		return "", fmt.Errorf("No data returned from stream")
+	}
+}
+
+func TestOpenAIResponsesAllRoles(ctx context.Context, problem string, opts ...CallOptionFunc) (string, error) {
+
+	var callOpts callOption
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	args := baml.BamlFunctionArguments{
+		Kwargs: map[string]any{"problem": problem},
+		Env:    getEnvVars(callOpts.env),
+	}
+
+	if callOpts.clientRegistry != nil {
+		args.ClientRegistry = callOpts.clientRegistry
+	}
+
+	if callOpts.collectors != nil {
+		args.Collectors = callOpts.collectors
+	}
+
+	if callOpts.typeBuilder != nil {
+		args.TypeBuilder = callOpts.typeBuilder
+	}
+
+	encoded, err := args.Encode()
+	if err != nil {
+		panic(err)
+	}
+
+	if callOpts.onTick == nil {
+		result, err := bamlRuntime.CallFunction(ctx, "TestOpenAIResponsesAllRoles", encoded, callOpts.onTick)
+		if err != nil {
+			return "", err
+		}
+
+		if result.Error != nil {
+			return "", result.Error
+		}
+
+		casted := (result.Data).(string)
+
+		return casted, nil
+	} else {
+		channel, err := bamlRuntime.CallFunctionStream(ctx, "TestOpenAIResponsesAllRoles", encoded, callOpts.onTick)
 		if err != nil {
 			return "", err
 		}

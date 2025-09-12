@@ -38,7 +38,7 @@ use crate::{
     tracing::BamlTracer,
     tracingv2::storage::storage::{Collector, BAML_TRACER},
     FunctionResult, FunctionResultStream, InternalRuntimeInterface, RenderCurlSettings,
-    RuntimeContext, RuntimeContextManager,
+    RuntimeContext, RuntimeContextManager, TripWire,
 };
 
 impl InternalBamlRuntime {
@@ -46,6 +46,7 @@ impl InternalBamlRuntime {
         &'ir self,
         prepared_func_call: PreparedFunction<'ir>,
         ctx: RuntimeContext,
+        cancel_tripwire: Arc<TripWire>,
     ) -> Result<crate::FunctionResult> {
         let future = async {
             let renderer =
@@ -55,11 +56,16 @@ impl InternalBamlRuntime {
             let baml_args = BamlValue::Map(prepared_func_call.baml_args.value);
 
             // Now actually execute the code.
-            let (history, _) =
-                orchestrate_call(orchestrator, self.ir(), &ctx, &renderer, &baml_args, |s| {
-                    renderer.parse(self.ir(), &ctx, s, false)
-                })
-                .await;
+            let (history, _) = orchestrate_call(
+                orchestrator,
+                self.ir(),
+                &ctx,
+                &renderer,
+                &baml_args,
+                |s| renderer.parse(self.ir(), &ctx, s, false),
+                cancel_tripwire.trip_wire(),
+            )
+            .await;
 
             FunctionResult::new_chain(history)
         };
