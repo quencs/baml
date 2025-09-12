@@ -10,8 +10,8 @@ use baml_types::{tracing::events::TraceEvent, BamlValue};
 
 use super::runtime_context::BamlSrcReader;
 use crate::{
-    client_registry::ClientRegistry, tracing::BamlTracer, tracingv2::storage::storage::BAML_TRACER,
-    type_builder::TypeBuilder, CallCtx, RuntimeContext,
+    client_registry::ClientRegistry, runtime::runtime_interface::TypeBuilder, tracing::BamlTracer,
+    tracingv2::storage::storage::BAML_TRACER, type_builder, CallCtx, RuntimeContext,
 };
 pub type BamlContext = (
     uuid::Uuid,
@@ -225,7 +225,7 @@ impl RuntimeContextManager {
         };
 
         let (cls, enm, als, rec_cls, rec_als) = type_builder
-            .map(TypeBuilder::to_overrides)
+            .map(type_builder::to_overrides)
             .unwrap_or_default();
 
         let mut ctx = RuntimeContext::new(

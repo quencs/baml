@@ -25,6 +25,7 @@ baml-ids.workspace = true
 baml-types.workspace = true
 baml-log.workspace = true
 baml-runtime = { path = "../baml-runtime", features = ["internal"] }
+baml-type-builder = { path = "../baml-lib/type-builder" }
 env_logger.workspace = true
 futures.workspace = true
 indexmap.workspace = true

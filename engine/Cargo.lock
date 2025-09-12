@@ -1033,6 +1033,7 @@ dependencies = [
  "baml-ids",
  "baml-log",
  "baml-runtime",
+ "baml-type-builder",
  "baml-types",
  "ctrlc",
  "either",
@@ -1125,6 +1126,7 @@ dependencies = [
  "baml-ids",
  "baml-log",
  "baml-rpc",
+ "baml-type-builder",
  "baml-types",
  "baml-vm",
  "base64 0.22.1",
@@ -1271,6 +1273,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml-type-builder"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "baml-types",
+ "indexmap 2.10.0",
+ "internal-baml-core",
+ "internal-baml-diagnostics",
+ "internal-baml-parser-database",
+ "log",
+ "serde",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "baml-types"
 version = "0.205.0"
 dependencies = [
@@ -1343,6 +1360,7 @@ dependencies = [
  "baml-ids",
  "baml-log",
  "baml-runtime",
+ "baml-type-builder",
  "baml-types",
  "baml_cffi_macros",
  "cbindgen",

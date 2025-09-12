@@ -31,6 +31,7 @@ anyhow.workspace = true
 baml-compiler = { path = "../baml-compiler" }
 baml-ids.workspace = true
 baml-log.workspace = true
+baml-type-builder = { path = "../baml-lib/type-builder" }
 baml-types.workspace = true
 baml-rpc.workspace = true
 baml-vm = { path = "../baml-vm" }

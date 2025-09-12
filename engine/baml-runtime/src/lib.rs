@@ -93,10 +93,11 @@ use tracingv2::{
     publisher::flush,
     storage::storage::{Collector, BAML_TRACER},
 };
-use type_builder::TypeBuilder;
 pub use types::*;
 use web_time::{Duration, SystemTime};
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::runtime::runtime_interface::TypeBuilder;
 use crate::{
     errors::IntoBamlError,
     internal::llm_client::{LLMCompleteResponse, LLMCompleteResponseMetadata, LLMResponse},
@@ -288,7 +289,6 @@ impl BamlRuntime {
         )
     }
 
-    #[cfg(feature = "internal")]
     pub fn internal(&self) -> &Arc<InternalBamlRuntime> {
         &self.inner
     }

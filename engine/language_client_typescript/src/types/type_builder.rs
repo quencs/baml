@@ -2,50 +2,49 @@ use std::{collections::BTreeMap, ops::Deref};
 
 // This file provides the native bindings between our Rust implementation and TypeScript
 // We use NAPI-RS to expose Rust functionality to JavaScript/TypeScript
-use baml_runtime::type_builder::{self, WithMeta};
+use baml_type_builder::{
+    ClassBuilder as BamlClassBuilder, ClassPropertyBuilder as BamlClassPropertyBuilder,
+    EnumBuilder as BamlEnumBuilder, EnumValueBuilder as BamlEnumValueBuilder,
+    TypeBuilder as BamlTypeBuilder,
+};
 use baml_types::{ir_type::UnionConstructor, BamlValue};
 use napi::{bindgen_prelude::Array, Env};
 use napi_derive::napi;
 
 // Create TypeScript-compatible wrappers for our Rust types
 // These macros generate the necessary code for TypeScript interop
-crate::lang_wrapper!(TypeBuilder, type_builder::TypeBuilder);
+crate::lang_wrapper!(
+    TypeBuilder,
+    BamlTypeBuilder<baml_runtime::runtime::InternalBamlRuntime>
+);
 
-// Thread-safe wrapper for EnumBuilder with name tracking
-// The sync_thread_safe attribute ensures safe concurrent access from TypeScript
-crate::lang_wrapper!(EnumBuilder, type_builder::EnumBuilder, sync_thread_safe, name: String);
+// Thread-safe wrapper for EnumBuilder
+crate::lang_wrapper!(
+    EnumBuilder,
+    BamlEnumBuilder<baml_runtime::runtime::InternalBamlRuntime>
+);
 
-// Thread-safe wrapper for ClassBuilder with name tracking
-// Enables safe TypeScript interop with class definitions
-crate::lang_wrapper!(ClassBuilder, type_builder::ClassBuilder, sync_thread_safe, name: String);
+// Thread-safe wrapper for ClassBuilder
+crate::lang_wrapper!(
+    ClassBuilder,
+    BamlClassBuilder<baml_runtime::runtime::InternalBamlRuntime>
+);
 
 // Thread-safe wrapper for EnumValueBuilder
-// Ensures enum value definitions can be safely accessed across threads
 crate::lang_wrapper!(
     EnumValueBuilder,
-    type_builder::EnumValueBuilder,
-    sync_thread_safe
+    BamlEnumValueBuilder<baml_runtime::runtime::InternalBamlRuntime>
 );
 
 // Thread-safe wrapper for ClassPropertyBuilder
-// Enables concurrent access to class property definitions
 crate::lang_wrapper!(
     ClassPropertyBuilder,
-    type_builder::ClassPropertyBuilder,
-    sync_thread_safe
+    BamlClassPropertyBuilder<baml_runtime::runtime::InternalBamlRuntime>
 );
 
 // Thread-safe wrapper for FieldType
 // Core type system representation with thread-safety guarantees
 crate::lang_wrapper!(FieldType, baml_types::TypeIR, sync_thread_safe);
-
-// Implement Default for TypeBuilder to allow easy instantiation
-// This enables idiomatic Rust usage while maintaining TypeScript compatibility
-impl Default for TypeBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 // note: you may notice a rust-analyzer warning in vs code when working with this file.
 // the warning "did not find struct napitypebuilder parsed before expand #[napi] for impl"
@@ -62,8 +61,8 @@ impl Default for TypeBuilder {
 #[napi]
 impl TypeBuilder {
     #[napi(constructor)]
-    pub fn new() -> Self {
-        let tb = type_builder::TypeBuilder::new();
+    pub fn new(runtime: &crate::BamlRuntime) -> Self {
+        let tb = BamlTypeBuilder::new(runtime.inner.internal().clone());
         tb.into()
     }
 
@@ -72,20 +71,22 @@ impl TypeBuilder {
         self.inner.reset();
     }
 
-    #[napi]
-    pub fn get_enum(&self, name: String) -> EnumBuilder {
-        EnumBuilder {
-            inner: self.inner.upsert_enum(&name),
-            name,
-        }
+    #[napi(js_name = "enum")]
+    pub fn add_enum(&self, name: String) -> napi::Result<EnumBuilder> {
+        let result = self
+            .inner
+            .add_enum(&name)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(EnumBuilder { inner: result })
     }
 
-    #[napi]
-    pub fn get_class(&self, name: String) -> ClassBuilder {
-        ClassBuilder {
-            inner: self.inner.upsert_class(&name),
-            name,
-        }
+    #[napi(js_name = "class")]
+    pub fn add_class(&self, name: String) -> napi::Result<ClassBuilder> {
+        let result = self
+            .inner
+            .add_class(&name)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(ClassBuilder { inner: result })
     }
 
     #[napi]
@@ -159,15 +160,16 @@ impl TypeBuilder {
     }
 
     #[napi]
-    pub fn add_baml(&self, baml: String, rt: &crate::BamlRuntime) -> napi::Result<()> {
+    pub fn add_baml(&self, baml: String) -> napi::Result<()> {
         self.inner
-            .add_baml(&baml, rt.inner.internal())
+            .add_baml(&baml)
             .map_err(crate::errors::from_anyhow_error)
     }
 
     #[napi]
     pub fn to_string(&self) -> String {
-        self.inner.to_string()
+        // TODO: implement detailed string representation like Python version
+        "TypeBuilder".to_string()
     }
 }
 
@@ -192,72 +194,75 @@ impl FieldType {
 #[napi]
 impl EnumBuilder {
     #[napi]
-    pub fn value(&self, name: String) -> EnumValueBuilder {
-        self.inner.lock().unwrap().upsert_value(&name).into()
+    pub fn value(&self, name: String) -> napi::Result<EnumValueBuilder> {
+        let result = self
+            .inner
+            .add_value(&name)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(EnumValueBuilder { inner: result })
     }
 
     #[napi]
-    pub fn alias(&self, alias: Option<&str>) -> Self {
-        self.inner.lock().unwrap().with_meta(
-            "alias",
-            alias.map_or(baml_types::BamlValue::Null, |s| {
-                BamlValue::String(s.to_string())
-            }),
-        );
-        self.inner.clone().into()
+    pub fn alias(&self, alias: Option<&str>) -> napi::Result<Self> {
+        self.inner
+            .set_alias(alias)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(self.inner.clone().into())
     }
 
     #[napi]
     pub fn field(&self) -> FieldType {
-        baml_types::TypeIR::r#enum(&self.name).into()
+        baml_types::TypeIR::r#enum(&self.inner.enum_name).into()
     }
 }
 
 #[napi]
 impl EnumValueBuilder {
     #[napi]
-    pub fn alias(&self, alias: Option<&str>) -> Self {
-        self.inner.lock().unwrap().with_meta(
-            "alias",
-            alias.map_or(baml_types::BamlValue::Null, |s| {
-                BamlValue::String(s.to_string())
-            }),
-        );
-        self.inner.clone().into()
-    }
-
-    #[napi]
-    pub fn skip(&self, skip: Option<bool>) -> Self {
+    pub fn alias(&self, alias: Option<&str>) -> napi::Result<Self> {
         self.inner
-            .lock()
-            .unwrap()
-            .with_meta("skip", skip.map_or(BamlValue::Null, BamlValue::Bool));
-        self.inner.clone().into()
+            .set_alias(alias)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(self.inner.clone().into())
     }
 
     #[napi]
-    pub fn description(&self, description: Option<&str>) -> Self {
-        self.inner.lock().unwrap().with_meta(
-            "description",
-            description.map_or(baml_types::BamlValue::Null, |s| {
-                BamlValue::String(s.to_string())
-            }),
-        );
-        self.inner.clone().into()
+    pub fn skip(&self, skip: Option<bool>) -> napi::Result<Self> {
+        self.inner
+            .set_skip(skip)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(self.inner.clone().into())
+    }
+
+    #[napi]
+    pub fn description(&self, description: Option<&str>) -> napi::Result<Self> {
+        self.inner
+            .set_description(description)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(self.inner.clone().into())
     }
 }
 
 #[napi]
 impl ClassBuilder {
     #[napi]
+    pub fn field(&self) -> FieldType {
+        baml_types::TypeIR::class(&self.inner.class_name).into()
+    }
+
+    #[napi]
     pub fn list_properties(&self, env: Env) -> napi::Result<Array> {
         let properties = self
             .inner
-            .lock()
-            .unwrap()
-            .list_properties_key_value()
+            .list_properties()
+            .map_err(crate::errors::from_anyhow_error)?
             .into_iter()
-            .map(|(name, prop)| (name, ClassPropertyBuilder::from(prop)));
+            .map(|prop| {
+                (
+                    prop.property_name.clone(),
+                    ClassPropertyBuilder { inner: prop },
+                )
+            });
 
         let mut js_array = env.create_array(properties.len() as u32)?;
 
@@ -272,68 +277,65 @@ impl ClassBuilder {
     }
 
     #[napi]
-    pub fn remove_property(&self, name: String) {
-        self.inner.lock().unwrap().remove_property(&name);
+    pub fn remove_property(&self, name: String) -> napi::Result<()> {
+        self.inner
+            .remove_property(&name)
+            .map_err(crate::errors::from_anyhow_error)
     }
 
     #[napi]
-    pub fn reset(&self) {
-        self.inner.lock().unwrap().reset();
+    pub fn reset(&self) -> napi::Result<()> {
+        self.inner.reset().map_err(crate::errors::from_anyhow_error)
     }
 
     #[napi]
-    pub fn field(&self) -> FieldType {
-        baml_types::TypeIR::class(&self.name).into()
-    }
-
-    #[napi]
-    pub fn property(&self, name: String) -> ClassPropertyBuilder {
-        self.inner.lock().unwrap().upsert_property(&name).into()
+    pub fn property(&self, name: String) -> napi::Result<ClassPropertyBuilder> {
+        let result = self
+            .inner
+            .property(&name)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(ClassPropertyBuilder { inner: result })
     }
 }
 
 #[napi]
 impl ClassPropertyBuilder {
-    #[napi]
-    pub fn set_type(&self, field_type: &FieldType) -> Self {
+    #[napi(js_name = "type")]
+    pub fn set_type(&self, field_type: &FieldType) -> napi::Result<Self> {
         self.inner
-            .lock()
-            .unwrap()
-            .set_type(field_type.inner.lock().unwrap().clone());
-        self.inner.clone().into()
+            .set_type(field_type.inner.lock().unwrap().clone())
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(Self {
+            inner: self.inner.clone(),
+        })
     }
 
     #[napi]
     pub fn get_type(&self) -> napi::Result<FieldType> {
+        Ok(FieldType {
+            inner: std::sync::Arc::new(std::sync::Mutex::new(
+                self.inner.type_().map_err(crate::errors::from_anyhow_error)?
+            )),
+        })
+    }
+
+    #[napi]
+    pub fn alias(&self, alias: Option<&str>) -> napi::Result<Self> {
         self.inner
-            .lock()
-            .unwrap()
-            .r#type()
-            .map(FieldType::from)
-            .ok_or_else(|| crate::errors::from_anyhow_error(anyhow::anyhow!(
-                "attempted to read a property that has no defined type, this is likely an internal bug"
-            )))
+            .set_alias(alias)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(Self {
+            inner: self.inner.clone(),
+        })
     }
 
     #[napi]
-    pub fn alias(&self, alias: Option<&str>) -> Self {
-        self.inner.lock().unwrap().with_meta(
-            "alias",
-            alias.map_or(baml_types::BamlValue::Null, |s| {
-                BamlValue::String(s.to_string())
-            }),
-        );
-        self.inner.clone().into()
-    }
-
-    #[napi]
-    pub fn description(&self, description: Option<&str>) -> Self {
-        self.inner.lock().unwrap().with_meta(
-            "description",
-            description.map_or(baml_types::BamlValue::Null, |s| {
-                BamlValue::String(s.to_string())
-            }),
-        );
-        self.inner.clone().into()
+    pub fn description(&self, description: Option<&str>) -> napi::Result<Self> {
+        self.inner
+            .set_description(description)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(Self {
+            inner: self.inner.clone(),
+        })
     }
 }

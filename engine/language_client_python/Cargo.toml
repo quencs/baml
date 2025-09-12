@@ -36,6 +36,7 @@ indexmap.workspace = true
 libc = "0.2"
 jsonish = { path = "../baml-lib/jsonish" }
 log.workspace = true
+baml-type-builder = { path = "../baml-lib/type-builder" }
 # Consult https://pyo3.rs/main/migration for migration instructions
 pyo3 = { version = "0.23.3", default-features = false, features = [
   "abi3-py38",

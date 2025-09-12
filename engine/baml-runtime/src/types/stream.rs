@@ -9,6 +9,8 @@ use baml_types::{
 use internal_baml_core::ir::repr::IntermediateRepr;
 use serde_json::json;
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::runtime::runtime_interface::TypeBuilder;
 use crate::{
     client_registry::ClientRegistry,
     internal::{
@@ -17,7 +19,6 @@ use crate::{
     },
     tracing::BamlTracer,
     tracingv2::storage::storage::{Collector, BAML_TRACER},
-    type_builder::TypeBuilder,
     FunctionResult, IntoBamlError, PreparedFunctionArgs, RuntimeContextManager,
 };
 

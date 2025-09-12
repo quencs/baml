@@ -36,7 +36,6 @@ use crate::{
     on_log_event::LogEventCallbackSync,
     tracing::api_wrapper::core_types::Role,
     tracingv2::storage::storage::{Collector, BAML_TRACER},
-    type_builder::TypeBuilder,
     CallCtx, FunctionResult, InnerTraceStats, RuntimeContext, RuntimeContextManager, TestResponse,
     TraceStats,
 };

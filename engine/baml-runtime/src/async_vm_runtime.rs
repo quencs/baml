@@ -24,11 +24,10 @@ use crate::on_log_event::LogEventCallbackSync;
 use crate::{
     client_registry::ClientRegistry,
     internal::llm_client::{orchestrator::OrchestrationScope, LLMResponse},
-    runtime::InternalBamlRuntime,
+    runtime::{runtime_interface::TypeBuilder, InternalBamlRuntime},
     runtime_interface::ExperimentalTracingInterface,
     tracing::TracingCall,
     tracingv2::storage::storage::Collector,
-    type_builder::TypeBuilder,
     BamlRuntime as LlmRuntime, BamlSrcReader, FunctionResult, FunctionResultStream,
     InnerTraceStats, InternalRuntimeInterface, RuntimeContextManager,
 };

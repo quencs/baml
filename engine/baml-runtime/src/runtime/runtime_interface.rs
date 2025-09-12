@@ -1,6 +1,10 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result};
+
+use baml_type_builder::TypeBuilder as GenericTypeBuilder;
+pub type TypeBuilder = GenericTypeBuilder<InternalBamlRuntime>;
+
 use baml_types::{
     tracing::events::{FunctionEnd, FunctionStart, TraceData, TraceEvent},
     BamlMap, BamlValue, Constraint, EvaluationContext,
@@ -36,7 +40,6 @@ use crate::{
     runtime_interface::{InternalClientLookup, RuntimeConstructor},
     tracing::BamlTracer,
     tracingv2::storage::storage::{Collector, BAML_TRACER},
-    type_builder::TypeBuilder,
     FunctionResult, FunctionResultStream, InternalBamlRuntime, InternalRuntimeInterface,
     RenderCurlSettings, RuntimeContext, RuntimeContextManager,
 };
@@ -361,23 +364,23 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
             return Ok(None);
         }
 
-        let type_builder = TypeBuilder::new();
+        // Create an IR-aware type builder for this test
+        // DO NOT CHECK IN THIS CHANGE: We should not clone this.
+        let ir_type_builder = TypeBuilder::new(Arc::new(self.clone()));
+        ir_type_builder.add_entries(test.type_builder_contents());
 
-        type_builder.add_entries(test.type_builder_contents());
-
-        type_builder
-            .recursive_type_aliases()
+        let core = ir_type_builder.core();
+        core.recursive_type_aliases()
             .lock()
             .unwrap()
             .extend(test.type_builder_recursive_aliases().iter().cloned());
 
-        type_builder
-            .recursive_classes()
+        core.recursive_classes()
             .lock()
             .unwrap()
             .extend(test.type_builder_recursive_classes().iter().cloned());
 
-        Ok(Some(type_builder))
+        Ok(Some(ir_type_builder))
     }
 }
 
@@ -416,5 +419,37 @@ impl RuntimeConstructor for InternalBamlRuntime {
     #[cfg(not(target_arch = "wasm32"))]
     fn from_directory(dir: &std::path::Path) -> Result<InternalBamlRuntime> {
         InternalBamlRuntime::from_files(dir, crate::baml_src_files(&dir.to_path_buf())?)
+    }
+}
+
+impl baml_type_builder::traits::IRProvider for InternalBamlRuntime {
+    fn get_ir(&self) -> &IntermediateRepr {
+        self.ir()
+    }
+}
+
+impl baml_type_builder::traits::IRProvider for crate::BamlRuntime {
+    fn get_ir(&self) -> &IntermediateRepr {
+        self.inner.get_ir()
+    }
+}
+
+impl baml_type_builder::traits::RuntimeProvider for InternalBamlRuntime {
+    fn get_db(&self) -> &internal_baml_core::internal_baml_parser_database::ParserDatabase {
+        &self.db
+    }
+
+    fn clone_db(&self) -> internal_baml_core::internal_baml_parser_database::ParserDatabase {
+        self.db.clone()
+    }
+}
+
+impl baml_type_builder::traits::RuntimeProvider for crate::BamlRuntime {
+    fn get_db(&self) -> &internal_baml_core::internal_baml_parser_database::ParserDatabase {
+        &self.inner.get_db()
+    }
+
+    fn clone_db(&self) -> internal_baml_core::internal_baml_parser_database::ParserDatabase {
+        self.inner.clone_db()
     }
 }

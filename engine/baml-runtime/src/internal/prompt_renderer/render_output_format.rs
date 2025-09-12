@@ -96,8 +96,8 @@ fn find_new_class_field(
         }
     }
 
-    let alias = OverridableValue::<String>::from(field_overrides.1.alias.as_ref());
-    let desc = OverridableValue::<String>::from(field_overrides.1.meta.get("description"));
+    let alias = OverridableValue::<String>::from(field_overrides.1.alias.as_ref().map(|s| BamlValue::String(s.clone())).as_ref());
+    let desc = OverridableValue::<String>::from(field_overrides.1.description.as_ref().map(|s| BamlValue::String(s.clone())).as_ref());
 
     let name = Name::new_with_alias(field_name.to_string(), alias.value());
     let desc = desc.value();
@@ -127,9 +127,10 @@ fn find_existing_class_field(
     let mut needed = OverridableValue::Unset;
 
     if let Some(attrs) = field_overrides {
-        alias = OverridableValue::<String>::from(attrs.alias.as_ref());
-        desc = OverridableValue::<String>::from(attrs.meta.get("description"));
-        needed = OverridableValue::<bool>::from(attrs.meta.get("stream.not_null"));
+        alias = OverridableValue::<String>::from(attrs.alias.as_ref().map(|s| BamlValue::String(s.clone())).as_ref());
+        desc = OverridableValue::<String>::from(attrs.description.as_ref().map(|s| BamlValue::String(s.clone())).as_ref());
+        // TODO: stream.not_null is not available in PropertyAttributes
+        // needed = OverridableValue::<bool>::from(attrs.meta.get("stream.not_null"));
     }
 
     let eval_ctx = ctx.eval_ctx(false);
@@ -179,14 +180,15 @@ fn find_enum_value(
     let mut alias = OverridableValue::Unset;
     let mut desc = OverridableValue::Unset;
     if let Some(attrs) = value_overrides {
-        match attrs.skip {
-            Some(true) => return Ok(None),
-            Some(false) => skip = OverridableValue::Set(false),
-            None => {}
-        }
+        // TODO: skip field is not available in PropertyAttributes
+        // match attrs.skip {
+        //     Some(true) => return Ok(None),
+        //     Some(false) => skip = OverridableValue::Set(false),
+        //     None => {}
+        // }
 
-        alias = OverridableValue::<String>::from(attrs.alias.as_ref());
-        desc = OverridableValue::<String>::from(attrs.meta.get("description"));
+        alias = OverridableValue::<String>::from(attrs.alias.as_ref().map(|s| BamlValue::String(s.clone())).as_ref());
+        desc = OverridableValue::<String>::from(attrs.description.as_ref().map(|s| BamlValue::String(s.clone())).as_ref());
     }
 
     let eval_ctx = ctx.eval_ctx(false);

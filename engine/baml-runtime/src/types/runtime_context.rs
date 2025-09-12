@@ -18,9 +18,9 @@ pub struct CallCtx {
 
 #[derive(Debug)]
 pub struct PropertyAttributes {
-    pub(crate) alias: Option<BamlValue>,
-    pub(crate) skip: Option<bool>,
-    pub(crate) meta: IndexMap<String, BamlValue>,
+    pub(crate) alias: Option<String>,
+    pub(crate) description: Option<String>,
+    // pub(crate) skip: Option<bool>,
     pub(crate) constraints: Vec<baml_types::Constraint>,
     pub(crate) streaming_behavior: baml_types::type_meta::base::StreamingBehavior,
 }

@@ -35,7 +35,6 @@ use crate::{
     runtime_interface::{InternalClientLookup, RuntimeConstructor},
     tracing::BamlTracer,
     tracingv2::storage::storage::{Collector, BAML_TRACER},
-    type_builder::TypeBuilder,
     FunctionResult, FunctionResultStream, InternalBamlRuntime, InternalRuntimeInterface,
     RenderCurlSettings, RuntimeContext, RuntimeContextManager,
 };

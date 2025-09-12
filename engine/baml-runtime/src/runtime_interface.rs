@@ -18,10 +18,9 @@ use crate::{
             retry_policy::CallablePolicy,
         },
     },
-    runtime::InternalBamlRuntime,
+    runtime::{runtime_interface::TypeBuilder, InternalBamlRuntime},
     tracing::{BamlTracer, TracingCall},
     tracingv2::storage::storage::Collector,
-    type_builder::TypeBuilder,
     types::{on_log_event::LogEventCallbackSync, FunctionResultStream},
     FunctionResult, RenderCurlSettings, RuntimeContext, RuntimeContextManager,
 };

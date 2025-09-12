@@ -18,14 +18,20 @@ use baml_types::{
     tracing::events::{HTTPBody, HTTPRequest, HTTPResponse, SSEEvent},
     BamlMedia, TypeIR,
 };
-use type_builder::objects::{
-    ClassBuilder, ClassPropertyBuilder, EnumBuilder, EnumValueBuilder, TypeBuilder,
-};
 
 use crate::{
     baml::cffi::{self, CffiPointerType},
     ctypes::object_response_encode::{BamlObjectResponse, BamlObjectResponseSuccess},
 };
+
+// use baml_type_builder::{
+//     ClassBuilder, ClassPropertyBuilder, EnumBuilder, EnumValueBuilder, TypeBuilder,
+// };
+type TypeBuilder = baml_type_builder::TypeBuilder<BamlRuntime>;
+type EnumBuilder = baml_type_builder::EnumBuilder<BamlRuntime>;
+type EnumValueBuilder = baml_type_builder::EnumValueBuilder<BamlRuntime>;
+type ClassBuilder = baml_type_builder::ClassBuilder<BamlRuntime>;
+type ClassPropertyBuilder = baml_type_builder::ClassPropertyBuilder<BamlRuntime>;
 
 pub struct RawPtrWrapper<T> {
     inner: Arc<T>,
