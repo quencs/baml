@@ -1321,6 +1321,7 @@ dependencies = [
  "baml-ids",
  "baml-log",
  "baml-runtime",
+ "baml-type-builder",
  "baml-types",
  "env_logger",
  "futures",

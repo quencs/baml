@@ -57,14 +57,14 @@ crate::lang_wrapper!(FieldType, baml_types::TypeIR, sync_thread_safe);
 //
 // ref:
 // https://github.com/napi-rs/napi-rs/issues/1630
-
+// A complex struct that cannot be exposed to JavaScript directly.
 #[napi]
 impl TypeBuilder {
-    #[napi(constructor)]
-    pub fn new(runtime: &crate::BamlRuntime) -> Self {
-        let tb = BamlTypeBuilder::new(runtime.inner.internal().clone());
-        tb.into()
-    }
+    // #[napi(factory)]
+    // pub fn create(runtime: &crate::BamlRuntime) -> Self {
+    //     let tb = BamlTypeBuilder::new(runtime.inner.internal().clone());
+    //     tb.into()
+    // }
 
     #[napi]
     pub fn reset(&self) {
@@ -168,8 +168,7 @@ impl TypeBuilder {
 
     #[napi]
     pub fn to_string(&self) -> String {
-        // TODO: implement detailed string representation like Python version
-        "TypeBuilder".to_string()
+        todo!("implement this")
     }
 }
 
