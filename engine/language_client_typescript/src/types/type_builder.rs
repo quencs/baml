@@ -71,8 +71,8 @@ impl TypeBuilder {
         self.inner.reset();
     }
 
-    #[napi(js_name = "enum")]
-    pub fn add_enum(&self, name: String) -> napi::Result<EnumBuilder> {
+    #[napi]
+    pub fn get_enum(&self, name: String) -> napi::Result<EnumBuilder> {
         let result = self
             .inner
             .add_enum(&name)
@@ -80,8 +80,8 @@ impl TypeBuilder {
         Ok(EnumBuilder { inner: result })
     }
 
-    #[napi(js_name = "class")]
-    pub fn add_class(&self, name: String) -> napi::Result<ClassBuilder> {
+    #[napi]
+    pub fn get_class(&self, name: String) -> napi::Result<ClassBuilder> {
         let result = self
             .inner
             .add_class(&name)
@@ -300,7 +300,7 @@ impl ClassBuilder {
 
 #[napi]
 impl ClassPropertyBuilder {
-    #[napi(js_name = "type")]
+    #[napi]
     pub fn set_type(&self, field_type: &FieldType) -> napi::Result<Self> {
         self.inner
             .set_type(field_type.inner.lock().unwrap().clone())
@@ -314,7 +314,9 @@ impl ClassPropertyBuilder {
     pub fn get_type(&self) -> napi::Result<FieldType> {
         Ok(FieldType {
             inner: std::sync::Arc::new(std::sync::Mutex::new(
-                self.inner.type_().map_err(crate::errors::from_anyhow_error)?
+                self.inner
+                    .type_()
+                    .map_err(crate::errors::from_anyhow_error)?,
             )),
         })
     }
