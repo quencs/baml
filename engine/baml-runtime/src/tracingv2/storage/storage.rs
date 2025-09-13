@@ -320,7 +320,11 @@ fn build_function_log(
                 request: call_acc.http_request.clone(),
                 response: call_acc.http_response.clone(),
                 usage: Some(local_usage),
-                selected: call_acc.llm_response.is_some(),
+                selected: call_acc
+                    .llm_response
+                    .as_ref()
+                    .map(|resp| resp.error_message.is_none())
+                    .unwrap_or(false),
             }));
         } else {
             let sse_chunks = call_acc.http_response_stream.and_then(|chunks| {
@@ -344,7 +348,11 @@ fn build_function_log(
                     request: call_acc.http_request.clone(),
                     response: call_acc.http_response.clone(),
                     usage: Some(local_usage),
-                    selected: call_acc.llm_response.is_some(),
+                    selected: call_acc
+                        .llm_response
+                        .as_ref()
+                        .map(|resp| resp.error_message.is_none())
+                        .unwrap_or(false),
                 },
                 timing: StreamTiming {
                     start_time_utc_ms: start_t,
@@ -1255,6 +1263,82 @@ mod tests {
         }
 
         collector
+    }
+
+    #[test]
+    #[serial]
+    fn test_selected_call_prefers_success_over_failure() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let f_id = FunctionCallId::new();
+
+            // Create one failed response and one successful response
+            let rid_fail = HttpRequestId::new();
+            let rid_success = HttpRequestId::new();
+
+            let failed_req = LoggedLLMRequest {
+                request_id: rid_fail.clone(),
+                client_name: "client_a".into(),
+                client_provider: "provider_a".into(),
+                params: IndexMap::new(),
+                prompt: vec![LLMChatMessage { role: "user".into(), content: vec![LLMChatMessagePart::Text("hi".into())] }],
+            };
+            let failed_resp = LoggedLLMResponse::new_failure(
+                rid_fail.clone(),
+                "boom".into(),
+                Some("m1".into()),
+                Some("error".into()),
+            );
+
+            let ok_req = LoggedLLMRequest {
+                request_id: rid_success.clone(),
+                client_name: "client_b".into(),
+                client_provider: "provider_b".into(),
+                params: IndexMap::new(),
+                prompt: vec![LLMChatMessage { role: "user".into(), content: vec![LLMChatMessagePart::Text("hello".into())] }],
+            };
+            let ok_resp = LoggedLLMResponse::new_success(
+                rid_success.clone(),
+                Some("m2".into()),
+                Some("stop".into()),
+                LLMUsage { input_tokens: Some(1), output_tokens: Some(2), total_tokens: Some(3), cached_input_tokens: Some(0) },
+                "ok".into(),
+            );
+
+            let collector = inject_test_events(
+                &f_id,
+                "test_selected_call",
+                vec![(failed_req, failed_resp), (ok_req, ok_resp)],
+            )
+            .await;
+
+            let mut flog = FunctionLog::new(f_id.clone());
+            let calls = flog.calls();
+            assert_eq!(calls.len(), 2);
+
+            // Exactly one should be marked selected, and it should be the success
+            let selected: Vec<_> = calls.iter().filter(|c| c.selected()).collect();
+            assert_eq!(selected.len(), 1);
+            let sel = selected[0];
+            match sel {
+                LLMCallKind::Basic(c) => {
+                    assert_eq!(c.client_name, "client_b");
+                    assert!(c.selected);
+                }
+                LLMCallKind::Stream(s) => {
+                    assert_eq!(s.llm_call.client_name, "client_b");
+                    assert!(s.llm_call.selected);
+                }
+            }
+
+            drop(flog);
+            drop(collector);
+            {
+                let tracer = BAML_TRACER.lock().unwrap();
+                assert_eq!(tracer.ref_count_for(&f_id), 0);
+                assert!(tracer.get_events(&f_id).is_none());
+            }
+        });
     }
 
     #[test]
