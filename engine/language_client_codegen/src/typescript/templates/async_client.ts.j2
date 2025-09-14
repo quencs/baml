@@ -37,8 +37,8 @@ export class BamlAsyncClient {
     this.runtime = runtime
     this.ctxManager = ctxManager
     this.streamClient = new BamlStreamClient(runtime, ctxManager, bamlOptions)
-    this.httpRequest = new AsyncHttpRequest(runtime, ctxManager)
-    this.httpStreamRequest = new AsyncHttpStreamRequest(runtime, ctxManager)
+    this.httpRequest = new AsyncHttpRequest(runtime, ctxManager, bamlOptions)
+    this.httpStreamRequest = new AsyncHttpStreamRequest(runtime, ctxManager, bamlOptions)
     this.llmResponseParser = new LlmResponseParser(runtime, ctxManager)
     this.llmStreamParser = new LlmStreamParser(runtime, ctxManager)
     this.bamlOptions = bamlOptions || {}

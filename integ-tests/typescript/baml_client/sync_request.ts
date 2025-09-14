@@ -32,7 +32,10 @@ type BamlCallOptions = {
 }
 
 export class HttpRequest {
-  constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
+  private bamlOptions: BamlCallOptions
+  constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager, bamlOptions?: BamlCallOptions) {
+    this.bamlOptions = bamlOptions || {}
+  }
 
   
   AaaSamOutputFormat(
@@ -40,7 +43,8 @@ export class HttpRequest {
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
-      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const rawEnv = options.env ? { ...process.env, ...options.env } : { ...process.env };
       const env: Record<string, string> = Object.fromEntries(
         Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
       );
@@ -50,8 +54,8 @@ export class HttpRequest {
           "recipe": recipe
         },
         this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
+        options.tb?.__tb(),
+        options.clientRegistry,
         false,
         env,
       )
@@ -75,8 +79,8 @@ export class HttpRequest {
           "data": data
         },
         this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
+        options.tb?.__tb(),
+        options.clientRegistry,
         false,
         env,
       )
@@ -100,8 +104,8 @@ export class HttpRequest {
           "money": money
         },
         this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
+        options.tb?.__tb(),
+        options.clientRegistry,
         false,
         env,
       )
@@ -5538,7 +5542,10 @@ export class HttpRequest {
 }
 
 export class HttpStreamRequest {
-  constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
+  private bamlOptions: BamlCallOptions
+  constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager, bamlOptions?: BamlCallOptions) {
+    this.bamlOptions = bamlOptions || {}
+  }
 
   
   AaaSamOutputFormat(
@@ -5546,7 +5553,8 @@ export class HttpStreamRequest {
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
-      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const rawEnv = options.env ? { ...process.env, ...options.env } : { ...process.env };
       const env: Record<string, string> = Object.fromEntries(
         Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
       );
@@ -5556,8 +5564,8 @@ export class HttpStreamRequest {
           "recipe": recipe
         },
         this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
+        options.tb?.__tb(),
+        options.clientRegistry,
         true,
         env,
       )

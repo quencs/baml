@@ -56,8 +56,8 @@ export class BamlSyncClient {
   private bamlOptions: BamlCallOptions
 
   constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager, bamlOptions?: BamlCallOptions) {
-    this.httpRequest = new HttpRequest(runtime, ctxManager)
-    this.httpStreamRequest = new HttpStreamRequest(runtime, ctxManager)
+    this.httpRequest = new HttpRequest(runtime, ctxManager, bamlOptions)
+    this.httpStreamRequest = new HttpStreamRequest(runtime, ctxManager, bamlOptions)
     this.llmResponseParser = new LlmResponseParser(runtime, ctxManager)
     this.llmStreamParser = new LlmStreamParser(runtime, ctxManager)
     this.bamlOptions = bamlOptions || {}

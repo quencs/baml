@@ -14,7 +14,10 @@ type BamlCallOptions = {
 }
 
 export class HttpRequest {
-  constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
+  private bamlOptions: BamlCallOptions
+  constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager, bamlOptions?: BamlCallOptions) {
+    this.bamlOptions = bamlOptions || {}
+  }
 
   {% for fn in funcs %}
   {{ fn.name }}(
@@ -24,7 +27,8 @@ export class HttpRequest {
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
-      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
       return this.runtime.buildRequestSync(
         "{{fn.name}}",
         {
@@ -33,8 +37,8 @@ export class HttpRequest {
           {%- endfor %}
         },
         this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
+        options.tb?.__tb(),
+        options.clientRegistry,
         false,
         env,
       )
