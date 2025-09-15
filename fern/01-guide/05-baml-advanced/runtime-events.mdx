@@ -3,7 +3,6 @@ title: Runtime Events
 ---
 
 <Info>
-This feature was added in TODO
 </Info>
 
 When running multi-step workflows, you need to be able to get information about
@@ -19,7 +18,7 @@ invoke the workflow.
 
 Markdown Blocks are automatically tracked when you run BAML
 workflows, and your client code can track which block is currently executing. In
-the following example, your client could directly use the markdown headers to
+the following example, your client can directly use the markdown headers to
 render the current status on a status page:
 
 ```baml BAML
@@ -111,6 +110,19 @@ class MakePostsEventCollector:
 In your client code, you can bind events to callbacks:
 
 ```typescript
+// baml_client/event.ts
+export interface BlockEvent {
+  block_label: string;
+  event_type: "enter" | "exit";
+}
+
+export interface MakePostsEventCollector {
+  // Register a handler for block events.
+  on_block(handler: (ev: BlockEvent) => void): void;
+}
+```
+
+```typescript
  // index.ts
  import { b, events } from "./baml-client"
  import type { Event } from "./baml-client/types"
@@ -137,6 +149,21 @@ In your client code, you can bind events to callbacks:
 <Tab title="Go" language="go">
 
 In your client code, you can bind events to callbacks:
+
+```go
+// baml_client/events.go
+package events
+
+type BlockEvent struct {
+    BlockLabel string    `json:"block_label"`
+    EventType  string    `json:"event_type"` // "enter" | "exit"
+}
+
+type MakePostsEventsCollector struct {
+    blockEvents chan BlockEvent
+    // ... there are other fields we will describe later.
+}
+```
 
 ```go
 // main.go
@@ -220,19 +247,18 @@ function MakePosts(source_url: string) -> Post[] {
 }
 ```
 
-When you generate a BAML client, the events structure for `MakePosts` will
-accept callbacks for `progress_percent` because we marked that variable with
-`emit`, and the callbacks will receive an `int` data payload, because
-`progress_percent` is an `int`.
+## Tracking Emitted Variables
+
 
 <Tabs>
 
-## Tracking Emitted Variables
-
-You can track changes to emitted variables from the client code. When you generate
-client code from your BAML code, we produce event listener structs.
-
 <Tab title="Python" language="python">
+
+When you generate a BAML client for this function, its `MakePostsEventCollector`
+will accept callbacks for `progress_percent` because we marked that variable with
+`emit`, and the callbacks will receive an `int` data payload, because
+`progress_percent` is an `int`.
+
 ```python
 # baml_client/events.py
 
@@ -247,13 +273,15 @@ class VarEvent(Generic[T]):
     timestamp: str
     function_name: str
 
+class MakePostsVarsCollector:
+    progress_percent: Callable[[VarEvent[int]], None]
+
 class MakePostsEventCollector:
     """Event collector for MakePosts function"""
+    vars: MakePostsVarsCollector
+```
 
-    def on_var_progress_percent(self, handler: Callable[[VarEvent[int]], None]) -> None:
-        """Register a handler for progress_percent variable updates"""
-        ...
-
+```python
 # app.py
 from baml_client.sync_client import { b }
 from baml_client.types import Event
@@ -265,7 +293,7 @@ def Example():
   ev = events.MakePosts()
 
   # Track the progress_percent variable updates
-  events.on_progress_percent(lambda percent: print(f"Progress: {percent}%"))
+  events.vars.on_progress_percent(lambda percent: print(f"Progress: {percent}%"))
 
   # Invoke the function.
   posts = b.MakePosts("https://wikipedia.org/wiki/DNA", {"events": ev})
@@ -275,15 +303,32 @@ def Example():
 
 <Tab title="TypeScript" language="typescript">
 
-In your client code, you can track these emitted variables, by constructing an
-event listener specific to the workflow you are using. Then populating that
-listener with your own callback functions, and finally supplying the listener
-when you invoke the function.
+When you generate a BAML client for this function, its `MakePostsEventCollector`
+will accept callbacks for `progress_percent` because we marked that variable with
+`emit`, and the callbacks will receive an `int` data payload, because
+`progress_percent` is an `int`.
+
+```typescript
+// baml_client/events.ts
+import { VarEvent } from "./types"
+
+export interface MakePostsEventCollector {
+  on_var_progress_percent(callback: (percent: number) => void): void
+}
+
+export function MakePosts(): MakePostsEventCollector {
+  return {
+    on_var_progress_percent(callback: (percent: number) => void): void {
+      // Implementation details
+    }
+  }
+}
+```
 
 ```typescript
 // index.ts
 import { b, events } from "./baml-client"
-import type { Event } from "./baml-client/types"
+import type { VarEvent } from "./baml-client/types"
 
 async function Example() {
   // Get an Events callback collector with the right type
@@ -348,6 +393,35 @@ func (c *MakePostsEventCollector) OnBlock(handler func(BlockEvent)) {
 // OnVarProgressPercent registers a handler for progress_percent variable updates
 func (c *MakePostsEventCollector) OnVarProgressPercent(handler func(VarEvent[int])) {
     c.onVarProgressPercentHandler = handler
+}
+```
+
+```go
+// baml_client/events.go
+package events
+
+import "time"
+
+type VarEvent[T any] struct {
+    VariableName string    `json:"variable_name"`
+    Value        T         `json:"value"`
+}
+
+type MakePostsEventCollector struct {
+    blockEvents           chan BlockEvent
+    progressPercentEvents chan VarEvent[int]
+}
+
+func NewMakePostsEventCollector() *MakePostsEventCollector {
+    return &MakePostsEventCollector{
+        blockEvents:           make(chan BlockEvent, 100),
+        progressPercentEvents: make(chan VarEvent[int], 100),
+    }
+}
+
+// ProgressPercentEvents returns a channel for receiving progress_percent variable updates
+func (c *MakePostsEventCollector) ProgressPercentEvents() <-chan VarEvent[int] {
+    return c.progressPercentEvents
 }
 ```
 
