@@ -199,6 +199,10 @@ impl TypeRust {
         }
     }
 
+    pub fn is_string_primitive(&self) -> bool {
+        matches!(self, TypeRust::String(_, _))
+    }
+
     pub fn meta_mut(&mut self) -> &mut TypeMetaRust {
         match self {
             TypeRust::String(.., meta) => meta,

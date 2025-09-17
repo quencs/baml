@@ -24,6 +24,17 @@ pub struct BamlClient {
 impl BamlClient {
     /// Create a new BAML client with default configuration
     pub fn new() -> BamlResult<Self> {
+        // Prefer local baml_src during generated tests; fall back to env
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let env_vars: std::collections::HashMap<String, String> = std::env::vars().collect();
+            let local = std::path::Path::new("baml_src");
+            if local.exists() {
+                if let Ok(client) = CoreBamlClient::from_directory(local, env_vars.clone()) {
+                    return Ok(Self { client });
+                }
+            }
+        }
         let client = CoreBamlClient::from_env()?;
         Ok(Self { client })
     }
@@ -58,9 +69,12 @@ impl Default for BamlClient {
 }
 impl BamlClient {
     /// TestEmptyArrays - Generated BAML function
-    pub async fn test_empty_arrays(&self, input: String) -> BamlResult<crate::types::SimpleArrays> {
+    pub async fn test_empty_arrays(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<crate::types::SimpleArrays> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client.call_function("TestEmptyArrays", context).await
     }
@@ -68,7 +82,7 @@ impl BamlClient {
     /// TestEmptyArrays (streaming) - Generated BAML function  
     pub async fn test_empty_arrays_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<baml_client_rust::StreamState<crate::types::SimpleArrays>>,
@@ -76,7 +90,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestEmptyArrays", context)
@@ -85,9 +99,12 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestLargeArrays - Generated BAML function
-    pub async fn test_large_arrays(&self, input: String) -> BamlResult<crate::types::SimpleArrays> {
+    pub async fn test_large_arrays(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<crate::types::SimpleArrays> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client.call_function("TestLargeArrays", context).await
     }
@@ -95,7 +112,7 @@ impl BamlClient {
     /// TestLargeArrays (streaming) - Generated BAML function  
     pub async fn test_large_arrays_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<baml_client_rust::StreamState<crate::types::SimpleArrays>>,
@@ -103,7 +120,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestLargeArrays", context)
@@ -112,9 +129,12 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestMixedArrays - Generated BAML function
-    pub async fn test_mixed_arrays(&self, input: String) -> BamlResult<crate::types::MixedArrays> {
+    pub async fn test_mixed_arrays(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<crate::types::MixedArrays> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client.call_function("TestMixedArrays", context).await
     }
@@ -122,7 +142,7 @@ impl BamlClient {
     /// TestMixedArrays (streaming) - Generated BAML function  
     pub async fn test_mixed_arrays_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<baml_client_rust::StreamState<crate::types::MixedArrays>>,
@@ -130,7 +150,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestMixedArrays", context)
@@ -141,10 +161,10 @@ impl BamlClient {
     /// TestNestedArrays - Generated BAML function
     pub async fn test_nested_arrays(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<crate::types::NestedArrays> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client.call_function("TestNestedArrays", context).await
     }
@@ -152,7 +172,7 @@ impl BamlClient {
     /// TestNestedArrays (streaming) - Generated BAML function  
     pub async fn test_nested_arrays_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<baml_client_rust::StreamState<crate::types::NestedArrays>>,
@@ -160,7 +180,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestNestedArrays", context)
@@ -171,10 +191,10 @@ impl BamlClient {
     /// TestObjectArrays - Generated BAML function
     pub async fn test_object_arrays(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<crate::types::ObjectArrays> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client.call_function("TestObjectArrays", context).await
     }
@@ -182,7 +202,7 @@ impl BamlClient {
     /// TestObjectArrays (streaming) - Generated BAML function  
     pub async fn test_object_arrays_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<baml_client_rust::StreamState<crate::types::ObjectArrays>>,
@@ -190,7 +210,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestObjectArrays", context)
@@ -201,10 +221,10 @@ impl BamlClient {
     /// TestSimpleArrays - Generated BAML function
     pub async fn test_simple_arrays(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<crate::types::SimpleArrays> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client.call_function("TestSimpleArrays", context).await
     }
@@ -212,7 +232,7 @@ impl BamlClient {
     /// TestSimpleArrays (streaming) - Generated BAML function  
     pub async fn test_simple_arrays_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<baml_client_rust::StreamState<crate::types::SimpleArrays>>,
@@ -220,7 +240,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestSimpleArrays", context)
@@ -229,9 +249,12 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestTopLevel3DArray - Generated BAML function
-    pub async fn test_top_level3d_array(&self, input: String) -> BamlResult<Vec<Vec<Vec<String>>>> {
+    pub async fn test_top_level3_d_array(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<Vec<Vec<Vec<String>>>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevel3DArray", context)
@@ -239,16 +262,16 @@ impl BamlClient {
     }
 
     /// TestTopLevel3DArray (streaming) - Generated BAML function  
-    pub async fn test_top_level3d_array_stream(
+    pub async fn test_top_level3_d_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<Vec<Vec<Vec<String>>>>>>
             + Send
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevel3DArray", context)
@@ -259,10 +282,10 @@ impl BamlClient {
     /// TestTopLevelArrayOfMaps - Generated BAML function
     pub async fn test_top_level_array_of_maps(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<Vec<std::collections::HashMap<String, i64>>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelArrayOfMaps", context)
@@ -272,7 +295,7 @@ impl BamlClient {
     /// TestTopLevelArrayOfMaps (streaming) - Generated BAML function  
     pub async fn test_top_level_array_of_maps_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<
@@ -282,7 +305,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelArrayOfMaps", context)
@@ -291,9 +314,12 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestTopLevelBoolArray - Generated BAML function
-    pub async fn test_top_level_bool_array(&self, input: String) -> BamlResult<Vec<bool>> {
+    pub async fn test_top_level_bool_array(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<Vec<bool>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelBoolArray", context)
@@ -303,12 +329,12 @@ impl BamlClient {
     /// TestTopLevelBoolArray (streaming) - Generated BAML function  
     pub async fn test_top_level_bool_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<Vec<bool>>>> + Send + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelBoolArray", context)
@@ -317,9 +343,12 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestTopLevelEmptyArray - Generated BAML function
-    pub async fn test_top_level_empty_array(&self, input: String) -> BamlResult<Vec<String>> {
+    pub async fn test_top_level_empty_array(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<Vec<String>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelEmptyArray", context)
@@ -329,14 +358,14 @@ impl BamlClient {
     /// TestTopLevelEmptyArray (streaming) - Generated BAML function  
     pub async fn test_top_level_empty_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<Vec<String>>>>
             + Send
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelEmptyArray", context)
@@ -345,9 +374,12 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestTopLevelFloatArray - Generated BAML function
-    pub async fn test_top_level_float_array(&self, input: String) -> BamlResult<Vec<f64>> {
+    pub async fn test_top_level_float_array(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<Vec<f64>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelFloatArray", context)
@@ -357,12 +389,12 @@ impl BamlClient {
     /// TestTopLevelFloatArray (streaming) - Generated BAML function  
     pub async fn test_top_level_float_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<Vec<f64>>>> + Send + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelFloatArray", context)
@@ -371,9 +403,9 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestTopLevelIntArray - Generated BAML function
-    pub async fn test_top_level_int_array(&self, input: String) -> BamlResult<Vec<i64>> {
+    pub async fn test_top_level_int_array(&self, input: impl Into<String>) -> BamlResult<Vec<i64>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelIntArray", context)
@@ -383,12 +415,12 @@ impl BamlClient {
     /// TestTopLevelIntArray (streaming) - Generated BAML function  
     pub async fn test_top_level_int_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<Vec<i64>>>> + Send + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelIntArray", context)
@@ -399,10 +431,10 @@ impl BamlClient {
     /// TestTopLevelMixedArray - Generated BAML function
     pub async fn test_top_level_mixed_array(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<Vec<crate::types::Union3BoolOrIntOrString>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelMixedArray", context)
@@ -412,7 +444,7 @@ impl BamlClient {
     /// TestTopLevelMixedArray (streaming) - Generated BAML function  
     pub async fn test_top_level_mixed_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<
@@ -422,7 +454,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelMixedArray", context)
@@ -431,9 +463,12 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestTopLevelNestedArray - Generated BAML function
-    pub async fn test_top_level_nested_array(&self, input: String) -> BamlResult<Vec<Vec<i64>>> {
+    pub async fn test_top_level_nested_array(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<Vec<Vec<i64>>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelNestedArray", context)
@@ -443,14 +478,14 @@ impl BamlClient {
     /// TestTopLevelNestedArray (streaming) - Generated BAML function  
     pub async fn test_top_level_nested_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<Vec<Vec<i64>>>>>
             + Send
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelNestedArray", context)
@@ -461,10 +496,10 @@ impl BamlClient {
     /// TestTopLevelNullableArray - Generated BAML function
     pub async fn test_top_level_nullable_array(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<Vec<Option<String>>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelNullableArray", context)
@@ -474,14 +509,14 @@ impl BamlClient {
     /// TestTopLevelNullableArray (streaming) - Generated BAML function  
     pub async fn test_top_level_nullable_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<Vec<Option<String>>>>>
             + Send
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelNullableArray", context)
@@ -492,10 +527,10 @@ impl BamlClient {
     /// TestTopLevelObjectArray - Generated BAML function
     pub async fn test_top_level_object_array(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<Vec<crate::types::User>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelObjectArray", context)
@@ -505,7 +540,7 @@ impl BamlClient {
     /// TestTopLevelObjectArray (streaming) - Generated BAML function  
     pub async fn test_top_level_object_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<baml_client_rust::StreamState<Vec<crate::types::User>>>,
@@ -513,7 +548,7 @@ impl BamlClient {
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelObjectArray", context)
@@ -522,9 +557,12 @@ impl BamlClient {
 }
 impl BamlClient {
     /// TestTopLevelStringArray - Generated BAML function
-    pub async fn test_top_level_string_array(&self, input: String) -> BamlResult<Vec<String>> {
+    pub async fn test_top_level_string_array(
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<Vec<String>> {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function("TestTopLevelStringArray", context)
@@ -534,14 +572,14 @@ impl BamlClient {
     /// TestTopLevelStringArray (streaming) - Generated BAML function  
     pub async fn test_top_level_string_array_stream(
         &self,
-        input: String,
+        input: impl Into<String>,
     ) -> BamlResult<
         impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<Vec<String>>>>
             + Send
             + Sync,
     > {
         let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
+        context = context.set_arg("input", input.into())?;
 
         self.client
             .call_function_stream("TestTopLevelStringArray", context)

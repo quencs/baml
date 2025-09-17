@@ -14,29 +14,33 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ArrayWithConstraints {
-    pub nonEmptyStrings: String,
+    pub non_empty_strings: Vec<String>,
 
-    pub limitedInts: String,
+    pub limited_ints: Vec<i64>,
 
-    pub positiveFloats: String,
+    pub positive_floats: Vec<f64>,
 }
 
 impl ArrayWithConstraints {
     /// Create a new ArrayWithConstraints instance
-    pub fn new(nonEmptyStrings: String, limitedInts: String, positiveFloats: String) -> Self {
+    pub fn new(
+        non_empty_strings: Vec<String>,
+        limited_ints: Vec<i64>,
+        positive_floats: Vec<f64>,
+    ) -> Self {
         Self {
-            nonEmptyStrings,
-            limitedInts,
-            positiveFloats,
+            non_empty_strings,
+            limited_ints,
+            positive_floats,
         }
     }
 }
 
 impl Default for ArrayWithConstraints {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new())
+        Self::new(Vec::new(), Vec::new(), Vec::new())
     }
 }
 
@@ -45,13 +49,16 @@ impl baml_client_rust::types::ToBamlValue for ArrayWithConstraints {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert(
-            "nonEmptyStrings".to_string(),
-            self.nonEmptyStrings.to_baml_value()?,
+            "non_empty_strings".to_string(),
+            self.non_empty_strings.to_baml_value()?,
         );
-        map.insert("limitedInts".to_string(), self.limitedInts.to_baml_value()?);
         map.insert(
-            "positiveFloats".to_string(),
-            self.positiveFloats.to_baml_value()?,
+            "limited_ints".to_string(),
+            self.limited_ints.to_baml_value()?,
+        );
+        map.insert(
+            "positive_floats".to_string(),
+            self.positive_floats.to_baml_value()?,
         );
         Ok(baml_client_rust::types::BamlValue::Class(
             "ArrayWithConstraints".to_string(),
@@ -66,37 +73,37 @@ impl baml_client_rust::types::FromBamlValue for ArrayWithConstraints {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let nonEmptyStrings = map
-                    .get("nonEmptyStrings")
+                let non_empty_strings = map
+                    .get("non_empty_strings")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'nonEmptyStrings' in ArrayWithConstraints"
+                            "Missing field 'non_empty_strings' in ArrayWithConstraints"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let limitedInts = map
-                    .get("limitedInts")
+                let limited_ints = map
+                    .get("limited_ints")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'limitedInts' in ArrayWithConstraints"
+                            "Missing field 'limited_ints' in ArrayWithConstraints"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let positiveFloats = map
-                    .get("positiveFloats")
+                let positive_floats = map
+                    .get("positive_floats")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'positiveFloats' in ArrayWithConstraints"
+                            "Missing field 'positive_floats' in ArrayWithConstraints"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                Ok(Self::new(nonEmptyStrings, limitedInts, positiveFloats))
+                Ok(Self::new(non_empty_strings, limited_ints, positive_floats))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
@@ -106,47 +113,41 @@ impl baml_client_rust::types::FromBamlValue for ArrayWithConstraints {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MixedArrays {
-    pub primitiveArray: String,
+    pub primitive_array: Vec<crate::types::Union4BoolOrFloatOrIntOrString>,
 
-    pub nullableArray: String,
+    pub nullable_array: Vec<Option<String>>,
 
-    pub optionalItems: String,
+    pub optional_items: Vec<Option<String>>,
 
-    pub arrayOfArrays: String,
+    pub array_of_arrays: Vec<Vec<String>>,
 
-    pub complexMixed: String,
+    pub complex_mixed: Vec<crate::types::Union3ProductOrTagOrUser>,
 }
 
 impl MixedArrays {
     /// Create a new MixedArrays instance
     pub fn new(
-        primitiveArray: String,
-        nullableArray: String,
-        optionalItems: String,
-        arrayOfArrays: String,
-        complexMixed: String,
+        primitive_array: Vec<crate::types::Union4BoolOrFloatOrIntOrString>,
+        nullable_array: Vec<Option<String>>,
+        optional_items: Vec<Option<String>>,
+        array_of_arrays: Vec<Vec<String>>,
+        complex_mixed: Vec<crate::types::Union3ProductOrTagOrUser>,
     ) -> Self {
         Self {
-            primitiveArray,
-            nullableArray,
-            optionalItems,
-            arrayOfArrays,
-            complexMixed,
+            primitive_array,
+            nullable_array,
+            optional_items,
+            array_of_arrays,
+            complex_mixed,
         }
     }
 }
 
 impl Default for MixedArrays {
     fn default() -> Self {
-        Self::new(
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-        )
+        Self::new(Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new())
     }
 }
 
@@ -155,24 +156,24 @@ impl baml_client_rust::types::ToBamlValue for MixedArrays {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert(
-            "primitiveArray".to_string(),
-            self.primitiveArray.to_baml_value()?,
+            "primitive_array".to_string(),
+            self.primitive_array.to_baml_value()?,
         );
         map.insert(
-            "nullableArray".to_string(),
-            self.nullableArray.to_baml_value()?,
+            "nullable_array".to_string(),
+            self.nullable_array.to_baml_value()?,
         );
         map.insert(
-            "optionalItems".to_string(),
-            self.optionalItems.to_baml_value()?,
+            "optional_items".to_string(),
+            self.optional_items.to_baml_value()?,
         );
         map.insert(
-            "arrayOfArrays".to_string(),
-            self.arrayOfArrays.to_baml_value()?,
+            "array_of_arrays".to_string(),
+            self.array_of_arrays.to_baml_value()?,
         );
         map.insert(
-            "complexMixed".to_string(),
-            self.complexMixed.to_baml_value()?,
+            "complex_mixed".to_string(),
+            self.complex_mixed.to_baml_value()?,
         );
         Ok(baml_client_rust::types::BamlValue::Class(
             "MixedArrays".to_string(),
@@ -187,62 +188,62 @@ impl baml_client_rust::types::FromBamlValue for MixedArrays {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let primitiveArray = map
-                    .get("primitiveArray")
+                let primitive_array = map
+                    .get("primitive_array")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'primitiveArray' in MixedArrays"
+                            "Missing field 'primitive_array' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let nullableArray = map
-                    .get("nullableArray")
+                let nullable_array = map
+                    .get("nullable_array")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'nullableArray' in MixedArrays"
+                            "Missing field 'nullable_array' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let optionalItems = map
-                    .get("optionalItems")
+                let optional_items = map
+                    .get("optional_items")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'optionalItems' in MixedArrays"
+                            "Missing field 'optional_items' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let arrayOfArrays = map
-                    .get("arrayOfArrays")
+                let array_of_arrays = map
+                    .get("array_of_arrays")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'arrayOfArrays' in MixedArrays"
+                            "Missing field 'array_of_arrays' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let complexMixed = map
-                    .get("complexMixed")
+                let complex_mixed = map
+                    .get("complex_mixed")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'complexMixed' in MixedArrays"
+                            "Missing field 'complex_mixed' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 Ok(Self::new(
-                    primitiveArray,
-                    nullableArray,
-                    optionalItems,
-                    arrayOfArrays,
-                    complexMixed,
+                    primitive_array,
+                    nullable_array,
+                    optional_items,
+                    array_of_arrays,
+                    complex_mixed,
                 ))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
@@ -253,29 +254,33 @@ impl baml_client_rust::types::FromBamlValue for MixedArrays {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct NestedArrays {
-    pub matrix: String,
+    pub matrix: Vec<Vec<i64>>,
 
-    pub stringMatrix: String,
+    pub string_matrix: Vec<Vec<String>>,
 
-    pub threeDimensional: String,
+    pub three_dimensional: Vec<Vec<Vec<f64>>>,
 }
 
 impl NestedArrays {
     /// Create a new NestedArrays instance
-    pub fn new(matrix: String, stringMatrix: String, threeDimensional: String) -> Self {
+    pub fn new(
+        matrix: Vec<Vec<i64>>,
+        string_matrix: Vec<Vec<String>>,
+        three_dimensional: Vec<Vec<Vec<f64>>>,
+    ) -> Self {
         Self {
             matrix,
-            stringMatrix,
-            threeDimensional,
+            string_matrix,
+            three_dimensional,
         }
     }
 }
 
 impl Default for NestedArrays {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new())
+        Self::new(Vec::new(), Vec::new(), Vec::new())
     }
 }
 
@@ -285,12 +290,12 @@ impl baml_client_rust::types::ToBamlValue for NestedArrays {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert("matrix".to_string(), self.matrix.to_baml_value()?);
         map.insert(
-            "stringMatrix".to_string(),
-            self.stringMatrix.to_baml_value()?,
+            "string_matrix".to_string(),
+            self.string_matrix.to_baml_value()?,
         );
         map.insert(
-            "threeDimensional".to_string(),
-            self.threeDimensional.to_baml_value()?,
+            "three_dimensional".to_string(),
+            self.three_dimensional.to_baml_value()?,
         );
         Ok(baml_client_rust::types::BamlValue::Class(
             "NestedArrays".to_string(),
@@ -315,27 +320,27 @@ impl baml_client_rust::types::FromBamlValue for NestedArrays {
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let stringMatrix = map
-                    .get("stringMatrix")
+                let string_matrix = map
+                    .get("string_matrix")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'stringMatrix' in NestedArrays"
+                            "Missing field 'string_matrix' in NestedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let threeDimensional = map
-                    .get("threeDimensional")
+                let three_dimensional = map
+                    .get("three_dimensional")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'threeDimensional' in NestedArrays"
+                            "Missing field 'three_dimensional' in NestedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                Ok(Self::new(matrix, stringMatrix, threeDimensional))
+                Ok(Self::new(matrix, string_matrix, three_dimensional))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
@@ -345,18 +350,22 @@ impl baml_client_rust::types::FromBamlValue for NestedArrays {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ObjectArrays {
-    pub users: String,
+    pub users: Vec<crate::types::User>,
 
-    pub products: String,
+    pub products: Vec<crate::types::Product>,
 
-    pub tags: String,
+    pub tags: Vec<crate::types::Tag>,
 }
 
 impl ObjectArrays {
     /// Create a new ObjectArrays instance
-    pub fn new(users: String, products: String, tags: String) -> Self {
+    pub fn new(
+        users: Vec<crate::types::User>,
+        products: Vec<crate::types::Product>,
+        tags: Vec<crate::types::Tag>,
+    ) -> Self {
         Self {
             users,
             products,
@@ -367,7 +376,7 @@ impl ObjectArrays {
 
 impl Default for ObjectArrays {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new())
+        Self::new(Vec::new(), Vec::new(), Vec::new())
     }
 }
 
@@ -431,41 +440,35 @@ impl baml_client_rust::types::FromBamlValue for ObjectArrays {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Product {
-    pub id: String,
+    pub id: i64,
 
     pub name: String,
 
-    pub price: String,
+    pub price: f64,
 
-    pub tags: String,
+    pub tags: Vec<String>,
 
-    pub inStock: String,
+    pub in_stock: bool,
 }
 
 impl Product {
     /// Create a new Product instance
-    pub fn new(id: String, name: String, price: String, tags: String, inStock: String) -> Self {
+    pub fn new(id: i64, name: String, price: f64, tags: Vec<String>, in_stock: bool) -> Self {
         Self {
             id,
             name,
             price,
             tags,
-            inStock,
+            in_stock,
         }
     }
 }
 
 impl Default for Product {
     fn default() -> Self {
-        Self::new(
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-        )
+        Self::new(0, String::new(), 0.0, Vec::new(), false)
     }
 }
 
@@ -477,7 +480,7 @@ impl baml_client_rust::types::ToBamlValue for Product {
         map.insert("name".to_string(), self.name.to_baml_value()?);
         map.insert("price".to_string(), self.price.to_baml_value()?);
         map.insert("tags".to_string(), self.tags.to_baml_value()?);
-        map.insert("inStock".to_string(), self.inStock.to_baml_value()?);
+        map.insert("in_stock".to_string(), self.in_stock.to_baml_value()?);
         Ok(baml_client_rust::types::BamlValue::Class(
             "Product".to_string(),
             map,
@@ -531,17 +534,17 @@ impl baml_client_rust::types::FromBamlValue for Product {
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let inStock = map
-                    .get("inStock")
+                let in_stock = map
+                    .get("in_stock")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'inStock' in Product"
+                            "Missing field 'in_stock' in Product"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                Ok(Self::new(id, name, price, tags, inStock))
+                Ok(Self::new(id, name, price, tags, in_stock))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
@@ -551,20 +554,25 @@ impl baml_client_rust::types::FromBamlValue for Product {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SimpleArrays {
-    pub strings: String,
+    pub strings: Vec<String>,
 
-    pub integers: String,
+    pub integers: Vec<i64>,
 
-    pub floats: String,
+    pub floats: Vec<f64>,
 
-    pub booleans: String,
+    pub booleans: Vec<bool>,
 }
 
 impl SimpleArrays {
     /// Create a new SimpleArrays instance
-    pub fn new(strings: String, integers: String, floats: String, booleans: String) -> Self {
+    pub fn new(
+        strings: Vec<String>,
+        integers: Vec<i64>,
+        floats: Vec<f64>,
+        booleans: Vec<bool>,
+    ) -> Self {
         Self {
             strings,
             integers,
@@ -576,7 +584,7 @@ impl SimpleArrays {
 
 impl Default for SimpleArrays {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new(), String::new())
+        Self::new(Vec::new(), Vec::new(), Vec::new(), Vec::new())
     }
 }
 
@@ -651,9 +659,9 @@ impl baml_client_rust::types::FromBamlValue for SimpleArrays {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Tag {
-    pub id: String,
+    pub id: i64,
 
     pub name: String,
 
@@ -662,14 +670,14 @@ pub struct Tag {
 
 impl Tag {
     /// Create a new Tag instance
-    pub fn new(id: String, name: String, color: String) -> Self {
+    pub fn new(id: i64, name: String, color: String) -> Self {
         Self { id, name, color }
     }
 }
 
 impl Default for Tag {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new())
+        Self::new(0, String::new(), String::new())
     }
 }
 
@@ -733,32 +741,32 @@ impl baml_client_rust::types::FromBamlValue for Tag {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct User {
-    pub id: String,
+    pub id: i64,
 
     pub name: String,
 
     pub email: String,
 
-    pub isActive: String,
+    pub is_active: bool,
 }
 
 impl User {
     /// Create a new User instance
-    pub fn new(id: String, name: String, email: String, isActive: String) -> Self {
+    pub fn new(id: i64, name: String, email: String, is_active: bool) -> Self {
         Self {
             id,
             name,
             email,
-            isActive,
+            is_active,
         }
     }
 }
 
 impl Default for User {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new(), String::new())
+        Self::new(0, String::new(), String::new(), false)
     }
 }
 
@@ -769,7 +777,7 @@ impl baml_client_rust::types::ToBamlValue for User {
         map.insert("id".to_string(), self.id.to_baml_value()?);
         map.insert("name".to_string(), self.name.to_baml_value()?);
         map.insert("email".to_string(), self.email.to_baml_value()?);
-        map.insert("isActive".to_string(), self.isActive.to_baml_value()?);
+        map.insert("is_active".to_string(), self.is_active.to_baml_value()?);
         Ok(baml_client_rust::types::BamlValue::Class(
             "User".to_string(),
             map,
@@ -813,17 +821,17 @@ impl baml_client_rust::types::FromBamlValue for User {
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                let isActive = map
-                    .get("isActive")
+                let is_active = map
+                    .get("is_active")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'isActive' in User"
+                            "Missing field 'is_active' in User"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
-                Ok(Self::new(id, name, email, isActive))
+                Ok(Self::new(id, name, email, is_active))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
@@ -984,6 +992,41 @@ impl std::fmt::Display for Union3BoolOrIntOrString {
     }
 }
 
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3BoolOrIntOrString {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::String(v) => v.to_baml_value(),
+            Self::Int(v) => v.to_baml_value(),
+            Self::Bool(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3BoolOrIntOrString {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        // Try String variant
+        if let Ok(variant_value) = String::from_baml_value(value.clone()) {
+            return Ok(Self::String(variant_value));
+        }
+        // Try Int variant
+        if let Ok(variant_value) = i64::from_baml_value(value.clone()) {
+            return Ok(Self::Int(variant_value));
+        }
+        // Try Bool variant
+        if let Ok(variant_value) = bool::from_baml_value(value.clone()) {
+            return Ok(Self::Bool(variant_value));
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3BoolOrIntOrString",
+            value
+        )))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3ProductOrTagOrUser {
@@ -1132,6 +1175,41 @@ impl std::fmt::Display for Union3ProductOrTagOrUser {
             Self::Product(v) => write!(f, "Product({:?})", v),
             Self::Tag(v) => write!(f, "Tag({:?})", v),
         }
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3ProductOrTagOrUser {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::User(v) => v.to_baml_value(),
+            Self::Product(v) => v.to_baml_value(),
+            Self::Tag(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3ProductOrTagOrUser {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        // Try User variant
+        if let Ok(variant_value) = crate::types::User::from_baml_value(value.clone()) {
+            return Ok(Self::User(variant_value));
+        }
+        // Try Product variant
+        if let Ok(variant_value) = crate::types::Product::from_baml_value(value.clone()) {
+            return Ok(Self::Product(variant_value));
+        }
+        // Try Tag variant
+        if let Ok(variant_value) = crate::types::Tag::from_baml_value(value.clone()) {
+            return Ok(Self::Tag(variant_value));
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3ProductOrTagOrUser",
+            value
+        )))
     }
 }
 
@@ -1322,5 +1400,45 @@ impl std::fmt::Display for Union4BoolOrFloatOrIntOrString {
             Self::Float(v) => write!(f, "Float({:?})", v),
             Self::Bool(v) => write!(f, "Bool({:?})", v),
         }
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union4BoolOrFloatOrIntOrString {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::String(v) => v.to_baml_value(),
+            Self::Int(v) => v.to_baml_value(),
+            Self::Float(v) => v.to_baml_value(),
+            Self::Bool(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union4BoolOrFloatOrIntOrString {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        // Try String variant
+        if let Ok(variant_value) = String::from_baml_value(value.clone()) {
+            return Ok(Self::String(variant_value));
+        }
+        // Try Int variant
+        if let Ok(variant_value) = i64::from_baml_value(value.clone()) {
+            return Ok(Self::Int(variant_value));
+        }
+        // Try Float variant
+        if let Ok(variant_value) = f64::from_baml_value(value.clone()) {
+            return Ok(Self::Float(variant_value));
+        }
+        // Try Bool variant
+        if let Ok(variant_value) = bool::from_baml_value(value.clone()) {
+            return Ok(Self::Bool(variant_value));
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union4BoolOrFloatOrIntOrString",
+            value
+        )))
     }
 }

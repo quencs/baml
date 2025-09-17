@@ -12,6 +12,16 @@ pub fn to_snake_case(s: &str) -> String {
                 }
             }
         }
+        // Insert underscore between a digit and a following alphabetic character
+        if c.is_ascii_digit() {
+            result.push(c);
+            if let Some(&next_char) = chars.peek() {
+                if next_char.is_alphabetic() {
+                    result.push('_');
+                }
+            }
+            continue;
+        }
         result.push(c.to_lowercase().next().unwrap_or(c));
     }
     

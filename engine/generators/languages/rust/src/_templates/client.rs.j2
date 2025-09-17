@@ -11,6 +11,17 @@ pub struct BamlClient {
 impl BamlClient {
     /// Create a new BAML client with default configuration
     pub fn new() -> BamlResult<Self> {
+        // Prefer local baml_src during generated tests; fall back to env
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let env_vars: std::collections::HashMap<String, String> = std::env::vars().collect();
+            let local = std::path::Path::new("baml_src");
+            if local.exists() {
+                if let Ok(client) = CoreBamlClient::from_directory(local, env_vars.clone()) {
+                    return Ok(Self { client });
+                }
+            }
+        }
         let client = CoreBamlClient::from_env()?;
         Ok(Self { client })
     }
