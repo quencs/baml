@@ -794,4 +794,47 @@ Answer in JSON using this schema:
         assert_eq!(foo.fields[0].1, TypeIR::r#string());
         assert_eq!(foo.fields[0].2, Some("d".to_string()));
     }
+
+    #[test]
+    fn test_attribute_alias_jinja_expression_and_description_template() {
+        let files = vec![(
+            "test-file.baml",
+            r#"
+                class Foo {
+                    // alias is a bare jinja expression, description is a string template
+                    bar string @alias({{ 1 + 1 }}) @description("Hello {{ env.NAME }}")
+                }
+                "#,
+        )]
+        .into_iter()
+        .collect();
+        let mut env_vars = HashMap::new();
+        env_vars.insert("NAME".to_string(), "World".to_string());
+        let baml_runtime =
+            BamlRuntime::from_file_content(".", &files, env_vars.clone(), FeatureFlags::new())
+                .unwrap();
+        let ctx_manager = baml_runtime.create_ctx_manager(BamlValue::Null, None);
+        let ctx: RuntimeContext = ctx_manager
+            .create_ctx(None, None, env_vars.clone(), vec![FunctionCallId::new()])
+            .expect("Should create context");
+
+        let field_type = TypeIR::class("Foo");
+        let render_output = render_output_format(
+            baml_runtime.inner.ir.as_ref(),
+            &ctx,
+            &field_type,
+            StreamingMode::NonStreaming,
+        )
+        .unwrap();
+
+        let foo = render_output
+            .find_class(&StreamingMode::NonStreaming, "Foo")
+            .unwrap();
+        assert_eq!(
+            foo.fields[0].0,
+            Name::new_with_alias("bar".to_string(), Some("2".to_string()))
+        );
+        assert_eq!(foo.fields[0].1, TypeIR::r#string());
+        assert_eq!(foo.fields[0].2, Some("Hello World".to_string()));
+    }
 }

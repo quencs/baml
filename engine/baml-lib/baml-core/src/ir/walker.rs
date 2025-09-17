@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use baml_types::{
-    type_meta::base::StreamingBehavior, BamlValue, EvaluationContext, UnresolvedValue,
+    type_meta::base::StreamingBehavior, BamlValue, EvaluationContext, GetEnvVar, UnresolvedValue,
 };
 use indexmap::{IndexMap, IndexSet};
 use internal_baml_ast::ast::WithIdentifier;
@@ -16,6 +16,35 @@ use crate::ir::{
     Class, Client, Enum, EnumValue, ExprFunctionNode, Field, Function, FunctionNode, IRHelper,
     Impl, IntermediateRepr, RetryPolicy, TemplateString, TestCase, TypeAlias, TypeIR, Walker,
 };
+
+fn build_attr_template_ctx(
+    ctx: &EvaluationContext<'_>,
+) -> std::collections::HashMap<String, minijinja::Value> {
+    let mut map = std::collections::HashMap::new();
+    if let Some(vars) = ctx.vars_map() {
+        map.insert("env".to_string(), minijinja::Value::from_serialize(vars));
+    }
+    map
+}
+
+fn resolve_attribute_string(
+    v: &baml_types::StringOr,
+    ctx: &EvaluationContext<'_>,
+) -> Result<String> {
+    use baml_types::StringOr;
+    match v {
+        StringOr::EnvVar(name) => ctx.get_env_var(name),
+        StringOr::Value(s) => {
+            let env = crate::ir::jinja_helpers::get_env();
+            let args = minijinja::Value::from_serialize(&build_attr_template_ctx(ctx));
+            Ok(env.render_str(s, &args)?)
+        }
+        StringOr::JinjaExpression(expr) => {
+            let ctx_map = build_attr_template_ctx(ctx);
+            Ok(render_expression(expr, &ctx_map)?)
+        }
+    }
+}
 
 impl<'a> Walker<'a, &'a ExprFunctionNode> {
     pub fn name(&self) -> &'a str {
@@ -161,7 +190,7 @@ impl<'a> Walker<'a, &'a Enum> {
         self.item
             .attributes
             .alias()
-            .map(|v| v.resolve(ctx))
+            .map(|v| resolve_attribute_string(v, ctx))
             .transpose()
     }
 
@@ -169,7 +198,7 @@ impl<'a> Walker<'a, &'a Enum> {
         self.item
             .attributes
             .description()
-            .map(|v| v.resolve(ctx))
+            .map(|v| resolve_attribute_string(v, ctx))
             .transpose()
     }
 
@@ -214,7 +243,7 @@ impl<'a> Walker<'a, &'a EnumValue> {
         self.item
             .attributes
             .alias()
-            .map(|v| v.resolve(ctx))
+            .map(|v| resolve_attribute_string(v, ctx))
             .transpose()
     }
 
@@ -222,7 +251,7 @@ impl<'a> Walker<'a, &'a EnumValue> {
         self.item
             .attributes
             .description()
-            .map(|v| v.resolve(ctx))
+            .map(|v| resolve_attribute_string(v, ctx))
             .transpose()
     }
 }
@@ -336,7 +365,7 @@ impl<'a> Walker<'a, &'a Class> {
         self.item
             .attributes
             .alias()
-            .map(|v| v.resolve(ctx))
+            .map(|v| resolve_attribute_string(v, ctx))
             .transpose()
     }
 
@@ -344,7 +373,7 @@ impl<'a> Walker<'a, &'a Class> {
         self.item
             .attributes
             .description()
-            .map(|v| v.resolve(ctx))
+            .map(|v| resolve_attribute_string(v, ctx))
             .transpose()
     }
 
@@ -485,7 +514,7 @@ impl<'a> Walker<'a, &'a Field> {
         self.item
             .attributes
             .alias()
-            .map(|v| v.resolve(ctx))
+            .map(|v| resolve_attribute_string(v, ctx))
             .transpose()
     }
 
@@ -493,7 +522,7 @@ impl<'a> Walker<'a, &'a Field> {
         self.item
             .attributes
             .description()
-            .map(|v| v.resolve(ctx))
+            .map(|v| resolve_attribute_string(v, ctx))
             .transpose()
     }
 

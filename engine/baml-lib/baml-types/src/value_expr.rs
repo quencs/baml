@@ -332,6 +332,11 @@ impl<'a> EvaluationContext<'a> {
             fill_missing_env_vars,
         }
     }
+
+    /// Expose the underlying environment variables map for template rendering contexts
+    pub fn vars_map(&self) -> Option<&'a HashMap<String, String>> {
+        self.env_vars
+    }
 }
 
 impl Default for EvaluationContext<'_> {
