@@ -55,18 +55,26 @@ impl TypeBuilder {
     /// the output format is carefully structured for readability, making it quite easy :D
     /// to understand the complete type hierarchy at a glance.
     pub fn __str__(&self) -> String {
-        todo!("implement this")
+        self.inner.to_string()
     }
 
-    pub fn r#enum(&self, name: &str) -> PyResult<EnumBuilder> {
+    pub fn add_enum(&self, name: &str) -> PyResult<EnumBuilder> {
         let result = self.inner.add_enum(name).map_err(BamlError::from_anyhow)?;
         Ok(EnumBuilder { inner: result })
     }
 
-    // Rename to "class_"
-    #[pyo3(name = "class_")]
-    pub fn class(&self, name: &str) -> PyResult<ClassBuilder> {
+    pub fn get_enum(&self, name: &str) -> PyResult<EnumBuilder> {
+        let result = self.inner.r#enum(name).map_err(BamlError::from_anyhow)?;
+        Ok(EnumBuilder { inner: result })
+    }
+
+    pub fn add_class(&self, name: &str) -> PyResult<ClassBuilder> {
         let result = self.inner.add_class(name).map_err(BamlError::from_anyhow)?;
+        Ok(ClassBuilder { inner: result })
+    }
+
+    pub fn get_class(&self, name: &str) -> PyResult<ClassBuilder> {
+        let result = self.inner.class(name).map_err(BamlError::from_anyhow)?;
         Ok(ClassBuilder { inner: result })
     }
 
@@ -143,11 +151,19 @@ impl FieldType {
     pub fn __eq__(&self, other: &FieldType) -> bool {
         self.inner == other.inner
     }
+
+    pub fn __str__(&self) -> String {
+        self.inner.to_string()
+    }
+
+    pub fn __repr__(&self) -> String {
+        format!("Type[{}]", self.inner.to_string())
+    }
 }
 
 #[pymethods]
 impl EnumBuilder {
-    pub fn value(&self, value: &str) -> PyResult<EnumValueBuilder> {
+    pub fn add_value(&self, value: &str) -> PyResult<EnumValueBuilder> {
         let result = self
             .inner
             .add_value(value)
@@ -155,23 +171,69 @@ impl EnumBuilder {
         Ok(EnumValueBuilder { inner: result })
     }
 
+    pub fn get_value(&self, value: &str) -> PyResult<EnumValueBuilder> {
+        let result = self.inner.value(value).map_err(BamlError::from_anyhow)?;
+        Ok(EnumValueBuilder { inner: result })
+    }
+
+    pub fn remove_value(&self, value: &str) -> PyResult<()> {
+        self.inner
+            .remove_value(value)
+            .map_err(BamlError::from_anyhow)
+    }
+
     #[pyo3(signature = (alias = None))]
-    pub fn alias(&self, alias: Option<&str>) -> PyResult<Self> {
+    pub fn set_alias(&self, alias: Option<&str>) -> PyResult<Self> {
         self.inner
             .set_alias(alias)
             .map_err(BamlError::from_anyhow)?;
         Ok(self.inner.clone().into())
     }
 
+    #[pyo3(signature = (description = None))]
+    pub fn set_description(&self, description: Option<&str>) -> PyResult<Self> {
+        self.inner
+            .set_description(description)
+            .map_err(BamlError::from_anyhow)?;
+        Ok(self.inner.clone().into())
+    }
+
+    pub fn alias(&self) -> PyResult<Option<String>> {
+        self.inner.alias().map_err(BamlError::from_anyhow)
+    }
+
+    pub fn description(&self) -> PyResult<Option<String>> {
+        self.inner.description().map_err(BamlError::from_anyhow)
+    }
+
     pub fn field(&self) -> FieldType {
         baml_types::TypeIR::r#enum(&self.inner.enum_name).into()
+    }
+
+    pub fn list_values(&self) -> PyResult<Vec<(String, EnumValueBuilder)>> {
+        Ok(self
+            .inner
+            .list_values()
+            .map_err(BamlError::from_anyhow)?
+            .into_iter()
+            .map(|value| (value.value_name.clone(), EnumValueBuilder { inner: value }))
+            .collect())
+    }
+
+    #[getter]
+    pub fn source(&self) -> PyResult<String> {
+        if self.inner.is_from_ast().map_err(BamlError::from_anyhow)? {
+            Ok("baml".to_string())
+        } else {
+            Ok("dynamic".to_string())
+        }
     }
 }
 
 #[pymethods]
 impl EnumValueBuilder {
     #[pyo3(signature = (alias = None))]
-    pub fn alias(&self, alias: Option<&str>) -> PyResult<Self> {
+    pub fn set_alias(&self, alias: Option<&str>) -> PyResult<Self> {
         self.inner
             .set_alias(alias)
             .map_err(BamlError::from_anyhow)?;
@@ -179,17 +241,38 @@ impl EnumValueBuilder {
     }
 
     #[pyo3(signature = (skip = true))]
-    pub fn skip(&self, skip: Option<bool>) -> PyResult<Self> {
+    pub fn set_skip(&self, skip: Option<bool>) -> PyResult<Self> {
         self.inner.set_skip(skip).map_err(BamlError::from_anyhow)?;
         Ok(self.inner.clone().into())
     }
 
     #[pyo3(signature = (description = None))]
-    pub fn description(&self, description: Option<&str>) -> PyResult<Self> {
+    pub fn set_description(&self, description: Option<&str>) -> PyResult<Self> {
         self.inner
             .set_description(description)
             .map_err(BamlError::from_anyhow)?;
         Ok(self.inner.clone().into())
+    }
+
+    pub fn alias(&self) -> PyResult<Option<String>> {
+        self.inner.alias().map_err(BamlError::from_anyhow)
+    }
+
+    pub fn description(&self) -> PyResult<Option<String>> {
+        self.inner.description().map_err(BamlError::from_anyhow)
+    }
+
+    pub fn skip(&self) -> PyResult<bool> {
+        self.inner.skip().map_err(BamlError::from_anyhow)
+    }
+
+    #[getter]
+    pub fn source(&self) -> PyResult<String> {
+        if self.inner.is_from_ast().map_err(BamlError::from_anyhow)? {
+            Ok("baml".to_string())
+        } else {
+            Ok("dynamic".to_string())
+        }
     }
 }
 
@@ -224,15 +307,44 @@ impl ClassBuilder {
         self.inner.reset().map_err(BamlError::from_anyhow)
     }
 
-    pub fn property(&self, name: &str) -> PyResult<ClassPropertyBuilder> {
+    pub fn add_property(&self, name: &str, r#type: &FieldType) -> PyResult<ClassPropertyBuilder> {
+        let result = self
+            .inner
+            .add_property(name, r#type.inner.clone(), true)
+            .map_err(BamlError::from_anyhow)?;
+        Ok(ClassPropertyBuilder { inner: result })
+    }
+
+    pub fn get_property(&self, name: &str) -> PyResult<ClassPropertyBuilder> {
         let result = self.inner.property(name).map_err(BamlError::from_anyhow)?;
         Ok(ClassPropertyBuilder { inner: result })
+    }
+
+    #[getter]
+    pub fn source(&self) -> PyResult<String> {
+        if self.inner.is_from_ast().map_err(BamlError::from_anyhow)? {
+            Ok("baml".to_string())
+        } else {
+            Ok("dynamic".to_string())
+        }
+    }
+
+    #[pyo3(signature = (alias = None))]
+    pub fn set_alias(&self, alias: Option<String>) -> PyResult<Self> {
+        self.inner
+            .set_alias(alias.as_deref())
+            .map_err(BamlError::from_anyhow)?;
+        Ok(self.inner.clone().into())
+    }
+
+    pub fn alias(&self) -> PyResult<Option<String>> {
+        self.inner.alias().map_err(BamlError::from_anyhow)
     }
 }
 
 #[pymethods]
 impl ClassPropertyBuilder {
-    pub fn r#type(&self, r#type: &FieldType) -> PyResult<Self> {
+    pub fn set_type(&self, r#type: &FieldType) -> PyResult<Self> {
         self.inner
             .set_type(r#type.inner.clone())
             .map_err(BamlError::from_anyhow)?;
@@ -241,14 +353,14 @@ impl ClassPropertyBuilder {
         })
     }
 
-    pub fn get_type(&self) -> PyResult<FieldType> {
+    pub fn r#type(&self) -> PyResult<FieldType> {
         Ok(FieldType {
             inner: self.inner.type_().map_err(BamlError::from_anyhow)?,
         })
     }
 
     #[pyo3(signature = (alias = None))]
-    pub fn alias(&self, alias: Option<&str>) -> PyResult<Self> {
+    pub fn set_alias(&self, alias: Option<&str>) -> PyResult<Self> {
         self.inner
             .set_alias(alias)
             .map_err(BamlError::from_anyhow)?;
@@ -258,12 +370,29 @@ impl ClassPropertyBuilder {
     }
 
     #[pyo3(signature = (description = None))]
-    pub fn description(&self, description: Option<&str>) -> PyResult<Self> {
+    pub fn set_description(&self, description: Option<&str>) -> PyResult<Self> {
         self.inner
             .set_description(description)
             .map_err(BamlError::from_anyhow)?;
         Ok(Self {
             inner: self.inner.clone(),
         })
+    }
+
+    pub fn alias(&self) -> PyResult<Option<String>> {
+        self.inner.alias().map_err(BamlError::from_anyhow)
+    }
+
+    pub fn description(&self) -> PyResult<Option<String>> {
+        self.inner.description().map_err(BamlError::from_anyhow)
+    }
+
+    #[getter]
+    pub fn source(&self) -> PyResult<String> {
+        if self.inner.is_from_ast().map_err(BamlError::from_anyhow)? {
+            Ok("baml".to_string())
+        } else {
+            Ok("dynamic".to_string())
+        }
     }
 }

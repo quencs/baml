@@ -261,6 +261,11 @@ impl EnumBuilder {
         let values = self.values.lock().unwrap();
         values.keys().cloned().collect()
     }
+
+    pub fn remove_value(&self, name: &str) {
+        let mut values = self.values.lock().unwrap();
+        values.shift_remove(name);
+    }
 }
 
 // EnumValueBuilder

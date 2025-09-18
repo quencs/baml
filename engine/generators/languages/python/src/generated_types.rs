@@ -124,11 +124,7 @@ mod type_builder {
             &self.name
         }
         fn type_builder_name(&self) -> String {
-            format!(
-                "{}{}",
-                self.name,
-                if self.dynamic { "Builder" } else { "Viewer" }
-            )
+            format!("{}{}", self.name, "Builder")
         }
     }
 
@@ -143,11 +139,7 @@ mod type_builder {
             &self.name
         }
         fn type_builder_name(&self) -> String {
-            format!(
-                "{}{}",
-                self.name,
-                if self.dynamic { "Builder" } else { "Viewer" }
-            )
+            format!("{}{}", self.name, "Builder")
         }
     }
 
@@ -157,9 +149,8 @@ mod type_builder {
     /// class {{ class.name }}Ast:
     ///     def __init__(self, tb: type_builder.TypeBuilder):
     ///         _tb = tb._tb # type: ignore (we know how to use this private attribute)
-    ///         self._bldr = _tb.class_("{{ class.name }}")
-    ///         self._properties: typing.Set[str] = set([ {% for field in class.fields %} "{{ field.name }}", {% endfor %} ])
-    ///         self._props = {{ class.name }}Properties(self._bldr, self._properties)
+    ///         self._bldr = _tb.get_class("{{ class.name }}")
+    ///         self._props = {{ class.name }}Properties(self._bldr)
     ///
     ///     def type(self) -> baml_py.FieldType:
     ///         return self._bldr.field()
@@ -175,9 +166,7 @@ mod type_builder {
     ///
     ///     {% if class.dynamic %}
     ///     def add_property(self, name: str, type: baml_py.FieldType) -> {{ class.class_property_type() }}:
-    ///         if name in self._properties:
-    ///             raise ValueError(f"Property {name} already exists.")
-    ///         return self._bldr.property(name).type(type)
+    ///         return self._bldr.add_property(name, type)
     ///
     ///     def list_properties(self) -> typing.List[typing.Tuple[str, {{ class.class_property_type() }}]]:
     ///         return self._bldr.list_properties()
@@ -195,26 +184,23 @@ mod type_builder {
     ///
     ///
     /// class {{ class.name }}Properties:
-    ///     def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
+    ///     def __init__(self, bldr: baml_py.ClassBuilder):
     ///         self.__bldr = bldr
-    ///         self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
     ///
     ///     {% if class.dynamic %}
     ///     def __getattr__(self, name: str) -> {{ class.class_property_type() }}:
-    ///         if name not in self.__properties:
-    ///             raise AttributeError(f"Property {name} not found.")
-    ///         return self.__bldr.property(name)
+    ///         return self.__bldr.get_property(name)
     ///
     ///     {% for field in class.fields %}
     ///     @property
     ///     def {{ field.name }}(self) -> {{ class.class_property_type() }}:
-    ///         return self.__bldr.property("{{ field.name }}")
+    ///         return self.__bldr.get_property("{{ field.name }}")
     ///     {% endfor %}
     ///     {% else %}
     ///     {% for field in class.fields %}
     ///     @property
     ///     def {{ field.name }}(self) -> {{ class.class_property_type() }}:
-    ///         return {{ class.class_property_type() }}(self.__bldr.property("{{ field.name }}"))
+    ///         return {{ class.class_property_type() }}(self.__bldr.get_property("{{ field.name }}"))
     ///     {% endfor %}
     ///     {% endif %}
     ///
@@ -235,19 +221,11 @@ mod type_builder {
         }
 
         fn type_builder_object_name(&self) -> String {
-            format!("{}{}", self.name, self.type_builder_object_type())
+            format!("{}Builder", self.name)
         }
 
         fn class_property_type(&self) -> String {
-            format!(
-                "{}.ClassProperty{}",
-                if self.dynamic {
-                    "baml_py"
-                } else {
-                    "type_builder"
-                },
-                self.type_builder_object_type()
-            )
+            format!("{}.ClassProperty{}", "type_builder", "Builder")
         }
 
         pub fn to_type_builder_object(&'a self) -> TypeBuilderClassObject<'a> {
@@ -261,9 +239,8 @@ mod type_builder {
     /// class {{ enum_.name }}Ast:
     ///     def __init__(self, tb: type_builder.TypeBuilder):
     ///         _tb = tb._tb # type: ignore (we know how to use this private attribute)
-    ///         self._bldr = _tb.enum("{{ enum_.name }}")
-    ///         self._values: typing.Set[str] = set([ {% for (value, _) in enum_.values %} "{{ value }}", {% endfor %} ])
-    ///         self._vals = {{ enum_.name }}Values(self._bldr, self._values)
+    ///         self._bldr = _tb.get_enum("{{ enum_.name }}")
+    ///         self._vals = {{ enum_.name }}Values(self._bldr)
     ///
     ///     def type(self) -> baml_py.FieldType:
     ///         return self._bldr.field()
@@ -279,38 +256,33 @@ mod type_builder {
     ///
     ///     {% if enum_.dynamic %}
     ///     def list_values(self) -> typing.List[typing.Tuple[str, {{ enum_.enum_value_type() }}]]:
-    ///         return [(name, self._bldr.value(name)) for name in self._values]
+    ///         return self._bldr.list_values()
     ///
     ///     def add_value(self, name: str) -> {{ enum_.enum_value_type() }}:
-    ///         if name in self._values:
-    ///             raise ValueError(f"Value {name} already exists.")
-    ///         return self._bldr.value(name)
+    ///         return self._bldr.add_value(name)
     ///     {% else %}
     ///     def list_values(self) -> typing.List[typing.Tuple[str, {{ enum_.enum_value_type() }}]]:
     ///         return [(name, {{ enum_.enum_value_type() }}(self._bldr.value(name))) for name in self._values]
     ///     {% endif %}
     ///
     /// class {{ enum_.name }}Values:
-    ///     def __init__(self, enum_bldr: baml_py.EnumBuilder, values: typing.Set[str]):
+    ///     def __init__(self, enum_bldr: baml_py.EnumBuilder):
     ///         self.__bldr = enum_bldr
-    ///         self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
     ///
     ///     {% if enum_.dynamic %}
     ///     def __getattr__(self, name: str) -> {{ enum_.enum_value_type() }}:
-    ///         if name not in self.__values:
-    ///             raise AttributeError(f"Value {name} not found.")
-    ///         return self.__bldr.value(name)
+    ///         return self.__bldr.get_value(name)
     ///
     ///     {% for (value, _) in enum_.values %}
     ///     @property
     ///     def {{ value }}(self) -> {{ enum_.enum_value_type() }}:
-    ///         return self.__bldr.value("{{ value }}")
+    ///         return self.__bldr.get_value("{{ value }}")
     ///     {% endfor %}
     ///     {% else %}
     ///     {% for (value, _) in enum_.values %}
     ///     @property
     ///     def {{ value }}(self) -> {{ enum_.enum_value_type() }}:
-    ///         return {{ enum_.enum_value_type() }}(self.__bldr.value("{{ value }}"))
+    ///         return {{ enum_.enum_value_type() }}(self.__bldr.get_value("{{ value }}"))
     ///     {% endfor %}
     ///     {% endif %}
     ///
@@ -331,19 +303,11 @@ mod type_builder {
         }
 
         fn type_builder_object_name(&self) -> String {
-            format!("{}{}", self.name, self.type_builder_object_type())
+            format!("{}Builder", self.name)
         }
 
         fn enum_value_type(&self) -> String {
-            format!(
-                "{}.EnumValue{}",
-                if self.dynamic {
-                    "baml_py"
-                } else {
-                    "type_builder"
-                },
-                self.type_builder_object_type()
-            )
+            format!("type_builder.EnumValueBuilder")
         }
 
         pub fn to_type_builder_object(&'a self) -> TypeBuilderEnumObject<'a> {

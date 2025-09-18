@@ -297,7 +297,7 @@ impl ClassBuilderWrapper {
         field_type: &TypeWrapper,
     ) -> Result<ClassPropertyBuilderWrapper, String> {
         self.inner
-            .add_property(name, field_type.as_ref().clone())
+            .add_property(name, field_type.as_ref().clone(), false)
             .map(ClassPropertyBuilderWrapper::from_object)
             .map_err(|e| e.to_string())
     }

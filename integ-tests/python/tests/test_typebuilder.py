@@ -18,15 +18,15 @@ from ..baml_client import partial_types
 async def test_dynamic():
     tb = TypeBuilder()
     tb.Person.add_property("last_name", tb.string().list())
-    tb.Person.add_property("height", tb.float().optional()).description(
+    tb.Person.add_property("height", tb.float().optional()).set_description(
         "Height in meters"
     )
 
     tb.Hobby.add_value("chess")
     for name, val in tb.Hobby.list_values():
-        val.alias(name.lower())
+        val.set_alias(name.lower())
 
-    tb.Person.add_property("hobbies", tb.Hobby.type().list()).description(
+    tb.Person.add_property("hobbies", tb.Hobby.type().list()).set_description(
         "Some suggested hobbies they might be good at"
     )
 
@@ -94,7 +94,7 @@ async def test_dynamic_class_nested_output_no_stream():
     # name should be first in the prompt schema
     tb.DynamicOutput.add_property("name", nested_class.type().optional())
     tb.DynamicOutput.add_property("address", other_nested_class.type().optional())
-    tb.DynamicOutput.add_property("hair_color", tb.string()).alias("hairColor")
+    tb.DynamicOutput.add_property("hair_color", tb.string()).set_alias("hairColor")
     tb.DynamicOutput.add_property("height", tb.float().optional())
 
     output = await b.MyFunc(
@@ -298,7 +298,7 @@ async def test_dynamic_output_map():
     tb.DynamicOutput.add_property("hair_color", tb.string())
     tb.DynamicOutput.add_property(
         "attributes", tb.map(tb.string(), tb.string())
-    ).description("Things like 'eye_color' or 'facial_hair'")
+    ).set_description("Things like 'eye_color' or 'facial_hair'")
     print(tb.DynamicOutput.list_properties())
     for prop, _ in tb.DynamicOutput.list_properties():
         print(f"Property: {prop}")
@@ -322,7 +322,7 @@ async def test_dynamic_output_union():
     tb.DynamicOutput.add_property("hair_color", tb.string())
     tb.DynamicOutput.add_property(
         "attributes", tb.map(tb.string(), tb.string())
-    ).description("Things like 'eye_color' or 'facial_hair'")
+    ).set_description("Things like 'eye_color' or 'facial_hair'")
     # Define two classes
     class1 = tb.add_class("Class1")
     class1.add_property("meters", tb.float())
@@ -378,7 +378,7 @@ async def test_add_baml_existing_class():
     tb.add_baml(
         """
         class ExtraPersonInfo {
-            height int
+            height int @description("feet")
             weight int
         }
 
@@ -526,7 +526,6 @@ async def test_referencing_existing_class_types():
     tb.Person.add_property("props", tb.union([tb.Resume.type(), tb.Hobby.type()]))
 
 
-
 def test_typebuilder_and_fieldtype_imports():
     """Test that both TypeBuilder and FieldType can be imported from baml_client.type_builder"""
     # Test importing both from the same module
@@ -548,20 +547,25 @@ def test_typebuilder_and_fieldtype_imports():
 def test_type_builder_list_properties():
     tb = TypeBuilder()
     tb.Person.add_property("last_name", tb.string().list())
-    tb.Person.add_property("height", tb.float().optional()).description("Height in meters")
+    tb.Person.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
 
-    props = {name: builder.get_type() for name, builder in tb.Person.list_properties()}
-
-    assert props == {
-        "last_name": tb.string().list(),
-        "height": tb.float().optional()
+    props = {
+        name: builder.type()
+        for name, builder in tb.Person.list_properties()
+        if builder.source == "dynamic"
     }
+
+    assert props == {"last_name": tb.string().list(), "height": tb.float().optional()}
 
 
 def test_type_builder_reset():
     tb = TypeBuilder()
     tb.Person.add_property("last_name", tb.string().list())
-    tb.Person.add_property("height", tb.float().optional()).description("Height in meters")
+    tb.Person.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
     tb.reset()
 
     person_props_after_tb_reset = {name for name, _ in tb.Person.list_properties()}
@@ -573,15 +577,21 @@ def test_type_builder_reset():
 def test_type_builder_class_reset():
     tb = TypeBuilder()
     tb.Person.add_property("last_name", tb.string().list())
-    tb.Person.add_property("height", tb.float().optional()).description("Height in meters")
+    tb.Person.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
 
     tb.DynamicOutput.add_property("hair_color", tb.string())
-    tb.DynamicOutput.add_property("height", tb.float().optional()).description("Height in meters")
+    tb.DynamicOutput.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
 
     tb.Person.reset()
 
     person_props_after_class_reset = {name for name, _ in tb.Person.list_properties()}
-    dynamic_output_props_after_class_reset = {name for name, _ in tb.DynamicOutput.list_properties()}
+    dynamic_output_props_after_class_reset = {
+        name for name, _ in tb.DynamicOutput.list_properties()
+    }
 
     assert "last_name" not in person_props_after_class_reset
     assert "height" not in person_props_after_class_reset
@@ -593,11 +603,15 @@ def test_type_builder_class_reset():
 def test_type_builder_class_remove_property():
     tb = TypeBuilder()
     tb.Person.add_property("last_name", tb.string().list())
-    tb.Person.add_property("height", tb.float().optional()).description("Height in meters")
+    tb.Person.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
 
     tb.Person.remove_property("last_name")
 
-    person_props_after_class_remove_property = {name for name, _ in tb.Person.list_properties()}
+    person_props_after_class_remove_property = {
+        name for name, _ in tb.Person.list_properties()
+    }
 
     assert "last_name" not in person_props_after_class_remove_property
     assert "height" in person_props_after_class_remove_property
@@ -607,11 +621,15 @@ def test_type_builder_add_class_reset():
     tb = TypeBuilder()
     person_class = tb.add_class("AddedPerson")
     person_class.add_property("last_name", tb.string().list())
-    person_class.add_property("height", tb.float().optional()).description("Height in meters")
+    person_class.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
 
     person_class.reset()
 
-    person_props_after_class_reset = {name for name, _ in person_class.list_properties()}
+    person_props_after_class_reset = {
+        name for name, _ in person_class.list_properties()
+    }
 
     assert "last_name" not in person_props_after_class_reset
     assert "height" not in person_props_after_class_reset
@@ -621,11 +639,15 @@ def test_type_builder_add_class_remove_property():
     tb = TypeBuilder()
     person_class = tb.add_class("AddedPerson")
     person_class.add_property("last_name", tb.string().list())
-    person_class.add_property("height", tb.float().optional()).description("Height in meters")
+    person_class.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
 
     person_class.remove_property("last_name")
 
-    person_props_after_class_remove_property = {name for name, _ in person_class.list_properties()}
+    person_props_after_class_remove_property = {
+        name for name, _ in person_class.list_properties()
+    }
 
     assert "last_name" not in person_props_after_class_remove_property
     assert "height" in person_props_after_class_remove_property
@@ -634,27 +656,31 @@ def test_type_builder_add_class_remove_property():
 def test_class_prop_get_type():
     tb = TypeBuilder()
     tb.Person.add_property("last_name", tb.string().list())
-    tb.Person.add_property("height", tb.float().optional()).description("Height in meters")
+    tb.Person.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
 
     props = {name: prop_type for name, prop_type in tb.Person.list_properties()}
 
-    assert props["last_name"].get_type() == tb.string().list()
-    assert props["height"].get_type() == tb.float().optional()
+    assert props["last_name"].type() == tb.string().list()
+    assert props["height"].type() == tb.float().optional()
 
 
 def test_class_prop_set_type():
     tb = TypeBuilder()
     tb.Person.add_property("last_name", tb.string().list())
-    tb.Person.add_property("height", tb.float().optional()).description("Height in meters")
+    tb.Person.add_property("height", tb.float().optional()).set_description(
+        "Height in meters"
+    )
 
     # Modify props.
     props = {name: prop_type for name, prop_type in tb.Person.list_properties()}
 
-    props["last_name"].type(tb.string())
-    props["height"].type(tb.int())
+    props["last_name"].set_type(tb.string())
+    props["height"].set_type(tb.int())
 
     # Verify changes.
     props = {name: prop_type for name, prop_type in tb.Person.list_properties()}
 
-    assert props["last_name"].get_type() == tb.string()
-    assert props["height"].get_type() == tb.int()
+    assert props["last_name"].type() == tb.string()
+    assert props["height"].type() == tb.int()

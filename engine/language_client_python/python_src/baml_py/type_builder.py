@@ -3,7 +3,7 @@ from .baml_py import (
     ClassBuilder,
     EnumBuilder,
     FieldType,
-    ClassPropertyBuilder as _ClassPropertyBuilder,
+    ClassPropertyBuilder,
     EnumValueBuilder,
     TypeBuilder as _TypeBuilder,
     BamlRuntime,
@@ -11,12 +11,8 @@ from .baml_py import (
 
 
 class TypeBuilder:
-    def __init__(
-        self, classes: typing.Set[str], enums: typing.Set[str], runtime: BamlRuntime
-    ):
-        self.__classes = classes
-        self.__enums = enums
-        self.__tb = _TypeBuilder()
+    def __init__(self, runtime: BamlRuntime):
+        self.__tb = _TypeBuilder(runtime)
         self.__runtime = runtime
 
     def reset(self):
@@ -92,33 +88,23 @@ class TypeBuilder:
         return self._tb.union(*types)
 
     def add_class(self, name: str) -> "NewClassBuilder":
-        if name in self.__classes:
-            raise ValueError(f"Class with name {name} already exists.")
-        if name in self.__enums:
-            raise ValueError(f"Enum with name {name} already exists.")
-        self.__classes.add(name)
         return NewClassBuilder(self._tb, name)
 
     def add_enum(self, name: str) -> "NewEnumBuilder":
-        if name in self.__classes:
-            raise ValueError(f"Class with name {name} already exists.")
-        if name in self.__enums:
-            raise ValueError(f"Enum with name {name} already exists.")
-        self.__enums.add(name)
         return NewEnumBuilder(self._tb, name)
 
     def add_baml(self, baml: str):
-        return self._tb.add_baml(baml, self.__runtime)
+        return self._tb.add_baml(baml)
 
 
 class NewClassBuilder:
     def __init__(self, tb: _TypeBuilder, name: str):
-        self.__bldr = tb.class_(name)
+        self.__bldr = tb.add_class(name)
 
     def type(self) -> FieldType:
         return self.__bldr.field()
 
-    def list_properties(self) -> typing.List[typing.Tuple[str, "ClassPropertyBuilder"]]:
+    def list_properties(self) -> typing.List[typing.Tuple[str, ClassPropertyBuilder]]:
         return self.__bldr.list_properties()
 
     def reset(self):
@@ -127,33 +113,18 @@ class NewClassBuilder:
     def remove_property(self, name: str):
         self.__bldr.remove_property(name)
 
-    def add_property(self, name: str, type: FieldType) -> "ClassPropertyBuilder":
-        return ClassPropertyBuilder(self.__bldr.property(name).type(type))
+    def add_property(self, name: str, type: FieldType) -> ClassPropertyBuilder:
+        return self.__bldr.add_property(name, type)
 
-
-class ClassPropertyBuilder:
-    def __init__(self, bldr: _ClassPropertyBuilder):
-        self.__bldr = bldr
-
-    def alias(self, alias: typing.Optional[str]):
-        self.__bldr.alias(alias)
-        return self
-
-    def description(self, description: typing.Optional[str]):
-        self.__bldr.description(description)
-        return self
-
-
-class ClassPropertyViewer:
-    def __init__(self, bldr: _ClassPropertyBuilder):
-        self.__bldr = bldr
+    @property
+    def class_name(self) -> str:
+        return self.__bldr.class_name()
 
 
 class NewEnumBuilder:
     def __init__(self, tb: _TypeBuilder, name: str):
-        self.__bldr = tb.enum(name)
-        self.__values: typing.Set[str] = set()
-        self.__vals = NewEnumValues(self.__bldr, self.__values)
+        self.__bldr = tb.add_enum(name)
+        self.__vals = NewEnumValues(self.__bldr)
 
     def type(self) -> FieldType:
         return self.__bldr.field()
@@ -163,25 +134,18 @@ class NewEnumBuilder:
         return self.__vals
 
     def list_values(self) -> typing.List[typing.Tuple[str, EnumValueBuilder]]:
-        return [(name, self.__bldr.value(name)) for name in self.__values]
+        return self.__bldr.list_values()
 
     def add_value(self, name: str) -> "EnumValueBuilder":
-        if name in self.__values:
-            raise ValueError(f"Value {name} already exists.")
-        self.__values.add(name)
-        # NOTE(sam): why is this inconsistent between classes and enums?
-        return self.__bldr.value(name)
+        return self.__bldr.add_value(name)
 
 
 class NewEnumValues:
-    def __init__(self, enum_bldr: EnumBuilder, values: typing.Set[str]):
+    def __init__(self, enum_bldr: EnumBuilder):
         self.__bldr = enum_bldr
-        self.__values = values
 
     def __getattr__(self, name: str) -> "EnumValueBuilder":
-        if name not in self.__values:
-            raise AttributeError(f"Value {name} not found.")
-        return self.__bldr.value(name)
+        return self.__bldr.get_value(name)
 
 
 class EnumValueViewer:

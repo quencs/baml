@@ -64,6 +64,12 @@ impl<IR: IRProvider> std::fmt::Debug for TypeBuilder<IR> {
     }
 }
 
+impl<IR: IRProvider> std::fmt::Display for TypeBuilder<IR> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.type_builder)
+    }
+}
+
 impl<IR: IRProvider> TypeBuilder<IR> {
     pub fn new(ir_provider: Arc<IR>) -> Self {
         Self {
@@ -321,21 +327,35 @@ impl<IR: IRProvider> ClassBuilder<IR> {
             .collect())
     }
 
-    pub fn set_alias(&self, alias: &str) -> anyhow::Result<()> {
+    pub fn set_alias(&self, alias: Option<&str>) -> anyhow::Result<()> {
         self.mode.at_least(NodeRW::LLMOnly)?;
 
         let cls = self.cls()?;
         let builder = cls.lock().unwrap();
-        builder.with_meta("alias", BamlValue::String(alias.to_string()));
+        match alias {
+            Some(alias) => {
+                builder.with_meta("alias", BamlValue::String(alias.to_string()));
+            }
+            None => {
+                builder.remove_meta("alias");
+            }
+        }
         Ok(())
     }
 
-    pub fn set_description(&self, description: &str) -> anyhow::Result<()> {
+    pub fn set_description(&self, description: Option<&str>) -> anyhow::Result<()> {
         self.mode.at_least(NodeRW::LLMOnly)?;
 
         let cls = self.cls()?;
         let builder = cls.lock().unwrap();
-        builder.with_meta("description", BamlValue::String(description.to_string()));
+        match description {
+            Some(description) => {
+                builder.with_meta("description", BamlValue::String(description.to_string()));
+            }
+            None => {
+                builder.remove_meta("description");
+            }
+        }
         Ok(())
     }
 
@@ -386,6 +406,7 @@ impl<IR: IRProvider> ClassBuilder<IR> {
         &self,
         name: &str,
         field_type: TypeIR,
+        allow_existing: bool,
     ) -> anyhow::Result<ClassPropertyBuilder<IR>> {
         self.mode.at_least(NodeRW::ReadWrite)?;
         let cls = self.cls()?;
@@ -394,11 +415,13 @@ impl<IR: IRProvider> ClassBuilder<IR> {
         let ir = self.ir_provider.get_ir();
         if let Ok(cls) = ir.find_class(self.class_name.as_str()) {
             if cls.find_field(name).is_some() {
-                anyhow::bail!(
-                    "Property already exists: {} in class {}",
-                    name,
-                    self.class_name
-                );
+                if !allow_existing {
+                    anyhow::bail!(
+                        "Property already exists: {} in class {}",
+                        name,
+                        self.class_name
+                    );
+                }
             }
         }
 
@@ -877,6 +900,26 @@ impl<IR: IRProvider> EnumBuilder<IR> {
                 anyhow::bail!("Enum value not found: {} in enum {}", name, self.enum_name)
             }
         }
+    }
+
+    pub fn remove_value(&self, name: &str) -> anyhow::Result<()> {
+        self.mode.at_least(NodeRW::ReadWrite)?;
+        // if the IR already has the value, then its not valid to remove it
+        let ir = self.ir_provider.get_ir();
+        if let Ok(enm) = ir.find_enum(self.enum_name.as_str()) {
+            if enm.find_value(name).is_some() {
+                anyhow::bail!(
+                    "Enum value is statically defined: {} in enum {}. Try skipping it instead.",
+                    name,
+                    self.enum_name
+                );
+            }
+        }
+
+        let enm = self.enm()?;
+        let builder = enm.lock().unwrap();
+        builder.remove_value(name);
+        Ok(())
     }
 
     pub fn is_from_ast(&self) -> anyhow::Result<bool> {

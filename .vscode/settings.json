@@ -45,5 +45,8 @@
   },
   "[baml]": {
     "editor.defaultFormatter": "Boundary.baml-extension"
+  },
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
   }
 }
