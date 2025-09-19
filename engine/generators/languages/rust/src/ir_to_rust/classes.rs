@@ -19,6 +19,7 @@ pub fn ir_class_to_rust(class: &Class, pkg: &CurrentRenderPackage) -> RustClass 
             );
             RustField {
                 name: to_snake_case(&field.elem.name),
+                original_name: field.elem.name.clone(),
                 rust_type: rust_type.serialize_type(pkg),
                 optional: rust_type.meta().is_optional(),
             }

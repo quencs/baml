@@ -29,6 +29,7 @@ mod class {
     #[derive(Clone)]
     pub struct FieldRust<'a> {
         pub name: String,
+        pub original_name: String,
         pub docstring: Option<String>,
         pub rust_type: TypeRust,
         pub pkg: &'a CurrentRenderPackage,
@@ -37,10 +38,10 @@ mod class {
     impl std::fmt::Debug for FieldRust<'_> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(
-                f,
-                "FieldRust {{name: {}, rust_type: <<TypeRust>>, pkg: <<Mutex>> }}",
-                self.name
-            )
+            f,
+            "FieldRust {{name: {}, original_name: {}, rust_type: <<TypeRust>>, pkg: <<Mutex>> }}",
+            self.name, self.original_name
+        )
         }
     }
 }
@@ -117,6 +118,7 @@ pub struct RustClass {
 #[derive(Debug, Clone)]
 pub struct RustField {
     pub name: String,
+    pub original_name: String,
     pub rust_type: String,
     pub optional: bool,
 }

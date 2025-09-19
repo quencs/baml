@@ -1,11 +1,4 @@
-use crate::{
-    baml::cffi::CffiRawObject,
-    ctypes::Encode,
-    raw_ptr_wrapper::{
-        type_builder::objects::TypeBuilder as RawTypeBuilder, RawPtrType, RawPtrWrapper,
-    },
-};
-use baml_runtime::tracingv2::storage::storage::Collector as RuntimeCollector;
+use crate::{baml::cffi::CffiRawObject, ctypes::Encode, raw_ptr_wrapper::RawPtrType};
 use baml_types::BamlMedia;
 
 /// Safe Rust-facing handle for any raw pointer object managed by the CFFI layer.
@@ -38,10 +31,7 @@ pub struct CollectorHandle {
 
 impl CollectorHandle {
     pub fn new(name: Option<&str>) -> Result<Self, String> {
-        let runtime_collector = RuntimeCollector::new(name.map(|s| s.to_string()));
-        let wrapper: RawPtrWrapper<RuntimeCollector> =
-            RawPtrWrapper::from_object(runtime_collector);
-        let raw = RawPtrType::from(wrapper);
+        let raw = RawPtrType::create_collector(name)?;
         Ok(Self {
             handle: RawObjectHandle::new(raw),
         })
@@ -64,9 +54,7 @@ pub struct TypeBuilderHandle {
 
 impl TypeBuilderHandle {
     pub fn new() -> Result<Self, String> {
-        let builder = RawTypeBuilder::default();
-        let wrapper: RawPtrWrapper<RawTypeBuilder> = RawPtrWrapper::from_object(builder);
-        let raw = RawPtrType::from(wrapper);
+        let raw = RawPtrType::create_type_builder()?;
         Ok(Self {
             handle: RawObjectHandle::new(raw),
         })

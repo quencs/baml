@@ -49,15 +49,15 @@ impl baml_client_rust::types::ToBamlValue for ArrayWithConstraints {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert(
-            "non_empty_strings".to_string(),
+            "nonEmptyStrings".to_string(),
             self.non_empty_strings.to_baml_value()?,
         );
         map.insert(
-            "limited_ints".to_string(),
+            "limitedInts".to_string(),
             self.limited_ints.to_baml_value()?,
         );
         map.insert(
-            "positive_floats".to_string(),
+            "positiveFloats".to_string(),
             self.positive_floats.to_baml_value()?,
         );
         Ok(baml_client_rust::types::BamlValue::Class(
@@ -74,30 +74,30 @@ impl baml_client_rust::types::FromBamlValue for ArrayWithConstraints {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
                 let non_empty_strings = map
-                    .get("non_empty_strings")
+                    .get("nonEmptyStrings")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'non_empty_strings' in ArrayWithConstraints"
+                            "Missing field 'nonEmptyStrings' in ArrayWithConstraints"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let limited_ints = map
-                    .get("limited_ints")
+                    .get("limitedInts")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'limited_ints' in ArrayWithConstraints"
+                            "Missing field 'limitedInts' in ArrayWithConstraints"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let positive_floats = map
-                    .get("positive_floats")
+                    .get("positiveFloats")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'positive_floats' in ArrayWithConstraints"
+                            "Missing field 'positiveFloats' in ArrayWithConstraints"
                         ))
                     })
                     .and_then(|v| {
@@ -156,23 +156,23 @@ impl baml_client_rust::types::ToBamlValue for MixedArrays {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert(
-            "primitive_array".to_string(),
+            "primitiveArray".to_string(),
             self.primitive_array.to_baml_value()?,
         );
         map.insert(
-            "nullable_array".to_string(),
+            "nullableArray".to_string(),
             self.nullable_array.to_baml_value()?,
         );
         map.insert(
-            "optional_items".to_string(),
+            "optionalItems".to_string(),
             self.optional_items.to_baml_value()?,
         );
         map.insert(
-            "array_of_arrays".to_string(),
+            "arrayOfArrays".to_string(),
             self.array_of_arrays.to_baml_value()?,
         );
         map.insert(
-            "complex_mixed".to_string(),
+            "complexMixed".to_string(),
             self.complex_mixed.to_baml_value()?,
         );
         Ok(baml_client_rust::types::BamlValue::Class(
@@ -189,50 +189,50 @@ impl baml_client_rust::types::FromBamlValue for MixedArrays {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
                 let primitive_array = map
-                    .get("primitive_array")
+                    .get("primitiveArray")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'primitive_array' in MixedArrays"
+                            "Missing field 'primitiveArray' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let nullable_array = map
-                    .get("nullable_array")
+                    .get("nullableArray")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'nullable_array' in MixedArrays"
+                            "Missing field 'nullableArray' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let optional_items = map
-                    .get("optional_items")
+                    .get("optionalItems")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'optional_items' in MixedArrays"
+                            "Missing field 'optionalItems' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let array_of_arrays = map
-                    .get("array_of_arrays")
+                    .get("arrayOfArrays")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'array_of_arrays' in MixedArrays"
+                            "Missing field 'arrayOfArrays' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let complex_mixed = map
-                    .get("complex_mixed")
+                    .get("complexMixed")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'complex_mixed' in MixedArrays"
+                            "Missing field 'complexMixed' in MixedArrays"
                         ))
                     })
                     .and_then(|v| {
@@ -290,11 +290,11 @@ impl baml_client_rust::types::ToBamlValue for NestedArrays {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert("matrix".to_string(), self.matrix.to_baml_value()?);
         map.insert(
-            "string_matrix".to_string(),
+            "stringMatrix".to_string(),
             self.string_matrix.to_baml_value()?,
         );
         map.insert(
-            "three_dimensional".to_string(),
+            "threeDimensional".to_string(),
             self.three_dimensional.to_baml_value()?,
         );
         Ok(baml_client_rust::types::BamlValue::Class(
@@ -321,20 +321,20 @@ impl baml_client_rust::types::FromBamlValue for NestedArrays {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let string_matrix = map
-                    .get("string_matrix")
+                    .get("stringMatrix")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'string_matrix' in NestedArrays"
+                            "Missing field 'stringMatrix' in NestedArrays"
                         ))
                     })
                     .and_then(|v| {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let three_dimensional = map
-                    .get("three_dimensional")
+                    .get("threeDimensional")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'three_dimensional' in NestedArrays"
+                            "Missing field 'threeDimensional' in NestedArrays"
                         ))
                     })
                     .and_then(|v| {
@@ -480,7 +480,7 @@ impl baml_client_rust::types::ToBamlValue for Product {
         map.insert("name".to_string(), self.name.to_baml_value()?);
         map.insert("price".to_string(), self.price.to_baml_value()?);
         map.insert("tags".to_string(), self.tags.to_baml_value()?);
-        map.insert("in_stock".to_string(), self.in_stock.to_baml_value()?);
+        map.insert("inStock".to_string(), self.in_stock.to_baml_value()?);
         Ok(baml_client_rust::types::BamlValue::Class(
             "Product".to_string(),
             map,
@@ -535,10 +535,10 @@ impl baml_client_rust::types::FromBamlValue for Product {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let in_stock = map
-                    .get("in_stock")
+                    .get("inStock")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'in_stock' in Product"
+                            "Missing field 'inStock' in Product"
                         ))
                     })
                     .and_then(|v| {
@@ -777,7 +777,7 @@ impl baml_client_rust::types::ToBamlValue for User {
         map.insert("id".to_string(), self.id.to_baml_value()?);
         map.insert("name".to_string(), self.name.to_baml_value()?);
         map.insert("email".to_string(), self.email.to_baml_value()?);
-        map.insert("is_active".to_string(), self.is_active.to_baml_value()?);
+        map.insert("isActive".to_string(), self.is_active.to_baml_value()?);
         Ok(baml_client_rust::types::BamlValue::Class(
             "User".to_string(),
             map,
@@ -822,10 +822,10 @@ impl baml_client_rust::types::FromBamlValue for User {
                         baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
                     })?;
                 let is_active = map
-                    .get("is_active")
+                    .get("isActive")
                     .ok_or_else(|| {
                         baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'is_active' in User"
+                            "Missing field 'isActive' in User"
                         ))
                     })
                     .and_then(|v| {

@@ -108,6 +108,7 @@ impl LanguageFeatures for RustLanguageFeatures {
 
                             generated_types::FieldRust {
                                 name: field.name,
+                                original_name: field.original_name,
                                 docstring: None,
                                 rust_type,
                                 pkg: &pkg,
