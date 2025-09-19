@@ -115,6 +115,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client.call_function("TestEmptyArrays", context).await
     }
 
@@ -131,6 +134,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestEmptyArrays", context)
             .await
@@ -144,6 +150,9 @@ impl BamlClient {
     ) -> BamlResult<crate::types::SimpleArrays> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client.call_function("TestLargeArrays", context).await
     }
@@ -161,6 +170,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestLargeArrays", context)
             .await
@@ -174,6 +186,9 @@ impl BamlClient {
     ) -> BamlResult<crate::types::MixedArrays> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client.call_function("TestMixedArrays", context).await
     }
@@ -191,6 +206,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestMixedArrays", context)
             .await
@@ -204,6 +222,9 @@ impl BamlClient {
     ) -> BamlResult<crate::types::NestedArrays> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client.call_function("TestNestedArrays", context).await
     }
@@ -221,6 +242,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestNestedArrays", context)
             .await
@@ -234,6 +258,9 @@ impl BamlClient {
     ) -> BamlResult<crate::types::ObjectArrays> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client.call_function("TestObjectArrays", context).await
     }
@@ -251,6 +278,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestObjectArrays", context)
             .await
@@ -264,6 +294,9 @@ impl BamlClient {
     ) -> BamlResult<crate::types::SimpleArrays> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client.call_function("TestSimpleArrays", context).await
     }
@@ -281,6 +314,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestSimpleArrays", context)
             .await
@@ -294,6 +330,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<Vec<Vec<String>>>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevel3DArray", context)
@@ -312,6 +351,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevel3DArray", context)
             .await
@@ -325,6 +367,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<std::collections::HashMap<String, i64>>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelArrayOfMaps", context)
@@ -346,6 +391,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelArrayOfMaps", context)
             .await
@@ -359,6 +407,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<bool>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelBoolArray", context)
@@ -375,6 +426,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelBoolArray", context)
             .await
@@ -388,6 +442,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<String>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelEmptyArray", context)
@@ -406,6 +463,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelEmptyArray", context)
             .await
@@ -419,6 +479,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<f64>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelFloatArray", context)
@@ -435,6 +498,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelFloatArray", context)
             .await
@@ -445,6 +511,9 @@ impl BamlClient {
     pub async fn test_top_level_int_array(&self, input: impl Into<String>) -> BamlResult<Vec<i64>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelIntArray", context)
@@ -461,6 +530,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelIntArray", context)
             .await
@@ -474,6 +546,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<crate::types::Union3BoolOrIntOrString>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelMixedArray", context)
@@ -495,6 +570,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelMixedArray", context)
             .await
@@ -508,6 +586,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<Vec<i64>>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelNestedArray", context)
@@ -526,6 +607,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelNestedArray", context)
             .await
@@ -539,6 +623,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<Option<String>>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelNullableArray", context)
@@ -557,6 +644,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelNullableArray", context)
             .await
@@ -570,6 +660,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<crate::types::User>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelObjectArray", context)
@@ -589,6 +682,9 @@ impl BamlClient {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+
         self.client
             .call_function_stream("TestTopLevelObjectArray", context)
             .await
@@ -602,6 +698,9 @@ impl BamlClient {
     ) -> BamlResult<Vec<String>> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function("TestTopLevelStringArray", context)
@@ -619,6 +718,9 @@ impl BamlClient {
     > {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
+
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
 
         self.client
             .call_function_stream("TestTopLevelStringArray", context)

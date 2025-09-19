@@ -23,6 +23,9 @@ impl BamlClient {
         {%- endif -%}
         {%- endfor %}
         
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
         self.client.call_function("{{ name }}", context).await
     }
     
@@ -49,6 +52,9 @@ impl BamlClient {
         context = context.set_arg("{{ arg_name }}", {{ arg_name }})?;
         {%- endif -%}
         {%- endfor %}
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
         
         self.client.call_function_stream("{{ name }}", context).await
     }
