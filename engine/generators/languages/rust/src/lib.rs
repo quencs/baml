@@ -1,5 +1,6 @@
 use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeatures};
 use functions::{render_functions, render_source_files};
+use std::sync::OnceLock;
 
 mod functions;
 mod generated_types;
@@ -9,7 +10,9 @@ mod r#type;
 mod utils;
 
 #[derive(Default)]
-pub struct RustLanguageFeatures;
+pub struct RustLanguageFeatures {
+    generation_timestamp: OnceLock<String>,
+}
 
 impl LanguageFeatures for RustLanguageFeatures {
     const CONTENT_PREFIX: &'static str = r#"
@@ -55,7 +58,7 @@ impl LanguageFeatures for RustLanguageFeatures {
         // Generate core files - put Rust source files in src/ directory
         collector.add_file("src/source_map.rs", render_source_files(file_map)?)?;
         collector.add_file("src/lib.rs", render_lib_rs(&pkg)?)?;
-        collector.add_file("Cargo.toml", render_cargo_toml()?)?;
+        collector.add_file("Cargo.toml", self.render_cargo_toml()?)?;
 
         // Generate function clients
         let functions = ir
@@ -79,15 +82,19 @@ impl LanguageFeatures for RustLanguageFeatures {
                         .map(|field| {
                             // Convert field type from string back to TypeRust
                             // For now, we need to re-parse the field type properly
-                            let field_type_ir = c.item
+                            let field_type_ir = c
+                                .item
                                 .elem
                                 .static_fields
                                 .iter()
                                 .find(|f| crate::utils::to_snake_case(&f.elem.name) == field.name)
                                 .map(|f| &f.elem.r#type.elem);
-                            
+
                             let rust_type = if let Some(field_type) = field_type_ir {
-                                crate::ir_to_rust::type_to_rust(&field_type.to_non_streaming_type(pkg.lookup()), pkg.lookup())
+                                crate::ir_to_rust::type_to_rust(
+                                    &field_type.to_non_streaming_type(pkg.lookup()),
+                                    pkg.lookup(),
+                                )
                             } else {
                                 // Fallback to String if field not found
                                 r#type::TypeRust::String(
@@ -98,7 +105,7 @@ impl LanguageFeatures for RustLanguageFeatures {
                                     },
                                 )
                             };
-                            
+
                             generated_types::FieldRust {
                                 name: field.name,
                                 docstring: None,
@@ -136,13 +143,11 @@ impl LanguageFeatures for RustLanguageFeatures {
                             variants: union_data
                                 .variants
                                 .into_iter()
-                                .map(|variant| {
-                                    generated_types::UnionVariantRust {
-                                        name: variant.name,
-                                        docstring: variant.docstring,
-                                        rust_type: variant.rust_type,
-                                        literal_value: variant.literal_value,
-                                    }
+                                .map(|variant| generated_types::UnionVariantRust {
+                                    name: variant.name,
+                                    docstring: variant.docstring,
+                                    rust_type: variant.rust_type,
+                                    literal_value: variant.literal_value,
                                 })
                                 .collect(),
                             pkg: &pkg,
@@ -191,31 +196,40 @@ fn render_lib_rs(pkg: &package::CurrentRenderPackage) -> Result<String, anyhow::
     .map_err(|e| anyhow::anyhow!("Template error: {}", e))
 }
 
-fn render_cargo_toml() -> Result<String, anyhow::Error> {
-    use askama::Template;
-    use std::time::SystemTime;
+impl RustLanguageFeatures {
+    fn generation_timestamp(&self) -> &str {
+        use std::time::SystemTime;
 
-    #[derive(askama::Template)]
-    #[template(path = "cargo.toml.j2", escape = "none")]
-    struct CargoToml {
-        package_name: &'static str,
-        lib_name: &'static str,
-        version: &'static str,
-        baml_version: &'static str,
-        baml_client_version: &'static str,
-        generation_timestamp: String,
+        self.generation_timestamp
+            .get_or_init(|| format!("{:?}", SystemTime::now()))
+            .as_str()
     }
 
-    CargoToml {
-        package_name: "baml-client",
-        lib_name: "baml_client",
-        version: "0.1.0",
-        baml_version: "0.1.0", // TODO: Get actual BAML version
-        baml_client_version: "0.1.0",
-        generation_timestamp: format!("{:?}", SystemTime::now()),
+    fn render_cargo_toml(&self) -> Result<String, anyhow::Error> {
+        use askama::Template;
+
+        #[derive(askama::Template)]
+        #[template(path = "cargo.toml.j2", escape = "none")]
+        struct CargoToml {
+            package_name: &'static str,
+            lib_name: &'static str,
+            version: &'static str,
+            baml_version: &'static str,
+            baml_client_version: &'static str,
+            generation_timestamp: String,
+        }
+
+        CargoToml {
+            package_name: "baml-client",
+            lib_name: "baml_client",
+            version: "0.1.0",
+            baml_version: "0.1.0", // TODO: Get actual BAML version
+            baml_client_version: "0.1.0",
+            generation_timestamp: self.generation_timestamp().to_string(),
+        }
+        .render()
+        .map_err(|e| anyhow::anyhow!("Template error: {}", e))
     }
-    .render()
-    .map_err(|e| anyhow::anyhow!("Template error: {}", e))
 }
 
 #[cfg(test)]

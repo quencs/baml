@@ -1,5 +1,9 @@
+use crate::{
+    generated_types::{RustUnion, RustVariant},
+    package::CurrentRenderPackage,
+    r#type::TypeRust,
+};
 use baml_types::ir_type::TypeNonStreaming;
-use crate::{generated_types::{RustUnion, RustVariant}, package::CurrentRenderPackage, r#type::TypeRust};
 
 pub fn ir_union_to_rust(
     union_type: &TypeNonStreaming,
@@ -7,7 +11,7 @@ pub fn ir_union_to_rust(
 ) -> Option<RustUnion> {
     // Use the new type system to generate proper union types
     let rust_type = crate::ir_to_rust::type_to_rust(union_type, pkg.lookup());
-    
+
     if let TypeRust::Union { name, .. } = rust_type {
         // Extract the union variants based on the union type
         match union_type {
@@ -35,7 +39,7 @@ pub fn ir_union_to_rust(
                                     TypeRust::TypeAlias { name, .. } => name.clone(),
                                     TypeRust::Any { .. } => format!("Any{}", i),
                                 };
-                                
+
                                 RustVariant {
                                     name: variant_name,
                                     rust_type,
@@ -44,7 +48,7 @@ pub fn ir_union_to_rust(
                                 }
                             })
                             .collect();
-                        
+
                         Some(RustUnion {
                             name,
                             variants,
@@ -71,7 +75,7 @@ pub fn ir_union_to_rust(
                                     TypeRust::TypeAlias { name, .. } => name.clone(),
                                     TypeRust::Any { .. } => format!("Any{}", i),
                                 };
-                                
+
                                 RustVariant {
                                     name: variant_name,
                                     rust_type,
@@ -80,7 +84,7 @@ pub fn ir_union_to_rust(
                                 }
                             })
                             .collect();
-                        
+
                         Some(RustUnion {
                             name,
                             variants,

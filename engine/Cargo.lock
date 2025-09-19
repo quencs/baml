@@ -953,11 +953,11 @@ version = "0.205.0"
 dependencies = [
  "anyhow",
  "baml-types",
+ "baml_cffi",
  "futures",
  "indexmap 2.10.0",
- "libc",
- "libloading",
  "once_cell",
+ "prost",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -2912,6 +2912,7 @@ dependencies = [
  "dir-writer",
  "internal-baml-core",
  "prettydiff",
+ "serde_json",
  "test-harness",
 ]
 

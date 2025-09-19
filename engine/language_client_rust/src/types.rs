@@ -1,11 +1,18 @@
 //! Core BAML types for the Rust client
-//! 
+//!
 //! This module provides the type system used by BAML functions.
+
+use crate::{BamlError, BamlResult};
+use anyhow::anyhow;
+use baml_cffi::{
+    baml::cffi::CffiRawObject,
+    rust::{CollectorHandle, TypeBuilderHandle},
+};
 
 // No additional imports needed for basic type conversions
 
 // Re-export BamlValue and BamlMap from baml-types to maintain compatibility
-pub use baml_types::{BamlValue, BamlMap};
+pub use baml_types::{BamlMap, BamlValue};
 
 /// Convert a Rust value to a BAML value
 pub trait ToBamlValue {
@@ -36,7 +43,10 @@ impl FromBamlValue for String {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
             BamlValue::String(s) => Ok(s),
-            _ => Err(crate::BamlError::deserialization(format!("Expected string, got {:?}", value))),
+            _ => Err(crate::BamlError::deserialization(format!(
+                "Expected string, got {:?}",
+                value
+            ))),
         }
     }
 }
@@ -50,8 +60,13 @@ impl ToBamlValue for i32 {
 impl FromBamlValue for i32 {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
-            BamlValue::Int(i) => i.try_into().map_err(|_| crate::BamlError::deserialization("Integer overflow".to_string())),
-            _ => Err(crate::BamlError::deserialization(format!("Expected int, got {:?}", value))),
+            BamlValue::Int(i) => i
+                .try_into()
+                .map_err(|_| crate::BamlError::deserialization("Integer overflow".to_string())),
+            _ => Err(crate::BamlError::deserialization(format!(
+                "Expected int, got {:?}",
+                value
+            ))),
         }
     }
 }
@@ -66,7 +81,10 @@ impl FromBamlValue for i64 {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
             BamlValue::Int(i) => Ok(i),
-            _ => Err(crate::BamlError::deserialization(format!("Expected int, got {:?}", value))),
+            _ => Err(crate::BamlError::deserialization(format!(
+                "Expected int, got {:?}",
+                value
+            ))),
         }
     }
 }
@@ -82,7 +100,10 @@ impl FromBamlValue for f64 {
         match value {
             BamlValue::Float(f) => Ok(f),
             BamlValue::Int(i) => Ok(i as f64),
-            _ => Err(crate::BamlError::deserialization(format!("Expected float, got {:?}", value))),
+            _ => Err(crate::BamlError::deserialization(format!(
+                "Expected float, got {:?}",
+                value
+            ))),
         }
     }
 }
@@ -97,7 +118,10 @@ impl FromBamlValue for bool {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
             BamlValue::Bool(b) => Ok(b),
-            _ => Err(crate::BamlError::deserialization(format!("Expected bool, got {:?}", value))),
+            _ => Err(crate::BamlError::deserialization(format!(
+                "Expected bool, got {:?}",
+                value
+            ))),
         }
     }
 }
@@ -112,12 +136,14 @@ impl<T: ToBamlValue> ToBamlValue for Vec<T> {
 impl<T: FromBamlValue> FromBamlValue for Vec<T> {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
-            BamlValue::List(list) => {
-                list.into_iter()
-                    .map(T::from_baml_value)
-                    .collect::<Result<Vec<_>, _>>()
-            }
-            _ => Err(crate::BamlError::deserialization(format!("Expected list, got {:?}", value))),
+            BamlValue::List(list) => list
+                .into_iter()
+                .map(T::from_baml_value)
+                .collect::<Result<Vec<_>, _>>(),
+            _ => Err(crate::BamlError::deserialization(format!(
+                "Expected list, got {:?}",
+                value
+            ))),
         }
     }
 }
@@ -166,16 +192,21 @@ where
             BamlValue::Map(map) => {
                 let mut result = std::collections::HashMap::new();
                 for (key_str, value) in map {
-                    let key = K::from_str(&key_str)
-                        .map_err(|e| crate::BamlError::deserialization(format!(
-                            "Could not parse key '{}': {:?}", key_str, e
-                        )))?;
+                    let key = K::from_str(&key_str).map_err(|e| {
+                        crate::BamlError::deserialization(format!(
+                            "Could not parse key '{}': {:?}",
+                            key_str, e
+                        ))
+                    })?;
                     let parsed_value = V::from_baml_value(value)?;
                     result.insert(key, parsed_value);
                 }
                 Ok(result)
             }
-            _ => Err(crate::BamlError::deserialization(format!("Expected map, got {:?}", value))),
+            _ => Err(crate::BamlError::deserialization(format!(
+                "Expected map, got {:?}",
+                value
+            ))),
         }
     }
 }
@@ -190,29 +221,37 @@ impl FromBamlValue for BamlMap<String, BamlValue> {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
             BamlValue::Map(map) => Ok(map),
-            _ => Err(crate::BamlError::deserialization(format!("Expected map, got {:?}", value))),
+            _ => Err(crate::BamlError::deserialization(format!(
+                "Expected map, got {:?}",
+                value
+            ))),
         }
     }
 }
 
 // Stub implementations for BAML runtime components we're no longer using directly
 
-/// Type builder for BAML types (stub implementation)
+/// Type builder for BAML types backed by the shared CFFI runtime
 #[derive(Debug, Clone)]
 pub struct TypeBuilder {
-    // This is now just a placeholder - the real type building happens in the FFI layer
+    handle: TypeBuilderHandle,
 }
 
 impl TypeBuilder {
     /// Create a new type builder
-    pub fn new() -> Self {
-        Self {}
+    pub fn new() -> BamlResult<Self> {
+        let handle = TypeBuilderHandle::new().map_err(|e| BamlError::Runtime(anyhow!(e)))?;
+        Ok(Self { handle })
+    }
+
+    pub(crate) fn to_cffi(&self) -> CffiRawObject {
+        self.handle.to_cffi()
     }
 }
 
 impl Default for TypeBuilder {
     fn default() -> Self {
-        Self::new()
+        TypeBuilder::new().expect("failed to create TypeBuilder handle")
     }
 }
 
@@ -235,22 +274,27 @@ impl Default for ClientRegistry {
     }
 }
 
-/// Collector for BAML tracing (stub implementation)
+/// Collector for BAML tracing backed by the shared CFFI runtime
 #[derive(Debug, Clone)]
 pub struct Collector {
-    // This is now just a placeholder - the real collector is in the FFI layer
+    handle: CollectorHandle,
 }
 
 impl Collector {
     /// Create a new collector
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(name: Option<&str>) -> BamlResult<Self> {
+        let handle = CollectorHandle::new(name).map_err(|e| BamlError::Runtime(anyhow!(e)))?;
+        Ok(Self { handle })
+    }
+
+    pub(crate) fn to_cffi(&self) -> CffiRawObject {
+        self.handle.to_cffi()
     }
 }
 
 impl Default for Collector {
     fn default() -> Self {
-        Self::new()
+        Collector::new(None).expect("failed to create Collector handle")
     }
 }
 

@@ -1,5 +1,5 @@
-use baml_types::ir_type::{TypeNonStreaming, TypeValue};
 use crate::package::{CurrentRenderPackage, Package};
+use baml_types::ir_type::{TypeNonStreaming, TypeValue};
 
 #[derive(Clone, PartialEq, Debug, Default)]
 pub enum TypeWrapper {
@@ -51,7 +51,8 @@ impl TypeMetaRust {
     }
 
     pub fn make_checked(&mut self, names: Vec<String>) -> &mut Self {
-        self.type_wrapper = TypeWrapper::Checked(Box::new(std::mem::take(&mut self.type_wrapper)), names);
+        self.type_wrapper =
+            TypeWrapper::Checked(Box::new(std::mem::take(&mut self.type_wrapper)), names);
         self
     }
 
@@ -79,7 +80,11 @@ impl WrapType for TypeWrapper {
                 "{}Checked<{}, [{}]>",
                 Package::checked().relative_from(pkg),
                 inner.wrap_type(params),
-                names.iter().map(|n| format!("\"{}\"", n)).collect::<Vec<_>>().join(", ")
+                names
+                    .iter()
+                    .map(|n| format!("\"{}\"", n))
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ),
             TypeWrapper::Optional(inner) => format!("Option<{}>", inner.wrap_type(params)),
         }
@@ -279,7 +284,9 @@ impl SerializeType for TypeRust {
             TypeRust::Union { package, name, .. } => {
                 format!("{}{}", package.relative_from(pkg), name)
             }
-            TypeRust::Enum { package, name, .. } => format!("{}{}", package.relative_from(pkg), name),
+            TypeRust::Enum { package, name, .. } => {
+                format!("{}{}", package.relative_from(pkg), name)
+            }
             TypeRust::List(inner, _) => format!("Vec<{}>", inner.serialize_type(pkg)),
             TypeRust::Map(key, value, _) => {
                 format!(
@@ -336,7 +343,9 @@ pub fn to_rust_type(ty: &TypeNonStreaming) -> String {
         TypeNonStreaming::Class { name, .. } => name.clone(),
         TypeNonStreaming::Enum { name, .. } => name.clone(),
         TypeNonStreaming::List(inner, _) => format!("Vec<{}>", to_rust_type(inner)),
-        TypeNonStreaming::Map(_, value, _) => format!("std::collections::HashMap<String, {}>", to_rust_type(value)),
+        TypeNonStreaming::Map(_, value, _) => {
+            format!("std::collections::HashMap<String, {}>", to_rust_type(value))
+        }
         TypeNonStreaming::Union(_inner, _) => {
             // TODO: This should use the new union type generation
             "serde_json::Value".to_string()

@@ -1,9 +1,12 @@
-use crate::{package::CurrentRenderPackage, r#type::{SerializeType, TypeRust}};
+use crate::{
+    package::CurrentRenderPackage,
+    r#type::{SerializeType, TypeRust},
+};
 use askama::Template;
 
 mod filters {
     use crate::utils::to_snake_case;
-    
+
     pub fn snake_case(s: &str, _args: &dyn askama::Values) -> askama::Result<String> {
         Ok(to_snake_case(s))
     }
@@ -30,7 +33,7 @@ mod class {
         pub rust_type: TypeRust,
         pub pkg: &'a CurrentRenderPackage,
     }
-    
+
     impl std::fmt::Debug for FieldRust<'_> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(
@@ -71,7 +74,7 @@ mod union {
         pub variants: Vec<UnionVariantRust>,
         pub pkg: &'a CurrentRenderPackage,
     }
-    
+
     #[derive(Debug, Clone)]
     pub struct UnionVariantRust {
         pub name: String,
@@ -140,11 +143,11 @@ pub struct RustVariant {
 }
 
 /// A list of types in Rust.
-/// 
+///
 /// ```askama
 /// {% for item in items -%}
 /// {{ item.render()? }}
-/// 
+///
 /// {% endfor %}
 /// ```
 #[derive(askama::Template)]
@@ -158,46 +161,46 @@ pub(crate) fn render_rust_types<T: askama::Template>(
     _pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     use askama::Template;
-    
+
     RustTypes { items }.render()
 }
 
 // Convenience function for mixed type rendering
 pub fn render_all_rust_types(
     classes: &[ClassRust],
-    enums: &[EnumRust], 
+    enums: &[EnumRust],
     unions: &[UnionRust],
     type_aliases: &[TypeAliasRust],
     pkg: &CurrentRenderPackage,
 ) -> Result<String, askama::Error> {
     let mut output = String::new();
-    
+
     output.push_str("use serde::{Deserialize, Serialize};\n");
     output.push_str("use std::collections::HashMap;\n\n");
-    
+
     // Render classes
     if !classes.is_empty() {
         output.push_str(&render_rust_types(classes, pkg)?);
         output.push_str("\n");
     }
-    
-    // Render enums  
+
+    // Render enums
     if !enums.is_empty() {
         output.push_str(&render_rust_types(enums, pkg)?);
         output.push_str("\n");
     }
-    
+
     // Render unions
     if !unions.is_empty() {
         output.push_str(&render_rust_types(unions, pkg)?);
         output.push_str("\n");
     }
-    
+
     // Render type aliases
     if !type_aliases.is_empty() {
         output.push_str(&render_rust_types(type_aliases, pkg)?);
         output.push_str("\n");
     }
-    
+
     Ok(output)
 }
