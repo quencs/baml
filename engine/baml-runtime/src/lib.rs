@@ -18,6 +18,7 @@ pub mod test_constraints;
 pub mod test_executor;
 
 pub mod async_vm_runtime;
+mod redaction;
 mod runtime_methods;
 pub mod tracing;
 pub mod tracingv2;
@@ -601,12 +602,16 @@ impl BamlRuntime {
                 LLMResponse::InternalFailure(e) => Err(anyhow::anyhow!("{}", e)),
                 LLMResponse::UserFailure(e) => Err(anyhow::anyhow!("{}", e)),
                 LLMResponse::Cancelled(e) => Err(anyhow::anyhow!("Cancelled: {}", e)),
-                LLMResponse::LLMFailure(e) => Err(anyhow::anyhow!(
-                    "{} {}\n\nRequest options: {}",
-                    e.code.to_string(),
-                    e.message,
-                    serde_json::to_string(&e.request_options).unwrap_or_default()
-                )),
+                LLMResponse::LLMFailure(e) => Err(anyhow::anyhow!({
+                    let scrubbed_opts =
+                        crate::redaction::scrub_baml_options(&e.request_options, &env_vars, false);
+                    format!(
+                        "{} {}\n\nRequest options: {}",
+                        e.code,
+                        e.message,
+                        serde_json::to_string(&scrubbed_opts).unwrap_or_default()
+                    )
+                })),
             }?;
             let test_constraints_result = if constraints.is_empty() {
                 TestConstraintsResult::empty()
