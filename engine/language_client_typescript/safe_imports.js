@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ThrowIfVersionMismatch = ThrowIfVersionMismatch;
-const native_1 = require("./native");
+import { get_version } from "./native.js";
 function ensureVersionCompatibility(generatedVersion, runtimeVersion) {
     try {
         const [genMajor, genMinor] = generatedVersion.split(".").slice(0, 2);
@@ -12,8 +9,8 @@ function ensureVersionCompatibility(generatedVersion, runtimeVersion) {
         return false; // Error parsing versions, assume incompatible
     }
 }
-function ThrowIfVersionMismatch(generatedVersion) {
-    const runtimeVersion = (0, native_1.get_version)();
+export function ThrowIfVersionMismatch(generatedVersion) {
+    const runtimeVersion = get_version();
     if (!ensureVersionCompatibility(generatedVersion, runtimeVersion)) {
         const errorMessage = `Update to @boundaryml/baml required.
 Version from generators.baml: ${generatedVersion}

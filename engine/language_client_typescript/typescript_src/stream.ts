@@ -1,9 +1,9 @@
-import { toBamlError, BamlAbortError } from "./errors";
+import { toBamlError, BamlAbortError } from "./errors.js";
 import type {
   FunctionResult,
   FunctionResultStream,
   RuntimeContextManager,
-} from "../native";
+} from "../native.js";
 
 export class BamlStream<PartialOutputType, FinalOutputType> {
   private task: Promise<FunctionResult> | null = null;

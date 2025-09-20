@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BamlAudio = void 0;
 /**
  * Browser-compatible implementation of BamlAudio
  */
-class BamlAudio {
+export class BamlAudio {
     type;
     content;
     mediaType;
@@ -93,4 +90,3 @@ class BamlAudio {
         };
     }
 }
-exports.BamlAudio = BamlAudio;

@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BamlPdf = void 0;
 /**
  * Browser-compatible implementation of BamlPdf
  */
-class BamlPdf {
+export class BamlPdf {
     type;
     content;
     mediaType;
@@ -93,4 +90,3 @@ class BamlPdf {
         };
     }
 }
-exports.BamlPdf = BamlPdf;

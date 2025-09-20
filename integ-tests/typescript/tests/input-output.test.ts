@@ -1,5 +1,5 @@
 import { NamedArgsSingleEnumList } from "../baml_client";
-import { partial_types } from "../baml_client/partial_types";
+import type { partial_types } from "../baml_client/partial_types";
 import { b, b_sync } from "./test-setup";
 
 describe("Basic Input/Output Tests", () => {

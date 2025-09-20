@@ -44,12 +44,30 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "exports": {
-    ".": "./index.js",
-    "./native": "./native.js",
-    "./type_builder": "./type_builder.js",
-    "./errors": "./errors.js",
-    "./browser": "./browser.js",
-    "./logging": "./logging.js"
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./native": {
+      "types": "./native.d.ts",
+      "import": "./native.js"
+    },
+    "./type_builder": {
+      "types": "./type_builder.d.ts",
+      "import": "./type_builder.js"
+    },
+    "./errors": {
+      "types": "./errors.d.ts",
+      "import": "./errors.js"
+    },
+    "./browser": {
+      "types": "./browser.d.ts",
+      "import": "./browser.js"
+    },
+    "./logging": {
+      "types": "./logging.d.ts",
+      "import": "./logging.js"
+    }
   },
   "napi": {
     "binaryName": "baml",
@@ -76,11 +94,11 @@
     "release": "pnpm build:napi-release && pnpm build:ts_build",
     "build:debug": "pnpm build:napi-debug && pnpm build:ts_build",
     "build:napi-release": "pnpm build:napi-debug --release",
-    "build:napi-debug": "napi build --js ./native.js --dts ./native.d.ts --platform",
-    "build:ts_build": "tsc ./typescript_src/*.ts --outDir ./ --module nodenext --module nodenext --allowJs --declaration true --declarationMap true || true && pnpm build:ts_build_local",
+    "build:napi-debug": "napi build --js ./native.js --esm --dts ./native.d.ts --platform",
+    "build:ts_build": "(tsc --project ./tsconfig.build.json --outDir ./ || true) && pnpm build:ts_build_local",
     "build:local": "pnpm build:debug && pnpm napi create-npm-dirs && pnpm artifacts",
-    "build:napi-debug-local": "napi build -o ./artifacts --js ./native.js --dts ./native.d.ts --platform",
-    "build:ts_build_local": "tsc ./typescript_src/*.ts --outDir ./artifacts --module nodenext --module nodenext --allowJs --declaration true --declarationMap true || true",
+    "build:napi-debug-local": "napi build -o ./artifacts --js ./native.js --dts ./native.d.ts --esm --platform",
+    "build:ts_build_local": "tsc --project ./tsconfig.build.json --outDir ./artifacts || true",
     "prepublishOnly": "napi create-npm-dirs && pnpm artifacts && napi prepublish --no-gh-release",
     "test": "jest --config jest.config.js",
     "version": "napi version",
@@ -111,10 +129,16 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "moduleFileExtensions": ["ts", "js"],
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ],
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "testMatch": ["**/__test__/**/*.test.ts"]
-  }
+    "testMatch": [
+      "**/__test__/**/*.test.ts"
+    ]
+  },
+  "type": "module"
 }

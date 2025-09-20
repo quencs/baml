@@ -1,4 +1,4 @@
-import type { FunctionResultStream, RuntimeContextManager } from "../native";
+import type { FunctionResultStream, RuntimeContextManager } from "../native.js";
 export declare class BamlStream<PartialOutputType, FinalOutputType> {
     private ffiStream;
     private partialCoerce;

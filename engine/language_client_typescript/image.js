@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BamlImage = void 0;
 /**
  * Browser-compatible implementation of BamlImage
  */
-class BamlImage {
+export class BamlImage {
     type;
     content;
     mediaType;
@@ -93,4 +90,3 @@ class BamlImage {
         };
     }
 }
-exports.BamlImage = BamlImage;

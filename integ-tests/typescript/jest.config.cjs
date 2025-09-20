@@ -6,8 +6,14 @@ module.exports = {
   moduleFileExtensions: ["ts", "js", "json", "node"],
   setupFilesAfterEnv: ["<rootDir>/tests/test-setup.ts"],
   testTimeout: 600000,
-  // detectOpenHandles: true,
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
+  },
+  extensionsToTreatAsEsm: [".ts"],
+  globals: {
+    "ts-jest": {
+      useESM: true,
+      tsconfig: "tsconfig.json",
+    },
   },
 };

@@ -1,4 +1,3 @@
-"use strict";
 /**
  * @warning This file is intended for browser usage only.
  * For Node.js environments, import Image and Audio directly from '@boundaryml/baml'.
@@ -11,13 +10,11 @@
  * import { Image, Audio } from '@boundaryml/baml'
  * ```
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Video = exports.Pdf = exports.Audio = exports.Image = void 0;
 // Import actual implementations
-const audio_1 = require("./audio");
-const image_1 = require("./image");
-const video_1 = require("./video");
-const pdf_1 = require("./pdf");
+import { BamlAudio } from "./audio.js";
+import { BamlImage } from "./image.js";
+import { BamlVideo } from "./video.js";
+import { BamlPdf } from "./pdf.js";
 // Detect if we're in server-side rendering environment
 const isSSR = typeof window === "undefined";
 // Create a proxy handler that logs warnings in SSR environment
@@ -32,11 +29,9 @@ function createSSRProxyHandler(name) {
     };
 }
 // Create proxied versions that will work in both environments but warn in SSR
-const ImageImpl = new Proxy(image_1.BamlImage, createSSRProxyHandler("Image"));
-exports.Image = ImageImpl;
-const AudioImpl = new Proxy(audio_1.BamlAudio, createSSRProxyHandler("Audio"));
-exports.Audio = AudioImpl;
-const PdfImpl = new Proxy(pdf_1.BamlPdf, createSSRProxyHandler("Pdf"));
-exports.Pdf = PdfImpl;
-const VideoImpl = new Proxy(video_1.BamlVideo, createSSRProxyHandler("Video"));
-exports.Video = VideoImpl;
+const ImageImpl = new Proxy(BamlImage, createSSRProxyHandler("Image"));
+const AudioImpl = new Proxy(BamlAudio, createSSRProxyHandler("Audio"));
+const PdfImpl = new Proxy(BamlPdf, createSSRProxyHandler("Pdf"));
+const VideoImpl = new Proxy(BamlVideo, createSSRProxyHandler("Video"));
+// Then export the implementations
+export { ImageImpl as Image, AudioImpl as Audio, PdfImpl as Pdf, VideoImpl as Video, };

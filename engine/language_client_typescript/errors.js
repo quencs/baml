@@ -1,10 +1,5 @@
-"use strict";
 // NOTE: Don't take a dependency on ./native here, it will break the browser code
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BamlAbortError = exports.BamlClientHttpError = exports.BamlValidationError = exports.BamlClientFinishReasonError = void 0;
-exports.isBamlError = isBamlError;
-exports.toBamlError = toBamlError;
-class BamlClientFinishReasonError extends Error {
+export class BamlClientFinishReasonError extends Error {
     prompt;
     raw_output;
     finish_reason;
@@ -43,8 +38,7 @@ class BamlClientFinishReasonError extends Error {
         return undefined;
     }
 }
-exports.BamlClientFinishReasonError = BamlClientFinishReasonError;
-class BamlValidationError extends Error {
+export class BamlValidationError extends Error {
     prompt;
     raw_output;
     detailed_message;
@@ -80,8 +74,7 @@ class BamlValidationError extends Error {
         return undefined;
     }
 }
-exports.BamlValidationError = BamlValidationError;
-class BamlClientHttpError extends Error {
+export class BamlClientHttpError extends Error {
     client_name;
     status_code;
     detailed_message;
@@ -117,8 +110,7 @@ class BamlClientHttpError extends Error {
         return undefined;
     }
 }
-exports.BamlClientHttpError = BamlClientHttpError;
-class BamlAbortError extends Error {
+export class BamlAbortError extends Error {
     reason;
     detailed_message;
     constructor(message, reason, detailed_message = '') {
@@ -143,7 +135,6 @@ class BamlAbortError extends Error {
         return undefined;
     }
 }
-exports.BamlAbortError = BamlAbortError;
 function isError(error) {
     if (typeof error === 'string') {
         return false;
@@ -180,7 +171,7 @@ function createBamlErrorUnsafe(error) {
     // otherwise return the original error
     return error;
 }
-function isBamlError(error) {
+export function isBamlError(error) {
     if (error.type === 'BamlClientHttpError' ||
         error.type === 'BamlValidationError' ||
         error.type === 'BamlClientFinishReasonError' ||
@@ -198,7 +189,7 @@ function isBamlError(error) {
         error instanceof BamlClientFinishReasonError ||
         error instanceof BamlAbortError);
 }
-function toBamlError(error) {
+export function toBamlError(error) {
     try {
         if (isBamlError(error)) {
             return error;

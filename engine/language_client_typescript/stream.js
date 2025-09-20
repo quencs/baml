@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BamlStream = void 0;
-const errors_1 = require("./errors");
-class BamlStream {
+import { toBamlError, BamlAbortError } from "./errors.js";
+export class BamlStream {
     ffiStream;
     partialCoerce;
     finalCoerce;
@@ -28,7 +25,7 @@ class BamlStream {
         try {
             // Check for early abort
             if (this.abortSignal?.aborted) {
-                throw new errors_1.BamlAbortError("Operation was aborted", this.abortSignal.reason);
+                throw new BamlAbortError("Operation was aborted", this.abortSignal.reason);
             }
             this.ffiStream.onEvent((err, data) => {
                 if (err) {
@@ -45,7 +42,7 @@ class BamlStream {
             return retval;
         }
         catch (error) {
-            if (error instanceof errors_1.BamlAbortError) {
+            if (error instanceof BamlAbortError) {
                 this.error = error;
                 this.eventQueue.push(null);
             }
@@ -115,7 +112,7 @@ class BamlStream {
                         return;
                     }
                     catch (err) {
-                        const bamlError = (0, errors_1.toBamlError)(err instanceof Error ? err : new Error(String(err)));
+                        const bamlError = toBamlError(err instanceof Error ? err : new Error(String(err)));
                         controller.enqueue(encoder.encode(JSON.stringify({ error: bamlError })));
                         controller.close();
                         return;
@@ -137,4 +134,3 @@ class BamlStream {
         });
     }
 }
-exports.BamlStream = BamlStream;

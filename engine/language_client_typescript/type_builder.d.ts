@@ -1,4 +1,4 @@
-import { ClassBuilder as _ClassBuilder, EnumBuilder as _EnumBuilder, ClassPropertyBuilder as _ClassPropertyBuilder, EnumValueBuilder, FieldType, TypeBuilder as _TypeBuilder, BamlRuntime } from './native';
+import { ClassBuilder as _ClassBuilder, EnumBuilder as _EnumBuilder, ClassPropertyBuilder as _ClassPropertyBuilder, EnumValueBuilder, FieldType, TypeBuilder as _TypeBuilder, BamlRuntime } from './native.js';
 type IsLiteral<T extends string> = string extends T ? false : true;
 type NameOf<T extends string> = IsLiteral<T> extends true ? T : 'DynamicType';
 type CheckNever<T, TypeName extends string, Value extends string> = [T] extends [never] ? `Error: Attempt to add value '${Value}' which is already a part of '${NameOf<TypeName>}'.` : T;
@@ -35,19 +35,20 @@ export declare class TypeBuilder {
     addEnum<Name extends string>(name: Name): EnumBuilder<Name>;
     addBaml(baml: string): void;
 }
-export declare class ClassAst<ClassName extends string, Properties extends string = string> {
+export declare class ClassAst<ClassName extends string, Properties extends string = string, ListReturn = Record<string, FieldType | null>> {
     protected properties: Set<Properties | string>;
     protected bldr: _ClassBuilder;
     constructor(tb: _TypeBuilder, name: ClassName, properties?: Set<Properties | string>);
-    listProperties(): Record<string, FieldType | null>;
+    protected rawProperties(): Record<string, FieldType | null>;
+    listProperties(): ListReturn;
     type(): FieldType;
 }
-export declare class ClassViewer<ClassName extends string, Properties extends string = string> extends ClassAst<ClassName, Properties> {
+export declare class ClassViewer<ClassName extends string, Properties extends string = string> extends ClassAst<ClassName, Properties, Array<[string, ClassPropertyViewer]>> {
     constructor(tb: _TypeBuilder, name: ClassName, properties?: Set<Properties | string>);
     listProperties(): Array<[string, ClassPropertyViewer]>;
     property(name: string): ClassPropertyViewer;
 }
-export declare class ClassBuilder<ClassName extends string, Properties extends string = string> extends ClassAst<ClassName, Properties> {
+export declare class ClassBuilder<ClassName extends string, Properties extends string = string> extends ClassAst<ClassName, Properties, Array<[string, ClassPropertyBuilder]>> {
     constructor(tb: _TypeBuilder, name: ClassName, properties?: Set<Properties | string>);
     addProperty<S extends string>(name: RestrictNot<ClassName, S, Properties>, type: FieldType): ClassPropertyBuilder;
     listProperties(): Array<[string, ClassPropertyBuilder]>;

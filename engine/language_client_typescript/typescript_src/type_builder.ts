@@ -6,7 +6,7 @@ import {
   FieldType,
   TypeBuilder as _TypeBuilder,
   BamlRuntime,
-} from './native'
+} from './native.js'
 
 type IsLiteral<T extends string> = string extends T ? false : true
 type NameOf<T extends string> = IsLiteral<T> extends true ? T : 'DynamicType'
@@ -132,7 +132,11 @@ export class TypeBuilder {
   }
 }
 
-export class ClassAst<ClassName extends string, Properties extends string = string> {
+export class ClassAst<
+  ClassName extends string,
+  Properties extends string = string,
+  ListReturn = Record<string, FieldType | null>,
+> {
   protected bldr: _ClassBuilder
 
   constructor(
@@ -143,8 +147,12 @@ export class ClassAst<ClassName extends string, Properties extends string = stri
     this.bldr = tb.getClass(name)
   }
 
-  listProperties(): Record<string, FieldType | null> {
-    return this.bldr.listProperties()
+  protected rawProperties(): Record<string, FieldType | null> {
+    return this.bldr.listProperties() as unknown as Record<string, FieldType | null>
+  }
+
+  listProperties(): ListReturn {
+    return this.rawProperties() as unknown as ListReturn
   }
 
   type(): FieldType {
@@ -154,14 +162,16 @@ export class ClassAst<ClassName extends string, Properties extends string = stri
 
 export class ClassViewer<ClassName extends string, Properties extends string = string> extends ClassAst<
   ClassName,
-  Properties
+  Properties,
+  Array<[string, ClassPropertyViewer]>
 > {
   constructor(tb: _TypeBuilder, name: ClassName, properties: Set<Properties | string> = new Set()) {
     super(tb, name, properties)
   }
 
   listProperties(): Array<[string, ClassPropertyViewer]> {
-    return Array.from(this.properties).map((name) => [name, new ClassPropertyViewer()])
+    const props = this.rawProperties()
+    return Object.keys(props).map((name) => [name, new ClassPropertyViewer()])
   }
 
   property(name: string): ClassPropertyViewer {
@@ -174,7 +184,8 @@ export class ClassViewer<ClassName extends string, Properties extends string = s
 
 export class ClassBuilder<ClassName extends string, Properties extends string = string> extends ClassAst<
   ClassName,
-  Properties
+  Properties,
+  Array<[string, ClassPropertyBuilder]>
 > {
   constructor(tb: _TypeBuilder, name: ClassName, properties: Set<Properties | string> = new Set()) {
     super(tb, name, properties)
@@ -189,7 +200,8 @@ export class ClassBuilder<ClassName extends string, Properties extends string = 
   }
 
   listProperties(): Array<[string, ClassPropertyBuilder]> {
-    return this.bldr.listProperties()
+    const props = this.rawProperties()
+    return Object.keys(props).map((name) => [name, new ClassPropertyBuilder(this.bldr.property(name))])
   }
 
   removeProperty(name: string): void {
