@@ -18,7 +18,7 @@ describe("Abort Handlers - Manual Testing", () => {
 
     try {
       await promise;
-      fail("Should have thrown an error");
+      throw new Error("Should have thrown an error");
     } catch (error: any) {
       const elapsedTime = Date.now() - startTime;
       console.log(`Operation cancelled after ${elapsedTime}ms`);
@@ -145,7 +145,7 @@ describe("Abort Handlers - Manual Testing", () => {
       controller.abort();
 
       await promise;
-      fail("Should have been cancelled");
+      throw new Error("Should have been cancelled");
     } catch (error: any) {
       // Should be cancelled before making the API call
       expect(error).toBeDefined();

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { b } from "../baml_client";
 import { setLogLevel, getLogLevel } from "../baml_client/config";
 
@@ -16,14 +17,14 @@ describe("Logger tests", () => {
 
   /**
    * Helper function to capture stdout.
-   * It temporarily uses jest.spyOn to override process.stdout.write,
+   * It temporarily uses vi.spyOn to override process.stdout.write,
    * calls the async function, then returns both the result and any output captured.
    */
   async function captureStdout<T>(
     fn: () => Promise<T>,
   ): Promise<{ result: T; output: string }> {
     let output = "";
-    const spy = jest
+    const spy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation((chunk: any, encoding?: any, callback?: any) => {
         if (typeof encoding === "function") {

@@ -22,9 +22,12 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "isolatedModules": false,
-    "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": false,
-    "noEmit": false
+    "noEmit": false,
+    "types": [
+      "vitest/globals",
+      "node"
+    ]
   },
   "include": [
     "tests/**/*",

@@ -30,7 +30,7 @@ describe("Error Handling Tests", () => {
   it("should raise a BAMLValidationError with proper details", async () => {
     try {
       await b.DummyOutputFunction("dummy input");
-      fail("Expected b.DummyOutputFunction to throw a BamlValidationError");
+      throw new Error("Expected b.DummyOutputFunction to throw a BamlValidationError");
     } catch (error: any) {
       if (error instanceof BamlValidationError) {
         expect(error.message).toContain("BamlValidationError");
@@ -55,7 +55,7 @@ describe("Error Handling Tests", () => {
         "My name is Harrison. My hair is black and I'm 6 feet tall.",
         { clientRegistry: cr },
       );
-      fail("Expected b.MyFunc to throw a BamlClientHttpError");
+      throw new Error("Expected b.MyFunc to throw a BamlClientHttpError");
     } catch (error: any) {
       if (error instanceof BamlClientHttpError) {
         expect(error.message).toContain("BamlClientHttpError");
@@ -75,7 +75,7 @@ describe("Error Handling Tests", () => {
         "My name is Harrison. My hair is black and I'm 6 feet tall.",
         { clientRegistry: cr },
       );
-      fail("Expected b.MyFunc to throw a BamlClientHttpError");
+      throw new Error("Expected b.MyFunc to throw a BamlClientHttpError");
     } catch (error: any) {
       if (error instanceof BamlClientHttpError) {
         expect(error.message).toContain("BamlClientHttpError");

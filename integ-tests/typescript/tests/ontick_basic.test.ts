@@ -1,10 +1,11 @@
 // Basic tests for experimental onTick without requiring API calls
+import { vi } from 'vitest';
 import { b } from '../baml_client';
 import { b as syncB } from '../baml_client/sync_client';
 
 describe('Experimental OnTick Basic', () => {
     it('should reject onTick for sync functions', () => {
-        const onTick = jest.fn();
+        const onTick = vi.fn();
         
         expect(() => {
             syncB.TestAnthropicShorthand(
@@ -15,7 +16,7 @@ describe('Experimental OnTick Basic', () => {
     });
 
     it('should accept onTick in BamlCallOptions for async functions', () => {
-        const onTick = jest.fn();
+        const onTick = vi.fn();
         
         // This test just validates that the type system accepts onTick
         // We can't actually call the function without an API key
@@ -28,7 +29,7 @@ describe('Experimental OnTick Basic', () => {
     });
 
     it('should accept onTick in stream functions', () => {
-        const onTick = jest.fn();
+        const onTick = vi.fn();
         
         // This test just validates that the stream accepts onTick
         const options = {
