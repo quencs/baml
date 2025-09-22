@@ -128,6 +128,7 @@ pub enum TypeRust {
         package: Package,
         name: String,
         dynamic: bool,
+        needs_box: bool,
         meta: TypeMetaRust,
     },
     Union {
@@ -144,6 +145,7 @@ pub enum TypeRust {
     TypeAlias {
         name: String,
         package: Package,
+        needs_box: bool,
         meta: TypeMetaRust,
     },
     List(Box<TypeRust>, TypeMetaRust),
@@ -225,6 +227,21 @@ impl TypeRust {
         }
     }
 
+    pub fn is_class_named(&self, target: &str) -> bool {
+        matches!(
+            self,
+            TypeRust::Class { name, .. } | TypeRust::TypeAlias { name, .. } if name == target
+        )
+    }
+
+    pub fn make_boxed(&mut self) {
+        match self {
+            TypeRust::Class { needs_box, .. } => *needs_box = true,
+            TypeRust::TypeAlias { needs_box, .. } => *needs_box = true,
+            _ => {}
+        }
+    }
+
     pub fn with_meta(mut self, meta: TypeMetaRust) -> Self {
         *(self.meta_mut()) = meta;
         self
@@ -275,11 +292,31 @@ impl SerializeType for TypeRust {
             TypeRust::Float(_) => "f64".to_string(),
             TypeRust::Bool(..) => "bool".to_string(),
             TypeRust::Media(media, _) => media.serialize_type(pkg),
-            TypeRust::Class { package, name, .. } => {
-                format!("{}{}", package.relative_from(pkg), name)
+            TypeRust::Class {
+                package,
+                name,
+                needs_box,
+                ..
+            } => {
+                let path = format!("{}{}", package.relative_from(pkg), name);
+                if *needs_box {
+                    format!("Box<{}>", path)
+                } else {
+                    path
+                }
             }
-            TypeRust::TypeAlias { package, name, .. } => {
-                format!("{}{}", package.relative_from(pkg), name)
+            TypeRust::TypeAlias {
+                package,
+                name,
+                needs_box,
+                ..
+            } => {
+                let path = format!("{}{}", package.relative_from(pkg), name);
+                if *needs_box {
+                    format!("Box<{}>", path)
+                } else {
+                    path
+                }
             }
             TypeRust::Union { package, name, .. } => {
                 format!("{}{}", package.relative_from(pkg), name)

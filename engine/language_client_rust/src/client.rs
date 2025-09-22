@@ -502,12 +502,31 @@ impl BamlClient {
         let stream = self
             .call_function_stream_raw(function_name, context)
             .await?;
-        Ok(stream.map(|result| match result {
-            Ok(stream_state) => match stream_state {
-                StreamState::Partial(value) => T::from_baml_value(value).map(StreamState::Partial),
-                StreamState::Final(value) => T::from_baml_value(value).map(StreamState::Final),
-            },
-            Err(e) => Err(e),
+        let mut last_value: Option<crate::types::BamlValue> = None;
+        Ok(stream.filter_map(move |result| {
+            let output = match result {
+                Ok(stream_state) => match stream_state {
+                    StreamState::Partial(value) => {
+                        let merged = crate::types::overlay_baml_value(last_value.clone(), value);
+                        if crate::types::baml_value_has_data(&merged) {
+                            last_value = Some(merged.clone());
+                            Some(crate::types::with_partial_deserialization(|| {
+                                T::from_baml_value(merged).map(StreamState::Partial)
+                            }))
+                        } else {
+                            last_value = Some(merged);
+                            None
+                        }
+                    }
+                    StreamState::Final(value) => {
+                        let merged = crate::types::overlay_baml_value(last_value.clone(), value);
+                        last_value = None;
+                        Some(T::from_baml_value(merged).map(StreamState::Final))
+                    }
+                },
+                Err(e) => Some(Err(e)),
+            };
+            futures::future::ready(output)
         }))
     }
 

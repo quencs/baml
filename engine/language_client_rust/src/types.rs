@@ -8,11 +8,102 @@ use baml_cffi::{
     baml::cffi::CffiRawObject,
     rust::{CollectorHandle, TypeBuilderHandle},
 };
+use std::cell::Cell;
 
 // No additional imports needed for basic type conversions
 
 // Re-export BamlValue and BamlMap from baml-types to maintain compatibility
 pub use baml_types::{BamlMap, BamlValue};
+
+thread_local! {
+    static PARTIAL_DESERIALIZATION: Cell<bool> = Cell::new(false);
+}
+
+/// Enable partial deserialization for the scope of the provided closure.
+///
+/// When enabled, missing or `Null` values will be replaced with sensible
+/// defaults instead of returning a deserialization error. This is primarily
+/// used to allow streaming partial updates to succeed while the model is
+/// still filling in required fields.
+pub fn with_partial_deserialization<R>(f: impl FnOnce() -> R) -> R {
+    struct Reset(bool);
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            PARTIAL_DESERIALIZATION.with(|flag| flag.set(self.0));
+        }
+    }
+
+    let previous = PARTIAL_DESERIALIZATION.with(|flag| {
+        let prev = flag.get();
+        flag.set(true);
+        prev
+    });
+    let _reset = Reset(previous);
+    f()
+}
+
+/// Returns true when partial deserialization mode is enabled.
+pub fn is_partial_deserialization() -> bool {
+    PARTIAL_DESERIALIZATION.with(|flag| flag.get())
+}
+
+/// Merge a newer `BamlValue` into an optional existing value, preserving the
+/// previous data whenever the new value is still absent (Null) due to
+/// incremental streaming.
+pub fn overlay_baml_value(base: Option<BamlValue>, update: BamlValue) -> BamlValue {
+    match update {
+        BamlValue::Null => base.unwrap_or(BamlValue::Null),
+        BamlValue::Class(name, update_map) => {
+            let mut merged = match base {
+                Some(BamlValue::Class(_, base_map)) => base_map,
+                _ => BamlMap::new(),
+            };
+            for (key, update_value) in update_map.into_iter() {
+                let previous = merged.get(&key).cloned();
+                let merged_value = overlay_baml_value(previous, update_value);
+                merged.insert(key, merged_value);
+            }
+            BamlValue::Class(name, merged)
+        }
+        BamlValue::Map(update_map) => {
+            let mut merged = match base {
+                Some(BamlValue::Map(base_map)) => base_map,
+                _ => BamlMap::new(),
+            };
+            for (key, update_value) in update_map.into_iter() {
+                let previous = merged.get(&key).cloned();
+                let merged_value = overlay_baml_value(previous, update_value);
+                merged.insert(key, merged_value);
+            }
+            BamlValue::Map(merged)
+        }
+        BamlValue::List(update_list) => {
+            if update_list.is_empty() {
+                if let Some(BamlValue::List(base_list)) = base {
+                    BamlValue::List(base_list)
+                } else {
+                    BamlValue::List(update_list)
+                }
+            } else {
+                BamlValue::List(update_list)
+            }
+        }
+        other => other,
+    }
+}
+
+/// Determine if a `BamlValue` contains any non-null data.
+pub fn baml_value_has_data(value: &BamlValue) -> bool {
+    match value {
+        BamlValue::Null => false,
+        BamlValue::String(s) => !s.is_empty(),
+        BamlValue::Int(_) | BamlValue::Float(_) | BamlValue::Bool(_) => true,
+        BamlValue::Media(_) => true,
+        BamlValue::Enum(_, v) => !v.is_empty(),
+        BamlValue::List(items) => items.iter().any(baml_value_has_data),
+        BamlValue::Map(map) | BamlValue::Class(_, map) => map.values().any(baml_value_has_data),
+    }
+}
 
 /// Convert a Rust value to a BAML value
 pub trait ToBamlValue {
@@ -43,6 +134,7 @@ impl FromBamlValue for String {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
             BamlValue::String(s) => Ok(s),
+            BamlValue::Null if is_partial_deserialization() => Ok(String::new()),
             _ => Err(crate::BamlError::deserialization(format!(
                 "Expected string, got {:?}",
                 value
@@ -63,6 +155,7 @@ impl FromBamlValue for i32 {
             BamlValue::Int(i) => i
                 .try_into()
                 .map_err(|_| crate::BamlError::deserialization("Integer overflow".to_string())),
+            BamlValue::Null if is_partial_deserialization() => Ok(0),
             _ => Err(crate::BamlError::deserialization(format!(
                 "Expected int, got {:?}",
                 value
@@ -81,6 +174,7 @@ impl FromBamlValue for i64 {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
             BamlValue::Int(i) => Ok(i),
+            BamlValue::Null if is_partial_deserialization() => Ok(0),
             _ => Err(crate::BamlError::deserialization(format!(
                 "Expected int, got {:?}",
                 value
@@ -100,6 +194,7 @@ impl FromBamlValue for f64 {
         match value {
             BamlValue::Float(f) => Ok(f),
             BamlValue::Int(i) => Ok(i as f64),
+            BamlValue::Null if is_partial_deserialization() => Ok(0.0),
             _ => Err(crate::BamlError::deserialization(format!(
                 "Expected float, got {:?}",
                 value
@@ -118,6 +213,7 @@ impl FromBamlValue for bool {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
             BamlValue::Bool(b) => Ok(b),
+            BamlValue::Null if is_partial_deserialization() => Ok(false),
             _ => Err(crate::BamlError::deserialization(format!(
                 "Expected bool, got {:?}",
                 value
@@ -140,6 +236,7 @@ impl<T: FromBamlValue> FromBamlValue for Vec<T> {
                 .into_iter()
                 .map(T::from_baml_value)
                 .collect::<Result<Vec<_>, _>>(),
+            BamlValue::Null if is_partial_deserialization() => Ok(Vec::new()),
             _ => Err(crate::BamlError::deserialization(format!(
                 "Expected list, got {:?}",
                 value
@@ -203,6 +300,7 @@ where
                 }
                 Ok(result)
             }
+            BamlValue::Null if is_partial_deserialization() => Ok(std::collections::HashMap::new()),
             _ => Err(crate::BamlError::deserialization(format!(
                 "Expected map, got {:?}",
                 value
@@ -221,6 +319,7 @@ impl FromBamlValue for BamlMap<String, BamlValue> {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
         match value {
             BamlValue::Map(map) => Ok(map),
+            BamlValue::Null if is_partial_deserialization() => Ok(BamlMap::new()),
             _ => Err(crate::BamlError::deserialization(format!(
                 "Expected map, got {:?}",
                 value
