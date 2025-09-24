@@ -126,28 +126,49 @@ impl std::fmt::Display for {{ name }} {
     }
 }
 
+impl Default for {{ name }} {
+    fn default() -> Self {
+        {%- if variants.len() > 0 %}
+            {%- for variant in variants %}
+                {%- if loop.first %}
+                    {%- if let Some(literal) = variant.literal_value %}
+                        Self::{{ variant.name }}
+                    {%- else %}
+                        Self::{{ variant.name }}({{ variant.rust_type.serialize_type(pkg) }}::default())
+                    {%- endif %}
+                {%- endif %}
+            {%- endfor %}
+        {%- else %}
+            panic!("Cannot create default value for empty union {{ name }}")
+        {%- endif %}
+    }
+}
+
 // BAML trait implementations
 impl baml_client_rust::types::ToBamlValue for {{ name }} {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
             {%- for variant in variants %}
-            {%- if let Some(literal) = variant.literal_value %}
+            {%- if let Some(kind) = variant.literal_kind %}
             Self::{{ variant.name }} => {
-                // Handle literal variant - convert literal value to BamlValue
-                {%- if literal.starts_with('"') %}
-                {%- if literal.ends_with('"') %}
-                Ok(baml_client_rust::types::BamlValue::String({{ literal }}.to_string()))
-                {%- else %}
-                Ok(baml_client_rust::types::BamlValue::String("{{ literal }}".to_string()))
-                {%- endif %}
-                {%- elif literal == "true" %}
-                Ok(baml_client_rust::types::BamlValue::Bool(true))
-                {%- elif literal == "false" %}
-                Ok(baml_client_rust::types::BamlValue::Bool(false))
-                {%- else %}
-                // Try to parse as number, fallback to string
-                Ok(baml_client_rust::types::BamlValue::String("{{ literal }}".to_string()))
-                {%- endif %}
+                match kind {
+                    RustLiteralKind::String => Ok(
+                        baml_client_rust::types::BamlValue::String(
+                            {{ variant.literal_value.as_ref().unwrap() | json_string_literal }}
+                                .to_string(),
+                        ),
+                    ),
+                    RustLiteralKind::Int => Ok(
+                        baml_client_rust::types::BamlValue::Int(
+                            {{ variant.literal_value.as_ref().unwrap() }},
+                        ),
+                    ),
+                    RustLiteralKind::Bool => Ok(
+                        baml_client_rust::types::BamlValue::Bool(
+                            {{ variant.literal_value.as_ref().unwrap() }},
+                        ),
+                    ),
+                }
             }
             {%- else %}
             Self::{{ variant.name }}(v) => v.to_baml_value(),
@@ -160,36 +181,44 @@ impl baml_client_rust::types::ToBamlValue for {{ name }} {
 impl baml_client_rust::types::FromBamlValue for {{ name }} {
     fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         {%- for variant in variants %}
-        {%- if let Some(literal) = variant.literal_value %}
-        // Try literal variant: {{ variant.name }}
-        {%- if literal.starts_with('"') %}
-        {%- if literal.ends_with('"') %}
-        if let baml_client_rust::types::BamlValue::String(s) = &value {
-            if s == {{ literal }} {
-                return Ok(Self::{{ variant.name }});
+        {%- if let Some(kind) = variant.literal_kind %}
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == {{ variant.literal_value.as_ref().unwrap() | json_string_literal }} {
+                        return Ok(Self::{{ variant.name }});
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == {{ variant.literal_value.as_ref().unwrap() }} {
+                        return Ok(Self::{{ variant.name }});
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == {{ variant.literal_value.as_ref().unwrap() }} {
+                            return Ok(Self::{{ variant.name }});
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == {{ variant.literal_value.as_ref().unwrap() }} {
+                        return Ok(Self::{{ variant.name }});
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case(
+                        {{ variant.literal_value.as_ref().unwrap() | json_string_literal }},
+                    ) {
+                        return Ok(Self::{{ variant.name }});
+                    }
+                }
             }
         }
-        {%- endif %}
-        {%- elif literal == "true" %}
-        if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-            if *b == true {
-                return Ok(Self::{{ variant.name }});
-            }
-        }
-        {%- elif literal == "false" %}
-        if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-            if *b == false {
-                return Ok(Self::{{ variant.name }});
-            }
-        }
-        {%- else %}
-        // Try matching literal as string fallback
-        if let baml_client_rust::types::BamlValue::String(s) = &value {
-            if s == "{{ literal }}" {
-                return Ok(Self::{{ variant.name }});
-            }
-        }
-        {%- endif %}
         {%- else %}
         // Try {{ variant.name }} variant
         if let Ok(variant_value) = {{ variant.rust_type.serialize_type(pkg) }}::from_baml_value(value.clone()) {

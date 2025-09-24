@@ -14,25 +14,39 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Example {
+    
     pub r#type: String,
-
-    pub a: String,
-
+    
+    pub a: crate::checked::Checked<i64, ["a_is_positive"]>,
+    
     pub b: String,
 }
 
 impl Example {
     /// Create a new Example instance
-    pub fn new(r#type: String, a: String, b: String) -> Self {
-        Self { r#type, a, b }
+    pub fn new(
+        r#type: String,
+        a: crate::checked::Checked<i64, ["a_is_positive"]>,
+        b: String,
+    ) -> Self {
+        Self {
+            r#type,
+            a,
+            b,
+        }
     }
-}
+    
+    }
 
 impl Default for Example {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new())
+        Self::new(
+            String::new(),
+            crate::checked::Checked<i64, ["a_is_positive"]>::default(),
+            String::new(),
+        )
     }
 }
 
@@ -40,76 +54,111 @@ impl Default for Example {
 impl baml_client_rust::types::ToBamlValue for Example {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
-        map.insert("r#type".to_string(), self.r#type.to_baml_value()?);
+        map.insert("type".to_string(), self.r#type.to_baml_value()?);
         map.insert("a".to_string(), self.a.to_baml_value()?);
         map.insert("b".to_string(), self.b.to_baml_value()?);
-        Ok(baml_client_rust::types::BamlValue::Class(
-            "Example".to_string(),
-            map,
-        ))
+        Ok(baml_client_rust::types::BamlValue::Class("Example".to_string(), map))
     }
 }
 
 impl baml_client_rust::types::FromBamlValue for Example {
-    fn from_baml_value(
-        value: baml_client_rust::types::BamlValue,
-    ) -> baml_client_rust::BamlResult<Self> {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let r#type = map
-                    .get("r#type")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'r#type' in Example"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let a = map
-                    .get("a")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let r#type = match map.get("type") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    String::new()
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::new()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
+                            "Missing field 'type' in Example"
+                        )));
+                    }
+                };
+                let a = match map.get("a") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    crate::checked::Checked<i64, ["a_is_positive"]>::default()
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::checked::Checked<i64, ["a_is_positive"]>::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'a' in Example"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let b = map
-                    .get("b")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let b = match map.get("b") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    String::new()
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::new()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'b' in Example"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(r#type, a, b))
+                        )));
+                    }
+                };
+                Ok(Self::new(
+                    r#type,
+                    a,
+                    b,
+                ))
             }
-            _ => Err(baml_client_rust::BamlError::deserialization(format!(
-                "Expected class, got {:?}",
-                value
-            ))),
+            _ => Err(baml_client_rust::BamlError::deserialization(format!("Expected class, got {:?}", value))),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Example2 {
+    
     pub r#type: String,
-
-    pub item: String,
-
+    
+    pub item: crate::types::Example,
+    
     pub element: String,
-
+    
     pub element2: String,
 }
 
 impl Example2 {
     /// Create a new Example2 instance
-    pub fn new(r#type: String, item: String, element: String, element2: String) -> Self {
+    pub fn new(
+        r#type: String,
+        item: crate::types::Example,
+        element: String,
+        element2: String,
+    ) -> Self {
         Self {
             r#type,
             item,
@@ -117,11 +166,17 @@ impl Example2 {
             element2,
         }
     }
-}
+    
+    }
 
 impl Default for Example2 {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new(), String::new())
+        Self::new(
+            String::new(),
+            crate::types::Example::default(),
+            String::new(),
+            String::new(),
+        )
     }
 }
 
@@ -129,72 +184,114 @@ impl Default for Example2 {
 impl baml_client_rust::types::ToBamlValue for Example2 {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
-        map.insert("r#type".to_string(), self.r#type.to_baml_value()?);
+        map.insert("type".to_string(), self.r#type.to_baml_value()?);
         map.insert("item".to_string(), self.item.to_baml_value()?);
         map.insert("element".to_string(), self.element.to_baml_value()?);
         map.insert("element2".to_string(), self.element2.to_baml_value()?);
-        Ok(baml_client_rust::types::BamlValue::Class(
-            "Example2".to_string(),
-            map,
-        ))
+        Ok(baml_client_rust::types::BamlValue::Class("Example2".to_string(), map))
     }
 }
 
 impl baml_client_rust::types::FromBamlValue for Example2 {
-    fn from_baml_value(
-        value: baml_client_rust::types::BamlValue,
-    ) -> baml_client_rust::BamlResult<Self> {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let r#type = map
-                    .get("r#type")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'r#type' in Example2"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let item = map
-                    .get("item")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let r#type = match map.get("type") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    String::new()
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::new()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
+                            "Missing field 'type' in Example2"
+                        )));
+                    }
+                };
+                let item = match map.get("item") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    crate::types::Example::default()
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Example::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'item' in Example2"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let element = map
-                    .get("element")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let element = match map.get("element") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    String::new()
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::new()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'element' in Example2"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let element2 = map
-                    .get("element2")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let element2 = match map.get("element2") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    String::new()
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::new()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'element2' in Example2"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(r#type, item, element, element2))
+                        )));
+                    }
+                };
+                Ok(Self::new(
+                    r#type,
+                    item,
+                    element,
+                    element2,
+                ))
             }
-            _ => Err(baml_client_rust::BamlError::deserialization(format!(
-                "Expected class, got {:?}",
-                value
-            ))),
+            _ => Err(baml_client_rust::BamlError::deserialization(format!("Expected class, got {:?}", value))),
         }
     }
 }
+
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -204,6 +301,7 @@ pub enum Union2ExampleOrExample2 {
 }
 
 impl Union2ExampleOrExample2 {
+    
     /// Check if this union is a Example variant
     pub fn is_example(&self) -> bool {
         matches!(self, Self::Example(_))
@@ -215,7 +313,7 @@ impl Union2ExampleOrExample2 {
             _ => None,
         }
     }
-
+    
     /// Extract the Example value, consuming the union
     pub fn into_example(self) -> Option<crate::types::Example> {
         match self {
@@ -223,7 +321,7 @@ impl Union2ExampleOrExample2 {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Example value if this union contains it
     pub fn as_example_mut(&mut self) -> Option<&mut crate::types::Example> {
         match self {
@@ -231,12 +329,12 @@ impl Union2ExampleOrExample2 {
             _ => None,
         }
     }
-
+    
     /// Create a new Union2ExampleOrExample2 with a Example variant
     pub fn example(value: crate::types::Example) -> Self {
         Self::Example(value)
     }
-
+    
     /// Check if this union is a Example2 variant
     pub fn is_example2(&self) -> bool {
         matches!(self, Self::Example2(_))
@@ -248,7 +346,7 @@ impl Union2ExampleOrExample2 {
             _ => None,
         }
     }
-
+    
     /// Extract the Example2 value, consuming the union
     pub fn into_example2(self) -> Option<crate::types::Example2> {
         match self {
@@ -256,7 +354,7 @@ impl Union2ExampleOrExample2 {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Example2 value if this union contains it
     pub fn as_example2_mut(&mut self) -> Option<&mut crate::types::Example2> {
         match self {
@@ -264,7 +362,7 @@ impl Union2ExampleOrExample2 {
             _ => None,
         }
     }
-
+    
     /// Create a new Union2ExampleOrExample2 with a Example2 variant
     pub fn example2(value: crate::types::Example2) -> Self {
         Self::Example2(value)
@@ -284,7 +382,7 @@ impl Union2ExampleOrExample2 {
             Self::Example2(v) => example2(v),
         }
     }
-
+    
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
@@ -307,3 +405,39 @@ impl std::fmt::Display for Union2ExampleOrExample2 {
         }
     }
 }
+
+impl Default for Union2ExampleOrExample2 {
+    fn default() -> Self {
+                        Self::Example(crate::types::Example::default())
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union2ExampleOrExample2 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::Example(v) => v.to_baml_value(),
+            Self::Example2(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union2ExampleOrExample2 {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        // Try Example variant
+        if let Ok(variant_value) = crate::types::Example::from_baml_value(value.clone()) {
+            return Ok(Self::Example(variant_value));
+        }
+        // Try Example2 variant
+        if let Ok(variant_value) = crate::types::Example2::from_baml_value(value.clone()) {
+            return Ok(Self::Example2(variant_value));
+        }
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union2ExampleOrExample2",
+            value
+        )))
+    }
+}
+
+

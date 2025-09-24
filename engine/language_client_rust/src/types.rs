@@ -2,18 +2,25 @@
 //!
 //! This module provides the type system used by BAML functions.
 
-use crate::{BamlError, BamlResult};
+use crate::{runtime::RuntimeHandleArc, BamlError, BamlResult};
 use anyhow::anyhow;
 use baml_cffi::{
     baml::cffi::CffiRawObject,
     rust::{CollectorHandle, TypeBuilderHandle},
 };
 use std::cell::Cell;
+use std::sync::{Arc, Mutex};
 
 // No additional imports needed for basic type conversions
 
 // Re-export BamlValue and BamlMap from baml-types to maintain compatibility
 pub use baml_types::{BamlMap, BamlValue};
+
+mod raw_objects;
+pub use raw_objects::{
+    FunctionLog, HttpBody, HttpRequest, HttpResponse, LlmCall, LlmCallKind, LlmStreamCall,
+    SseResponse, StreamTiming, Timing, Usage,
+};
 
 thread_local! {
     static PARTIAL_DESERIALIZATION: Cell<bool> = Cell::new(false);
@@ -377,17 +384,99 @@ impl Default for ClientRegistry {
 #[derive(Debug, Clone)]
 pub struct Collector {
     handle: CollectorHandle,
+    runtime: Arc<Mutex<Option<RuntimeHandleArc>>>,
 }
 
 impl Collector {
     /// Create a new collector
     pub fn new(name: Option<&str>) -> BamlResult<Self> {
         let handle = CollectorHandle::new(name).map_err(|e| BamlError::Runtime(anyhow!(e)))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            runtime: Arc::new(Mutex::new(None)),
+        })
+    }
+
+    pub(crate) fn bind_runtime(&self, runtime: RuntimeHandleArc) -> BamlResult<()> {
+        let mut guard = self.runtime.lock().unwrap();
+        if let Some(existing) = guard.as_ref() {
+            if !Arc::ptr_eq(existing, &runtime) {
+                return Err(BamlError::Configuration(
+                    "Collector is already bound to a different BAML runtime".to_string(),
+                ));
+            }
+            return Ok(());
+        }
+        *guard = Some(runtime);
+        Ok(())
+    }
+
+    fn runtime(&self) -> BamlResult<RuntimeHandleArc> {
+        self.runtime
+            .lock()
+            .unwrap()
+            .clone()
+            .ok_or_else(|| {
+                BamlError::Configuration(
+                    "Collector is not attached to a runtime. Pass it to a BamlClient call before querying it.".to_string(),
+                )
+            })
     }
 
     pub(crate) fn to_cffi(&self) -> CffiRawObject {
         self.handle.to_cffi()
+    }
+
+    /// Fetch usage statistics accumulated in this collector.
+    pub fn usage(&self) -> BamlResult<Usage> {
+        let runtime = self.runtime()?;
+        let response =
+            raw_objects::call_object_method(&runtime, &self.handle.to_cffi(), "usage", Vec::new())?;
+        raw_objects::collector_usage_value_from_response(runtime, response)
+    }
+
+    /// Get the collector name (if provided during creation).
+    pub fn name(&self) -> BamlResult<String> {
+        let runtime = self.runtime()?;
+        let response =
+            raw_objects::call_object_method(&runtime, &self.handle.to_cffi(), "name", Vec::new())?;
+        raw_objects::name_from_response(response)
+    }
+
+    /// Retrieve all function logs captured by this collector.
+    pub fn logs(&self) -> BamlResult<Vec<FunctionLog>> {
+        let runtime = self.runtime()?;
+        let response =
+            raw_objects::call_object_method(&runtime, &self.handle.to_cffi(), "logs", Vec::new())?;
+        raw_objects::function_logs_from_response(runtime, response)
+    }
+
+    /// Retrieve the latest function log, if any.
+    pub fn last(&self) -> BamlResult<Option<FunctionLog>> {
+        let runtime = self.runtime()?;
+        let response =
+            raw_objects::call_object_method(&runtime, &self.handle.to_cffi(), "last", Vec::new())?;
+        raw_objects::optional_function_log_from_response(runtime, response)
+    }
+
+    /// Lookup a log by its function call identifier.
+    pub fn id(&self, function_id: &str) -> BamlResult<FunctionLog> {
+        let runtime = self.runtime()?;
+        let response = raw_objects::call_object_method(
+            &runtime,
+            &self.handle.to_cffi(),
+            "id",
+            vec![raw_objects::string_arg("id", function_id)],
+        )?;
+        raw_objects::function_log_from_response(runtime, response)
+    }
+
+    /// Clear the stored logs and return the number of entries removed.
+    pub fn clear(&self) -> BamlResult<i64> {
+        let runtime = self.runtime()?;
+        let response =
+            raw_objects::call_object_method(&runtime, &self.handle.to_cffi(), "clear", Vec::new())?;
+        raw_objects::clear_count_from_response(response)
     }
 }
 

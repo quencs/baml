@@ -14,45 +14,47 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ExistingSystemComponent {
-    pub id: String,
-
+    
+    pub id: i64,
+    
     pub name: String,
-
-    pub r#type: String,
-
-    pub category: String,
-
+    
+    pub type: String,
+    
+    pub category: crate::types::Union2KresourceOrKservice,
+    
     pub explanation: String,
 }
 
 impl ExistingSystemComponent {
     /// Create a new ExistingSystemComponent instance
     pub fn new(
-        id: String,
+        id: i64,
         name: String,
-        r#type: String,
-        category: String,
+        type: String,
+        category: crate::types::Union2KresourceOrKservice,
         explanation: String,
     ) -> Self {
         Self {
             id,
             name,
-            r#type,
+            type,
             category,
             explanation,
         }
     }
-}
+    
+    }
 
 impl Default for ExistingSystemComponent {
     fn default() -> Self {
         Self::new(
+            0,
             String::new(),
             String::new(),
-            String::new(),
-            String::new(),
+            crate::types::Union2KresourceOrKservice::default(),
             String::new(),
         )
     }
@@ -64,97 +66,73 @@ impl baml_client_rust::types::ToBamlValue for ExistingSystemComponent {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert("id".to_string(), self.id.to_baml_value()?);
         map.insert("name".to_string(), self.name.to_baml_value()?);
-        map.insert("r#type".to_string(), self.r#type.to_baml_value()?);
+        map.insert("type".to_string(), self.type.to_baml_value()?);
         map.insert("category".to_string(), self.category.to_baml_value()?);
         map.insert("explanation".to_string(), self.explanation.to_baml_value()?);
-        Ok(baml_client_rust::types::BamlValue::Class(
-            "ExistingSystemComponent".to_string(),
-            map,
-        ))
+        Ok(baml_client_rust::types::BamlValue::Class("ExistingSystemComponent".to_string(), map))
     }
 }
 
 impl baml_client_rust::types::FromBamlValue for ExistingSystemComponent {
-    fn from_baml_value(
-        value: baml_client_rust::types::BamlValue,
-    ) -> baml_client_rust::BamlResult<Self> {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
                 let id = map
                     .get("id")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'id' in ExistingSystemComponent"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
+                    .ok_or_else(|| baml_client_rust::BamlError::deserialization(format!("Missing field 'id' in ExistingSystemComponent")))
+                    .and_then(|v| baml_client_rust::types::FromBamlValue::from_baml_value(v.clone()))?;
                 let name = map
                     .get("name")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'name' in ExistingSystemComponent"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let r#type = map
-                    .get("r#type")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'r#type' in ExistingSystemComponent"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
+                    .ok_or_else(|| baml_client_rust::BamlError::deserialization(format!("Missing field 'name' in ExistingSystemComponent")))
+                    .and_then(|v| baml_client_rust::types::FromBamlValue::from_baml_value(v.clone()))?;
+                let type = map
+                    .get("type")
+                    .ok_or_else(|| baml_client_rust::BamlError::deserialization(format!("Missing field 'type' in ExistingSystemComponent")))
+                    .and_then(|v| baml_client_rust::types::FromBamlValue::from_baml_value(v.clone()))?;
                 let category = map
                     .get("category")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'category' in ExistingSystemComponent"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
+                    .ok_or_else(|| baml_client_rust::BamlError::deserialization(format!("Missing field 'category' in ExistingSystemComponent")))
+                    .and_then(|v| baml_client_rust::types::FromBamlValue::from_baml_value(v.clone()))?;
                 let explanation = map
                     .get("explanation")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'explanation' in ExistingSystemComponent"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(id, name, r#type, category, explanation))
+                    .ok_or_else(|| baml_client_rust::BamlError::deserialization(format!("Missing field 'explanation' in ExistingSystemComponent")))
+                    .and_then(|v| baml_client_rust::types::FromBamlValue::from_baml_value(v.clone()))?;
+                Ok(Self::new(
+                    id,
+                    name,
+                    type,
+                    category,
+                    explanation,
+                ))
             }
-            _ => Err(baml_client_rust::BamlError::deserialization(format!(
-                "Expected class, got {:?}",
-                value
-            ))),
+            _ => Err(baml_client_rust::BamlError::deserialization(format!("Expected class, got {:?}", value))),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UseMyUnion {
-    pub u: String,
+    
+    pub u: Option<crate::types::Union3IntOrRecursive1OrString>,
 }
 
 impl UseMyUnion {
     /// Create a new UseMyUnion instance
-    pub fn new(u: String) -> Self {
-        Self { u }
+    pub fn new(
+        u: Option<crate::types::Union3IntOrRecursive1OrString>,
+    ) -> Self {
+        Self {
+            u,
+        }
     }
-}
+    
+    }
 
 impl Default for UseMyUnion {
     fn default() -> Self {
-        Self::new(String::new())
+        Self::new(
+            None,
+        )
     }
 }
 
@@ -163,38 +141,27 @@ impl baml_client_rust::types::ToBamlValue for UseMyUnion {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert("u".to_string(), self.u.to_baml_value()?);
-        Ok(baml_client_rust::types::BamlValue::Class(
-            "UseMyUnion".to_string(),
-            map,
-        ))
+        Ok(baml_client_rust::types::BamlValue::Class("UseMyUnion".to_string(), map))
     }
 }
 
 impl baml_client_rust::types::FromBamlValue for UseMyUnion {
-    fn from_baml_value(
-        value: baml_client_rust::types::BamlValue,
-    ) -> baml_client_rust::BamlResult<Self> {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
                 let u = map
                     .get("u")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'u' in UseMyUnion"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(u))
+                    .ok_or_else(|| baml_client_rust::BamlError::deserialization(format!("Missing field 'u' in UseMyUnion")))
+                    .and_then(|v| baml_client_rust::types::FromBamlValue::from_baml_value(v.clone()))?;
+                Ok(Self::new(
+                    u,
+                ))
             }
-            _ => Err(baml_client_rust::BamlError::deserialization(format!(
-                "Expected class, got {:?}",
-                value
-            ))),
+            _ => Err(baml_client_rust::BamlError::deserialization(format!("Expected class, got {:?}", value))),
         }
     }
 }
+
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -204,6 +171,7 @@ pub enum Union2IntOrListRecursive1 {
 }
 
 impl Union2IntOrListRecursive1 {
+    
     /// Check if this union is a Int variant
     pub fn is_int(&self) -> bool {
         matches!(self, Self::Int(_))
@@ -215,7 +183,7 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Extract the Int value, consuming the union
     pub fn into_int(self) -> Option<i64> {
         match self {
@@ -223,7 +191,7 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Int value if this union contains it
     pub fn as_int_mut(&mut self) -> Option<&mut i64> {
         match self {
@@ -231,12 +199,12 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Create a new Union2IntOrListRecursive1 with a Int variant
     pub fn int(value: i64) -> Self {
         Self::Int(value)
     }
-
+    
     /// Check if this union is a List1 variant
     pub fn is_list1(&self) -> bool {
         matches!(self, Self::List1(_))
@@ -248,7 +216,7 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Extract the List1 value, consuming the union
     pub fn into_list1(self) -> Option<Vec<crate::types::Recursive1>> {
         match self {
@@ -256,7 +224,7 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the List1 value if this union contains it
     pub fn as_list1_mut(&mut self) -> Option<&mut Vec<crate::types::Recursive1>> {
         match self {
@@ -264,7 +232,7 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Create a new Union2IntOrListRecursive1 with a List1 variant
     pub fn list1(value: Vec<crate::types::Recursive1>) -> Self {
         Self::List1(value)
@@ -284,7 +252,7 @@ impl Union2IntOrListRecursive1 {
             Self::List1(v) => list1(v),
         }
     }
-
+    
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
@@ -308,6 +276,34 @@ impl std::fmt::Display for Union2IntOrListRecursive1 {
     }
 }
 
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union2IntOrListRecursive1 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::Int(v) => v.to_baml_value(),
+            Self::List1(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union2IntOrListRecursive1 {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        // Try Int variant
+        if let Ok(variant_value) = i64::from_baml_value(value.clone()) {
+            return Ok(Self::Int(variant_value));
+        }
+        // Try List1 variant
+        if let Ok(variant_value) = Vec<crate::types::Recursive1>::from_baml_value(value.clone()) {
+            return Ok(Self::List1(variant_value));
+        }
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union2IntOrListRecursive1",
+            value
+        )))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union2KresourceOrKservice {
@@ -316,6 +312,7 @@ pub enum Union2KresourceOrKservice {
 }
 
 impl Union2KresourceOrKservice {
+    
     /// Check if this union is a String variant
     pub fn is_string(&self) -> bool {
         matches!(self, Self::String(_))
@@ -327,7 +324,7 @@ impl Union2KresourceOrKservice {
             _ => None,
         }
     }
-
+    
     /// Extract the String value, consuming the union
     pub fn into_string(self) -> Option<String> {
         match self {
@@ -335,7 +332,7 @@ impl Union2KresourceOrKservice {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the String value if this union contains it
     pub fn as_string_mut(&mut self) -> Option<&mut String> {
         match self {
@@ -343,12 +340,12 @@ impl Union2KresourceOrKservice {
             _ => None,
         }
     }
-
+    
     /// Create a new Union2KresourceOrKservice with a String variant
     pub fn string(value: String) -> Self {
         Self::String(value)
     }
-
+    
     /// Check if this union is a String variant
     pub fn is_string(&self) -> bool {
         matches!(self, Self::String(_))
@@ -360,7 +357,7 @@ impl Union2KresourceOrKservice {
             _ => None,
         }
     }
-
+    
     /// Extract the String value, consuming the union
     pub fn into_string(self) -> Option<String> {
         match self {
@@ -368,7 +365,7 @@ impl Union2KresourceOrKservice {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the String value if this union contains it
     pub fn as_string_mut(&mut self) -> Option<&mut String> {
         match self {
@@ -376,7 +373,7 @@ impl Union2KresourceOrKservice {
             _ => None,
         }
     }
-
+    
     /// Create a new Union2KresourceOrKservice with a String variant
     pub fn string(value: String) -> Self {
         Self::String(value)
@@ -396,7 +393,7 @@ impl Union2KresourceOrKservice {
             Self::String(v) => string(v),
         }
     }
-
+    
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
@@ -420,6 +417,34 @@ impl std::fmt::Display for Union2KresourceOrKservice {
     }
 }
 
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union2KresourceOrKservice {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::String(v) => v.to_baml_value(),
+            Self::String(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union2KresourceOrKservice {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        // Try String variant
+        if let Ok(variant_value) = String::from_baml_value(value.clone()) {
+            return Ok(Self::String(variant_value));
+        }
+        // Try String variant
+        if let Ok(variant_value) = String::from_baml_value(value.clone()) {
+            return Ok(Self::String(variant_value));
+        }
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union2KresourceOrKservice",
+            value
+        )))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3IntOrRecursive1OrString {
@@ -429,6 +454,7 @@ pub enum Union3IntOrRecursive1OrString {
 }
 
 impl Union3IntOrRecursive1OrString {
+    
     /// Check if this union is a Recursive1 variant
     pub fn is_recursive1(&self) -> bool {
         matches!(self, Self::Recursive1(_))
@@ -440,7 +466,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Extract the Recursive1 value, consuming the union
     pub fn into_recursive1(self) -> Option<crate::types::Recursive1> {
         match self {
@@ -448,7 +474,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Recursive1 value if this union contains it
     pub fn as_recursive1_mut(&mut self) -> Option<&mut crate::types::Recursive1> {
         match self {
@@ -456,12 +482,12 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union3IntOrRecursive1OrString with a Recursive1 variant
     pub fn recursive1(value: crate::types::Recursive1) -> Self {
         Self::Recursive1(value)
     }
-
+    
     /// Check if this union is a Int variant
     pub fn is_int(&self) -> bool {
         matches!(self, Self::Int(_))
@@ -473,7 +499,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Extract the Int value, consuming the union
     pub fn into_int(self) -> Option<i64> {
         match self {
@@ -481,7 +507,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Int value if this union contains it
     pub fn as_int_mut(&mut self) -> Option<&mut i64> {
         match self {
@@ -489,12 +515,12 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union3IntOrRecursive1OrString with a Int variant
     pub fn int(value: i64) -> Self {
         Self::Int(value)
     }
-
+    
     /// Check if this union is a String variant
     pub fn is_string(&self) -> bool {
         matches!(self, Self::String(_))
@@ -506,7 +532,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Extract the String value, consuming the union
     pub fn into_string(self) -> Option<String> {
         match self {
@@ -514,7 +540,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the String value if this union contains it
     pub fn as_string_mut(&mut self) -> Option<&mut String> {
         match self {
@@ -522,7 +548,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union3IntOrRecursive1OrString with a String variant
     pub fn string(value: String) -> Self {
         Self::String(value)
@@ -544,7 +570,7 @@ impl Union3IntOrRecursive1OrString {
             Self::String(v) => string(v),
         }
     }
-
+    
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
@@ -570,3 +596,38 @@ impl std::fmt::Display for Union3IntOrRecursive1OrString {
         }
     }
 }
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3IntOrRecursive1OrString {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::Recursive1(v) => v.to_baml_value(),
+            Self::Int(v) => v.to_baml_value(),
+            Self::String(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3IntOrRecursive1OrString {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        // Try Recursive1 variant
+        if let Ok(variant_value) = crate::types::Recursive1::from_baml_value(value.clone()) {
+            return Ok(Self::Recursive1(variant_value));
+        }
+        // Try Int variant
+        if let Ok(variant_value) = i64::from_baml_value(value.clone()) {
+            return Ok(Self::Int(variant_value));
+        }
+        // Try String variant
+        if let Ok(variant_value) = String::from_baml_value(value.clone()) {
+            return Ok(Self::String(variant_value));
+        }
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3IntOrRecursive1OrString",
+            value
+        )))
+    }
+}
+
+

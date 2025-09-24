@@ -1,5 +1,6 @@
 use crate::{
     ffi,
+    runtime::{RuntimeHandle, RuntimeHandleArc},
     types::{BamlValue, FromBamlValue},
     BamlContext, BamlError, BamlResult, FunctionResult, StreamState,
 };
@@ -28,7 +29,7 @@ use tokio::sync::{mpsc as async_mpsc, oneshot};
 /// High-level BAML client for executing functions
 #[derive(Clone, Debug)]
 pub struct BamlClient {
-    runtime_ptr: *const c_void,
+    runtime: RuntimeHandleArc,
     callback_manager: CallbackManager,
 }
 
@@ -406,12 +407,10 @@ impl BamlClient {
         }
 
         let callback_manager = CallbackManager::new();
-
-        // TODO: Register global callbacks with the FFI interface
-        // This would require exposing callback registration in the FFI
+        let runtime = Arc::new(RuntimeHandle::new(runtime_ptr));
 
         Ok(Self {
-            runtime_ptr,
+            runtime,
             callback_manager,
         })
     }
@@ -421,10 +420,17 @@ impl BamlClient {
     /// This is primarily for internal use where you already have a runtime pointer
     /// from the FFI interface.
     pub fn with_runtime_ptr(runtime_ptr: *const c_void) -> BamlResult<Self> {
+        if runtime_ptr.is_null() {
+            return Err(BamlError::Configuration(
+                "Cannot create client from null runtime pointer".to_string(),
+            ));
+        }
+
         let callback_manager = CallbackManager::new();
+        let runtime = Arc::new(RuntimeHandle::new(runtime_ptr));
 
         Ok(Self {
-            runtime_ptr,
+            runtime,
             callback_manager,
         })
     }
@@ -444,6 +450,7 @@ impl BamlClient {
         function_name: &str,
         context: BamlContext,
     ) -> BamlResult<FunctionResult> {
+        self.bind_collectors(&context)?;
         let encoded_args = Self::encode_function_arguments(&context)?;
 
         // Get a unique ID for this call
@@ -457,7 +464,7 @@ impl BamlClient {
         let function_name_c = std::ffi::CString::new(function_name)
             .map_err(|e| BamlError::invalid_argument(format!("Invalid function_name: {}", e)))?;
         let result_ptr = ffi::call_function_from_c(
-            self.runtime_ptr,
+            self.runtime.ptr(),
             function_name_c.as_ptr(),
             encoded_args.as_ptr() as *const c_char,
             encoded_args.len(),
@@ -536,6 +543,7 @@ impl BamlClient {
         function_name: &str,
         context: BamlContext,
     ) -> BamlResult<BamlStream> {
+        self.bind_collectors(&context)?;
         let encoded_args = Self::encode_function_arguments(&context)?;
 
         // Get a unique ID for this call
@@ -549,7 +557,7 @@ impl BamlClient {
         let function_name_c = std::ffi::CString::new(function_name)
             .map_err(|e| BamlError::invalid_argument(format!("Invalid function_name: {}", e)))?;
         let result_ptr = ffi::call_function_stream_from_c(
-            self.runtime_ptr,
+            self.runtime.ptr(),
             function_name_c.as_ptr(),
             encoded_args.as_ptr() as *const c_char,
             encoded_args.len(),
@@ -568,7 +576,14 @@ impl BamlClient {
 
     /// Get the runtime pointer (for advanced use cases)
     pub fn runtime_ptr(&self) -> *const c_void {
-        self.runtime_ptr
+        self.runtime.ptr()
+    }
+
+    fn bind_collectors(&self, context: &BamlContext) -> BamlResult<()> {
+        for collector in &context.collectors {
+            collector.bind_runtime(self.runtime.clone())?;
+        }
+        Ok(())
     }
 
     fn encode_function_arguments(context: &BamlContext) -> BamlResult<Vec<u8>> {
@@ -624,15 +639,6 @@ impl BamlClient {
     #[cfg_attr(not(test), allow(dead_code))]
     pub fn encode_context_for_test(context: &BamlContext) -> BamlResult<Vec<u8>> {
         Self::encode_function_arguments(context)
-    }
-}
-
-impl Drop for BamlClient {
-    fn drop(&mut self) {
-        // Clean up the runtime pointer when the client is dropped
-        if !self.runtime_ptr.is_null() {
-            let _ = ffi::destroy_baml_runtime(self.runtime_ptr);
-        }
     }
 }
 

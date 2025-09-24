@@ -149,6 +149,7 @@ impl LanguageFeatures for RustLanguageFeatures {
                                     docstring: variant.docstring,
                                     rust_type: variant.rust_type,
                                     literal_value: variant.literal_value,
+                                    literal_kind: variant.literal_kind,
                                 })
                                 .collect(),
                             pkg: &pkg,

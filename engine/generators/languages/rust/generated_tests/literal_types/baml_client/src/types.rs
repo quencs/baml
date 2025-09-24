@@ -14,29 +14,37 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BooleanLiterals {
-    pub alwaysTrue: String,
+    pub always_true: bool,
 
-    pub alwaysFalse: String,
+    pub always_false: bool,
 
-    pub eitherBool: String,
+    pub either_bool: crate::types::Union2BoolKFalseOrBoolKTrue,
 }
 
 impl BooleanLiterals {
     /// Create a new BooleanLiterals instance
-    pub fn new(alwaysTrue: String, alwaysFalse: String, eitherBool: String) -> Self {
+    pub fn new(
+        always_true: bool,
+        always_false: bool,
+        either_bool: crate::types::Union2BoolKFalseOrBoolKTrue,
+    ) -> Self {
         Self {
-            alwaysTrue,
-            alwaysFalse,
-            eitherBool,
+            always_true,
+            always_false,
+            either_bool,
         }
     }
 }
 
 impl Default for BooleanLiterals {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new())
+        Self::new(
+            true,
+            false,
+            crate::types::Union2BoolKFalseOrBoolKTrue::default(),
+        )
     }
 }
 
@@ -44,9 +52,12 @@ impl Default for BooleanLiterals {
 impl baml_client_rust::types::ToBamlValue for BooleanLiterals {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
-        map.insert("alwaysTrue".to_string(), self.alwaysTrue.to_baml_value()?);
-        map.insert("alwaysFalse".to_string(), self.alwaysFalse.to_baml_value()?);
-        map.insert("eitherBool".to_string(), self.eitherBool.to_baml_value()?);
+        map.insert("alwaysTrue".to_string(), self.always_true.to_baml_value()?);
+        map.insert(
+            "alwaysFalse".to_string(),
+            self.always_false.to_baml_value()?,
+        );
+        map.insert("eitherBool".to_string(), self.either_bool.to_baml_value()?);
         Ok(baml_client_rust::types::BamlValue::Class(
             "BooleanLiterals".to_string(),
             map,
@@ -60,37 +71,63 @@ impl baml_client_rust::types::FromBamlValue for BooleanLiterals {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let alwaysTrue = map
-                    .get("alwaysTrue")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let always_true = match map.get("alwaysTrue") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            true
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => true,
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'alwaysTrue' in BooleanLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let alwaysFalse = map
-                    .get("alwaysFalse")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let always_false = match map.get("alwaysFalse") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            false
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => false,
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'alwaysFalse' in BooleanLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let eitherBool = map
-                    .get("eitherBool")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let either_bool = match map.get("eitherBool") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union2BoolKFalseOrBoolKTrue::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union2BoolKFalseOrBoolKTrue::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'eitherBool' in BooleanLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(alwaysTrue, alwaysFalse, eitherBool))
+                        )));
+                    }
+                };
+                Ok(Self::new(always_true, always_false, either_bool))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
@@ -100,31 +137,31 @@ impl baml_client_rust::types::FromBamlValue for BooleanLiterals {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ComplexLiterals {
-    pub state: String,
+    pub state: crate::types::Union4KArchivedOrKDeletedOrKDraftOrKPublished,
 
-    pub retryCount: String,
+    pub retry_count: crate::types::Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8,
 
-    pub response: String,
+    pub response: crate::types::Union3KErrorOrKSuccessOrKTimeout,
 
-    pub flags: String,
+    pub flags: Vec<crate::types::Union2BoolKFalseOrBoolKTrue>,
 
-    pub codes: String,
+    pub codes: Vec<crate::types::Union3IntK200OrIntK404OrIntK500>,
 }
 
 impl ComplexLiterals {
     /// Create a new ComplexLiterals instance
     pub fn new(
-        state: String,
-        retryCount: String,
-        response: String,
-        flags: String,
-        codes: String,
+        state: crate::types::Union4KArchivedOrKDeletedOrKDraftOrKPublished,
+        retry_count: crate::types::Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8,
+        response: crate::types::Union3KErrorOrKSuccessOrKTimeout,
+        flags: Vec<crate::types::Union2BoolKFalseOrBoolKTrue>,
+        codes: Vec<crate::types::Union3IntK200OrIntK404OrIntK500>,
     ) -> Self {
         Self {
             state,
-            retryCount,
+            retry_count,
             response,
             flags,
             codes,
@@ -135,11 +172,11 @@ impl ComplexLiterals {
 impl Default for ComplexLiterals {
     fn default() -> Self {
         Self::new(
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
+            crate::types::Union4KArchivedOrKDeletedOrKDraftOrKPublished::default(),
+            crate::types::Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8::default(),
+            crate::types::Union3KErrorOrKSuccessOrKTimeout::default(),
+            Vec::new(),
+            Vec::new(),
         )
     }
 }
@@ -149,7 +186,7 @@ impl baml_client_rust::types::ToBamlValue for ComplexLiterals {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert("state".to_string(), self.state.to_baml_value()?);
-        map.insert("retryCount".to_string(), self.retryCount.to_baml_value()?);
+        map.insert("retryCount".to_string(), self.retry_count.to_baml_value()?);
         map.insert("response".to_string(), self.response.to_baml_value()?);
         map.insert("flags".to_string(), self.flags.to_baml_value()?);
         map.insert("codes".to_string(), self.codes.to_baml_value()?);
@@ -166,57 +203,104 @@ impl baml_client_rust::types::FromBamlValue for ComplexLiterals {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let state = map
-                    .get("state")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let state = match map.get("state") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union4KArchivedOrKDeletedOrKDraftOrKPublished::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union4KArchivedOrKDeletedOrKDraftOrKPublished::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'state' in ComplexLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let retryCount = map
-                    .get("retryCount")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let retry_count = match map.get("retryCount") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    crate::types::Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8::default()
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'retryCount' in ComplexLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let response = map
-                    .get("response")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let response = match map.get("response") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union3KErrorOrKSuccessOrKTimeout::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union3KErrorOrKSuccessOrKTimeout::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'response' in ComplexLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let flags = map
-                    .get("flags")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let flags = match map.get("flags") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            Vec::new()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => Vec::new(),
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'flags' in ComplexLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let codes = map
-                    .get("codes")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let codes = match map.get("codes") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            Vec::new()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => Vec::new(),
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'codes' in ComplexLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(state, retryCount, response, flags, codes))
+                        )));
+                    }
+                };
+                Ok(Self::new(state, retry_count, response, flags, codes))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
@@ -226,29 +310,37 @@ impl baml_client_rust::types::FromBamlValue for ComplexLiterals {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct IntegerLiterals {
-    pub priority: String,
+    pub priority: crate::types::Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5,
 
-    pub httpStatus: String,
+    pub http_status: crate::types::Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500,
 
-    pub maxRetries: String,
+    pub max_retries: crate::types::Union4IntK0OrIntK1OrIntK3OrIntK5,
 }
 
 impl IntegerLiterals {
     /// Create a new IntegerLiterals instance
-    pub fn new(priority: String, httpStatus: String, maxRetries: String) -> Self {
+    pub fn new(
+        priority: crate::types::Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5,
+        http_status: crate::types::Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500,
+        max_retries: crate::types::Union4IntK0OrIntK1OrIntK3OrIntK5,
+    ) -> Self {
         Self {
             priority,
-            httpStatus,
-            maxRetries,
+            http_status,
+            max_retries,
         }
     }
 }
 
 impl Default for IntegerLiterals {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new())
+        Self::new(
+            crate::types::Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5::default(),
+            crate::types::Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500::default(),
+            crate::types::Union4IntK0OrIntK1OrIntK3OrIntK5::default(),
+        )
     }
 }
 
@@ -257,8 +349,8 @@ impl baml_client_rust::types::ToBamlValue for IntegerLiterals {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert("priority".to_string(), self.priority.to_baml_value()?);
-        map.insert("httpStatus".to_string(), self.httpStatus.to_baml_value()?);
-        map.insert("maxRetries".to_string(), self.maxRetries.to_baml_value()?);
+        map.insert("httpStatus".to_string(), self.http_status.to_baml_value()?);
+        map.insert("maxRetries".to_string(), self.max_retries.to_baml_value()?);
         Ok(baml_client_rust::types::BamlValue::Class(
             "IntegerLiterals".to_string(),
             map,
@@ -272,37 +364,68 @@ impl baml_client_rust::types::FromBamlValue for IntegerLiterals {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let priority = map
-                    .get("priority")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let priority = match map.get("priority") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'priority' in IntegerLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let httpStatus = map
-                    .get("httpStatus")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let http_status = match map.get("httpStatus") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500::default(
+                            )
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'httpStatus' in IntegerLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let maxRetries = map
-                    .get("maxRetries")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let max_retries = match map.get("maxRetries") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union4IntK0OrIntK1OrIntK3OrIntK5::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union4IntK0OrIntK1OrIntK3OrIntK5::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'maxRetries' in IntegerLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(priority, httpStatus, maxRetries))
+                        )));
+                    }
+                };
+                Ok(Self::new(priority, http_status, max_retries))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
@@ -312,34 +435,34 @@ impl baml_client_rust::types::FromBamlValue for IntegerLiterals {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MixedLiterals {
-    pub id: String,
+    pub id: i64,
 
     pub r#type: String,
 
-    pub level: String,
+    pub level: crate::types::Union3IntK1OrIntK2OrIntK3,
 
-    pub isActive: String,
+    pub is_active: crate::types::Union2BoolKFalseOrBoolKTrue,
 
-    pub apiVersion: String,
+    pub api_version: crate::types::Union3KV1OrKV2OrKV3,
 }
 
 impl MixedLiterals {
     /// Create a new MixedLiterals instance
     pub fn new(
-        id: String,
+        id: i64,
         r#type: String,
-        level: String,
-        isActive: String,
-        apiVersion: String,
+        level: crate::types::Union3IntK1OrIntK2OrIntK3,
+        is_active: crate::types::Union2BoolKFalseOrBoolKTrue,
+        api_version: crate::types::Union3KV1OrKV2OrKV3,
     ) -> Self {
         Self {
             id,
             r#type,
             level,
-            isActive,
-            apiVersion,
+            is_active,
+            api_version,
         }
     }
 }
@@ -347,11 +470,11 @@ impl MixedLiterals {
 impl Default for MixedLiterals {
     fn default() -> Self {
         Self::new(
+            0,
             String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
-            String::new(),
+            crate::types::Union3IntK1OrIntK2OrIntK3::default(),
+            crate::types::Union2BoolKFalseOrBoolKTrue::default(),
+            crate::types::Union3KV1OrKV2OrKV3::default(),
         )
     }
 }
@@ -361,10 +484,10 @@ impl baml_client_rust::types::ToBamlValue for MixedLiterals {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert("id".to_string(), self.id.to_baml_value()?);
-        map.insert("r#type".to_string(), self.r#type.to_baml_value()?);
+        map.insert("type".to_string(), self.r#type.to_baml_value()?);
         map.insert("level".to_string(), self.level.to_baml_value()?);
-        map.insert("isActive".to_string(), self.isActive.to_baml_value()?);
-        map.insert("apiVersion".to_string(), self.apiVersion.to_baml_value()?);
+        map.insert("isActive".to_string(), self.is_active.to_baml_value()?);
+        map.insert("apiVersion".to_string(), self.api_version.to_baml_value()?);
         Ok(baml_client_rust::types::BamlValue::Class(
             "MixedLiterals".to_string(),
             map,
@@ -378,57 +501,103 @@ impl baml_client_rust::types::FromBamlValue for MixedLiterals {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let id = map
-                    .get("id")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let id = match map.get("id") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            0
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => 0,
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'id' in MixedLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let r#type = map
-                    .get("r#type")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'r#type' in MixedLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let level = map
-                    .get("level")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let r#type = match map.get("type") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            String::new()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
+                            "Missing field 'type' in MixedLiterals"
+                        )));
+                    }
+                };
+                let level = match map.get("level") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union3IntK1OrIntK2OrIntK3::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union3IntK1OrIntK2OrIntK3::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'level' in MixedLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let isActive = map
-                    .get("isActive")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let is_active = match map.get("isActive") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union2BoolKFalseOrBoolKTrue::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union2BoolKFalseOrBoolKTrue::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'isActive' in MixedLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let apiVersion = map
-                    .get("apiVersion")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let api_version = match map.get("apiVersion") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union3KV1OrKV2OrKV3::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union3KV1OrKV2OrKV3::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'apiVersion' in MixedLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(id, r#type, level, isActive, apiVersion))
+                        )));
+                    }
+                };
+                Ok(Self::new(id, r#type, level, is_active, api_version))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
@@ -438,18 +607,22 @@ impl baml_client_rust::types::FromBamlValue for MixedLiterals {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct StringLiterals {
-    pub status: String,
+    pub status: crate::types::Union3KActiveOrKInactiveOrKPending,
 
-    pub environment: String,
+    pub environment: crate::types::Union3KDevOrKProdOrKStaging,
 
-    pub method: String,
+    pub method: crate::types::Union4KDeleteOrKGetOrKPostOrKPut,
 }
 
 impl StringLiterals {
     /// Create a new StringLiterals instance
-    pub fn new(status: String, environment: String, method: String) -> Self {
+    pub fn new(
+        status: crate::types::Union3KActiveOrKInactiveOrKPending,
+        environment: crate::types::Union3KDevOrKProdOrKStaging,
+        method: crate::types::Union4KDeleteOrKGetOrKPostOrKPut,
+    ) -> Self {
         Self {
             status,
             environment,
@@ -460,7 +633,11 @@ impl StringLiterals {
 
 impl Default for StringLiterals {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), String::new())
+        Self::new(
+            crate::types::Union3KActiveOrKInactiveOrKPending::default(),
+            crate::types::Union3KDevOrKProdOrKStaging::default(),
+            crate::types::Union4KDeleteOrKGetOrKPostOrKPut::default(),
+        )
     }
 }
 
@@ -484,36 +661,66 @@ impl baml_client_rust::types::FromBamlValue for StringLiterals {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let status = map
-                    .get("status")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let status = match map.get("status") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union3KActiveOrKInactiveOrKPending::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union3KActiveOrKInactiveOrKPending::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'status' in StringLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let environment = map
-                    .get("environment")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let environment = match map.get("environment") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union3KDevOrKProdOrKStaging::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union3KDevOrKProdOrKStaging::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'environment' in StringLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let method = map
-                    .get("method")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let method = match map.get("method") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            crate::types::Union4KDeleteOrKGetOrKPostOrKPut::default()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union4KDeleteOrKGetOrKPostOrKPut::default()
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'method' in StringLiterals"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
+                        )));
+                    }
+                };
                 Ok(Self::new(status, environment, method))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
@@ -527,75 +734,31 @@ impl baml_client_rust::types::FromBamlValue for StringLiterals {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union2BoolKFalseOrBoolKTrue {
-    Bool(bool),
-    Bool(bool),
+    /// Literal value: true
+    BoolKTrue,
+    /// Literal value: false
+    BoolKFalse,
 }
 
 impl Union2BoolKFalseOrBoolKTrue {
-    /// Check if this union is a Bool variant
-    pub fn is_bool(&self) -> bool {
-        matches!(self, Self::Bool(_))
-    }
-    /// Get the Bool value if this union contains it
-    pub fn as_bool(&self) -> Option<&bool> {
-        match self {
-            Self::Bool(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a BoolKTrue variant
+    pub fn is_boolk_true(&self) -> bool {
+        matches!(self, Self::BoolKTrue)
     }
 
-    /// Extract the Bool value, consuming the union
-    pub fn into_bool(self) -> Option<bool> {
-        match self {
-            Self::Bool(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union2BoolKFalseOrBoolKTrue with a BoolKTrue variant
+    pub fn boolk_true() -> Self {
+        Self::BoolKTrue
     }
 
-    /// Get a mutable reference to the Bool value if this union contains it
-    pub fn as_bool_mut(&mut self) -> Option<&mut bool> {
-        match self {
-            Self::Bool(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a BoolKFalse variant
+    pub fn is_boolk_false(&self) -> bool {
+        matches!(self, Self::BoolKFalse)
     }
 
-    /// Create a new Union2BoolKFalseOrBoolKTrue with a Bool variant
-    pub fn bool(value: bool) -> Self {
-        Self::Bool(value)
-    }
-
-    /// Check if this union is a Bool variant
-    pub fn is_bool(&self) -> bool {
-        matches!(self, Self::Bool(_))
-    }
-    /// Get the Bool value if this union contains it
-    pub fn as_bool(&self) -> Option<&bool> {
-        match self {
-            Self::Bool(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Bool value, consuming the union
-    pub fn into_bool(self) -> Option<bool> {
-        match self {
-            Self::Bool(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Bool value if this union contains it
-    pub fn as_bool_mut(&mut self) -> Option<&mut bool> {
-        match self {
-            Self::Bool(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union2BoolKFalseOrBoolKTrue with a Bool variant
-    pub fn bool(value: bool) -> Self {
-        Self::Bool(value)
+    /// Create a new Union2BoolKFalseOrBoolKTrue with a BoolKFalse variant
+    pub fn boolk_false() -> Self {
+        Self::BoolKFalse
     }
 }
 
@@ -604,24 +767,24 @@ impl Union2BoolKFalseOrBoolKTrue {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        bool: impl FnOnce(&bool) -> T,
-        bool: impl FnOnce(&bool) -> T,
+        boolk_true: impl FnOnce() -> T,
+        boolk_false: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Bool(v) => bool(v),
-            Self::Bool(v) => bool(v),
+            Self::BoolKTrue => boolk_true(),
+            Self::BoolKFalse => boolk_false(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        bool: impl FnOnce(bool) -> T,
-        bool: impl FnOnce(bool) -> T,
+        boolk_true: impl FnOnce() -> T,
+        boolk_false: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Bool(v) => bool(v),
-            Self::Bool(v) => bool(v),
+            Self::BoolKTrue => boolk_true(),
+            Self::BoolKFalse => boolk_false(),
         }
     }
 }
@@ -630,118 +793,162 @@ impl Union2BoolKFalseOrBoolKTrue {
 impl std::fmt::Display for Union2BoolKFalseOrBoolKTrue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Bool(v) => write!(f, "Bool({:?})", v),
-            Self::Bool(v) => write!(f, "Bool({:?})", v),
+            Self::BoolKTrue => write!(f, "BoolKTrue"),
+            Self::BoolKFalse => write!(f, "BoolKFalse"),
         }
+    }
+}
+
+impl Default for Union2BoolKFalseOrBoolKTrue {
+    fn default() -> Self {
+        Self::BoolKTrue
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union2BoolKFalseOrBoolKTrue {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::BoolKTrue => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "true".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(true)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(true)),
+            },
+            Self::BoolKFalse => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "false".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(false)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(false)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union2BoolKFalseOrBoolKTrue {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "true" {
+                        return Ok(Self::BoolKTrue);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == true {
+                        return Ok(Self::BoolKTrue);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == true {
+                            return Ok(Self::BoolKTrue);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == true {
+                        return Ok(Self::BoolKTrue);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("true") {
+                        return Ok(Self::BoolKTrue);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "false" {
+                        return Ok(Self::BoolKFalse);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == false {
+                        return Ok(Self::BoolKFalse);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == false {
+                            return Ok(Self::BoolKFalse);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == false {
+                        return Ok(Self::BoolKFalse);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("false") {
+                        return Ok(Self::BoolKFalse);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union2BoolKFalseOrBoolKTrue",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3IntK1OrIntK2OrIntK3 {
-    Int(i64),
-    Int(i64),
-    Int(i64),
+    /// Literal value: 1
+    IntK1,
+    /// Literal value: 2
+    IntK2,
+    /// Literal value: 3
+    IntK3,
 }
 
 impl Union3IntK1OrIntK2OrIntK3 {
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK1 variant
+    pub fn is_intk1(&self) -> bool {
+        matches!(self, Self::IntK1)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union3IntK1OrIntK2OrIntK3 with a IntK1 variant
+    pub fn intk1() -> Self {
+        Self::IntK1
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK2 variant
+    pub fn is_intk2(&self) -> bool {
+        matches!(self, Self::IntK2)
     }
 
-    /// Create a new Union3IntK1OrIntK2OrIntK3 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union3IntK1OrIntK2OrIntK3 with a IntK2 variant
+    pub fn intk2() -> Self {
+        Self::IntK2
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK3 variant
+    pub fn is_intk3(&self) -> bool {
+        matches!(self, Self::IntK3)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3IntK1OrIntK2OrIntK3 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3IntK1OrIntK2OrIntK3 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union3IntK1OrIntK2OrIntK3 with a IntK3 variant
+    pub fn intk3() -> Self {
+        Self::IntK3
     }
 }
 
@@ -750,28 +957,28 @@ impl Union3IntK1OrIntK2OrIntK3 {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
+        intk1: impl FnOnce() -> T,
+        intk2: impl FnOnce() -> T,
+        intk3: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK1 => intk1(),
+            Self::IntK2 => intk2(),
+            Self::IntK3 => intk3(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
+        intk1: impl FnOnce() -> T,
+        intk2: impl FnOnce() -> T,
+        intk3: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK1 => intk1(),
+            Self::IntK2 => intk2(),
+            Self::IntK3 => intk3(),
         }
     }
 }
@@ -780,119 +987,205 @@ impl Union3IntK1OrIntK2OrIntK3 {
 impl std::fmt::Display for Union3IntK1OrIntK2OrIntK3 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
+            Self::IntK1 => write!(f, "IntK1"),
+            Self::IntK2 => write!(f, "IntK2"),
+            Self::IntK3 => write!(f, "IntK3"),
         }
+    }
+}
+
+impl Default for Union3IntK1OrIntK2OrIntK3 {
+    fn default() -> Self {
+        Self::IntK1
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3IntK1OrIntK2OrIntK3 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::IntK1 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("1".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(1)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(1)),
+            },
+            Self::IntK2 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("2".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(2)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(2)),
+            },
+            Self::IntK3 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("3".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(3)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(3)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3IntK1OrIntK2OrIntK3 {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "1" {
+                        return Ok(Self::IntK1);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 1 {
+                        return Ok(Self::IntK1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 1 {
+                            return Ok(Self::IntK1);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 1 {
+                        return Ok(Self::IntK1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("1") {
+                        return Ok(Self::IntK1);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "2" {
+                        return Ok(Self::IntK2);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 2 {
+                        return Ok(Self::IntK2);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 2 {
+                            return Ok(Self::IntK2);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 2 {
+                        return Ok(Self::IntK2);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("2") {
+                        return Ok(Self::IntK2);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "3" {
+                        return Ok(Self::IntK3);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 3 {
+                        return Ok(Self::IntK3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 3 {
+                            return Ok(Self::IntK3);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 3 {
+                        return Ok(Self::IntK3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("3") {
+                        return Ok(Self::IntK3);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3IntK1OrIntK2OrIntK3",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3IntK200OrIntK404OrIntK500 {
-    Int(i64),
-    Int(i64),
-    Int(i64),
+    /// Literal value: 200
+    IntK200,
+    /// Literal value: 404
+    IntK404,
+    /// Literal value: 500
+    IntK500,
 }
 
 impl Union3IntK200OrIntK404OrIntK500 {
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK200 variant
+    pub fn is_intk200(&self) -> bool {
+        matches!(self, Self::IntK200)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union3IntK200OrIntK404OrIntK500 with a IntK200 variant
+    pub fn intk200() -> Self {
+        Self::IntK200
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK404 variant
+    pub fn is_intk404(&self) -> bool {
+        matches!(self, Self::IntK404)
     }
 
-    /// Create a new Union3IntK200OrIntK404OrIntK500 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union3IntK200OrIntK404OrIntK500 with a IntK404 variant
+    pub fn intk404() -> Self {
+        Self::IntK404
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK500 variant
+    pub fn is_intk500(&self) -> bool {
+        matches!(self, Self::IntK500)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3IntK200OrIntK404OrIntK500 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3IntK200OrIntK404OrIntK500 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union3IntK200OrIntK404OrIntK500 with a IntK500 variant
+    pub fn intk500() -> Self {
+        Self::IntK500
     }
 }
 
@@ -901,28 +1194,28 @@ impl Union3IntK200OrIntK404OrIntK500 {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
+        intk200: impl FnOnce() -> T,
+        intk404: impl FnOnce() -> T,
+        intk500: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK200 => intk200(),
+            Self::IntK404 => intk404(),
+            Self::IntK500 => intk500(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
+        intk200: impl FnOnce() -> T,
+        intk404: impl FnOnce() -> T,
+        intk500: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK200 => intk200(),
+            Self::IntK404 => intk404(),
+            Self::IntK500 => intk500(),
         }
     }
 }
@@ -931,908 +1224,1402 @@ impl Union3IntK200OrIntK404OrIntK500 {
 impl std::fmt::Display for Union3IntK200OrIntK404OrIntK500 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
+            Self::IntK200 => write!(f, "IntK200"),
+            Self::IntK404 => write!(f, "IntK404"),
+            Self::IntK500 => write!(f, "IntK500"),
         }
+    }
+}
+
+impl Default for Union3IntK200OrIntK404OrIntK500 {
+    fn default() -> Self {
+        Self::IntK200
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3IntK200OrIntK404OrIntK500 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::IntK200 => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "200".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(200)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(200)),
+            },
+            Self::IntK404 => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "404".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(404)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(404)),
+            },
+            Self::IntK500 => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "500".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(500)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(500)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3IntK200OrIntK404OrIntK500 {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "200" {
+                        return Ok(Self::IntK200);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 200 {
+                        return Ok(Self::IntK200);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 200 {
+                            return Ok(Self::IntK200);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 200 {
+                        return Ok(Self::IntK200);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("200") {
+                        return Ok(Self::IntK200);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "404" {
+                        return Ok(Self::IntK404);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 404 {
+                        return Ok(Self::IntK404);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 404 {
+                            return Ok(Self::IntK404);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 404 {
+                        return Ok(Self::IntK404);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("404") {
+                        return Ok(Self::IntK404);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "500" {
+                        return Ok(Self::IntK500);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 500 {
+                        return Ok(Self::IntK500);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 500 {
+                            return Ok(Self::IntK500);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 500 {
+                        return Ok(Self::IntK500);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("500") {
+                        return Ok(Self::IntK500);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3IntK200OrIntK404OrIntK500",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Union3KactiveOrKinactiveOrKpending {
-    String(String),
-    String(String),
-    String(String),
+pub enum Union3KActiveOrKInactiveOrKPending {
+    /// Literal value: active
+    KActive,
+    /// Literal value: inactive
+    KInactive,
+    /// Literal value: pending
+    KPending,
 }
 
-impl Union3KactiveOrKinactiveOrKpending {
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+impl Union3KActiveOrKInactiveOrKPending {
+    /// Check if this union is a KActive variant
+    pub fn is_k_active(&self) -> bool {
+        matches!(self, Self::KActive)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union3KActiveOrKInactiveOrKPending with a KActive variant
+    pub fn k_active() -> Self {
+        Self::KActive
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KInactive variant
+    pub fn is_k_inactive(&self) -> bool {
+        matches!(self, Self::KInactive)
     }
 
-    /// Create a new Union3KactiveOrKinactiveOrKpending with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KActiveOrKInactiveOrKPending with a KInactive variant
+    pub fn k_inactive() -> Self {
+        Self::KInactive
     }
 
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KPending variant
+    pub fn is_k_pending(&self) -> bool {
+        matches!(self, Self::KPending)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3KactiveOrKinactiveOrKpending with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3KactiveOrKinactiveOrKpending with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KActiveOrKInactiveOrKPending with a KPending variant
+    pub fn k_pending() -> Self {
+        Self::KPending
     }
 }
 
-/// Pattern matching helper for Union3KactiveOrKinactiveOrKpending
-impl Union3KactiveOrKinactiveOrKpending {
+/// Pattern matching helper for Union3KActiveOrKInactiveOrKPending
+impl Union3KActiveOrKInactiveOrKPending {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
+        k_active: impl FnOnce() -> T,
+        k_inactive: impl FnOnce() -> T,
+        k_pending: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KActive => k_active(),
+            Self::KInactive => k_inactive(),
+            Self::KPending => k_pending(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
+        k_active: impl FnOnce() -> T,
+        k_inactive: impl FnOnce() -> T,
+        k_pending: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KActive => k_active(),
+            Self::KInactive => k_inactive(),
+            Self::KPending => k_pending(),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union3KactiveOrKinactiveOrKpending {
+impl std::fmt::Display for Union3KActiveOrKInactiveOrKPending {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
+            Self::KActive => write!(f, "KActive"),
+            Self::KInactive => write!(f, "KInactive"),
+            Self::KPending => write!(f, "KPending"),
         }
+    }
+}
+
+impl Default for Union3KActiveOrKInactiveOrKPending {
+    fn default() -> Self {
+        Self::KActive
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3KActiveOrKInactiveOrKPending {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::KActive => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "active".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(active)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(active)),
+            },
+            Self::KInactive => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "inactive".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(inactive)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(inactive)),
+            },
+            Self::KPending => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "pending".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(pending)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(pending)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3KActiveOrKInactiveOrKPending {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "active" {
+                        return Ok(Self::KActive);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == active {
+                        return Ok(Self::KActive);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == active {
+                            return Ok(Self::KActive);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == active {
+                        return Ok(Self::KActive);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("active") {
+                        return Ok(Self::KActive);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "inactive" {
+                        return Ok(Self::KInactive);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == inactive {
+                        return Ok(Self::KInactive);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == inactive {
+                            return Ok(Self::KInactive);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == inactive {
+                        return Ok(Self::KInactive);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("inactive") {
+                        return Ok(Self::KInactive);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "pending" {
+                        return Ok(Self::KPending);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == pending {
+                        return Ok(Self::KPending);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == pending {
+                            return Ok(Self::KPending);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == pending {
+                        return Ok(Self::KPending);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("pending") {
+                        return Ok(Self::KPending);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3KActiveOrKInactiveOrKPending",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Union3KadminOrKguestOrKuser {
-    String(String),
-    String(String),
-    String(String),
+pub enum Union3KAdminOrKGuestOrKUser {
+    /// Literal value: user
+    KUser,
+    /// Literal value: admin
+    KAdmin,
+    /// Literal value: guest
+    KGuest,
 }
 
-impl Union3KadminOrKguestOrKuser {
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+impl Union3KAdminOrKGuestOrKUser {
+    /// Check if this union is a KUser variant
+    pub fn is_k_user(&self) -> bool {
+        matches!(self, Self::KUser)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union3KAdminOrKGuestOrKUser with a KUser variant
+    pub fn k_user() -> Self {
+        Self::KUser
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KAdmin variant
+    pub fn is_k_admin(&self) -> bool {
+        matches!(self, Self::KAdmin)
     }
 
-    /// Create a new Union3KadminOrKguestOrKuser with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KAdminOrKGuestOrKUser with a KAdmin variant
+    pub fn k_admin() -> Self {
+        Self::KAdmin
     }
 
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KGuest variant
+    pub fn is_k_guest(&self) -> bool {
+        matches!(self, Self::KGuest)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3KadminOrKguestOrKuser with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3KadminOrKguestOrKuser with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KAdminOrKGuestOrKUser with a KGuest variant
+    pub fn k_guest() -> Self {
+        Self::KGuest
     }
 }
 
-/// Pattern matching helper for Union3KadminOrKguestOrKuser
-impl Union3KadminOrKguestOrKuser {
+/// Pattern matching helper for Union3KAdminOrKGuestOrKUser
+impl Union3KAdminOrKGuestOrKUser {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
+        k_user: impl FnOnce() -> T,
+        k_admin: impl FnOnce() -> T,
+        k_guest: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KUser => k_user(),
+            Self::KAdmin => k_admin(),
+            Self::KGuest => k_guest(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
+        k_user: impl FnOnce() -> T,
+        k_admin: impl FnOnce() -> T,
+        k_guest: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KUser => k_user(),
+            Self::KAdmin => k_admin(),
+            Self::KGuest => k_guest(),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union3KadminOrKguestOrKuser {
+impl std::fmt::Display for Union3KAdminOrKGuestOrKUser {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
+            Self::KUser => write!(f, "KUser"),
+            Self::KAdmin => write!(f, "KAdmin"),
+            Self::KGuest => write!(f, "KGuest"),
         }
+    }
+}
+
+impl Default for Union3KAdminOrKGuestOrKUser {
+    fn default() -> Self {
+        Self::KUser
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3KAdminOrKGuestOrKUser {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::KUser => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "user".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(user)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(user)),
+            },
+            Self::KAdmin => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "admin".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(admin)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(admin)),
+            },
+            Self::KGuest => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "guest".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(guest)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(guest)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3KAdminOrKGuestOrKUser {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "user" {
+                        return Ok(Self::KUser);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == user {
+                        return Ok(Self::KUser);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == user {
+                            return Ok(Self::KUser);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == user {
+                        return Ok(Self::KUser);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("user") {
+                        return Ok(Self::KUser);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "admin" {
+                        return Ok(Self::KAdmin);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == admin {
+                        return Ok(Self::KAdmin);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == admin {
+                            return Ok(Self::KAdmin);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == admin {
+                        return Ok(Self::KAdmin);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("admin") {
+                        return Ok(Self::KAdmin);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "guest" {
+                        return Ok(Self::KGuest);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == guest {
+                        return Ok(Self::KGuest);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == guest {
+                            return Ok(Self::KGuest);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == guest {
+                        return Ok(Self::KGuest);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("guest") {
+                        return Ok(Self::KGuest);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3KAdminOrKGuestOrKUser",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Union3KdevOrKprodOrKstaging {
-    String(String),
-    String(String),
-    String(String),
+pub enum Union3KDevOrKProdOrKStaging {
+    /// Literal value: dev
+    KDev,
+    /// Literal value: staging
+    KStaging,
+    /// Literal value: prod
+    KProd,
 }
 
-impl Union3KdevOrKprodOrKstaging {
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+impl Union3KDevOrKProdOrKStaging {
+    /// Check if this union is a KDev variant
+    pub fn is_k_dev(&self) -> bool {
+        matches!(self, Self::KDev)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union3KDevOrKProdOrKStaging with a KDev variant
+    pub fn k_dev() -> Self {
+        Self::KDev
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KStaging variant
+    pub fn is_k_staging(&self) -> bool {
+        matches!(self, Self::KStaging)
     }
 
-    /// Create a new Union3KdevOrKprodOrKstaging with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KDevOrKProdOrKStaging with a KStaging variant
+    pub fn k_staging() -> Self {
+        Self::KStaging
     }
 
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KProd variant
+    pub fn is_k_prod(&self) -> bool {
+        matches!(self, Self::KProd)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3KdevOrKprodOrKstaging with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3KdevOrKprodOrKstaging with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KDevOrKProdOrKStaging with a KProd variant
+    pub fn k_prod() -> Self {
+        Self::KProd
     }
 }
 
-/// Pattern matching helper for Union3KdevOrKprodOrKstaging
-impl Union3KdevOrKprodOrKstaging {
+/// Pattern matching helper for Union3KDevOrKProdOrKStaging
+impl Union3KDevOrKProdOrKStaging {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
+        k_dev: impl FnOnce() -> T,
+        k_staging: impl FnOnce() -> T,
+        k_prod: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KDev => k_dev(),
+            Self::KStaging => k_staging(),
+            Self::KProd => k_prod(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
+        k_dev: impl FnOnce() -> T,
+        k_staging: impl FnOnce() -> T,
+        k_prod: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KDev => k_dev(),
+            Self::KStaging => k_staging(),
+            Self::KProd => k_prod(),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union3KdevOrKprodOrKstaging {
+impl std::fmt::Display for Union3KDevOrKProdOrKStaging {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
+            Self::KDev => write!(f, "KDev"),
+            Self::KStaging => write!(f, "KStaging"),
+            Self::KProd => write!(f, "KProd"),
         }
+    }
+}
+
+impl Default for Union3KDevOrKProdOrKStaging {
+    fn default() -> Self {
+        Self::KDev
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3KDevOrKProdOrKStaging {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::KDev => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "dev".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(dev)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(dev)),
+            },
+            Self::KStaging => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "staging".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(staging)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(staging)),
+            },
+            Self::KProd => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "prod".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(prod)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(prod)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3KDevOrKProdOrKStaging {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "dev" {
+                        return Ok(Self::KDev);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == dev {
+                        return Ok(Self::KDev);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == dev {
+                            return Ok(Self::KDev);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == dev {
+                        return Ok(Self::KDev);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("dev") {
+                        return Ok(Self::KDev);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "staging" {
+                        return Ok(Self::KStaging);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == staging {
+                        return Ok(Self::KStaging);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == staging {
+                            return Ok(Self::KStaging);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == staging {
+                        return Ok(Self::KStaging);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("staging") {
+                        return Ok(Self::KStaging);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "prod" {
+                        return Ok(Self::KProd);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == prod {
+                        return Ok(Self::KProd);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == prod {
+                            return Ok(Self::KProd);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == prod {
+                        return Ok(Self::KProd);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("prod") {
+                        return Ok(Self::KProd);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3KDevOrKProdOrKStaging",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Union3KerrorOrKsuccessOrKtimeout {
-    String(String),
-    String(String),
-    String(String),
+pub enum Union3KErrorOrKSuccessOrKTimeout {
+    /// Literal value: success
+    KSuccess,
+    /// Literal value: error
+    KError,
+    /// Literal value: timeout
+    KTimeout,
 }
 
-impl Union3KerrorOrKsuccessOrKtimeout {
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+impl Union3KErrorOrKSuccessOrKTimeout {
+    /// Check if this union is a KSuccess variant
+    pub fn is_k_success(&self) -> bool {
+        matches!(self, Self::KSuccess)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union3KErrorOrKSuccessOrKTimeout with a KSuccess variant
+    pub fn k_success() -> Self {
+        Self::KSuccess
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KError variant
+    pub fn is_k_error(&self) -> bool {
+        matches!(self, Self::KError)
     }
 
-    /// Create a new Union3KerrorOrKsuccessOrKtimeout with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KErrorOrKSuccessOrKTimeout with a KError variant
+    pub fn k_error() -> Self {
+        Self::KError
     }
 
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KTimeout variant
+    pub fn is_k_timeout(&self) -> bool {
+        matches!(self, Self::KTimeout)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3KerrorOrKsuccessOrKtimeout with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3KerrorOrKsuccessOrKtimeout with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KErrorOrKSuccessOrKTimeout with a KTimeout variant
+    pub fn k_timeout() -> Self {
+        Self::KTimeout
     }
 }
 
-/// Pattern matching helper for Union3KerrorOrKsuccessOrKtimeout
-impl Union3KerrorOrKsuccessOrKtimeout {
+/// Pattern matching helper for Union3KErrorOrKSuccessOrKTimeout
+impl Union3KErrorOrKSuccessOrKTimeout {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
+        k_success: impl FnOnce() -> T,
+        k_error: impl FnOnce() -> T,
+        k_timeout: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KSuccess => k_success(),
+            Self::KError => k_error(),
+            Self::KTimeout => k_timeout(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
+        k_success: impl FnOnce() -> T,
+        k_error: impl FnOnce() -> T,
+        k_timeout: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KSuccess => k_success(),
+            Self::KError => k_error(),
+            Self::KTimeout => k_timeout(),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union3KerrorOrKsuccessOrKtimeout {
+impl std::fmt::Display for Union3KErrorOrKSuccessOrKTimeout {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
+            Self::KSuccess => write!(f, "KSuccess"),
+            Self::KError => write!(f, "KError"),
+            Self::KTimeout => write!(f, "KTimeout"),
         }
+    }
+}
+
+impl Default for Union3KErrorOrKSuccessOrKTimeout {
+    fn default() -> Self {
+        Self::KSuccess
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3KErrorOrKSuccessOrKTimeout {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::KSuccess => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "success".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(success)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(success)),
+            },
+            Self::KError => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "error".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(error)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(error)),
+            },
+            Self::KTimeout => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "timeout".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(timeout)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(timeout)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3KErrorOrKSuccessOrKTimeout {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "success" {
+                        return Ok(Self::KSuccess);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == success {
+                        return Ok(Self::KSuccess);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == success {
+                            return Ok(Self::KSuccess);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == success {
+                        return Ok(Self::KSuccess);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("success") {
+                        return Ok(Self::KSuccess);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "error" {
+                        return Ok(Self::KError);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == error {
+                        return Ok(Self::KError);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == error {
+                            return Ok(Self::KError);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == error {
+                        return Ok(Self::KError);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("error") {
+                        return Ok(Self::KError);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "timeout" {
+                        return Ok(Self::KTimeout);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == timeout {
+                        return Ok(Self::KTimeout);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == timeout {
+                            return Ok(Self::KTimeout);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == timeout {
+                        return Ok(Self::KTimeout);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("timeout") {
+                        return Ok(Self::KTimeout);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3KErrorOrKSuccessOrKTimeout",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Union3Kv1OrKv2OrKv3 {
-    String(String),
-    String(String),
-    String(String),
+pub enum Union3KV1OrKV2OrKV3 {
+    /// Literal value: v1
+    KV1,
+    /// Literal value: v2
+    KV2,
+    /// Literal value: v3
+    KV3,
 }
 
-impl Union3Kv1OrKv2OrKv3 {
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+impl Union3KV1OrKV2OrKV3 {
+    /// Check if this union is a KV1 variant
+    pub fn is_kv1(&self) -> bool {
+        matches!(self, Self::KV1)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union3KV1OrKV2OrKV3 with a KV1 variant
+    pub fn kv1() -> Self {
+        Self::KV1
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KV2 variant
+    pub fn is_kv2(&self) -> bool {
+        matches!(self, Self::KV2)
     }
 
-    /// Create a new Union3Kv1OrKv2OrKv3 with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KV1OrKV2OrKV3 with a KV2 variant
+    pub fn kv2() -> Self {
+        Self::KV2
     }
 
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KV3 variant
+    pub fn is_kv3(&self) -> bool {
+        matches!(self, Self::KV3)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3Kv1OrKv2OrKv3 with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union3Kv1OrKv2OrKv3 with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union3KV1OrKV2OrKV3 with a KV3 variant
+    pub fn kv3() -> Self {
+        Self::KV3
     }
 }
 
-/// Pattern matching helper for Union3Kv1OrKv2OrKv3
-impl Union3Kv1OrKv2OrKv3 {
+/// Pattern matching helper for Union3KV1OrKV2OrKV3
+impl Union3KV1OrKV2OrKV3 {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
+        kv1: impl FnOnce() -> T,
+        kv2: impl FnOnce() -> T,
+        kv3: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KV1 => kv1(),
+            Self::KV2 => kv2(),
+            Self::KV3 => kv3(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
+        kv1: impl FnOnce() -> T,
+        kv2: impl FnOnce() -> T,
+        kv3: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KV1 => kv1(),
+            Self::KV2 => kv2(),
+            Self::KV3 => kv3(),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union3Kv1OrKv2OrKv3 {
+impl std::fmt::Display for Union3KV1OrKV2OrKV3 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
+            Self::KV1 => write!(f, "KV1"),
+            Self::KV2 => write!(f, "KV2"),
+            Self::KV3 => write!(f, "KV3"),
         }
+    }
+}
+
+impl Default for Union3KV1OrKV2OrKV3 {
+    fn default() -> Self {
+        Self::KV1
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3KV1OrKV2OrKV3 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::KV1 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("v1".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(v1)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(v1)),
+            },
+            Self::KV2 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("v2".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(v2)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(v2)),
+            },
+            Self::KV3 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("v3".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(v3)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(v3)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3KV1OrKV2OrKV3 {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "v1" {
+                        return Ok(Self::KV1);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == v1 {
+                        return Ok(Self::KV1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == v1 {
+                            return Ok(Self::KV1);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == v1 {
+                        return Ok(Self::KV1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("v1") {
+                        return Ok(Self::KV1);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "v2" {
+                        return Ok(Self::KV2);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == v2 {
+                        return Ok(Self::KV2);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == v2 {
+                            return Ok(Self::KV2);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == v2 {
+                        return Ok(Self::KV2);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("v2") {
+                        return Ok(Self::KV2);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "v3" {
+                        return Ok(Self::KV3);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == v3 {
+                        return Ok(Self::KV3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == v3 {
+                            return Ok(Self::KV3);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == v3 {
+                        return Ok(Self::KV3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("v3") {
+                        return Ok(Self::KV3);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3KV1OrKV2OrKV3",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union4IntK0OrIntK1OrIntK3OrIntK5 {
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
+    /// Literal value: 0
+    IntK0,
+    /// Literal value: 1
+    IntK1,
+    /// Literal value: 3
+    IntK3,
+    /// Literal value: 5
+    IntK5,
 }
 
 impl Union4IntK0OrIntK1OrIntK3OrIntK5 {
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK0 variant
+    pub fn is_intk0(&self) -> bool {
+        matches!(self, Self::IntK0)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union4IntK0OrIntK1OrIntK3OrIntK5 with a IntK0 variant
+    pub fn intk0() -> Self {
+        Self::IntK0
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK1 variant
+    pub fn is_intk1(&self) -> bool {
+        matches!(self, Self::IntK1)
     }
 
-    /// Create a new Union4IntK0OrIntK1OrIntK3OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union4IntK0OrIntK1OrIntK3OrIntK5 with a IntK1 variant
+    pub fn intk1() -> Self {
+        Self::IntK1
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK3 variant
+    pub fn is_intk3(&self) -> bool {
+        matches!(self, Self::IntK3)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union4IntK0OrIntK1OrIntK3OrIntK5 with a IntK3 variant
+    pub fn intk3() -> Self {
+        Self::IntK3
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK5 variant
+    pub fn is_intk5(&self) -> bool {
+        matches!(self, Self::IntK5)
     }
 
-    /// Create a new Union4IntK0OrIntK1OrIntK3OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union4IntK0OrIntK1OrIntK3OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union4IntK0OrIntK1OrIntK3OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union4IntK0OrIntK1OrIntK3OrIntK5 with a IntK5 variant
+    pub fn intk5() -> Self {
+        Self::IntK5
     }
 }
 
@@ -1841,32 +2628,32 @@ impl Union4IntK0OrIntK1OrIntK3OrIntK5 {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
+        intk0: impl FnOnce() -> T,
+        intk1: impl FnOnce() -> T,
+        intk3: impl FnOnce() -> T,
+        intk5: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK0 => intk0(),
+            Self::IntK1 => intk1(),
+            Self::IntK3 => intk3(),
+            Self::IntK5 => intk5(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
+        intk0: impl FnOnce() -> T,
+        intk1: impl FnOnce() -> T,
+        intk3: impl FnOnce() -> T,
+        intk5: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK0 => intk0(),
+            Self::IntK1 => intk1(),
+            Self::IntK3 => intk3(),
+            Self::IntK5 => intk5(),
         }
     }
 }
@@ -1875,568 +2662,864 @@ impl Union4IntK0OrIntK1OrIntK3OrIntK5 {
 impl std::fmt::Display for Union4IntK0OrIntK1OrIntK3OrIntK5 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
+            Self::IntK0 => write!(f, "IntK0"),
+            Self::IntK1 => write!(f, "IntK1"),
+            Self::IntK3 => write!(f, "IntK3"),
+            Self::IntK5 => write!(f, "IntK5"),
         }
+    }
+}
+
+impl Default for Union4IntK0OrIntK1OrIntK3OrIntK5 {
+    fn default() -> Self {
+        Self::IntK0
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union4IntK0OrIntK1OrIntK3OrIntK5 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::IntK0 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("0".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(0)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(0)),
+            },
+            Self::IntK1 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("1".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(1)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(1)),
+            },
+            Self::IntK3 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("3".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(3)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(3)),
+            },
+            Self::IntK5 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("5".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(5)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(5)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union4IntK0OrIntK1OrIntK3OrIntK5 {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "0" {
+                        return Ok(Self::IntK0);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 0 {
+                        return Ok(Self::IntK0);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 0 {
+                            return Ok(Self::IntK0);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 0 {
+                        return Ok(Self::IntK0);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("0") {
+                        return Ok(Self::IntK0);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "1" {
+                        return Ok(Self::IntK1);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 1 {
+                        return Ok(Self::IntK1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 1 {
+                            return Ok(Self::IntK1);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 1 {
+                        return Ok(Self::IntK1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("1") {
+                        return Ok(Self::IntK1);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "3" {
+                        return Ok(Self::IntK3);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 3 {
+                        return Ok(Self::IntK3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 3 {
+                            return Ok(Self::IntK3);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 3 {
+                        return Ok(Self::IntK3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("3") {
+                        return Ok(Self::IntK3);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "5" {
+                        return Ok(Self::IntK5);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 5 {
+                        return Ok(Self::IntK5);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 5 {
+                            return Ok(Self::IntK5);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 5 {
+                        return Ok(Self::IntK5);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("5") {
+                        return Ok(Self::IntK5);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union4IntK0OrIntK1OrIntK3OrIntK5",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Union4KDELETEOrKGETOrKPOSTOrKPUT {
-    String(String),
-    String(String),
-    String(String),
-    String(String),
+pub enum Union4KArchivedOrKDeletedOrKDraftOrKPublished {
+    /// Literal value: draft
+    KDraft,
+    /// Literal value: published
+    KPublished,
+    /// Literal value: archived
+    KArchived,
+    /// Literal value: deleted
+    KDeleted,
 }
 
-impl Union4KDELETEOrKGETOrKPOSTOrKPUT {
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+impl Union4KArchivedOrKDeletedOrKDraftOrKPublished {
+    /// Check if this union is a KDraft variant
+    pub fn is_k_draft(&self) -> bool {
+        matches!(self, Self::KDraft)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union4KArchivedOrKDeletedOrKDraftOrKPublished with a KDraft variant
+    pub fn k_draft() -> Self {
+        Self::KDraft
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KPublished variant
+    pub fn is_k_published(&self) -> bool {
+        matches!(self, Self::KPublished)
     }
 
-    /// Create a new Union4KDELETEOrKGETOrKPOSTOrKPUT with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union4KArchivedOrKDeletedOrKDraftOrKPublished with a KPublished variant
+    pub fn k_published() -> Self {
+        Self::KPublished
     }
 
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KArchived variant
+    pub fn is_k_archived(&self) -> bool {
+        matches!(self, Self::KArchived)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union4KArchivedOrKDeletedOrKDraftOrKPublished with a KArchived variant
+    pub fn k_archived() -> Self {
+        Self::KArchived
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KDeleted variant
+    pub fn is_k_deleted(&self) -> bool {
+        matches!(self, Self::KDeleted)
     }
 
-    /// Create a new Union4KDELETEOrKGETOrKPOSTOrKPUT with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union4KDELETEOrKGETOrKPOSTOrKPUT with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union4KDELETEOrKGETOrKPOSTOrKPUT with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union4KArchivedOrKDeletedOrKDraftOrKPublished with a KDeleted variant
+    pub fn k_deleted() -> Self {
+        Self::KDeleted
     }
 }
 
-/// Pattern matching helper for Union4KDELETEOrKGETOrKPOSTOrKPUT
-impl Union4KDELETEOrKGETOrKPOSTOrKPUT {
+/// Pattern matching helper for Union4KArchivedOrKDeletedOrKDraftOrKPublished
+impl Union4KArchivedOrKDeletedOrKDraftOrKPublished {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
+        k_draft: impl FnOnce() -> T,
+        k_published: impl FnOnce() -> T,
+        k_archived: impl FnOnce() -> T,
+        k_deleted: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KDraft => k_draft(),
+            Self::KPublished => k_published(),
+            Self::KArchived => k_archived(),
+            Self::KDeleted => k_deleted(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
+        k_draft: impl FnOnce() -> T,
+        k_published: impl FnOnce() -> T,
+        k_archived: impl FnOnce() -> T,
+        k_deleted: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KDraft => k_draft(),
+            Self::KPublished => k_published(),
+            Self::KArchived => k_archived(),
+            Self::KDeleted => k_deleted(),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union4KDELETEOrKGETOrKPOSTOrKPUT {
+impl std::fmt::Display for Union4KArchivedOrKDeletedOrKDraftOrKPublished {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
+            Self::KDraft => write!(f, "KDraft"),
+            Self::KPublished => write!(f, "KPublished"),
+            Self::KArchived => write!(f, "KArchived"),
+            Self::KDeleted => write!(f, "KDeleted"),
         }
+    }
+}
+
+impl Default for Union4KArchivedOrKDeletedOrKDraftOrKPublished {
+    fn default() -> Self {
+        Self::KDraft
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union4KArchivedOrKDeletedOrKDraftOrKPublished {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::KDraft => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "draft".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(draft)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(draft)),
+            },
+            Self::KPublished => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "published".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(published)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(published)),
+            },
+            Self::KArchived => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "archived".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(archived)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(archived)),
+            },
+            Self::KDeleted => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "deleted".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(deleted)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(deleted)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union4KArchivedOrKDeletedOrKDraftOrKPublished {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "draft" {
+                        return Ok(Self::KDraft);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == draft {
+                        return Ok(Self::KDraft);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == draft {
+                            return Ok(Self::KDraft);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == draft {
+                        return Ok(Self::KDraft);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("draft") {
+                        return Ok(Self::KDraft);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "published" {
+                        return Ok(Self::KPublished);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == published {
+                        return Ok(Self::KPublished);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == published {
+                            return Ok(Self::KPublished);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == published {
+                        return Ok(Self::KPublished);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("published") {
+                        return Ok(Self::KPublished);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "archived" {
+                        return Ok(Self::KArchived);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == archived {
+                        return Ok(Self::KArchived);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == archived {
+                            return Ok(Self::KArchived);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == archived {
+                        return Ok(Self::KArchived);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("archived") {
+                        return Ok(Self::KArchived);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "deleted" {
+                        return Ok(Self::KDeleted);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == deleted {
+                        return Ok(Self::KDeleted);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == deleted {
+                            return Ok(Self::KDeleted);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == deleted {
+                        return Ok(Self::KDeleted);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("deleted") {
+                        return Ok(Self::KDeleted);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union4KArchivedOrKDeletedOrKDraftOrKPublished",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Union4KarchivedOrKdeletedOrKdraftOrKpublished {
-    String(String),
-    String(String),
-    String(String),
-    String(String),
+pub enum Union4KDeleteOrKGetOrKPostOrKPut {
+    /// Literal value: GET
+    KGet,
+    /// Literal value: POST
+    KPost,
+    /// Literal value: PUT
+    KPut,
+    /// Literal value: DELETE
+    KDelete,
 }
 
-impl Union4KarchivedOrKdeletedOrKdraftOrKpublished {
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+impl Union4KDeleteOrKGetOrKPostOrKPut {
+    /// Check if this union is a KGet variant
+    pub fn is_k_get(&self) -> bool {
+        matches!(self, Self::KGet)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union4KDeleteOrKGetOrKPostOrKPut with a KGet variant
+    pub fn k_get() -> Self {
+        Self::KGet
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KPost variant
+    pub fn is_k_post(&self) -> bool {
+        matches!(self, Self::KPost)
     }
 
-    /// Create a new Union4KarchivedOrKdeletedOrKdraftOrKpublished with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union4KDeleteOrKGetOrKPostOrKPut with a KPost variant
+    pub fn k_post() -> Self {
+        Self::KPost
     }
 
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KPut variant
+    pub fn is_k_put(&self) -> bool {
+        matches!(self, Self::KPut)
     }
 
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union4KDeleteOrKGetOrKPostOrKPut with a KPut variant
+    pub fn k_put() -> Self {
+        Self::KPut
     }
 
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a KDelete variant
+    pub fn is_k_delete(&self) -> bool {
+        matches!(self, Self::KDelete)
     }
 
-    /// Create a new Union4KarchivedOrKdeletedOrKdraftOrKpublished with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union4KarchivedOrKdeletedOrKdraftOrKpublished with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
-    }
-
-    /// Check if this union is a String variant
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-    /// Get the String value if this union contains it
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the String value, consuming the union
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the String value if this union contains it
-    pub fn as_string_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::String(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union4KarchivedOrKdeletedOrKdraftOrKpublished with a String variant
-    pub fn string(value: String) -> Self {
-        Self::String(value)
+    /// Create a new Union4KDeleteOrKGetOrKPostOrKPut with a KDelete variant
+    pub fn k_delete() -> Self {
+        Self::KDelete
     }
 }
 
-/// Pattern matching helper for Union4KarchivedOrKdeletedOrKdraftOrKpublished
-impl Union4KarchivedOrKdeletedOrKdraftOrKpublished {
+/// Pattern matching helper for Union4KDeleteOrKGetOrKPostOrKPut
+impl Union4KDeleteOrKGetOrKPostOrKPut {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
-        string: impl FnOnce(&String) -> T,
+        k_get: impl FnOnce() -> T,
+        k_post: impl FnOnce() -> T,
+        k_put: impl FnOnce() -> T,
+        k_delete: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KGet => k_get(),
+            Self::KPost => k_post(),
+            Self::KPut => k_put(),
+            Self::KDelete => k_delete(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
-        string: impl FnOnce(String) -> T,
+        k_get: impl FnOnce() -> T,
+        k_post: impl FnOnce() -> T,
+        k_put: impl FnOnce() -> T,
+        k_delete: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
-            Self::String(v) => string(v),
+            Self::KGet => k_get(),
+            Self::KPost => k_post(),
+            Self::KPut => k_put(),
+            Self::KDelete => k_delete(),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union4KarchivedOrKdeletedOrKdraftOrKpublished {
+impl std::fmt::Display for Union4KDeleteOrKGetOrKPostOrKPut {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
-            Self::String(v) => write!(f, "String({:?})", v),
+            Self::KGet => write!(f, "KGet"),
+            Self::KPost => write!(f, "KPost"),
+            Self::KPut => write!(f, "KPut"),
+            Self::KDelete => write!(f, "KDelete"),
         }
+    }
+}
+
+impl Default for Union4KDeleteOrKGetOrKPostOrKPut {
+    fn default() -> Self {
+        Self::KGet
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union4KDeleteOrKGetOrKPostOrKPut {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::KGet => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "GET".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(GET)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(GET)),
+            },
+            Self::KPost => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "POST".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(POST)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(POST)),
+            },
+            Self::KPut => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "PUT".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(PUT)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(PUT)),
+            },
+            Self::KDelete => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "DELETE".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(DELETE)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(DELETE)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union4KDeleteOrKGetOrKPostOrKPut {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "GET" {
+                        return Ok(Self::KGet);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == GET {
+                        return Ok(Self::KGet);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == GET {
+                            return Ok(Self::KGet);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == GET {
+                        return Ok(Self::KGet);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("GET") {
+                        return Ok(Self::KGet);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "POST" {
+                        return Ok(Self::KPost);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == POST {
+                        return Ok(Self::KPost);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == POST {
+                            return Ok(Self::KPost);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == POST {
+                        return Ok(Self::KPost);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("POST") {
+                        return Ok(Self::KPost);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "PUT" {
+                        return Ok(Self::KPut);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == PUT {
+                        return Ok(Self::KPut);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == PUT {
+                            return Ok(Self::KPut);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == PUT {
+                        return Ok(Self::KPut);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("PUT") {
+                        return Ok(Self::KPut);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "DELETE" {
+                        return Ok(Self::KDelete);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == DELETE {
+                        return Ok(Self::KDelete);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == DELETE {
+                            return Ok(Self::KDelete);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == DELETE {
+                        return Ok(Self::KDelete);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("DELETE") {
+                        return Ok(Self::KDelete);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union4KDeleteOrKGetOrKPostOrKPut",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 {
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
+    /// Literal value: 1
+    IntK1,
+    /// Literal value: 2
+    IntK2,
+    /// Literal value: 3
+    IntK3,
+    /// Literal value: 4
+    IntK4,
+    /// Literal value: 5
+    IntK5,
 }
 
 impl Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 {
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK1 variant
+    pub fn is_intk1(&self) -> bool {
+        matches!(self, Self::IntK1)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a IntK1 variant
+    pub fn intk1() -> Self {
+        Self::IntK1
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK2 variant
+    pub fn is_intk2(&self) -> bool {
+        matches!(self, Self::IntK2)
     }
 
-    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a IntK2 variant
+    pub fn intk2() -> Self {
+        Self::IntK2
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK3 variant
+    pub fn is_intk3(&self) -> bool {
+        matches!(self, Self::IntK3)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a IntK3 variant
+    pub fn intk3() -> Self {
+        Self::IntK3
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK4 variant
+    pub fn is_intk4(&self) -> bool {
+        matches!(self, Self::IntK4)
     }
 
-    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a IntK4 variant
+    pub fn intk4() -> Self {
+        Self::IntK4
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK5 variant
+    pub fn is_intk5(&self) -> bool {
+        matches!(self, Self::IntK5)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 with a IntK5 variant
+    pub fn intk5() -> Self {
+        Self::IntK5
     }
 }
 
@@ -2445,36 +3528,36 @@ impl Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
+        intk1: impl FnOnce() -> T,
+        intk2: impl FnOnce() -> T,
+        intk3: impl FnOnce() -> T,
+        intk4: impl FnOnce() -> T,
+        intk5: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK1 => intk1(),
+            Self::IntK2 => intk2(),
+            Self::IntK3 => intk3(),
+            Self::IntK4 => intk4(),
+            Self::IntK5 => intk5(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
+        intk1: impl FnOnce() -> T,
+        intk2: impl FnOnce() -> T,
+        intk3: impl FnOnce() -> T,
+        intk4: impl FnOnce() -> T,
+        intk5: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK1 => intk1(),
+            Self::IntK2 => intk2(),
+            Self::IntK3 => intk3(),
+            Self::IntK4 => intk4(),
+            Self::IntK5 => intk5(),
         }
     }
 }
@@ -2483,189 +3566,315 @@ impl Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 {
 impl std::fmt::Display for Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
+            Self::IntK1 => write!(f, "IntK1"),
+            Self::IntK2 => write!(f, "IntK2"),
+            Self::IntK3 => write!(f, "IntK3"),
+            Self::IntK4 => write!(f, "IntK4"),
+            Self::IntK5 => write!(f, "IntK5"),
         }
+    }
+}
+
+impl Default for Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 {
+    fn default() -> Self {
+        Self::IntK1
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::IntK1 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("1".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(1)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(1)),
+            },
+            Self::IntK2 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("2".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(2)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(2)),
+            },
+            Self::IntK3 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("3".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(3)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(3)),
+            },
+            Self::IntK4 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("4".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(4)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(4)),
+            },
+            Self::IntK5 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("5".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(5)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(5)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5 {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "1" {
+                        return Ok(Self::IntK1);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 1 {
+                        return Ok(Self::IntK1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 1 {
+                            return Ok(Self::IntK1);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 1 {
+                        return Ok(Self::IntK1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("1") {
+                        return Ok(Self::IntK1);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "2" {
+                        return Ok(Self::IntK2);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 2 {
+                        return Ok(Self::IntK2);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 2 {
+                            return Ok(Self::IntK2);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 2 {
+                        return Ok(Self::IntK2);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("2") {
+                        return Ok(Self::IntK2);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "3" {
+                        return Ok(Self::IntK3);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 3 {
+                        return Ok(Self::IntK3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 3 {
+                            return Ok(Self::IntK3);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 3 {
+                        return Ok(Self::IntK3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("3") {
+                        return Ok(Self::IntK3);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "4" {
+                        return Ok(Self::IntK4);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 4 {
+                        return Ok(Self::IntK4);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 4 {
+                            return Ok(Self::IntK4);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 4 {
+                        return Ok(Self::IntK4);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("4") {
+                        return Ok(Self::IntK4);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "5" {
+                        return Ok(Self::IntK5);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 5 {
+                        return Ok(Self::IntK5);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 5 {
+                            return Ok(Self::IntK5);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 5 {
+                        return Ok(Self::IntK5);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("5") {
+                        return Ok(Self::IntK5);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union5IntK1OrIntK2OrIntK3OrIntK4OrIntK5",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 {
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
+    /// Literal value: 200
+    IntK200,
+    /// Literal value: 201
+    IntK201,
+    /// Literal value: 400
+    IntK400,
+    /// Literal value: 404
+    IntK404,
+    /// Literal value: 500
+    IntK500,
 }
 
 impl Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 {
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK200 variant
+    pub fn is_intk200(&self) -> bool {
+        matches!(self, Self::IntK200)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a IntK200 variant
+    pub fn intk200() -> Self {
+        Self::IntK200
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK201 variant
+    pub fn is_intk201(&self) -> bool {
+        matches!(self, Self::IntK201)
     }
 
-    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a IntK201 variant
+    pub fn intk201() -> Self {
+        Self::IntK201
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK400 variant
+    pub fn is_intk400(&self) -> bool {
+        matches!(self, Self::IntK400)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a IntK400 variant
+    pub fn intk400() -> Self {
+        Self::IntK400
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK404 variant
+    pub fn is_intk404(&self) -> bool {
+        matches!(self, Self::IntK404)
     }
 
-    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a IntK404 variant
+    pub fn intk404() -> Self {
+        Self::IntK404
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK500 variant
+    pub fn is_intk500(&self) -> bool {
+        matches!(self, Self::IntK500)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 with a IntK500 variant
+    pub fn intk500() -> Self {
+        Self::IntK500
     }
 }
 
@@ -2674,36 +3883,36 @@ impl Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
+        intk200: impl FnOnce() -> T,
+        intk201: impl FnOnce() -> T,
+        intk400: impl FnOnce() -> T,
+        intk404: impl FnOnce() -> T,
+        intk500: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK200 => intk200(),
+            Self::IntK201 => intk201(),
+            Self::IntK400 => intk400(),
+            Self::IntK404 => intk404(),
+            Self::IntK500 => intk500(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
+        intk200: impl FnOnce() -> T,
+        intk201: impl FnOnce() -> T,
+        intk400: impl FnOnce() -> T,
+        intk404: impl FnOnce() -> T,
+        intk500: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK200 => intk200(),
+            Self::IntK201 => intk201(),
+            Self::IntK400 => intk400(),
+            Self::IntK404 => intk404(),
+            Self::IntK500 => intk500(),
         }
     }
 }
@@ -2712,257 +3921,339 @@ impl Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 {
 impl std::fmt::Display for Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
+            Self::IntK200 => write!(f, "IntK200"),
+            Self::IntK201 => write!(f, "IntK201"),
+            Self::IntK400 => write!(f, "IntK400"),
+            Self::IntK404 => write!(f, "IntK404"),
+            Self::IntK500 => write!(f, "IntK500"),
         }
+    }
+}
+
+impl Default for Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 {
+    fn default() -> Self {
+        Self::IntK200
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::IntK200 => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "200".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(200)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(200)),
+            },
+            Self::IntK201 => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "201".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(201)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(201)),
+            },
+            Self::IntK400 => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "400".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(400)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(400)),
+            },
+            Self::IntK404 => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "404".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(404)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(404)),
+            },
+            Self::IntK500 => match kind {
+                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
+                    "500".to_string(),
+                )),
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(500)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(500)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500 {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "200" {
+                        return Ok(Self::IntK200);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 200 {
+                        return Ok(Self::IntK200);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 200 {
+                            return Ok(Self::IntK200);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 200 {
+                        return Ok(Self::IntK200);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("200") {
+                        return Ok(Self::IntK200);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "201" {
+                        return Ok(Self::IntK201);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 201 {
+                        return Ok(Self::IntK201);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 201 {
+                            return Ok(Self::IntK201);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 201 {
+                        return Ok(Self::IntK201);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("201") {
+                        return Ok(Self::IntK201);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "400" {
+                        return Ok(Self::IntK400);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 400 {
+                        return Ok(Self::IntK400);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 400 {
+                            return Ok(Self::IntK400);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 400 {
+                        return Ok(Self::IntK400);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("400") {
+                        return Ok(Self::IntK400);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "404" {
+                        return Ok(Self::IntK404);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 404 {
+                        return Ok(Self::IntK404);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 404 {
+                            return Ok(Self::IntK404);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 404 {
+                        return Ok(Self::IntK404);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("404") {
+                        return Ok(Self::IntK404);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "500" {
+                        return Ok(Self::IntK500);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 500 {
+                        return Ok(Self::IntK500);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 500 {
+                            return Ok(Self::IntK500);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 500 {
+                        return Ok(Self::IntK500);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("500") {
+                        return Ok(Self::IntK500);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union5IntK200OrIntK201OrIntK400OrIntK404OrIntK500",
+            value
+        )))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 {
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
-    Int(i64),
+    /// Literal value: 0
+    IntK0,
+    /// Literal value: 1
+    IntK1,
+    /// Literal value: 2
+    IntK2,
+    /// Literal value: 3
+    IntK3,
+    /// Literal value: 5
+    IntK5,
+    /// Literal value: 8
+    IntK8,
+    /// Literal value: 13
+    IntK13,
 }
 
 impl Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 {
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK0 variant
+    pub fn is_intk0(&self) -> bool {
+        matches!(self, Self::IntK0)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a IntK0 variant
+    pub fn intk0() -> Self {
+        Self::IntK0
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK1 variant
+    pub fn is_intk1(&self) -> bool {
+        matches!(self, Self::IntK1)
     }
 
-    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a IntK1 variant
+    pub fn intk1() -> Self {
+        Self::IntK1
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK2 variant
+    pub fn is_intk2(&self) -> bool {
+        matches!(self, Self::IntK2)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a IntK2 variant
+    pub fn intk2() -> Self {
+        Self::IntK2
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK3 variant
+    pub fn is_intk3(&self) -> bool {
+        matches!(self, Self::IntK3)
     }
 
-    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a IntK3 variant
+    pub fn intk3() -> Self {
+        Self::IntK3
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK5 variant
+    pub fn is_intk5(&self) -> bool {
+        matches!(self, Self::IntK5)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a IntK5 variant
+    pub fn intk5() -> Self {
+        Self::IntK5
     }
 
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK8 variant
+    pub fn is_intk8(&self) -> bool {
+        matches!(self, Self::IntK8)
     }
 
-    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a IntK8 variant
+    pub fn intk8() -> Self {
+        Self::IntK8
     }
 
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
+    /// Check if this union is a IntK13 variant
+    pub fn is_intk13(&self) -> bool {
+        matches!(self, Self::IntK13)
     }
 
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
-    }
-
-    /// Check if this union is a Int variant
-    pub fn is_int(&self) -> bool {
-        matches!(self, Self::Int(_))
-    }
-    /// Get the Int value if this union contains it
-    pub fn as_int(&self) -> Option<&i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Extract the Int value, consuming the union
-    pub fn into_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Get a mutable reference to the Int value if this union contains it
-    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a Int variant
-    pub fn int(value: i64) -> Self {
-        Self::Int(value)
+    /// Create a new Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 with a IntK13 variant
+    pub fn intk13() -> Self {
+        Self::IntK13
     }
 }
 
@@ -2971,44 +4262,44 @@ impl Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
-        int: impl FnOnce(&i64) -> T,
+        intk0: impl FnOnce() -> T,
+        intk1: impl FnOnce() -> T,
+        intk2: impl FnOnce() -> T,
+        intk3: impl FnOnce() -> T,
+        intk5: impl FnOnce() -> T,
+        intk8: impl FnOnce() -> T,
+        intk13: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK0 => intk0(),
+            Self::IntK1 => intk1(),
+            Self::IntK2 => intk2(),
+            Self::IntK3 => intk3(),
+            Self::IntK5 => intk5(),
+            Self::IntK8 => intk8(),
+            Self::IntK13 => intk13(),
         }
     }
 
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
-        int: impl FnOnce(i64) -> T,
+        intk0: impl FnOnce() -> T,
+        intk1: impl FnOnce() -> T,
+        intk2: impl FnOnce() -> T,
+        intk3: impl FnOnce() -> T,
+        intk5: impl FnOnce() -> T,
+        intk8: impl FnOnce() -> T,
+        intk13: impl FnOnce() -> T,
     ) -> T {
         match self {
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
-            Self::Int(v) => int(v),
+            Self::IntK0 => intk0(),
+            Self::IntK1 => intk1(),
+            Self::IntK2 => intk2(),
+            Self::IntK3 => intk3(),
+            Self::IntK5 => intk5(),
+            Self::IntK8 => intk8(),
+            Self::IntK13 => intk13(),
         }
     }
 }
@@ -3017,13 +4308,337 @@ impl Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 {
 impl std::fmt::Display for Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::Int(v) => write!(f, "Int({:?})", v),
+            Self::IntK0 => write!(f, "IntK0"),
+            Self::IntK1 => write!(f, "IntK1"),
+            Self::IntK2 => write!(f, "IntK2"),
+            Self::IntK3 => write!(f, "IntK3"),
+            Self::IntK5 => write!(f, "IntK5"),
+            Self::IntK8 => write!(f, "IntK8"),
+            Self::IntK13 => write!(f, "IntK13"),
         }
+    }
+}
+
+impl Default for Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8 {
+    fn default() -> Self {
+        Self::IntK0
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue
+    for Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8
+{
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::IntK0 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("0".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(0)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(0)),
+            },
+            Self::IntK1 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("1".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(1)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(1)),
+            },
+            Self::IntK2 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("2".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(2)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(2)),
+            },
+            Self::IntK3 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("3".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(3)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(3)),
+            },
+            Self::IntK5 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("5".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(5)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(5)),
+            },
+            Self::IntK8 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("8".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(8)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(8)),
+            },
+            Self::IntK13 => match kind {
+                RustLiteralKind::String => {
+                    Ok(baml_client_rust::types::BamlValue::String("13".to_string()))
+                }
+                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(13)),
+                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(13)),
+            },
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue
+    for Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8
+{
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "0" {
+                        return Ok(Self::IntK0);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 0 {
+                        return Ok(Self::IntK0);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 0 {
+                            return Ok(Self::IntK0);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 0 {
+                        return Ok(Self::IntK0);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("0") {
+                        return Ok(Self::IntK0);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "1" {
+                        return Ok(Self::IntK1);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 1 {
+                        return Ok(Self::IntK1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 1 {
+                            return Ok(Self::IntK1);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 1 {
+                        return Ok(Self::IntK1);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("1") {
+                        return Ok(Self::IntK1);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "2" {
+                        return Ok(Self::IntK2);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 2 {
+                        return Ok(Self::IntK2);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 2 {
+                            return Ok(Self::IntK2);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 2 {
+                        return Ok(Self::IntK2);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("2") {
+                        return Ok(Self::IntK2);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "3" {
+                        return Ok(Self::IntK3);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 3 {
+                        return Ok(Self::IntK3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 3 {
+                            return Ok(Self::IntK3);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 3 {
+                        return Ok(Self::IntK3);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("3") {
+                        return Ok(Self::IntK3);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "5" {
+                        return Ok(Self::IntK5);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 5 {
+                        return Ok(Self::IntK5);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 5 {
+                            return Ok(Self::IntK5);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 5 {
+                        return Ok(Self::IntK5);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("5") {
+                        return Ok(Self::IntK5);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "8" {
+                        return Ok(Self::IntK8);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 8 {
+                        return Ok(Self::IntK8);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 8 {
+                            return Ok(Self::IntK8);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 8 {
+                        return Ok(Self::IntK8);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("8") {
+                        return Ok(Self::IntK8);
+                    }
+                }
+            }
+        }
+        match kind {
+            RustLiteralKind::String => {
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s == "13" {
+                        return Ok(Self::IntK13);
+                    }
+                }
+            }
+            RustLiteralKind::Int => {
+                if let baml_client_rust::types::BamlValue::Int(i) = &value {
+                    if *i == 13 {
+                        return Ok(Self::IntK13);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if let Ok(parsed) = s.parse::<i64>() {
+                        if parsed == 13 {
+                            return Ok(Self::IntK13);
+                        }
+                    }
+                }
+            }
+            RustLiteralKind::Bool => {
+                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+                    if *b == 13 {
+                        return Ok(Self::IntK13);
+                    }
+                }
+                if let baml_client_rust::types::BamlValue::String(s) = &value {
+                    if s.eq_ignore_ascii_case("13") {
+                        return Ok(Self::IntK13);
+                    }
+                }
+            }
+        }
+
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union7IntK0OrIntK1OrIntK13OrIntK2OrIntK3OrIntK5OrIntK8",
+            value
+        )))
     }
 }

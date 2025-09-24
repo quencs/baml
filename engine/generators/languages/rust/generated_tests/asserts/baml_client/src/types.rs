@@ -14,23 +14,23 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Person {
     pub name: String,
 
-    pub age: String,
+    pub age: i64,
 }
 
 impl Person {
     /// Create a new Person instance
-    pub fn new(name: String, age: String) -> Self {
+    pub fn new(name: String, age: i64) -> Self {
         Self { name, age }
     }
 }
 
 impl Default for Person {
     fn default() -> Self {
-        Self::new(String::new(), String::new())
+        Self::new(String::new(), 0)
     }
 }
 
@@ -53,26 +53,42 @@ impl baml_client_rust::types::FromBamlValue for Person {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let name = map
-                    .get("name")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let name = match map.get("name") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            String::new()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'name' in Person"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let age = map
-                    .get("age")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let age = match map.get("age") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            0
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => 0,
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'age' in Person"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
+                        )));
+                    }
+                };
                 Ok(Self::new(name, age))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(

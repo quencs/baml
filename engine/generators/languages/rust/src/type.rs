@@ -160,11 +160,16 @@ pub enum TypeRust {
 impl TypeRust {
     pub fn default_name_within_union(&self) -> String {
         match self {
-            TypeRust::String(val, _) => val.as_ref().map_or("String".to_string(), |v| {
-                let safe_name = safe_rust_identifier(v);
-                format!("K{safe_name}")
+            TypeRust::String(val, _) => val
+                .as_ref()
+                .map_or("String".to_string(), |v| format!("K{}", sanitize_literal_variant(v))),
+            TypeRust::Int(val, _) => val.map_or("Int".to_string(), |v| {
+                if v < 0 {
+                    format!("IntKNeg{}", v.abs())
+                } else {
+                    format!("IntK{}", v)
+                }
             }),
-            TypeRust::Int(val, _) => val.map_or("Int".to_string(), |v| format!("IntK{v}")),
             TypeRust::Float(_) => "Float".to_string(),
             TypeRust::Bool(val, _) => val.map_or("Bool".to_string(), |v| {
                 format!("BoolK{}", if v { "True" } else { "False" })
@@ -279,6 +284,19 @@ impl TypeRust {
     }
 }
 
+fn sanitize_literal_variant(value: &str) -> String {
+    let filtered: String = value
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { ' ' })
+        .collect();
+    let pascal = crate::utils::to_pascal_case(&filtered);
+    if pascal.is_empty() {
+        "Value".to_string()
+    } else {
+        pascal
+    }
+}
+
 pub trait SerializeType {
     fn serialize_type(&self, pkg: &CurrentRenderPackage) -> String;
 }
@@ -347,16 +365,6 @@ impl SerializeType for MediaTypeRust {
             MediaTypeRust::Pdf => format!("{}BamlPdf", Package::types().relative_from(pkg)),
             MediaTypeRust::Video => format!("{}BamlVideo", Package::types().relative_from(pkg)),
         }
-    }
-}
-
-fn safe_rust_identifier(name: &str) -> String {
-    // Replace non-alphanumeric characters with underscores and ensure valid Rust identifier
-    let cleaned = name.replace(|c: char| !c.is_alphanumeric(), "_");
-    if cleaned.is_empty() || cleaned.chars().next().unwrap().is_numeric() {
-        format!("_{}", cleaned)
-    } else {
-        cleaned
     }
 }
 

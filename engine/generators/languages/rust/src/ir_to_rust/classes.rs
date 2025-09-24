@@ -2,7 +2,7 @@ use crate::{
     generated_types::{RustClass, RustField},
     package::CurrentRenderPackage,
     r#type::SerializeType,
-    utils::to_snake_case,
+    utils::{safe_rust_identifier, to_snake_case},
 };
 use internal_baml_core::ir::Class;
 
@@ -23,8 +23,9 @@ pub fn ir_class_to_rust(class: &Class, pkg: &CurrentRenderPackage) -> RustClass 
             let mut rust_type_string = rust_type.serialize_type(pkg);
             rust_type_string = apply_boxing_if_recursive(rust_type_string, &class.elem.name);
 
+            let field_name = to_snake_case(&field.elem.name);
             RustField {
-                name: to_snake_case(&field.elem.name),
+                name: safe_rust_identifier(&field_name),
                 original_name: field.elem.name.clone(),
                 rust_type: rust_type_string,
                 optional: rust_type.meta().is_optional(),

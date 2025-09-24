@@ -14,23 +14,23 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SimpleClass {
-    pub digits: String,
+    pub digits: i64,
 
     pub words: String,
 }
 
 impl SimpleClass {
     /// Create a new SimpleClass instance
-    pub fn new(digits: String, words: String) -> Self {
+    pub fn new(digits: i64, words: String) -> Self {
         Self { digits, words }
     }
 }
 
 impl Default for SimpleClass {
     fn default() -> Self {
-        Self::new(String::new(), String::new())
+        Self::new(0, String::new())
     }
 }
 
@@ -53,26 +53,42 @@ impl baml_client_rust::types::FromBamlValue for SimpleClass {
     ) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let digits = map
-                    .get("digits")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let digits = match map.get("digits") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            0
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => 0,
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'digits' in SimpleClass"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                let words = map
-                    .get("words")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                        )));
+                    }
+                };
+                let words = match map.get("words") {
+                    Some(value) => match value {
+                        baml_client_rust::types::BamlValue::Null
+                            if baml_client_rust::types::is_partial_deserialization() =>
+                        {
+                            String::new()
+                        }
+                        _ => {
+                            baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
+                        }
+                    },
+                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'words' in SimpleClass"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
+                        )));
+                    }
+                };
                 Ok(Self::new(digits, words))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(

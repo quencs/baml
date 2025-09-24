@@ -14,21 +14,29 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UseMyUnion {
-    pub u: String,
+    
+    pub u: Option<crate::types::Union3IntOrRecursive1OrString>,
 }
 
 impl UseMyUnion {
     /// Create a new UseMyUnion instance
-    pub fn new(u: String) -> Self {
-        Self { u }
+    pub fn new(
+        u: Option<crate::types::Union3IntOrRecursive1OrString>,
+    ) -> Self {
+        Self {
+            u,
+        }
     }
-}
+    
+    }
 
 impl Default for UseMyUnion {
     fn default() -> Self {
-        Self::new(String::new())
+        Self::new(
+            None,
+        )
     }
 }
 
@@ -37,47 +45,54 @@ impl baml_client_rust::types::ToBamlValue for UseMyUnion {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         let mut map = baml_client_rust::types::BamlMap::new();
         map.insert("u".to_string(), self.u.to_baml_value()?);
-        Ok(baml_client_rust::types::BamlValue::Class(
-            "UseMyUnion".to_string(),
-            map,
-        ))
+        Ok(baml_client_rust::types::BamlValue::Class("UseMyUnion".to_string(), map))
     }
 }
 
 impl baml_client_rust::types::FromBamlValue for UseMyUnion {
-    fn from_baml_value(
-        value: baml_client_rust::types::BamlValue,
-    ) -> baml_client_rust::BamlResult<Self> {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         match value {
             baml_client_rust::types::BamlValue::Class(_class_name, map) => {
-                let u = map
-                    .get("u")
-                    .ok_or_else(|| {
-                        baml_client_rust::BamlError::deserialization(format!(
+                let u = match map.get("u") {
+                    Some(value) => {
+                        match value {
+                            baml_client_rust::types::BamlValue::Null
+                                if baml_client_rust::types::is_partial_deserialization() => {
+                                    None
+                                }
+                            _ => baml_client_rust::types::FromBamlValue::from_baml_value(
+                                value.clone(),
+                            )?,
+                        }
+                    }
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        None
+                    }
+                    None => {
+                        return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'u' in UseMyUnion"
-                        ))
-                    })
-                    .and_then(|v| {
-                        baml_client_rust::types::FromBamlValue::from_baml_value(v.clone())
-                    })?;
-                Ok(Self::new(u))
+                        )));
+                    }
+                };
+                Ok(Self::new(
+                    u,
+                ))
             }
-            _ => Err(baml_client_rust::BamlError::deserialization(format!(
-                "Expected class, got {:?}",
-                value
-            ))),
+            _ => Err(baml_client_rust::BamlError::deserialization(format!("Expected class, got {:?}", value))),
         }
     }
 }
+
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union2IntOrListRecursive1 {
     Int(i64),
-    List1(Vec<crate::types::Recursive1>),
+    ListRecursive1(Vec<crate::types::Recursive1>),
 }
 
 impl Union2IntOrListRecursive1 {
+    
     /// Check if this union is a Int variant
     pub fn is_int(&self) -> bool {
         matches!(self, Self::Int(_))
@@ -89,7 +104,7 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Extract the Int value, consuming the union
     pub fn into_int(self) -> Option<i64> {
         match self {
@@ -97,7 +112,7 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Int value if this union contains it
     pub fn as_int_mut(&mut self) -> Option<&mut i64> {
         match self {
@@ -105,43 +120,43 @@ impl Union2IntOrListRecursive1 {
             _ => None,
         }
     }
-
+    
     /// Create a new Union2IntOrListRecursive1 with a Int variant
     pub fn int(value: i64) -> Self {
         Self::Int(value)
     }
-
-    /// Check if this union is a List1 variant
-    pub fn is_list1(&self) -> bool {
-        matches!(self, Self::List1(_))
+    
+    /// Check if this union is a ListRecursive1 variant
+    pub fn is_list_recursive1(&self) -> bool {
+        matches!(self, Self::ListRecursive1(_))
     }
-    /// Get the List1 value if this union contains it
-    pub fn as_list1(&self) -> Option<&Vec<crate::types::Recursive1>> {
+    /// Get the ListRecursive1 value if this union contains it
+    pub fn as_list_recursive1(&self) -> Option<&Vec<crate::types::Recursive1>> {
         match self {
-            Self::List1(v) => Some(v),
+            Self::ListRecursive1(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Extract the List1 value, consuming the union
-    pub fn into_list1(self) -> Option<Vec<crate::types::Recursive1>> {
+    
+    /// Extract the ListRecursive1 value, consuming the union
+    pub fn into_list_recursive1(self) -> Option<Vec<crate::types::Recursive1>> {
         match self {
-            Self::List1(v) => Some(v),
+            Self::ListRecursive1(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Get a mutable reference to the List1 value if this union contains it
-    pub fn as_list1_mut(&mut self) -> Option<&mut Vec<crate::types::Recursive1>> {
+    
+    /// Get a mutable reference to the ListRecursive1 value if this union contains it
+    pub fn as_list_recursive1_mut(&mut self) -> Option<&mut Vec<crate::types::Recursive1>> {
         match self {
-            Self::List1(v) => Some(v),
+            Self::ListRecursive1(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Create a new Union2IntOrListRecursive1 with a List1 variant
-    pub fn list1(value: Vec<crate::types::Recursive1>) -> Self {
-        Self::List1(value)
+    
+    /// Create a new Union2IntOrListRecursive1 with a ListRecursive1 variant
+    pub fn list_recursive1(value: Vec<crate::types::Recursive1>) -> Self {
+        Self::ListRecursive1(value)
     }
 }
 
@@ -151,23 +166,23 @@ impl Union2IntOrListRecursive1 {
     pub fn match_variant<T>(
         &self,
         int: impl FnOnce(&i64) -> T,
-        list1: impl FnOnce(&Vec<crate::types::Recursive1>) -> T,
+        list_recursive1: impl FnOnce(&Vec<crate::types::Recursive1>) -> T,
     ) -> T {
         match self {
             Self::Int(v) => int(v),
-            Self::List1(v) => list1(v),
+            Self::ListRecursive1(v) => list_recursive1(v),
         }
     }
-
+    
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
         int: impl FnOnce(i64) -> T,
-        list1: impl FnOnce(Vec<crate::types::Recursive1>) -> T,
+        list_recursive1: impl FnOnce(Vec<crate::types::Recursive1>) -> T,
     ) -> T {
         match self {
             Self::Int(v) => int(v),
-            Self::List1(v) => list1(v),
+            Self::ListRecursive1(v) => list_recursive1(v),
         }
     }
 }
@@ -177,8 +192,42 @@ impl std::fmt::Display for Union2IntOrListRecursive1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Int(v) => write!(f, "Int({:?})", v),
-            Self::List1(v) => write!(f, "List1({:?})", v),
+            Self::ListRecursive1(v) => write!(f, "ListRecursive1({:?})", v),
         }
+    }
+}
+
+impl Default for Union2IntOrListRecursive1 {
+    fn default() -> Self {
+                        Self::Int(i64::default())
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union2IntOrListRecursive1 {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::Int(v) => v.to_baml_value(),
+            Self::ListRecursive1(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union2IntOrListRecursive1 {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        // Try Int variant
+        if let Ok(variant_value) = i64::from_baml_value(value.clone()) {
+            return Ok(Self::Int(variant_value));
+        }
+        // Try ListRecursive1 variant
+        if let Ok(variant_value) = Vec<crate::types::Recursive1>::from_baml_value(value.clone()) {
+            return Ok(Self::ListRecursive1(variant_value));
+        }
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union2IntOrListRecursive1",
+            value
+        )))
     }
 }
 
@@ -191,6 +240,7 @@ pub enum Union3IntOrRecursive1OrString {
 }
 
 impl Union3IntOrRecursive1OrString {
+    
     /// Check if this union is a Recursive1 variant
     pub fn is_recursive1(&self) -> bool {
         matches!(self, Self::Recursive1(_))
@@ -202,7 +252,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Extract the Recursive1 value, consuming the union
     pub fn into_recursive1(self) -> Option<crate::types::Recursive1> {
         match self {
@@ -210,7 +260,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Recursive1 value if this union contains it
     pub fn as_recursive1_mut(&mut self) -> Option<&mut crate::types::Recursive1> {
         match self {
@@ -218,12 +268,12 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union3IntOrRecursive1OrString with a Recursive1 variant
     pub fn recursive1(value: crate::types::Recursive1) -> Self {
         Self::Recursive1(value)
     }
-
+    
     /// Check if this union is a Int variant
     pub fn is_int(&self) -> bool {
         matches!(self, Self::Int(_))
@@ -235,7 +285,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Extract the Int value, consuming the union
     pub fn into_int(self) -> Option<i64> {
         match self {
@@ -243,7 +293,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Int value if this union contains it
     pub fn as_int_mut(&mut self) -> Option<&mut i64> {
         match self {
@@ -251,12 +301,12 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union3IntOrRecursive1OrString with a Int variant
     pub fn int(value: i64) -> Self {
         Self::Int(value)
     }
-
+    
     /// Check if this union is a String variant
     pub fn is_string(&self) -> bool {
         matches!(self, Self::String(_))
@@ -268,7 +318,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Extract the String value, consuming the union
     pub fn into_string(self) -> Option<String> {
         match self {
@@ -276,7 +326,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the String value if this union contains it
     pub fn as_string_mut(&mut self) -> Option<&mut String> {
         match self {
@@ -284,7 +334,7 @@ impl Union3IntOrRecursive1OrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union3IntOrRecursive1OrString with a String variant
     pub fn string(value: String) -> Self {
         Self::String(value)
@@ -306,7 +356,7 @@ impl Union3IntOrRecursive1OrString {
             Self::String(v) => string(v),
         }
     }
-
+    
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
@@ -333,17 +383,57 @@ impl std::fmt::Display for Union3IntOrRecursive1OrString {
     }
 }
 
+impl Default for Union3IntOrRecursive1OrString {
+    fn default() -> Self {
+                        Self::Recursive1(crate::types::Recursive1::default())
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union3IntOrRecursive1OrString {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::Recursive1(v) => v.to_baml_value(),
+            Self::Int(v) => v.to_baml_value(),
+            Self::String(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union3IntOrRecursive1OrString {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        // Try Recursive1 variant
+        if let Ok(variant_value) = crate::types::Recursive1::from_baml_value(value.clone()) {
+            return Ok(Self::Recursive1(variant_value));
+        }
+        // Try Int variant
+        if let Ok(variant_value) = i64::from_baml_value(value.clone()) {
+            return Ok(Self::Int(variant_value));
+        }
+        // Try String variant
+        if let Ok(variant_value) = String::from_baml_value(value.clone()) {
+            return Ok(Self::String(variant_value));
+        }
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union3IntOrRecursive1OrString",
+            value
+        )))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
     String(String),
     Int(i64),
     Float(f64),
-    Map3(std::collections::HashMap<String, crate::types::JSON>),
-    List4(Vec<crate::types::JSON>),
+    MapStringKeyJSONValue(std::collections::HashMap<String, crate::types::JSON>),
+    ListJSON(Vec<crate::types::JSON>),
 }
 
 impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
+    
     /// Check if this union is a String variant
     pub fn is_string(&self) -> bool {
         matches!(self, Self::String(_))
@@ -355,7 +445,7 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Extract the String value, consuming the union
     pub fn into_string(self) -> Option<String> {
         match self {
@@ -363,7 +453,7 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the String value if this union contains it
     pub fn as_string_mut(&mut self) -> Option<&mut String> {
         match self {
@@ -371,12 +461,12 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString with a String variant
     pub fn string(value: String) -> Self {
         Self::String(value)
     }
-
+    
     /// Check if this union is a Int variant
     pub fn is_int(&self) -> bool {
         matches!(self, Self::Int(_))
@@ -388,7 +478,7 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Extract the Int value, consuming the union
     pub fn into_int(self) -> Option<i64> {
         match self {
@@ -396,7 +486,7 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Int value if this union contains it
     pub fn as_int_mut(&mut self) -> Option<&mut i64> {
         match self {
@@ -404,12 +494,12 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString with a Int variant
     pub fn int(value: i64) -> Self {
         Self::Int(value)
     }
-
+    
     /// Check if this union is a Float variant
     pub fn is_float(&self) -> bool {
         matches!(self, Self::Float(_))
@@ -421,7 +511,7 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Extract the Float value, consuming the union
     pub fn into_float(self) -> Option<f64> {
         match self {
@@ -429,7 +519,7 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Get a mutable reference to the Float value if this union contains it
     pub fn as_float_mut(&mut self) -> Option<&mut f64> {
         match self {
@@ -437,78 +527,76 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
             _ => None,
         }
     }
-
+    
     /// Create a new Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString with a Float variant
     pub fn float(value: f64) -> Self {
         Self::Float(value)
     }
-
-    /// Check if this union is a Map3 variant
-    pub fn is_map3(&self) -> bool {
-        matches!(self, Self::Map3(_))
+    
+    /// Check if this union is a MapStringKeyJSONValue variant
+    pub fn is_map_string_keyjson_value(&self) -> bool {
+        matches!(self, Self::MapStringKeyJSONValue(_))
     }
-    /// Get the Map3 value if this union contains it
-    pub fn as_map3(&self) -> Option<&std::collections::HashMap<String, crate::types::JSON>> {
+    /// Get the MapStringKeyJSONValue value if this union contains it
+    pub fn as_map_string_keyjson_value(&self) -> Option<&std::collections::HashMap<String, crate::types::JSON>> {
         match self {
-            Self::Map3(v) => Some(v),
+            Self::MapStringKeyJSONValue(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Extract the Map3 value, consuming the union
-    pub fn into_map3(self) -> Option<std::collections::HashMap<String, crate::types::JSON>> {
+    
+    /// Extract the MapStringKeyJSONValue value, consuming the union
+    pub fn into_map_string_keyjson_value(self) -> Option<std::collections::HashMap<String, crate::types::JSON>> {
         match self {
-            Self::Map3(v) => Some(v),
+            Self::MapStringKeyJSONValue(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Get a mutable reference to the Map3 value if this union contains it
-    pub fn as_map3_mut(
-        &mut self,
-    ) -> Option<&mut std::collections::HashMap<String, crate::types::JSON>> {
+    
+    /// Get a mutable reference to the MapStringKeyJSONValue value if this union contains it
+    pub fn as_map_string_keyjson_value_mut(&mut self) -> Option<&mut std::collections::HashMap<String, crate::types::JSON>> {
         match self {
-            Self::Map3(v) => Some(v),
+            Self::MapStringKeyJSONValue(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Create a new Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString with a Map3 variant
-    pub fn map3(value: std::collections::HashMap<String, crate::types::JSON>) -> Self {
-        Self::Map3(value)
+    
+    /// Create a new Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString with a MapStringKeyJSONValue variant
+    pub fn map_string_keyjson_value(value: std::collections::HashMap<String, crate::types::JSON>) -> Self {
+        Self::MapStringKeyJSONValue(value)
     }
-
-    /// Check if this union is a List4 variant
-    pub fn is_list4(&self) -> bool {
-        matches!(self, Self::List4(_))
+    
+    /// Check if this union is a ListJSON variant
+    pub fn is_listjson(&self) -> bool {
+        matches!(self, Self::ListJSON(_))
     }
-    /// Get the List4 value if this union contains it
-    pub fn as_list4(&self) -> Option<&Vec<crate::types::JSON>> {
+    /// Get the ListJSON value if this union contains it
+    pub fn as_listjson(&self) -> Option<&Vec<crate::types::JSON>> {
         match self {
-            Self::List4(v) => Some(v),
+            Self::ListJSON(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Extract the List4 value, consuming the union
-    pub fn into_list4(self) -> Option<Vec<crate::types::JSON>> {
+    
+    /// Extract the ListJSON value, consuming the union
+    pub fn into_listjson(self) -> Option<Vec<crate::types::JSON>> {
         match self {
-            Self::List4(v) => Some(v),
+            Self::ListJSON(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Get a mutable reference to the List4 value if this union contains it
-    pub fn as_list4_mut(&mut self) -> Option<&mut Vec<crate::types::JSON>> {
+    
+    /// Get a mutable reference to the ListJSON value if this union contains it
+    pub fn as_listjson_mut(&mut self) -> Option<&mut Vec<crate::types::JSON>> {
         match self {
-            Self::List4(v) => Some(v),
+            Self::ListJSON(v) => Some(v),
             _ => None,
         }
     }
-
-    /// Create a new Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString with a List4 variant
-    pub fn list4(value: Vec<crate::types::JSON>) -> Self {
-        Self::List4(value)
+    
+    /// Create a new Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString with a ListJSON variant
+    pub fn listjson(value: Vec<crate::types::JSON>) -> Self {
+        Self::ListJSON(value)
     }
 }
 
@@ -520,33 +608,33 @@ impl Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
         string: impl FnOnce(&String) -> T,
         int: impl FnOnce(&i64) -> T,
         float: impl FnOnce(&f64) -> T,
-        map3: impl FnOnce(&std::collections::HashMap<String, crate::types::JSON>) -> T,
-        list4: impl FnOnce(&Vec<crate::types::JSON>) -> T,
+        map_string_keyjson_value: impl FnOnce(&std::collections::HashMap<String, crate::types::JSON>) -> T,
+        listjson: impl FnOnce(&Vec<crate::types::JSON>) -> T,
     ) -> T {
         match self {
             Self::String(v) => string(v),
             Self::Int(v) => int(v),
             Self::Float(v) => float(v),
-            Self::Map3(v) => map3(v),
-            Self::List4(v) => list4(v),
+            Self::MapStringKeyJSONValue(v) => map_string_keyjson_value(v),
+            Self::ListJSON(v) => listjson(v),
         }
     }
-
+    
     /// Match on the union variant and apply the corresponding function, consuming the union
     pub fn match_variant_owned<T>(
         self,
         string: impl FnOnce(String) -> T,
         int: impl FnOnce(i64) -> T,
         float: impl FnOnce(f64) -> T,
-        map3: impl FnOnce(std::collections::HashMap<String, crate::types::JSON>) -> T,
-        list4: impl FnOnce(Vec<crate::types::JSON>) -> T,
+        map_string_keyjson_value: impl FnOnce(std::collections::HashMap<String, crate::types::JSON>) -> T,
+        listjson: impl FnOnce(Vec<crate::types::JSON>) -> T,
     ) -> T {
         match self {
             Self::String(v) => string(v),
             Self::Int(v) => int(v),
             Self::Float(v) => float(v),
-            Self::Map3(v) => map3(v),
-            Self::List4(v) => list4(v),
+            Self::MapStringKeyJSONValue(v) => map_string_keyjson_value(v),
+            Self::ListJSON(v) => listjson(v),
         }
     }
 }
@@ -558,8 +646,59 @@ impl std::fmt::Display for Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrSt
             Self::String(v) => write!(f, "String({:?})", v),
             Self::Int(v) => write!(f, "Int({:?})", v),
             Self::Float(v) => write!(f, "Float({:?})", v),
-            Self::Map3(v) => write!(f, "Map3({:?})", v),
-            Self::List4(v) => write!(f, "List4({:?})", v),
+            Self::MapStringKeyJSONValue(v) => write!(f, "MapStringKeyJSONValue({:?})", v),
+            Self::ListJSON(v) => write!(f, "ListJSON({:?})", v),
         }
     }
 }
+
+impl Default for Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
+    fn default() -> Self {
+                        Self::String(String::default())
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::String(v) => v.to_baml_value(),
+            Self::Int(v) => v.to_baml_value(),
+            Self::Float(v) => v.to_baml_value(),
+            Self::MapStringKeyJSONValue(v) => v.to_baml_value(),
+            Self::ListJSON(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        // Try String variant
+        if let Ok(variant_value) = String::from_baml_value(value.clone()) {
+            return Ok(Self::String(variant_value));
+        }
+        // Try Int variant
+        if let Ok(variant_value) = i64::from_baml_value(value.clone()) {
+            return Ok(Self::Int(variant_value));
+        }
+        // Try Float variant
+        if let Ok(variant_value) = f64::from_baml_value(value.clone()) {
+            return Ok(Self::Float(variant_value));
+        }
+        // Try MapStringKeyJSONValue variant
+        if let Ok(variant_value) = std::collections::HashMap<String, crate::types::JSON>::from_baml_value(value.clone()) {
+            return Ok(Self::MapStringKeyJSONValue(variant_value));
+        }
+        // Try ListJSON variant
+        if let Ok(variant_value) = Vec<crate::types::JSON>::from_baml_value(value.clone()) {
+            return Ok(Self::ListJSON(variant_value));
+        }
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString",
+            value
+        )))
+    }
+}
+
+

@@ -8,6 +8,7 @@ pub mod context;
 pub mod errors;
 pub mod ffi;
 pub mod result;
+pub(crate) mod runtime;
 pub mod stream;
 pub mod types;
 
@@ -18,7 +19,11 @@ pub use errors::{BamlError, BamlErrorType};
 pub use result::{BamlResult, FunctionResult};
 pub use stream::{FunctionResultStream, StreamState};
 pub use types::RuntimeContextManager;
-pub use types::{BamlMap, BamlValue, ClientRegistry, Collector, TypeBuilder};
+pub use types::{
+    BamlMap, BamlValue, ClientRegistry, Collector, FunctionLog, HttpBody, HttpRequest,
+    HttpResponse, LlmCall, LlmCallKind, LlmStreamCall, SseResponse, StreamTiming, Timing,
+    TypeBuilder, Usage,
+};
 
 // Version info
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

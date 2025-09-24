@@ -10,6 +10,10 @@ mod filters {
     pub fn snake_case(s: &str, _args: &dyn askama::Values) -> askama::Result<String> {
         Ok(to_snake_case(s))
     }
+
+    pub fn json_string_literal(s: &str, _args: &dyn askama::Values) -> askama::Result<String> {
+        serde_json::to_string(s).map_err(|e| askama::Error::Custom(Box::new(e)))
+    }
 }
 
 // Template structs for Askama-based code generation
@@ -82,6 +86,7 @@ mod union {
         pub docstring: Option<String>,
         pub rust_type: TypeRust,
         pub literal_value: Option<String>,
+        pub literal_kind: Option<RustLiteralKind>,
     }
 }
 
@@ -137,11 +142,19 @@ pub struct RustUnion {
 }
 
 #[derive(Debug, Clone)]
+pub enum RustLiteralKind {
+    String,
+    Int,
+    Bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct RustVariant {
     pub name: String,
     pub rust_type: crate::r#type::TypeRust,
     pub docstring: Option<String>,
     pub literal_value: Option<String>,
+    pub literal_kind: Option<RustLiteralKind>,
 }
 
 /// A list of types in Rust.

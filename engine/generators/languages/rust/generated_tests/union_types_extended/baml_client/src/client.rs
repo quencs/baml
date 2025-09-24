@@ -11,8 +11,11 @@
 // You can install baml-cli with:
 //  $ cargo install baml-cli
 
-use crate::types::*;
 use baml_client_rust::{BamlClient as CoreBamlClient, BamlClientBuilder, BamlContext, BamlResult};
+use crate::{
+    source_map,
+    types::*,
+};
 use futures::Stream;
 
 /// Main BAML client for executing functions
@@ -24,27 +27,73 @@ pub struct BamlClient {
 impl BamlClient {
     /// Create a new BAML client with default configuration
     pub fn new() -> BamlResult<Self> {
-        let client = CoreBamlClient::from_env()?;
+        let mut env_vars: std::collections::HashMap<String, String> = std::env::vars().collect();
+        env_vars.entry("BAML_SRC".to_string()).or_insert_with(|| "./baml_src".to_string());
+
+        // Prefer local baml_src during generated tests
+        let mut last_error: Option<baml_client_rust::BamlError> = None;
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let local = std::path::Path::new("baml_src");
+            if local.exists() {
+                match CoreBamlClient::from_directory(local, env_vars.clone()) {
+                    Ok(client) => return Ok(Self { client }),
+                    Err(err) => {
+                        #[cfg(debug_assertions)]
+                        eprintln!("BamlClient::from_directory failed: {err}");
+                        last_error = Some(err);
+                    }
+                }
+            }
+        }
+
+        // Fall back to embedded source map
+        let embedded_files: std::collections::HashMap<String, String> = source_map::baml_source_files()
+            .into_iter()
+            .map(|(path, contents)| (path.to_string(), contents.to_string()))
+            .collect();
+        if !embedded_files.is_empty() {
+            match CoreBamlClient::from_file_content("./baml_src", &embedded_files, env_vars.clone()) {
+                Ok(client) => return Ok(Self { client }),
+                Err(err) => {
+                    #[cfg(debug_assertions)]
+                    eprintln!("BamlClient::from_file_content failed: {err}");
+                    last_error = Some(err);
+                }
+            }
+        }
+
+        let client = match CoreBamlClient::from_env() {
+            Ok(client) => client,
+            Err(err) => {
+                #[cfg(debug_assertions)]
+                if let Some(prev) = &last_error {
+                    eprintln!("BamlClient::from_env failed after embedded attempts: {prev}");
+                }
+                return Err(err);
+            }
+        };
         Ok(Self { client })
     }
-
+    
     /// Create a new BAML client from a directory containing BAML files
     #[cfg(not(target_arch = "wasm32"))]
     pub fn from_directory<P: AsRef<std::path::Path>>(path: P) -> BamlResult<Self> {
         let client = CoreBamlClient::from_directory(path, std::env::vars().collect())?;
         Ok(Self { client })
     }
-
+    
     /// Create a new BAML client with custom configuration
     pub fn builder() -> BamlClientBuilder {
         BamlClientBuilder::new()
     }
-
+    
     /// Create a new BAML client with a custom core client
     pub fn with_core_client(client: CoreBamlClient) -> Self {
         Self { client }
     }
-
+    
     /// Get access to the underlying core client
     pub fn core_client(&self) -> &CoreBamlClient {
         &self.client
@@ -59,123 +108,100 @@ impl Default for BamlClient {
 impl BamlClient {
     /// TestComplexUnions - Generated BAML function
     pub async fn test_complex_unions(
-        &self,
-        input: String,
+        &self,input: impl Into<String>,
     ) -> BamlResult<crate::types::ComplexUnions> {
-        let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
-
-        self.client
-            .call_function("TestComplexUnions", context)
-            .await
+        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
+        self.client.call_function("TestComplexUnions", context).await
     }
-
+    
     /// TestComplexUnions (streaming) - Generated BAML function  
     pub async fn test_complex_unions_stream(
-        &self,
-        input: String,
-    ) -> BamlResult<
-        impl futures::Stream<
-                Item = BamlResult<baml_client_rust::StreamState<crate::types::ComplexUnions>>,
-            > + Send
-            + Sync,
-    > {
-        let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
-
-        self.client
-            .call_function_stream("TestComplexUnions", context)
-            .await
+        &self,input: impl Into<String>,
+    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::types::ComplexUnions>>> + Send + Sync> {
+        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
+        self.client.call_function_stream("TestComplexUnions", context).await
     }
 }
 impl BamlClient {
     /// TestDiscriminatedUnions - Generated BAML function
     pub async fn test_discriminated_unions(
-        &self,
-        input: String,
+        &self,input: impl Into<String>,
     ) -> BamlResult<crate::types::DiscriminatedUnions> {
-        let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
-
-        self.client
-            .call_function("TestDiscriminatedUnions", context)
-            .await
+        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
+        self.client.call_function("TestDiscriminatedUnions", context).await
     }
-
+    
     /// TestDiscriminatedUnions (streaming) - Generated BAML function  
     pub async fn test_discriminated_unions_stream(
-        &self,
-        input: String,
-    ) -> BamlResult<
-        impl futures::Stream<
-                Item = BamlResult<baml_client_rust::StreamState<crate::types::DiscriminatedUnions>>,
-            > + Send
-            + Sync,
-    > {
-        let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
-
-        self.client
-            .call_function_stream("TestDiscriminatedUnions", context)
-            .await
+        &self,input: impl Into<String>,
+    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::types::DiscriminatedUnions>>> + Send + Sync> {
+        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
+        self.client.call_function_stream("TestDiscriminatedUnions", context).await
     }
 }
 impl BamlClient {
     /// TestPrimitiveUnions - Generated BAML function
     pub async fn test_primitive_unions(
-        &self,
-        input: String,
+        &self,input: impl Into<String>,
     ) -> BamlResult<crate::types::PrimitiveUnions> {
-        let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
-
-        self.client
-            .call_function("TestPrimitiveUnions", context)
-            .await
+        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
+        self.client.call_function("TestPrimitiveUnions", context).await
     }
-
+    
     /// TestPrimitiveUnions (streaming) - Generated BAML function  
     pub async fn test_primitive_unions_stream(
-        &self,
-        input: String,
-    ) -> BamlResult<
-        impl futures::Stream<
-                Item = BamlResult<baml_client_rust::StreamState<crate::types::PrimitiveUnions>>,
-            > + Send
-            + Sync,
-    > {
-        let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
-
-        self.client
-            .call_function_stream("TestPrimitiveUnions", context)
-            .await
+        &self,input: impl Into<String>,
+    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::types::PrimitiveUnions>>> + Send + Sync> {
+        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
+        self.client.call_function_stream("TestPrimitiveUnions", context).await
     }
 }
 impl BamlClient {
     /// TestUnionArrays - Generated BAML function
-    pub async fn test_union_arrays(&self, input: String) -> BamlResult<crate::types::UnionArrays> {
-        let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
-
+    pub async fn test_union_arrays(
+        &self,input: impl Into<String>,
+    ) -> BamlResult<crate::types::UnionArrays> {
+        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
         self.client.call_function("TestUnionArrays", context).await
     }
-
+    
     /// TestUnionArrays (streaming) - Generated BAML function  
     pub async fn test_union_arrays_stream(
-        &self,
-        input: String,
-    ) -> BamlResult<
-        impl futures::Stream<
-                Item = BamlResult<baml_client_rust::StreamState<crate::types::UnionArrays>>,
-            > + Send
-            + Sync,
-    > {
-        let mut context = BamlContext::new();
-        context = context.set_arg("input", input)?;
-
-        self.client
-            .call_function_stream("TestUnionArrays", context)
-            .await
+        &self,input: impl Into<String>,
+    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::types::UnionArrays>>> + Send + Sync> {
+        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
+        
+        // Include environment variables in the context
+        context = context.set_env_vars(std::env::vars());
+        
+        self.client.call_function_stream("TestUnionArrays", context).await
     }
 }
