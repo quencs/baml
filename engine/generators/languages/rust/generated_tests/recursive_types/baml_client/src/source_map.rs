@@ -15,7 +15,9 @@ use std::collections::HashMap;
 
 pub fn baml_source_files() -> HashMap<&'static str, &'static str> {
     let mut map = HashMap::new();
-    map.insert("baml_src/main.baml", r###"type JSON = string | null | int | float | map<string, JSON> | JSON[]
+    map.insert(
+        "baml_src/main.baml",
+        r###"type JSON = string | null | int | float | map<string, JSON> | JSON[]
 
 function Foo(x: int) -> JSON {
     client "openai/gpt-4o-mini"
@@ -61,6 +63,7 @@ type Nonrecursive2 = (null | string) | null | (null | null)
 class UseMyUnion {
     u MyUnion
 }
-"###);
+"###,
+    );
     map
 }

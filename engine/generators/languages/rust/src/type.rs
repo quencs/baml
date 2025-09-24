@@ -122,6 +122,7 @@ pub enum TypeRust {
     Int(Option<i64>, TypeMetaRust),
     Float(TypeMetaRust),
     Bool(Option<bool>, TypeMetaRust),
+    Null(TypeMetaRust),
     Media(MediaTypeRust, TypeMetaRust),
     // Complex types
     Class {
@@ -150,7 +151,6 @@ pub enum TypeRust {
     },
     List(Box<TypeRust>, TypeMetaRust),
     Map(Box<TypeRust>, Box<TypeRust>, TypeMetaRust),
-    Null(TypeMetaRust),
     // For types we can't represent in Rust
     Any {
         reason: String,
@@ -254,6 +254,23 @@ impl TypeRust {
     pub fn with_meta(mut self, meta: TypeMetaRust) -> Self {
         *(self.meta_mut()) = meta;
         self
+    }
+
+    pub fn serialize_type_with_turbofish(&self, pkg: &CurrentRenderPackage) -> String {
+        let type_str = self.serialize_type(pkg);
+        if type_str.contains("::<") {
+            return type_str;
+        }
+        if let Some(idx) = type_str.find('<') {
+            let (prefix, rest) = type_str.split_at(idx);
+            if prefix.ends_with("::") {
+                type_str
+            } else {
+                format!("{}::{}", prefix, rest)
+            }
+        } else {
+            type_str
+        }
     }
 
     pub fn default_value(&self, pkg: &CurrentRenderPackage) -> String {

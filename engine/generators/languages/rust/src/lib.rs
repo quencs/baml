@@ -162,7 +162,31 @@ impl LanguageFeatures for RustLanguageFeatures {
             unions
         };
 
-        let type_aliases = vec![]; // TODO: Generate type aliases from IR
+        let mut type_aliases: Vec<generated_types::TypeAliasRust> = ir
+            .walk_type_aliases()
+            .map(|alias| ir_to_rust::type_aliases::ir_type_alias_to_rust(alias.item, &pkg))
+            .collect();
+        type_aliases.sort_by(|a, b| a.name.cmp(&b.name));
+        type_aliases.dedup_by(|a, b| a.name == b.name);
+
+        let stream_pkg = package::CurrentRenderPackage::new("stream_state", ir.clone());
+        let mut stream_type_aliases: Vec<generated_types::TypeAliasRust> = ir
+            .walk_type_aliases()
+            .map(|alias| {
+                ir_to_rust::type_aliases::ir_type_alias_to_rust_stream(alias.item, &stream_pkg)
+            })
+            .collect();
+        stream_type_aliases.sort_by(|a, b| a.name.cmp(&b.name));
+        stream_type_aliases.dedup_by(|a, b| a.name == b.name);
+
+        let mut stream_state_content = String::from(
+            "pub use baml_client_rust::StreamState;\n#[allow(unused_imports)]\nuse crate::types::*;\n\n",
+        );
+        stream_state_content.push_str(&generated_types::render_rust_types(
+            &stream_type_aliases,
+            &stream_pkg,
+        )?);
+        collector.add_file("src/stream_state.rs", stream_state_content)?;
         collector.add_file(
             "src/types.rs",
             generated_types::render_all_rust_types(

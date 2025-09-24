@@ -221,7 +221,7 @@ impl baml_client_rust::types::FromBamlValue for {{ name }} {
         }
         {%- else %}
         // Try {{ variant.name }} variant
-        if let Ok(variant_value) = {{ variant.rust_type.serialize_type(pkg) }}::from_baml_value(value.clone()) {
+        if let Ok(variant_value) = {{ variant.rust_type.serialize_type_with_turbofish(pkg) }}::from_baml_value(value.clone()) {
             return Ok(Self::{{ variant.name }}(variant_value));
         }
         {%- endif %}
