@@ -99,7 +99,7 @@ macro_rules! define_baml_media_type {
         impl TryFrom<baml_types::BamlMedia> for $name {
             type Error = baml_client_rust::BamlError;
 
-            fn try_from(media: baml_types::BamlMedia) -> Result<Self, Self::Error> {
+            fn try_from(media: baml_types::BamlMedia) -> std::result::Result<Self, Self::Error> {
                 Self::new(media)
             }
         }

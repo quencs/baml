@@ -2,12 +2,39 @@ use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeature
 use functions::{render_functions, render_source_files};
 use std::sync::OnceLock;
 
+use baml_types::ir_type::{TypeGeneric, TypeNonStreaming, UnionTypeViewGeneric};
+
 mod functions;
 mod generated_types;
 mod ir_to_rust;
 mod package;
 mod r#type;
 mod utils;
+
+fn type_generic_matches_class(
+    t: &TypeGeneric<baml_types::ir_type::type_meta::NonStreaming>,
+    class_name: &str,
+) -> bool {
+    match t {
+        TypeGeneric::Class { name, .. } => name == class_name,
+        TypeGeneric::RecursiveTypeAlias { name, .. } => name == class_name,
+        _ => false,
+    }
+}
+
+fn union_contains_class(field_type: &TypeNonStreaming, class_name: &str) -> bool {
+    match field_type {
+        TypeGeneric::Union(union_generic, _) => match union_generic.view() {
+            UnionTypeViewGeneric::Null => false,
+            UnionTypeViewGeneric::Optional(inner) => type_generic_matches_class(inner, class_name),
+            UnionTypeViewGeneric::OneOf(types)
+            | UnionTypeViewGeneric::OneOfOptional(types) => types
+                .iter()
+                .any(|t| type_generic_matches_class(t, class_name)),
+        },
+        _ => false,
+    }
+}
 
 #[derive(Default)]
 pub struct RustLanguageFeatures {
@@ -93,10 +120,16 @@ impl LanguageFeatures for RustLanguageFeatures {
                                 .map(|f| &f.elem.r#type.elem);
 
                             let mut rust_type = if let Some(field_type) = field_type_ir {
-                                crate::ir_to_rust::type_to_rust(
-                                    &field_type.to_non_streaming_type(pkg.lookup()),
+                                let field_type_non_streaming =
+                                    field_type.to_non_streaming_type(pkg.lookup());
+                                let mut ty = crate::ir_to_rust::type_to_rust(
+                                    &field_type_non_streaming,
                                     pkg.lookup(),
-                                )
+                                );
+                                if union_contains_class(&field_type_non_streaming, class_name) {
+                                    ty.meta_mut().make_boxed();
+                                }
+                                ty
                             } else {
                                 // Fallback to String if field not found
                                 r#type::TypeRust::String(

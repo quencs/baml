@@ -7,6 +7,7 @@ pub enum TypeWrapper {
     None,
     Checked(Box<TypeWrapper>, Vec<String>),
     Optional(Box<TypeWrapper>),
+    Boxed(Box<TypeWrapper>),
 }
 
 impl TypeWrapper {
@@ -61,6 +62,11 @@ impl TypeMetaRust {
         self
     }
 
+    pub fn make_boxed(&mut self) -> &mut Self {
+        self.type_wrapper = TypeWrapper::Boxed(Box::new(std::mem::take(&mut self.type_wrapper)));
+        self
+    }
+
     pub fn set_stream_state(&mut self) -> &mut Self {
         self.wrap_stream_state = true;
         self
@@ -77,6 +83,7 @@ impl WrapType for TypeWrapper {
         match self {
             TypeWrapper::None => orig.clone(),
             TypeWrapper::Checked(inner, _names) => inner.wrap_type(params),
+            TypeWrapper::Boxed(inner) => format!("Box<{}>", inner.wrap_type(params)),
             TypeWrapper::Optional(inner) => format!("Option<{}>", inner.wrap_type(params)),
         }
     }
@@ -269,11 +276,14 @@ impl TypeRust {
             return "None".to_string();
         }
         if matches!(self.meta().type_wrapper, TypeWrapper::Checked(_, _)) {
-            return format!("{}::default()", self.serialize_type(pkg));
+            return default_call(self.serialize_type(pkg));
         }
         match self {
             TypeRust::String(val, _) => val.as_ref().map_or("String::new()".to_string(), |v| {
-                format!("\"{}\"", v.replace("\"", "\\\"")).to_string()
+                format!(
+                    "String::from(\"{}\")",
+                    v.replace("\"", "\\\"")
+                )
             }),
             TypeRust::Int(val, _) => val.map_or("0".to_string(), |v| format!("{v}")),
             TypeRust::Float(_) => "0.0".to_string(),
@@ -281,19 +291,30 @@ impl TypeRust {
                 if v { "true" } else { "false" }.to_string()
             }),
             TypeRust::Media(..) | TypeRust::Class { .. } | TypeRust::Union { .. } => {
-                format!("{}::default()", self.serialize_type(pkg))
+                default_call(self.serialize_type(pkg))
             }
             TypeRust::Enum { .. } => {
-                format!("{}::default()", self.serialize_type(pkg))
+                default_call(self.serialize_type(pkg))
             }
             TypeRust::TypeAlias { .. } => {
-                format!("{}::default()", self.serialize_type(pkg))
+                default_call(self.serialize_type(pkg))
             }
             TypeRust::List(..) => "Vec::new()".to_string(),
             TypeRust::Map(..) => "std::collections::HashMap::new()".to_string(),
             TypeRust::Null(_) => format!("{}NullValue", Package::types().relative_from(pkg)),
             TypeRust::Any { .. } => "serde_json::Value::Null".to_string(),
         }
+    }
+}
+
+fn default_call(type_str: String) -> String {
+    if let Some(inner) = type_str
+        .strip_prefix("Box<")
+        .and_then(|s| s.strip_suffix('>'))
+    {
+        format!("Box::<{}>::default()", inner)
+    } else {
+        format!("{}::default()", type_str)
     }
 }
 

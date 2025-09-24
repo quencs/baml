@@ -22,38 +22,32 @@ This document lists all test folders under `generators/languages/rust/generated_
 | sample | ✅ PASS | Both consistent and evaluate tests pass |
 | semantic_streaming | ✅ PASS | Both consistent and evaluate tests pass |
 | unions | ✅ PASS | Both consistent and evaluate tests pass |
-| union_types_extended | ❌ FAIL | Consistent test passes, evaluate test fails with compilation errors |
+| union_types_extended | ✅ PASS | Both consistent and evaluate tests pass |
 
 ## Summary
 
 - **Total Tests**: 17 test folders
-- **Passing**: 16 tests (94%) ✅
-- **Failing**: 1 test (6%) ❌
+- **Passing**: 17 tests (100%) ✅
+- **Failing**: 0 tests (0%) ❌
 
 ## Detailed Results
 
-### Passing Tests (16/17)
+### All Tests Passing (17/17) 🎉
 
-All tests except `union_types_extended` are passing successfully. These tests include:
+Excellent news! All tests are now passing successfully. This represents a **100% success rate** for the Rust generator test suite.
+
+#### Test Categories:
 
 - **Basic Types**: `array_types`, `primitive_types`, `literal_types`
 - **Complex Types**: `map_types`, `mixed_complex_types`, `nested_structures`
-- **Advanced Features**: `enums`, `unions`, `optional_nullable`, `recursive_types`
+- **Advanced Features**: `enums`, `unions`, `union_types_extended`, `optional_nullable`, `recursive_types`
 - **Special Cases**: `edge_cases`, `asserts`, `semantic_streaming`
 - **Media Types**: `media_types`
 - **Sample**: `sample`
 
-### Failing Tests (1/17)
+### Recent Improvements
 
-#### `union_types_extended` ❌
-- **Consistent Test**: ✅ PASS
-- **Evaluate Test**: ❌ FAIL
-- **Error**: Compilation errors in the generated Rust code
-- **Issues**: 
-  - Type conflicts with `Result` struct (line 2219)
-  - String literal vs String type mismatches
-  - Missing trait implementations for `&str`
-  - Drop-check cycle detected for `RecursiveUnion`
+The `union_types_extended` test has been fixed and is now passing! This was the last failing test, bringing the success rate from 94% to 100%.
 
 ## Test Command
 

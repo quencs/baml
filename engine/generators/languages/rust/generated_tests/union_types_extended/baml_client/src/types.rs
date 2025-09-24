@@ -99,7 +99,7 @@ macro_rules! define_baml_media_type {
         impl TryFrom<baml_types::BamlMedia> for $name {
             type Error = baml_client_rust::BamlError;
 
-            fn try_from(media: baml_types::BamlMedia) -> Result<Self, Self::Error> {
+            fn try_from(media: baml_types::BamlMedia) -> std::result::Result<Self, Self::Error> {
                 Self::new(media)
             }
         }
@@ -315,7 +315,7 @@ impl ApiError {
 
 impl Default for ApiError {
     fn default() -> Self {
-        Self::new("error", String::new(), 0)
+        Self::new(String::from("error"), String::new(), 0)
     }
 }
 
@@ -344,13 +344,15 @@ impl baml_client_rust::types::FromBamlValue for ApiError {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "error"
+                            String::from("error")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "error",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("error")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'status' in ApiError"
@@ -425,7 +427,7 @@ impl ApiPending {
 
 impl Default for ApiPending {
     fn default() -> Self {
-        Self::new("pending", 0.0, None)
+        Self::new(String::from("pending"), 0.0, None)
     }
 }
 
@@ -454,13 +456,15 @@ impl baml_client_rust::types::FromBamlValue for ApiPending {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "pending"
+                            String::from("pending")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "pending",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("pending")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'status' in ApiPending"
@@ -529,7 +533,7 @@ impl ApiSuccess {
 
 impl Default for ApiSuccess {
     fn default() -> Self {
-        Self::new("success", std::collections::HashMap::new())
+        Self::new(String::from("success"), std::collections::HashMap::new())
     }
 }
 
@@ -557,13 +561,15 @@ impl baml_client_rust::types::FromBamlValue for ApiSuccess {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "success"
+                            String::from("success")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "success",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("success")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'status' in ApiSuccess"
@@ -622,7 +628,7 @@ impl Bird {
 
 impl Default for Bird {
     fn default() -> Self {
-        Self::new("bird", false, None)
+        Self::new(String::from("bird"), false, None)
     }
 }
 
@@ -651,13 +657,15 @@ impl baml_client_rust::types::FromBamlValue for Bird {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "bird"
+                            String::from("bird")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "bird",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("bird")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'species' in Bird"
@@ -732,7 +740,7 @@ impl Cat {
 
 impl Default for Cat {
     fn default() -> Self {
-        Self::new("cat", String::new(), 0)
+        Self::new(String::from("cat"), String::new(), 0)
     }
 }
 
@@ -761,13 +769,15 @@ impl baml_client_rust::types::FromBamlValue for Cat {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "cat"
+                            String::from("cat")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "cat",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("cat")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'species' in Cat"
@@ -836,7 +846,7 @@ impl Circle {
 
 impl Default for Circle {
     fn default() -> Self {
-        Self::new("circle", 0.0)
+        Self::new(String::from("circle"), 0.0)
     }
 }
 
@@ -864,13 +874,15 @@ impl baml_client_rust::types::FromBamlValue for Circle {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "circle"
+                            String::from("circle")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "circle",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("circle")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'shape' in Circle"
@@ -1122,7 +1134,7 @@ impl DataResponse {
 
 impl Default for DataResponse {
     fn default() -> Self {
-        Self::new(String::new(), 0, "success")
+        Self::new(String::new(), 0, String::from("success"))
     }
 }
 
@@ -1187,13 +1199,15 @@ impl baml_client_rust::types::FromBamlValue for DataResponse {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "success"
+                            String::from("success")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "success",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("success")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'status' in DataResponse"
@@ -1356,7 +1370,7 @@ impl Dog {
 
 impl Default for Dog {
     fn default() -> Self {
-        Self::new("dog", String::new(), false)
+        Self::new(String::from("dog"), String::new(), false)
     }
 }
 
@@ -1385,13 +1399,15 @@ impl baml_client_rust::types::FromBamlValue for Dog {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "dog"
+                            String::from("dog")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "dog",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("dog")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'species' in Dog"
@@ -1598,7 +1614,7 @@ impl ErrorResponse {
 
 impl Default for ErrorResponse {
     fn default() -> Self {
-        Self::new(String::new(), 0, "error")
+        Self::new(String::new(), 0, String::from("error"))
     }
 }
 
@@ -1663,13 +1679,15 @@ impl baml_client_rust::types::FromBamlValue for ErrorResponse {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "error"
+                            String::from("error")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "error",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("error")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'status' in ErrorResponse"
@@ -2034,7 +2052,7 @@ impl Rectangle {
 
 impl Default for Rectangle {
     fn default() -> Self {
-        Self::new("rectangle", 0.0, 0.0)
+        Self::new(String::from("rectangle"), 0.0, 0.0)
     }
 }
 
@@ -2063,13 +2081,15 @@ impl baml_client_rust::types::FromBamlValue for Rectangle {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "rectangle"
+                            String::from("rectangle")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "rectangle",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("rectangle")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'shape' in Rectangle"
@@ -2124,7 +2144,7 @@ impl baml_client_rust::types::FromBamlValue for Rectangle {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RecursiveUnion {
-    pub value: crate::types::Union3IntOrRecursiveUnionOrString,
+    pub value: Box<crate::types::Union3IntOrRecursiveUnionOrString>,
 
     pub children: Vec<crate::types::Union2RecursiveUnionOrString>,
 }
@@ -2132,7 +2152,7 @@ pub struct RecursiveUnion {
 impl RecursiveUnion {
     /// Create a new RecursiveUnion instance
     pub fn new(
-        value: crate::types::Union3IntOrRecursiveUnionOrString,
+        value: Box<crate::types::Union3IntOrRecursiveUnionOrString>,
         children: Vec<crate::types::Union2RecursiveUnionOrString>,
     ) -> Self {
         Self { value, children }
@@ -2142,7 +2162,7 @@ impl RecursiveUnion {
 impl Default for RecursiveUnion {
     fn default() -> Self {
         Self::new(
-            crate::types::Union3IntOrRecursiveUnionOrString::default(),
+            Box::<crate::types::Union3IntOrRecursiveUnionOrString>::default(),
             Vec::new(),
         )
     }
@@ -2172,14 +2192,14 @@ impl baml_client_rust::types::FromBamlValue for RecursiveUnion {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            crate::types::Union3IntOrRecursiveUnionOrString::default()
+                            Box::<crate::types::Union3IntOrRecursiveUnionOrString>::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
                     None if baml_client_rust::types::is_partial_deserialization() => {
-                        crate::types::Union3IntOrRecursiveUnionOrString::default()
+                        Box::<crate::types::Union3IntOrRecursiveUnionOrString>::default()
                     }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
@@ -2452,7 +2472,7 @@ impl Triangle {
 
 impl Default for Triangle {
     fn default() -> Self {
-        Self::new("triangle", 0.0, 0.0)
+        Self::new(String::from("triangle"), 0.0, 0.0)
     }
 }
 
@@ -2481,13 +2501,15 @@ impl baml_client_rust::types::FromBamlValue for Triangle {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            "triangle"
+                            String::from("triangle")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => "triangle",
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("triangle")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'shape' in Triangle"

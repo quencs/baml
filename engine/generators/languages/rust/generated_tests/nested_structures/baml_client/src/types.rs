@@ -99,7 +99,7 @@ macro_rules! define_baml_media_type {
         impl TryFrom<baml_types::BamlMedia> for $name {
             type Error = baml_client_rust::BamlError;
 
-            fn try_from(media: baml_types::BamlMedia) -> Result<Self, Self::Error> {
+            fn try_from(media: baml_types::BamlMedia) -> std::result::Result<Self, Self::Error> {
                 Self::new(media)
             }
         }
@@ -3505,7 +3505,7 @@ pub struct RecursiveStructure {
 
     pub children: Vec<crate::types::RecursiveStructure>,
 
-    pub parent: Option<Box<crate::types::RecursiveStructure>>,
+    pub parent: Box<Option<Box<crate::types::RecursiveStructure>>>,
 
     pub metadata: std::collections::HashMap<String, crate::types::Union3BoolOrIntOrString>,
 }
@@ -3516,7 +3516,7 @@ impl RecursiveStructure {
         id: i64,
         name: String,
         children: Vec<crate::types::RecursiveStructure>,
-        parent: Option<Box<crate::types::RecursiveStructure>>,
+        parent: Box<Option<Box<crate::types::RecursiveStructure>>>,
         metadata: std::collections::HashMap<String, crate::types::Union3BoolOrIntOrString>,
     ) -> Self {
         Self {
@@ -3535,7 +3535,7 @@ impl Default for RecursiveStructure {
             0,
             String::new(),
             Vec::new(),
-            None,
+            Box::<Option<Box<crate::types::RecursiveStructure>>>::default(),
             std::collections::HashMap::new(),
         )
     }
@@ -3622,13 +3622,15 @@ impl baml_client_rust::types::FromBamlValue for RecursiveStructure {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            None
+                            Box::<Option<Box<crate::types::RecursiveStructure>>>::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => None,
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        Box::<Option<Box<crate::types::RecursiveStructure>>>::default()
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'parent' in RecursiveStructure"
