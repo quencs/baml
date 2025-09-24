@@ -252,33 +252,75 @@ fn render_minijinja(params: MinijinjaRenderParams) -> Result<RenderedPrompt, min
         } else {
             let mut parts = vec![];
             for part in chunk.split(MAGIC_MEDIA_DELIMITER) {
-                let part = if part.starts_with(":baml-start-media:")
-                    && part.ends_with(":baml-end-media:")
-                {
-                    let media_data = part
-                        .strip_prefix(":baml-start-media:")
-                        .unwrap_or(part)
-                        .strip_suffix(":baml-end-media:")
-                        .unwrap_or(part);
+                // Be tolerant of surrounding punctuation/whitespace around media markers
+                let start_tag = ":baml-start-media:";
+                let end_tag = ":baml-end-media:";
+                let mut consumed_any = false;
 
-                    match serde_json::from_str::<BamlMedia>(media_data) {
-                        Ok(m) => Some(ChatMessagePart::Media(m)),
+                let mut remaining = part;
+                loop {
+                    let start_idx = match remaining.find(start_tag) {
+                        Some(i) => i,
+                        None => break,
+                    };
+
+                    let end_search_start = start_idx + start_tag.len();
+                    let end_idx_rel = match remaining[end_search_start..].find(end_tag) {
+                        Some(i) => i,
+                        None => break,
+                    };
+                    let end_idx = end_search_start + end_idx_rel;
+
+                    // Preceding text
+                    let before = &remaining[..start_idx];
+                    if !before.trim().is_empty() {
+                        let txt = ChatMessagePart::Text(before.trim().to_string());
+                        parts.push(match &meta {
+                            Some(m) => txt.with_meta(m.clone()),
+                            None => txt,
+                        });
+                    }
+
+                    // Media JSON between tags
+                    let media_json = &remaining[end_search_start..end_idx];
+                    match serde_json::from_str::<BamlMedia>(media_json) {
+                        Ok(m) => {
+                            let media_part = ChatMessagePart::Media(m);
+                            parts.push(match &meta {
+                                Some(m) => media_part.with_meta(m.clone()),
+                                None => media_part,
+                            });
+                        }
                         Err(_) => Err(minijinja::Error::new(
                             ErrorKind::CannotUnpack,
-                            format!("Media variable had unrecognizable data: {media_data}"),
+                            format!("Media variable had unrecognizable data: {media_json}"),
                         ))?,
                     }
-                } else if !part.trim().is_empty() {
-                    Some(ChatMessagePart::Text(part.trim().to_string()))
-                } else {
-                    None
-                };
 
-                if let Some(part) = part {
-                    if let Some(meta) = &meta {
-                        parts.push(part.with_meta(meta.clone()));
-                    } else {
-                        parts.push(part);
+                    consumed_any = true;
+
+                    // Advance remaining after end tag
+                    let after_start = end_idx + end_tag.len();
+                    remaining = &remaining[after_start..];
+                }
+
+                if consumed_any {
+                    // Whatever remains (tail) after last media extraction
+                    if !remaining.trim().is_empty() {
+                        let txt = ChatMessagePart::Text(remaining.trim().to_string());
+                        parts.push(match &meta {
+                            Some(m) => txt.with_meta(m.clone()),
+                            None => txt,
+                        });
+                    }
+                } else {
+                    // No media markers in this segment; treat as text if non-empty
+                    if !part.trim().is_empty() {
+                        let txt = ChatMessagePart::Text(part.trim().to_string());
+                        parts.push(match &meta {
+                            Some(m) => txt.with_meta(m.clone()),
+                            None => txt,
+                        });
                     }
                 }
             }
@@ -671,6 +713,66 @@ mod render_tests {
                 ]
             },])
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn render_image_nested_without_outer_delimiter() -> anyhow::Result<()> {
+        setup_logging();
+        let ir = make_test_ir(
+            "
+            class C {
+
+            }
+            ",
+        )?;
+
+        let args: BamlValue = BamlValue::Map(BamlMap::from([(
+            "obj".to_string(),
+            BamlValue::Class(
+                "SomeClass".to_string(),
+                BamlMap::from([(
+                    "img".to_string(),
+                    BamlValue::Media(BamlMedia::url(
+                        BamlMediaType::Image,
+                        "https://example.com/image.jpg".to_string(),
+                        None,
+                    )),
+                )]),
+            ),
+        )]));
+
+        // Render the media inside a class render where punctuation can surround the media markers
+        let rendered = render_prompt(
+            "{{ _.chat(\"system\") }}\nHere: {{ obj }}",
+            &args,
+            RenderContext {
+                client: RenderContext_Client {
+                    name: "gpt4".to_string(),
+                    provider: "openai".to_string(),
+                    default_role: "system".to_string(),
+                    allowed_roles: vec!["system".to_string()],
+                    remap_role: HashMap::new(),
+                    options: IndexMap::new(),
+                },
+                output_format: OutputFormatContent::new_string(),
+                tags: HashMap::from([("ROLE".to_string(), BamlValue::String("john doe".into()))]),
+            },
+            &[],
+            &ir,
+            &HashMap::new(),
+        )?;
+
+        match rendered {
+            RenderedPrompt::Chat(messages) => {
+                assert_eq!(messages.len(), 1);
+                let parts = &messages[0].parts;
+                // Expect at least one media part present even when surrounded by class text
+                assert!(parts.iter().any(|p| matches!(p, ChatMessagePart::Media(_))));
+            }
+            _ => anyhow::bail!("Expected Chat prompt"),
+        }
 
         Ok(())
     }

@@ -210,49 +210,22 @@ function useBamlAction<FunctionName extends FunctionNames>(
     streamData: undefined,
   })
 
-  // Recursively serialize any BAML media types nested inside args (e.g., inside dynamic classes)
-  function serializeBamlMediaDeep(value: unknown): unknown {
-    if (value && typeof value === 'object') {
-      const ctorName = (value as any).constructor?.name;
-      if (
-        ctorName === 'BamlImage' ||
-        ctorName === 'BamlAudio' ||
-        ctorName === 'BamlPdf' ||
-        ctorName === 'BamlVideo'
-      ) {
-        try {
-          return (value as any).toJSON();
-        } catch {
-          return value;
-        }
-      }
-
-      if (Array.isArray(value)) {
-        return value.map(serializeBamlMediaDeep);
-      }
-
-      // Preserve common built-ins
-      if (value instanceof Date) return value;
-      if (typeof File !== 'undefined' && value instanceof File) return value;
-      if (typeof Blob !== 'undefined' && value instanceof Blob) return value;
-
-      const result: Record<string, unknown> = {};
-      for (const key of Object.keys(value as Record<string, unknown>)) {
-        result[key] = serializeBamlMediaDeep((value as any)[key]);
-      }
-      return result;
-    }
-    return value;
-  }
-
   const mutate = useCallback(
     async (...input: Parameters<ServerAction>) => {
       dispatch({ type: 'START_REQUEST' })
       try {
         let response: Awaited<ReturnType<ServerAction>>
         startTransition(async () => {
-          // Transform any BAML media inputs (even when nested) to their JSON representation
-          const transformedInput = input.map(serializeBamlMediaDeep)
+          // Transform any BamlImage or BamlAudio inputs to their JSON representation
+          const transformedInput = input.map(arg => {
+            // Check if the argument is an instance of BamlImage or BamlAudio
+            // We check the constructor name since the actual classes might be proxied in browser environments
+            if (arg && typeof arg === 'object' &&
+                (arg.constructor.name === 'BamlImage' || arg.constructor.name === 'BamlAudio')) {
+              return arg.toJSON();
+            }
+            return arg;
+          });
 
           response = await action(...transformedInput)
 
