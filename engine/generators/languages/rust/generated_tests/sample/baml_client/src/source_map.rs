@@ -15,7 +15,9 @@ use std::collections::HashMap;
 
 pub fn baml_source_files() -> HashMap<&'static str, &'static str> {
     let mut map = HashMap::new();
-    map.insert("baml_src/main.baml", r###"class Example {
+    map.insert(
+        "baml_src/main.baml",
+        r###"class Example {
     type "example_1" @stream.not_null
     a int @check(a_is_positive, {{this > 0}})
     b string
@@ -72,6 +74,7 @@ test FooTest {
         x 1
     }
 }
-"###);
+"###,
+    );
     map
 }

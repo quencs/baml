@@ -11,40 +11,58 @@ This document lists all test folders under `generators/languages/rust/generated_
 | classes | ✅ PASS | Both consistent and evaluate tests pass |
 | edge_cases | ✅ PASS | Both consistent and evaluate tests pass |
 | enums | ✅ PASS | Both consistent and evaluate tests pass |
-| literal_types | ❌ FAIL | Consistent test passes, evaluate test fails with compilation errors |
+| literal_types | ✅ PASS | Both consistent and evaluate tests pass |
 | map_types | ✅ PASS | Both consistent and evaluate tests pass |
-| media_types | ❌ FAIL | Consistent test passes, evaluate test fails with missing type errors |
-| mixed_complex_types | ❌ FAIL | Consistent test passes, evaluate test fails with syntax errors |
-| nested_structures | ❌ FAIL | Consistent test passes, evaluate test fails with compilation errors |
+| media_types | ✅ PASS | Both consistent and evaluate tests pass |
+| mixed_complex_types | ✅ PASS | Both consistent and evaluate tests pass |
+| nested_structures | ✅ PASS | Both consistent and evaluate tests pass |
 | optional_nullable | ✅ PASS | Both consistent and evaluate tests pass |
-| primitive_types | ❌ FAIL | Consistent test passes, evaluate test fails with trait bound errors |
-| recursive_types | ❌ FAIL | Consistent test passes, evaluate test fails with syntax errors |
-| sample | ❌ FAIL | Consistent test passes, evaluate test fails with const generic errors |
+| primitive_types | ✅ PASS | Both consistent and evaluate tests pass |
+| recursive_types | ✅ PASS | Both consistent and evaluate tests pass |
+| sample | ✅ PASS | Both consistent and evaluate tests pass |
 | semantic_streaming | ✅ PASS | Both consistent and evaluate tests pass |
+| unions | ✅ PASS | Both consistent and evaluate tests pass |
+| union_types_extended | ❌ FAIL | Consistent test passes, evaluate test fails with compilation errors |
 
 ## Summary
 
-- **Total Tests**: 15
-- **Passing**: 8 (53%)
-- **Failing**: 7 (47%)
+- **Total Tests**: 17 test folders
+- **Passing**: 16 tests (94%) ✅
+- **Failing**: 1 test (6%) ❌
 
-## Common Issues
+## Detailed Results
 
-The failing tests typically have one of these issues:
+### Passing Tests (16/17)
 
-1. **Compilation Errors**: Missing type definitions or trait implementations
-2. **Syntax Errors**: Invalid Rust syntax in generated code
-3. **Trait Bound Errors**: Missing `FromBamlValue` implementations
-4. **Const Generic Errors**: Invalid const generic expressions
+All tests except `union_types_extended` are passing successfully. These tests include:
+
+- **Basic Types**: `array_types`, `primitive_types`, `literal_types`
+- **Complex Types**: `map_types`, `mixed_complex_types`, `nested_structures`
+- **Advanced Features**: `enums`, `unions`, `optional_nullable`, `recursive_types`
+- **Special Cases**: `edge_cases`, `asserts`, `semantic_streaming`
+- **Media Types**: `media_types`
+- **Sample**: `sample`
+
+### Failing Tests (1/17)
+
+#### `union_types_extended` ❌
+- **Consistent Test**: ✅ PASS
+- **Evaluate Test**: ❌ FAIL
+- **Error**: Compilation errors in the generated Rust code
+- **Issues**: 
+  - Type conflicts with `Result` struct (line 2219)
+  - String literal vs String type mismatches
+  - Missing trait implementations for `&str`
+  - Drop-check cycle detected for `RecursiveUnion`
 
 ## Test Command
 
-To run a specific test:
+To run individual tests:
 ```bash
+cd /Users/han/github/baml/engine
 cargo test --package generators-rust --lib -- <test_name>
 ```
 
-For example:
-```bash
-cargo test --package generators-rust --lib -- array_types
-```
+## Last Updated
+
+Updated: $(date)

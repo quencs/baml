@@ -76,16 +76,7 @@ impl WrapType for TypeWrapper {
         let (pkg, orig) = &params;
         match self {
             TypeWrapper::None => orig.clone(),
-            TypeWrapper::Checked(inner, names) => format!(
-                "{}Checked<{}, [{}]>",
-                Package::checked().relative_from(pkg),
-                inner.wrap_type(params),
-                names
-                    .iter()
-                    .map(|n| format!("\"{}\"", n))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            TypeWrapper::Checked(inner, _names) => inner.wrap_type(params),
             TypeWrapper::Optional(inner) => format!("Option<{}>", inner.wrap_type(params)),
         }
     }

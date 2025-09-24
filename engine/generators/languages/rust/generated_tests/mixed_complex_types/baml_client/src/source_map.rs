@@ -15,7 +15,9 @@ use std::collections::HashMap;
 
 pub fn baml_source_files() -> HashMap<&'static str, &'static str> {
     let mut map = HashMap::new();
-    map.insert("baml_src/main.baml", r###"// Test mixed complex type combinations in BAML
+    map.insert(
+        "baml_src/main.baml",
+        r###"// Test mixed complex type combinations in BAML
 
 class KitchenSink {
   // Primitives
@@ -326,6 +328,7 @@ function TestRecursiveComplexity(input: string) -> Node {
     
     Input: {{ input }}
   "#
-}"###);
+}"###,
+    );
     map
 }

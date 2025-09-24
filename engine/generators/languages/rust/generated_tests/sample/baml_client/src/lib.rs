@@ -12,14 +12,14 @@
 //  $ cargo install baml-cli
 
 //! BAML Generated Rust Client
-//! 
+//!
 //! This crate provides a type-safe Rust client for your BAML functions.
-//! 
+//!
 //! # Usage
-//! 
+//!
 //! ```rust
 //! use baml_client::*;
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = BamlClient::new()?;
@@ -30,22 +30,17 @@
 //! }
 //! ```
 
-pub mod source_map;
-pub mod types;
 pub mod client;
+pub mod source_map;
+pub mod stream_state;
+pub mod types;
 
 // Re-exports for convenience
-pub use types::*;
 pub use client::BamlClient;
+pub use types::*;
 
 // Re-export core types from baml_client_rust
-pub use baml_client_rust::{
-    BamlResult, 
-    BamlError,
-    BamlContext,
-    StreamState,
-    BamlClientBuilder,
-};
+pub use baml_client_rust::{BamlClientBuilder, BamlContext, BamlError, BamlResult, StreamState};
 
 // Version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

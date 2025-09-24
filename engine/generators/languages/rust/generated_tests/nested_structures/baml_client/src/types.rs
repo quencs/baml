@@ -13,6 +13,153 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::convert::TryFrom;
+
+/// Represents the BAML `null` type in Rust
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct NullValue;
+
+impl baml_client_rust::types::ToBamlValue for NullValue {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        Ok(baml_client_rust::types::BamlValue::Null)
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for NullValue {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match value {
+            baml_client_rust::types::BamlValue::Null => Ok(NullValue),
+            other => Err(baml_client_rust::BamlError::deserialization(format!(
+                "Expected null, got {:?}",
+                other
+            ))),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum RustLiteralKind {
+    String,
+    Int,
+    Bool,
+}
+
+macro_rules! define_baml_media_type {
+    ($name:ident, $variant:ident) => {
+        #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+        #[serde(transparent)]
+        pub struct $name {
+            inner: baml_types::BamlMedia,
+        }
+
+        impl $name {
+            pub fn new(media: baml_types::BamlMedia) -> baml_client_rust::BamlResult<Self> {
+                if media.media_type == baml_types::BamlMediaType::$variant {
+                    Ok(Self { inner: media })
+                } else {
+                    Err(baml_client_rust::BamlError::deserialization(format!(
+                        "Expected {:?} media, got {:?}",
+                        baml_types::BamlMediaType::$variant,
+                        media.media_type
+                    )))
+                }
+            }
+
+            pub fn from_url(url: impl Into<String>, mime_type: Option<String>) -> Self {
+                Self {
+                    inner: baml_types::BamlMedia::url(
+                        baml_types::BamlMediaType::$variant,
+                        url.into(),
+                        mime_type,
+                    ),
+                }
+            }
+
+            pub fn from_base64(base64: impl Into<String>, mime_type: Option<String>) -> Self {
+                Self {
+                    inner: baml_types::BamlMedia::base64(
+                        baml_types::BamlMediaType::$variant,
+                        base64.into(),
+                        mime_type,
+                    ),
+                }
+            }
+
+            pub fn into_inner(self) -> baml_types::BamlMedia {
+                self.inner
+            }
+
+            pub fn as_inner(&self) -> &baml_types::BamlMedia {
+                &self.inner
+            }
+        }
+
+        impl TryFrom<baml_types::BamlMedia> for $name {
+            type Error = baml_client_rust::BamlError;
+
+            fn try_from(media: baml_types::BamlMedia) -> Result<Self, Self::Error> {
+                Self::new(media)
+            }
+        }
+
+        impl From<$name> for baml_types::BamlMedia {
+            fn from(value: $name) -> Self {
+                value.inner
+            }
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self {
+                    inner: baml_types::BamlMedia::base64(
+                        baml_types::BamlMediaType::$variant,
+                        String::new(),
+                        None,
+                    ),
+                }
+            }
+        }
+
+        impl baml_client_rust::types::ToBamlValue for $name {
+            fn to_baml_value(
+                self,
+            ) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+                Ok(baml_client_rust::types::BamlValue::Media(self.inner))
+            }
+        }
+
+        impl baml_client_rust::types::FromBamlValue for $name {
+            fn from_baml_value(
+                value: baml_client_rust::types::BamlValue,
+            ) -> baml_client_rust::BamlResult<Self> {
+                match value {
+                    baml_client_rust::types::BamlValue::Media(media) => {
+                        if media.media_type == baml_types::BamlMediaType::$variant {
+                            Ok(Self { inner: media })
+                        } else {
+                            Err(baml_client_rust::BamlError::deserialization(format!(
+                                "Expected {:?} media, got {:?}",
+                                baml_types::BamlMediaType::$variant,
+                                media.media_type
+                            )))
+                        }
+                    }
+                    other => Err(baml_client_rust::BamlError::deserialization(format!(
+                        "Expected media value, got {:?}",
+                        other
+                    ))),
+                }
+            }
+        }
+    };
+}
+
+define_baml_media_type!(BamlImage, Image);
+define_baml_media_type!(BamlAudio, Audio);
+define_baml_media_type!(BamlPdf, Pdf);
+define_baml_media_type!(BamlVideo, Video);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Address {
@@ -3358,7 +3505,7 @@ pub struct RecursiveStructure {
 
     pub children: Vec<crate::types::RecursiveStructure>,
 
-    pub parent: Option<crate::types::RecursiveStructure>,
+    pub parent: Option<Box<crate::types::RecursiveStructure>>,
 
     pub metadata: std::collections::HashMap<String, crate::types::Union3BoolOrIntOrString>,
 }
@@ -3369,7 +3516,7 @@ impl RecursiveStructure {
         id: i64,
         name: String,
         children: Vec<crate::types::RecursiveStructure>,
-        parent: Option<crate::types::RecursiveStructure>,
+        parent: Option<Box<crate::types::RecursiveStructure>>,
         metadata: std::collections::HashMap<String, crate::types::Union3BoolOrIntOrString>,
     ) -> Self {
         Self {
@@ -4349,20 +4496,12 @@ impl Default for Union2KDarkOrKLight {
 impl baml_client_rust::types::ToBamlValue for Union2KDarkOrKLight {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
-            Self::KLight => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "light".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(light)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(light)),
-            },
-            Self::KDark => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "dark".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(dark)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(dark)),
-            },
+            Self::KLight => Ok(baml_client_rust::types::BamlValue::String(
+                "light".to_string(),
+            )),
+            Self::KDark => Ok(baml_client_rust::types::BamlValue::String(
+                "dark".to_string(),
+            )),
         }
     }
 }
@@ -4371,74 +4510,14 @@ impl baml_client_rust::types::FromBamlValue for Union2KDarkOrKLight {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "light" {
-                        return Ok(Self::KLight);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == light {
-                        return Ok(Self::KLight);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == light {
-                            return Ok(Self::KLight);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == light {
-                        return Ok(Self::KLight);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("light") {
-                        return Ok(Self::KLight);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "light" {
+                return Ok(Self::KLight);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "dark" {
-                        return Ok(Self::KDark);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == dark {
-                        return Ok(Self::KDark);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == dark {
-                            return Ok(Self::KDark);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == dark {
-                        return Ok(Self::KDark);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("dark") {
-                        return Ok(Self::KDark);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "dark" {
+                return Ok(Self::KDark);
             }
         }
 
@@ -4523,20 +4602,12 @@ impl Default for Union2KGridOrKList {
 impl baml_client_rust::types::ToBamlValue for Union2KGridOrKList {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
-            Self::KGrid => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "grid".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(grid)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(grid)),
-            },
-            Self::KList => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "list".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(list)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(list)),
-            },
+            Self::KGrid => Ok(baml_client_rust::types::BamlValue::String(
+                "grid".to_string(),
+            )),
+            Self::KList => Ok(baml_client_rust::types::BamlValue::String(
+                "list".to_string(),
+            )),
         }
     }
 }
@@ -4545,74 +4616,14 @@ impl baml_client_rust::types::FromBamlValue for Union2KGridOrKList {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "grid" {
-                        return Ok(Self::KGrid);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == grid {
-                        return Ok(Self::KGrid);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == grid {
-                            return Ok(Self::KGrid);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == grid {
-                        return Ok(Self::KGrid);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("grid") {
-                        return Ok(Self::KGrid);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "grid" {
+                return Ok(Self::KGrid);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "list" {
-                        return Ok(Self::KList);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == list {
-                        return Ok(Self::KList);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == list {
-                            return Ok(Self::KList);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == list {
-                        return Ok(Self::KList);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("list") {
-                        return Ok(Self::KList);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "list" {
+                return Ok(Self::KList);
             }
         }
 
@@ -4910,27 +4921,15 @@ impl Default for Union3KDailyOrKImmediateOrKWeekly {
 impl baml_client_rust::types::ToBamlValue for Union3KDailyOrKImmediateOrKWeekly {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
-            Self::KImmediate => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "immediate".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(immediate)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(immediate)),
-            },
-            Self::KDaily => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "daily".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(daily)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(daily)),
-            },
-            Self::KWeekly => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "weekly".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(weekly)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(weekly)),
-            },
+            Self::KImmediate => Ok(baml_client_rust::types::BamlValue::String(
+                "immediate".to_string(),
+            )),
+            Self::KDaily => Ok(baml_client_rust::types::BamlValue::String(
+                "daily".to_string(),
+            )),
+            Self::KWeekly => Ok(baml_client_rust::types::BamlValue::String(
+                "weekly".to_string(),
+            )),
         }
     }
 }
@@ -4939,109 +4938,19 @@ impl baml_client_rust::types::FromBamlValue for Union3KDailyOrKImmediateOrKWeekl
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "immediate" {
-                        return Ok(Self::KImmediate);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == immediate {
-                        return Ok(Self::KImmediate);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == immediate {
-                            return Ok(Self::KImmediate);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == immediate {
-                        return Ok(Self::KImmediate);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("immediate") {
-                        return Ok(Self::KImmediate);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "immediate" {
+                return Ok(Self::KImmediate);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "daily" {
-                        return Ok(Self::KDaily);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == daily {
-                        return Ok(Self::KDaily);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == daily {
-                            return Ok(Self::KDaily);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == daily {
-                        return Ok(Self::KDaily);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("daily") {
-                        return Ok(Self::KDaily);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "daily" {
+                return Ok(Self::KDaily);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "weekly" {
-                        return Ok(Self::KWeekly);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == weekly {
-                        return Ok(Self::KWeekly);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == weekly {
-                            return Ok(Self::KWeekly);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == weekly {
-                        return Ok(Self::KWeekly);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("weekly") {
-                        return Ok(Self::KWeekly);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "weekly" {
+                return Ok(Self::KWeekly);
             }
         }
 
@@ -5147,27 +5056,15 @@ impl Default for Union3KDoneOrKInProgressOrKTodo {
 impl baml_client_rust::types::ToBamlValue for Union3KDoneOrKInProgressOrKTodo {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
-            Self::KTodo => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "todo".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(todo)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(todo)),
-            },
-            Self::KInProgress => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "in_progress".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(in_progress)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(in_progress)),
-            },
-            Self::KDone => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "done".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(done)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(done)),
-            },
+            Self::KTodo => Ok(baml_client_rust::types::BamlValue::String(
+                "todo".to_string(),
+            )),
+            Self::KInProgress => Ok(baml_client_rust::types::BamlValue::String(
+                "in_progress".to_string(),
+            )),
+            Self::KDone => Ok(baml_client_rust::types::BamlValue::String(
+                "done".to_string(),
+            )),
         }
     }
 }
@@ -5176,109 +5073,19 @@ impl baml_client_rust::types::FromBamlValue for Union3KDoneOrKInProgressOrKTodo 
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "todo" {
-                        return Ok(Self::KTodo);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == todo {
-                        return Ok(Self::KTodo);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == todo {
-                            return Ok(Self::KTodo);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == todo {
-                        return Ok(Self::KTodo);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("todo") {
-                        return Ok(Self::KTodo);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "todo" {
+                return Ok(Self::KTodo);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "in_progress" {
-                        return Ok(Self::KInProgress);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == in_progress {
-                        return Ok(Self::KInProgress);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == in_progress {
-                            return Ok(Self::KInProgress);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == in_progress {
-                        return Ok(Self::KInProgress);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("in_progress") {
-                        return Ok(Self::KInProgress);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "in_progress" {
+                return Ok(Self::KInProgress);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "done" {
-                        return Ok(Self::KDone);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == done {
-                        return Ok(Self::KDone);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == done {
-                            return Ok(Self::KDone);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == done {
-                        return Ok(Self::KDone);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("done") {
-                        return Ok(Self::KDone);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "done" {
+                return Ok(Self::KDone);
             }
         }
 
@@ -5384,27 +5191,15 @@ impl Default for Union3KFriendsOrKPrivateOrKPublic {
 impl baml_client_rust::types::ToBamlValue for Union3KFriendsOrKPrivateOrKPublic {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
-            Self::KPublic => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "public".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(public)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(public)),
-            },
-            Self::KPrivate => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "private".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(private)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(private)),
-            },
-            Self::KFriends => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "friends".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(friends)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(friends)),
-            },
+            Self::KPublic => Ok(baml_client_rust::types::BamlValue::String(
+                "public".to_string(),
+            )),
+            Self::KPrivate => Ok(baml_client_rust::types::BamlValue::String(
+                "private".to_string(),
+            )),
+            Self::KFriends => Ok(baml_client_rust::types::BamlValue::String(
+                "friends".to_string(),
+            )),
         }
     }
 }
@@ -5413,109 +5208,19 @@ impl baml_client_rust::types::FromBamlValue for Union3KFriendsOrKPrivateOrKPubli
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "public" {
-                        return Ok(Self::KPublic);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == public {
-                        return Ok(Self::KPublic);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == public {
-                            return Ok(Self::KPublic);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == public {
-                        return Ok(Self::KPublic);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("public") {
-                        return Ok(Self::KPublic);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "public" {
+                return Ok(Self::KPublic);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "private" {
-                        return Ok(Self::KPrivate);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == private {
-                        return Ok(Self::KPrivate);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == private {
-                            return Ok(Self::KPrivate);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == private {
-                        return Ok(Self::KPrivate);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("private") {
-                        return Ok(Self::KPrivate);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "private" {
+                return Ok(Self::KPrivate);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "friends" {
-                        return Ok(Self::KFriends);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == friends {
-                        return Ok(Self::KFriends);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == friends {
-                            return Ok(Self::KFriends);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == friends {
-                        return Ok(Self::KFriends);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("friends") {
-                        return Ok(Self::KFriends);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "friends" {
+                return Ok(Self::KFriends);
             }
         }
 
@@ -5621,27 +5326,15 @@ impl Default for Union3KHighOrKLowOrKMedium {
 impl baml_client_rust::types::ToBamlValue for Union3KHighOrKLowOrKMedium {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
-            Self::KLow => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "low".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(low)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(low)),
-            },
-            Self::KMedium => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "medium".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(medium)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(medium)),
-            },
-            Self::KHigh => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "high".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(high)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(high)),
-            },
+            Self::KLow => Ok(baml_client_rust::types::BamlValue::String(
+                "low".to_string(),
+            )),
+            Self::KMedium => Ok(baml_client_rust::types::BamlValue::String(
+                "medium".to_string(),
+            )),
+            Self::KHigh => Ok(baml_client_rust::types::BamlValue::String(
+                "high".to_string(),
+            )),
         }
     }
 }
@@ -5650,109 +5343,19 @@ impl baml_client_rust::types::FromBamlValue for Union3KHighOrKLowOrKMedium {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "low" {
-                        return Ok(Self::KLow);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == low {
-                        return Ok(Self::KLow);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == low {
-                            return Ok(Self::KLow);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == low {
-                        return Ok(Self::KLow);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("low") {
-                        return Ok(Self::KLow);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "low" {
+                return Ok(Self::KLow);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "medium" {
-                        return Ok(Self::KMedium);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == medium {
-                        return Ok(Self::KMedium);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == medium {
-                            return Ok(Self::KMedium);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == medium {
-                        return Ok(Self::KMedium);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("medium") {
-                        return Ok(Self::KMedium);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "medium" {
+                return Ok(Self::KMedium);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "high" {
-                        return Ok(Self::KHigh);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == high {
-                        return Ok(Self::KHigh);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == high {
-                            return Ok(Self::KHigh);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == high {
-                        return Ok(Self::KHigh);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("high") {
-                        return Ok(Self::KHigh);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "high" {
+                return Ok(Self::KHigh);
             }
         }
 
@@ -5875,34 +5478,18 @@ impl Default for Union4KActiveOrKCancelledOrKCompletedOrKPlanning {
 impl baml_client_rust::types::ToBamlValue for Union4KActiveOrKCancelledOrKCompletedOrKPlanning {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
-            Self::KPlanning => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "planning".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(planning)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(planning)),
-            },
-            Self::KActive => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "active".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(active)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(active)),
-            },
-            Self::KCompleted => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "completed".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(completed)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(completed)),
-            },
-            Self::KCancelled => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "cancelled".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(cancelled)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(cancelled)),
-            },
+            Self::KPlanning => Ok(baml_client_rust::types::BamlValue::String(
+                "planning".to_string(),
+            )),
+            Self::KActive => Ok(baml_client_rust::types::BamlValue::String(
+                "active".to_string(),
+            )),
+            Self::KCompleted => Ok(baml_client_rust::types::BamlValue::String(
+                "completed".to_string(),
+            )),
+            Self::KCancelled => Ok(baml_client_rust::types::BamlValue::String(
+                "cancelled".to_string(),
+            )),
         }
     }
 }
@@ -5911,144 +5498,24 @@ impl baml_client_rust::types::FromBamlValue for Union4KActiveOrKCancelledOrKComp
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "planning" {
-                        return Ok(Self::KPlanning);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == planning {
-                        return Ok(Self::KPlanning);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == planning {
-                            return Ok(Self::KPlanning);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == planning {
-                        return Ok(Self::KPlanning);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("planning") {
-                        return Ok(Self::KPlanning);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "planning" {
+                return Ok(Self::KPlanning);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "active" {
-                        return Ok(Self::KActive);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == active {
-                        return Ok(Self::KActive);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == active {
-                            return Ok(Self::KActive);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == active {
-                        return Ok(Self::KActive);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("active") {
-                        return Ok(Self::KActive);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "active" {
+                return Ok(Self::KActive);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "completed" {
-                        return Ok(Self::KCompleted);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == completed {
-                        return Ok(Self::KCompleted);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == completed {
-                            return Ok(Self::KCompleted);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == completed {
-                        return Ok(Self::KCompleted);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("completed") {
-                        return Ok(Self::KCompleted);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "completed" {
+                return Ok(Self::KCompleted);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "cancelled" {
-                        return Ok(Self::KCancelled);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == cancelled {
-                        return Ok(Self::KCancelled);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == cancelled {
-                            return Ok(Self::KCancelled);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == cancelled {
-                        return Ok(Self::KCancelled);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("cancelled") {
-                        return Ok(Self::KCancelled);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "cancelled" {
+                return Ok(Self::KCancelled);
             }
         }
 
@@ -6171,34 +5638,18 @@ impl Default for Union4KEnterpriseOrKLargeOrKMediumOrKSmall {
 impl baml_client_rust::types::ToBamlValue for Union4KEnterpriseOrKLargeOrKMediumOrKSmall {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
-            Self::KSmall => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "small".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(small)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(small)),
-            },
-            Self::KMedium => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "medium".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(medium)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(medium)),
-            },
-            Self::KLarge => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "large".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(large)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(large)),
-            },
-            Self::KEnterprise => match kind {
-                RustLiteralKind::String => Ok(baml_client_rust::types::BamlValue::String(
-                    "enterprise".to_string(),
-                )),
-                RustLiteralKind::Int => Ok(baml_client_rust::types::BamlValue::Int(enterprise)),
-                RustLiteralKind::Bool => Ok(baml_client_rust::types::BamlValue::Bool(enterprise)),
-            },
+            Self::KSmall => Ok(baml_client_rust::types::BamlValue::String(
+                "small".to_string(),
+            )),
+            Self::KMedium => Ok(baml_client_rust::types::BamlValue::String(
+                "medium".to_string(),
+            )),
+            Self::KLarge => Ok(baml_client_rust::types::BamlValue::String(
+                "large".to_string(),
+            )),
+            Self::KEnterprise => Ok(baml_client_rust::types::BamlValue::String(
+                "enterprise".to_string(),
+            )),
         }
     }
 }
@@ -6207,144 +5658,24 @@ impl baml_client_rust::types::FromBamlValue for Union4KEnterpriseOrKLargeOrKMedi
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "small" {
-                        return Ok(Self::KSmall);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == small {
-                        return Ok(Self::KSmall);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == small {
-                            return Ok(Self::KSmall);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == small {
-                        return Ok(Self::KSmall);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("small") {
-                        return Ok(Self::KSmall);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "small" {
+                return Ok(Self::KSmall);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "medium" {
-                        return Ok(Self::KMedium);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == medium {
-                        return Ok(Self::KMedium);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == medium {
-                            return Ok(Self::KMedium);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == medium {
-                        return Ok(Self::KMedium);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("medium") {
-                        return Ok(Self::KMedium);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "medium" {
+                return Ok(Self::KMedium);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "large" {
-                        return Ok(Self::KLarge);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == large {
-                        return Ok(Self::KLarge);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == large {
-                            return Ok(Self::KLarge);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == large {
-                        return Ok(Self::KLarge);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("large") {
-                        return Ok(Self::KLarge);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "large" {
+                return Ok(Self::KLarge);
             }
         }
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == "enterprise" {
-                        return Ok(Self::KEnterprise);
-                    }
-                }
-            }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == enterprise {
-                        return Ok(Self::KEnterprise);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == enterprise {
-                            return Ok(Self::KEnterprise);
-                        }
-                    }
-                }
-            }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == enterprise {
-                        return Ok(Self::KEnterprise);
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case("enterprise") {
-                        return Ok(Self::KEnterprise);
-                    }
-                }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == "enterprise" {
+                return Ok(Self::KEnterprise);
             }
         }
 

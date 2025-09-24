@@ -270,6 +270,18 @@ impl<T: FromBamlValue> FromBamlValue for Option<T> {
     }
 }
 
+impl<T: ToBamlValue> ToBamlValue for Box<T> {
+    fn to_baml_value(self) -> crate::BamlResult<BamlValue> {
+        (*self).to_baml_value()
+    }
+}
+
+impl<T: FromBamlValue> FromBamlValue for Box<T> {
+    fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
+        T::from_baml_value(value).map(Box::new)
+    }
+}
+
 // HashMap implementations
 impl<K, V> ToBamlValue for std::collections::HashMap<K, V>
 where

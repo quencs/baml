@@ -73,6 +73,7 @@ impl LanguageFeatures for RustLanguageFeatures {
             .walk_classes()
             .map(|c| {
                 let class_data = ir_to_rust::classes::ir_class_to_rust(c.item, &pkg);
+                let class_name = class_data.name.clone();
                 generated_types::ClassRust {
                     name: class_data.name,
                     docstring: None, // TODO: Extract docstring from class
@@ -80,6 +81,7 @@ impl LanguageFeatures for RustLanguageFeatures {
                         .fields
                         .into_iter()
                         .map(|field| {
+                            let class_name = &class_name;
                             // Convert field type from string back to TypeRust
                             // For now, we need to re-parse the field type properly
                             let field_type_ir = c
@@ -90,7 +92,7 @@ impl LanguageFeatures for RustLanguageFeatures {
                                 .find(|f| crate::utils::to_snake_case(&f.elem.name) == field.name)
                                 .map(|f| &f.elem.r#type.elem);
 
-                            let rust_type = if let Some(field_type) = field_type_ir {
+                            let mut rust_type = if let Some(field_type) = field_type_ir {
                                 crate::ir_to_rust::type_to_rust(
                                     &field_type.to_non_streaming_type(pkg.lookup()),
                                     pkg.lookup(),
@@ -105,6 +107,10 @@ impl LanguageFeatures for RustLanguageFeatures {
                                     },
                                 )
                             };
+
+                            if rust_type.is_class_named(class_name) {
+                                rust_type.make_boxed();
+                            }
 
                             generated_types::FieldRust {
                                 name: field.name,
@@ -180,7 +186,7 @@ impl LanguageFeatures for RustLanguageFeatures {
         stream_type_aliases.dedup_by(|a, b| a.name == b.name);
 
         let mut stream_state_content = String::from(
-            "pub use baml_client_rust::StreamState;\n#[allow(unused_imports)]\nuse crate::types::*;\n\n",
+            "pub use baml_client_rust::StreamState;\npub use crate::types::*;\n\n",
         );
         stream_state_content.push_str(&generated_types::render_rust_types(
             &stream_type_aliases,

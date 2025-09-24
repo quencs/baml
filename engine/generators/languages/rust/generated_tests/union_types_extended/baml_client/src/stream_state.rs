@@ -11,6 +11,5 @@
 // You can install baml-cli with:
 //  $ cargo install baml-cli
 
-#[allow(unused_imports)]
-use crate::types::*;
+pub use crate::types::*;
 pub use baml_client_rust::StreamState;

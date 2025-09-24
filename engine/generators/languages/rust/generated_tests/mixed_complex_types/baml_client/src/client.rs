@@ -11,11 +11,8 @@
 // You can install baml-cli with:
 //  $ cargo install baml-cli
 
+use crate::{source_map, types::*};
 use baml_client_rust::{BamlClient as CoreBamlClient, BamlClientBuilder, BamlContext, BamlResult};
-use crate::{
-    source_map,
-    types::*,
-};
 use futures::Stream;
 
 /// Main BAML client for executing functions
@@ -28,7 +25,9 @@ impl BamlClient {
     /// Create a new BAML client with default configuration
     pub fn new() -> BamlResult<Self> {
         let mut env_vars: std::collections::HashMap<String, String> = std::env::vars().collect();
-        env_vars.entry("BAML_SRC".to_string()).or_insert_with(|| "./baml_src".to_string());
+        env_vars
+            .entry("BAML_SRC".to_string())
+            .or_insert_with(|| "./baml_src".to_string());
 
         // Prefer local baml_src during generated tests
         let mut last_error: Option<baml_client_rust::BamlError> = None;
@@ -49,12 +48,14 @@ impl BamlClient {
         }
 
         // Fall back to embedded source map
-        let embedded_files: std::collections::HashMap<String, String> = source_map::baml_source_files()
-            .into_iter()
-            .map(|(path, contents)| (path.to_string(), contents.to_string()))
-            .collect();
+        let embedded_files: std::collections::HashMap<String, String> =
+            source_map::baml_source_files()
+                .into_iter()
+                .map(|(path, contents)| (path.to_string(), contents.to_string()))
+                .collect();
         if !embedded_files.is_empty() {
-            match CoreBamlClient::from_file_content("./baml_src", &embedded_files, env_vars.clone()) {
+            match CoreBamlClient::from_file_content("./baml_src", &embedded_files, env_vars.clone())
+            {
                 Ok(client) => return Ok(Self { client }),
                 Err(err) => {
                     #[cfg(debug_assertions)]
@@ -76,24 +77,24 @@ impl BamlClient {
         };
         Ok(Self { client })
     }
-    
+
     /// Create a new BAML client from a directory containing BAML files
     #[cfg(not(target_arch = "wasm32"))]
     pub fn from_directory<P: AsRef<std::path::Path>>(path: P) -> BamlResult<Self> {
         let client = CoreBamlClient::from_directory(path, std::env::vars().collect())?;
         Ok(Self { client })
     }
-    
+
     /// Create a new BAML client with custom configuration
     pub fn builder() -> BamlClientBuilder {
         BamlClientBuilder::new()
     }
-    
+
     /// Create a new BAML client with a custom core client
     pub fn with_core_client(client: CoreBamlClient) -> Self {
         Self { client }
     }
-    
+
     /// Get access to the underlying core client
     pub fn core_client(&self) -> &CoreBamlClient {
         &self.client
@@ -108,75 +109,109 @@ impl Default for BamlClient {
 impl BamlClient {
     /// TestKitchenSink - Generated BAML function
     pub async fn test_kitchen_sink(
-        &self,input: impl Into<String>,
+        &self,
+        input: impl Into<String>,
     ) -> BamlResult<crate::types::KitchenSink> {
-        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
-        
+        let mut context = BamlContext::new();
+        context = context.set_arg("input", input.into())?;
+
         // Include environment variables in the context
         context = context.set_env_vars(std::env::vars());
-        
+
         self.client.call_function("TestKitchenSink", context).await
     }
-    
+
     /// TestKitchenSink (streaming) - Generated BAML function  
     pub async fn test_kitchen_sink_stream(
-        &self,input: impl Into<String>,
-    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::types::KitchenSink>>> + Send + Sync> {
-        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
-        
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<
+        impl futures::Stream<
+                Item = BamlResult<baml_client_rust::StreamState<crate::types::KitchenSink>>,
+            > + Send
+            + Sync,
+    > {
+        let mut context = BamlContext::new();
+        context = context.set_arg("input", input.into())?;
+
         // Include environment variables in the context
         context = context.set_env_vars(std::env::vars());
-        
-        self.client.call_function_stream("TestKitchenSink", context).await
+
+        self.client
+            .call_function_stream("TestKitchenSink", context)
+            .await
     }
 }
 impl BamlClient {
     /// TestRecursiveComplexity - Generated BAML function
     pub async fn test_recursive_complexity(
-        &self,input: impl Into<String>,
+        &self,
+        input: impl Into<String>,
     ) -> BamlResult<crate::types::Node> {
-        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
-        
+        let mut context = BamlContext::new();
+        context = context.set_arg("input", input.into())?;
+
         // Include environment variables in the context
         context = context.set_env_vars(std::env::vars());
-        
-        self.client.call_function("TestRecursiveComplexity", context).await
+
+        self.client
+            .call_function("TestRecursiveComplexity", context)
+            .await
     }
-    
+
     /// TestRecursiveComplexity (streaming) - Generated BAML function  
     pub async fn test_recursive_complexity_stream(
-        &self,input: impl Into<String>,
-    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::types::Node>>> + Send + Sync> {
-        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
-        
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<
+        impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::types::Node>>>
+            + Send
+            + Sync,
+    > {
+        let mut context = BamlContext::new();
+        context = context.set_arg("input", input.into())?;
+
         // Include environment variables in the context
         context = context.set_env_vars(std::env::vars());
-        
-        self.client.call_function_stream("TestRecursiveComplexity", context).await
+
+        self.client
+            .call_function_stream("TestRecursiveComplexity", context)
+            .await
     }
 }
 impl BamlClient {
     /// TestUltraComplex - Generated BAML function
     pub async fn test_ultra_complex(
-        &self,input: impl Into<String>,
+        &self,
+        input: impl Into<String>,
     ) -> BamlResult<crate::types::UltraComplex> {
-        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
-        
+        let mut context = BamlContext::new();
+        context = context.set_arg("input", input.into())?;
+
         // Include environment variables in the context
         context = context.set_env_vars(std::env::vars());
-        
+
         self.client.call_function("TestUltraComplex", context).await
     }
-    
+
     /// TestUltraComplex (streaming) - Generated BAML function  
     pub async fn test_ultra_complex_stream(
-        &self,input: impl Into<String>,
-    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::types::UltraComplex>>> + Send + Sync> {
-        let mut context = BamlContext::new();context = context.set_arg("input", input.into())?;
-        
+        &self,
+        input: impl Into<String>,
+    ) -> BamlResult<
+        impl futures::Stream<
+                Item = BamlResult<baml_client_rust::StreamState<crate::types::UltraComplex>>,
+            > + Send
+            + Sync,
+    > {
+        let mut context = BamlContext::new();
+        context = context.set_arg("input", input.into())?;
+
         // Include environment variables in the context
         context = context.set_env_vars(std::env::vars());
-        
-        self.client.call_function_stream("TestUltraComplex", context).await
+
+        self.client
+            .call_function_stream("TestUltraComplex", context)
+            .await
     }
 }
