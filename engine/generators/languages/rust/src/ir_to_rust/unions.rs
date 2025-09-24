@@ -83,18 +83,9 @@ fn build_variant(
     }
 
     let (literal_value, literal_kind) = match &rust_type {
-        TypeRust::String(Some(value), _) => (
-            Some(value.clone()),
-            Some(RustLiteralKind::String),
-        ),
-        TypeRust::Int(Some(value), _) => (
-            Some(value.to_string()),
-            Some(RustLiteralKind::Int),
-        ),
-        TypeRust::Bool(Some(value), _) => (
-            Some(value.to_string()),
-            Some(RustLiteralKind::Bool),
-        ),
+        TypeRust::String(Some(value), _) => (Some(value.clone()), Some(RustLiteralKind::String)),
+        TypeRust::Int(Some(value), _) => (Some(value.to_string()), Some(RustLiteralKind::Int)),
+        TypeRust::Bool(Some(value), _) => (Some(value.to_string()), Some(RustLiteralKind::Bool)),
         _ => (None, None),
     };
 

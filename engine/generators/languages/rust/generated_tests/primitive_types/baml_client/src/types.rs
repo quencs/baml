@@ -14,6 +14,30 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Represents the BAML `null` type in Rust
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct NullValue;
+
+impl baml_client_rust::types::ToBamlValue for NullValue {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        Ok(baml_client_rust::types::BamlValue::Null)
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for NullValue {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match value {
+            baml_client_rust::types::BamlValue::Null => Ok(NullValue),
+            other => Err(baml_client_rust::BamlError::deserialization(format!(
+                "Expected null, got {:?}",
+                other
+            ))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MixedPrimitives {
     pub name: String,
@@ -24,7 +48,7 @@ pub struct MixedPrimitives {
 
     pub is_active: bool,
 
-    pub metadata: serde_json::Value,
+    pub metadata: crate::types::NullValue,
 
     pub tags: Vec<String>,
 
@@ -42,7 +66,7 @@ impl MixedPrimitives {
         age: i64,
         height: f64,
         is_active: bool,
-        metadata: serde_json::Value,
+        metadata: crate::types::NullValue,
         tags: Vec<String>,
         scores: Vec<i64>,
         measurements: Vec<f64>,
@@ -69,7 +93,7 @@ impl Default for MixedPrimitives {
             0,
             0.0,
             false,
-            serde_json::Value::Null,
+            crate::types::NullValue,
             Vec::new(),
             Vec::new(),
             Vec::new(),
@@ -184,14 +208,14 @@ impl baml_client_rust::types::FromBamlValue for MixedPrimitives {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            serde_json::Value::Null
+                            crate::types::NullValue
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
                     None if baml_client_rust::types::is_partial_deserialization() => {
-                        serde_json::Value::Null
+                        crate::types::NullValue
                     }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
@@ -591,7 +615,7 @@ pub struct PrimitiveTypes {
 
     pub bool_field: bool,
 
-    pub null_field: serde_json::Value,
+    pub null_field: crate::types::NullValue,
 }
 
 impl PrimitiveTypes {
@@ -601,7 +625,7 @@ impl PrimitiveTypes {
         int_field: i64,
         float_field: f64,
         bool_field: bool,
-        null_field: serde_json::Value,
+        null_field: crate::types::NullValue,
     ) -> Self {
         Self {
             string_field,
@@ -615,7 +639,7 @@ impl PrimitiveTypes {
 
 impl Default for PrimitiveTypes {
     fn default() -> Self {
-        Self::new(String::new(), 0, 0.0, false, serde_json::Value::Null)
+        Self::new(String::new(), 0, 0.0, false, crate::types::NullValue)
     }
 }
 
@@ -721,14 +745,14 @@ impl baml_client_rust::types::FromBamlValue for PrimitiveTypes {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            serde_json::Value::Null
+                            crate::types::NullValue
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
                     None if baml_client_rust::types::is_partial_deserialization() => {
-                        serde_json::Value::Null
+                        crate::types::NullValue
                     }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(

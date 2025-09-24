@@ -393,7 +393,7 @@ impl BamlClient {
     pub async fn test_top_level_null(
         &self,
         input: impl Into<String>,
-    ) -> BamlResult<serde_json::Value> {
+    ) -> BamlResult<crate::types::NullValue> {
         let mut context = BamlContext::new();
         context = context.set_arg("input", input.into())?;
 
@@ -408,8 +408,9 @@ impl BamlClient {
         &self,
         input: impl Into<String>,
     ) -> BamlResult<
-        impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<serde_json::Value>>>
-            + Send
+        impl futures::Stream<
+                Item = BamlResult<baml_client_rust::StreamState<crate::types::NullValue>>,
+            > + Send
             + Sync,
     > {
         let mut context = BamlContext::new();

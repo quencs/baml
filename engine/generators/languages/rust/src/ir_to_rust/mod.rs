@@ -89,10 +89,7 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
             meta,
         },
         T::Union(union_type_generic, union_meta) => match union_type_generic.view() {
-            baml_types::ir_type::UnionTypeViewGeneric::Null => TypeRust::Any {
-                reason: "Null types are not supported in Rust".to_string(),
-                meta,
-            },
+            baml_types::ir_type::UnionTypeViewGeneric::Null => TypeRust::Null(meta),
             baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
                 let mut type_rust = recursive_fn(type_generic);
                 if union_meta
@@ -229,10 +226,7 @@ pub(crate) fn type_to_rust(field: &TypeNonStreaming, lookup: &impl TypeLookups) 
             }
         }
         T::Union(union_type_generic, union_meta) => match union_type_generic.view() {
-            baml_types::ir_type::UnionTypeViewGeneric::Null => TypeRust::Any {
-                reason: "Null types are not supported in Rust".to_string(),
-                meta,
-            },
+            baml_types::ir_type::UnionTypeViewGeneric::Null => TypeRust::Null(meta),
             baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {
                 let mut type_rust = recursive_fn(type_generic);
                 type_rust.meta_mut().make_optional();
@@ -348,14 +342,7 @@ impl From<&TypeValue> for TypeRust {
             TypeValue::Int => TypeRust::Int(None, meta),
             TypeValue::Float => TypeRust::Float(meta),
             TypeValue::Bool => TypeRust::Bool(None, meta),
-            TypeValue::Null => TypeRust::Any {
-                reason: "Null types are not supported in Rust".to_string(),
-                meta: {
-                    let mut meta = meta;
-                    meta.make_optional();
-                    meta
-                },
-            },
+            TypeValue::Null => TypeRust::Null(meta),
             TypeValue::Media(baml_media_type) => TypeRust::Media(baml_media_type.into(), meta),
         }
     }

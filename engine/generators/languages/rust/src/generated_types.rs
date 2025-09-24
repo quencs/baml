@@ -193,6 +193,34 @@ pub fn render_all_rust_types(
     output.push_str("use serde::{Deserialize, Serialize};\n");
     output.push_str("use std::collections::HashMap;\n\n");
 
+    output.push_str(
+        r#"/// Represents the BAML `null` type in Rust
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct NullValue;
+
+impl baml_client_rust::types::ToBamlValue for NullValue {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        Ok(baml_client_rust::types::BamlValue::Null)
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for NullValue {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match value {
+            baml_client_rust::types::BamlValue::Null => Ok(NullValue),
+            other => Err(baml_client_rust::BamlError::deserialization(format!(
+                "Expected null, got {:?}",
+                other
+            ))),
+        }
+    }
+}
+
+"#,
+    );
+
     // Render classes
     if !classes.is_empty() {
         output.push_str(&render_rust_types(classes, pkg)?);

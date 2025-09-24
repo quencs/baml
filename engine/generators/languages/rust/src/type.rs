@@ -150,6 +150,7 @@ pub enum TypeRust {
     },
     List(Box<TypeRust>, TypeMetaRust),
     Map(Box<TypeRust>, Box<TypeRust>, TypeMetaRust),
+    Null(TypeMetaRust),
     // For types we can't represent in Rust
     Any {
         reason: String,
@@ -160,9 +161,9 @@ pub enum TypeRust {
 impl TypeRust {
     pub fn default_name_within_union(&self) -> String {
         match self {
-            TypeRust::String(val, _) => val
-                .as_ref()
-                .map_or("String".to_string(), |v| format!("K{}", sanitize_literal_variant(v))),
+            TypeRust::String(val, _) => val.as_ref().map_or("String".to_string(), |v| {
+                format!("K{}", sanitize_literal_variant(v))
+            }),
             TypeRust::Int(val, _) => val.map_or("Int".to_string(), |v| {
                 if v < 0 {
                     format!("IntKNeg{}", v.abs())
@@ -190,6 +191,7 @@ impl TypeRust {
                 key.default_name_within_union(),
                 value.default_name_within_union()
             ),
+            TypeRust::Null(_) => "Null".to_string(),
             TypeRust::Any { .. } => "Any".to_string(),
         }
     }
@@ -207,6 +209,7 @@ impl TypeRust {
             TypeRust::Enum { meta, .. } => meta,
             TypeRust::List(_, meta) => meta,
             TypeRust::Map(_, _, meta) => meta,
+            TypeRust::Null(meta) => meta,
             TypeRust::Any { meta, .. } => meta,
         }
     }
@@ -228,6 +231,7 @@ impl TypeRust {
             TypeRust::Enum { meta, .. } => meta,
             TypeRust::List(_, meta) => meta,
             TypeRust::Map(_, _, meta) => meta,
+            TypeRust::Null(meta) => meta,
             TypeRust::Any { meta, .. } => meta,
         }
     }
@@ -279,6 +283,7 @@ impl TypeRust {
             }
             TypeRust::List(..) => "Vec::new()".to_string(),
             TypeRust::Map(..) => "std::collections::HashMap::new()".to_string(),
+            TypeRust::Null(_) => format!("{}NullValue", Package::types().relative_from(pkg)),
             TypeRust::Any { .. } => "serde_json::Value::Null".to_string(),
         }
     }
@@ -350,6 +355,7 @@ impl SerializeType for TypeRust {
                     value.serialize_type(pkg)
                 )
             }
+            TypeRust::Null(_) => format!("{}NullValue", Package::types().relative_from(pkg)),
             TypeRust::Any { .. } => "serde_json::Value".to_string(),
         };
 
