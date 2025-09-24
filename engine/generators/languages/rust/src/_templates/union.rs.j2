@@ -151,24 +151,21 @@ impl baml_client_rust::types::ToBamlValue for {{ name }} {
             {%- for variant in variants %}
             {%- if let Some(kind) = variant.literal_kind %}
             Self::{{ variant.name }} => {
-                match kind {
-                    RustLiteralKind::String => Ok(
-                        baml_client_rust::types::BamlValue::String(
-                            {{ variant.literal_value.as_ref().unwrap() | json_string_literal }}
-                                .to_string(),
-                        ),
-                    ),
-                    RustLiteralKind::Int => Ok(
-                        baml_client_rust::types::BamlValue::Int(
-                            {{ variant.literal_value.as_ref().unwrap() }},
-                        ),
-                    ),
-                    RustLiteralKind::Bool => Ok(
-                        baml_client_rust::types::BamlValue::Bool(
-                            {{ variant.literal_value.as_ref().unwrap() }},
-                        ),
-                    ),
-                }
+                {%- if kind.is_string() %}
+                Ok(baml_client_rust::types::BamlValue::String(
+                    {{ variant.literal_value.as_ref().unwrap() | json_string_literal }}.to_string(),
+                ))
+                {%- elif kind.is_int() %}
+                Ok(baml_client_rust::types::BamlValue::Int(
+                    {{ variant.literal_value.as_ref().unwrap() }},
+                ))
+                {%- elif kind.is_bool() %}
+                Ok(baml_client_rust::types::BamlValue::Bool(
+                    {{ variant.literal_value.as_ref().unwrap() }},
+                ))
+                {%- else %}
+                unreachable!()
+                {%- endif %}
             }
             {%- else %}
             Self::{{ variant.name }}(v) => v.to_baml_value(),
@@ -182,43 +179,39 @@ impl baml_client_rust::types::FromBamlValue for {{ name }} {
     fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         {%- for variant in variants %}
         {%- if let Some(kind) = variant.literal_kind %}
-        match kind {
-            RustLiteralKind::String => {
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s == {{ variant.literal_value.as_ref().unwrap() | json_string_literal }} {
-                        return Ok(Self::{{ variant.name }});
-                    }
-                }
+        {%- if kind.is_string() %}
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s == {{ variant.literal_value.as_ref().unwrap() | json_string_literal }} {
+                return Ok(Self::{{ variant.name }});
             }
-            RustLiteralKind::Int => {
-                if let baml_client_rust::types::BamlValue::Int(i) = &value {
-                    if *i == {{ variant.literal_value.as_ref().unwrap() }} {
-                        return Ok(Self::{{ variant.name }});
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if let Ok(parsed) = s.parse::<i64>() {
-                        if parsed == {{ variant.literal_value.as_ref().unwrap() }} {
-                            return Ok(Self::{{ variant.name }});
-                        }
-                    }
-                }
+        }
+        {%- elif kind.is_int() %}
+        if let baml_client_rust::types::BamlValue::Int(i) = &value {
+            if *i == {{ variant.literal_value.as_ref().unwrap() }} {
+                return Ok(Self::{{ variant.name }});
             }
-            RustLiteralKind::Bool => {
-                if let baml_client_rust::types::BamlValue::Bool(b) = &value {
-                    if *b == {{ variant.literal_value.as_ref().unwrap() }} {
-                        return Ok(Self::{{ variant.name }});
-                    }
-                }
-                if let baml_client_rust::types::BamlValue::String(s) = &value {
-                    if s.eq_ignore_ascii_case(
-                        {{ variant.literal_value.as_ref().unwrap() | json_string_literal }},
-                    ) {
-                        return Ok(Self::{{ variant.name }});
-                    }
+        }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if let Ok(parsed) = s.parse::<i64>() {
+                if parsed == {{ variant.literal_value.as_ref().unwrap() }} {
+                    return Ok(Self::{{ variant.name }});
                 }
             }
         }
+        {%- elif kind.is_bool() %}
+        if let baml_client_rust::types::BamlValue::Bool(b) = &value {
+            if *b == {{ variant.literal_value.as_ref().unwrap() }} {
+                return Ok(Self::{{ variant.name }});
+            }
+        }
+        if let baml_client_rust::types::BamlValue::String(s) = &value {
+            if s.eq_ignore_ascii_case({{ variant.literal_value.as_ref().unwrap() | json_string_literal }}) {
+                return Ok(Self::{{ variant.name }});
+            }
+        }
+        {%- else %}
+        unreachable!();
+        {%- endif %}
         {%- else %}
         // Try {{ variant.name }} variant
         if let Ok(variant_value) = {{ variant.rust_type.serialize_type_with_turbofish(pkg) }}::from_baml_value(value.clone()) {

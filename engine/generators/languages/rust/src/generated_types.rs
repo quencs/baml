@@ -148,6 +148,20 @@ pub enum RustLiteralKind {
     Bool,
 }
 
+impl RustLiteralKind {
+    pub fn is_string(&self) -> bool {
+        matches!(self, Self::String)
+    }
+
+    pub fn is_int(&self) -> bool {
+        matches!(self, Self::Int)
+    }
+
+    pub fn is_bool(&self) -> bool {
+        matches!(self, Self::Bool)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RustVariant {
     pub name: String,
@@ -216,6 +230,17 @@ impl baml_client_rust::types::FromBamlValue for NullValue {
             ))),
         }
     }
+}
+
+"#,
+    );
+
+    output.push_str(
+        r#"#[derive(Debug, Clone)]
+pub enum RustLiteralKind {
+    String,
+    Int,
+    Bool,
 }
 
 "#,

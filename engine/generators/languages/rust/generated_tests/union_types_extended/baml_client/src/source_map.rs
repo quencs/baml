@@ -15,7 +15,9 @@ use std::collections::HashMap;
 
 pub fn baml_source_files() -> HashMap<&'static str, &'static str> {
     let mut map = HashMap::new();
-    map.insert("baml_src/main.baml", r###"// Test extended union types in BAML
+    map.insert(
+        "baml_src/main.baml",
+        r###"// Test extended union types in BAML
 
 class PrimitiveUnions {
   stringOrInt string | int
@@ -214,6 +216,7 @@ function TestUnionArrays(input: string) -> UnionArrays {
     
     Input: {{ input }}
   "#
-}"###);
+}"###,
+    );
     map
 }

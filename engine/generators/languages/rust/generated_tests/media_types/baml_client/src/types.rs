@@ -14,6 +14,37 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Represents the BAML `null` type in Rust
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct NullValue;
+
+impl baml_client_rust::types::ToBamlValue for NullValue {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        Ok(baml_client_rust::types::BamlValue::Null)
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for NullValue {
+    fn from_baml_value(
+        value: baml_client_rust::types::BamlValue,
+    ) -> baml_client_rust::BamlResult<Self> {
+        match value {
+            baml_client_rust::types::BamlValue::Null => Ok(NullValue),
+            other => Err(baml_client_rust::BamlError::deserialization(format!(
+                "Expected null, got {:?}",
+                other
+            ))),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum RustLiteralKind {
+    String,
+    Int,
+    Bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MediaAnalysisResult {
     pub topics: Vec<String>,
