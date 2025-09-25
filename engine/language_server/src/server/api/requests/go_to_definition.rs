@@ -4,7 +4,7 @@ use lsp_types::{
     self, request as req, GotoDefinitionParams, GotoDefinitionResponse, Location, Position, Range,
     Url,
 };
-use playground_server::{FrontendMessage, WebviewRouterMessage};
+use playground_server::WebviewRouterMessage;
 
 use crate::{
     baml_project::{position_utils::get_word_at_position, trim_line, BamlRuntimeExt},
@@ -105,25 +105,6 @@ impl SyncRequestHandler for GotoDefinition {
                     uri: target_uri,
                     range,
                 });
-
-                // Broadcast function change to playground clients
-                if let Some(function) = guard
-                    .list_functions()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .find(|f| f.span.file_path == document_key.path().to_string_lossy())
-                {
-                    if let Err(e) = session.to_webview_router_tx.send(
-                        WebviewRouterMessage::CustomNotificationToWebview(
-                            FrontendMessage::select_function {
-                                root_path: guard.root_path().to_string_lossy().to_string(),
-                                function_name: function.name.clone(),
-                            },
-                        ),
-                    ) {
-                        tracing::warn!("Error forwarding function change to playground: {}", e);
-                    }
-                }
 
                 Ok(Some(goto_definition_response))
             }

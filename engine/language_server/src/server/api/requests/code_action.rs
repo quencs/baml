@@ -23,6 +23,8 @@ impl RequestHandler for CodeActionHandler {
     type RequestType = request::CodeActionRequest;
 }
 
+pub(crate) const OPEN_IN_BROWSER_COMMAND: &str = "baml.openBamlPanelInBrowser";
+
 impl SyncRequestHandler for CodeActionHandler {
     fn run(
         session: &mut Session,
@@ -30,22 +32,6 @@ impl SyncRequestHandler for CodeActionHandler {
         _requester: &mut Requester,
         params: CodeActionParams,
     ) -> Result<Option<Vec<CodeActionOrCommand>>> {
-        // TODO: this is the only way to do this in zed i think
-        // tracing::info!("CodeActionHandler running");
-        // let _ = session
-        //     .webview_router_to_websocket_tx
-        //     .send(
-        //         playground_server::LangServerToWasmMessage::PlaygroundMessage(
-        //             playground_server::FrontendMessage::lsp_message {
-        //                 method: "textDocument/codeAction".to_string(),
-        //                 params: serde_json::to_value(&params).unwrap(),
-        //             },
-        //         ),
-        //     )
-        //     .inspect_err(|e| {
-        //         tracing::error!("Failed to send codeAction notification to playground: {e}");
-        //     });
-
         let mut actions = vec![];
 
         let uri = params.text_document.uri.clone();
@@ -76,7 +62,7 @@ impl SyncRequestHandler for CodeActionHandler {
             kind: Some(CodeActionKind::EMPTY),
             command: Some(Command {
                 title: "Open Playground".to_string(),
-                command: "openPlayground".to_string(),
+                command: OPEN_IN_BROWSER_COMMAND.to_string(),
                 arguments: function_name.map(|name| vec![Value::String(name)]),
             }),
             edit: None,

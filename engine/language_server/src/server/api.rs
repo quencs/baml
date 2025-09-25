@@ -22,6 +22,7 @@ mod requests;
 mod traits;
 
 use notifications as notification;
+pub(crate) use request::code_action::OPEN_IN_BROWSER_COMMAND;
 use requests as request;
 
 use self::traits::{

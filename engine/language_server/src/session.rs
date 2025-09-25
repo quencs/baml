@@ -13,7 +13,7 @@ use index::DocumentController;
 use itertools::any;
 use lsp_types::{ClientCapabilities, TextDocumentContentChangeEvent, Url};
 use parking_lot::Mutex;
-use playground_server::{FrontendMessage, WebviewNotification, WebviewRouterMessage};
+use playground_server::{WebviewCommand, WebviewRouterMessage};
 use serde_json::Value;
 
 pub(crate) use self::{capabilities::ResolvedClientCapabilities, settings::AllSettings};
@@ -122,7 +122,7 @@ impl Session {
                     global_settings.baml
                 );
                 let baml_settings = global_settings.baml.clone().unwrap_or_default();
-                tracing::info!("--- Session::new final baml_settings: {:?}", baml_settings);
+                tracing::info!("--- Session::new final baml_settings: {:#?}", baml_settings);
                 baml_settings
             },
             playground_port,
