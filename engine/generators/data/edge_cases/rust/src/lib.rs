@@ -203,10 +203,13 @@ mod tests {
             assert_child_relationship(&result, child);
         }
 
-        assert!(
-            !result.related_items.is_empty(),
-            "expected related items to be present"
-        );
+        for related in &result.related_items {
+            assert!(related.id > 0, "expected related item to have an id");
+            assert!(
+                !related.name.trim().is_empty(),
+                "expected related item to have a name"
+            );
+        }
         Ok(())
     }
 }
