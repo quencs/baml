@@ -99,7 +99,7 @@ macro_rules! define_baml_media_type {
         impl TryFrom<baml_types::BamlMedia> for $name {
             type Error = baml_client_rust::BamlError;
 
-            fn try_from(media: baml_types::BamlMedia) -> Result<Self, Self::Error> {
+            fn try_from(media: baml_types::BamlMedia) -> std::result::Result<Self, Self::Error> {
                 Self::new(media)
             }
         }
@@ -538,7 +538,7 @@ pub struct CircularReference {
 
     pub name: String,
 
-    pub parent: Option<Box<crate::types::CircularReference>>,
+    pub parent: Box<Option<Box<crate::types::CircularReference>>>,
 
     pub children: Vec<crate::types::CircularReference>,
 
@@ -550,7 +550,7 @@ impl CircularReference {
     pub fn new(
         id: i64,
         name: String,
-        parent: Option<Box<crate::types::CircularReference>>,
+        parent: Box<Option<Box<crate::types::CircularReference>>>,
         children: Vec<crate::types::CircularReference>,
         related_items: Vec<crate::types::CircularReference>,
     ) -> Self {
@@ -566,7 +566,13 @@ impl CircularReference {
 
 impl Default for CircularReference {
     fn default() -> Self {
-        Self::new(0, String::new(), None, Vec::new(), Vec::new())
+        Self::new(
+            0,
+            String::new(),
+            Box::<Option<Box<crate::types::CircularReference>>>::default(),
+            Vec::new(),
+            Vec::new(),
+        )
     }
 }
 
@@ -636,13 +642,15 @@ impl baml_client_rust::types::FromBamlValue for CircularReference {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            None
+                            Box::<Option<Box<crate::types::CircularReference>>>::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => None,
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        Box::<Option<Box<crate::types::CircularReference>>>::default()
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'parent' in CircularReference"
@@ -699,19 +707,22 @@ impl baml_client_rust::types::FromBamlValue for CircularReference {
 pub struct DeepRecursion {
     pub value: String,
 
-    pub next: Option<Box<crate::types::DeepRecursion>>,
+    pub next: Box<Option<Box<crate::types::DeepRecursion>>>,
 }
 
 impl DeepRecursion {
     /// Create a new DeepRecursion instance
-    pub fn new(value: String, next: Option<Box<crate::types::DeepRecursion>>) -> Self {
+    pub fn new(value: String, next: Box<Option<Box<crate::types::DeepRecursion>>>) -> Self {
         Self { value, next }
     }
 }
 
 impl Default for DeepRecursion {
     fn default() -> Self {
-        Self::new(String::new(), None)
+        Self::new(
+            String::new(),
+            Box::<Option<Box<crate::types::DeepRecursion>>>::default(),
+        )
     }
 }
 
@@ -757,13 +768,15 @@ impl baml_client_rust::types::FromBamlValue for DeepRecursion {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            None
+                            Box::<Option<Box<crate::types::DeepRecursion>>>::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => None,
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        Box::<Option<Box<crate::types::DeepRecursion>>>::default()
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'next' in DeepRecursion"
