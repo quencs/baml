@@ -543,6 +543,46 @@ impl baml_client_rust::types::FromBamlValue for Union2ExampleOrExample2 {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "example_1"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Example::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Example(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "example_2"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::Example2::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Example2(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try Example variant
         if let Ok(variant_value) = crate::types::Example::from_baml_value(value.clone()) {
             return Ok(Self::Example(variant_value));

@@ -27,14 +27,18 @@ pub fn ir_union_to_rust(
                             .enumerate()
                             .map(|(i, t)| {
                                 let rust_type = crate::ir_to_rust::type_to_rust(t, pkg.lookup());
-                                build_variant(i, rust_type, &mut seen_names)
+                                build_variant(i, t, rust_type, pkg, &mut seen_names)
                             })
-                            .collect();
+                            .collect::<Vec<_>>();
+                        let has_discriminators = variants
+                            .iter()
+                            .any(|variant| !variant.discriminators.is_empty());
 
                         Some(RustUnion {
                             name,
                             variants,
                             docstring: None,
+                            has_discriminators,
                         })
                     }
                     baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
@@ -44,14 +48,18 @@ pub fn ir_union_to_rust(
                             .enumerate()
                             .map(|(i, t)| {
                                 let rust_type = crate::ir_to_rust::type_to_rust(t, pkg.lookup());
-                                build_variant(i, rust_type, &mut seen_names)
+                                build_variant(i, t, rust_type, pkg, &mut seen_names)
                             })
-                            .collect();
+                            .collect::<Vec<_>>();
+                        let has_discriminators = variants
+                            .iter()
+                            .any(|variant| !variant.discriminators.is_empty());
 
                         Some(RustUnion {
                             name,
                             variants,
                             docstring: None,
+                            has_discriminators,
                         })
                     }
                 }
@@ -65,7 +73,9 @@ pub fn ir_union_to_rust(
 
 fn build_variant(
     index: usize,
+    original_type: &TypeNonStreaming,
     rust_type: TypeRust,
+    pkg: &CurrentRenderPackage,
     seen_names: &mut HashSet<String>,
 ) -> RustVariant {
     let mut variant_name = rust_type.default_name_within_union();
@@ -89,11 +99,61 @@ fn build_variant(
         _ => (None, None),
     };
 
+    let discriminators = collect_discriminators(original_type, pkg);
+
     RustVariant {
         name: variant_name,
         rust_type,
         docstring: None,
         literal_value,
         literal_kind,
+        discriminators,
+    }
+}
+
+fn collect_discriminators(
+    original_type: &TypeNonStreaming,
+    pkg: &CurrentRenderPackage,
+) -> Vec<crate::generated_types::UnionVariantDiscriminator> {
+    use crate::generated_types::UnionVariantDiscriminatorValue;
+
+    match original_type {
+        TypeNonStreaming::Class { name, .. } => pkg
+            .lookup()
+            .classes
+            .iter()
+            .find(|class| class.elem.name == *name)
+            .map(|class| {
+                class
+                    .elem
+                    .static_fields
+                    .iter()
+                    .filter_map(|field| match &field.elem.r#type.elem {
+                        baml_types::ir_type::TypeIR::Literal(literal, _) => match literal {
+                            baml_types::ir_type::LiteralValue::String(value) => {
+                                Some(crate::generated_types::UnionVariantDiscriminator {
+                                    field_name: field.elem.name.clone(),
+                                    value: UnionVariantDiscriminatorValue::String(value.clone()),
+                                })
+                            }
+                            baml_types::ir_type::LiteralValue::Int(value) => {
+                                Some(crate::generated_types::UnionVariantDiscriminator {
+                                    field_name: field.elem.name.clone(),
+                                    value: UnionVariantDiscriminatorValue::Int(*value),
+                                })
+                            }
+                            baml_types::ir_type::LiteralValue::Bool(value) => {
+                                Some(crate::generated_types::UnionVariantDiscriminator {
+                                    field_name: field.elem.name.clone(),
+                                    value: UnionVariantDiscriminatorValue::Bool(*value),
+                                })
+                            }
+                        },
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+        _ => Vec::new(),
     }
 }

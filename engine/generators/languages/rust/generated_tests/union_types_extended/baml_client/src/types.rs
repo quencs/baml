@@ -3209,6 +3209,45 @@ impl baml_client_rust::types::FromBamlValue for Union2DataResponseOrErrorRespons
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("status") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "success"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::DataResponse::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::DataResponse(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("status") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "error",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::ErrorResponse::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::ErrorResponse(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try DataResponse variant
         if let Ok(variant_value) = crate::types::DataResponse::from_baml_value(value.clone()) {
             return Ok(Self::DataResponse(variant_value));
@@ -3949,6 +3988,42 @@ impl baml_client_rust::types::FromBamlValue for Union2ProductOrUser {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "user",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::User::from_baml_value(value.clone()) {
+                        return Ok(Self::User(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "product"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Product::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Product(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try User variant
         if let Ok(variant_value) = crate::types::User::from_baml_value(value.clone()) {
             return Ok(Self::User(variant_value));
@@ -4285,6 +4360,56 @@ impl baml_client_rust::types::FromBamlValue for Union3AdminOrProductOrUser {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "user",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::User::from_baml_value(value.clone()) {
+                        return Ok(Self::User(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "product"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Product::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Product(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "admin",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Admin::from_baml_value(value.clone()) {
+                        return Ok(Self::Admin(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try User variant
         if let Ok(variant_value) = crate::types::User::from_baml_value(value.clone()) {
             return Ok(Self::User(variant_value));
@@ -4477,6 +4602,63 @@ impl baml_client_rust::types::FromBamlValue for Union3ApiErrorOrApiPendingOrApiS
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("status") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "success"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::ApiSuccess::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::ApiSuccess(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("status") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "error",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::ApiError::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::ApiError(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("status") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "pending"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::ApiPending::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::ApiPending(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try ApiSuccess variant
         if let Ok(variant_value) = crate::types::ApiSuccess::from_baml_value(value.clone()) {
             return Ok(Self::ApiSuccess(variant_value));
@@ -4669,6 +4851,53 @@ impl baml_client_rust::types::FromBamlValue for Union3BirdOrCatOrDog {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("species") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "dog",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Dog::from_baml_value(value.clone()) {
+                        return Ok(Self::Dog(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("species") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "cat",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Cat::from_baml_value(value.clone()) {
+                        return Ok(Self::Cat(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("species") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "bird",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Bird::from_baml_value(value.clone()) {
+                        return Ok(Self::Bird(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try Dog variant
         if let Ok(variant_value) = crate::types::Dog::from_baml_value(value.clone()) {
             return Ok(Self::Dog(variant_value));
@@ -4861,6 +5090,64 @@ impl baml_client_rust::types::FromBamlValue for Union3CircleOrRectangleOrTriangl
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("shape") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "circle"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Circle::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Circle(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("shape") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "rectangle"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::Rectangle::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Rectangle(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("shape") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "triangle"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::Triangle::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Triangle(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try Circle variant
         if let Ok(variant_value) = crate::types::Circle::from_baml_value(value.clone()) {
             return Ok(Self::Circle(variant_value));
@@ -5053,6 +5340,59 @@ impl baml_client_rust::types::FromBamlValue for Union3ErrorOrSuccessOrWarning {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "success"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Success::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Success(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "warning"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Warning::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Warning(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "error",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Error::from_baml_value(value.clone()) {
+                        return Ok(Self::Error(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try Success variant
         if let Ok(variant_value) = crate::types::Success::from_baml_value(value.clone()) {
             return Ok(Self::Success(variant_value));

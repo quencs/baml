@@ -27,10 +27,11 @@ fn union_contains_class(field_type: &TypeNonStreaming, class_name: &str) -> bool
         TypeGeneric::Union(union_generic, _) => match union_generic.view() {
             UnionTypeViewGeneric::Null => false,
             UnionTypeViewGeneric::Optional(inner) => type_generic_matches_class(inner, class_name),
-            UnionTypeViewGeneric::OneOf(types)
-            | UnionTypeViewGeneric::OneOfOptional(types) => types
-                .iter()
-                .any(|t| type_generic_matches_class(t, class_name)),
+            UnionTypeViewGeneric::OneOf(types) | UnionTypeViewGeneric::OneOfOptional(types) => {
+                types
+                    .iter()
+                    .any(|t| type_generic_matches_class(t, class_name))
+            }
         },
         _ => false,
     }
@@ -189,9 +190,11 @@ impl LanguageFeatures for RustLanguageFeatures {
                                     rust_type: variant.rust_type,
                                     literal_value: variant.literal_value,
                                     literal_kind: variant.literal_kind,
+                                    discriminators: variant.discriminators,
                                 })
                                 .collect(),
                             pkg: &pkg,
+                            has_discriminators: union_data.has_discriminators,
                         }
                     })
                 })
@@ -218,9 +221,8 @@ impl LanguageFeatures for RustLanguageFeatures {
         stream_type_aliases.sort_by(|a, b| a.name.cmp(&b.name));
         stream_type_aliases.dedup_by(|a, b| a.name == b.name);
 
-        let mut stream_state_content = String::from(
-            "pub use baml_client_rust::StreamState;\npub use crate::types::*;\n\n",
-        );
+        let mut stream_state_content =
+            String::from("pub use baml_client_rust::StreamState;\npub use crate::types::*;\n\n");
         stream_state_content.push_str(&generated_types::render_rust_types(
             &stream_type_aliases,
             &stream_pkg,

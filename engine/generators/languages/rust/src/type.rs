@@ -280,10 +280,7 @@ impl TypeRust {
         }
         match self {
             TypeRust::String(val, _) => val.as_ref().map_or("String::new()".to_string(), |v| {
-                format!(
-                    "String::from(\"{}\")",
-                    v.replace("\"", "\\\"")
-                )
+                format!("String::from(\"{}\")", v.replace("\"", "\\\""))
             }),
             TypeRust::Int(val, _) => val.map_or("0".to_string(), |v| format!("{v}")),
             TypeRust::Float(_) => "0.0".to_string(),
@@ -293,12 +290,8 @@ impl TypeRust {
             TypeRust::Media(..) | TypeRust::Class { .. } | TypeRust::Union { .. } => {
                 default_call(self.serialize_type(pkg))
             }
-            TypeRust::Enum { .. } => {
-                default_call(self.serialize_type(pkg))
-            }
-            TypeRust::TypeAlias { .. } => {
-                default_call(self.serialize_type(pkg))
-            }
+            TypeRust::Enum { .. } => default_call(self.serialize_type(pkg)),
+            TypeRust::TypeAlias { .. } => default_call(self.serialize_type(pkg)),
             TypeRust::List(..) => "Vec::new()".to_string(),
             TypeRust::Map(..) => "std::collections::HashMap::new()".to_string(),
             TypeRust::Null(_) => format!("{}NullValue", Package::types().relative_from(pkg)),

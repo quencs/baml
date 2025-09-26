@@ -2,8 +2,6 @@ use crate::{
     package::CurrentRenderPackage,
     r#type::{SerializeType, TypeRust},
 };
-use askama::Template;
-
 mod filters {
     use crate::utils::to_snake_case;
 
@@ -78,6 +76,7 @@ mod union {
         pub docstring: Option<String>,
         pub variants: Vec<UnionVariantRust>,
         pub pkg: &'a CurrentRenderPackage,
+        pub has_discriminators: bool,
     }
 
     #[derive(Debug, Clone)]
@@ -87,6 +86,55 @@ mod union {
         pub rust_type: TypeRust,
         pub literal_value: Option<String>,
         pub literal_kind: Option<RustLiteralKind>,
+        pub discriminators: Vec<UnionVariantDiscriminator>,
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct UnionVariantDiscriminator {
+        pub field_name: String,
+        pub value: UnionVariantDiscriminatorValue,
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum UnionVariantDiscriminatorValue {
+        String(String),
+        Int(i64),
+        Bool(bool),
+    }
+
+    impl UnionVariantDiscriminatorValue {
+        pub fn is_string(&self) -> bool {
+            matches!(self, Self::String(_))
+        }
+
+        pub fn is_int(&self) -> bool {
+            matches!(self, Self::Int(_))
+        }
+
+        pub fn is_bool(&self) -> bool {
+            matches!(self, Self::Bool(_))
+        }
+
+        pub fn expect_string(&self) -> &String {
+            match self {
+                Self::String(value) => value,
+                _ => panic!("expected string discriminator"),
+            }
+        }
+
+        pub fn expect_int(&self) -> i64 {
+            match self {
+                Self::Int(value) => *value,
+                _ => panic!("expected int discriminator"),
+            }
+        }
+
+        pub fn expect_bool(&self) -> bool {
+            match self {
+                Self::Bool(value) => *value,
+                _ => panic!("expected bool discriminator"),
+            }
+        }
     }
 }
 
@@ -139,6 +187,7 @@ pub struct RustUnion {
     pub name: String,
     pub variants: Vec<RustVariant>,
     pub docstring: Option<String>,
+    pub has_discriminators: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -169,6 +218,7 @@ pub struct RustVariant {
     pub docstring: Option<String>,
     pub literal_value: Option<String>,
     pub literal_kind: Option<RustLiteralKind>,
+    pub discriminators: Vec<UnionVariantDiscriminator>,
 }
 
 /// A list of types in Rust.

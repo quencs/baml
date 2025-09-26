@@ -5252,6 +5252,42 @@ impl baml_client_rust::types::FromBamlValue for Union2ErrorOrSuccess {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "success"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Success::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::Success(variant_value));
+                    }
+                }
+            }
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => value == "error",
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) = crate::types::Error::from_baml_value(value.clone()) {
+                        return Ok(Self::Error(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try Success variant
         if let Ok(variant_value) = crate::types::Success::from_baml_value(value.clone()) {
             return Ok(Self::Success(variant_value));
@@ -5848,6 +5884,29 @@ impl baml_client_rust::types::FromBamlValue for Union3DataObjectOrIntOrString {
     fn from_baml_value(
         value: baml_client_rust::types::BamlValue,
     ) -> baml_client_rust::BamlResult<Self> {
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+        | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {
+                let mut matches_variant = true;
+                if matches_variant {
+                    matches_variant = match map.get("type") {
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == "object"
+                        }
+                        _ => false,
+                    };
+                }
+                if matches_variant {
+                    if let Ok(variant_value) =
+                        crate::types::DataObject::from_baml_value(value.clone())
+                    {
+                        return Ok(Self::DataObject(variant_value));
+                    }
+                }
+            }
+        }
+
         // Try String variant
         if let Ok(variant_value) = String::from_baml_value(value.clone()) {
             return Ok(Self::String(variant_value));

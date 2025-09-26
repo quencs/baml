@@ -177,6 +177,47 @@ impl baml_client_rust::types::ToBamlValue for {{ name }} {
 
 impl baml_client_rust::types::FromBamlValue for {{ name }} {
     fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        {% if has_discriminators %}
+        if let baml_client_rust::types::BamlValue::Class(_, map)
+            | baml_client_rust::types::BamlValue::Map(map) = &value
+        {
+            {%- for variant in variants %}
+            {%- if variant.literal_value.is_none() && !variant.discriminators.is_empty() %}
+            {
+                let mut matches_variant = true;
+                {%- for discriminator in variant.discriminators %}
+                if matches_variant {
+                    matches_variant = match map.get("{{ discriminator.field_name }}") {
+                        {%- if discriminator.value.is_string() %}
+                        Some(baml_client_rust::types::BamlValue::String(value)) => {
+                            value == {{ discriminator.value.expect_string() | json_string_literal }}
+                        }
+                        {%- elif discriminator.value.is_int() %}
+                        Some(baml_client_rust::types::BamlValue::Int(value)) => {
+                            value == &{{ discriminator.value.expect_int() }}
+                        }
+                        {%- elif discriminator.value.is_bool() %}
+                        Some(baml_client_rust::types::BamlValue::Bool(value)) => {
+                            value == &{{ discriminator.value.expect_bool() }}
+                        }
+                        {%- else %}
+                        Some(_) => false,
+                        {%- endif %}
+                        _ => false,
+                    };
+                }
+                {%- endfor %}
+                if matches_variant {
+                    if let Ok(variant_value) = {{ variant.rust_type.serialize_type_with_turbofish(pkg) }}::from_baml_value(value.clone()) {
+                        return Ok(Self::{{ variant.name }}(variant_value));
+                    }
+                }
+            }
+            {%- endif %}
+            {%- endfor %}
+        }
+        {% endif %}
+
         {%- for variant in variants %}
         {%- if let Some(kind) = variant.literal_kind %}
         {%- if kind.is_string() %}
