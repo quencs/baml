@@ -186,7 +186,7 @@ impl Admin {
 
 impl Default for Admin {
     fn default() -> Self {
-        Self::new(0, String::new(), Vec::new(), String::new())
+        Self::new(0, String::new(), Vec::new(), String::from("admin"))
     }
 }
 
@@ -270,13 +270,15 @@ impl baml_client_rust::types::FromBamlValue for Admin {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("admin")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("admin")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Admin"
@@ -1485,7 +1487,7 @@ impl Error {
 
 impl Default for Error {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), 0, None)
+        Self::new(String::from("error"), String::new(), 0, None)
     }
 }
 
@@ -1515,13 +1517,15 @@ impl baml_client_rust::types::FromBamlValue for Error {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("error")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("error")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Error"
@@ -1923,7 +1927,7 @@ impl Product {
 
 impl Default for Product {
     fn default() -> Self {
-        Self::new(0, String::new(), 0.0, String::new())
+        Self::new(0, String::new(), 0.0, String::from("product"))
     }
 }
 
@@ -2007,13 +2011,15 @@ impl baml_client_rust::types::FromBamlValue for Product {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("product")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("product")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Product"
@@ -2357,7 +2363,7 @@ impl Success {
 impl Default for Success {
     fn default() -> Self {
         Self::new(
-            String::new(),
+            String::from("success"),
             String::new(),
             std::collections::HashMap::new(),
         )
@@ -2389,13 +2395,15 @@ impl baml_client_rust::types::FromBamlValue for Success {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("success")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("success")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Success"
@@ -2731,7 +2739,7 @@ impl User {
 
 impl Default for User {
     fn default() -> Self {
-        Self::new(0, String::new(), String::new())
+        Self::new(0, String::new(), String::from("user"))
     }
 }
 
@@ -2796,13 +2804,15 @@ impl baml_client_rust::types::FromBamlValue for User {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("user")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("user")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in User"
@@ -2841,7 +2851,7 @@ impl Warning {
 
 impl Default for Warning {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), 0)
+        Self::new(String::from("warning"), String::new(), 0)
     }
 }
 
@@ -2870,13 +2880,15 @@ impl baml_client_rust::types::FromBamlValue for Warning {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("warning")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("warning")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Warning"

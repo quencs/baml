@@ -117,7 +117,10 @@ impl LanguageFeatures for RustLanguageFeatures {
                                 .elem
                                 .static_fields
                                 .iter()
-                                .find(|f| crate::utils::to_snake_case(&f.elem.name) == field.name)
+                                .find(|f| {
+                                    let snake = crate::utils::to_snake_case(&f.elem.name);
+                                    crate::utils::safe_rust_identifier(&snake) == field.name
+                                })
                                 .map(|f| &f.elem.r#type.elem);
 
                             let mut rust_type = if let Some(field_type) = field_type_ir {

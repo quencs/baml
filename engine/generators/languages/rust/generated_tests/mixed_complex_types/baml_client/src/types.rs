@@ -281,7 +281,7 @@ impl baml_client_rust::types::FromBamlValue for Action {
 pub struct Asset {
     pub id: i64,
 
-    pub r#type: String,
+    pub r#type: crate::types::Union3KAudioOrKDocumentOrKImage,
 
     pub metadata: crate::types::AssetMetadata,
 
@@ -292,7 +292,7 @@ impl Asset {
     /// Create a new Asset instance
     pub fn new(
         id: i64,
-        r#type: String,
+        r#type: crate::types::Union3KAudioOrKDocumentOrKImage,
         metadata: crate::types::AssetMetadata,
         tags: Vec<String>,
     ) -> Self {
@@ -309,7 +309,7 @@ impl Default for Asset {
     fn default() -> Self {
         Self::new(
             0,
-            String::new(),
+            crate::types::Union3KAudioOrKDocumentOrKImage::default(),
             crate::types::AssetMetadata::default(),
             Vec::new(),
         )
@@ -360,13 +360,15 @@ impl baml_client_rust::types::FromBamlValue for Asset {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            crate::types::Union3KAudioOrKDocumentOrKImage::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union3KAudioOrKDocumentOrKImage::default()
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Asset"
@@ -825,7 +827,7 @@ impl baml_client_rust::types::FromBamlValue for ComplexData {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Condition {
-    pub r#type: String,
+    pub r#type: crate::types::Union3KAndOrKNotOrKOr,
 
     pub conditions: Vec<crate::types::Union2ConditionOrSimpleCondition>,
 }
@@ -833,7 +835,7 @@ pub struct Condition {
 impl Condition {
     /// Create a new Condition instance
     pub fn new(
-        r#type: String,
+        r#type: crate::types::Union3KAndOrKNotOrKOr,
         conditions: Vec<crate::types::Union2ConditionOrSimpleCondition>,
     ) -> Self {
         Self { r#type, conditions }
@@ -842,7 +844,7 @@ impl Condition {
 
 impl Default for Condition {
     fn default() -> Self {
-        Self::new(String::new(), Vec::new())
+        Self::new(crate::types::Union3KAndOrKNotOrKOr::default(), Vec::new())
     }
 }
 
@@ -870,13 +872,15 @@ impl baml_client_rust::types::FromBamlValue for Condition {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            crate::types::Union3KAndOrKNotOrKOr::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union3KAndOrKNotOrKOr::default()
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Condition"
@@ -1196,7 +1200,7 @@ impl DataObject {
 
 impl Default for DataObject {
     fn default() -> Self {
-        Self::new(String::new(), std::collections::HashMap::new())
+        Self::new(String::from("object"), std::collections::HashMap::new())
     }
 }
 
@@ -1224,13 +1228,15 @@ impl baml_client_rust::types::FromBamlValue for DataObject {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("object")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("object")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in DataObject"
@@ -1518,7 +1524,7 @@ impl Error {
 
 impl Default for Error {
     fn default() -> Self {
-        Self::new(String::new(), String::new(), 0)
+        Self::new(String::from("error"), String::new(), 0)
     }
 }
 
@@ -1547,13 +1553,15 @@ impl baml_client_rust::types::FromBamlValue for Error {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("error")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("error")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Error"
@@ -2635,7 +2643,7 @@ impl baml_client_rust::types::FromBamlValue for KitchenSink {
 pub struct Node {
     pub id: i64,
 
-    pub r#type: String,
+    pub r#type: crate::types::Union2KBranchOrKLeaf,
 
     pub value: crate::types::Union4IntOrListNodeOrMapStringKeyNodeValueOrString,
 
@@ -2646,7 +2654,7 @@ impl Node {
     /// Create a new Node instance
     pub fn new(
         id: i64,
-        r#type: String,
+        r#type: crate::types::Union2KBranchOrKLeaf,
         value: crate::types::Union4IntOrListNodeOrMapStringKeyNodeValueOrString,
         metadata: Option<crate::types::NodeMetadata>,
     ) -> Self {
@@ -2663,7 +2671,7 @@ impl Default for Node {
     fn default() -> Self {
         Self::new(
             0,
-            String::new(),
+            crate::types::Union2KBranchOrKLeaf::default(),
             crate::types::Union4IntOrListNodeOrMapStringKeyNodeValueOrString::default(),
             None,
         )
@@ -2714,13 +2722,15 @@ impl baml_client_rust::types::FromBamlValue for Node {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            crate::types::Union2KBranchOrKLeaf::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union2KBranchOrKLeaf::default()
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Node"
@@ -3800,7 +3810,7 @@ impl Success {
 
 impl Default for Success {
     fn default() -> Self {
-        Self::new(String::new(), std::collections::HashMap::new())
+        Self::new(String::from("success"), std::collections::HashMap::new())
     }
 }
 
@@ -3828,13 +3838,15 @@ impl baml_client_rust::types::FromBamlValue for Success {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("success")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("success")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Success"
@@ -4814,7 +4826,7 @@ impl baml_client_rust::types::FromBamlValue for Variant {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Widget {
-    pub r#type: String,
+    pub r#type: crate::types::Union4KButtonOrKContainerOrKImageOrKText,
 
     pub button: Option<crate::types::ButtonWidget>,
 
@@ -4828,7 +4840,7 @@ pub struct Widget {
 impl Widget {
     /// Create a new Widget instance
     pub fn new(
-        r#type: String,
+        r#type: crate::types::Union4KButtonOrKContainerOrKImageOrKText,
         button: Option<crate::types::ButtonWidget>,
         text: Option<crate::types::TextWidget>,
         image: Option<crate::types::ImageWidget>,
@@ -4846,7 +4858,13 @@ impl Widget {
 
 impl Default for Widget {
     fn default() -> Self {
-        Self::new(String::new(), None, None, None, None)
+        Self::new(
+            crate::types::Union4KButtonOrKContainerOrKImageOrKText::default(),
+            None,
+            None,
+            None,
+            None,
+        )
     }
 }
 
@@ -4877,13 +4895,15 @@ impl baml_client_rust::types::FromBamlValue for Widget {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            crate::types::Union4KButtonOrKContainerOrKImageOrKText::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union4KButtonOrKContainerOrKImageOrKText::default()
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Widget"

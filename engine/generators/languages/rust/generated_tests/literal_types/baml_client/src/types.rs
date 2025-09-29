@@ -586,7 +586,7 @@ impl baml_client_rust::types::FromBamlValue for IntegerLiterals {
 pub struct MixedLiterals {
     pub id: i64,
 
-    pub r#type: String,
+    pub r#type: crate::types::Union3KAdminOrKGuestOrKUser,
 
     pub level: crate::types::Union3IntK1OrIntK2OrIntK3,
 
@@ -599,7 +599,7 @@ impl MixedLiterals {
     /// Create a new MixedLiterals instance
     pub fn new(
         id: i64,
-        r#type: String,
+        r#type: crate::types::Union3KAdminOrKGuestOrKUser,
         level: crate::types::Union3IntK1OrIntK2OrIntK3,
         is_active: crate::types::Union2BoolKFalseOrBoolKTrue,
         api_version: crate::types::Union3KV1OrKV2OrKV3,
@@ -618,7 +618,7 @@ impl Default for MixedLiterals {
     fn default() -> Self {
         Self::new(
             0,
-            String::new(),
+            crate::types::Union3KAdminOrKGuestOrKUser::default(),
             crate::types::Union3IntK1OrIntK2OrIntK3::default(),
             crate::types::Union2BoolKFalseOrBoolKTrue::default(),
             crate::types::Union3KV1OrKV2OrKV3::default(),
@@ -671,13 +671,15 @@ impl baml_client_rust::types::FromBamlValue for MixedLiterals {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            crate::types::Union3KAdminOrKGuestOrKUser::default()
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        crate::types::Union3KAdminOrKGuestOrKUser::default()
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in MixedLiterals"

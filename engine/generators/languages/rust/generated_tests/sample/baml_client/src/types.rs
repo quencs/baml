@@ -179,7 +179,7 @@ impl Example {
 
 impl Default for Example {
     fn default() -> Self {
-        Self::new(String::new(), i64::default(), String::new())
+        Self::new(String::from("example_1"), i64::default(), String::new())
     }
 }
 
@@ -208,13 +208,15 @@ impl baml_client_rust::types::FromBamlValue for Example {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("example_1")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("example_1")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Example"
@@ -298,7 +300,7 @@ impl Example2 {
 impl Default for Example2 {
     fn default() -> Self {
         Self::new(
-            String::new(),
+            String::from("example_2"),
             crate::types::Example::default(),
             String::new(),
             String::new(),
@@ -332,13 +334,15 @@ impl baml_client_rust::types::FromBamlValue for Example2 {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
                         {
-                            String::new()
+                            String::from("example_2")
                         }
                         _ => {
                             baml_client_rust::types::FromBamlValue::from_baml_value(value.clone())?
                         }
                     },
-                    None if baml_client_rust::types::is_partial_deserialization() => String::new(),
+                    None if baml_client_rust::types::is_partial_deserialization() => {
+                        String::from("example_2")
+                    }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
                             "Missing field 'type' in Example2"

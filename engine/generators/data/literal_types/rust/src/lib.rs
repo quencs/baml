@@ -75,7 +75,11 @@ mod tests {
         let result = client.test_mixed_literals("test mixed literals").await?;
 
         assert_eq!(result.id, 12_345);
-        assert_eq!(result.r#type, "admin");
+        assert!(
+            result.r#type.is_k_admin(),
+            "expected type admin, got {:?}",
+            result.r#type
+        );
         assert!(
             result.level.is_intk2(),
             "expected level 2, got {:?}",
@@ -177,7 +181,11 @@ mod tests {
         let final_value: MixedLiterals = final_value.expect("expected final mixed literals result");
 
         assert_eq!(final_value.id, 12_345);
-        assert_eq!(final_value.r#type, "admin");
+        assert!(
+            final_value.r#type.is_k_admin(),
+            "expected type admin, got {:?}",
+            final_value.r#type
+        );
         assert!(
             final_value.level.is_intk2(),
             "expected level 2, got {:?}",
