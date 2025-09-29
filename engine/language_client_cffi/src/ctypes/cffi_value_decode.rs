@@ -84,8 +84,12 @@ impl Decode for Value {
 
                     Value::decode(*value)?
                 }
-                cValue::CheckedValue(_cffi_value_checked) => {
-                    anyhow::bail!("Checked value is not supported in Value::decode")
+                cValue::CheckedValue(cffi_value_checked) => {
+                    // Extract the inner value from the checked value
+                    let inner_value = cffi_value_checked
+                        .value
+                        .ok_or(anyhow::anyhow!("Checked value missing inner value"))?;
+                    Value::decode(*inner_value)?
                 }
                 cValue::StreamingStateValue(stream_state) => {
                     decode_streaming_state_value(stream_state)?
