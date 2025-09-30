@@ -2,6 +2,7 @@ use dir_writer::{FileCollector, GeneratorArgs, IntermediateRepr, LanguageFeature
 use functions::{render_functions, render_source_files};
 use std::sync::OnceLock;
 
+use crate::generated_types::RustLiteralKind;
 use baml_types::ir_type::{TypeGeneric, TypeNonStreaming, UnionTypeViewGeneric};
 
 mod functions;
@@ -181,6 +182,11 @@ impl LanguageFeatures for RustLanguageFeatures {
                 .walk_all_non_streaming_unions()
                 .filter_map(|t| {
                     ir_to_rust::unions::ir_union_to_rust(&t, &pkg).map(|union_data| {
+                        let all_variants_are_string_literals = union_data
+                            .variants
+                            .iter()
+                            .all(|variant| matches!(variant.literal_kind, Some(RustLiteralKind::String)));
+
                         generated_types::UnionRust {
                             name: union_data.name,
                             docstring: None, // TODO: Extract docstring from union
@@ -198,6 +204,7 @@ impl LanguageFeatures for RustLanguageFeatures {
                                 .collect(),
                             pkg: &pkg,
                             has_discriminators: union_data.has_discriminators,
+                            all_variants_are_string_literals,
                         }
                     })
                 })

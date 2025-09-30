@@ -77,6 +77,7 @@ mod union {
         pub variants: Vec<UnionVariantRust>,
         pub pkg: &'a CurrentRenderPackage,
         pub has_discriminators: bool,
+        pub all_variants_are_string_literals: bool,
     }
 
     #[derive(Debug, Clone)]

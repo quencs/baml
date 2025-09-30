@@ -5353,6 +5353,13 @@ impl Union2KBranchOrKLeaf {
     pub fn k_branch() -> Self {
         Self::KBranch
     }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KLeaf => "leaf",
+            Self::KBranch => "branch",
+        }
+    }
 }
 
 /// Pattern matching helper for Union2KBranchOrKLeaf
@@ -5458,6 +5465,13 @@ impl Union2KErrorOrKSuccess {
     /// Create a new Union2KErrorOrKSuccess with a KError variant
     pub fn k_error() -> Self {
         Self::KError
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KSuccess => "success",
+            Self::KError => "error",
+        }
     }
 }
 
@@ -6180,6 +6194,14 @@ impl Union3KAndOrKNotOrKOr {
     pub fn k_not() -> Self {
         Self::KNot
     }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KAnd => "and",
+            Self::KOr => "or",
+            Self::KNot => "not",
+        }
+    }
 }
 
 /// Pattern matching helper for Union3KAndOrKNotOrKOr
@@ -6312,6 +6334,14 @@ impl Union3KArchivedOrKDraftOrKPublished {
     /// Create a new Union3KArchivedOrKDraftOrKPublished with a KArchived variant
     pub fn k_archived() -> Self {
         Self::KArchived
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KDraft => "draft",
+            Self::KPublished => "published",
+            Self::KArchived => "archived",
+        }
     }
 }
 
@@ -6448,6 +6478,14 @@ impl Union3KAudioOrKDocumentOrKImage {
     pub fn k_document() -> Self {
         Self::KDocument
     }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KImage => "image",
+            Self::KAudio => "audio",
+            Self::KDocument => "document",
+        }
+    }
 }
 
 /// Pattern matching helper for Union3KAudioOrKDocumentOrKImage
@@ -6583,6 +6621,14 @@ impl Union3KFlexOrKGridOrKStack {
     pub fn k_stack() -> Self {
         Self::KStack
     }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KFlex => "flex",
+            Self::KGrid => "grid",
+            Self::KStack => "stack",
+        }
+    }
 }
 
 /// Pattern matching helper for Union3KFlexOrKGridOrKStack
@@ -6717,6 +6763,14 @@ impl Union3KHtmlOrKMarkdownOrKPlain {
     /// Create a new Union3KHtmlOrKMarkdownOrKPlain with a KHtml variant
     pub fn k_html() -> Self {
         Self::KHtml
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KPlain => "plain",
+            Self::KMarkdown => "markdown",
+            Self::KHtml => "html",
+        }
     }
 }
 
@@ -7351,6 +7405,15 @@ impl Union4KButtonOrKContainerOrKImageOrKText {
     pub fn k_container() -> Self {
         Self::KContainer
     }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KButton => "button",
+            Self::KText => "text",
+            Self::KImage => "image",
+            Self::KContainer => "container",
+        }
+    }
 }
 
 /// Pattern matching helper for Union4KButtonOrKContainerOrKImageOrKText
@@ -7732,6 +7795,16 @@ impl Union5KContainsOrKEqOrKGtOrKLtOrKNe {
     /// Create a new Union5KContainsOrKEqOrKGtOrKLtOrKNe with a KContains variant
     pub fn k_contains() -> Self {
         Self::KContains
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KEq => "eq",
+            Self::KNe => "ne",
+            Self::KGt => "gt",
+            Self::KLt => "lt",
+            Self::KContains => "contains",
+        }
     }
 }
 

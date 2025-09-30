@@ -62,6 +62,19 @@ impl {{ name }} {
     }
     {%- endif %}
     {%- endfor %}
+
+    {%- if all_variants_are_string_literals %}
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            {%- for variant in variants %}
+            {%- if let Some(literal) = variant.literal_value %}
+            Self::{{ variant.name }} => {{ literal | json_string_literal }},
+            {%- endif %}
+            {%- endfor %}
+        }
+    }
+    {%- endif %}
 }
 
 /// Pattern matching helper for {{ name }}
