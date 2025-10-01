@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use baml_types::{BamlMap, BamlMedia};
+use baml_types::{BamlMap, BamlMedia, TypeIR, TypeValue};
 
 use crate::{
     bytecode::{BinOp, CmpOp, Instruction},
@@ -354,6 +354,64 @@ impl Vm {
         Value::Object(self.objects.insert(Object::Media(media)))
     }
 
+    fn value_is_instance_of(
+        objects: &ObjectPool,
+        left: &Value,
+        right: &Value,
+    ) -> Result<bool, VmError> {
+        match *right {
+            Value::Null => return Ok(matches!(*left, Value::Null)),
+            Value::Object(right_index) => match &objects[right_index] {
+                Object::Class(_) => {
+                    let left_index = objects.as_object(left, ObjectType::Instance)?;
+
+                    let Object::Instance(instance) = &objects[left_index] else {
+                        return Err(InternalError::TypeError {
+                            expected: ObjectType::Instance.into(),
+                            got: ObjectType::of(&objects[left_index]).into(),
+                        }
+                        .into());
+                    };
+
+                    Ok(instance.class == right_index)
+                }
+                Object::BamlType(target_type) => {
+                    Ok(Self::value_matches_baml_type(objects, left, target_type))
+                }
+                _ => Err(InternalError::CannotApplyCmpOp {
+                    left: objects.type_of(left),
+                    right: objects.type_of(right),
+                    op: CmpOp::InstanceOf,
+                }
+                .into()),
+            },
+            _ => Err(InternalError::CannotApplyCmpOp {
+                left: objects.type_of(left),
+                right: objects.type_of(right),
+                op: CmpOp::InstanceOf,
+            }
+            .into()),
+        }
+    }
+
+    fn value_matches_baml_type(objects: &ObjectPool, left: &Value, target: &TypeIR) -> bool {
+        match target {
+            TypeIR::Primitive(TypeValue::Int, _) => matches!(*left, Value::Int(_)),
+            TypeIR::Primitive(TypeValue::Float, _) => matches!(*left, Value::Float(_)),
+            TypeIR::Primitive(TypeValue::Bool, _) => matches!(*left, Value::Bool(_)),
+            TypeIR::Primitive(TypeValue::String, _) => match *left {
+                Value::Object(index) => matches!(objects[index], Object::String(_)),
+                _ => false,
+            },
+            TypeIR::Primitive(TypeValue::Null, _) => matches!(*left, Value::Null),
+            TypeIR::Primitive(TypeValue::Media(_), _) => match *left {
+                Value::Object(index) => matches!(objects[index], Object::Media(_)),
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+
     /// Builds a stack trace for the given error.
     ///
     /// The error is assumed to have happened wherever the instruction pointer
@@ -675,99 +733,67 @@ impl Vm {
                     let right = self.stack.ensure_pop()?;
                     let left = self.stack.ensure_pop()?;
 
-                    let result = match (left, right) {
-                        (Value::Int(left), Value::Int(right)) => Value::Bool(match op {
-                            CmpOp::Eq => left == right,
-                            CmpOp::NotEq => left != right,
-                            CmpOp::Lt => left < right,
-                            CmpOp::LtEq => left <= right,
-                            CmpOp::Gt => left > right,
-                            CmpOp::GtEq => left >= right,
-
-                            CmpOp::InstanceOf => {
-                                return Err(InternalError::CannotApplyCmpOp {
-                                    left: Type::Int,
-                                    right: Type::Int,
-                                    op,
-                                }
-                                .into());
-                            }
-                        }),
-
-                        (Value::Float(left), Value::Float(right)) => Value::Bool(match op {
-                            CmpOp::Eq => left == right,
-                            CmpOp::NotEq => left != right,
-                            CmpOp::Lt => left < right,
-                            CmpOp::LtEq => left <= right,
-                            CmpOp::Gt => left > right,
-                            CmpOp::GtEq => left >= right,
-
-                            CmpOp::InstanceOf => {
-                                return Err(InternalError::CannotApplyCmpOp {
-                                    left: Type::Float,
-                                    right: Type::Float,
-                                    op,
-                                }
-                                .into());
-                            }
-                        }),
-
-                        (Value::Object(left_index), Value::Object(right_index))
-                            if matches!(self.objects[left_index], Object::String(_))
-                                && matches!(self.objects[right_index], Object::String(_)) =>
-                        {
-                            let left = self.objects.as_string(&left)?;
-                            let right = self.objects.as_string(&right)?;
-
-                            Value::Bool(match op {
+                    if op == CmpOp::InstanceOf {
+                        let outcome = Self::value_is_instance_of(&self.objects, &left, &right)?;
+                        self.stack.push(Value::Bool(outcome));
+                    } else {
+                        let result = match (left, right) {
+                            (Value::Int(left), Value::Int(right)) => Value::Bool(match op {
                                 CmpOp::Eq => left == right,
                                 CmpOp::NotEq => left != right,
                                 CmpOp::Lt => left < right,
                                 CmpOp::LtEq => left <= right,
                                 CmpOp::Gt => left > right,
                                 CmpOp::GtEq => left >= right,
-                                CmpOp::InstanceOf => {
-                                    return Err(InternalError::CannotApplyCmpOp {
-                                        left: Type::Object(ObjectType::String),
-                                        right: Type::Object(ObjectType::String),
+                                CmpOp::InstanceOf => unreachable!(),
+                            }),
+
+                            (Value::Float(left), Value::Float(right)) => Value::Bool(match op {
+                                CmpOp::Eq => left == right,
+                                CmpOp::NotEq => left != right,
+                                CmpOp::Lt => left < right,
+                                CmpOp::LtEq => left <= right,
+                                CmpOp::Gt => left > right,
+                                CmpOp::GtEq => left >= right,
+                                CmpOp::InstanceOf => unreachable!(),
+                            }),
+
+                            (Value::Object(left_index), Value::Object(right_index))
+                                if matches!(self.objects[left_index], Object::String(_))
+                                    && matches!(self.objects[right_index], Object::String(_)) =>
+                            {
+                                let left_value = Value::Object(left_index);
+                                let right_value = Value::Object(right_index);
+                                let left = self.objects.as_string(&left_value)?;
+                                let right = self.objects.as_string(&right_value)?;
+
+                                Value::Bool(match op {
+                                    CmpOp::Eq => left == right,
+                                    CmpOp::NotEq => left != right,
+                                    CmpOp::Lt => left < right,
+                                    CmpOp::LtEq => left <= right,
+                                    CmpOp::Gt => left > right,
+                                    CmpOp::GtEq => left >= right,
+                                    CmpOp::InstanceOf => unreachable!(),
+                                })
+                            }
+
+                            _ => Value::Bool(match op {
+                                CmpOp::Eq => left == right,
+                                CmpOp::NotEq => left != right,
+                                CmpOp::InstanceOf => unreachable!(),
+                                _ => {
+                                    return Err(VmError::from(InternalError::CannotApplyCmpOp {
+                                        left: self.objects.type_of(&left),
+                                        right: self.objects.type_of(&right),
                                         op,
-                                    }
-                                    .into());
+                                    }));
                                 }
-                            })
-                        }
+                            }),
+                        };
 
-                        _ => Value::Bool(match op {
-                            CmpOp::Eq => left == right,
-                            CmpOp::NotEq => left != right,
-
-                            CmpOp::InstanceOf => {
-                                let left = self.objects.as_object(&left, ObjectType::Instance)?;
-
-                                let Object::Instance(instance) = &self.objects[left] else {
-                                    return Err(InternalError::TypeError {
-                                        expected: ObjectType::Instance.into(),
-                                        got: ObjectType::of(&self.objects[left]).into(),
-                                    }
-                                    .into());
-                                };
-
-                                let right = self.objects.as_object(&right, ObjectType::Class)?;
-
-                                instance.class == right
-                            }
-
-                            _ => {
-                                return Err(VmError::from(InternalError::CannotApplyCmpOp {
-                                    left: self.objects.type_of(&left),
-                                    right: self.objects.type_of(&right),
-                                    op,
-                                }));
-                            }
-                        }),
-                    };
-
-                    self.stack.push(result);
+                        self.stack.push(result);
+                    }
                 }
 
                 Instruction::UnaryOp(op) => {

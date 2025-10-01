@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file. See [conven
 - Jetbrains: avoid using deprecated java 18 api (#2541) - ([ec4f339](https://github.com/BoundaryML/baml/commit/ec4f339b628e34d2e6d0dd04df685929149830ed)) - Sam Lijin
 
 ### Features
+- Allow the BAML `instanceof` operator to match primitive values (ints, floats, bools, strings, null)
 - Enable "Citations" PDF analysis model for Claude on Bedrock (#2547) - ([219e53f](https://github.com/BoundaryML/baml/commit/219e53f9b3d9f538350c433b26ff68d95ae8324e)) - Greg Hale
 - Add type narrowing for discriminated unions in Jinja (#2539) - ([7a395a9](https://github.com/BoundaryML/baml/commit/87e95fe818b596ab2580cd87fd4a26a32a058dd8)) - Antonio Sarosi
 
@@ -1696,4 +1697,3 @@ The default base URL for the Gemini provider has been updated to v1beta. This ch
 ### Vscode
 
 - check for updates on the hour (#434) - ([c70a3b3](https://github.com/boundaryml/baml/commit/c70a3b373cb2346a0df9a1eba0ebacb74d59b53e)) - Samuel Lijin
-

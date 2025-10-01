@@ -446,6 +446,24 @@ impl TypeContext<'_> {
             .or_else(|| self.symbols.get(name))
     }
 
+    pub fn resolve_type_reference(&self, name: &str) -> Option<TypeIR> {
+        if self.classes.contains_key(name) {
+            return Some(TypeIR::class(name));
+        }
+
+        if self.enums.contains_key(name) {
+            return Some(TypeIR::r#enum(name));
+        }
+
+        match name {
+            "int" => Some(TypeIR::int()),
+            "float" => Some(TypeIR::float()),
+            "bool" => Some(TypeIR::bool()),
+            "string" => Some(TypeIR::string()),
+            _ => None,
+        }
+    }
+
     // TODO: What's this?
     pub fn from_thir(thir: &thir::THir<ExprMetadata>) -> Self {
         let mut context = TypeContext::new();
@@ -532,7 +550,7 @@ impl TypeContext<'_> {
                 // Look up type in context
                 self.get_type(name)
                     .cloned()
-                    .or_else(|| self.enums.get(name).map(|e| TypeIR::r#enum(&e.name)))
+                    .or_else(|| self.resolve_type_reference(name))
             }
             hir::Expression::Array(items, _) => {
                 // Infer array type from first item
@@ -1340,6 +1358,13 @@ pub fn typecheck_expression(
             BamlValueWithMeta::String(value.clone(), (span.clone(), Some(TypeIR::string()))),
         ),
         hir::Expression::Identifier(name, span) => {
+            if name == "null" {
+                return thir::Expr::Value(BamlValueWithMeta::Null((
+                    span.clone(),
+                    Some(TypeIR::null()),
+                )));
+            }
+
             // Enum access: let x = Shape.Rectangle
             if let Some(enum_def) = context.enums.get(name) {
                 return thir::Expr::Var(
@@ -1348,14 +1373,16 @@ pub fn typecheck_expression(
                 );
             }
 
-            // Look up type in context
-            let var_type = context.get_type(name).cloned();
+            // Look up type in context or known type references
+            let var_type = context
+                .get_type(name)
+                .cloned()
+                .or_else(|| context.resolve_type_reference(name));
+
             if var_type.is_none() {
                 match name.as_str() {
-                    // Built-in types, you can call `image.from_url` and should work.
+                    // Built-in namespaces.
                     "image" | "audio" | "video" | "pdf" | "baml" => {}
-
-                    cls if context.classes.contains_key(cls) => {}
 
                     _ => {
                         diagnostics.push_error(DatamodelError::new_validation_error(
@@ -1365,6 +1392,7 @@ pub fn typecheck_expression(
                     }
                 }
             }
+
             thir::Expr::Var(name.clone(), (span.clone(), var_type))
         }
         hir::Expression::Array(items, span) => {
@@ -2258,7 +2286,7 @@ pub fn typecheck_expression(
                     Some(TypeIR::Primitive(baml_types::TypeValue::String, _)),
                     _,
                     Some(TypeIR::Primitive(baml_types::TypeValue::String, _)),
-                ) => {
+                ) if operator != &hir::BinaryOperator::InstanceOf => {
                     diagnostics.push_error(DatamodelError::new_validation_error(
                         &format!("Cannot apply {operator} operator to strings"),
                         span.clone(),
@@ -2340,26 +2368,34 @@ pub fn typecheck_expression(
                 }
 
                 // OK: Instanceof
-                (_, BinaryOperator::InstanceOf, _) => match &right {
-                    thir::Expr::Var(name, _) => {
-                        if context.classes.get(name).is_some() {
-                            Some(TypeIR::bool())
-                        } else {
+                (_, BinaryOperator::InstanceOf, _) => {
+                    let resolved = match &right {
+                        thir::Expr::Var(name, _) => match context.resolve_type_reference(name) {
+                            Some(ty) => Some(ty),
+                            None => {
+                                diagnostics.push_error(DatamodelError::new_validation_error(
+                                    &format!("Type {name} not found"),
+                                    span.clone(),
+                                ));
+                                None
+                            }
+                        },
+                        thir::Expr::Value(BamlValueWithMeta::Null(_)) => Some(TypeIR::null()),
+                        _ => {
                             diagnostics.push_error(DatamodelError::new_validation_error(
-                                &format!("Class {name} not found"),
+                                "Invalid binary operation (instanceof): right operand must be a type identifier",
                                 span.clone(),
                             ));
                             None
                         }
-                    }
-                    _ => {
-                        diagnostics.push_error(DatamodelError::new_validation_error(
-                            "Invalid binary operation (instanceof): right operand must be a class",
-                            span.clone(),
-                        ));
+                    };
+
+                    if resolved.is_some() {
+                        Some(TypeIR::bool())
+                    } else {
                         None
                     }
-                },
+                }
 
                 _ => {
                     match (left.meta().1.as_ref(), right.meta().1.as_ref()) {

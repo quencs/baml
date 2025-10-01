@@ -430,3 +430,73 @@ fn instance_of_returns_false() -> anyhow::Result<()> {
         expected: ExecState::Complete(Value::Bool(false)),
     })
 }
+
+#[test]
+fn instance_of_int_primitive() -> anyhow::Result<()> {
+    assert_vm_executes(Program {
+        source: r#"
+            function main() -> bool {
+                let value = 42;
+                value instanceof int
+            }
+        "#,
+        function: "main",
+        expected: ExecState::Complete(Value::Bool(true)),
+    })
+}
+
+#[test]
+fn instance_of_int_against_string() -> anyhow::Result<()> {
+    assert_vm_executes(Program {
+        source: r#"
+            function main() -> bool {
+                let value = 42;
+                value instanceof string
+            }
+        "#,
+        function: "main",
+        expected: ExecState::Complete(Value::Bool(false)),
+    })
+}
+
+#[test]
+fn instance_of_string_primitive() -> anyhow::Result<()> {
+    assert_vm_executes(Program {
+        source: r#"
+            function main() -> bool {
+                let value = "hello";
+                value instanceof string
+            }
+        "#,
+        function: "main",
+        expected: ExecState::Complete(Value::Bool(true)),
+    })
+}
+
+#[test]
+fn instance_of_bool_primitive() -> anyhow::Result<()> {
+    assert_vm_executes(Program {
+        source: r#"
+            function main() -> bool {
+                let value = true;
+                value instanceof bool
+            }
+        "#,
+        function: "main",
+        expected: ExecState::Complete(Value::Bool(true)),
+    })
+}
+
+#[test]
+fn instance_of_null_primitive() -> anyhow::Result<()> {
+    assert_vm_executes(Program {
+        source: r#"
+            function main() -> bool {
+                let value = null;
+                value instanceof null
+            }
+        "#,
+        function: "main",
+        expected: ExecState::Complete(Value::Bool(true)),
+    })
+}

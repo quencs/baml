@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use baml_types::{BamlMap, BamlValue, BamlValueWithMeta};
+use baml_types::{ir_type::TypeIR, BamlMap, BamlValue, BamlValueWithMeta, TypeValue};
 use internal_baml_diagnostics::Span;
 
 use crate::thir::{Block, ClassConstructorField, Expr, ExprMetadata, Statement, THir};
@@ -34,6 +34,34 @@ enum ControlFlow {
     Break,
     Continue,
     Return(BamlValueWithMeta<ExprMetadata>),
+}
+
+const BUILTIN_TYPE_NAMES: &[&str] = &["int", "float", "bool", "string"];
+
+fn builtin_type_reference(name: &str) -> Option<TypeIR> {
+    match name {
+        "int" => Some(TypeIR::int()),
+        "float" => Some(TypeIR::float()),
+        "bool" => Some(TypeIR::bool()),
+        "string" => Some(TypeIR::string()),
+        _ => None,
+    }
+}
+
+fn matches_baml_value_with_type(value: &BamlValueWithMeta<ExprMetadata>, target: &TypeIR) -> bool {
+    match target {
+        TypeIR::Primitive(TypeValue::Int, _) => matches!(value, BamlValueWithMeta::Int(_, _)),
+        TypeIR::Primitive(TypeValue::Float, _) => matches!(value, BamlValueWithMeta::Float(_, _)),
+        TypeIR::Primitive(TypeValue::Bool, _) => matches!(value, BamlValueWithMeta::Bool(_, _)),
+        TypeIR::Primitive(TypeValue::String, _) => {
+            matches!(value, BamlValueWithMeta::String(_, _))
+        }
+        TypeIR::Primitive(TypeValue::Null, _) => matches!(value, BamlValueWithMeta::Null(_)),
+        TypeIR::Primitive(TypeValue::Media(_), _) => {
+            matches!(value, BamlValueWithMeta::Media(_, _))
+        }
+        _ => false,
+    }
 }
 
 pub async fn interpret_thir<F, Fut>(
@@ -70,6 +98,20 @@ where
             (Span::fake(), None),
         ))),
     );
+
+    for name in BUILTIN_TYPE_NAMES {
+        if !scopes[0].variables.contains_key(*name) {
+            if let Some(type_ir) = builtin_type_reference(name) {
+                scopes[0].variables.insert(
+                    (*name).to_string(),
+                    Arc::new(Mutex::new(BamlValueWithMeta::String(
+                        (*name).to_string(),
+                        (Span::fake(), Some(type_ir)),
+                    ))),
+                );
+            }
+        }
+    }
 
     // Seed scope with global assignments
     for (name, g) in thir.global_assignments.iter() {
@@ -1293,12 +1335,31 @@ fn evaluate_binary_op(
             }
             _ => bail!("shift >> requires integer operands at {:?}", meta.0),
         },
-        BinaryOperator::InstanceOf => match (left_val.clone(), right_val.clone()) {
-            (BamlValueWithMeta::Class(class, ..), BamlValueWithMeta::Class(right_class, ..)) => {
+        BinaryOperator::InstanceOf => {
+            if let (
+                BamlValueWithMeta::Class(class, ..),
+                BamlValueWithMeta::Class(right_class, ..),
+            ) = (left_val.clone(), right_val.clone())
+            {
                 BamlValueWithMeta::Bool(class == right_class, meta.clone())
+            } else if let Some(target_type) =
+                right_val.meta().1.clone().or_else(|| match &right_val {
+                    BamlValueWithMeta::String(name, _) => builtin_type_reference(name),
+                    BamlValueWithMeta::Null(_) => Some(TypeIR::null()),
+                    _ => None,
+                })
+            {
+                BamlValueWithMeta::Bool(
+                    matches_baml_value_with_type(&left_val, &target_type),
+                    meta.clone(),
+                )
+            } else {
+                bail!(
+                    "instanceof requires type operands at {:?}",
+                    right_val.meta().0
+                );
             }
-            _ => bail!("instanceof requires class operands at {:?}", meta.0),
-        },
+        }
     })
 }
 

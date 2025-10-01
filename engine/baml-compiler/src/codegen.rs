@@ -49,6 +49,13 @@ fn compile_thir_to_bytecode(
     let mut resolved_enums = BamlMap::new();
     let mut llm_functions = HashSet::new();
 
+    let builtin_types = [
+        ("int", TypeIR::int()),
+        ("float", TypeIR::float()),
+        ("bool", TypeIR::bool()),
+        ("string", TypeIR::string()),
+    ];
+
     // Resolve global functions from HIR
     for func in &thir.expr_functions {
         resolved_globals.insert(
@@ -101,6 +108,13 @@ fn compile_thir_to_bytecode(
         }
 
         resolved_enums.insert(enm.name.clone(), variant_names);
+    }
+
+    for (name, _) in builtin_types.iter() {
+        resolved_globals.insert(
+            (*name).to_string(),
+            GlobalIndex::from_raw(resolved_globals.len()),
+        );
     }
 
     let native_fns = baml_vm::native::functions();
@@ -197,6 +211,11 @@ fn compile_thir_to_bytecode(
         };
 
         let object_index = objects.insert(Object::Enum(bytecode_enum));
+        globals.push(Value::Object(object_index));
+    }
+
+    for (_, type_ir) in builtin_types.iter() {
+        let object_index = objects.insert(Object::BamlType(type_ir.clone()));
         globals.push(Value::Object(object_index));
     }
 
