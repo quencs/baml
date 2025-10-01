@@ -1,3 +1,4 @@
+<>
 <ParamField
   path="default_role"
   type="string"
@@ -24,61 +25,16 @@
 
   For google-ai provider, the default is: `{ "assistant": "model" }`
 
-  ### What does remap_roles do?
+  This allows you to use standard role names in your prompts (like "user", "assistant", "system") but send different role names to the API. The remapping happens after role validation and default role assignment.
 
-  `remap_roles` allows you to use standard role names in your BAML prompts (like "user", "assistant", "system") but send different role names to the LLM API. This is useful when:
+  **Example:**
+  ```json
+  {
+    "user": "human",
+    "assistant": "ai",
+  }
+  ```
   
-  - An LLM provider uses non-standard role names (e.g., Anthropic Claude in some configurations uses "human" and "ai" instead of "user" and "assistant")
-  - You want to maintain consistent role names across your BAML code while supporting multiple providers with different naming conventions
-  - You want to standardize on common role names internally regardless of provider-specific requirements
-
-  ### How it works
-
-  The remapping happens **after** role validation and default role assignment, as the final step before sending to the API:
-
-  1. BAML first checks if the role is in `allowed_roles`
-  2. If not, it replaces it with `default_role`
-  3. Finally, it applies the `remap_roles` mapping to transform the role name
-
-  ### Examples
-
-  **Basic remapping:**
-  ```baml
-  client<llm> MyClient {
-    provider openai
-    options {
-      model "gpt-4o"
-      allowed_roles ["user", "assistant", "system"]
-      remap_roles {
-        user "human"
-        assistant "ai"
-      }
-    }
-  }
-  ```
-
-  With this configuration:
-  - `{{ _.role("user") }}` in your prompt → sends role "human" to the API
-  - `{{ _.role("assistant") }}` in your prompt → sends role "ai" to the API
-  - `{{ _.role("system") }}` in your prompt → sends role "system" to the API (unchanged, not in remap)
-
-  **With default_role:**
-  ```baml
-  client<llm> MyClient {
-    provider openai
-    options {
-      model "gpt-4o"
-      allowed_roles ["user", "system"]
-      default_role "system"
-      remap_roles {
-        system "instructions"
-      }
-    }
-  }
-  ```
-
-  With this configuration:
-  - `{{ _.role("user") }}` → sends role "user" to the API (allowed, not remapped)
-  - `{{ _.role("assistant") }}` → sends role "instructions" to the API (not in allowed_roles → becomes "system" → remapped to "instructions")
-  - `{{ _.role("system") }}` → sends role "instructions" to the API (remapped)
+  With this configuration, `{{ _.role("user") }}` in your prompt will result in a message with role "human" being sent to the API.
 </ParamField>
+</>
