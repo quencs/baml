@@ -1,0 +1,42 @@
+## Implementation Plan: Primitive Support for `instanceof`
+
+### 1. Type System & Name Resolution Updates
+- Extend `engine/baml-compiler/src/thir/typecheck.rs` to accept primitive identifiers on the right-hand side of `instanceof`.
+  - Allow lookups against `TypeIR::Primitive`, `TypeIR::Literal`, and other non-class types when the right operand is a `Var`.
+  - Emit diagnostics when the RHS does not correspond to any known type (class, primitive, enum, etc.).
+- Ensure inferred result remains `bool` while capturing operand metadata for downstream consumers.
+- Verify compile-time constant folding paths receive the updated operand matching rules.
+
+### 2. THIR Interpreter Enhancements
+- Update `engine/baml-compiler/src/thir/interpret.rs` to evaluate `instanceof` for primitives and literals in addition to classes.
+  - Map `BamlValueWithMeta` variants (`Int`, `Float`, `Bool`, `String`, `Null`, `List`, `Map`, etc.) to the newly permitted RHS type descriptors.
+  - Mirror runtime semantics for mismatches (e.g., `5 instanceof string` → `false`, not error).
+- Add interpreter-level tests if available to ensure compile-time evaluation stays consistent with runtime.
+
+### 3. VM Runtime Behaviour
+- Modify `engine/baml-vm/src/vm.rs` comparison dispatch for `CmpOp::InstanceOf`.
+  - Handle cases where left operand is `Value::Int`, `Value::Float`, `Value::Bool`, or `Value::Object` representing strings, arrays, maps, enums, etc.
+  - Define and implement semantics for `Value::Null` (likely always `false` or only true for an explicit `null` type).
+  - Preserve existing class-instance handling and error conditions for unsupported mixes.
+- Adjust helper logic or introduce utility functions if primitive checks require shared code (e.g., type-tag comparison helpers).
+- Review `engine/baml-vm/src/errors.rs` to ensure error messages remain accurate when mismatches occur.
+
+### 4. Supporting Structures & Metadata
+- Confirm that any additional type metadata (e.g., primitive keywords) is exposed to both interpreter and VM layers.
+- If necessary, introduce mappings from textual type names (`int`, `string`) to runtime discriminants accessible during bytecode execution.
+
+### 5. Test Coverage
+- Expand `engine/baml-vm/tests/operators.rs` with new cases:
+  - Positive matches (`5 instanceof int`, `true instanceof bool`, string literals, etc.).
+  - Negative matches (cross-type checks, primitives vs classes, `null` behaviour).
+- Add compiler/typechecker regression tests to ensure primitives are accepted and diagnostics trigger appropriately for invalid identifiers.
+- Consider integration tests if there is a higher-level harness covering runtime behaviour.
+
+### 6. Documentation & Examples
+- Update relevant guides (`fern/**`, `engine/baml-runtime/src/cli/initial_project/baml.mdc`) to mention primitive support and illustrate usage.
+- Ensure SDK messaging (if any) remains accurate once behaviour ships.
+
+### 7. Open Questions to Resolve Before Coding
+- Finalize desired semantics for `null` and complex types (arrays, maps, media) when used with `instanceof`.
+- Decide on case sensitivity and naming for primitive RHS operands (expected keywords vs aliases).
+- Align compile-time and runtime behaviour for unsupported comparisons (consistent `false` vs diagnostics/errors).

@@ -89,7 +89,7 @@
           pkgs.gcc
         ];
 
-        wheelName = "baml_py-${version}-cp38-abi3-linux_x86_64.whl";
+        wheelOutputName = "baml_py-${version}.whl";
 
         bamlRustPackage = {
           pname,
@@ -101,8 +101,9 @@
         }:
           rustPlatform.buildRustPackage ({
               inherit pname version;
-              src = ./engine;
-              filter = path: type:
+              src = pkgs.lib.cleanSourceWith {
+                src = ./engine;
+                filter = path: type:
                   let baseName = baseNameOf path; in
                   !pkgs.lib.hasInfix "target" path &&
                   !pkgs.lib.hasInfix ".git" path &&
@@ -111,6 +112,7 @@
                   !pkgs.lib.hasInfix ".node" path &&
                   !pkgs.lib.hasInfix "node_modules" path &&
                   baseName != "result";
+              };
 
               LIBCLANG_PATH = pkgs.libclang.lib + "/lib/";
               BINDGEN_EXTRA_CLANG_ARGS = if pkgs.stdenv.isDarwin then
@@ -128,7 +130,12 @@
               nativeBuildInputs = nativeBuildInputs ++ nativeBuildInputsExtra;
               doCheck = false;
               inherit buildType;
-              cargoLock = { lockFile = ./engine/Cargo.lock; outputHashes = {}; };
+              cargoLock = {
+                lockFile = ./engine/Cargo.lock;
+                outputHashes = {
+                  "minijinja-2.11.0" = "sha256-i3rXVnwRBWr7ewdFteezZWOrvzW89/VaJ3Yh6Bb40ZY=";
+                };
+              };
               SKIP_BAML_VALIDATION = "1";
           }
           // (if buildPhase != null then { inherit buildPhase; } else {})
@@ -171,11 +178,16 @@
             installPhase = ''
               mkdir -p $out/lib
               ls ../target/wheels
-              cp ../target/wheels/${wheelName} $out/lib/
+              wheel_path=$(find ../target/wheels -maxdepth 1 -type f -name 'baml_py-*.whl' | head -n1)
+              if [ -z "$wheel_path" ]; then
+                echo "No wheel produced by maturin build" >&2
+                exit 1
+              fi
+              cp "$wheel_path" "$out/lib/${wheelOutputName}"
               touch $out/results.txt
               ls -la $out >> $out/results.txt
               ls -la $out/lib >> $out/results.txt
-              ls -la $out/lib/${wheelName} >> $out/results.txt
+              ls -la $out/lib/${wheelOutputName} >> $out/results.txt
             '';
           };
 
@@ -184,7 +196,7 @@
             inherit version;
             format = "wheel";
 
-            src = "${packages.pyLib}/lib/${wheelName}";
+            src = "${packages.pyLib}/lib/${wheelOutputName}";
             propagatedBuildInputs = with pkgs.python39.pkgs; [
               pydantic
               typing-extensions
@@ -197,7 +209,7 @@
               description = "Python bindings for BAML";
               homepage = "https://github.com/boundaryml/baml";
               license = licenses.mit;
-              platforms = platforms.linux;
+              platforms = platforms.unix;
             };
           };
 
@@ -222,7 +234,24 @@
               echo "Copying the built library to where napi expects it"
               mkdir -p target/debug
               find ../target -name "*.so" -o -name "*.dylib" -o -name "*.dll"
-              cp ../target/debug/libbaml.so target/debug/libbaml_typescript_ffi.so
+              shared_lib=$(find ../target -type f \( -name "libbaml.so" -o -name "libbaml.dylib" -o -name "libbaml.dll" \) | head -n1)
+              if [ -z "$shared_lib" ]; then
+                echo "Unable to locate built shared library" >&2
+                exit 1
+              fi
+              lib_basename=$(basename "$shared_lib")
+              case "$lib_basename" in
+                *.so)
+                  cp "$shared_lib" target/debug/libbaml_typescript_ffi.so
+                  ;;
+                *.dylib)
+                  cp "$shared_lib" target/debug/libbaml_typescript_ffi.dylib
+                  cp "$shared_lib" target/debug/libbaml_typescript_ffi.so
+                  ;;
+                *.dll)
+                  cp "$shared_lib" target/debug/libbaml_typescript_ffi.dll
+                  ;;
+              esac
 
               # Build the native module directly with release flag
               napi build --platform --js ./native.js --dts ./native.d.ts
@@ -254,8 +283,8 @@
                   "bin/baml-cli"
                 ],
                 "dependencies": {},
-                "os": ["linux"],
-                "cpu": ["x64"]
+                "os": ["linux", "darwin"],
+                "cpu": ["x64", "arm64"]
               }
               EOF
 

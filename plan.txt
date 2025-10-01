@@ -1,0 +1,62 @@
+## Instanceof Plain Data Support Research
+
+### Goal
+- Make the BAML `instanceof` operator accept and correctly evaluate plain data (ints, floats, bools, strings, null) in addition to class instances.
+- Understand every stage in the pipeline (parsing → IR → type system → bytecode → VM) that currently constrains `instanceof` to classes so the upcoming fix covers compiler, interpreter, runtime and tests.
+
+### Current Behaviour Overview
+- Parser and AST already support the `instanceof` operator generically, but downstream stages assume both operands are classes.
+- Typechecker `engine/baml-compiler/src/thir/typecheck.rs` verifies the right-hand side resolves to a class name; primitives are rejected with "right operand must be a class".
+- THIR interpreter `engine/baml-compiler/src/thir/interpret.rs` only evaluates class-vs-class comparisons; any other types trigger `instanceof requires class operands`.
+- VM runtime `engine/baml-vm/src/vm.rs` expects left operand to be an `Object::Instance` and right operand an `Object::Class`; primitive values lead to `CannotApplyCmpOp` errors.
+- Existing tests (`engine/baml-vm/tests/operators.rs`) only cover class-based success/failure cases, so primitives currently have no regression coverage.
+
+### Frontend & IR Layers
+- `engine/baml-lib/ast/src/parser/datamodel.pest` and `parse_expression.rs` define the `INSTANCE_OF` token and map it into the AST `BinaryOperator::InstanceOf`.
+- `engine/baml-lib/ast/src/ast/expression.rs` models `BinaryOperator::InstanceOf`; any semantic changes must preserve display/output expectations.
+- `engine/baml-lib/baml-core/src/ir/repr.rs` lowers AST binary expressions (including `instanceof`) into the shared IR with metadata placeholders.
+- `engine/baml-lib/baml-types/src/expr.rs` defines the IR-level `BinaryOperator::InstanceOf`; downstream stages reuse this enum.
+- `engine/baml-lib/baml-types/src/ir_type/mod.rs` (TypeIR) and `type_meta` hold primitive vs class metadata used during type inference.
+
+### Compiler & Type System
+- `engine/baml-compiler/src/thir/typecheck.rs` (two hot spots):
+  - Around lines ~620: `infer_type` already hardcodes `instanceof` to return `bool`.
+  - Around lines ~2320: validation enforces the right operand be a `Var` bound to a class definition; non-class operands emit diagnostics. Needs to expand to primitive type references.
+- `engine/baml-compiler/src/thir/interpret.rs`: compile-time evaluator matches `(Class, Class)` only; new logic must detect primitive `BamlValueWithMeta` variants and compare appropriately.
+- `engine/baml-compiler/src/codegen.rs`: emits `Instruction::CmpOp(CmpOp::InstanceOf)` for any `instanceof` expression. No change expected here, but behaviour depends on runtime implementation.
+
+### Runtime & VM
+- `engine/baml-vm/src/bytecode.rs`: defines the `CmpOp::InstanceOf` opcode (display helpers only).
+- `engine/baml-vm/src/vm.rs`: comparison dispatch currently treats non-object operands as hard errors. Primitive support likely requires:
+  - Extending match arms to handle `Value::Int`, `Value::Float`, `Value::Bool`, and string objects when `CmpOp::InstanceOf` is requested.
+  - Deciding how `null` and other heap-backed values (arrays, maps, media, enums) should respond.
+- `engine/baml-vm/src/types.rs`:
+  - `Value` enum stores primitives separately from heap objects; note strings are `Value::Object(Object::String(_))`.
+  - `Type` enum lacks a `String` variant; strings surface as `Type::Object(ObjectType::String)`. Any new comparisons must work within this representation.
+  - `Type::of` returns `Type::Object(ObjectType::Any)` for `Value::Null`; clarify desired semantics for `null instanceof <type>`.
+- `engine/baml-vm/src/errors.rs`: `CannotApplyCmpOp` is the error surface users see today when primitives are involved; changes may need updated messaging for mismatches vs unsupported combinations.
+- `engine/baml-vm/src/indexable.rs`: helper `ObjectPool::as_object` enforces object type expectations; any runtime branch that still needs class/instance checks will continue to rely on it.
+
+### Data Model & Value Helpers
+- `engine/baml-lib/baml-types/src/baml_value.rs`: `BamlValue` and `BamlValueWithMeta` enumerate primitive vs structured values used throughout the compiler and interpreter. Enhancements should reuse these variants for type comparisons.
+- `engine/baml-lib/baml-types/src/ir_type/type_meta.rs` (and related builders) describe metadata stored alongside `TypeIR`; may need adjustments if the right-hand operand expands beyond classes.
+
+### Tests & Validation
+- `engine/baml-vm/tests/operators.rs` contains only class-based `instanceof` tests; new test cases are required for ints, floats, bools, strings, null (and potentially arrays/maps).
+- Search for other `instanceof` tests in integration suites (`integ-tests/**/*`) returned none, so additional coverage might be necessary after runtime changes.
+
+### Documentation & SDK Touchpoints
+- Documentation under `fern/` and `engine/baml-runtime/src/cli/initial_project/baml.mdc` describe `instanceof` with class-only examples. Update them to mention primitive support when shipped.
+- TypeScript/React code (`typescript/apps/vscode-ext`, `integ-tests/react`) use JavaScript's native `instanceof` for error handling unrelated to the BAML operator; no direct change required but worth double-checking messaging consistency.
+
+### Open Questions / Follow-ups
+- Define desired outcomes for `instanceof` when mixing primitives and complex types (e.g., `array instanceof list`, `null instanceof <type>`).
+- Determine syntax for primitive RHS operands (literal keywords like `int`, `string`, etc.) and how they resolve in name lookup vs current class-only environment.
+- Confirm whether compile-time evaluation should mirror runtime semantics exactly (including error cases) once primitives are supported.
+- Assess whether additional diagnostics or helpful errors are needed when comparing incompatible categories (e.g., `5 instanceof MyClass`).
+
+### Next Steps for Implementation
+- Relax typechecker constraints to allow primitive identifiers (and ensure they resolve to appropriate `TypeIR::Primitive` entries).
+- Extend THIR interpreter and VM comparison logic to handle primitive and string/object cases while preserving class-instance behaviour.
+- Add comprehensive tests (compiler diagnostics + VM execution) for primitive success/failure scenarios.
+- Update user-facing docs once behaviour is confirmed.
