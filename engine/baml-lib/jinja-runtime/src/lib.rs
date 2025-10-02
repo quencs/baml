@@ -7,6 +7,8 @@ mod output_format;
 mod test_enum_comparison;
 #[cfg(test)]
 mod test_enum_template;
+#[cfg(test)]
+mod test_media;
 use indexmap::IndexMap;
 use internal_baml_core::ir::{jinja_helpers::get_env, repr::IntermediateRepr};
 pub use output_format::types;
@@ -529,11 +531,12 @@ mod render_tests {
     pub fn make_test_ir(source_code: &str) -> anyhow::Result<IntermediateRepr> {
         use std::path::PathBuf;
 
-        use internal_baml_core::{validate, ValidatedSchema};
+        use internal_baml_core::{validate, FeatureFlags, ValidatedSchema};
         use internal_baml_diagnostics::SourceFile;
         let path: PathBuf = "fake_file.baml".into();
         let source_file: SourceFile = (path.clone(), source_code).into();
-        let validated_schema: ValidatedSchema = validate(&path, vec![source_file]);
+        let validated_schema: ValidatedSchema =
+            validate(&path, vec![source_file], FeatureFlags::new());
         let diagnostics = &validated_schema.diagnostics;
         if diagnostics.has_errors() {
             return Err(anyhow::anyhow!(

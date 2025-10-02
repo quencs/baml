@@ -27,8 +27,10 @@ use std::io::IsTerminal;
 use colored::{Color, Colorize};
 
 use crate::{
-    vm::indexable::GlobalPool, EvalStack, Function, Instruction, Object, ObjectIndex, ObjectPool,
-    StackIndex, Value,
+    bytecode::Instruction,
+    indexable::{EvalStack, GlobalPool},
+    types::{Function, Object, Value},
+    ObjectIndex, ObjectPool, StackIndex,
 };
 
 /// Context aware instruction display.
@@ -103,16 +105,21 @@ pub fn display_instruction(
         Instruction::Jump(offset) | Instruction::JumpIfFalse(offset) => {
             format!("(to {})", instruction_ptr + offset)
         }
-        Instruction::AllocInstance(index) => {
+        Instruction::AllocInstance(index) | Instruction::AllocVariant(index) => {
             format!("({})", display_object(objects, *index))
         }
         Instruction::Pop(_)
+        | Instruction::Copy(_)
         | Instruction::PopReplace(_)
         | Instruction::BinOp(_)
         | Instruction::CmpOp(_)
         | Instruction::UnaryOp(_)
         | Instruction::AllocArray(_)
+        | Instruction::AllocMap(_)
         | Instruction::LoadArrayElement
+        | Instruction::LoadMapElement
+        | Instruction::StoreArrayElement
+        | Instruction::StoreMapElement
         | Instruction::DispatchFuture(_)
         | Instruction::Await
         | Instruction::Call(_)
@@ -146,6 +153,11 @@ fn display_object(objects: &ObjectPool, index: ObjectIndex) -> String {
             other => format!("<{other} instance>"),
         },
 
+        Object::Variant(variant) => match &objects[variant.enm] {
+            Object::Enum(enm) => format!("<{} variant>", enm.name),
+            other => format!("<{other} variant>"),
+        },
+
         other => other.to_string(),
     }
 }
@@ -162,10 +174,13 @@ fn instruction_color(instruction: &Instruction) -> Color {
         | Instruction::LoadVar(_)
         | Instruction::LoadGlobal(_)
         | Instruction::LoadField(_)
-        | Instruction::LoadArrayElement => Color::Blue,
-        Instruction::StoreVar(_) | Instruction::StoreGlobal(_) | Instruction::StoreField(_) => {
-            Color::Green
-        }
+        | Instruction::LoadArrayElement
+        | Instruction::LoadMapElement => Color::Blue,
+        Instruction::StoreVar(_)
+        | Instruction::StoreGlobal(_)
+        | Instruction::StoreField(_)
+        | Instruction::StoreArrayElement
+        | Instruction::StoreMapElement => Color::Green,
         Instruction::BinOp(_) | Instruction::CmpOp(_) | Instruction::UnaryOp(_) => {
             Color::BrightBlue
         }
@@ -174,8 +189,12 @@ fn instruction_color(instruction: &Instruction) -> Color {
         Instruction::Assert
         | Instruction::Return
         | Instruction::Pop(_)
+        | Instruction::Copy(_)
         | Instruction::PopReplace(_) => Color::Red,
-        Instruction::AllocInstance(_) | Instruction::AllocArray(_) => Color::Cyan,
+        Instruction::AllocMap(_)
+        | Instruction::AllocInstance(_)
+        | Instruction::AllocVariant(_)
+        | Instruction::AllocArray(_) => Color::Cyan,
         Instruction::DispatchFuture(_) | Instruction::Await => Color::BrightGreen,
     }
 }

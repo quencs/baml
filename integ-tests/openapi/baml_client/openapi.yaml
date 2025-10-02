@@ -217,6 +217,23 @@ paths:
                 title: BuildTreeResponse
                 $ref: '#/components/schemas/Tree'
       operationId: BuildTree
+  /call/ChooseTodoTools:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/ChooseTodoTools'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: ChooseTodoToolsResponse
+                type: array
+                items:
+                  oneOf:
+                  - $ref: '#/components/schemas/AddTodoItem'
+                  - $ref: '#/components/schemas/TodoMessageToUser'
+      operationId: ChooseTodoTools
   /call/ClassThatPointsToRecursiveClassThroughAlias:
     post:
       requestBody:
@@ -578,6 +595,19 @@ paths:
                   - READING
                   $ref: '#/components/schemas/Hobby'
       operationId: ExtractHobby
+  /call/ExtractName:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/ExtractName'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: ExtractNameResponse
+                type: string
+      operationId: ExtractName
   /call/ExtractNames:
     post:
       requestBody:
@@ -647,6 +677,19 @@ paths:
                 title: ExtractResume2Response
                 $ref: '#/components/schemas/Resume'
       operationId: ExtractResume2
+  /call/FnAlwaysFails:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/FnAlwaysFails'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: FnAlwaysFailsResponse
+                type: string
+      operationId: FnAlwaysFails
   /call/FnClassOptionalOutput:
     post:
       requestBody:
@@ -709,6 +752,45 @@ paths:
                 - THREE
                 $ref: '#/components/schemas/EnumOutput'
       operationId: FnEnumOutput
+  /call/FnFailRetryConstantDelay:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/FnFailRetryConstantDelay'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: FnFailRetryConstantDelayResponse
+                type: string
+      operationId: FnFailRetryConstantDelay
+  /call/FnFailRetryExponentialDelay:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/FnFailRetryExponentialDelay'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: FnFailRetryExponentialDelayResponse
+                type: string
+      operationId: FnFailRetryExponentialDelay
+  /call/FnFallbackAlwaysFails:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/FnFallbackAlwaysFails'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: FnFallbackAlwaysFailsResponse
+                type: string
+      operationId: FnFallbackAlwaysFails
   /call/FnLiteralClassInputOutput:
     post:
       requestBody:
@@ -1763,6 +1845,19 @@ paths:
                 title: TellStoryResponse
                 type: string
       operationId: TellStory
+  /call/TestAbortFallbackChain:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/TestAbortFallbackChain'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: TestAbortFallbackChainResponse
+                type: string
+      operationId: TestAbortFallbackChain
   /call/TestAnthropic:
     post:
       requestBody:
@@ -2544,6 +2639,19 @@ paths:
                 title: TestOpenAIResponsesResponse
                 type: string
       operationId: TestOpenAIResponses
+  /call/TestOpenAIResponsesAllRoles:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/TestOpenAIResponsesAllRoles'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: TestOpenAIResponsesAllRolesResponse
+                type: string
+      operationId: TestOpenAIResponsesAllRoles
   /call/TestOpenAIResponsesAutoType:
     post:
       requestBody:
@@ -2765,6 +2873,19 @@ paths:
                 title: TestOpenRouterMistralSmall3_1_24bResponse
                 type: string
       operationId: TestOpenRouterMistralSmall3_1_24b
+  /call/TestOpenaiResponsesPdfs:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/TestOpenaiResponsesPdfs'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: TestOpenaiResponsesPdfsResponse
+                type: string
+      operationId: TestOpenaiResponsesPdfs
   /call/TestRetryConstant:
     post:
       requestBody:
@@ -3238,6 +3359,22 @@ components:
             required:
             - input
             additionalProperties: false
+    ChooseTodoTools:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: ChooseTodoToolsRequest
+            type: object
+            properties:
+              query:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - query
+            additionalProperties: false
     ClassThatPointsToRecursiveClassThroughAlias:
       required: true
       content:
@@ -3655,6 +3792,22 @@ components:
             required:
             - text
             additionalProperties: false
+    ExtractName:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: ExtractNameRequest
+            type: object
+            properties:
+              text:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - text
+            additionalProperties: false
     ExtractNames:
       required: true
       content:
@@ -3742,6 +3895,22 @@ components:
             required:
             - resume
             additionalProperties: false
+    FnAlwaysFails:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: FnAlwaysFailsRequest
+            type: object
+            properties:
+              input:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - input
+            additionalProperties: false
     FnClassOptionalOutput:
       required: true
       content:
@@ -3796,6 +3965,60 @@ components:
         application/json:
           schema:
             title: FnEnumOutputRequest
+            type: object
+            properties:
+              input:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - input
+            additionalProperties: false
+    FnFailRetryConstantDelay:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: FnFailRetryConstantDelayRequest
+            type: object
+            properties:
+              delay_ms:
+                type: integer
+              retries:
+                type: integer
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - delay_ms
+            - retries
+            additionalProperties: false
+    FnFailRetryExponentialDelay:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: FnFailRetryExponentialDelayRequest
+            type: object
+            properties:
+              initial_delay_ms:
+                type: integer
+              retries:
+                type: integer
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - initial_delay_ms
+            - retries
+            additionalProperties: false
+    FnFallbackAlwaysFails:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: FnFallbackAlwaysFailsRequest
             type: object
             properties:
               input:
@@ -5032,6 +5255,22 @@ components:
             required:
             - story
             additionalProperties: false
+    TestAbortFallbackChain:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: TestAbortFallbackChainRequest
+            type: object
+            properties:
+              input:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - input
+            additionalProperties: false
     TestAnthropic:
       required: true
       content:
@@ -5999,6 +6238,22 @@ components:
             required:
             - input
             additionalProperties: false
+    TestOpenAIResponsesAllRoles:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: TestOpenAIResponsesAllRolesRequest
+            type: object
+            properties:
+              problem:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - problem
+            additionalProperties: false
     TestOpenAIResponsesAutoType:
       required: true
       content:
@@ -6274,6 +6529,22 @@ components:
                 $ref: '#/components/schemas/BamlOptions'
             required:
             - input
+            additionalProperties: false
+    TestOpenaiResponsesPdfs:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: TestOpenaiResponsesPdfsRequest
+            type: object
+            properties:
+              pdf:
+                $ref: '#/components/schemas/BamlPdf'
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - pdf
             additionalProperties: false
     TestRetryConstant:
       required: true
@@ -6646,7 +6917,17 @@ components:
       type: object
       properties:
         client_registry:
-          $ref: '#/components/schemas/ClientProperty'
+          type: object
+          properties:
+            clients:
+              type: array
+              items:
+                $ref: '#/components/schemas/ClientProperty'
+            primary:
+              type: string
+          required:
+          - clients
+          additionalProperties: false
       required:
       - client_registry
       additionalProperties: false
@@ -6678,6 +6959,23 @@ components:
       required:
       - name
       - expr
+      additionalProperties: false
+    AddTodoItem:
+      type: object
+      properties:
+        description:
+          type: string
+        item:
+          type: string
+        time:
+          type: string
+        type:
+          type: string
+      required:
+      - description
+      - item
+      - time
+      - type
       additionalProperties: false
     AliasedEnum:
       enum:
@@ -6990,6 +7288,23 @@ components:
       required:
       - client_details
       - notes
+      additionalProperties: false
+    DummyJsonTodo:
+      type: object
+      properties:
+        completed:
+          type: boolean
+        id:
+          type: integer
+        todo:
+          type: string
+        userId:
+          type: integer
+      required:
+      - completed
+      - id
+      - todo
+      - userId
       additionalProperties: false
     DummyOutput:
       type: object
@@ -8120,6 +8435,17 @@ components:
       required:
       - prop1
       - prop2
+      additionalProperties: false
+    TodoMessageToUser:
+      type: object
+      properties:
+        message:
+          type: string
+        type:
+          type: string
+      required:
+      - message
+      - type
       additionalProperties: false
     Tree:
       type: object
