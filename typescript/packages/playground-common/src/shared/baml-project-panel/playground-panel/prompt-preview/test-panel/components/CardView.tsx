@@ -52,10 +52,9 @@ const TestResult = ({ testId, historicalResponse }: TestResultProps) => {
 
   useEffect(() => {
     if (isSelected && cardRef.current) {
-      cardRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      })
+      // Ensure the selected card's title isn't hidden under any sticky/fixed nav
+      // Use start alignment so CSS scroll-margin is respected
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' })
     }
   }, [isSelected])
 
@@ -74,6 +73,8 @@ const TestResult = ({ testId, historicalResponse }: TestResultProps) => {
       ref={cardRef}
       className={cn(
         'flex cursor-pointer flex-col gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/70 dark:bg-muted/20',
+        // Provide a top scroll margin so headings aren't obscured by sticky navbars
+        'scroll-mt-16',
         isSelected && 'border-purple-500/20 shadow-sm dark:border-purple-900/30 dark:bg-muted/90',
       )}
       onClick={() => setSelectedItem(testId.functionName, testId.testName)}

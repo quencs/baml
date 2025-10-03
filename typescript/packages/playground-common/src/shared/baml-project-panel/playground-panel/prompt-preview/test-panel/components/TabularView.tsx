@@ -144,10 +144,8 @@ export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
 
   React.useEffect(() => {
     if (selectedItem && selectedRowRef.current) {
-      selectedRowRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      })
+      // Ensure the selected row title isn't hidden beneath the navbar
+      selectedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' })
     }
   }, [selectedItem])
 
@@ -235,7 +233,8 @@ export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
                 key={index}
                 ref={isSelected ? selectedRowRef : null}
                 className={cn(
-                  'relative cursor-pointer transition-colors hover:bg-muted/70',
+                  // Provide a top scroll margin for sticky headers/navbars
+                  'relative cursor-pointer transition-colors hover:bg-muted/70 scroll-mt-16',
                   isSelected && 'border-purple-500/20 shadow-sm dark:border-purple-900/30 dark:bg-muted/90',
                 )}
                 onClick={() => setSelectedItem(test.functionName, test.testName)}
