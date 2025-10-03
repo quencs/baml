@@ -515,7 +515,7 @@ macro_rules! make_openai_client {
             client: create_client_with_env($env)?,
         })
     }};
-    ($client:ident, $properties:ident, $provider:expr) => {{
+    ($client:ident, $properties:ident, $provider:expr, $env:expr) => {{
         let resolve_pdf_urls = if $provider == "openai-responses" {
             ResolveMediaUrls::Never
         } else {
@@ -548,7 +548,7 @@ macro_rules! make_openai_client {
                 .retry_policy_id
                 .as_ref()
                 .map(|s| s.to_string()),
-            client: create_client()?,
+            client: create_client_with_env($env)?,
         })
     }};
 }
@@ -557,25 +557,25 @@ impl OpenAIClient {
     pub fn new(client: &ClientWalker, ctx: &RuntimeContext) -> Result<OpenAIClient> {
         let properties =
             properties::resolve_properties(&client.elem().provider, client.options(), ctx)?;
-        make_openai_client!(client, properties, "openai")
+        make_openai_client!(client, properties, "openai", ctx.env_vars())
     }
 
     pub fn new_generic(client: &ClientWalker, ctx: &RuntimeContext) -> Result<OpenAIClient> {
         let properties =
             properties::resolve_properties(&client.elem().provider, client.options(), ctx)?;
-        make_openai_client!(client, properties, "openai-generic")
+        make_openai_client!(client, properties, "openai-generic", ctx.env_vars())
     }
 
     pub fn new_ollama(client: &ClientWalker, ctx: &RuntimeContext) -> Result<OpenAIClient> {
         let properties =
             properties::resolve_properties(&client.elem().provider, client.options(), ctx)?;
-        make_openai_client!(client, properties, "ollama")
+        make_openai_client!(client, properties, "ollama", ctx.env_vars())
     }
 
     pub fn new_azure(client: &ClientWalker, ctx: &RuntimeContext) -> Result<OpenAIClient> {
         let properties =
             properties::resolve_properties(&client.elem().provider, client.options(), ctx)?;
-        make_openai_client!(client, properties, "azure")
+        make_openai_client!(client, properties, "azure", ctx.env_vars())
     }
 
     pub fn new_responses(client: &ClientWalker, ctx: &RuntimeContext) -> Result<OpenAIClient> {
@@ -583,7 +583,7 @@ impl OpenAIClient {
             properties::resolve_properties(&client.elem().provider, client.options(), ctx)?;
         // Override response type for responses API
         properties.client_response_type = internal_llm_client::ResponseType::OpenAIResponses;
-        make_openai_client!(client, properties, "openai-responses")
+        make_openai_client!(client, properties, "openai-responses", ctx.env_vars())
     }
 
     pub fn dynamic_new(client: &ClientProperty, ctx: &RuntimeContext) -> Result<OpenAIClient> {
