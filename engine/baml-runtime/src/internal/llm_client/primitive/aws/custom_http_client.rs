@@ -17,20 +17,20 @@ use aws_smithy_types::body::SdkBody;
 #[cfg(target_arch = "wasm32")]
 use {futures::channel::oneshot, wasm_bindgen_futures::spawn_local};
 
-use crate::request::create_client;
+use crate::request::{create_client, create_client_with_env};
 
 /// Returns a wrapper around the global reqwest client.
 /// [HttpClient].
 #[cfg(not(target_arch = "wasm32"))] // Keep function non-WASM for now
-pub fn client() -> anyhow::Result<Client> {
-    let client = crate::request::create_client()
+pub fn client_with_env(env: &std::collections::HashMap<String, String>) -> anyhow::Result<Client> {
+    let client = create_client_with_env(env)
         .map_err(|e| anyhow::anyhow!("failed to create base http client: {}", e))?;
     Ok(Client::new(client.clone()))
 }
 
 #[cfg(target_arch = "wasm32")] // Define WASM client function
-pub fn client() -> anyhow::Result<Client> {
-    let client = crate::request::create_client()
+pub fn client_with_env(env: &std::collections::HashMap<String, String>) -> anyhow::Result<Client> {
+    let client = create_client_with_env(env)
         .map_err(|e| anyhow::anyhow!("failed to create base http client for WASM: {}", e))?;
     Ok(Client::new(client.clone()))
 }

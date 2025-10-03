@@ -26,7 +26,7 @@ use crate::{
         ErrorCode, LLMCompleteResponse, LLMCompleteResponseMetadata, LLMErrorResponse, LLMResponse,
         ModelFeatures, ResolveMediaUrls,
     },
-    request::create_client,
+    request::{create_client, create_client_with_env},
     RuntimeContext,
 };
 
@@ -483,7 +483,7 @@ impl WithStreamChat for OpenAIClient {
 }
 
 macro_rules! make_openai_client {
-    ($client:ident, $properties:ident, $provider:expr, dynamic) => {{
+    ($client:ident, $properties:ident, $provider:expr, dynamic, $env:expr) => {{
         let resolve_pdf_urls = if $provider == "openai-responses" {
             ResolveMediaUrls::Never
         } else {
@@ -512,7 +512,7 @@ macro_rules! make_openai_client {
             },
             properties: $properties,
             retry_policy: $client.retry_policy.clone(),
-            client: create_client()?,
+            client: create_client_with_env($env)?,
         })
     }};
     ($client:ident, $properties:ident, $provider:expr) => {{
@@ -589,7 +589,7 @@ impl OpenAIClient {
     pub fn dynamic_new(client: &ClientProperty, ctx: &RuntimeContext) -> Result<OpenAIClient> {
         let properties =
             properties::resolve_properties(&client.provider, &client.unresolved_options()?, ctx)?;
-        make_openai_client!(client, properties, "openai", dynamic)
+        make_openai_client!(client, properties, "openai", dynamic, ctx.env_vars())
     }
 
     pub fn dynamic_new_generic(
@@ -598,7 +598,13 @@ impl OpenAIClient {
     ) -> Result<OpenAIClient> {
         let properties =
             properties::resolve_properties(&client.provider, &client.unresolved_options()?, ctx)?;
-        make_openai_client!(client, properties, "openai-generic", dynamic)
+        make_openai_client!(
+            client,
+            properties,
+            "openai-generic",
+            dynamic,
+            ctx.env_vars()
+        )
     }
 
     pub fn dynamic_new_ollama(
@@ -607,7 +613,7 @@ impl OpenAIClient {
     ) -> Result<OpenAIClient> {
         let properties =
             properties::resolve_properties(&client.provider, &client.unresolved_options()?, ctx)?;
-        make_openai_client!(client, properties, "ollama", dynamic)
+        make_openai_client!(client, properties, "ollama", dynamic, ctx.env_vars())
     }
 
     pub fn dynamic_new_azure(
@@ -616,7 +622,7 @@ impl OpenAIClient {
     ) -> Result<OpenAIClient> {
         let properties =
             properties::resolve_properties(&client.provider, &client.unresolved_options()?, ctx)?;
-        make_openai_client!(client, properties, "azure", dynamic)
+        make_openai_client!(client, properties, "azure", dynamic, ctx.env_vars())
     }
 
     pub fn dynamic_new_responses(
@@ -627,7 +633,13 @@ impl OpenAIClient {
             properties::resolve_properties(&client.provider, &client.unresolved_options()?, ctx)?;
         // Override response type for responses API
         properties.client_response_type = internal_llm_client::ResponseType::OpenAIResponses;
-        make_openai_client!(client, properties, "openai-responses", dynamic)
+        make_openai_client!(
+            client,
+            properties,
+            "openai-responses",
+            dynamic,
+            ctx.env_vars()
+        )
     }
 }
 

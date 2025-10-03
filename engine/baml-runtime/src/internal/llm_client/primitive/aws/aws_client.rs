@@ -513,6 +513,7 @@ impl AwsClient {
         &self,
         call_stack: Vec<baml_ids::FunctionCallId>,
         http_request_id: baml_ids::HttpRequestId,
+        env: &std::collections::HashMap<String, String>,
     ) -> Result<bedrock::Client> {
         #[cfg(target_arch = "wasm32")]
         let loader = super::wasm::load_aws_config();
@@ -590,7 +591,7 @@ impl AwsClient {
         }
 
         let config = loader.load().await;
-        let http_client = custom_http_client::client()?;
+        let http_client = custom_http_client::client_with_env(env)?;
 
         let bedrock_config = aws_sdk_bedrockruntime::config::Builder::from(&config)
             // To support HTTPS_PROXY https://github.com/awslabs/aws-sdk-rust/issues/169
@@ -820,6 +821,7 @@ impl WithStreamChat for AwsClient {
             .client_anyhow(
                 ctx.runtime_context().call_id_stack.clone(),
                 ctx.http_request_id().clone(),
+                ctx.runtime_context().env_vars(),
             )
             .await
         {
@@ -1224,6 +1226,7 @@ impl WithChat for AwsClient {
             .client_anyhow(
                 ctx.runtime_context().call_id_stack.clone(),
                 ctx.http_request_id().clone(),
+                ctx.runtime_context().env_vars(),
             )
             .await
         {

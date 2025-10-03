@@ -26,8 +26,37 @@ fn builder() -> reqwest::ClientBuilder {
     }
 }
 
+fn builder_with_env(env: &std::collections::HashMap<String, String>) -> reqwest::ClientBuilder {
+    cfg_if::cfg_if! {
+        if #[cfg(target_arch = "wasm32")] {
+            // On wasm, std::env is not reliable. Use the provided env map.
+            let danger_accept_invalid_certs = env.get("DANGER_ACCEPT_INVALID_CERTS").map(|v| v.as_str()) == Some("1");
+            let mut cb = reqwest::Client::builder();
+            // Only toggle invalid certs based on provided env
+            cb = cb.danger_accept_invalid_certs(danger_accept_invalid_certs);
+            cb
+        } else {
+            let danger_accept_invalid_certs = env.get("DANGER_ACCEPT_INVALID_CERTS").map(|v| v.as_str()) == Some("1");
+            reqwest::Client::builder()
+                .connect_timeout(Duration::from_secs(10))
+                .danger_accept_invalid_certs(danger_accept_invalid_certs)
+                .http2_keep_alive_interval(Some(Duration::from_secs(10)))
+                .pool_max_idle_per_host(0)
+                .pool_idle_timeout(std::time::Duration::from_nanos(1))
+        }
+    }
+}
+
 pub fn create_client() -> Result<reqwest::Client> {
     builder().build().context("Failed to create reqwest client")
+}
+
+pub fn create_client_with_env(
+    env: &std::collections::HashMap<String, String>,
+) -> Result<reqwest::Client> {
+    builder_with_env(env)
+        .build()
+        .context("Failed to create reqwest client with env")
 }
 
 pub(crate) fn create_tracing_client() -> Result<reqwest::Client> {

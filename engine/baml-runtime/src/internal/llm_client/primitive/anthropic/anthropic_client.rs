@@ -32,7 +32,7 @@ use crate::{
         ErrorCode, LLMCompleteResponse, LLMCompleteResponseMetadata, LLMErrorResponse, LLMResponse,
         ModelFeatures, ResolveMediaUrls,
     },
-    request::create_client,
+    request::{create_client, create_client_with_env},
     RuntimeContext,
 };
 
@@ -154,7 +154,7 @@ impl AnthropicClient {
                 allowed_metadata: properties.allowed_metadata.clone(),
             },
             retry_policy: client.retry_policy.clone(),
-            client: create_client()?,
+            client: create_client_with_env(ctx.env_vars())?,
             properties,
         })
     }
@@ -182,7 +182,7 @@ impl AnthropicClient {
                 allowed_metadata: properties.allowed_metadata.clone(),
             },
             retry_policy: client.elem().retry_policy_id.as_ref().map(String::from),
-            client: create_client()?,
+            client: create_client_with_env(ctx.env_vars())?,
             properties,
         })
     }
