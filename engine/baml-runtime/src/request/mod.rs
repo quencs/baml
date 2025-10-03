@@ -29,12 +29,9 @@ fn builder() -> reqwest::ClientBuilder {
 fn builder_with_env(env: &std::collections::HashMap<String, String>) -> reqwest::ClientBuilder {
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
-            // On wasm, std::env is not reliable. Use the provided env map.
-            let danger_accept_invalid_certs = env.get("DANGER_ACCEPT_INVALID_CERTS").map(|v| v.as_str()) == Some("1");
-            let mut cb = reqwest::Client::builder();
-            // Only toggle invalid certs based on provided env
-            cb = cb.danger_accept_invalid_certs(danger_accept_invalid_certs);
-            cb
+            // On wasm, TLS verification cannot be disabled via reqwest; ignore this setting.
+            let _ = env.get("DANGER_ACCEPT_INVALID_CERTS");
+            reqwest::Client::builder()
         } else {
             let danger_accept_invalid_certs = env.get("DANGER_ACCEPT_INVALID_CERTS").map(|v| v.as_str()) == Some("1");
             reqwest::Client::builder()
