@@ -15,7 +15,7 @@ use internal_baml_core::{
     validate,
 };
 use internal_baml_jinja::RenderedPrompt;
-use internal_llm_client::{AllowedRoleMetadata, ClientSpec};
+use internal_llm_client::{AllowedRoleMetadata, ClientProvider, ClientSpec};
 
 use crate::{
     client_registry::ClientProperty,
@@ -105,17 +105,46 @@ impl<'a> InternalClientLookup<'a> for InternalBamlRuntime {
                     .context(format!("Could not find client with name: {client_name}"))?;
                 // Get required env vars from the client walker
                 let new_client = LLMProvider::try_from((&walker, ctx)).map(Arc::new)?;
-                // Only store the required env vars
-                let filtered_env_vars = ctx
-                    .env_vars()
-                    .iter()
-                    .filter(|(k, _)| walker.required_env_vars().contains(*k))
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect();
+
+                // Collect required environment variables.
+                let mut required_env_vars = HashMap::new();
+
+                // If the client is Vertex or AWS Bedrock, we don't fail on
+                // missing required environment variables because we run a bunch
+                // of additional logic to resolve required values (i.e for
+                // Vertex if GOOGLE_CLOUD_PROJECT is not provided it can be
+                // found on the credentials property).
+                //
+                // If called with modular API, we don't fail either. User might
+                // want to insert the values later.
+                let fail_on_missing_required_env_vars = !ctx.is_modular_api()
+                    && !matches!(
+                        walker.item.elem.provider,
+                        ClientProvider::AwsBedrock | ClientProvider::Vertex
+                    );
+
+                for key in walker.required_env_vars() {
+                    if let Some(value) = ctx.env_vars().get(&key) {
+                        // Exists but is empty
+                        if fail_on_missing_required_env_vars && value.trim().is_empty() {
+                            baml_log::warn!(
+                                "Required environment variable '{key}' for client '{client_name}' is set but is empty: {key}='{value}'"
+                            );
+                        }
+                        required_env_vars.insert(key, value.to_owned());
+                    } else if fail_on_missing_required_env_vars {
+                        // It's not set and we have to fail, bail
+                        anyhow::bail!(
+                            "LLM client '{client_name}' requires environment variable '{key}' to be set but it is not"
+                        );
+                    }
+                }
+
                 clients.insert(
                     client_name.into(),
-                    CachedClient::new(new_client.clone(), filtered_env_vars),
+                    CachedClient::new(new_client.clone(), required_env_vars),
                 );
+
                 Ok(new_client)
             }
         }
