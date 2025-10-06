@@ -64,8 +64,12 @@ pub(crate) fn init_logging(_log_level: LogLevel, log_file: Option<&std::path::Pa
             }),
     );
 
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("should be able to set global default subscriber");
+    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
+        #[allow(clippy::print_stderr)]
+        {
+            eprintln!("logging already initialized; continuing without resetting subscriber: {e}");
+        }
+    }
 
     match baml_log::set_running_in_lsp(true) {
         Ok(_) => (),

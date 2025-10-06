@@ -3,6 +3,7 @@ use std::{num::NonZeroUsize, thread};
 use crossbeam_channel::{Receiver, Sender};
 use log::LevelFilter;
 use lsp_server::Message;
+use lsp_types::request::Request;
 use serde_json::json;
 use tokio::sync::broadcast;
 
@@ -389,4 +390,112 @@ test TestSucc {
 // #[test]
 fn test_initialization() {
     TestCase::mk_simple().run().unwrap()
+}
+
+#[test]
+fn test_basic_attribute_completion() {
+    use serde_json::json;
+
+    // Spin up server
+    let test_server = new_test_server(std::num::NonZeroUsize::new(1).unwrap()).unwrap();
+
+    // Create a real file under a baml_src directory so the server can index it
+    let tmp_dir = std::env::temp_dir()
+        .join("baml_lang_server_tests")
+        .join("baml_src");
+    std::fs::create_dir_all(&tmp_dir).unwrap();
+    let file_name = tmp_dir.join("test_completion.baml");
+    let file_content = "class Person{\n  name string @\n}\n";
+    std::fs::write(&file_name, file_content).unwrap();
+    test_server
+        .sender
+        .send(lsp_server::Message::Notification(
+            lsp_server::Notification {
+                method: "textDocument/didOpen".to_string(),
+                params: json!({
+                  "textDocument": {
+                    "uri": format!("file://{}", file_name.to_string_lossy()),
+                    "languageId": "baml",
+                    "version": 1,
+                    "text": file_content
+                  }
+                }),
+            },
+        ))
+        .unwrap();
+
+    // Drain next server notification (non-deterministic; we just consume one)
+    let _ = test_server.receiver.recv();
+
+    // Request completion at the '@' position (line 1, char 15)
+    let completion_req = lsp_server::Request {
+        id: lsp_server::RequestId::from(2),
+        method: "textDocument/completion".to_string(),
+        params: json!({
+          "textDocument": { "uri": format!("file://{}", file_name.to_string_lossy()) },
+          "position": { "line": 1, "character": 15 },
+          "context": { "triggerKind": 1 }
+        }),
+    };
+
+    test_server
+        .sender
+        .send(lsp_server::Message::Request(completion_req))
+        .unwrap();
+
+    // Loop until we get the completion response for id=2, responding to any
+    // dynamic registration requests the server sends.
+    loop {
+        match test_server.receiver.recv().unwrap() {
+            lsp_server::Message::Request(req) => {
+                // Respond success to dynamic capability registration
+                if req.method == lsp_types::request::RegisterCapability::METHOD {
+                    let response = lsp_server::Response {
+                        id: req.id,
+                        result: Some(serde_json::Value::Null),
+                        error: None,
+                    };
+                    test_server
+                        .sender
+                        .send(lsp_server::Message::Response(response))
+                        .unwrap();
+                }
+                // Ignore other requests for this simple test
+            }
+            lsp_server::Message::Notification(_) => {
+                // ignore
+            }
+            lsp_server::Message::Response(rsp) => {
+                // Our completion request had id=2
+                if rsp.id == lsp_server::RequestId::from(2) {
+                    assert!(
+                        rsp.result.is_some(),
+                        "Completion response should have a result"
+                    );
+                    let v = rsp.result.unwrap();
+                    let items = if v.get("items").is_some() {
+                        v.get("items").cloned().unwrap()
+                    } else {
+                        v
+                    };
+                    let labels: Vec<String> = items
+                        .as_array()
+                        .unwrap_or(&vec![])
+                        .iter()
+                        .filter_map(|it| {
+                            it.get("label")
+                                .and_then(|l| l.as_str())
+                                .map(|s| s.to_string())
+                        })
+                        .collect();
+                    assert!(
+                        labels.iter().any(|l| l == "@alias"),
+                        "Expected @alias in completion items, got: {:?}",
+                        labels
+                    );
+                    break;
+                }
+            }
+        }
+    }
 }
