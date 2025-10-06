@@ -89,7 +89,7 @@ mod tests {
                         "unexpected text widget format"
                     );
                 }
-                "image" => assert!(widget.image.is_some(), "image widget missing data"),
+                "image" => assert!(widget.img.is_some(), "image widget missing data"),
                 "container" => {
                     assert!(widget.container.is_some(), "container widget missing data");
                 }

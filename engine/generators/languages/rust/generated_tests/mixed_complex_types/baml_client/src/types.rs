@@ -4832,7 +4832,7 @@ pub struct Widget {
 
     pub text: Option<crate::types::TextWidget>,
 
-    pub image: Option<crate::types::ImageWidget>,
+    pub img: Option<crate::types::ImageWidget>,
 
     pub container: Option<crate::types::ContainerWidget>,
 }
@@ -4843,14 +4843,14 @@ impl Widget {
         r#type: crate::types::Union4KButtonOrKContainerOrKImageOrKText,
         button: Option<crate::types::ButtonWidget>,
         text: Option<crate::types::TextWidget>,
-        image: Option<crate::types::ImageWidget>,
+        img: Option<crate::types::ImageWidget>,
         container: Option<crate::types::ContainerWidget>,
     ) -> Self {
         Self {
             r#type,
             button,
             text,
-            image,
+            img,
             container,
         }
     }
@@ -4875,7 +4875,7 @@ impl baml_client_rust::types::ToBamlValue for Widget {
         map.insert("type".to_string(), self.r#type.to_baml_value()?);
         map.insert("button".to_string(), self.button.to_baml_value()?);
         map.insert("text".to_string(), self.text.to_baml_value()?);
-        map.insert("image".to_string(), self.image.to_baml_value()?);
+        map.insert("img".to_string(), self.img.to_baml_value()?);
         map.insert("container".to_string(), self.container.to_baml_value()?);
         Ok(baml_client_rust::types::BamlValue::Class(
             "Widget".to_string(),
@@ -4946,7 +4946,7 @@ impl baml_client_rust::types::FromBamlValue for Widget {
                         )));
                     }
                 };
-                let image = match map.get("image") {
+                let img = match map.get("img") {
                     Some(value) => match value {
                         baml_client_rust::types::BamlValue::Null
                             if baml_client_rust::types::is_partial_deserialization() =>
@@ -4960,7 +4960,7 @@ impl baml_client_rust::types::FromBamlValue for Widget {
                     None if baml_client_rust::types::is_partial_deserialization() => None,
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
-                            "Missing field 'image' in Widget"
+                            "Missing field 'img' in Widget"
                         )));
                     }
                 };
@@ -4982,7 +4982,7 @@ impl baml_client_rust::types::FromBamlValue for Widget {
                         )));
                     }
                 };
-                Ok(Self::new(r#type, button, text, image, container))
+                Ok(Self::new(r#type, button, text, img, container))
             }
             _ => Err(baml_client_rust::BamlError::deserialization(format!(
                 "Expected class, got {:?}",
