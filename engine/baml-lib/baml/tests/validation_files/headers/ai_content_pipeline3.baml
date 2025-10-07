@@ -5,6 +5,7 @@ function AIContentPipeline(video_id: string, zoom_meeting_id: string, transcript
     let processed = ProcessVideo(video_id, zoom_meeting_id);
     let video = GetVideo(video_id);
 
+    # Generate Content
     let summary = if (transcript) {
         let s = SummarizeVideo(transcript, title);
         let category = LabelSummaryCategory(s);

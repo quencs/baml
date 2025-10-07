@@ -2,10 +2,11 @@ import React, { useMemo, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
 import WorkflowReplayerTab from './tabs/workflow-replayer';
-import DataLineageTab from './tabs/data-lineage';
-import AssistantOrchestrationTab from './tabs/assistant-orchestration';
 import AIContentPipelineTab from './tabs/ai-content-pipeline';
+import AiContentPipeline3Tab from './tabs/ai-content-pipeline3';
 import AgentBuilderDemoTab from './tabs/agent-builder-demo';
+import N8nItOpsTab from './tabs/n8n-it-ops';
+import N8nDevopsProxmoxTab from './tabs/n8n-devops-proxmox';
 
 interface FlowTab {
   id: string;
@@ -22,24 +23,41 @@ const FLOW_TABS: FlowTab[] = [
     component: WorkflowReplayerTab,
   },
   {
-    id: 'ai-content',
-    label: 'AI Content Pipeline',
+    id: 'ai-content2',
+    label: 'AI Content Pipeline 2',
     description: 'Map the AIContentPipeline BAML function into a staged flow.',
     component: AIContentPipelineTab,
   },
   {
+    id: 'ai-content3',
+    label: 'AI Content Pipeline 3',
+    description: 'Map the AIContentPipeline BAML function into a staged flow.',
+    component: AiContentPipeline3Tab,
+  },
+  {
     id: 'agent-builder',
     label: 'OpenAI Agent Builder Demo',
-    description: 'Visual replicate of the start → classify → route pipeline from the agent builder.',
+    description: 'Start → classify → route pipeline inspired by the agent builder UI.',
     component: AgentBuilderDemoTab,
   },
+  {
+    id: 'n8n-it-ops',
+    label: 'n8n IT Ops onboard',
+    description: 'Get Entra user → create Jira → conditional Slack actions for onboarding.',
+    component: N8nItOpsTab,
+  },
+  {
+    id: 'n8n-devops-proxmox',
+    label: 'n8n devops - proxmox command translator',
+    description: 'Gather Proxmox docs, build HTTP requests, and branch for GET/POST/DELETE operations.',
+    component: N8nDevopsProxmoxTab,
+  },
 ];
-const LAST_FLOW_TAB_INDEX = FLOW_TABS.length - 1;
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>(FLOW_TABS[LAST_FLOW_TAB_INDEX].id);
+  const [activeTab, setActiveTab] = useState<string>(FLOW_TABS[0].id);
   const activeTabConfig = useMemo(
-    () => FLOW_TABS.find((tab) => tab.id === activeTab) ?? FLOW_TABS[LAST_FLOW_TAB_INDEX],
+    () => FLOW_TABS.find((tab) => tab.id === activeTab) ?? FLOW_TABS[0],
     [activeTab]
   );
   const ActiveComponent = activeTabConfig.component;
