@@ -4107,6 +4107,24 @@ export const VideoInputVertex = async (
 };
 
 /**
+ * Executes the "AnotherTakedown" BAML action.
+ *
+ * This server action calls the underlying BAML function "AnotherTakedown"
+ * with the specified parameters.
+ *
+ * @param { string[] } xs - Input parameter.
+ *
+ * @returns {Promise<number>} A promise that resolves with the result of the action.
+ */
+export const AnotherTakedown = async (
+  xs: string[],
+): Promise<number> => {
+  return b.AnotherTakedown(
+    xs,
+  );
+};
+
+/**
  * Executes the "AssignElseIfExpr" BAML action.
  *
  * This server action calls the underlying BAML function "AssignElseIfExpr"
@@ -4478,5 +4496,35 @@ export const SumFromTo = async (
   return b.SumFromTo(
     x,
     y,
+  );
+};
+
+/**
+ * Executes the "WorkflowEmit" BAML action.
+ *
+ * This server action calls the underlying BAML function "WorkflowEmit"
+ * with the specified parameters.
+ *
+ *
+ * @returns {Promise<number>} A promise that resolves with the result of the action.
+ */
+export const WorkflowEmit = async (
+): Promise<number> => {
+  return b.WorkflowEmit(
+  );
+};
+
+/**
+ * Executes the "WorkflowEmitChild" BAML action.
+ *
+ * This server action calls the underlying BAML function "WorkflowEmitChild"
+ * with the specified parameters.
+ *
+ *
+ * @returns {Promise<number>} A promise that resolves with the result of the action.
+ */
+export const WorkflowEmitChild = async (
+): Promise<number> => {
+  return b.WorkflowEmitChild(
   );
 };

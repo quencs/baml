@@ -1104,6 +1104,7 @@ version = "0.211.0"
 dependencies = [
  "anyhow",
  "baml-cli",
+ "baml-compiler",
  "baml-ids",
  "baml-log",
  "baml-runtime",
@@ -1388,6 +1389,7 @@ version = "0.211.0"
 dependencies = [
  "anyhow",
  "baml-cli",
+ "baml-compiler",
  "baml-ids",
  "baml-log",
  "baml-runtime",
@@ -3113,6 +3115,7 @@ version = "0.211.0"
 dependencies = [
  "anyhow",
  "askama",
+ "baml-compiler",
  "baml-types",
  "dir-writer",
  "indexmap 2.9.0",
