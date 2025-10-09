@@ -2,12 +2,13 @@
 //!
 //! This module provides the type system used by BAML functions.
 
-use crate::{runtime::RuntimeHandleArc, BamlError, BamlResult};
-use anyhow::anyhow;
-use baml_cffi::{
+use crate::{
     baml::cffi::CffiRawObject,
-    rust::{CollectorHandle, TypeBuilderHandle},
+    cffi_support::rust::{CollectorHandle, TypeBuilderHandle},
+    runtime::RuntimeHandleArc,
+    BamlError, BamlResult,
 };
+use anyhow::anyhow;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 

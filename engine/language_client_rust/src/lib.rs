@@ -3,6 +3,8 @@
 //! This crate provides a high-level Rust API for calling BAML functions.
 //! It wraps the core `baml-runtime` with a convenient, type-safe interface.
 
+pub mod baml;
+pub(crate) mod cffi_support;
 pub mod client;
 pub mod context;
 pub mod errors;

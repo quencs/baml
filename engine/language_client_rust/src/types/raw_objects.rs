@@ -4,17 +4,18 @@ use std::os::raw::c_char;
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use baml_cffi::baml::cffi::{
+use prost::Message;
+
+use super::{BamlMap, BamlValue, FromBamlValue};
+use crate::baml::cffi::{
     cffi_object_response::Response as CffiObjectResponseVariant,
     cffi_object_response_success::Result as CffiObjectResponseSuccess,
     cffi_raw_object::Object as RawObjectVariant, CffiMapEntry, CffiObjectMethodArguments,
     CffiObjectResponse, CffiRawObject,
 };
-use baml_cffi::DecodeFromBuffer;
-use prost::Message;
-
-use super::{BamlMap, BamlValue, FromBamlValue};
-use crate::{errors::BamlError, ffi, runtime::RuntimeHandleArc, BamlResult};
+use crate::{
+    cffi_support::DecodeFromBuffer, errors::BamlError, ffi, runtime::RuntimeHandleArc, BamlResult,
+};
 
 #[derive(Debug)]
 struct ObjectInner {
@@ -337,8 +338,10 @@ fn expect_map_string_string(
 pub(crate) fn string_arg<K: Into<String>, V: Into<String>>(key: K, value: V) -> CffiMapEntry {
     CffiMapEntry {
         key: key.into(),
-        value: Some(baml_cffi::baml::cffi::CffiValueHolder {
-            value: Some(baml_cffi::baml::cffi::cffi_value_holder::Value::StringValue(value.into())),
+        value: Some(crate::baml::cffi::CffiValueHolder {
+            value: Some(crate::baml::cffi::cffi_value_holder::Value::StringValue(
+                value.into(),
+            )),
             r#type: None,
         }),
     }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use baml_cffi::baml::cffi::CffiFunctionArguments;
 use baml_client_rust::{
+    baml::cffi::{cffi_value_holder::Value, CffiFunctionArguments},
     client::BamlClient,
     types::{Collector, TypeBuilder},
     BamlContext,
@@ -59,7 +59,7 @@ fn encoded_arguments_include_env_and_handles() {
                 .as_ref()
                 .and_then(|v| v.value.as_ref())
                 .map(|v| match v {
-                    baml_cffi::baml::cffi::cffi_value_holder::Value::StringValue(s) => s == "test",
+                    Value::StringValue(s) => s == "test",
                     _ => false,
                 })
                 == Some(true)),
@@ -72,7 +72,7 @@ fn encoded_arguments_include_env_and_handles() {
                 .as_ref()
                 .and_then(|v| v.value.as_ref())
                 .map(|v| match v {
-                    baml_cffi::baml::cffi::cffi_value_holder::Value::StringValue(s) => s == "1.0.0",
+                    Value::StringValue(s) => s == "1.0.0",
                     _ => false,
                 })
                 == Some(true)),

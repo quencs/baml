@@ -407,4 +407,4 @@ pub fn set_shared_library_path<P: AsRef<Path>>(path: P) {
 }
 
 // Re-export the protobuf types generated alongside the C FFI surface.
-pub use baml_cffi::baml;
+pub use crate::baml;

@@ -1,15 +1,16 @@
 use crate::{
+    baml::cffi::{
+        cffi_value_holder, cffi_value_raw_object::Object as RawObjectVariant, CffiEnvVar,
+        CffiFunctionArguments, CffiMapEntry, CffiTypeName, CffiTypeNamespace, CffiValueClass,
+        CffiValueEnum, CffiValueHolder, CffiValueList, CffiValueMap, CffiValueNull,
+        CffiValueRawObject,
+    },
+    cffi_support::{rust::media_to_raw, DecodeFromBuffer},
     ffi,
     runtime::{RuntimeHandle, RuntimeHandleArc},
     types::{BamlValue, FromBamlValue},
     BamlContext, BamlError, BamlResult, FunctionResult, StreamState,
 };
-use baml_cffi::baml::cffi::{
-    cffi_value_holder, cffi_value_raw_object::Object as RawObjectVariant, CffiEnvVar,
-    CffiFunctionArguments, CffiMapEntry, CffiTypeName, CffiTypeNamespace, CffiValueClass,
-    CffiValueEnum, CffiValueHolder, CffiValueList, CffiValueMap, CffiValueNull, CffiValueRawObject,
-};
-use baml_cffi::{rust::media_to_raw, DecodeFromBuffer};
 use futures::{Stream, StreamExt};
 use once_cell::sync::{Lazy, OnceCell};
 use prost::Message;
@@ -296,12 +297,9 @@ fn encode_baml_value(value: &BamlValue) -> BamlResult<CffiValueHolder> {
                 fields: encoded_fields,
             })
         }
-        BamlValue::Media(media) => {
-            let raw = media_to_raw(media);
-            HolderValue::ObjectValue(CffiValueRawObject {
-                object: Some(RawObjectVariant::Media(raw)),
-            })
-        }
+        BamlValue::Media(media) => HolderValue::ObjectValue(CffiValueRawObject {
+            object: Some(RawObjectVariant::Media(media_to_raw(media))),
+        }),
     };
 
     Ok(CffiValueHolder {

@@ -1,12 +1,34 @@
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+const PROTOC_GEN_GO_PATH: &str = "../language_client_cffi/types/cffi.proto";
+const PROTOS_DIR: &str = "../language_client_cffi/types";
 
 fn main() {
+    generate_proto_bindings();
+    configure_library_path_env();
+}
+
+fn generate_proto_bindings() {
+    let protoc_path =
+        protoc_bin_vendored::protoc_bin_path().expect("failed to locate vendored protoc binary");
+    env::set_var("PROTOC", protoc_path);
+
+    let proto_path = Path::new(PROTOC_GEN_GO_PATH);
+    let include_dir = Path::new(PROTOS_DIR);
+
+    if let Err(err) = prost_build::Config::new().compile_protos(&[proto_path], &[include_dir]) {
+        panic!("failed to generate CFFI protobuf bindings: {err:#}");
+    }
+
+    println!("cargo:rerun-if-changed={}", proto_path.display());
+}
+
+fn configure_library_path_env() {
     let out_dir = match env::var("OUT_DIR") {
         Ok(path) => PathBuf::from(path),
         Err(_) => return,
     };
-
     let profile_dir = out_dir
         .ancestors()
         .nth(3)
