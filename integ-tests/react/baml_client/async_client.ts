@@ -6578,7 +6578,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             
         async TestAwsInvalidEndpoint(
         input: string,
-        __baml_options__?: BamlCallOptions
+        __baml_options__?: BamlCallOptions<never>
         ): Promise<string> {
           try {
           const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
@@ -6616,6 +6616,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             options.tags || {},
             env,
             signal,
+            options.events,
             )
             return raw.parsed(false) as string
             } catch (error) {
@@ -21021,7 +21022,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
                   
             TestAwsInvalidEndpoint(
             input: string,
-            __baml_options__?: BamlCallOptions
+            __baml_options__?: BamlCallOptions<never>
             ): BamlStream<string, string>
               {
               try {
