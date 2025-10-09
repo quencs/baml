@@ -1150,7 +1150,7 @@ async def test_aws_bedrock_invalid_region():
 @pytest.mark.asyncio
 async def test_aws_bedrock_invalid_endpoint():
     with pytest.raises(errors.BamlClientError) as excinfo:
-        res = await b.TestAwsInvalidEndpoint("lightning in a rock")
+        await b.TestAwsInvalidEndpoint("lightning in a rock")
 
     assert "DispatchFailure" in str(excinfo)
 
