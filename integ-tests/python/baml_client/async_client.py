@@ -1429,6 +1429,21 @@ class BamlAsyncClient:
                 "s": s,
             })
             return typing.cast(types.ClassForNullLiteral, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def OpenAIGPT4oMissingBaseUrlEnvVar(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.OpenAIGPT4oMissingBaseUrlEnvVar(input=input,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="OpenAIGPT4oMissingBaseUrlEnvVar", args={
+                "input": input,
+            })
+            return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
     async def OpenAIWithAnthropicResponseHello(self, s: str,
         baml_options: BamlCallOptions = {},
     ) -> str:
@@ -3454,6 +3469,21 @@ class BamlAsyncClient:
                 "vid": vid,
             })
             return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def AnotherTakedown(self, xs: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> int:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.AnotherTakedown(xs=xs,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="AnotherTakedown", args={
+                "xs": xs,
+            })
+            return typing.cast(int, result.cast_to(types, types, stream_types, False, __runtime__))
     async def AssignElseIfExpr(self, a: bool,b: bool,
         baml_options: BamlCallOptions = {},
     ) -> int:
@@ -3767,6 +3797,36 @@ class BamlAsyncClient:
             # Original non-streaming code
             result = await self.__options.merge_options(baml_options).call_function_async(function_name="SumFromTo", args={
                 "x": x,"y": y,
+            })
+            return typing.cast(int, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def WorkflowEmit(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> int:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.WorkflowEmit(
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="WorkflowEmit", args={
+                
+            })
+            return typing.cast(int, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def WorkflowEmitChild(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> int:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.WorkflowEmitChild(
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="WorkflowEmitChild", args={
+                
             })
             return typing.cast(int, result.cast_to(types, types, stream_types, False, __runtime__))
     
@@ -4856,6 +4916,18 @@ class BamlStreamClient:
           result,
           lambda x: typing.cast(stream_types.ClassForNullLiteral, x.cast_to(types, types, stream_types, True, __runtime__)),
           lambda x: typing.cast(types.ClassForNullLiteral, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def OpenAIGPT4oMissingBaseUrlEnvVar(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[str, str]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="OpenAIGPT4oMissingBaseUrlEnvVar", args={
+            "input": input,
+        })
+        return baml_py.BamlStream[str, str](
+          result,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
     def OpenAIWithAnthropicResponseHello(self, s: str,
@@ -6478,6 +6550,18 @@ class BamlStreamClient:
           lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
+    def AnotherTakedown(self, xs: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[typing.Optional[int], int]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="AnotherTakedown", args={
+            "xs": xs,
+        })
+        return baml_py.BamlStream[typing.Optional[int], int](
+          result,
+          lambda x: typing.cast(typing.Optional[int], x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(int, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     def AssignElseIfExpr(self, a: bool,b: bool,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlStream[typing.Optional[int], int]:
@@ -6723,6 +6807,30 @@ class BamlStreamClient:
     ) -> baml_py.BamlStream[typing.Optional[int], int]:
         ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="SumFromTo", args={
             "x": x,"y": y,
+        })
+        return baml_py.BamlStream[typing.Optional[int], int](
+          result,
+          lambda x: typing.cast(typing.Optional[int], x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(int, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def WorkflowEmit(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[typing.Optional[int], int]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="WorkflowEmit", args={
+            
+        })
+        return baml_py.BamlStream[typing.Optional[int], int](
+          result,
+          lambda x: typing.cast(typing.Optional[int], x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(int, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def WorkflowEmitChild(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[typing.Optional[int], int]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="WorkflowEmitChild", args={
+            
         })
         return baml_py.BamlStream[typing.Optional[int], int](
           result,
@@ -7368,6 +7476,13 @@ class BamlHttpRequestClient:
             "s": s,
         }, mode="request")
         return result
+    async def OpenAIGPT4oMissingBaseUrlEnvVar(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="OpenAIGPT4oMissingBaseUrlEnvVar", args={
+            "input": input,
+        }, mode="request")
+        return result
     async def OpenAIWithAnthropicResponseHello(self, s: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -8313,6 +8428,13 @@ class BamlHttpRequestClient:
             "vid": vid,
         }, mode="request")
         return result
+    async def AnotherTakedown(self, xs: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="AnotherTakedown", args={
+            "xs": xs,
+        }, mode="request")
+        return result
     async def AssignElseIfExpr(self, a: bool,b: bool,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -8458,6 +8580,20 @@ class BamlHttpRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="SumFromTo", args={
             "x": x,"y": y,
+        }, mode="request")
+        return result
+    async def WorkflowEmit(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="WorkflowEmit", args={
+            
+        }, mode="request")
+        return result
+    async def WorkflowEmitChild(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="WorkflowEmitChild", args={
+            
         }, mode="request")
         return result
     
@@ -9098,6 +9234,13 @@ class BamlHttpStreamRequestClient:
             "s": s,
         }, mode="stream")
         return result
+    async def OpenAIGPT4oMissingBaseUrlEnvVar(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="OpenAIGPT4oMissingBaseUrlEnvVar", args={
+            "input": input,
+        }, mode="stream")
+        return result
     async def OpenAIWithAnthropicResponseHello(self, s: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -10043,6 +10186,13 @@ class BamlHttpStreamRequestClient:
             "vid": vid,
         }, mode="stream")
         return result
+    async def AnotherTakedown(self, xs: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="AnotherTakedown", args={
+            "xs": xs,
+        }, mode="stream")
+        return result
     async def AssignElseIfExpr(self, a: bool,b: bool,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -10188,6 +10338,20 @@ class BamlHttpStreamRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="SumFromTo", args={
             "x": x,"y": y,
+        }, mode="stream")
+        return result
+    async def WorkflowEmit(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="WorkflowEmit", args={
+            
+        }, mode="stream")
+        return result
+    async def WorkflowEmitChild(self, 
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="WorkflowEmitChild", args={
+            
         }, mode="stream")
         return result
     
