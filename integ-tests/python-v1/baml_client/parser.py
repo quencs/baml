@@ -828,6 +828,12 @@ class LlmResponseParser:
         result = self.__options.merge_options(baml_options).parse_response(function_name="TestAwsInvalidAccessKey", llm_response=llm_response, mode="request")
         return typing.cast(str, result)
 
+    def TestAwsInvalidEndpoint(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestAwsInvalidEndpoint", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
     def TestAwsInvalidProfile(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> str:
@@ -2304,6 +2310,12 @@ class LlmStreamParser:
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> str:
         result = self.__options.merge_options(baml_options).parse_response(function_name="TestAwsInvalidAccessKey", llm_response=llm_response, mode="stream")
+        return typing.cast(str, result)
+
+    def TestAwsInvalidEndpoint(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestAwsInvalidEndpoint", llm_response=llm_response, mode="stream")
         return typing.cast(str, result)
 
     def TestAwsInvalidProfile(

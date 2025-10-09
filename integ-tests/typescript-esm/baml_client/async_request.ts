@@ -3389,6 +3389,31 @@ env?: Record<string, string | undefined>
       }
       }
       
+  async TestAwsInvalidEndpoint(
+  input: string,
+  __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+    const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+    const env: Record<string, string> = Object.fromEntries(
+      Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+      "TestAwsInvalidEndpoint",
+      {
+      "input": input
+      },
+      this.ctxManager.cloneContext(),
+      __baml_options__?.tb?.__tb(),
+      __baml_options__?.clientRegistry,
+      false,
+      env
+      )
+      } catch (error) {
+      throw toBamlError(error);
+      }
+      }
+      
   async TestAwsInvalidProfile(
   input: string,
   __baml_options__?: BamlCallOptions
@@ -8981,6 +9006,31 @@ env?: Record<string, string | undefined>
           );
           return await this.runtime.buildRequest(
           "TestAwsInvalidAccessKey",
+          {
+          "input": input
+          },
+          this.ctxManager.cloneContext(),
+          __baml_options__?.tb?.__tb(),
+          __baml_options__?.clientRegistry,
+          true,
+          env
+          )
+          } catch (error) {
+          throw toBamlError(error);
+          }
+          }
+          
+      async TestAwsInvalidEndpoint(
+      input: string,
+      __baml_options__?: BamlCallOptions
+      ): Promise<HTTPRequest> {
+        try {
+        const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+        const env: Record<string, string> = Object.fromEntries(
+          Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+          );
+          return await this.runtime.buildRequest(
+          "TestAwsInvalidEndpoint",
           {
           "input": input
           },
