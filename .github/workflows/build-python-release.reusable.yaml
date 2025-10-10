@@ -66,7 +66,7 @@ jobs:
 
     name: ${{ matrix._.target }}
     runs-on: ${{ matrix._.runs_on }}
-    # See also https://github.com/mcrumiller/polars/.github/workflows/release-python.yml#L282
+    # See also https://github.com/mcrumiller/polars/blob/664656ea91291f8f4b4eb9d42af2a9da5394616e/.github/workflows/release-python.yml#L278-L283
     steps:
       - name: Setup build environment (ARM64 Windows)
         if: matrix._.target == 'aarch64-pc-windows-msvc'
@@ -103,6 +103,7 @@ jobs:
           python-version: "3.8"
           architecture: ${{ matrix._.architecture }}
 
+      # NB(sam): aaron did this but doesn't remember why we install 3 versions of python
       # Setup Python versions for ARM64 Windows
       - name: Setup Python 3.11 (ARM64 Windows)
         if: matrix._.target == 'aarch64-pc-windows-msvc'

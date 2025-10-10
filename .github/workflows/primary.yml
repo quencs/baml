@@ -62,10 +62,6 @@ jobs:
               RUSTFLAGS="-A unused -D warnings" cargo clippy
 
           - job_name: rust-lint-wasm
-            setup_rust: true
-            setup_go: true
-
-          - job_name: rust-lint-wasm
             step_name: Run Rust lint WASM (Clippy)
             run: |
               cd engine/baml-schema-wasm && \
@@ -151,12 +147,6 @@ jobs:
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
 
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          enable-wasm: false
-          enable-cross: false
-          cache-on-failure: true
 
       - name: Test Generators (1 of 3)
         run: |
