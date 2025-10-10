@@ -15,7 +15,6 @@ runs:
       with:
         toolchain: "1.89.0"
         targets: ${{ inputs.rust-targets }}
-        components: rustfmt
 
     - name: Setup mise
       uses: jdx/mise-action@v3

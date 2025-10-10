@@ -41,7 +41,7 @@ jobs:
       version_string: ${{ steps.set-version.outputs.version }}
       is_release_tag: ${{ steps.set-version.outputs.is_release_tag }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Tools
         uses: ./.github/actions/setup-tools
