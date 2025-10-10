@@ -2,7 +2,8 @@
 
 [tools]
 # Core languages
-rust = "1.88.0"
+# We use rustup to install Rust
+# rust = "1.90.0"
 go = "1.23.11"
 python = "3.13"  # Will use uv for Python package management
 ruby = "3.2.2"
