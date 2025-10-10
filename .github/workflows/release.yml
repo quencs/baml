@@ -150,8 +150,6 @@ jobs:
         uses: ./.github/actions/setup-tools
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
-        with:
-          npm-token: ${{ secrets.NPM_TOKEN }}
       - uses: actions/download-artifact@v4
         with:
           pattern: bindings-*
@@ -160,7 +158,9 @@ jobs:
       - name: Publish to NPM
         # This reads the credential from .npmrc, which is written by the setup-node step.
         # It does not use the NODE_AUTH_TOKEN environment variable.
-        run: pnpm --filter=@boundaryml/baml publish --access public --no-git-checks
+        run: 
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+          pnpm --filter=@boundaryml/baml publish --access public --no-git-checks
 
   # publish-to-rubygems:
   #   environment: release
@@ -204,7 +204,6 @@ jobs:
         uses: ./.github/actions/setup-node
         with:
           install-dependencies: false
-          npm-token: ${{ secrets.NPM_TOKEN }}
       - name: Download VSIX artifacts
         uses: actions/download-artifact@v4
         with:
@@ -231,7 +230,6 @@ jobs:
         uses: ./.github/actions/setup-node
         with:
           install-dependencies: false
-          npm-token: ${{ secrets.NPM_TOKEN }}
       - name: Download VSIX artifacts
         uses: actions/download-artifact@v4
         with:

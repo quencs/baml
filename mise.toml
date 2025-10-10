@@ -33,6 +33,6 @@ java = "temurin-23"
 "npm:@infisical/cli" = "latest"
 
 [settings]
-#auto_install_disable_tools = ["rust"]
+auto_install_disable_tools = ["rust"]
 experimental = true
 # idiomatic_version_file_enable_tools = ["node", "python", "ruby", "go"]
