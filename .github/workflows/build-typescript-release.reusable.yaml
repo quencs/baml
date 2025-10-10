@@ -95,6 +95,8 @@ jobs:
 
       - name: Setup Tools
         uses: ./.github/actions/setup-tools
+        with:
+          rust-targets: ${{ matrix._.target }}
 
       # Check GLIBC version for Linux targets (skip musl targets)
       - name: Check GLIBC version

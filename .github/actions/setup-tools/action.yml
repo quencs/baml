@@ -1,8 +1,22 @@
 name: "Setup Development Tools"
 description: "Setup common development tools"
+
+inputs:
+  rust-targets:
+    description: "Space-separated Rust targets to install via dtolnay/rust-toolchain"
+    required: false
+    default: ""
+
 runs:
   using: "composite"
   steps:
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: "1.89.0"
+        targets: ${{ inputs.rust-targets }}
+        components: rustfmt
+
     - name: Setup mise
       uses: jdx/mise-action@v3
       with:

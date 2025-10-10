@@ -72,6 +72,8 @@ jobs:
 
       - name: Setup Tools
         uses: ./.github/actions/setup-tools
+        with:
+          rust-targets: ${{ matrix._.target }}
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
