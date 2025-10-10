@@ -28,6 +28,38 @@ client<llm> SuperDuperClient {
   The list of client names to try in order. Cannot be empty.
 </ParamField>
 
+### Timeout Options
+
+Fallback clients support all standard timeout options plus `total_timeout_ms`:
+
+- `connect_timeout_ms`: Max time to connect to each subclient
+- `time_to_first_token_timeout_ms`: Max time to first token for each subclient
+- `idle_timeout_ms`: Max time between chunks for each subclient
+- `request_timeout_ms`: Max total time per subclient attempt
+- `total_timeout_ms`: Max time for the entire fallback strategy
+
+When subclients define their own timeouts, the **minimum (most restrictive) timeout wins**.
+
+```baml
+client<llm> MyFallback {
+  provider fallback
+  options {
+    strategy [Primary, Backup, LastResort]
+
+    // Per-subclient timeouts
+    http_client {
+      connect_timeout_ms 5000
+      request_timeout_ms 30000
+    }
+
+    // Overall strategy timeout
+    total_timeout_ms 120000  // Max 2 minutes for all attempts
+  }
+}
+```
+
+See [Timeout Configuration](/ref/llm-client-strategies/timeouts) for detailed documentation.
+
 ## retry_policy
 
 Like any other client, you can specify a retry policy for the fallback client. See [retry_policy](retry-policy) for more information.

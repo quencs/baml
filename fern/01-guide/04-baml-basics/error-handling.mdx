@@ -131,6 +131,52 @@ Common status codes are:
 </ParamField>
 
 
+#### BamlTimeoutError
+
+Subclass of `BamlClientError`.
+
+Raised when a request exceeds a configured timeout. See [Configuring Timeouts](/guide/baml-basics/timeouts) for details on timeout configuration.
+
+<ParamField
+  path="timeout_type"
+  type="string"
+>
+  The specific timeout that was exceeded. Possible values:
+  - `"connect_timeout_ms"`
+  - `"time_to_first_token_timeout_ms"`
+  - `"idle_timeout_ms"`
+  - `"request_timeout_ms"`
+  - `"total_timeout_ms"`
+</ParamField>
+
+<ParamField
+  path="configured_value_ms"
+  type="int"
+>
+  The configured timeout value in milliseconds.
+</ParamField>
+
+<ParamField
+  path="elapsed_ms"
+  type="int"
+>
+  The actual elapsed time in milliseconds when the timeout occurred.
+</ParamField>
+
+<ParamField
+  path="client"
+  type="string"
+>
+  The name of the client that timed out.
+</ParamField>
+
+<ParamField
+  path="message"
+  type="string"
+>
+  A human-readable error message describing the timeout.
+</ParamField>
+
 #### BamlClientFinishReasonError
 
 Subclass of `BamlClientError`.
