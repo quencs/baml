@@ -5,6 +5,7 @@
 # We use rustup to install Rust
 # rust = "1.90.0"
 rust = "system"
+cargo = "system"
 go = "1.23.11"
 python = "3.13"     # Will use uv for Python package management
 ruby = "3.2.2"
@@ -32,5 +33,6 @@ java = "temurin-23"
 "npm:@infisical/cli" = "latest"
 
 [settings]
+#auto_install_disable_tools = ["rust"]
 experimental = true
 # idiomatic_version_file_enable_tools = ["node", "python", "ruby", "go"]
