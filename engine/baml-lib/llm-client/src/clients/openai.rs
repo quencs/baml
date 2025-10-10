@@ -5,7 +5,7 @@ use baml_derive::BamlHash;
 use baml_types::{ApiKeyWithProvenance, GetEnvVar, StringOr, UnresolvedValue};
 use indexmap::IndexMap;
 
-use super::helpers::{Error, PropertyHandler, UnresolvedUrl};
+use super::helpers::{Error, PropertyHandler, PrimitiveClientTimeouts, ResolvedPrimitiveClientTimeouts, UnresolvedUrl};
 use crate::{
     AllowedRoleMetadata, FinishReasonFilter, ResponseType, RolesSelection, SupportedRequestModes,
     UnresolvedAllowedRoleMetadata, UnresolvedFinishReasonFilter, UnresolvedResponseType,
@@ -27,6 +27,7 @@ pub struct UnresolvedOpenAI<Meta> {
     query_params: IndexMap<String, StringOr>,
     finish_reason_filter: UnresolvedFinishReasonFilter,
     client_response_type: Option<UnresolvedResponseType>,
+    timeouts: PrimitiveClientTimeouts<Meta>,
 }
 
 impl<Meta> UnresolvedOpenAI<Meta> {
@@ -54,6 +55,7 @@ impl<Meta> UnresolvedOpenAI<Meta> {
                 .collect(),
             finish_reason_filter: self.finish_reason_filter.clone(),
             client_response_type: self.client_response_type.clone(),
+            timeouts: self.timeouts.without_meta(),
         }
     }
 }
@@ -70,6 +72,7 @@ pub struct ResolvedOpenAI {
     pub proxy_url: Option<String>,
     pub finish_reason_filter: FinishReasonFilter,
     pub client_response_type: ResponseType,
+    pub timeouts: ResolvedPrimitiveClientTimeouts,
 }
 
 impl ResolvedOpenAI {
@@ -146,6 +149,7 @@ impl<Meta: Clone> UnresolvedOpenAI<Meta> {
         self.query_params
             .iter()
             .for_each(|(_, v)| env_vars.extend(v.required_env_vars()));
+        env_vars.extend(self.timeouts.required_env_vars());
 
         env_vars
     }
@@ -236,6 +240,7 @@ impl<Meta: Clone> UnresolvedOpenAI<Meta> {
                 .client_response_type
                 .as_ref()
                 .map_or(Ok(ResponseType::OpenAI), |v| v.resolve(ctx))?,
+            timeouts: self.timeouts.resolve(),
         })
     }
 
@@ -383,6 +388,8 @@ impl<Meta: Clone> UnresolvedOpenAI<Meta> {
         let finish_reason_filter = properties.ensure_finish_reason_filter();
         let query_params = properties.ensure_query_params().unwrap_or_default();
         let client_response_type = properties.ensure_client_response_type();
+        let timeouts = properties.ensure_primitive_client_timeouts();
+
         let (properties, errors) = properties.finalize();
 
         if !errors.is_empty() {
@@ -400,6 +407,7 @@ impl<Meta: Clone> UnresolvedOpenAI<Meta> {
             query_params,
             finish_reason_filter,
             client_response_type,
+            timeouts,
         })
     }
 }

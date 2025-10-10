@@ -8,6 +8,107 @@ use crate::{
     UnresolvedResponseType, UnresolvedRolesSelection,
 };
 
+/// Timeout configurations for primitive (leaf) clients
+#[derive(Debug, Clone, Hash)]
+pub struct PrimitiveClientTimeouts<Meta> {
+    pub connect_timeout_ms: Option<(i64, Meta)>,
+    pub time_to_first_token_timeout_ms: Option<(i64, Meta)>,
+    pub idle_timeout_ms: Option<(i64, Meta)>,
+    pub request_timeout_ms: Option<(i64, Meta)>,
+}
+
+impl<Meta> Default for PrimitiveClientTimeouts<Meta> {
+    fn default() -> Self {
+        Self {
+            connect_timeout_ms: None,
+            time_to_first_token_timeout_ms: None,
+            idle_timeout_ms: None,
+            request_timeout_ms: None,
+        }
+    }
+}
+
+impl<Meta> PrimitiveClientTimeouts<Meta> {
+    pub fn without_meta(&self) -> PrimitiveClientTimeouts<()> {
+        PrimitiveClientTimeouts {
+            connect_timeout_ms: self.connect_timeout_ms.as_ref().map(|(v, _)| (*v, ())),
+            time_to_first_token_timeout_ms: self.time_to_first_token_timeout_ms.as_ref().map(|(v, _)| (*v, ())),
+            idle_timeout_ms: self.idle_timeout_ms.as_ref().map(|(v, _)| (*v, ())),
+            request_timeout_ms: self.request_timeout_ms.as_ref().map(|(v, _)| (*v, ())),
+        }
+    }
+
+    pub fn required_env_vars(&self) -> HashSet<String> {
+        // Timeouts don't use env vars
+        HashSet::new()
+    }
+}
+
+/// Resolved timeout configurations for primitive clients
+#[derive(Debug, Clone)]
+pub struct ResolvedPrimitiveClientTimeouts {
+    pub connect_timeout_ms: Option<i64>,
+    pub time_to_first_token_timeout_ms: Option<i64>,
+    pub idle_timeout_ms: Option<i64>,
+    pub request_timeout_ms: Option<i64>,
+}
+
+impl<Meta> PrimitiveClientTimeouts<Meta> {
+    pub fn resolve(&self) -> ResolvedPrimitiveClientTimeouts {
+        ResolvedPrimitiveClientTimeouts {
+            connect_timeout_ms: self.connect_timeout_ms.as_ref().map(|(v, _)| *v),
+            time_to_first_token_timeout_ms: self.time_to_first_token_timeout_ms.as_ref().map(|(v, _)| *v),
+            idle_timeout_ms: self.idle_timeout_ms.as_ref().map(|(v, _)| *v),
+            request_timeout_ms: self.request_timeout_ms.as_ref().map(|(v, _)| *v),
+        }
+    }
+}
+
+/// Timeout configurations for composite clients (fallback, round-robin)
+#[derive(Debug, Clone, Hash)]
+pub struct CompositeClientTimeouts<Meta> {
+    pub primitive: PrimitiveClientTimeouts<Meta>,
+    pub total_timeout_ms: Option<(i64, Meta)>,
+}
+
+impl<Meta> Default for CompositeClientTimeouts<Meta> {
+    fn default() -> Self {
+        Self {
+            primitive: PrimitiveClientTimeouts::default(),
+            total_timeout_ms: None,
+        }
+    }
+}
+
+impl<Meta> CompositeClientTimeouts<Meta> {
+    pub fn without_meta(&self) -> CompositeClientTimeouts<()> {
+        CompositeClientTimeouts {
+            primitive: self.primitive.without_meta(),
+            total_timeout_ms: self.total_timeout_ms.as_ref().map(|(v, _)| (*v, ())),
+        }
+    }
+
+    pub fn required_env_vars(&self) -> HashSet<String> {
+        self.primitive.required_env_vars()
+    }
+}
+
+/// Resolved timeout configurations for composite clients
+#[derive(Debug, Clone)]
+pub struct ResolvedCompositeClientTimeouts {
+    pub primitive: ResolvedPrimitiveClientTimeouts,
+    pub total_timeout_ms: Option<i64>,
+}
+
+impl<Meta> CompositeClientTimeouts<Meta> {
+    pub fn resolve(&self) -> ResolvedCompositeClientTimeouts {
+        ResolvedCompositeClientTimeouts {
+            primitive: self.primitive.resolve(),
+            total_timeout_ms: self.total_timeout_ms.as_ref().map(|(v, _)| *v),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Hash)]
 pub struct UnresolvedUrl(StringOr);
 
@@ -451,6 +552,103 @@ impl<Meta: Clone> PropertyHandler<Meta> {
                 })
                 .collect()
         })
+    }
+
+    pub fn ensure_http_client(&mut self) -> Option<(Meta, IndexMap<String, (Meta, UnresolvedValue<Meta>)>, Meta)> {
+        self.ensure_map("http_client", false)
+    }
+
+    pub fn ensure_timeout_from_map(
+        &mut self,
+        http_client_map: &mut IndexMap<String, (Meta, UnresolvedValue<Meta>)>,
+        key: &str,
+    ) -> Option<(i64, Meta)> {
+        if let Some((key_span, value)) = http_client_map.shift_remove(key) {
+            match value.into_numeric() {
+                Ok((num_str, meta)) => {
+                    if let Ok(v) = num_str.parse::<i64>() {
+                        if v <= 0 {
+                            self.push_error(
+                                format!("{} must be a positive integer, got {}", key, v),
+                                key_span,
+                            );
+                            None
+                        } else {
+                            Some((v, key_span))
+                        }
+                    } else {
+                        self.push_error(
+                            format!("{} must be an integer. Got: {}", key, num_str),
+                            meta,
+                        );
+                        None
+                    }
+                }
+                Err(other) => {
+                    self.push_error(
+                        format!("{} must be an integer. Got: {}", key, other.r#type()),
+                        other.meta().clone(),
+                    );
+                    None
+                }
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn ensure_total_timeout(&mut self) -> Option<(i64, Meta)> {
+        if let Some((key_span, value, _)) = self.ensure_int("total_timeout_ms", false) {
+            if value <= 0 {
+                self.push_error(
+                    format!("total_timeout_ms must be a positive integer, got {}", value),
+                    key_span.clone(),
+                );
+                None
+            } else {
+                Some((value as i64, key_span))
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Extract primitive client timeouts from http_client block
+    pub fn ensure_primitive_client_timeouts(&mut self) -> PrimitiveClientTimeouts<Meta> {
+        if let Some((_, mut http_client_map, _)) = self.ensure_http_client() {
+            let connect_timeout_ms = self.ensure_timeout_from_map(&mut http_client_map, "connect_timeout_ms");
+            let time_to_first_token_timeout_ms = self.ensure_timeout_from_map(&mut http_client_map, "time_to_first_token_timeout_ms");
+            let idle_timeout_ms = self.ensure_timeout_from_map(&mut http_client_map, "idle_timeout_ms");
+            let request_timeout_ms = self.ensure_timeout_from_map(&mut http_client_map, "request_timeout_ms");
+
+            // Check for any unsupported fields in http_client
+            for (k, (key_span, _)) in http_client_map {
+                self.push_error(
+                    format!("Unsupported http_client property: {k}. Supported properties: connect_timeout_ms, time_to_first_token_timeout_ms, idle_timeout_ms, request_timeout_ms"),
+                    key_span,
+                );
+            }
+
+            PrimitiveClientTimeouts {
+                connect_timeout_ms,
+                time_to_first_token_timeout_ms,
+                idle_timeout_ms,
+                request_timeout_ms,
+            }
+        } else {
+            PrimitiveClientTimeouts::default()
+        }
+    }
+
+    /// Extract composite client timeouts (includes both http_client timeouts and total_timeout_ms)
+    pub fn ensure_composite_client_timeouts(&mut self) -> CompositeClientTimeouts<Meta> {
+        let primitive = self.ensure_primitive_client_timeouts();
+        let total_timeout_ms = self.ensure_total_timeout();
+
+        CompositeClientTimeouts {
+            primitive,
+            total_timeout_ms,
+        }
     }
 
     pub fn ensure_strategy(
