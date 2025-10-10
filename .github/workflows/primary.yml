@@ -37,11 +37,45 @@ env:
 jobs:
   # Run all quality checks in parallel (lightweight setup)
   lint:
+    name: ${{ matrix._.job_name }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        check:
-          [typescript-lint, rust-format, rust-lint, rust-lint-wasm, python-lint]
+        _:
+          - job_name: typescript-lint
+            step_name: Run TypeScript lint
+            run: |
+              pnpm format:ci
+
+          - job_name: rust-format
+            step_name: Run Rust format check
+            run: |
+              cd engine && \
+              (rustup component add rustfmt || true) && \
+              cargo fmt --check -- --config imports_granularity=Crate --config group_imports=StdExternalCrate
+
+          - job_name: rust-lint
+            step_name: Run Rust lint (Clippy)
+            run: |
+              cd engine && \
+              RUSTFLAGS="-A unused -D warnings" cargo clippy
+
+          - job_name: rust-lint-wasm
+            setup_rust: true
+            setup_go: true
+
+          - job_name: rust-lint-wasm
+            step_name: Run Rust lint WASM (Clippy)
+            run: |
+              cd engine/baml-schema-wasm && \
+              RUSTFLAGS="-A unused -D warnings" cargo clippy --target wasm32-unknown-unknown
+
+          - job_name: python-lint
+            step_name: Run Python lint
+            run: |
+              cd integ-tests/python && \
+              uv run ruff check .
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,48 +83,17 @@ jobs:
       - name: Setup Tools
         uses: ./.github/actions/setup-tools
 
-      # Setup Node.js for TypeScript lint
       - name: Setup Node.js
-        if: matrix.check == 'typescript-lint'
+        if: matrix._.job_name == 'typescript-lint'
         uses: ./.github/actions/setup-node
 
-      # Setup Rust for Rust checks
-      - name: Setup Rust
-        if: contains(matrix.check, 'rust')
-        uses: ./.github/actions/setup-rust
-        with:
-          enable-wasm: ${{ matrix.check == 'rust-lint-wasm' && 'true' || 'false' }}
-
       - name: Setup Python
-        if: matrix.check == 'python-lint'
+        if: matrix._.job_name == 'python-lint'
         uses: ./.github/actions/setup-python
 
-      - name: Run TypeScript lint
-        if: matrix.check == 'typescript-lint'
-        run: pnpm format:ci
+      - name: ${{ matrix._.step_name }}
+        run: ${{ matrix._.run }}
 
-      - name: Run Rust format check
-        if: matrix.check == 'rust-format'
-        run: |
-          # Ensure rustfmt is installed for the mise-managed toolchain
-          rustup component add rustfmt || true
-          cargo fmt --check -- --config imports_granularity=Crate --config group_imports=StdExternalCrate
-        working-directory: engine
-
-      - name: Run Rust lint (Clippy)
-        if: matrix.check == 'rust-lint'
-        run: RUSTFLAGS="-A unused -D warnings" cargo clippy
-        working-directory: engine
-
-      - name: Run Rust lint WASM (Clippy)
-        if: matrix.check == 'rust-lint-wasm'
-        run: RUSTFLAGS="-A unused -D warnings" cargo clippy --target wasm32-unknown-unknown
-        working-directory: engine/baml-schema-wasm
-
-      - name: Run Python lint
-        if: matrix.check == 'python-lint'
-        run: |
-          cd integ-tests/python && uv run ruff check .
 
   typecheck:
     runs-on: ubuntu-latest
