@@ -2,18 +2,10 @@ name: "Setup Rust"
 description: "Setup Rust toolchain with caching and optional WASM support"
 
 inputs:
-  toolchain:
-    description: "Rust toolchain version"
-    required: false
-    default: "1.89.0"
   enable-wasm:
     description: "Enable WASM support (adds wasm32-unknown-unknown target and wasm-pack)"
     required: false
     default: "false"
-  wasm-pack-version:
-    description: "wasm-pack version to install (only used when enable-wasm is true)"
-    required: false
-    default: "0.13.1"
   enable-cross:
     description: "Enable cross-rs for cross-compilation"
     required: false
@@ -22,10 +14,6 @@ inputs:
     description: "Additional Rust targets to install (space-separated)"
     required: false
     default: ""
-  workspace:
-    description: "Workspace path for Rust cache"
-    required: false
-    default: "engine"
   prefix-key:
     description: "Cache key prefix for Rust cache"
     required: false
@@ -58,7 +46,7 @@ runs:
       # if: steps.check-rust.outputs.rust-installed != 'true'
       uses: dtolnay/rust-toolchain@master
       with:
-        toolchain: ${{ inputs.toolchain }}
+        toolchain: "1.89.0"
         targets: ${{ inputs.targets }}
         components: rustfmt
 
@@ -76,7 +64,7 @@ runs:
       if: inputs.enable-cache == 'true'
       uses: Swatinem/rust-cache@v2
       with:
-        workspaces: ${{ inputs.workspace }}
+        workspaces: engine
         prefix-key: ${{ inputs.prefix-key }}
         cache-on-failure: ${{ inputs.cache-on-failure }}
 
@@ -87,7 +75,7 @@ runs:
 
     - name: Install wasm-pack
       if: inputs.enable-wasm == 'true'
-      run: cargo install wasm-pack --version ${{ inputs.wasm-pack-version }}
+      run: cargo install wasm-pack --version 0.13.1
       shell: bash
 
     - name: Install cross-rs

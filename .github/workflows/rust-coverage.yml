@@ -33,8 +33,6 @@ jobs:
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
-        with:
-          cache: "false"
 
       - name: Setup Ruby
         uses: ./.github/actions/setup-ruby

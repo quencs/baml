@@ -1,12 +1,5 @@
 name: "Setup Development Tools"
 description: "Setup common development tools"
-
-inputs:
-  install-mise:
-    description: "Install mise version manager"
-    required: false
-    default: "false"
-
 runs:
   using: "composite"
   steps:

@@ -87,8 +87,6 @@ jobs:
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
-        with:
-          cache: 'false'
 
       - name: Platform-specific setup
         run: ${{ matrix._.setup }}

@@ -69,8 +69,6 @@ jobs:
       - name: Setup Python
         if: matrix.check == 'python-lint'
         uses: ./.github/actions/setup-python
-        with:
-          cache: "false"
 
       - name: Run TypeScript lint
         if: matrix.check == 'typescript-lint'
@@ -168,7 +166,6 @@ jobs:
         uses: ./.github/actions/setup-go
         with:
           install-goimports: true
-          install-protoc-gen-go: false
 
       - name: Test Generators (1 of 3)
         run: |
@@ -219,8 +216,6 @@ jobs:
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
-        with:
-          cache: "false"
 
       - name: Setup Ruby
         if: matrix.test-suite == 'rust-unit'
