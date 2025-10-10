@@ -13,6 +13,15 @@ node = "lts"        # For pnpm
 java = "temurin-23"
 
 # Rust tools
+#
+# It's super important to have cargo-binstall! Even with `rust = "system"` and
+# auto_install_disable_tools = ["rust"], mise will attempt to install clippy,
+# and then fail because parallel rustup invocations for `cargo install` will
+# race against each other. You'll know you're running into this if you see this:
+#
+#   error: component download failed for clippy-aarch64-unknown-linux-gnu: could not rename downloaded file from '/home/runner/.rustup/downloads/46512c61e217e613dc4d329fda8c6dde0d0ea94c4ae59c1ca2af9cf480458ff0.partial' to '/home/runner/.rustup/downloads/46512c61e217e613dc4d329fda8c6dde0d0ea94c4ae59c1ca2af9cf480458ff0': No such file or directory (os error 2)
+#   error: component download failed for clippy-aarch64-unknown-linux-gnu: could not rename downloaded file from '/home/runner/.rustup/downloads/46512c61e217e613dc4d329fda8c6dde0d0ea94c4ae59c1ca2af9cf480458ff0.partial' to '/home/runner/.rustup/downloads/46512c61e217e613dc4d329fda8c6dde0d0ea94c4ae59c1ca2af9cf480458ff0': No such file or directory (os error 2)
+#   mise ERROR cargo failed
 cargo-binstall = "latest"
 "cargo:bacon" = "latest"
 "cargo:cross" = "latest"
@@ -35,5 +44,6 @@ cargo-binstall = "latest"
 
 [settings]
 auto_install_disable_tools = ["rust"]
-experimental = false
+# As of 2025-10-10: go backend is experimental. Enable it with `mise settings experimental=true`
+experimental = true
 # idiomatic_version_file_enable_tools = ["node", "python", "ruby", "go"]
