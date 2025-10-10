@@ -1,18 +1,11 @@
 name: "Setup Rust"
 description: "Setup Rust toolchain with caching and optional WASM support"
 
-inputs:
-  cache-on-failure:
-    description: "Cache even if the workflow fails"
-    required: false
-    default: "false"
-
 runs:
   using: "composite"
   steps:
     - name: Setup Rust cache
-      if: inputs.enable-cache == 'true'
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: engine
-        cache-on-failure: ${{ inputs.cache-on-failure }}
+        cache-on-failure: true

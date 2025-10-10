@@ -6,9 +6,6 @@ inputs:
     description: 'Whether to install dependencies with pnpm'
     required: false
     default: 'true'
-  npm-token:
-    description: 'NPM authentication token'
-    required: false
 
 runs:
   using: 'composite'
@@ -26,8 +23,6 @@ runs:
         cache: pnpm
         cache-dependency-path: pnpm-lock.yaml
         registry-url: "https://registry.npmjs.org"
-      env:
-        NODE_AUTH_TOKEN: ${{ inputs.npm-token }}
 
     - name: Install Node dependencies
       if: inputs.install-dependencies == 'true'
