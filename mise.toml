@@ -34,5 +34,5 @@ java = "temurin-23"
 
 [settings]
 auto_install_disable_tools = ["rust"]
-experimental = true
+experimental = false
 # idiomatic_version_file_enable_tools = ["node", "python", "ruby", "go"]
