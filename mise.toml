@@ -13,6 +13,7 @@ node = "lts"        # For pnpm
 java = "temurin-23"
 
 # Rust tools
+cargo-binstall = "latest"
 "cargo:bacon" = "latest"
 "cargo:cross" = "latest"
 "cargo:cargo-watch" = "latest"
