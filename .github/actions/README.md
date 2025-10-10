@@ -4,42 +4,6 @@ This directory contains modular setup actions for the BAML project. Each action 
 
 ## Available Actions
 
-### setup-all
-Sets up the complete development environment using all modular actions.
-
-```yaml
-- name: Setup All
-  uses: ./.github/actions/setup-all
-  with:
-    # Node.js configuration
-    setup-node: 'true'                    # Optional, default: 'true'
-    node-version: '20'                    # Optional, default: '20'
-    pnpm-version: '9.12.0'               # Optional, default: '9.12.0'
-    install-node-dependencies: 'true'    # Optional, default: 'true'
-    enable-turbo-cache: 'true'           # Optional, default: 'true'
-
-    # Rust configuration
-    setup-rust: 'true'                    # Optional, default: 'true'
-    rust-toolchain: 'stable'             # Optional, default: 'stable'
-    rust-enable-wasm: 'true'             # Optional, default: 'true'
-    rust-targets: ''                      # Optional, space-separated targets
-    rust-workspace: 'engine'             # Optional, default: 'engine'
-
-    # Python configuration
-    setup-python: 'false'                # Optional, default: 'false'
-    python-version: '3.13'               # Optional, default: '3.13'
-    python-use-uv: 'false'               # Optional, default: 'false'
-
-    # Go configuration
-    setup-go: 'true'                      # Optional, default: 'true'
-    go-version: '1.24'                    # Optional, default: '1.24'
-    go-install-protoc-gen-go: 'true'     # Optional, default: 'true'
-
-    # Tools configuration
-    setup-tools: 'true'                   # Optional, default: 'true'
-    tools-install-mise: 'true'           # Optional, default: 'true'
-```
-
 ### setup-node
 Sets up Node.js with pnpm package manager.
 
@@ -100,36 +64,6 @@ Sets up common development tools.
   uses: ./.github/actions/setup-tools
   with:
     install-mise: 'false'           # Optional, default: 'false'
-```
-
-## Usage Patterns
-
-### Complete Environment Setup
-For jobs that need everything (like full integration tests):
-```yaml
-- name: Setup All
-  uses: ./.github/actions/setup-all
-  with:
-    setup-python: 'true'
-    python-use-uv: 'true'
-```
-
-### Full Environment (Minimal Python)
-For jobs that need most tools but minimal Python setup:
-```yaml
-- name: Setup All
-  uses: ./.github/actions/setup-all
-  with:
-    setup-python: 'true'
-    python-use-uv: 'false'
-```
-
-### No Python Environment
-For jobs that don't need Python at all:
-```yaml
-- name: Setup All
-  uses: ./.github/actions/setup-all
-  # Python is disabled by default
 ```
 
 ### TypeScript Lint Job
