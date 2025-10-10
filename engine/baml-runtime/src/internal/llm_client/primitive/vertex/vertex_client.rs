@@ -27,6 +27,7 @@ use crate::{
             stream_request::make_stream_request,
             vertex::types::VertexResponse,
         },
+        timeout::TimeoutConfig,
         traits::{
             CompletionToProviderBody, HttpContext, SseResponseTrait, StreamResponse,
             ToProviderMessage, ToProviderMessageExt, WithChat, WithClient, WithClientProperties,
@@ -105,6 +106,12 @@ impl WithClientProperties for VertexClient {
     }
     fn allowed_roles(&self) -> Vec<String> {
         self.properties.allowed_roles()
+    }
+}
+
+impl VertexClient {
+    pub fn timeout_config(&self) -> TimeoutConfig {
+        TimeoutConfig::from_primitive_timeouts(&self.properties.timeouts)
     }
 }
 

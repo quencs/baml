@@ -18,6 +18,7 @@ use crate::{
     client_registry::ClientProperty,
     internal::llm_client::{
         primitive::request::{make_parsed_request, RequestBuilder, ResponseType},
+        timeout::TimeoutConfig,
         traits::{
             CompletionToProviderBody, HttpContext, SseResponseTrait, StreamResponse,
             ToProviderMessage, ToProviderMessageExt, WithChat, WithClient, WithClientProperties,
@@ -67,6 +68,12 @@ impl WithClientProperties for OpenAIClient {
 
     fn supports_streaming(&self) -> bool {
         self.properties.supports_streaming()
+    }
+}
+
+impl OpenAIClient {
+    pub fn timeout_config(&self) -> TimeoutConfig {
+        TimeoutConfig::from_primitive_timeouts(&self.properties.timeouts)
     }
 }
 

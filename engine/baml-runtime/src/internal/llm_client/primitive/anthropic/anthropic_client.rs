@@ -24,6 +24,7 @@ use crate::{
             anthropic::types::AnthropicMessageResponse,
             request::{make_parsed_request, RequestBuilder, ResponseType},
         },
+        timeout::TimeoutConfig,
         traits::{
             CompletionToProviderBody, HttpContext, SseResponseTrait, StreamResponse,
             ToProviderMessage, ToProviderMessageExt, WithChat, WithClient, WithClientProperties,
@@ -91,6 +92,12 @@ impl WithClientProperties for AnthropicClient {
     }
     fn allowed_roles(&self) -> Vec<String> {
         self.properties.allowed_roles()
+    }
+}
+
+impl AnthropicClient {
+    pub fn timeout_config(&self) -> TimeoutConfig {
+        TimeoutConfig::from_primitive_timeouts(&self.properties.timeouts)
     }
 }
 

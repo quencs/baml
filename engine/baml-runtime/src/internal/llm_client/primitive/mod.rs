@@ -16,6 +16,7 @@ use super::{
         ExecutionScope, IterOrchestrator, OrchestrationScope, OrchestrationState, OrchestratorNode,
         OrchestratorNodeIterator,
     },
+    timeout::TimeoutConfig,
     traits::{
         CompletionToProviderBody, HttpContext, ToProviderMessage, WithClient, WithClientProperties,
         WithPrompt, WithRenderRawCurl, WithRetryPolicy, WithSingleCallable, WithStreamable,
@@ -101,6 +102,12 @@ impl WithClientProperties for LLMPrimitiveProvider {
     }
     fn allowed_roles(&self) -> Vec<String> {
         match_llm_provider!(self, allowed_roles)
+    }
+}
+
+impl LLMPrimitiveProvider {
+    pub fn timeout_config(&self) -> TimeoutConfig {
+        match_llm_provider!(self, timeout_config)
     }
 }
 

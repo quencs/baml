@@ -7,6 +7,7 @@ pub mod primitive;
 
 pub mod retry_policy;
 mod strategy;
+pub mod timeout;
 pub mod traits;
 
 use std::error::Error;

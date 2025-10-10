@@ -8,7 +8,7 @@ use secrecy::SecretString;
 use serde::Serialize;
 use serde_json::Value;
 
-use super::helpers::{Error, PropertyHandler};
+use super::helpers::{Error, PrimitiveClientTimeouts, PropertyHandler, ResolvedPrimitiveClientTimeouts};
 use crate::{
     AllowedRoleMetadata, FinishReasonFilter, RolesSelection, SupportedRequestModes,
     UnresolvedAllowedRoleMetadata, UnresolvedFinishReasonFilter, UnresolvedRolesSelection,
@@ -29,6 +29,7 @@ pub struct UnresolvedAwsBedrock<Meta> {
     finish_reason_filter: UnresolvedFinishReasonFilter,
     #[baml_safe_hash]
     additional_model_request_fields: IndexMap<String, (Meta, UnresolvedValue<Meta>)>,
+    timeouts: PrimitiveClientTimeouts<Meta>,
 }
 
 #[derive(Debug, Clone, BamlHash)]
@@ -84,6 +85,7 @@ pub struct ResolvedAwsBedrock {
     pub supported_request_modes: SupportedRequestModes,
     pub finish_reason_filter: FinishReasonFilter,
     pub additional_model_request_fields: IndexMap<String, Value>,
+    pub timeouts: ResolvedPrimitiveClientTimeouts,
 }
 
 impl std::fmt::Debug for ResolvedAwsBedrock {
@@ -172,6 +174,7 @@ impl<Meta: Clone> UnresolvedAwsBedrock<Meta> {
                 .iter()
                 .map(|(k, (_, v))| (k.clone(), ((), v.without_meta())))
                 .collect::<IndexMap<_, _>>(),
+            timeouts: self.timeouts.without_meta(),
         }
     }
 }
@@ -221,6 +224,7 @@ impl<Meta: Clone> UnresolvedAwsBedrock<Meta> {
         if let Some(c) = self.inference_config.as_ref() {
             env_vars.extend(c.required_env_vars())
         }
+        env_vars.extend(self.timeouts.required_env_vars());
         env_vars
     }
 
@@ -387,6 +391,7 @@ impl<Meta: Clone> UnresolvedAwsBedrock<Meta> {
                 .transpose()?,
             finish_reason_filter: self.finish_reason_filter.resolve(ctx)?,
             additional_model_request_fields,
+            timeouts: self.timeouts.resolve(),
         })
     }
 
@@ -497,6 +502,7 @@ impl<Meta: Clone> UnresolvedAwsBedrock<Meta> {
             Some(inference_config)
         };
         let finish_reason_filter = properties.ensure_finish_reason_filter();
+        let timeouts = properties.ensure_primitive_client_timeouts();
 
         // TODO: Handle inference_configuration
         let errors = properties.finalize_empty();
@@ -517,6 +523,7 @@ impl<Meta: Clone> UnresolvedAwsBedrock<Meta> {
             inference_config,
             finish_reason_filter,
             additional_model_request_fields,
+            timeouts,
         })
     }
 }

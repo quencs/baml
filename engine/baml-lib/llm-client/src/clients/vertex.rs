@@ -6,7 +6,7 @@ use baml_types::{GetEnvVar, StringOr, UnresolvedValue};
 use either::Either;
 use indexmap::IndexMap;
 
-use super::helpers::{Error, PropertyHandler, UnresolvedUrl};
+use super::helpers::{Error, PrimitiveClientTimeouts, PropertyHandler, ResolvedPrimitiveClientTimeouts, UnresolvedUrl};
 use crate::{
     AllowedRoleMetadata, FinishReasonFilter, RolesSelection, SupportedRequestModes,
     UnresolvedAllowedRoleMetadata, UnresolvedFinishReasonFilter, UnresolvedRolesSelection,
@@ -155,6 +155,7 @@ pub struct UnresolvedVertex<Meta> {
     #[baml_safe_hash]
     properties: IndexMap<String, (Meta, UnresolvedValue<Meta>)>,
     anthropic_version: Option<StringOr>,
+    timeouts: PrimitiveClientTimeouts<Meta>,
 }
 
 pub enum BaseUrlOrLocation {
@@ -177,6 +178,7 @@ pub struct ResolvedVertex {
     pub proxy_url: Option<String>,
     pub finish_reason_filter: FinishReasonFilter,
     pub anthropic_version: Option<String>,
+    pub timeouts: ResolvedPrimitiveClientTimeouts,
 }
 
 impl ResolvedVertex {
@@ -235,6 +237,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
                 .values()
                 .flat_map(|(_, v)| v.required_env_vars()),
         );
+        env_vars.extend(self.timeouts.required_env_vars());
 
         env_vars
     }
@@ -257,6 +260,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
                 .collect(),
             finish_reason_filter: self.finish_reason_filter.clone(),
             anthropic_version: self.anthropic_version.clone(),
+            timeouts: self.timeouts.without_meta(),
         }
     }
 
@@ -317,6 +321,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
                 Some(ref anthropic_version) => Some(anthropic_version.resolve(ctx)?),
                 None => None,
             },
+            timeouts: self.timeouts.resolve(),
         })
     }
 
@@ -402,6 +407,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
             .ensure_string("anthropic_version", false)
             .map(|(_, v, _)| v);
 
+        let timeouts = properties.ensure_primitive_client_timeouts();
         let (properties, errors) = properties.finalize();
         if !errors.is_empty() {
             return Err(errors);
@@ -424,6 +430,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
             properties,
             finish_reason_filter,
             anthropic_version,
+            timeouts,
         })
     }
 }

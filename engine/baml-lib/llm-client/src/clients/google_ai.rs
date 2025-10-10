@@ -5,7 +5,7 @@ use baml_derive::BamlHash;
 use baml_types::{ApiKeyWithProvenance, EvaluationContext, StringOr, UnresolvedValue};
 use indexmap::IndexMap;
 
-use super::helpers::{Error, PropertyHandler, UnresolvedUrl};
+use super::helpers::{Error, PrimitiveClientTimeouts, PropertyHandler, ResolvedPrimitiveClientTimeouts, UnresolvedUrl};
 use crate::{
     AllowedRoleMetadata, FinishReasonFilter, RolesSelection, SupportedRequestModes,
     UnresolvedAllowedRoleMetadata, UnresolvedFinishReasonFilter, UnresolvedRolesSelection,
@@ -24,6 +24,7 @@ pub struct UnresolvedGoogleAI<Meta> {
     finish_reason_filter: UnresolvedFinishReasonFilter,
     #[baml_safe_hash]
     properties: IndexMap<String, (Meta, UnresolvedValue<Meta>)>,
+    timeouts: PrimitiveClientTimeouts<Meta>,
 }
 
 impl<Meta> UnresolvedGoogleAI<Meta> {
@@ -46,6 +47,7 @@ impl<Meta> UnresolvedGoogleAI<Meta> {
                 .map(|(k, (_, v))| (k.clone(), ((), v.without_meta())))
                 .collect::<IndexMap<_, _>>(),
             finish_reason_filter: self.finish_reason_filter.clone(),
+            timeouts: self.timeouts.without_meta(),
         }
     }
 }
@@ -61,6 +63,7 @@ pub struct ResolvedGoogleAI {
     pub properties: IndexMap<String, serde_json::Value>,
     pub proxy_url: Option<String>,
     pub finish_reason_filter: FinishReasonFilter,
+    pub timeouts: ResolvedPrimitiveClientTimeouts,
 }
 
 impl ResolvedGoogleAI {
@@ -119,6 +122,7 @@ impl<Meta: Clone> UnresolvedGoogleAI<Meta> {
                 .values()
                 .flat_map(|(_, v)| v.required_env_vars()),
         );
+        env_vars.extend(self.timeouts.required_env_vars());
         env_vars
     }
 
@@ -156,6 +160,7 @@ impl<Meta: Clone> UnresolvedGoogleAI<Meta> {
                 .collect::<Result<IndexMap<_, _>>>()?,
             proxy_url: super::helpers::get_proxy_url(ctx),
             finish_reason_filter: self.finish_reason_filter.resolve(ctx)?,
+            timeouts: self.timeouts.resolve(),
         })
     }
 
@@ -177,6 +182,7 @@ impl<Meta: Clone> UnresolvedGoogleAI<Meta> {
         let supported_request_modes = properties.ensure_supported_request_modes();
         let headers = properties.ensure_headers().unwrap_or_default();
         let finish_reason_filter = properties.ensure_finish_reason_filter();
+        let timeouts = properties.ensure_primitive_client_timeouts();
         let (properties, errors) = properties.finalize();
 
         if !errors.is_empty() {
@@ -193,6 +199,7 @@ impl<Meta: Clone> UnresolvedGoogleAI<Meta> {
             supported_request_modes,
             properties,
             finish_reason_filter,
+            timeouts,
         })
     }
 }

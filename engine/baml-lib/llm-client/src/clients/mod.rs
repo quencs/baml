@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
 use baml_types::{EvaluationContext, StringOr};
-pub use helpers::PropertyHandler;
+pub use helpers::{
+    CompositeClientTimeouts, PrimitiveClientTimeouts, PropertyHandler,
+    ResolvedCompositeClientTimeouts, ResolvedPrimitiveClientTimeouts,
+};
 
 use crate::ClientSpec;
 

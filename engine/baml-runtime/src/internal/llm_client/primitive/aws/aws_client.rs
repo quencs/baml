@@ -53,6 +53,7 @@ use crate::{
     client_registry::ClientProperty,
     internal::llm_client::{
         primitive::request::RequestBuilder,
+        timeout::TimeoutConfig,
         traits::{
             HttpContext, StreamResponse, ToProviderMessageExt, WithChat, WithClient,
             WithClientProperties, WithNoCompletion, WithRenderRawCurl, WithRetryPolicy,
@@ -502,6 +503,10 @@ impl AwsClient {
         static DEFAULT_REQUEST_OPTIONS: std::sync::OnceLock<BamlMap<String, serde_json::Value>> =
             std::sync::OnceLock::new();
         DEFAULT_REQUEST_OPTIONS.get_or_init(Default::default)
+    }
+
+    pub fn timeout_config(&self) -> TimeoutConfig {
+        TimeoutConfig::from_primitive_timeouts(&self.properties.timeouts)
     }
 
     // TODO: this should be memoized on client construction, but because config loading is async,

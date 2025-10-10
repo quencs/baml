@@ -6,7 +6,7 @@ use baml_types::{ApiKeyWithProvenance, EvaluationContext, StringOr, UnresolvedVa
 use indexmap::IndexMap;
 use secrecy::SecretString;
 
-use super::helpers::{Error, PropertyHandler, UnresolvedUrl};
+use super::helpers::{Error, PrimitiveClientTimeouts, PropertyHandler, ResolvedPrimitiveClientTimeouts, UnresolvedUrl};
 use crate::{
     AllowedRoleMetadata, FinishReasonFilter, RolesSelection, SupportedRequestModes,
     UnresolvedAllowedRoleMetadata, UnresolvedFinishReasonFilter, UnresolvedRolesSelection,
@@ -27,6 +27,7 @@ pub struct UnresolvedAnthropic<Meta> {
     #[baml_safe_hash]
     properties: IndexMap<String, (Meta, UnresolvedValue<Meta>)>,
     finish_reason_filter: UnresolvedFinishReasonFilter,
+    timeouts: PrimitiveClientTimeouts<Meta>,
 }
 
 impl<Meta> UnresolvedAnthropic<Meta> {
@@ -48,6 +49,7 @@ impl<Meta> UnresolvedAnthropic<Meta> {
                 .map(|(k, (_, v))| (k.clone(), ((), v.without_meta())))
                 .collect(),
             finish_reason_filter: self.finish_reason_filter.clone(),
+            timeouts: self.timeouts.without_meta(),
         }
     }
 }
@@ -62,6 +64,7 @@ pub struct ResolvedAnthropic {
     pub properties: IndexMap<String, serde_json::Value>,
     pub proxy_url: Option<String>,
     pub finish_reason_filter: FinishReasonFilter,
+    pub timeouts: ResolvedPrimitiveClientTimeouts,
 }
 
 impl ResolvedAnthropic {
@@ -109,6 +112,12 @@ impl ResolvedAnthropic {
             role_selection,
             allowed_metadata: AllowedRoleMetadata::All,
             supported_request_modes: SupportedRequestModes { stream: Some(true) },
+            timeouts: ResolvedPrimitiveClientTimeouts {
+                connect_timeout_ms: None,
+                time_to_first_token_timeout_ms: None,
+                idle_timeout_ms: None,
+                request_timeout_ms: None,
+            },
         }
     }
 }
@@ -127,6 +136,7 @@ impl<Meta: Clone> UnresolvedAnthropic<Meta> {
                 .values()
                 .flat_map(|(_, v)| v.required_env_vars()),
         );
+        env_vars.extend(self.timeouts.required_env_vars());
 
         env_vars
     }
@@ -169,6 +179,7 @@ impl<Meta: Clone> UnresolvedAnthropic<Meta> {
             properties,
             proxy_url: super::helpers::get_proxy_url(ctx),
             finish_reason_filter: self.finish_reason_filter.resolve(ctx)?,
+            timeouts: self.timeouts.resolve(),
         })
     }
 
@@ -185,6 +196,7 @@ impl<Meta: Clone> UnresolvedAnthropic<Meta> {
         let supported_request_modes = properties.ensure_supported_request_modes();
         let headers = properties.ensure_headers().unwrap_or_default();
         let finish_reason_filter = properties.ensure_finish_reason_filter();
+        let timeouts = properties.ensure_primitive_client_timeouts();
         let (properties, errors) = properties.finalize();
         if !errors.is_empty() {
             return Err(errors);
@@ -199,6 +211,7 @@ impl<Meta: Clone> UnresolvedAnthropic<Meta> {
             headers,
             properties,
             finish_reason_filter,
+            timeouts,
         })
     }
 }
