@@ -49,5 +49,5 @@ generator lang_go {
   output_dir "../go"
   version "0.211.0"
   client_package_name "example.com/integ-tests"
-  on_generate "MISE_AUTO_INSTALL_DISABLE_TOOLS=ruby mise x -- gofmt -w . && mise x -- goimports -w . && mise x -- go mod tidy"
+  on_generate "MISE_AUTO_INSTALL=false mise x -- gofmt -w . && mise x -- goimports -w . && mise x -- go mod tidy"
 }
