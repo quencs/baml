@@ -28,15 +28,9 @@ jobs:
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
 
-      - name: Setup Go
-        uses: ./.github/actions/setup-go
-
       - name: Setup Python
         uses: ./.github/actions/setup-python
 
-      - name: Setup Ruby
-        uses: ./.github/actions/setup-ruby
-      
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 

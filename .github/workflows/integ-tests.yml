@@ -76,14 +76,14 @@ jobs:
             ~/.ollama/models
           key: ollama-${{ matrix._.runs-on }}
 
+      - name: Setup Tools
+        uses: ./.github/actions/setup-tools
+
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
-
-      - name: Setup Go
-        uses: ./.github/actions/setup-go
 
       - name: Setup Python
         uses: ./.github/actions/setup-python

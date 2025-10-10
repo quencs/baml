@@ -93,6 +93,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Tools
+        uses: ./.github/actions/setup-tools
+
       # Check GLIBC version for Linux targets (skip musl targets)
       - name: Check GLIBC version
         if: contains(matrix._.target, 'linux') && !contains(matrix._.target, 'musl')
@@ -109,9 +112,6 @@ jobs:
           targets: ${{ matrix._.target }}
           prefix-key: v5-rust-${{ matrix._.target }}
           cache-on-failure: true
-
-      - name: Setup Go
-        uses: ./.github/actions/setup-go
 
       # per-matrix-entry dependency setup
       - name: Build tools setup

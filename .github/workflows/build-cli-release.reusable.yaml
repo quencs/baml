@@ -79,10 +79,6 @@ jobs:
           targets: ${{ matrix._.target }}
           enable-cache: false
 
-      - name: Setup Go
-        uses: ./.github/actions/setup-go
-
-
       - uses: jdx/mise-action@v2
         with:
           install_args: "protoc-gen-go"

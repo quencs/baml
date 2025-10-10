@@ -62,9 +62,6 @@ jobs:
         with:
           enable-wasm: true
 
-      - name: Setup Go
-        uses: ./.github/actions/setup-go
-
       - name: Determine CLI Artifact Name
         id: cli_artifact
         run: |

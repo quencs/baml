@@ -48,10 +48,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: ./.github/actions/setup-java
+      - name: Setup Tools
+        uses: ./.github/actions/setup-tools
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Setup build tooling
+        uses: gradle/actions/setup-gradle@v4
 
       # Set environment variables
       - name: Export Properties
