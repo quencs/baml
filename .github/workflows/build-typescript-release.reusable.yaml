@@ -112,7 +112,6 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           targets: ${{ matrix._.target }}
-          prefix-key: v5-rust-${{ matrix._.target }}
           cache-on-failure: true
 
       # per-matrix-entry dependency setup

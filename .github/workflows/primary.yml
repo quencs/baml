@@ -243,6 +243,7 @@ jobs:
       - name: Build CLI
         run: cargo build --release --bin baml-cli --target ${{ matrix.target }}
         working-directory: engine
+
       - name: Upload CLI artifact
         uses: actions/upload-artifact@v4
         with:
