@@ -1,3 +1,21 @@
+# Tests to repro this issue: https://github.com/BoundaryML/baml/issues/2594
+#
+# The code here is not able to reproduce the issue, it suggests that concurrency
+# actually works as expected. The idea is:
+#
+# 1. Start the Node server in concurrent_server.js that receives a --latency
+#    flag and responds to any incoming request in that amount of time.
+#
+# 2. Send 20 requests concurrently from the Python client. If there was a
+#    problem with the client, the total duration to get all the responses should
+#    be much longer than the latency of a single response.
+#
+# That should prove that concurrency either works or does not.
+#
+# According to the Github issue, the first 6 requests run sequentially, so the
+# total duration of the asyncio.gather() call should be at least 6 times the
+# latency of a single response. But so far no luck in reproducing the bug.
+
 import asyncio
 import contextlib
 import os
