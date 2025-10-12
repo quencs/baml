@@ -98,7 +98,7 @@ async def terminate_process(proc: asyncio.subprocess.Process):
                 pass
 
 
-async def pump_stdout(proc: asyncio.subprocess.Process, buf: list[str]):
+async def read_stdout(proc: asyncio.subprocess.Process, buf: list[str]):
     if not proc.stdout:
         return
     try:
@@ -139,7 +139,7 @@ async def start_concurrency_test_server(latency: int):
     )
 
     log_buf: list[str] = []
-    pump_task = asyncio.create_task(pump_stdout(proc, log_buf))
+    proc_stdout_task = asyncio.create_task(read_stdout(proc, log_buf))
 
     base_url = f"http://{host}:{port}"
 
@@ -150,7 +150,7 @@ async def start_concurrency_test_server(latency: int):
         await terminate_process(proc)
 
         try:
-            await asyncio.wait_for(pump_task, timeout=0.3)
+            await asyncio.wait_for(proc_stdout_task, timeout=0.3)
         except Exception:
             pass
 
@@ -167,7 +167,7 @@ async def start_concurrency_test_server(latency: int):
         await terminate_process(proc)
 
         try:
-            await asyncio.wait_for(pump_task, timeout=0.3)
+            await asyncio.wait_for(proc_stdout_task, timeout=0.3)
         except Exception:
             pass
 
@@ -175,7 +175,7 @@ async def start_concurrency_test_server(latency: int):
         print(f"--- Concurrency Test Server Output ---\n{logs}")
 
         try:
-            await asyncio.wait_for(pump_task, timeout=0.5)
+            await asyncio.wait_for(proc_stdout_task, timeout=0.5)
         except Exception:
             pass
 
