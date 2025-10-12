@@ -44,7 +44,7 @@ async function handleRequest(req, res) {
         return json(res, 200, { ok: true });
     }
 
-    // Chat Completions
+    // OpenAI generic.
     if (req.method === "POST" && url.pathname === "/v1/chat/completions") {
         let body = "";
 
@@ -74,11 +74,51 @@ async function handleRequest(req, res) {
                 choices: [
                     {
                         index: 0,
-                        message: { role: "assistant", content: "AGI" },
+                        message: { role: "assistant", content: "OpenAI" },
                         finish_reason: "stop",
                     },
                 ],
                 usage: { prompt_tokens: 0, completion_tokens: 1, total_tokens: 1 },
+            });
+        });
+
+        return;
+    }
+
+    // Anthropic.
+    if (req.method === "POST" && url.pathname === "/v1/messages") {
+        let body = "";
+
+        req.on("data", chunk => body += chunk);
+
+        req.on("end", async () => {
+            // We don't actually need the request payload for this test.
+            // But parse if present to avoid client errors.
+            try {
+                if (body && body.length) {
+                    JSON.parse(body);
+                }
+            } catch {
+                return json(res, 400, { error: { message: "Invalid JSON" } });
+            }
+
+            // Simulate latency for concurrency testing
+            await sleep(LATENCY);
+
+            const now = Math.floor(Date.now() / 1000);
+
+            return json(res, 200, {
+                id: `msg_${Math.random().toString(36).slice(2, 10)}`,
+                type: "message",
+                role: "assistant",
+                model: "concurrency-test",
+                content: [
+                    { type: "text", text: "Anthropic" }
+                ],
+                stop_reason: "end_turn",
+                stop_sequence: null,
+                usage: { input_tokens: 0, output_tokens: 1 },
+                created_at: now,
             });
         });
 
@@ -100,5 +140,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-    process.stdout.write(`listening http://${HOST}:${PORT}\n`);
+    process.stdout.write(`Concurrency test server listening on http://${HOST}:${PORT}\n`);
 });

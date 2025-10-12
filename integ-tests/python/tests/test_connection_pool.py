@@ -36,17 +36,18 @@ async def wait_for_port(host: str, port: int, timeout_s: float = 15.0):
 
 async def try_http_health(host: str, port: int, timeout_s: float = 2.0):
     deadline = asyncio.get_running_loop().time() + timeout_s
+
     request = (
         "GET /health HTTP/1.1\r\n"
         f"Host: {host}:{port}\r\n"
         "Connection: close\r\n"
         "\r\n"
-    ).encode("ascii")
+    )
 
     while True:
         try:
             reader, writer = await asyncio.open_connection(host, port)
-            writer.write(request)
+            writer.write(request.encode("ascii"))
             await writer.drain()
             data = await reader.read(-1)
             writer.close()
@@ -96,7 +97,7 @@ async def pump_stdout(proc: asyncio.subprocess.Process, buf: list[str]):
 
 
 @contextlib.asynccontextmanager
-async def start_openai_generic_server(latency: int):
+async def start_concurrency_test_server(latency: int):
     server_js_path = pathlib.Path(__file__).parent.parent.parent / "common" / "concurrent_server.js"
     if not server_js_path.exists():
         raise FileNotFoundError(f"Server script not found: {server_js_path}")
@@ -140,7 +141,10 @@ async def start_openai_generic_server(latency: int):
         raise RuntimeError(f"Failed to start Node server: {e}\n--- server output ---\n{logs}")
 
     try:
-        yield f"{base_url}/v1"
+        yield [
+            ("openai-generic", f"{base_url}/v1/"),
+            ("anthropic", f"{base_url}/")
+        ]
     finally:
         await terminate_process(proc)
 
@@ -177,25 +181,30 @@ async def test_connection_pool_concurrency():
     # https://github.com/BoundaryML/baml/issues/2594
     expected_duration_ms = latency_ms + allowed_deviation_ms
 
-    async with start_openai_generic_server(latency_ms) as base_url:
-        cr = ClientRegistry()
-        cr.add_llm_client("ConcurrencyTestClient", "openai-generic", {
-            "model": "concurrency-test",
-            "base_url": base_url,
-        })
-        cr.set_primary("ConcurrencyTestClient")
+    print("Starting mock server...")
 
-        coros = [b.TestOpenAI("test", {"client_registry": cr}) for _ in range(num_requests)]
+    async with start_concurrency_test_server(latency_ms) as providers:
+        for (provider, base_url) in providers:
+            print(f"Testing provider `{provider}` with base URL `{base_url}`")
 
-        start_time = time.perf_counter()
-        timeout_s = max(5.0, (expected_duration_ms / 1000.0) + 2.0)
+            cr = ClientRegistry()
+            cr.add_llm_client("ConcurrencyTestClient", provider, {
+                "model": "concurrency-test",
+                "base_url": base_url,
+            })
+            cr.set_primary("ConcurrencyTestClient")
 
-        results = await asyncio.wait_for(asyncio.gather(*coros), timeout=timeout_s)
+            coros = [b.TestOpenAI("test", {"client_registry": cr}) for _ in range(num_requests)]
 
-        duration_ms = (time.perf_counter() - start_time) * 1000.0
+            start_time = time.perf_counter()
+            timeout_s = max(5.0, (expected_duration_ms / 1000.0) + 2.0)
 
-        assert len(results) == num_requests
-        assert duration_ms <= expected_duration_ms, (
-            f"Expected duration <= {expected_duration_ms} ms but got {duration_ms:.2f} ms; "
-            "requests may not be running concurrently."
-        )
+            results = await asyncio.wait_for(asyncio.gather(*coros), timeout=timeout_s)
+
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+
+            assert len(results) == num_requests
+            assert duration_ms <= expected_duration_ms, (
+                f"Expected duration <= {expected_duration_ms} ms but got {duration_ms:.2f} ms; "
+                f"requests may not be running concurrently for provider `{provider}`."
+            )
