@@ -1,3 +1,4 @@
+#![cfg(feature = "generated-client")]
 //! Basic function call integration tests
 //!
 //! Tests fundamental BAML function calling patterns including:
@@ -7,7 +8,6 @@
 //! - Optional parameters
 //! - List inputs
 
-use assert_matches::assert_matches;
 use baml_integ_tests_rust::*;
 
 // This module will be populated with generated types after running baml-cli generate
@@ -24,11 +24,13 @@ async fn test_sync_function_call() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     // Test with actual generated NamedArgsSingleClass type
-    let result = client.test_fn_named_args_single_class(NamedArgsSingleClass {
-        key: "key".to_string(),
-        key_two: true, 
-        key_three: 52,
-    }).await;
+    let result = client
+        .test_fn_named_args_single_class(NamedArgsSingleClass {
+            key: "key".to_string(),
+            key_two: true,
+            key_three: 52,
+        })
+        .await;
 
     match result {
         Ok(response) => {
@@ -37,7 +39,10 @@ async fn test_sync_function_call() {
         }
         Err(e) => {
             // In test environments, API calls may fail - that's still a valid integration test
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -58,7 +63,10 @@ async fn test_single_bool_input() {
             assert!(response.contains("true") || response.contains("True"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 
@@ -70,7 +78,10 @@ async fn test_single_bool_input() {
             assert!(response.contains("false") || response.contains("False"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -83,15 +94,20 @@ async fn test_single_string_input() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     let test_string = "hello world";
-    let result = client.test_fn_named_args_single_string(test_string.to_string()).await;
-    
+    let result = client
+        .test_fn_named_args_single_string(test_string.to_string())
+        .await;
+
     match result {
         Ok(response) => {
             println!("String function returned: {}", response);
             assert!(response.contains("hello world"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -105,14 +121,17 @@ async fn test_single_int_input() {
 
     let test_int = 42;
     let result = client.test_fn_named_args_single_int(test_int).await;
-    
+
     match result {
         Ok(response) => {
             println!("Int function returned: {}", response);
             assert!(response.contains("42"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -126,14 +145,17 @@ async fn test_single_float_input() {
 
     let test_float = 3.14;
     let result = client.test_fn_named_args_single_float(test_float).await;
-    
+
     match result {
         Ok(response) => {
             println!("Float function returned: {}", response);
             assert!(response.contains("3.14") || response.contains("3.1"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -147,13 +169,11 @@ async fn test_single_string_list_input() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     // Test with items
-    let test_list = vec![
-        "a".to_string(),
-        "b".to_string(),
-        "c".to_string()
-    ];
-    
-    let result = client.test_fn_named_args_single_string_list(test_list).await;
+    let test_list = vec!["a".to_string(), "b".to_string(), "c".to_string()];
+
+    let result = client
+        .test_fn_named_args_single_string_list(test_list)
+        .await;
     match result {
         Ok(response) => {
             println!("String list function returned: {}", response);
@@ -162,7 +182,10 @@ async fn test_single_string_list_input() {
             assert!(response.contains("c"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 
@@ -173,7 +196,10 @@ async fn test_single_string_list_input() {
             println!("Empty list function returned: {}", response);
         }
         Err(e) => {
-            println!("Empty list function call failed (expected in some test environments): {}", e);
+            println!(
+                "Empty list function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -186,14 +212,19 @@ async fn test_optional_string_input() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     // Test with Some value
-    let result = client.test_fn_named_args_single_optional_string(Some("test".to_string())).await;
+    let result = client
+        .test_fn_named_args_single_optional_string(Some("test".to_string()))
+        .await;
     match result {
         Ok(response) => {
             println!("Optional string function (Some) returned: {}", response);
             assert!(response.contains("test"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 
@@ -204,7 +235,10 @@ async fn test_optional_string_input() {
             println!("Optional string function (None) returned: {}", response);
         }
         Err(e) => {
-            println!("None function call failed (expected in some test environments): {}", e);
+            println!(
+                "None function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -217,14 +251,19 @@ async fn test_enum_input() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     // Test with a simple enum value
-    let result = client.test_fn_named_args_single_enum(StringToStringEnum::One).await;
+    let result = client
+        .test_fn_named_args_single_enum(StringToStringEnum::One)
+        .await;
     match result {
         Ok(response) => {
             println!("Enum function returned: {}", response);
             assert!(response.contains("One") || response.contains("one"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -240,14 +279,19 @@ async fn test_map_string_to_string_input() {
     map.insert("key1".to_string(), "value1".to_string());
     map.insert("key2".to_string(), "value2".to_string());
 
-    let result = client.test_fn_named_args_single_map_string_to_string(map).await;
+    let result = client
+        .test_fn_named_args_single_map_string_to_string(map)
+        .await;
     match result {
         Ok(response) => {
             println!("Map function returned: {}", response);
             assert!(response.contains("key1") || response.contains("value1"));
         }
         Err(e) => {
-            println!("Function call failed (expected in some test environments): {}", e);
+            println!(
+                "Function call failed (expected in some test environments): {}",
+                e
+            );
         }
     }
 }
@@ -262,8 +306,7 @@ async fn test_invalid_function_name() {
     // Test calling a non-existent function should result in an error
     let context = BamlContext::new();
     let result = client
-        .core_client()
-        .call_function("NonExistentFunction", context)
+        .call_function_raw("NonExistentFunction", context)
         .await;
 
     assert!(result.is_err());

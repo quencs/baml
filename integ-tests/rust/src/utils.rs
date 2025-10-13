@@ -1,10 +1,10 @@
 //! Test utilities for BAML Rust integration tests
 
 use anyhow::Result;
-use tempfile;
 use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
+use tempfile;
 
 /// Retry a function up to max_attempts times with exponential backoff
 pub async fn retry_with_backoff<F, T, E>(mut f: F, max_attempts: usize) -> Result<T, E>

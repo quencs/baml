@@ -55,6 +55,6 @@ generator lang_go {
 generator lang_rust {
   output_type rust
   output_dir "../rust"
-  version "0.205.0"
+  version "0.210.0"
   on_generate "cd .. && cargo fmt && cargo check"
 }

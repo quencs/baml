@@ -13,7 +13,7 @@ pub use serde_json::Value as JsonValue;
 pub use std::collections::HashMap;
 
 // Re-export from baml_client_rust
-pub use baml_client_rust::{BamlClient, BamlClientBuilder, BamlResult, BamlContext};
+pub use baml_client_rust::{BamlClient, BamlClientBuilder, BamlContext, BamlResult};
 
 /// Test configuration and setup utilities
 pub mod test_config {

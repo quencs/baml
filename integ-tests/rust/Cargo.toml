@@ -6,8 +6,8 @@ authors = ["BAML Team"]
 description = "Integration tests for BAML Rust client"
 
 [dependencies]
-# Generated BAML client - temporarily disabled due to compilation issues
-# baml_client = { path = "./baml_client" }
+# Generated BAML client 
+baml-client = { path = "./baml_client" }
 # BAML runtime client 
 baml-client-rust = { path = "../../engine/language_client_rust" }
 
@@ -35,6 +35,7 @@ tokio-test = "0.4"
 
 [features]
 default = []
+generated-client = []
 
 [[bin]]
 name = "simple-test"

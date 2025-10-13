@@ -4,7 +4,7 @@
 //! BAML runtime as Go, Python, TypeScript, and other languages.
 
 use baml_integ_tests_rust::*;
-use std::sync::Arc;
+use std::ffi::CString;
 use std::thread;
 use std::time::Duration;
 
@@ -38,25 +38,20 @@ async fn test_ffi_runtime_lifecycle() {
     let src_files_json =
         serde_json::to_string(&std::collections::HashMap::<String, String>::new()).unwrap();
 
-    let runtime_result =
-        baml_client_rust::ffi::create_baml_runtime(".", &src_files_json, &env_vars_json);
+    let root_path_c = CString::new(".").unwrap();
+    let src_files_json_c = CString::new(src_files_json).unwrap();
+    let env_vars_json_c = CString::new(env_vars_json).unwrap();
 
-    assert!(
-        runtime_result.is_ok(),
-        "Failed to create BAML runtime via FFI: {:?}",
-        runtime_result.err()
+    let runtime_ptr = baml_client_rust::ffi::create_baml_runtime(
+        root_path_c.as_ptr(),
+        src_files_json_c.as_ptr(),
+        env_vars_json_c.as_ptr(),
     );
 
-    let runtime_ptr = runtime_result.unwrap();
     assert!(!runtime_ptr.is_null(), "Runtime pointer should not be null");
 
     // Test runtime cleanup
-    let destroy_result = baml_client_rust::ffi::destroy_baml_runtime(runtime_ptr);
-    assert!(
-        destroy_result.is_ok(),
-        "Failed to destroy BAML runtime: {:?}",
-        destroy_result.err()
-    );
+    baml_client_rust::ffi::destroy_baml_runtime(runtime_ptr);
 }
 
 /// Test concurrent FFI operations (thread safety)
@@ -105,21 +100,27 @@ async fn test_ffi_error_handling() {
     init_test_logging();
 
     // Test invalid runtime creation (invalid JSON)
-    let invalid_json = "{ invalid json }";
-    let valid_json =
-        serde_json::to_string(&std::collections::HashMap::<String, String>::new()).unwrap();
+    let invalid_json = CString::new("{ invalid json }").unwrap();
+    let valid_json = CString::new(
+        serde_json::to_string(&std::collections::HashMap::<String, String>::new()).unwrap(),
+    )
+    .unwrap();
+    let root_path = CString::new(".").unwrap();
 
-    let result = baml_client_rust::ffi::create_baml_runtime(".", invalid_json, &valid_json);
+    let result_ptr = baml_client_rust::ffi::create_baml_runtime(
+        root_path.as_ptr(),
+        invalid_json.as_ptr(),
+        valid_json.as_ptr(),
+    );
 
     // This should fail gracefully, not crash
-    assert!(result.is_err(), "Expected error for invalid JSON input");
+    assert!(
+        result_ptr.is_null(),
+        "Expected null pointer for invalid JSON input"
+    );
 
     // Test null pointer handling
-    let destroy_result = baml_client_rust::ffi::destroy_baml_runtime(std::ptr::null());
-    assert!(
-        destroy_result.is_ok(),
-        "Destroying null pointer should be safe"
-    );
+    baml_client_rust::ffi::destroy_baml_runtime(std::ptr::null());
 }
 
 /// Test FFI library search paths
@@ -161,7 +162,7 @@ async fn test_ffi_callback_mechanism() {
 
     // The client should be using FFI internally
     assert!(
-        !client.core_client().runtime_ptr().is_null(),
+        !client.runtime_ptr().is_null(),
         "Client should have valid runtime pointer"
     );
 
@@ -181,7 +182,7 @@ async fn test_ffi_memory_management() {
             test_config::setup_test_client().expect(&format!("Failed to create client {}", i));
 
         // Verify client is valid
-        assert!(!client.core_client().runtime_ptr().is_null());
+        assert!(!client.runtime_ptr().is_null());
 
         // Client will be dropped here - test that this doesn't cause issues
     }
@@ -206,8 +207,7 @@ async fn test_ffi_function_call_interface() {
     // Test invalid function call to verify error handling works through FFI
     let empty_context = BamlContext::new();
     let result = client
-        .core_client()
-        .call_function("NonExistentFunction", empty_context)
+        .call_function_raw("NonExistentFunction", empty_context)
         .await;
 
     // Should get an error, not a crash

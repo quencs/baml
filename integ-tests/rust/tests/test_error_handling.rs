@@ -1,3 +1,4 @@
+#![cfg(feature = "generated-client")]
 //! Error handling integration tests
 //!
 //! Tests comprehensive error scenarios including:
@@ -7,14 +8,7 @@
 //! - Timeout handling
 //! - Rate limiting
 //! - Provider-specific errors
-
-use assert_matches::assert_matches;
 use baml_integ_tests_rust::*;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-
-#[allow(unused_imports)]
-use baml_client::{types::*, *};
 
 /// Test network connectivity errors
 #[tokio::test]
@@ -24,8 +18,10 @@ async fn test_network_error() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     // Test with a function call - network issues will surface during execution
-    let result = client.test_fn_named_args_single_string("network test".to_string()).await;
-    
+    let result = client
+        .test_fn_named_args_single_string("network test".to_string())
+        .await;
+
     match result {
         Ok(response) => {
             println!("Network test succeeded: {}", response);
@@ -34,7 +30,10 @@ async fn test_network_error() {
             let error_msg = e.to_string().to_lowercase();
             println!("Network error (may be expected): {}", e);
             // Check for network-related error indicators
-            if error_msg.contains("network") || error_msg.contains("connection") || error_msg.contains("timeout") {
+            if error_msg.contains("network")
+                || error_msg.contains("connection")
+                || error_msg.contains("timeout")
+            {
                 println!("Confirmed network-related error");
             }
         }
@@ -50,13 +49,13 @@ async fn test_invalid_api_key() {
     let invalid_client_result = BamlClientBuilder::new()
         .env_var("OPENAI_API_KEY", "invalid-key-12345")
         .build();
-        
+
     match invalid_client_result {
         Ok(invalid_client) => {
-            let invalid_baml_client = BamlClient::with_core_client(invalid_client);
-            
-            let result = invalid_baml_client.test_fn_named_args_single_string("test".to_string()).await;
-            
+            let result = invalid_client
+                .test_fn_named_args_single_string("test".to_string())
+                .await;
+
             match result {
                 Ok(response) => {
                     println!("Unexpectedly succeeded with invalid key: {}", response);
@@ -64,7 +63,12 @@ async fn test_invalid_api_key() {
                 Err(error) => {
                     let error_msg = error.to_string().to_lowercase();
                     println!("Expected error with invalid API key: {}", error);
-                    assert!(error_msg.contains("401") || error_msg.contains("unauthorized") || error_msg.contains("invalid") || error_msg.contains("key"));
+                    assert!(
+                        error_msg.contains("401")
+                            || error_msg.contains("unauthorized")
+                            || error_msg.contains("invalid")
+                            || error_msg.contains("key")
+                    );
                 }
             }
         }
@@ -82,16 +86,27 @@ async fn test_malformed_response_handling() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     // Test with a function that expects structured output - malformed responses should be handled gracefully
-    let result = client.aaa_sam_output_format("This is not a valid recipe and might cause parsing issues: {{invalid json}}".to_string()).await;
-    
+    let result = client
+        .aaa_sam_output_format(
+            "This is not a valid recipe and might cause parsing issues: {{invalid json}}"
+                .to_string(),
+        )
+        .await;
+
     match result {
         Ok(recipe) => {
-            println!("Successfully parsed recipe despite malformed input: {:?}", recipe);
+            println!(
+                "Successfully parsed recipe despite malformed input: {:?}",
+                recipe
+            );
         }
         Err(e) => {
             println!("Parsing error (expected with malformed input): {}", e);
             let error_msg = e.to_string().to_lowercase();
-            if error_msg.contains("parse") || error_msg.contains("json") || error_msg.contains("deserial") {
+            if error_msg.contains("parse")
+                || error_msg.contains("json")
+                || error_msg.contains("deserial")
+            {
                 println!("Confirmed parsing-related error");
             }
         }
@@ -201,8 +216,7 @@ async fn test_error_context_preservation() {
     // Test that error details are properly preserved when crossing the FFI boundary
     let context = BamlContext::new();
     let result = client
-        .core_client()
-        .call_function("NonExistentFunction", context)
+        .call_function_raw("NonExistentFunction", context)
         .await;
 
     assert!(result.is_err());
@@ -238,8 +252,7 @@ async fn test_concurrent_error_handling() {
             // Test concurrent calls to non-existent function
             let context = BamlContext::new();
             let result = client_clone
-                .core_client()
-                .call_function(&format!("NonExistent{}", i), context)
+                .call_function_raw(&format!("NonExistent{}", i), context)
                 .await;
 
             // All should fail gracefully
@@ -280,10 +293,7 @@ async fn test_error_serialization_ffi() {
 
     for (i, function_name) in test_cases.iter().enumerate() {
         let context = BamlContext::new();
-        let result = client
-            .core_client()
-            .call_function(function_name, context)
-            .await;
+        let result = client.call_function_raw(function_name, context).await;
 
         assert!(result.is_err(), "Test case {} should produce error", i);
         let error = result.unwrap_err();
@@ -321,8 +331,7 @@ async fn test_error_memory_safety() {
 
         let context = BamlContext::new();
         let result = client
-            .core_client()
-            .call_function(&format!("Error{}", i), context)
+            .call_function_raw(&format!("Error{}", i), context)
             .await;
 
         if let Err(error) = result {

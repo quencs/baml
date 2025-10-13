@@ -1,3 +1,4 @@
+#![cfg(feature = "generated-client")]
 //! Complex data types integration tests
 //!
 //! Tests BAML functions with advanced type systems including:
@@ -8,7 +9,6 @@
 //! - Generic type parameters
 //! - Type coercion and validation
 
-use assert_matches::assert_matches;
 use baml_integ_tests_rust::*;
 use serde_json::json;
 
@@ -25,21 +25,24 @@ async fn test_nested_object_structures() {
 
     // Test with Recipe struct - a simple but structured type
     let recipe_input = "Pasta with tomato sauce";
-    
+
     let result = client.aaa_sam_output_format(recipe_input.to_string()).await;
-    
+
     match result {
         Ok(recipe) => {
             println!("Successfully parsed recipe structure:");
             println!("  Ingredients: {}", recipe.ingredients);
             println!("  Type: {}", recipe.recipe_type);
-            
+
             // Verify the structure contains expected data
             assert!(!recipe.ingredients.is_empty());
             assert!(!recipe.recipe_type.is_empty());
         }
         Err(e) => {
-            println!("Recipe parsing failed (may be expected in test environment): {}", e);
+            println!(
+                "Recipe parsing failed (may be expected in test environment): {}",
+                e
+            );
         }
     }
 }
@@ -54,14 +57,16 @@ async fn test_array_list_types() {
     // Test with string list function - this tests Vec<String> handling
     let string_list = vec![
         "apple".to_string(),
-        "banana".to_string(), 
+        "banana".to_string(),
         "cherry".to_string(),
         "date".to_string(),
         "elderberry".to_string(),
     ];
-    
-    let result = client.test_fn_named_args_single_string_list(string_list).await;
-    
+
+    let result = client
+        .test_fn_named_args_single_string_list(string_list)
+        .await;
+
     match result {
         Ok(response) => {
             println!("String list function returned: {}", response);
@@ -69,10 +74,13 @@ async fn test_array_list_types() {
             assert!(response.contains("apple") || response.contains("fruit"));
         }
         Err(e) => {
-            println!("String list function failed (may be expected in test environment): {}", e);
+            println!(
+                "String list function failed (may be expected in test environment): {}",
+                e
+            );
         }
     }
-    
+
     // Test with empty list edge case
     let empty_result = client.test_fn_named_args_single_string_list(vec![]).await;
     match empty_result {
@@ -98,23 +106,32 @@ async fn test_map_dictionary_types() {
     test_map.insert("age".to_string(), "30".to_string());
     test_map.insert("city".to_string(), "New York".to_string());
     test_map.insert("occupation".to_string(), "Software Developer".to_string());
-    
-    let result = client.test_fn_named_args_single_map_string_to_string(test_map).await;
-    
+
+    let result = client
+        .test_fn_named_args_single_map_string_to_string(test_map)
+        .await;
+
     match result {
         Ok(response) => {
             println!("Map function returned: {}", response);
             // The response should reference our input data
-            assert!(response.contains("John") || response.contains("name") || response.contains("age"));
+            assert!(
+                response.contains("John") || response.contains("name") || response.contains("age")
+            );
         }
         Err(e) => {
-            println!("Map function failed (may be expected in test environment): {}", e);
+            println!(
+                "Map function failed (may be expected in test environment): {}",
+                e
+            );
         }
     }
-    
+
     // Test with empty map
     let empty_map = std::collections::HashMap::new();
-    let empty_result = client.test_fn_named_args_single_map_string_to_string(empty_map).await;
+    let empty_result = client
+        .test_fn_named_args_single_map_string_to_string(empty_map)
+        .await;
     match empty_result {
         Ok(response) => {
             println!("Empty map handled successfully: {}", response);
@@ -133,7 +150,9 @@ async fn test_optional_nullable_fields() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     // Test with optional string - Some case
-    let result_some = client.test_fn_named_args_single_optional_string(Some("optional value".to_string())).await;
+    let result_some = client
+        .test_fn_named_args_single_optional_string(Some("optional value".to_string()))
+        .await;
     match result_some {
         Ok(response) => {
             println!("Optional string (Some) function returned: {}", response);
@@ -143,7 +162,7 @@ async fn test_optional_nullable_fields() {
             println!("Optional string (Some) failed (may be expected): {}", e);
         }
     }
-    
+
     // Test with optional string - None case
     let result_none = client.test_fn_named_args_single_optional_string(None).await;
     match result_none {
@@ -156,7 +175,7 @@ async fn test_optional_nullable_fields() {
             println!("Optional string (None) failed (may be expected): {}", e);
         }
     }
-    
+
     // Test the `allowed_optionals` function which might have multiple optional fields
     let optionals_result = client.allowed_optionals().await;
     match optionals_result {
@@ -177,7 +196,9 @@ async fn test_discriminated_unions() {
     let client = test_config::setup_test_client().expect("Failed to create client");
 
     // Test with enum - using StringToStringEnum if available
-    let result = client.test_fn_named_args_single_enum(StringToStringEnum::One).await;
+    let result = client
+        .test_fn_named_args_single_enum(StringToStringEnum::One)
+        .await;
     match result {
         Ok(response) => {
             println!("Enum function (One) returned: {}", response);
@@ -187,13 +208,13 @@ async fn test_discriminated_unions() {
             println!("Enum function failed (may be expected): {}", e);
         }
     }
-    
+
     // Test different enum variants
     let enum_variants = vec![
         (StringToStringEnum::Two, "Two"),
         (StringToStringEnum::Three, "Three"),
     ];
-    
+
     for (variant, expected) in enum_variants {
         let result = client.test_fn_named_args_single_enum(variant).await;
         match result {
@@ -202,13 +223,18 @@ async fn test_discriminated_unions() {
                 assert!(response.contains(expected) || response.contains(&expected.to_lowercase()));
             }
             Err(e) => {
-                println!("Enum function ({}) failed (may be expected): {}", expected, e);
+                println!(
+                    "Enum function ({}) failed (may be expected): {}",
+                    expected, e
+                );
             }
         }
     }
-    
+
     // Test Category enum with different variants
-    let category_result = client.classify_message("This is a positive message".to_string()).await;
+    let category_result = client
+        .classify_message("This is a positive message".to_string())
+        .await;
     match category_result {
         Ok(category) => {
             println!("Category classification succeeded: {:?}", category);

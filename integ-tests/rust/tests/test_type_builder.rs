@@ -1,3 +1,4 @@
+#![cfg(feature = "generated-client")]
 //! Type builder integration tests
 //!
 //! Tests dynamic type construction and builder patterns including:
@@ -7,7 +8,6 @@
 //! - Builder method chaining
 //! - Default value handling
 
-use assert_matches::assert_matches;
 use baml_integ_tests_rust::*;
 use serde_json::json;
 

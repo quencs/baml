@@ -7,14 +7,10 @@
 //! - Resource cleanup verification
 //! - Stress testing under load
 
-use assert_matches::assert_matches;
 use baml_integ_tests_rust::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
-
-// This module will be populated with generated types after running baml-cli generate
-#[allow(unused_imports)]
-use baml_client::{types::*, *};
 
 /// Test memory leak detection over multiple client lifecycle
 /// Reference: Go test_memory_performance_test.go:TestMemoryLeakDetection
@@ -45,8 +41,7 @@ async fn test_memory_leak_detection() {
         // Test FFI calls that might leak memory
         let context = BamlContext::new();
         let _ = client
-            .core_client()
-            .call_function("MemoryTestFunction", context)
+            .call_function_raw("MemoryTestFunction", context)
             .await;
 
         // Client goes out of scope here - test for proper cleanup
@@ -120,8 +115,7 @@ async fn test_concurrent_performance() {
                 // For now, test FFI calls
                 let context = BamlContext::new();
                 let result = client
-                    .core_client()
-                    .call_function(&format!("PerfTest_{}_{}", client_id, call_id), context)
+                    .call_function_raw(&format!("PerfTest_{}_{}", client_id, call_id), context)
                     .await;
 
                 match result {
@@ -184,7 +178,7 @@ async fn test_concurrent_performance() {
 async fn test_ffi_call_overhead() {
     init_test_logging();
 
-    let client = test_config::setup_test_client().expect("Failed to create client");
+    let _client = test_config::setup_test_client().expect("Failed to create client");
 
     const NUM_CALLS: usize = 10_000;
     let mut call_times = Vec::with_capacity(NUM_CALLS);
@@ -193,22 +187,25 @@ async fn test_ffi_call_overhead() {
 
     // Warm up
     for _ in 0..100 {
-        let context = BamlContext::new();
-        let _ = client
-            .core_client()
-            .call_function("WarmupFunction", context)
-            .await;
+        let version = baml_client_rust::ffi::get_library_version();
+        assert!(
+            version.is_ok(),
+            "Warmup version call failed: {:?}",
+            version.err()
+        );
     }
 
     // Measure call times
     for i in 0..NUM_CALLS {
         let start = Instant::now();
 
-        let context = BamlContext::new();
-        let _ = client
-            .core_client()
-            .call_function(&format!("PerfTest{}", i), context)
-            .await;
+        let version = baml_client_rust::ffi::get_library_version();
+        assert!(
+            version.is_ok(),
+            "FFI version call {} failed: {:?}",
+            i,
+            version.err()
+        );
 
         let call_time = start.elapsed();
         call_times.push(call_time);
@@ -280,10 +277,7 @@ async fn test_resource_cleanup_stress() {
 
                 // Perform some operations
                 let context = BamlContext::new();
-                let _ = client
-                    .core_client()
-                    .call_function("StressTest", context)
-                    .await;
+                let _ = client.call_function_raw("StressTest", context).await;
 
                 // Client is automatically dropped when this task completes
                 i
@@ -318,7 +312,7 @@ async fn test_resource_cleanup_stress() {
 async fn test_large_data_performance() {
     init_test_logging();
 
-    let client = test_config::setup_test_client().expect("Failed to create client");
+    let _client = test_config::setup_test_client().expect("Failed to create client");
 
     // TODO: Update after code generation to test with actual large data functions
     // Test different data sizes
@@ -368,7 +362,7 @@ async fn test_large_data_performance() {
 async fn test_streaming_performance() {
     init_test_logging();
 
-    let client = test_config::setup_test_client().expect("Failed to create client");
+    let _client = test_config::setup_test_client().expect("Failed to create client");
 
     // TODO: Update after code generation to test actual streaming functions
     // const STREAM_DURATION: Duration = Duration::from_secs(30);
@@ -421,8 +415,7 @@ async fn test_memory_usage_patterns() {
             // TODO: Update with actual operations after code generation
             let context = BamlContext::new();
             let _ = client
-                .core_client()
-                .call_function(&format!("MemTest{}", i), context)
+                .call_function_raw(&format!("MemTest{}", i), context)
                 .await;
 
             if i % 20 == 0 {

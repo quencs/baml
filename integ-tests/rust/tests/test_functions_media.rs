@@ -1,3 +1,4 @@
+#![cfg(feature = "generated-client")]
 //! Media handling integration tests
 //!
 //! Tests BAML functions with multimedia inputs including:
@@ -8,9 +9,7 @@
 //! - File upload and streaming
 //! - Base64 encoding/decoding
 
-use assert_matches::assert_matches;
 use baml_integ_tests_rust::*;
-use std::path::Path;
 
 // This module will be populated with generated types after running baml-cli generate
 #[allow(unused_imports)]

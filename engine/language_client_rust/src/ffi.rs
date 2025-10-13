@@ -277,6 +277,19 @@ pub fn version() -> *const c_char {
     unsafe { func() }
 }
 
+/// Retrieve the version string reported by the dynamically loaded BAML library.
+pub fn get_library_version() -> Result<String, String> {
+    let ptr = with_library(|lib| unsafe { (lib.version)() });
+    if ptr.is_null() {
+        return Err("version pointer returned null".to_string());
+    }
+
+    unsafe { CStr::from_ptr(ptr) }
+        .to_str()
+        .map(|s| s.to_owned())
+        .map_err(|err| format!("version string contained invalid UTF-8: {err}"))
+}
+
 fn resolve_library_path() -> anyhow::Result<PathBuf> {
     if let Some(path) = shared_library_override()? {
         return Ok(path);

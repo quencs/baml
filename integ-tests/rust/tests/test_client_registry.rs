@@ -7,13 +7,9 @@
 //! - Configuration inheritance and overrides
 //! - Client lifecycle management
 
-use assert_matches::assert_matches;
 use baml_integ_tests_rust::*;
 use std::collections::HashMap;
-
-// This module will be populated with generated types after running baml-cli generate
-#[allow(unused_imports)]
-use baml_client::{types::*, *};
+use std::sync::Arc;
 
 /// Test creating multiple client instances with different configurations
 /// Reference: Go test_client_registry_test.go:TestMultipleClientConfigs
@@ -36,8 +32,8 @@ async fn test_multiple_client_configurations() {
     //     .expect("Failed to create Anthropic client");
 
     // Verify clients are independent
-    assert!(!openai_client.core_client().runtime_ptr().is_null());
-    // assert!(!anthropic_client.core_client().runtime_ptr().is_null());
+    assert!(!openai_client.runtime_ptr().is_null());
+    // assert!(!anthropic_client.runtime_ptr().is_null());
 
     println!("Multiple client configurations created successfully");
 }
@@ -54,7 +50,7 @@ async fn test_client_builder_chaining() {
         .build()
         .expect("Failed to build client with chained configuration");
 
-    assert!(!client.core_client().runtime_ptr().is_null());
+    assert!(!client.runtime_ptr().is_null());
 
     println!("Client builder chaining works correctly");
 }
@@ -78,8 +74,8 @@ async fn test_client_configuration_inheritance() {
         .expect("Failed to create derived client");
 
     // Both should be functional but potentially have different behaviors
-    assert!(!base_client.core_client().runtime_ptr().is_null());
-    assert!(!derived_client.core_client().runtime_ptr().is_null());
+    assert!(!base_client.runtime_ptr().is_null());
+    assert!(!derived_client.runtime_ptr().is_null());
 
     println!("Client configuration inheritance tested successfully");
 }
@@ -92,8 +88,8 @@ async fn test_runtime_client_switching() {
     // TODO: Update after code generation to test actual client switching
     // This might involve a client registry or factory pattern
 
-    let client1 = test_config::setup_test_client().expect("Failed to create client 1");
-    let client2 = BamlClientBuilder::new()
+    let _client1 = test_config::setup_test_client().expect("Failed to create client 1");
+    let _client2 = BamlClientBuilder::new()
         .env_var("OPENAI_API_KEY", test_config::get_openai_api_key())
         .env_var("PROVIDER_PREFERENCE", "alternative")
         .build()
@@ -127,7 +123,7 @@ async fn test_client_isolation() {
     // Verify all clients are independent and functional
     for (i, client) in clients.iter().enumerate() {
         assert!(
-            !client.core_client().runtime_ptr().is_null(),
+            !client.runtime_ptr().is_null(),
             "Client {} should be valid",
             i
         );
@@ -147,7 +143,7 @@ async fn test_client_lifecycle_management() {
     // Test client creation, usage, and cleanup
     {
         let client = test_config::setup_test_client().expect("Failed to create client");
-        assert!(!client.core_client().runtime_ptr().is_null());
+        assert!(!client.runtime_ptr().is_null());
 
         // TODO: After code generation, test actual client operations here
         // let result = client.simple_function("test").await;
@@ -159,7 +155,7 @@ async fn test_client_lifecycle_management() {
     // Create new client after previous one was dropped
     let new_client =
         test_config::setup_test_client().expect("Failed to create new client after cleanup");
-    assert!(!new_client.core_client().runtime_ptr().is_null());
+    assert!(!new_client.runtime_ptr().is_null());
 
     println!("Client lifecycle management tested successfully");
 }
@@ -169,7 +165,8 @@ async fn test_client_lifecycle_management() {
 async fn test_concurrent_client_operations() {
     init_test_logging();
 
-    let client = test_config::setup_test_client().expect("Failed to create shared client");
+    let client =
+        Arc::new(test_config::setup_test_client().expect("Failed to create shared client"));
 
     const NUM_CONCURRENT: usize = 20;
     let mut handles = Vec::new();
@@ -183,8 +180,7 @@ async fn test_concurrent_client_operations() {
             // Simulate concurrent access to client methods
             let context = BamlContext::new();
             let result = client_clone
-                .core_client()
-                .call_function(&format!("TestFunction{}", i), context)
+                .call_function_raw(&format!("TestFunction{}", i), context)
                 .await;
 
             // We expect this to fail (function doesn't exist), but it should fail gracefully
@@ -265,8 +261,8 @@ async fn test_client_registry_patterns() {
         .get("high_performance")
         .expect("Should have HP client");
 
-    assert!(!default_client.core_client().runtime_ptr().is_null());
-    assert!(!hp_client.core_client().runtime_ptr().is_null());
+    assert!(!default_client.runtime_ptr().is_null());
+    assert!(!hp_client.runtime_ptr().is_null());
 
     println!("Client registry patterns tested successfully");
 }
@@ -279,7 +275,7 @@ async fn test_client_configuration_hot_reload() {
     // TODO: Update after code generation if hot-reloading is supported
     // Test that configuration changes can be applied to existing clients
 
-    let client = test_config::setup_test_client().expect("Failed to create client");
+    let _client = test_config::setup_test_client().expect("Failed to create client");
 
     // Simulate configuration change
     // In a real implementation, this might involve reloading from a config file
@@ -303,7 +299,7 @@ async fn test_client_resource_management() {
             .build()
             .expect(&format!("Failed to create client for cycle {}", i));
 
-        assert!(!client.core_client().runtime_ptr().is_null());
+        assert!(!client.runtime_ptr().is_null());
 
         // Client is dropped here - test for resource leaks
         if i % 20 == 0 {
@@ -314,7 +310,7 @@ async fn test_client_resource_management() {
     // Final client creation to ensure resources are still available
     let final_client = test_config::setup_test_client()
         .expect("Should still be able to create clients after resource test");
-    assert!(!final_client.core_client().runtime_ptr().is_null());
+    assert!(!final_client.runtime_ptr().is_null());
 
     println!(
         "Resource management tested over {} cycles",
@@ -340,7 +336,7 @@ async fn test_configuration_precedence() {
         .build()
         .expect("Failed to create client for precedence test");
 
-    assert!(!client.core_client().runtime_ptr().is_null());
+    assert!(!client.runtime_ptr().is_null());
 
     println!("Configuration precedence tested successfully");
 }
@@ -372,8 +368,8 @@ async fn test_client_factory_patterns() {
     let dev_client = create_development_client().expect("Failed to create dev client");
     let prod_client = create_production_client().expect("Failed to create prod client");
 
-    assert!(!dev_client.core_client().runtime_ptr().is_null());
-    assert!(!prod_client.core_client().runtime_ptr().is_null());
+    assert!(!dev_client.runtime_ptr().is_null());
+    assert!(!prod_client.runtime_ptr().is_null());
 
     println!("Client factory patterns tested successfully");
 }
