@@ -74,6 +74,23 @@ client<llm> GPT35LegacyProvider {
   }
 }
 
+client<llm> OpenAIConcurrencyTestClientEnvBaseUrl {
+  provider openai-generic
+  options {
+    base_url env.OPENAI_CONCURRENCY_TEST_BASE_URL
+    model "concurrency-test"
+    api_key env.OPENAI_API_KEY
+  }
+}
+
+client<llm> OpenAIConcurrencyTestClientHardocodedBaseUrl {
+  provider openai-generic
+  options {
+    base_url "http://127.0.0.1:9876/v1/"
+    model "concurrency-test"
+    api_key env.OPENAI_API_KEY
+  }
+}
 
 client<llm> Ollama {
   provider ollama

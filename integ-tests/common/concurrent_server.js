@@ -139,6 +139,28 @@ const server = http.createServer(async (req, res) => {
     }
 });
 
-server.listen(PORT, HOST, () => {
+server.listen({ host: HOST, port: PORT, reuseAddress: true }, () => {
     process.stdout.write(`Concurrency test server listening on http://${HOST}:${PORT}\n`);
 });
+
+const sockets = new Set();
+
+server.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.on("close", () => sockets.delete(socket));
+});
+
+
+function shutdown() {
+    server.close(() => process.exit(0));
+    for (const s of sockets) {
+        try {
+            s.destroy();
+        } catch {
+            // Ignore errors
+        }
+    }
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

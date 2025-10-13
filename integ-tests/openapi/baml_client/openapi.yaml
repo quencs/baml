@@ -2548,6 +2548,32 @@ paths:
                 title: TestOpenAIResponse
                 type: string
       operationId: TestOpenAI
+  /call/TestOpenAIConcurrencyClientEnvBaseUrl:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/TestOpenAIConcurrencyClientEnvBaseUrl'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: TestOpenAIConcurrencyClientEnvBaseUrlResponse
+                type: string
+      operationId: TestOpenAIConcurrencyClientEnvBaseUrl
+  /call/TestOpenAIConcurrencyClientHardocodedBaseUrl:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/TestOpenAIConcurrencyClientHardocodedBaseUrl'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: TestOpenAIConcurrencyClientHardocodedBaseUrlResponse
+                type: string
+      operationId: TestOpenAIConcurrencyClientHardocodedBaseUrl
   /call/TestOpenAIDummyClient:
     post:
       requestBody:
@@ -6158,6 +6184,38 @@ components:
         application/json:
           schema:
             title: TestOpenAIRequest
+            type: object
+            properties:
+              input:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - input
+            additionalProperties: false
+    TestOpenAIConcurrencyClientEnvBaseUrl:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: TestOpenAIConcurrencyClientEnvBaseUrlRequest
+            type: object
+            properties:
+              input:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - input
+            additionalProperties: false
+    TestOpenAIConcurrencyClientHardocodedBaseUrl:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: TestOpenAIConcurrencyClientHardocodedBaseUrlRequest
             type: object
             properties:
               input:

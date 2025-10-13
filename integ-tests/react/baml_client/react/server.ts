@@ -3312,6 +3312,42 @@ export const TestOpenAI = async (
 };
 
 /**
+ * Executes the "TestOpenAIConcurrencyClientEnvBaseUrl" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestOpenAIConcurrencyClientEnvBaseUrl"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestOpenAIConcurrencyClientEnvBaseUrl = async (
+  input: string,
+): Promise<string> => {
+  return b.TestOpenAIConcurrencyClientEnvBaseUrl(
+    input,
+  );
+};
+
+/**
+ * Executes the "TestOpenAIConcurrencyClientHardocodedBaseUrl" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestOpenAIConcurrencyClientHardocodedBaseUrl"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestOpenAIConcurrencyClientHardocodedBaseUrl = async (
+  input: string,
+): Promise<string> => {
+  return b.TestOpenAIConcurrencyClientHardocodedBaseUrl(
+    input,
+  );
+};
+
+/**
  * Executes the "TestOpenAIDummyClient" BAML action.
  *
  * This server action calls the underlying BAML function "TestOpenAIDummyClient"

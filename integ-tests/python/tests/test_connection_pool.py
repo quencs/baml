@@ -6,7 +6,7 @@
 # 1. Start the Node server in concurrent_server.js that receives a --latency
 #    flag and responds to any incoming request in that amount of time.
 #
-# 2. Send 20 requests concurrently from the Python client. If there was a
+# 2. Send 30 requests concurrently from the Python client. If there was a
 #    problem with the client, the total duration to get all the responses should
 #    be much longer than the latency of a single response.
 #
@@ -20,19 +20,35 @@ import asyncio
 import contextlib
 import os
 import pathlib
+import shutil
 import socket
 import time
-import shutil
 
 from baml_py import ClientRegistry
 import pytest
+import pytest_asyncio
+
 from baml_client import b
 
 
+# These are hardcoded in the Baml client. Can't be fully dynamic because the
+# bug is present when URLs are written as strings instead of using the env var.
+HOST = "127.0.0.1"
+PORT = 9876
+
+
+# For dynamic clients we can use ports not hardcoded in the Baml client.
 def find_free_port():
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]
+
+
+def port_is_free(host: str, port: int) -> bool:
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.settimeout(0.25)
+        return s.connect_ex((host, port)) != 0
+
 
 
 async def wait_for_port(host: str, port: int, timeout_s: float = 15.0):
@@ -52,7 +68,7 @@ async def wait_for_port(host: str, port: int, timeout_s: float = 15.0):
             await asyncio.sleep(0.05)
 
 
-async def try_http_health(host: str, port: int, timeout_s: float = 2.0):
+async def http_health(host: str, port: int, timeout_s: float = 2.0):
     deadline = asyncio.get_running_loop().time() + timeout_s
 
     request = (
@@ -124,10 +140,18 @@ async def start_concurrency_test_server(latency: int):
     if not node_bin:
         raise RuntimeError("Cannot find 'node' or 'nodejs' on PATH")
 
-    host = "127.0.0.1"
-    port = find_free_port()
+    if not port_is_free(HOST, PORT):
+        raise RuntimeError(f"Concurrency test expects Port {HOST}:{PORT} to be free but it is not")
+
+    # In case we need additional logic.
+    host = HOST
+    port = PORT
 
     cmd = [node_bin, str(server_js_path), "--host", host, "--port", str(port), "--latency", str(latency)]
+
+    base_url = f"http://{host}:{port}/v1/"
+
+    os.environ["OPENAI_CONCURRENCY_TEST_BASE_URL"] = base_url
     env = os.environ.copy()
 
     proc = await asyncio.create_subprocess_exec(
@@ -141,11 +165,9 @@ async def start_concurrency_test_server(latency: int):
     log_buf: list[str] = []
     proc_stdout_task = asyncio.create_task(read_stdout(proc, log_buf))
 
-    base_url = f"http://{host}:{port}"
-
     try:
         await wait_for_port(host, port, timeout_s=15.0)
-        await try_http_health(host, port, timeout_s=2.0)
+        await http_health(host, port, timeout_s=2.0)
     except Exception as e:
         await terminate_process(proc)
 
@@ -159,10 +181,7 @@ async def start_concurrency_test_server(latency: int):
         raise RuntimeError(f"Failed to start Node server: {e}\n--- server output ---\n{logs}")
 
     try:
-        yield [
-            ("openai-generic", f"{base_url}/v1/"),
-            ("anthropic", f"{base_url}/")
-        ]
+        yield base_url
     finally:
         await terminate_process(proc)
 
@@ -180,49 +199,64 @@ async def start_concurrency_test_server(latency: int):
             pass
 
 
+@pytest_asyncio.fixture(scope="module")
+async def concurrency_server_url():
+    async with start_concurrency_test_server(LATENCY_MS) as base_url:
+        yield base_url
+
+
+# Times the server takes to process one request.
+LATENCY_MS = 500
+
+# How many requests to make.
+NUM_REQUESTS = 30
+
+# Allow some extra time per request for scheduling / OS overhead.
+ALLOWED_DEVIATION_MS = 3 * NUM_REQUESTS
+
+# Expected duration in milliseconds of all concurrent requests.
+EXPECTED_DURATION_MS = LATENCY_MS + ALLOWED_DEVIATION_MS
+
+
+async def assert_completes_in_time(baml_requests: list[asyncio.Future]):
+    start_time = time.perf_counter()
+    timeout_s = max(5.0, (EXPECTED_DURATION_MS / 1000.0) + 2.0)
+
+    results = await asyncio.wait_for(asyncio.gather(*baml_requests), timeout=timeout_s)
+
+    duration_ms = (time.perf_counter() - start_time) * 1000.0
+
+    assert len(results) == NUM_REQUESTS
+
+    assert duration_ms <= EXPECTED_DURATION_MS, (
+        f"Expected duration <= {EXPECTED_DURATION_MS} ms but got {duration_ms:.2f} ms; "
+        f"requests may not be running concurrently."
+    )
+
+
 @pytest.mark.asyncio
-async def test_connection_pool_concurrency():
-    # How many requests to make.
-    num_requests = 20
+async def test_openai_concurrency_client_hardcoded_base_url(concurrency_server_url: str):
+    requests = [b.TestOpenAIConcurrencyClientHardocodedBaseUrl("test") for _ in range(NUM_REQUESTS)]
 
-    # How long the server takes to process one request.
-    latency_ms = 500
+    await assert_completes_in_time(requests)
 
-    # Allow some extra time per request (scheduling overhead).
-    allowed_deviation_ms = 3 * num_requests
 
-    # If the requests are running concurrently, they should all complete within
-    # the request latency plus some extra processing time. But if they run
-    # sequentially in batches as the bug report suggests, they will take much
-    # longer:
-    #
-    # https://github.com/BoundaryML/baml/issues/2594
-    expected_duration_ms = latency_ms + allowed_deviation_ms
+@pytest.mark.asyncio
+async def test_openai_concurrency_client_env_var_base_url(concurrency_server_url: str):
+    requests = [b.TestOpenAIConcurrencyClientEnvBaseUrl("test") for _ in range(NUM_REQUESTS)]
 
-    print("Starting mock server...")
+    await assert_completes_in_time(requests)
 
-    async with start_concurrency_test_server(latency_ms) as providers:
-        for (provider, base_url) in providers:
-            print(f"Testing provider `{provider}` with base URL `{base_url}`")
 
-            cr = ClientRegistry()
-            cr.add_llm_client("ConcurrencyTestClient", provider, {
-                "model": "concurrency-test",
-                "base_url": base_url,
-            })
-            cr.set_primary("ConcurrencyTestClient")
+@pytest.mark.asyncio
+async def test_openai_concurrency_client_registry(concurrency_server_url: str):
+    cr = ClientRegistry()
+    cr.add_llm_client("ConcurrencyTestClient", "openai-generic", {
+        "model": "concurrency-test",
+        "base_url": concurrency_server_url,
+    })
+    cr.set_primary("ConcurrencyTestClient")
 
-            coros = [b.TestOpenAI("test", {"client_registry": cr}) for _ in range(num_requests)]
+    requests = [b.TestOpenAI("test", {"client_registry": cr}) for _ in range(NUM_REQUESTS)]
 
-            start_time = time.perf_counter()
-            timeout_s = max(5.0, (expected_duration_ms / 1000.0) + 2.0)
-
-            results = await asyncio.wait_for(asyncio.gather(*coros), timeout=timeout_s)
-
-            duration_ms = (time.perf_counter() - start_time) * 1000.0
-
-            assert len(results) == num_requests
-            assert duration_ms <= expected_duration_ms, (
-                f"Expected duration <= {expected_duration_ms} ms but got {duration_ms:.2f} ms; "
-                f"requests may not be running concurrently for provider `{provider}`."
-            )
+    await assert_completes_in_time(requests)

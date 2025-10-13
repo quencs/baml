@@ -2611,6 +2611,34 @@ class BamlSyncClient:
                 "input": input,
             })
             return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
+    def TestOpenAIConcurrencyClientEnvBaseUrl(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            stream = self.stream.TestOpenAIConcurrencyClientEnvBaseUrl(input=input,
+                baml_options=baml_options)
+            return stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = self.__options.merge_options(baml_options).call_function_sync(function_name="TestOpenAIConcurrencyClientEnvBaseUrl", args={
+                "input": input,
+            })
+            return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
+    def TestOpenAIConcurrencyClientHardocodedBaseUrl(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            stream = self.stream.TestOpenAIConcurrencyClientHardocodedBaseUrl(input=input,
+                baml_options=baml_options)
+            return stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = self.__options.merge_options(baml_options).call_function_sync(function_name="TestOpenAIConcurrencyClientHardocodedBaseUrl", args={
+                "input": input,
+            })
+            return typing.cast(str, result.cast_to(types, types, stream_types, False, __runtime__))
     def TestOpenAIDummyClient(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> str:
@@ -5844,6 +5872,30 @@ class BamlStreamClient:
           lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
+    def TestOpenAIConcurrencyClientEnvBaseUrl(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="TestOpenAIConcurrencyClientEnvBaseUrl", args={
+            "input": input,
+        })
+        return baml_py.BamlSyncStream[str, str](
+          result,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def TestOpenAIConcurrencyClientHardocodedBaseUrl(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="TestOpenAIConcurrencyClientHardocodedBaseUrl", args={
+            "input": input,
+        })
+        return baml_py.BamlSyncStream[str, str](
+          result,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     def TestOpenAIDummyClient(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[str, str]:
@@ -8024,6 +8076,20 @@ class BamlHttpRequestClient:
             "input": input,
         }, mode="request")
         return result
+    def TestOpenAIConcurrencyClientEnvBaseUrl(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TestOpenAIConcurrencyClientEnvBaseUrl", args={
+            "input": input,
+        }, mode="request")
+        return result
+    def TestOpenAIConcurrencyClientHardocodedBaseUrl(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TestOpenAIConcurrencyClientHardocodedBaseUrl", args={
+            "input": input,
+        }, mode="request")
+        return result
     def TestOpenAIDummyClient(self, input: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -9821,6 +9887,20 @@ class BamlHttpStreamRequestClient:
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TestOpenAI", args={
+            "input": input,
+        }, mode="stream")
+        return result
+    def TestOpenAIConcurrencyClientEnvBaseUrl(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TestOpenAIConcurrencyClientEnvBaseUrl", args={
+            "input": input,
+        }, mode="stream")
+        return result
+    def TestOpenAIConcurrencyClientHardocodedBaseUrl(self, input: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="TestOpenAIConcurrencyClientHardocodedBaseUrl", args={
             "input": input,
         }, mode="stream")
         return result

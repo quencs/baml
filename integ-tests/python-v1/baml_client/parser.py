@@ -1104,6 +1104,18 @@ class LlmResponseParser:
         result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAI", llm_response=llm_response, mode="request")
         return typing.cast(str, result)
 
+    def TestOpenAIConcurrencyClientEnvBaseUrl(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIConcurrencyClientEnvBaseUrl", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
+    def TestOpenAIConcurrencyClientHardocodedBaseUrl(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIConcurrencyClientHardocodedBaseUrl", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
     def TestOpenAIDummyClient(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> str:
@@ -2646,6 +2658,18 @@ class LlmStreamParser:
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> str:
         result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAI", llm_response=llm_response, mode="stream")
+        return typing.cast(str, result)
+
+    def TestOpenAIConcurrencyClientEnvBaseUrl(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIConcurrencyClientEnvBaseUrl", llm_response=llm_response, mode="stream")
+        return typing.cast(str, result)
+
+    def TestOpenAIConcurrencyClientHardocodedBaseUrl(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestOpenAIConcurrencyClientHardocodedBaseUrl", llm_response=llm_response, mode="stream")
         return typing.cast(str, result)
 
     def TestOpenAIDummyClient(

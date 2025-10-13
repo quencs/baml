@@ -233,6 +233,8 @@ export type StreamingServerTypes = {
   TestOllama: string | null,
   TestOllamaHaiku: Haiku,
   TestOpenAI: string,
+  TestOpenAIConcurrencyClientEnvBaseUrl: string,
+  TestOpenAIConcurrencyClientHardocodedBaseUrl: string,
   TestOpenAIDummyClient: string,
   TestOpenAIGPT4oMini: string,
   TestOpenAIGPT4oMini2: string,

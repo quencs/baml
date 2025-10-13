@@ -42,6 +42,26 @@ function TestOpenAI(input: string) -> string {
   "#
 }
 
+function TestOpenAIConcurrencyClientEnvBaseUrl(input: string) -> string {
+  client OpenAIConcurrencyTestClientEnvBaseUrl
+  prompt #"
+    {{ _.role("user") }}
+    Write a nice haiku, given the user input. Make sure to reference the input in the haiku. Make it 50 paragraphs
+
+    Input: {{ input }}
+  "#
+}
+
+function TestOpenAIConcurrencyClientHardocodedBaseUrl(input: string) -> string {
+  client OpenAIConcurrencyTestClientHardocodedBaseUrl
+  prompt #"
+    {{ _.role("user") }}
+    Write a nice haiku, given the user input. Make sure to reference the input in the haiku. Make it 50 paragraphs
+
+    Input: {{ input }}
+  "#
+}
+
 // Test O1 model without max_tokens (should not add default)
 function TestOpenAIO1NoMaxTokens(input: string) -> string {
   client OpenAIO1

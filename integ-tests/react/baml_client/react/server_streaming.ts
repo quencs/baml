@@ -3492,6 +3492,44 @@ export const TestOpenAI = async (
 };
 
 /**
+ * Executes the streaming variant of the "TestOpenAIConcurrencyClientEnvBaseUrl" BAML action.
+ *
+ * This action initiates a streaming response by calling the corresponding
+ * BAML stream function. The returned stream yields incremental updates.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {ReadableStream<Uint8Array>} A stream that yields incremental updates from the action.
+ */
+export const TestOpenAIConcurrencyClientEnvBaseUrl = async (
+  input: string,
+): Promise<ReadableStream<Uint8Array>> => {
+  const stream = b.stream.TestOpenAIConcurrencyClientEnvBaseUrl(
+    input,
+  );
+  return Promise.resolve(stream.toStreamable());
+};
+
+/**
+ * Executes the streaming variant of the "TestOpenAIConcurrencyClientHardocodedBaseUrl" BAML action.
+ *
+ * This action initiates a streaming response by calling the corresponding
+ * BAML stream function. The returned stream yields incremental updates.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {ReadableStream<Uint8Array>} A stream that yields incremental updates from the action.
+ */
+export const TestOpenAIConcurrencyClientHardocodedBaseUrl = async (
+  input: string,
+): Promise<ReadableStream<Uint8Array>> => {
+  const stream = b.stream.TestOpenAIConcurrencyClientHardocodedBaseUrl(
+    input,
+  );
+  return Promise.resolve(stream.toStreamable());
+};
+
+/**
  * Executes the streaming variant of the "TestOpenAIDummyClient" BAML action.
  *
  * This action initiates a streaming response by calling the corresponding

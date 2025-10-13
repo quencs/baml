@@ -9374,6 +9374,106 @@ export function useTestOpenAI(
   }
 }
 /**
+ * A specialized hook for the TestOpenAIConcurrencyClientEnvBaseUrl BAML function that supports both streaming and non‑streaming responses.
+ *
+ * **Input Types:**
+ *
+ * - input: string
+ *
+ *
+ * **Return Type:**
+ * - **Non‑streaming:** string
+ * - **Streaming Partial:** string
+ * - **Streaming Final:** string
+ *
+ * **Usage Patterns:**
+ * 1. **Non‑streaming (Default)**
+ *    - Best for quick responses and simple UI updates.
+ * 2. **Streaming**
+ *    - Ideal for long‑running operations or real‑time feedback.
+ *
+ * **Edge Cases:**
+ * - Ensure robust error handling via `onError`.
+ * - Handle cases where partial data may be incomplete or missing.
+ *
+ * @example
+ * ```tsx
+ * // Basic non‑streaming usage:
+ * const { data, error, isLoading, mutate } = useTestOpenAIConcurrencyClientEnvBaseUrl({ stream: false});
+ *
+ * // Streaming usage:
+ * const { data, streamData, isLoading, error, mutate } = useTestOpenAIConcurrencyClientEnvBaseUrl({
+ *   stream: true | undefined,
+ *   onStreamData: (partial) => console.log('Partial update:', partial),
+ *   onFinalData: (final) => console.log('Final result:', final),
+ *   onError: (err) => console.error('Error:', err),
+ * });
+ * ```
+ */
+export function useTestOpenAIConcurrencyClientEnvBaseUrl(props: HookInput<'TestOpenAIConcurrencyClientEnvBaseUrl', { stream: false }>): HookOutput<'TestOpenAIConcurrencyClientEnvBaseUrl', { stream: false }>
+export function useTestOpenAIConcurrencyClientEnvBaseUrl(props?: HookInput<'TestOpenAIConcurrencyClientEnvBaseUrl', { stream?: true }>): HookOutput<'TestOpenAIConcurrencyClientEnvBaseUrl', { stream: true }>
+export function useTestOpenAIConcurrencyClientEnvBaseUrl(
+  props: HookInput<'TestOpenAIConcurrencyClientEnvBaseUrl', { stream?: boolean }> = {},
+): HookOutput<'TestOpenAIConcurrencyClientEnvBaseUrl', { stream: true }> | HookOutput<'TestOpenAIConcurrencyClientEnvBaseUrl', { stream: false }> {
+  let action: ServerAction = Actions.TestOpenAIConcurrencyClientEnvBaseUrl;
+  if (isStreamingProps(props)) {
+    action = StreamingActions.TestOpenAIConcurrencyClientEnvBaseUrl;
+    return useBamlAction(action, props)
+  } else {
+    return useBamlAction(action, props as HookInput<'TestOpenAIConcurrencyClientEnvBaseUrl', { stream: false }>)
+  }
+}
+/**
+ * A specialized hook for the TestOpenAIConcurrencyClientHardocodedBaseUrl BAML function that supports both streaming and non‑streaming responses.
+ *
+ * **Input Types:**
+ *
+ * - input: string
+ *
+ *
+ * **Return Type:**
+ * - **Non‑streaming:** string
+ * - **Streaming Partial:** string
+ * - **Streaming Final:** string
+ *
+ * **Usage Patterns:**
+ * 1. **Non‑streaming (Default)**
+ *    - Best for quick responses and simple UI updates.
+ * 2. **Streaming**
+ *    - Ideal for long‑running operations or real‑time feedback.
+ *
+ * **Edge Cases:**
+ * - Ensure robust error handling via `onError`.
+ * - Handle cases where partial data may be incomplete or missing.
+ *
+ * @example
+ * ```tsx
+ * // Basic non‑streaming usage:
+ * const { data, error, isLoading, mutate } = useTestOpenAIConcurrencyClientHardocodedBaseUrl({ stream: false});
+ *
+ * // Streaming usage:
+ * const { data, streamData, isLoading, error, mutate } = useTestOpenAIConcurrencyClientHardocodedBaseUrl({
+ *   stream: true | undefined,
+ *   onStreamData: (partial) => console.log('Partial update:', partial),
+ *   onFinalData: (final) => console.log('Final result:', final),
+ *   onError: (err) => console.error('Error:', err),
+ * });
+ * ```
+ */
+export function useTestOpenAIConcurrencyClientHardocodedBaseUrl(props: HookInput<'TestOpenAIConcurrencyClientHardocodedBaseUrl', { stream: false }>): HookOutput<'TestOpenAIConcurrencyClientHardocodedBaseUrl', { stream: false }>
+export function useTestOpenAIConcurrencyClientHardocodedBaseUrl(props?: HookInput<'TestOpenAIConcurrencyClientHardocodedBaseUrl', { stream?: true }>): HookOutput<'TestOpenAIConcurrencyClientHardocodedBaseUrl', { stream: true }>
+export function useTestOpenAIConcurrencyClientHardocodedBaseUrl(
+  props: HookInput<'TestOpenAIConcurrencyClientHardocodedBaseUrl', { stream?: boolean }> = {},
+): HookOutput<'TestOpenAIConcurrencyClientHardocodedBaseUrl', { stream: true }> | HookOutput<'TestOpenAIConcurrencyClientHardocodedBaseUrl', { stream: false }> {
+  let action: ServerAction = Actions.TestOpenAIConcurrencyClientHardocodedBaseUrl;
+  if (isStreamingProps(props)) {
+    action = StreamingActions.TestOpenAIConcurrencyClientHardocodedBaseUrl;
+    return useBamlAction(action, props)
+  } else {
+    return useBamlAction(action, props as HookInput<'TestOpenAIConcurrencyClientHardocodedBaseUrl', { stream: false }>)
+  }
+}
+/**
  * A specialized hook for the TestOpenAIDummyClient BAML function that supports both streaming and non‑streaming responses.
  *
  * **Input Types:**
