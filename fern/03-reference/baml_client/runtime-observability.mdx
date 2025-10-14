@@ -1,0 +1,459 @@
+---
+title: Runtime Observability
+---
+
+<Info>
+This feature was added in 0.210.0
+</Info>
+
+The BAML runtime observability system allows you to receive real-time callbacks about workflow execution, including block progress and variable updates. This enables you to build responsive UIs, track progress, and access intermediate results during complex BAML workflows.
+
+## Notification Types
+
+### VarNotification
+
+Represents an update to a watched variable in your BAML workflow.
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+from typing import TypeVar, Generic
+from baml_client.types import VarNotification
+
+T = TypeVar('T')
+
+class VarNotification(Generic[T]):
+    """
+    Notification fired when a watched variable is updated
+    
+    Attributes:
+        variable_name: Name of the variable that was updated
+        value: The new value of the variable
+        timestamp: ISO timestamp when the update occurred
+        function_name: Name of the BAML function containing the variable
+    """
+    variable_name: str
+    value: T
+    timestamp: str
+    function_name: str
+
+# Usage examples:
+# VarNotification[int] for integer variables
+# VarNotification[str] for string variables  
+# VarNotification[List[Post]] for complex types
+```
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+```typescript
+import type { VarNotification } from './baml-client/types'
+
+interface VarNotification<T = any> {
+  /**
+   * Notification fired when a watched variable is updated
+   */
+  
+  /** Name of the variable that was updated */
+  variableName: string
+  
+  /** The new value of the variable */
+  value: T
+  
+  /** ISO timestamp when the update occurred */
+  timestamp: string
+  
+  /** Name of the BAML function containing the variable */
+  functionName: string
+}
+
+// Usage examples:
+// VarNotification<number> for integer variables
+// VarNotification<string> for string variables
+// VarNotification<Post[]> for complex types
+```
+</Tab>
+
+<Tab title="Go" language="go">
+```go
+package types
+
+import "time"
+
+// Since Go doesn't have user-defined generics, we generate specific types
+// for each watched variable in your BAML functions
+
+// For a variable named "progress_percent" of type int
+type ProgressPercentVarNotification struct {
+    // Name of the variable that was updated
+    VariableName string `json:"variable_name"`
+    
+    // The new value of the variable
+    Value int `json:"value"`
+    
+    // Timestamp when the update occurred
+    Timestamp time.Time `json:"timestamp"`
+    
+    // Name of the BAML function containing the variable
+    FunctionName string `json:"function_name"`
+}
+
+// For a variable named "current_task" of type string  
+type CurrentTaskVarNotification struct {
+    VariableName string `json:"variable_name"`
+    Value string `json:"value"`
+    Timestamp time.Time `json:"timestamp"`
+    FunctionName string `json:"function_name"`
+}
+
+// For a variable named "completed_posts" of type []Post
+type CompletedPostsVarNotification struct {
+    VariableName string `json:"variable_name"`
+    Value []Post `json:"value"`
+    Timestamp time.Time `json:"timestamp"`
+    FunctionName string `json:"function_name"`
+}
+```
+</Tab>
+</Tabs>
+
+### BlockNotification
+
+Represents progress through a markdown block in your BAML workflow.
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+from baml_client.types import BlockNotification
+
+class BlockNotification:
+    """
+    Notification fired when entering or exiting a markdown block
+    
+    Attributes:
+        block_label: The markdown header text (e.g., "# Summarize Source")
+        block_level: The markdown header level (1-6)
+        event_type: Whether we're entering or exiting the block
+        timestamp: ISO timestamp when the event occurred
+        function_name: Name of the BAML function containing the block
+    """
+    block_label: str
+    block_level: int  # 1-6 for # through ######
+    event_type: str   # "enter" | "exit"
+    timestamp: str
+    function_name: str
+```
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+```typescript
+import type { BlockNotification } from './baml-client/types'
+
+interface BlockNotification {
+  /**
+   * Notification fired when entering or exiting a markdown block
+   */
+  
+  /** The markdown header text (e.g., "# Summarize Source") */
+  blockLabel: string
+  
+  /** The markdown header level (1-6) */
+  blockLevel: number
+  
+  /** Whether we're entering or exiting the block */
+  eventType: "enter" | "exit"
+  
+  /** ISO timestamp when the event occurred */
+  timestamp: string
+  
+  /** Name of the BAML function containing the block */
+  functionName: string
+}
+```
+</Tab>
+
+<Tab title="Go" language="go">
+```go
+package types
+
+import "time"
+
+type BlockNotificationType string
+
+const (
+    BlockNotificationEnter BlockNotificationType = "enter"
+    BlockNotificationExit  BlockNotificationType = "exit"
+)
+
+type BlockNotification struct {
+    // The markdown header text (e.g., "# Summarize Source")
+    BlockLabel string `json:"block_label"`
+    
+    // The markdown header level (1-6)
+    BlockLevel int `json:"block_level"`
+    
+    // Whether we're entering or exiting the block
+    EventType BlockNotificationType `json:"event_type"`
+    
+    // Timestamp when the event occurred
+    Timestamp time.Time `json:"timestamp"`
+    
+    // Name of the BAML function containing the block
+    FunctionName string `json:"function_name"`
+}
+```
+</Tab>
+</Tabs>
+
+## Usage Examples
+
+### Tracking Variable Updates
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+from baml_client import b, watchers
+from baml_client.types import VarNotification
+
+def track_progress(notif: VarNotification[int]):
+    print(f"Progress updated: {notif.value}% at {notif.timestamp}")
+
+def track_current_task(notif: VarNotification[str]):
+    print(f"Now working on: {notif.value}")
+
+# Set up variable tracking
+watcher = watchers.MakePosts()
+watcher.vars.progress_percent(track_progress)
+watcher.vars.current_task(track_current_task)
+
+# Run the function
+posts = await b.MakePosts("https://example.com", {"watchers": watcher})
+```
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+```typescript
+import { b, watchers } from './baml-client'
+import type { VarNotification } from './baml-client/types'
+
+const trackProgress = (notif: VarNotification<number>) => {
+  console.log(`Progress updated: ${notif.value}% at ${notif.timestamp}`)
+}
+
+const trackCurrentTask = (notif: VarNotification<string>) => {
+  console.log(`Now working on: ${notif.value}`)
+}
+
+// Set up variable tracking
+const watcher = watchers.MakePosts()
+watcher.on_var_progress_percent(trackProgress)
+watcher.on_var_current_task(trackCurrentTask)
+
+// Run the function
+const posts = await b.MakePosts("https://example.com", { watchers: watcher })
+```
+</Tab>
+
+<Tab title="Go" language="go">
+```go
+package main
+
+import (
+    "fmt"
+    b "example.com/myproject/baml_client"
+    "example.com/myproject/baml_client/watchers"
+    "example.com/myproject/baml_client/types"
+)
+
+func trackProgress(notif *types.ProgressPercentVarNotification) {
+    fmt.Printf("Progress updated: %d%% at %s\n", 
+        notif.Value, notif.Timestamp.Format("15:04:05"))
+}
+
+func trackCurrentTask(notif *types.CurrentTaskVarNotification) {
+    fmt.Printf("Now working on: %s\n", notif.Value)
+}
+
+func main() {
+    ctx := context.Background()
+    
+    // Set up variable tracking
+    watcher := watchers.NewMakePosts()
+    
+    go func() {
+        for notif := range watcher.ProgressPercentNotifications() {
+            trackProgress(notif)
+        }
+    }()
+    
+    go func() {
+        for notif := range watcher.CurrentTaskNotifications() {
+            trackCurrentTask(notif)
+        }
+    }()
+    
+    // Run the function
+    posts, err := b.MakePosts(ctx, "https://example.com", &b.MakePostsOptions{
+        Watchers: watcher,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
+</Tab>
+</Tabs>
+
+### Tracking Block Progress
+
+<Tabs>
+<Tab title="Python" language="python">
+```python
+from baml_client import b, watchers
+from baml_client.types import BlockNotification
+
+def track_blocks(notif: BlockNotification):
+    indent = "  " * (notif.block_level - 1)
+    action = "Starting" if notif.event_type == "enter" else "Completed"
+    print(f"{indent}{action}: {notif.block_label}")
+
+# Set up block tracking
+watcher = watchers.MakePosts()
+watcher.on_block(track_blocks)
+
+# Run the function
+posts = await b.MakePosts("https://example.com", {"watchers": watcher})
+```
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+```typescript
+import { b, watchers } from './baml-client'
+import type { BlockNotification } from './baml-client/types'
+
+const trackBlocks = (notif: BlockNotification) => {
+  const indent = "  ".repeat(notif.blockLevel - 1)
+  const action = notif.eventType === "enter" ? "Starting" : "Completed"
+  console.log(`${indent}${action}: ${notif.blockLabel}`)
+}
+
+// Set up block tracking
+const watcher = watchers.MakePosts()
+watcher.on_block(trackBlocks)
+
+// Run the function
+const posts = await b.MakePosts("https://example.com", { watchers: watcher })
+```
+</Tab>
+
+<Tab title="Go" language="go">
+```go
+func trackBlocks(notif *types.BlockNotification) {
+    indent := strings.Repeat("  ", notif.BlockLevel - 1)
+    action := "Starting"
+    if notif.EventType == types.BlockNotificationExit {
+        action = "Completed"
+    }
+    fmt.Printf("%s%s: %s\n", indent, action, notif.BlockLabel)
+}
+
+func main() {
+    ctx := context.Background()
+    
+    // Set up block tracking
+    watcher := watchers.NewMakePosts()
+    
+    go func() {
+        for notif := range watcher.BlockNotifications() {
+            trackBlocks(notif)
+        }
+    }()
+    
+    // Run the function
+    posts, err := b.MakePosts(ctx, "https://example.com", &b.MakePostsOptions{
+        Watchers: watcher,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Generated Watcher API
+
+<Tabs>
+<Tab title="Python" language="python">
+When you run `baml generate`, BAML analyzes your functions and creates type-safe notification handlers with generic types:
+
+```python
+# For a function with `@watch let progress: int = 0`
+watcher.vars.progress(callback: (notif: VarNotification[int]) -> None)
+
+# For a function with `@watch let status: string = "starting"`  
+watcher.vars.status(callback: (notif: VarNotification[str]) -> None)
+
+# For all markdown blocks
+watcher.on_block(callback: (notif: BlockNotification) -> None)
+```
+
+The generic `VarNotification[T]` type provides compile-time type safety, ensuring your notification handlers receive the correct data types.
+</Tab>
+
+<Tab title="TypeScript" language="typescript">
+When you run `baml generate`, BAML analyzes your functions and creates type-safe notification handlers with generic types:
+
+```typescript
+// For a function with `@watch let progress: int = 0`
+watcher.on_var_progress(callback: (notif: VarNotification<number>) => void)
+
+// For a function with `@watch let status: string = "starting"`  
+watcher.on_var_status(callback: (notif: VarNotification<string>) => void)
+
+// For all markdown blocks
+watcher.on_block(callback: (notif: BlockNotification) => void)
+```
+
+The generic `VarNotification<T>` interface provides compile-time type safety, ensuring your notification handlers receive the correct data types.
+</Tab>
+
+<Tab title="Go" language="go">
+When you run `baml generate`, BAML analyzes your functions and creates specific types for each watched variable (since Go doesn't have user-defined generics):
+
+```go
+// Separate types generated for each watched variable
+type ProgressVarNotification struct {
+    VariableName string
+    Value int
+    Timestamp time.Time
+    FunctionName string
+}
+
+type StatusVarNotification struct {
+    VariableName string
+    Value string  
+    Timestamp time.Time
+    FunctionName string
+}
+
+// Corresponding notification channels
+watcher.ProgressNotifications() <-chan *types.ProgressVarNotification
+watcher.StatusNotifications() <-chan *types.StatusVarNotification
+watcher.BlockNotifications() <-chan *types.BlockNotification
+```
+
+Each watched variable gets its own dedicated notification type, providing the same type safety as generics while working within Go's constraints.
+</Tab>
+</Tabs>
+
+## Best Practices
+
+1. **Performance**: Keep notification handlers lightweight. They run sequentially in
+   a separate thread from the rest of the BAML runtime
+1. **Error Handling**: Always include error handling in notification callbacks
+1. **Naming**: Use descriptive names for watched variables to generate clear notification handler names
+
+## Related Topics
+
+- [Runtime Observability Guide](/guide/baml-advanced/runtime-observability) - Learn how to use notifications in workflows
+- [Collector](/ref/baml_client/collector) - Comprehensive logging system

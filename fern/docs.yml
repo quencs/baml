@@ -412,9 +412,9 @@ navigation:
           - page: Modular API
             icon: fa-regular fa-cubes
             path: 01-guide/05-baml-advanced/modular-api.mdx
-          - page: Runtime Events
+          - page: Runtime Observability
             icon: fa-regular fa-headset
-            path: 01-guide/05-baml-advanced/runtime-events.mdx
+            path: 01-guide/05-baml-advanced/runtime-observability.mdx
       - section: Boundary Cloud
         contents:
           # - section: Functions
@@ -691,9 +691,9 @@ navigation:
             path: 01-guide/05-baml-advanced/client-registry.mdx
           - page: OnTick
             path: 03-reference/baml_client/ontick.mdx
-          - page: Runtime Events
-            slug: events
-            path: 03-reference/baml_client/runtime-events.mdx
+          - page: Runtime Observability
+            slug: watchers
+            path: 03-reference/baml_client/runtime-observability.mdx
           - page: Multimodal
             slug: media
             path: 03-reference/baml_client/media.mdx
