@@ -1,6 +1,6 @@
 # AST Examples
 
-This directory contains small binaries that exercise pieces of the AST library. The most interesting example today is `generate_mermaid_headers`, a CLI that renders Markdown-style headers in a `.baml` file as a Mermaid diagram. Below is a deep dive that explains how it works and how the supporting infrastructure is structured.
+This directory contains small binaries that exercise pieces of the AST library. The most interesting example today is `generate_mermaid_headers`, a CLI that renders Markdown-style headers expressed as line comments (e.g. `//# Heading`, `//## Subheading`) in a `.baml` file as a Mermaid diagram. Below is a deep dive that explains how it works and how the supporting infrastructure is structured.
 
 ## CLI Entry Point: `generate_mermaid_headers`
 - **Usage**: `cargo run --example generate_mermaid_headers -- <path/to/file.baml>`
@@ -10,7 +10,7 @@ This directory contains small binaries that exercise pieces of the AST library. 
 ## Core Components
 ### `HeaderCollector`
 Located in `engine/baml-lib/ast/src/ast/header_collector.rs`, this walker traverses the full AST to build a `HeaderIndex`.
-- Tracks lexical scopes via a `ScopeId` stack and records every Markdown header annotation attached to statements, final expressions, and loops.
+- Tracks lexical scopes via a `ScopeId` stack and records every Markdown header annotation attached to statements, final expressions, and loops, now derived from single-line comments that prefix the appropriate number of `#` characters (for example `//# Title`, `//### Deep Section`).
 - Allocates dense `Hid` identifiers per header, keeps source spans, normalizes header levels within each scope, and resolves parent/child relationships implied by Markdown nesting.
 - Captures cross-scope “nested edges” whenever a header introduces a new block (for example, an `if` or `for` body), and records top-level function call names labelled by each header for optional visualization.
 
@@ -38,7 +38,7 @@ Snapshot tests in `engine/baml-lib/baml/tests/mermaid_graph_tests.rs` cover the 
 
 ## Working With the Example
 1. Pick a fixture (e.g., `tests/validation_files/headers/basic_sections.baml`) or create your own `.baml` file.
-2. Run the example as shown above or execute the snapshot test with `cargo test -p baml-lib mermaid_graph_tests`.
+2. Run the example as shown above or execute the snapshot test with `cargo test -p baml-lib --test mermaid_graph_tests`.
 3. Paste the Mermaid output into the [Mermaid Live Editor](https://mermaid.live/) or any compatible renderer to visualize header structure.
 
 This pipeline demonstrates how the AST layer turns annotated BAML code into navigable diagrams, balancing markdown hierarchy with control-flow nesting.

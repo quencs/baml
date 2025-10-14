@@ -173,6 +173,14 @@ pub fn parse(root_path: &Path, source: &SourceFile) -> Result<(Ast, Diagnostics)
                         }
                     }
                     Rule::comment_block => {
+                        let headers = headers_from_comment_block_top_level(
+                            current.clone(),
+                            &mut diagnostics,
+                        );
+                        if !headers.is_empty() {
+                            pending_headers.extend(headers);
+                            continue;
+                        }
                         match pairs.peek().map(|b| b.as_rule()) {
                             Some(Rule::empty_lines) => {
                                 // free floating
@@ -224,6 +232,61 @@ pub fn parse(root_path: &Path, source: &SourceFile) -> Result<(Ast, Diagnostics)
             Err(diagnostics)
         }
     }
+}
+
+fn headers_from_comment_block_top_level(
+    token: pest::iterators::Pair<'_, Rule>,
+    diagnostics: &mut Diagnostics,
+) -> Vec<Header> {
+    if token.as_rule() != Rule::comment_block {
+        return Vec::new();
+    }
+
+    let mut headers = Vec::new();
+    for current in token.into_inner() {
+        if current.as_rule() == Rule::comment {
+            if let Some(header) = parse_header_from_comment_pair(&current, diagnostics) {
+                headers.push(header);
+            }
+        }
+    }
+    headers
+}
+
+fn parse_header_from_comment_pair(
+    comment: &pest::iterators::Pair<'_, Rule>,
+    diagnostics: &mut Diagnostics,
+) -> Option<Header> {
+    let span = diagnostics.span(comment.as_span());
+    let mut text = comment.as_str().trim_start();
+    if !text.starts_with("//") {
+        return None;
+    }
+    text = &text[2..];
+    let text = text.trim_start();
+    if !text.starts_with('#') {
+        return None;
+    }
+
+    let mut level = 0usize;
+    for ch in text.chars() {
+        if ch == '#' {
+            level += 1;
+        } else {
+            break;
+        }
+    }
+    if level == 0 {
+        return None;
+    }
+
+    let title = text[level..].trim().to_string();
+
+    Some(Header {
+        level: level as u8,
+        title,
+        span,
+    })
 }
 
 fn get_expected_from_error(positives: &[Rule]) -> String {

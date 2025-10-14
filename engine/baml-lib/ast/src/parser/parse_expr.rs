@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use internal_baml_diagnostics::{DatamodelError, Diagnostics};
 
 use super::{
@@ -776,17 +778,31 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
 
     // First pass: collect all headers
     for item in &items {
-        if item.as_rule() == Rule::mdx_header {
-            let header = parse_header(item.clone(), diagnostics);
-            if let Some(header) = header {
-                let header_arc = std::sync::Arc::new(header);
-                all_headers_in_block.push(header_arc.clone());
+        match item.as_rule() {
+            Rule::mdx_header => {
+                if let Some(header) = parse_header(item.clone(), diagnostics) {
+                    let header_arc = std::sync::Arc::new(header);
+                    all_headers_in_block.push(header_arc);
+                }
             }
+            Rule::comment_block => {
+                let headers = headers_from_comment_block(item.clone(), diagnostics);
+                if !headers.is_empty() {
+                    all_headers_in_block.extend(headers);
+                }
+            }
+            _ => {}
         }
     }
 
     // Normalize all headers in the block together
     normalize_headers(&mut all_headers_in_block);
+
+    // Lookup by span so we can reuse normalized headers later.
+    let mut header_lookup: HashMap<(usize, usize), std::sync::Arc<Header>> = HashMap::new();
+    for header in &all_headers_in_block {
+        header_lookup.insert((header.span.start, header.span.end), header.clone());
+    }
 
     // Debug: Print normalized headers (disabled)
     // println!("PARSER: Normalized headers in block:");
@@ -828,22 +844,14 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
             }
             Rule::mdx_header => {
                 // Headers are already processed, just update current headers
-                let header = parse_header(item, diagnostics);
-                if let Some(header) = header {
+                if let Some(header) = parse_header(item, diagnostics) {
                     let header_arc = std::sync::Arc::new(header);
-
-                    // Find the corresponding normalized header
-                    if let Some(normalized_header) = all_headers_in_block
-                        .iter()
-                        .find(|h| h.title == header_arc.title)
-                    {
-                        // Implement header hierarchy logic
-                        filter_headers_by_hierarchy(&mut current_headers, normalized_header);
-
-                        // Add to current headers and headers since last statement
-                        current_headers.push(normalized_header.clone());
-                        headers_since_last_stmt.push(normalized_header.clone());
-                    }
+                    attach_header_if_known(
+                        &header_arc,
+                        &header_lookup,
+                        &mut current_headers,
+                        &mut headers_since_last_stmt,
+                    );
                 }
             }
             Rule::BLOCK_CLOSE => {
@@ -863,8 +871,18 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                 continue;
             }
             Rule::comment_block => {
-                // Skip comments in function bodies
-                continue;
+                let headers = headers_from_comment_block(item, diagnostics);
+                if headers.is_empty() {
+                    continue;
+                }
+                for header in headers {
+                    attach_header_if_known(
+                        &header,
+                        &header_lookup,
+                        &mut current_headers,
+                        &mut headers_since_last_stmt,
+                    );
+                }
             }
             Rule::empty_lines => {
                 // Skip empty lines in function bodies
@@ -940,6 +958,75 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
         expr: trailing_expr,
         expr_headers: headers_since_last_stmt,
     })
+}
+
+fn headers_from_comment_block(
+    token: Pair<'_>,
+    diagnostics: &mut Diagnostics,
+) -> Vec<std::sync::Arc<Header>> {
+    if token.as_rule() != Rule::comment_block {
+        return Vec::new();
+    }
+
+    let mut headers = Vec::new();
+    for current in token.into_inner() {
+        if current.as_rule() == Rule::comment {
+            if let Some(header) = parse_header_from_comment(&current, diagnostics) {
+                headers.push(std::sync::Arc::new(header));
+            }
+        }
+    }
+    headers
+}
+
+fn parse_header_from_comment(
+    comment: &Pair<'_>,
+    diagnostics: &mut Diagnostics,
+) -> Option<Header> {
+    let span = diagnostics.span(comment.as_span());
+    let mut text = comment.as_str().trim_start();
+    if !text.starts_with("//") {
+        return None;
+    }
+    text = &text[2..];
+    let text = text.trim_start();
+    if !text.starts_with('#') {
+        return None;
+    }
+
+    let mut level = 0usize;
+    for ch in text.chars() {
+        if ch == '#' {
+            level += 1;
+        } else {
+            break;
+        }
+    }
+    if level == 0 {
+        return None;
+    }
+
+    let rest = text[level..].trim().to_string();
+
+    Some(Header {
+        level: level as u8,
+        title: rest,
+        span,
+    })
+}
+
+fn attach_header_if_known(
+    header: &std::sync::Arc<Header>,
+    lookup: &HashMap<(usize, usize), std::sync::Arc<Header>>,
+    current_headers: &mut Vec<std::sync::Arc<Header>>,
+    headers_since_last_stmt: &mut Vec<std::sync::Arc<Header>>,
+) {
+    let key = (header.span.start, header.span.end);
+    if let Some(normalized_header) = lookup.get(&key) {
+        filter_headers_by_hierarchy(current_headers, normalized_header);
+        current_headers.push(normalized_header.clone());
+        headers_since_last_stmt.push(normalized_header.clone());
+    }
 }
 
 /// Parse a single header from an MDX header token
