@@ -24,11 +24,15 @@ impl {{ name }} {
     
     /// Get the string representation of this enum variant
     pub fn as_str(&self) -> &'static str {
+        {%- if values.is_empty() %}
+        unreachable!("Enum {{ name }} has no variants");
+        {%- else %}
         match self {
             {%- for value in values %}
             Self::{{ value }} => "{{ value }}",
             {%- endfor %}
         }
+        {%- endif %}
     }
     
     /// Create enum from string, if valid

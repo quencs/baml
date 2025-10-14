@@ -348,6 +348,19 @@ impl FromBamlValue for BamlMap<String, BamlValue> {
     }
 }
 
+impl ToBamlValue for serde_json::Value {
+    fn to_baml_value(self) -> crate::BamlResult<BamlValue> {
+        BamlValue::try_from(self).map_err(|e| crate::BamlError::deserialization(e.to_string()))
+    }
+}
+
+impl FromBamlValue for serde_json::Value {
+    fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
+        serde_json::to_value(&value)
+            .map_err(|e| crate::BamlError::deserialization(e.to_string()))
+    }
+}
+
 // Stub implementations for BAML runtime components we're no longer using directly
 
 /// Type builder for BAML types backed by the shared CFFI runtime

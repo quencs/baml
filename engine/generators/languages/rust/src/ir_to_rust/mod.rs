@@ -58,28 +58,10 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
             Box::new(recursive_fn(type_generic1)),
             meta,
         ),
-        T::RecursiveTypeAlias {
-            name,
-            meta: alias_meta,
-            ..
-        } => {
-            if lookup.expand_recursive_type(name).is_err() {
-                TypeRust::Any {
-                    reason: format!("Recursive type alias {name} is not supported in Rust"),
-                    meta,
-                }
-            } else {
-                TypeRust::TypeAlias {
-                    package: match alias_meta.streaming_behavior.done {
-                        true => types_pkg.clone(),
-                        false => stream_pkg.clone(),
-                    },
-                    name: name.clone(),
-                    needs_box: false,
-                    meta,
-                }
-            }
-        }
+        T::RecursiveTypeAlias { name, .. } => TypeRust::Any {
+            reason: format!("Recursive type alias {name} is not supported in Rust"),
+            meta,
+        },
         T::Tuple(..) => TypeRust::Any {
             reason: "tuples are not supported in Rust".to_string(),
             meta,
@@ -111,51 +93,43 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
                 type_rust
             }
             baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
-                let options: Vec<_> = type_generics.into_iter().map(&recursive_fn).collect();
-                let num_options = options.len();
-                let mut name = options
+                let type_generics_vec: Vec<_> = type_generics.into_iter().collect();
+                let num_options = type_generics_vec.len();
+                let mut name = type_generics_vec
                     .iter()
-                    .map(|t| t.default_name_within_union())
+                    .map(|t| {
+                        let non_stream =
+                            t.clone().to_ir_type().to_non_streaming_type(lookup);
+                        let rust_type = type_to_rust(&non_stream, lookup);
+                        rust_type.default_name_within_union()
+                    })
                     .collect::<Vec<_>>();
                 name.sort();
                 let name = name.join("Or");
                 TypeRust::Union {
-                    package: match field.mode(&baml_types::StreamingMode::Streaming, lookup) {
-                        Ok(baml_types::StreamingMode::NonStreaming) => types_pkg.clone(),
-                        Ok(baml_types::StreamingMode::Streaming) => stream_pkg.clone(),
-                        Err(e) => {
-                            return TypeRust::Any {
-                                reason: format!("Failed to get mode for field type: {e}"),
-                                meta,
-                            }
-                        }
-                    },
+                    package: types_pkg.clone(),
                     name: format!("Union{num_options}{name}"),
                     meta,
                 }
             }
             baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
-                let options: Vec<_> = type_generics.into_iter().map(recursive_fn).collect();
-                let num_options = options.len();
-                let mut name = options
+                let type_generics_vec: Vec<_> = type_generics.into_iter().collect();
+                let num_options = type_generics_vec.len();
+                let mut name = type_generics_vec
                     .iter()
-                    .map(|t| t.default_name_within_union())
+                    .map(|t| {
+                        let non_stream =
+                            t.clone().to_ir_type().to_non_streaming_type(lookup);
+                        let rust_type = type_to_rust(&non_stream, lookup);
+                        rust_type.default_name_within_union()
+                    })
                     .collect::<Vec<_>>();
                 name.sort();
                 let name = name.join("Or");
                 let mut meta = meta;
                 meta.make_optional();
                 TypeRust::Union {
-                    package: match field.mode(&baml_types::StreamingMode::Streaming, lookup) {
-                        Ok(baml_types::StreamingMode::NonStreaming) => types_pkg.clone(),
-                        Ok(baml_types::StreamingMode::Streaming) => stream_pkg.clone(),
-                        Err(e) => {
-                            return TypeRust::Any {
-                                reason: format!("Failed to get mode for field type: {e}"),
-                                meta,
-                            }
-                        }
-                    },
+                    package: types_pkg.clone(),
                     name: format!("Union{num_options}{name}"),
                     meta,
                 }
@@ -215,21 +189,10 @@ pub(crate) fn type_to_rust(field: &TypeNonStreaming, lookup: &impl TypeLookups) 
             reason: "arrow types are not supported in Rust".to_string(),
             meta,
         },
-        T::RecursiveTypeAlias { name, .. } => {
-            if lookup.expand_recursive_type(name).is_err() {
-                TypeRust::Any {
-                    reason: format!("Recursive type alias {name} is not supported in Rust"),
-                    meta,
-                }
-            } else {
-                TypeRust::TypeAlias {
-                    package: type_pkg.clone(),
-                    name: name.clone(),
-                    needs_box: false,
-                    meta,
-                }
-            }
-        }
+        T::RecursiveTypeAlias { name, .. } => TypeRust::Any {
+            reason: format!("Recursive type alias {name} is not supported in Rust"),
+            meta,
+        },
         T::Union(union_type_generic, union_meta) => match union_type_generic.view() {
             baml_types::ir_type::UnionTypeViewGeneric::Null => TypeRust::Null(meta),
             baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {

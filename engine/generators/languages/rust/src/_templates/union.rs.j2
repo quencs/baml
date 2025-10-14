@@ -1,7 +1,15 @@
 {% if let Some(docstring) = docstring -%}
 /// {{ docstring }}
 {% endif -%}
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq{% if all_variants_are_string_literals %},
+    Eq,
+    Hash{% endif %},
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum {{ name }} {
     {%- for variant in variants %}
@@ -16,6 +24,23 @@ pub enum {{ name }} {
     {%- endif %}
     {%- endfor %}
 }
+
+{% if all_variants_are_string_literals %}
+impl std::str::FromStr for {{ name }} {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            {%- for variant in variants %}
+            {%- if let Some(literal) = variant.literal_value %}
+            {{ literal | json_string_literal }} => Ok(Self::{{ variant.name }}),
+            {%- endif %}
+            {%- endfor %}
+            other => Err(format!("Invalid literal '{}' for {{ name }}", other)),
+        }
+    }
+}
+{% endif %}
 
 impl {{ name }} {
     {%- for variant in variants %}
@@ -147,7 +172,7 @@ impl Default for {{ name }} {
                     {%- if let Some(literal) = variant.literal_value %}
                         Self::{{ variant.name }}
                     {%- else %}
-                        Self::{{ variant.name }}({{ variant.rust_type.serialize_type(pkg) }}::default())
+                        Self::{{ variant.name }}(Default::default())
                     {%- endif %}
                 {%- endif %}
             {%- endfor %}

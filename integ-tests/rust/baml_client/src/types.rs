@@ -8454,13 +8454,13 @@ impl baml_client_rust::types::FromBamlValue for Recipe {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RecursiveAliasDependency {
     
-    pub value: crate::types::JsonValue,
+    pub value: serde_json::Value,
 }
 
 impl RecursiveAliasDependency {
     /// Create a new RecursiveAliasDependency instance
     pub fn new(
-        value: crate::types::JsonValue,
+        value: serde_json::Value,
     ) -> Self {
         Self {
             value,
@@ -8472,7 +8472,7 @@ impl RecursiveAliasDependency {
 impl Default for RecursiveAliasDependency {
     fn default() -> Self {
         Self::new(
-            crate::types::JsonValue::default(),
+            serde_json::Value::Null,
         )
     }
 }
@@ -8495,7 +8495,7 @@ impl baml_client_rust::types::FromBamlValue for RecursiveAliasDependency {
                         match value {
                             baml_client_rust::types::BamlValue::Null
                                 if baml_client_rust::types::is_partial_deserialization() => {
-                                    crate::types::JsonValue::default()
+                                    serde_json::Value::Null
                                 }
                             _ => baml_client_rust::types::FromBamlValue::from_baml_value(
                                 value.clone(),
@@ -8503,7 +8503,7 @@ impl baml_client_rust::types::FromBamlValue for RecursiveAliasDependency {
                         }
                     }
                     None if baml_client_rust::types::is_partial_deserialization() => {
-                        crate::types::JsonValue::default()
+                        serde_json::Value::Null
                     }
                     None => {
                         return Err(baml_client_rust::BamlError::deserialization(format!(
@@ -11936,8 +11936,7 @@ impl DynEnumOne {
     
     /// Get the string representation of this enum variant
     pub fn as_str(&self) -> &'static str {
-        match self {
-        }
+        unreachable!("Enum DynEnumOne has no variants");
     }
     
     /// Create enum from string, if valid
@@ -12109,8 +12108,7 @@ impl DynEnumTwo {
     
     /// Get the string representation of this enum variant
     pub fn as_str(&self) -> &'static str {
-        match self {
-        }
+        unreachable!("Enum DynEnumTwo has no variants");
     }
     
     /// Create enum from string, if valid
@@ -13331,12 +13329,20 @@ impl baml_client_rust::types::FromBamlValue for TestEnum {
 }
 
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2AddTodoItemOrTodoMessageToUser {
     AddTodoItem(crate::types::AddTodoItem),
     TodoMessageToUser(crate::types::TodoMessageToUser),
 }
+
+
 
 impl Union2AddTodoItemOrTodoMessageToUser {
     
@@ -13446,7 +13452,7 @@ impl std::fmt::Display for Union2AddTodoItemOrTodoMessageToUser {
 
 impl Default for Union2AddTodoItemOrTodoMessageToUser {
     fn default() -> Self {
-                        Self::AddTodoItem(crate::types::AddTodoItem::default())
+                        Self::AddTodoItem(Default::default())
     }
 }
 
@@ -13516,12 +13522,176 @@ impl baml_client_rust::types::FromBamlValue for Union2AddTodoItemOrTodoMessageTo
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
+#[serde(untagged)]
+pub enum Union2AnyOrSimpleTag {
+    SimpleTag(crate::types::SimpleTag),
+    Any(serde_json::Value),
+}
+
+
+
+impl Union2AnyOrSimpleTag {
+    
+    /// Check if this union is a SimpleTag variant
+    pub fn is_simple_tag(&self) -> bool {
+        matches!(self, Self::SimpleTag(_))
+    }
+    /// Get the SimpleTag value if this union contains it
+    pub fn as_simple_tag(&self) -> Option<&crate::types::SimpleTag> {
+        match self {
+            Self::SimpleTag(v) => Some(v),
+            _ => None,
+        }
+    }
+    
+    /// Extract the SimpleTag value, consuming the union
+    pub fn into_simple_tag(self) -> Option<crate::types::SimpleTag> {
+        match self {
+            Self::SimpleTag(v) => Some(v),
+            _ => None,
+        }
+    }
+    
+    /// Get a mutable reference to the SimpleTag value if this union contains it
+    pub fn as_simple_tag_mut(&mut self) -> Option<&mut crate::types::SimpleTag> {
+        match self {
+            Self::SimpleTag(v) => Some(v),
+            _ => None,
+        }
+    }
+    
+    /// Create a new Union2AnyOrSimpleTag with a SimpleTag variant
+    pub fn simple_tag(value: crate::types::SimpleTag) -> Self {
+        Self::SimpleTag(value)
+    }
+    
+    /// Check if this union is a Any variant
+    pub fn is_any(&self) -> bool {
+        matches!(self, Self::Any(_))
+    }
+    /// Get the Any value if this union contains it
+    pub fn as_any(&self) -> Option<&serde_json::Value> {
+        match self {
+            Self::Any(v) => Some(v),
+            _ => None,
+        }
+    }
+    
+    /// Extract the Any value, consuming the union
+    pub fn into_any(self) -> Option<serde_json::Value> {
+        match self {
+            Self::Any(v) => Some(v),
+            _ => None,
+        }
+    }
+    
+    /// Get a mutable reference to the Any value if this union contains it
+    pub fn as_any_mut(&mut self) -> Option<&mut serde_json::Value> {
+        match self {
+            Self::Any(v) => Some(v),
+            _ => None,
+        }
+    }
+    
+    /// Create a new Union2AnyOrSimpleTag with a Any variant
+    pub fn any(value: serde_json::Value) -> Self {
+        Self::Any(value)
+    }
+}
+
+/// Pattern matching helper for Union2AnyOrSimpleTag
+impl Union2AnyOrSimpleTag {
+    /// Match on the union variant and apply the corresponding function
+    pub fn match_variant<T>(
+        &self,
+        simple_tag: impl FnOnce(&crate::types::SimpleTag) -> T,
+        any: impl FnOnce(&serde_json::Value) -> T,
+    ) -> T {
+        match self {
+            Self::SimpleTag(v) => simple_tag(v),
+            Self::Any(v) => any(v),
+        }
+    }
+    
+    /// Match on the union variant and apply the corresponding function, consuming the union
+    pub fn match_variant_owned<T>(
+        self,
+        simple_tag: impl FnOnce(crate::types::SimpleTag) -> T,
+        any: impl FnOnce(serde_json::Value) -> T,
+    ) -> T {
+        match self {
+            Self::SimpleTag(v) => simple_tag(v),
+            Self::Any(v) => any(v),
+        }
+    }
+}
+
+/// Display implementation that shows the variant name and value
+impl std::fmt::Display for Union2AnyOrSimpleTag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SimpleTag(v) => write!(f, "SimpleTag({:?})", v),
+            Self::Any(v) => write!(f, "Any({:?})", v),
+        }
+    }
+}
+
+impl Default for Union2AnyOrSimpleTag {
+    fn default() -> Self {
+                        Self::SimpleTag(Default::default())
+    }
+}
+
+// BAML trait implementations
+impl baml_client_rust::types::ToBamlValue for Union2AnyOrSimpleTag {
+    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
+        match self {
+            Self::SimpleTag(v) => v.to_baml_value(),
+            Self::Any(v) => v.to_baml_value(),
+        }
+    }
+}
+
+impl baml_client_rust::types::FromBamlValue for Union2AnyOrSimpleTag {
+    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
+        
+        // Try SimpleTag variant
+        if let Ok(variant_value) = crate::types::SimpleTag::from_baml_value(value.clone()) {
+            return Ok(Self::SimpleTag(variant_value));
+        }
+        // Try Any variant
+        if let Ok(variant_value) = serde_json::Value::from_baml_value(value.clone()) {
+            return Ok(Self::Any(variant_value));
+        }
+        
+        Err(baml_client_rust::BamlError::deserialization(format!(
+            "Could not convert {:?} to Union2AnyOrSimpleTag",
+            value
+        )))
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2BoolOrFloat {
     Float(f64),
     Bool(bool),
 }
+
+
 
 impl Union2BoolOrFloat {
     
@@ -13631,7 +13801,7 @@ impl std::fmt::Display for Union2BoolOrFloat {
 
 impl Default for Union2BoolOrFloat {
     fn default() -> Self {
-                        Self::Float(f64::default())
+                        Self::Float(Default::default())
     }
 }
 
@@ -13664,12 +13834,20 @@ impl baml_client_rust::types::FromBamlValue for Union2BoolOrFloat {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2BoolOrString {
     String(String),
     Bool(bool),
 }
+
+
 
 impl Union2BoolOrString {
     
@@ -13779,7 +13957,7 @@ impl std::fmt::Display for Union2BoolOrString {
 
 impl Default for Union2BoolOrString {
     fn default() -> Self {
-                        Self::String(String::default())
+                        Self::String(Default::default())
     }
 }
 
@@ -13812,12 +13990,20 @@ impl baml_client_rust::types::FromBamlValue for Union2BoolOrString {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2EarthlingOrMartian {
     Martian(crate::types::Martian),
     Earthling(crate::types::Earthling),
 }
+
+
 
 impl Union2EarthlingOrMartian {
     
@@ -13927,7 +14113,7 @@ impl std::fmt::Display for Union2EarthlingOrMartian {
 
 impl Default for Union2EarthlingOrMartian {
     fn default() -> Self {
-                        Self::Martian(crate::types::Martian::default())
+                        Self::Martian(Default::default())
     }
 }
 
@@ -13960,12 +14146,20 @@ impl baml_client_rust::types::FromBamlValue for Union2EarthlingOrMartian {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2EmailAddressOrPhoneNumber {
     PhoneNumber(crate::types::PhoneNumber),
     EmailAddress(crate::types::EmailAddress),
 }
+
+
 
 impl Union2EmailAddressOrPhoneNumber {
     
@@ -14075,7 +14269,7 @@ impl std::fmt::Display for Union2EmailAddressOrPhoneNumber {
 
 impl Default for Union2EmailAddressOrPhoneNumber {
     fn default() -> Self {
-                        Self::PhoneNumber(crate::types::PhoneNumber::default())
+                        Self::PhoneNumber(Default::default())
     }
 }
 
@@ -14108,12 +14302,20 @@ impl baml_client_rust::types::FromBamlValue for Union2EmailAddressOrPhoneNumber 
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2EventOrResume {
     Resume(crate::types::Resume),
     Event(crate::types::Event),
 }
+
+
 
 impl Union2EventOrResume {
     
@@ -14223,7 +14425,7 @@ impl std::fmt::Display for Union2EventOrResume {
 
 impl Default for Union2EventOrResume {
     fn default() -> Self {
-                        Self::Resume(crate::types::Resume::default())
+                        Self::Resume(Default::default())
     }
 }
 
@@ -14256,12 +14458,20 @@ impl baml_client_rust::types::FromBamlValue for Union2EventOrResume {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2FloatOrInt {
     Int(i64),
     Float(f64),
 }
+
+
 
 impl Union2FloatOrInt {
     
@@ -14371,7 +14581,7 @@ impl std::fmt::Display for Union2FloatOrInt {
 
 impl Default for Union2FloatOrInt {
     fn default() -> Self {
-                        Self::Int(i64::default())
+                        Self::Int(Default::default())
     }
 }
 
@@ -14404,12 +14614,20 @@ impl baml_client_rust::types::FromBamlValue for Union2FloatOrInt {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2IntOrString {
     String(String),
     Int(i64),
 }
+
+
 
 impl Union2IntOrString {
     
@@ -14519,7 +14737,7 @@ impl std::fmt::Display for Union2IntOrString {
 
 impl Default for Union2IntOrString {
     fn default() -> Self {
-                        Self::String(String::default())
+                        Self::String(Default::default())
     }
 }
 
@@ -14552,155 +14770,15 @@ impl baml_client_rust::types::FromBamlValue for Union2IntOrString {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Union2JsonTemplateOrSimpleTag {
-    SimpleTag(crate::types::SimpleTag),
-    JsonTemplate(crate::types::JsonTemplate),
-}
-
-impl Union2JsonTemplateOrSimpleTag {
-    
-    /// Check if this union is a SimpleTag variant
-    pub fn is_simple_tag(&self) -> bool {
-        matches!(self, Self::SimpleTag(_))
-    }
-    /// Get the SimpleTag value if this union contains it
-    pub fn as_simple_tag(&self) -> Option<&crate::types::SimpleTag> {
-        match self {
-            Self::SimpleTag(v) => Some(v),
-            _ => None,
-        }
-    }
-    
-    /// Extract the SimpleTag value, consuming the union
-    pub fn into_simple_tag(self) -> Option<crate::types::SimpleTag> {
-        match self {
-            Self::SimpleTag(v) => Some(v),
-            _ => None,
-        }
-    }
-    
-    /// Get a mutable reference to the SimpleTag value if this union contains it
-    pub fn as_simple_tag_mut(&mut self) -> Option<&mut crate::types::SimpleTag> {
-        match self {
-            Self::SimpleTag(v) => Some(v),
-            _ => None,
-        }
-    }
-    
-    /// Create a new Union2JsonTemplateOrSimpleTag with a SimpleTag variant
-    pub fn simple_tag(value: crate::types::SimpleTag) -> Self {
-        Self::SimpleTag(value)
-    }
-    
-    /// Check if this union is a JsonTemplate variant
-    pub fn is_json_template(&self) -> bool {
-        matches!(self, Self::JsonTemplate(_))
-    }
-    /// Get the JsonTemplate value if this union contains it
-    pub fn as_json_template(&self) -> Option<&crate::types::JsonTemplate> {
-        match self {
-            Self::JsonTemplate(v) => Some(v),
-            _ => None,
-        }
-    }
-    
-    /// Extract the JsonTemplate value, consuming the union
-    pub fn into_json_template(self) -> Option<crate::types::JsonTemplate> {
-        match self {
-            Self::JsonTemplate(v) => Some(v),
-            _ => None,
-        }
-    }
-    
-    /// Get a mutable reference to the JsonTemplate value if this union contains it
-    pub fn as_json_template_mut(&mut self) -> Option<&mut crate::types::JsonTemplate> {
-        match self {
-            Self::JsonTemplate(v) => Some(v),
-            _ => None,
-        }
-    }
-    
-    /// Create a new Union2JsonTemplateOrSimpleTag with a JsonTemplate variant
-    pub fn json_template(value: crate::types::JsonTemplate) -> Self {
-        Self::JsonTemplate(value)
-    }
-}
-
-/// Pattern matching helper for Union2JsonTemplateOrSimpleTag
-impl Union2JsonTemplateOrSimpleTag {
-    /// Match on the union variant and apply the corresponding function
-    pub fn match_variant<T>(
-        &self,
-        simple_tag: impl FnOnce(&crate::types::SimpleTag) -> T,
-        json_template: impl FnOnce(&crate::types::JsonTemplate) -> T,
-    ) -> T {
-        match self {
-            Self::SimpleTag(v) => simple_tag(v),
-            Self::JsonTemplate(v) => json_template(v),
-        }
-    }
-    
-    /// Match on the union variant and apply the corresponding function, consuming the union
-    pub fn match_variant_owned<T>(
-        self,
-        simple_tag: impl FnOnce(crate::types::SimpleTag) -> T,
-        json_template: impl FnOnce(crate::types::JsonTemplate) -> T,
-    ) -> T {
-        match self {
-            Self::SimpleTag(v) => simple_tag(v),
-            Self::JsonTemplate(v) => json_template(v),
-        }
-    }
-}
-
-/// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union2JsonTemplateOrSimpleTag {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::SimpleTag(v) => write!(f, "SimpleTag({:?})", v),
-            Self::JsonTemplate(v) => write!(f, "JsonTemplate({:?})", v),
-        }
-    }
-}
-
-impl Default for Union2JsonTemplateOrSimpleTag {
-    fn default() -> Self {
-                        Self::SimpleTag(crate::types::SimpleTag::default())
-    }
-}
-
-// BAML trait implementations
-impl baml_client_rust::types::ToBamlValue for Union2JsonTemplateOrSimpleTag {
-    fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
-        match self {
-            Self::SimpleTag(v) => v.to_baml_value(),
-            Self::JsonTemplate(v) => v.to_baml_value(),
-        }
-    }
-}
-
-impl baml_client_rust::types::FromBamlValue for Union2JsonTemplateOrSimpleTag {
-    fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
-        
-        // Try SimpleTag variant
-        if let Ok(variant_value) = crate::types::SimpleTag::from_baml_value(value.clone()) {
-            return Ok(Self::SimpleTag(variant_value));
-        }
-        // Try JsonTemplate variant
-        if let Ok(variant_value) = crate::types::JsonTemplate::from_baml_value(value.clone()) {
-            return Ok(Self::JsonTemplate(variant_value));
-        }
-        
-        Err(baml_client_rust::BamlError::deserialization(format!(
-            "Could not convert {:?} to Union2JsonTemplateOrSimpleTag",
-            value
-        )))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2KBarisaOrKOxBurger {
     /// Literal value: barisa
@@ -14708,6 +14786,20 @@ pub enum Union2KBarisaOrKOxBurger {
     /// Literal value: ox_burger
     KOxBurger,
 }
+
+
+impl std::str::FromStr for Union2KBarisaOrKOxBurger {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "barisa" => Ok(Self::KBarisa),
+            "ox_burger" => Ok(Self::KOxBurger),
+            other => Err(format!("Invalid literal '{}' for Union2KBarisaOrKOxBurger", other)),
+        }
+    }
+}
+
 
 impl Union2KBarisaOrKOxBurger {
     
@@ -14821,7 +14913,15 @@ impl baml_client_rust::types::FromBamlValue for Union2KBarisaOrKOxBurger {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2KBreakfastOrKDinner {
     /// Literal value: breakfast
@@ -14829,6 +14929,20 @@ pub enum Union2KBreakfastOrKDinner {
     /// Literal value: dinner
     KDinner,
 }
+
+
+impl std::str::FromStr for Union2KBreakfastOrKDinner {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "breakfast" => Ok(Self::KBreakfast),
+            "dinner" => Ok(Self::KDinner),
+            other => Err(format!("Invalid literal '{}' for Union2KBreakfastOrKDinner", other)),
+        }
+    }
+}
+
 
 impl Union2KBreakfastOrKDinner {
     
@@ -14942,7 +15056,15 @@ impl baml_client_rust::types::FromBamlValue for Union2KBreakfastOrKDinner {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2KCuriosityOrKPersonalFinance {
     /// Literal value: curiosity
@@ -14950,6 +15072,20 @@ pub enum Union2KCuriosityOrKPersonalFinance {
     /// Literal value: personal_finance
     KPersonalFinance,
 }
+
+
+impl std::str::FromStr for Union2KCuriosityOrKPersonalFinance {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "curiosity" => Ok(Self::KCuriosity),
+            "personal_finance" => Ok(Self::KPersonalFinance),
+            other => Err(format!("Invalid literal '{}' for Union2KCuriosityOrKPersonalFinance", other)),
+        }
+    }
+}
+
 
 impl Union2KCuriosityOrKPersonalFinance {
     
@@ -15063,12 +15199,20 @@ impl baml_client_rust::types::FromBamlValue for Union2KCuriosityOrKPersonalFinan
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2ListBoolOrListInt {
     ListBool(Vec<bool>),
     ListInt(Vec<i64>),
 }
+
+
 
 impl Union2ListBoolOrListInt {
     
@@ -15178,7 +15322,7 @@ impl std::fmt::Display for Union2ListBoolOrListInt {
 
 impl Default for Union2ListBoolOrListInt {
     fn default() -> Self {
-                        Self::ListBool(Vec<bool>::default())
+                        Self::ListBool(Default::default())
     }
 }
 
@@ -15211,12 +15355,20 @@ impl baml_client_rust::types::FromBamlValue for Union2ListBoolOrListInt {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2ListNestedOrString {
     String(String),
     ListNested(Vec<crate::types::Nested>),
 }
+
+
 
 impl Union2ListNestedOrString {
     
@@ -15326,7 +15478,7 @@ impl std::fmt::Display for Union2ListNestedOrString {
 
 impl Default for Union2ListNestedOrString {
     fn default() -> Self {
-                        Self::String(String::default())
+                        Self::String(Default::default())
     }
 }
 
@@ -15359,12 +15511,20 @@ impl baml_client_rust::types::FromBamlValue for Union2ListNestedOrString {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2LiteralClassOneOrLiteralClassTwo {
     LiteralClassOne(crate::types::LiteralClassOne),
     LiteralClassTwo(crate::types::LiteralClassTwo),
 }
+
+
 
 impl Union2LiteralClassOneOrLiteralClassTwo {
     
@@ -15474,7 +15634,7 @@ impl std::fmt::Display for Union2LiteralClassOneOrLiteralClassTwo {
 
 impl Default for Union2LiteralClassOneOrLiteralClassTwo {
     fn default() -> Self {
-                        Self::LiteralClassOne(crate::types::LiteralClassOne::default())
+                        Self::LiteralClassOne(Default::default())
     }
 }
 
@@ -15544,14 +15704,22 @@ impl baml_client_rust::types::FromBamlValue for Union2LiteralClassOneOrLiteralCl
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
-pub enum Union2MapStringKeyRecursiveUnionValueOrString {
+pub enum Union2MapStringKeyAnyValueOrString {
     String(String),
-    MapStringKeyRecursiveUnionValue(std::collections::HashMap<String, crate::types::RecursiveUnion>),
+    MapStringKeyAnyValue(std::collections::HashMap<String, serde_json::Value>),
 }
 
-impl Union2MapStringKeyRecursiveUnionValueOrString {
+
+
+impl Union2MapStringKeyAnyValueOrString {
     
     /// Check if this union is a String variant
     pub fn is_string(&self) -> bool {
@@ -15581,56 +15749,56 @@ impl Union2MapStringKeyRecursiveUnionValueOrString {
         }
     }
     
-    /// Create a new Union2MapStringKeyRecursiveUnionValueOrString with a String variant
+    /// Create a new Union2MapStringKeyAnyValueOrString with a String variant
     pub fn string(value: String) -> Self {
         Self::String(value)
     }
     
-    /// Check if this union is a MapStringKeyRecursiveUnionValue variant
-    pub fn is_map_string_key_recursive_union_value(&self) -> bool {
-        matches!(self, Self::MapStringKeyRecursiveUnionValue(_))
+    /// Check if this union is a MapStringKeyAnyValue variant
+    pub fn is_map_string_key_any_value(&self) -> bool {
+        matches!(self, Self::MapStringKeyAnyValue(_))
     }
-    /// Get the MapStringKeyRecursiveUnionValue value if this union contains it
-    pub fn as_map_string_key_recursive_union_value(&self) -> Option<&std::collections::HashMap<String, crate::types::RecursiveUnion>> {
+    /// Get the MapStringKeyAnyValue value if this union contains it
+    pub fn as_map_string_key_any_value(&self) -> Option<&std::collections::HashMap<String, serde_json::Value>> {
         match self {
-            Self::MapStringKeyRecursiveUnionValue(v) => Some(v),
+            Self::MapStringKeyAnyValue(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Extract the MapStringKeyRecursiveUnionValue value, consuming the union
-    pub fn into_map_string_key_recursive_union_value(self) -> Option<std::collections::HashMap<String, crate::types::RecursiveUnion>> {
+    /// Extract the MapStringKeyAnyValue value, consuming the union
+    pub fn into_map_string_key_any_value(self) -> Option<std::collections::HashMap<String, serde_json::Value>> {
         match self {
-            Self::MapStringKeyRecursiveUnionValue(v) => Some(v),
+            Self::MapStringKeyAnyValue(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Get a mutable reference to the MapStringKeyRecursiveUnionValue value if this union contains it
-    pub fn as_map_string_key_recursive_union_value_mut(&mut self) -> Option<&mut std::collections::HashMap<String, crate::types::RecursiveUnion>> {
+    /// Get a mutable reference to the MapStringKeyAnyValue value if this union contains it
+    pub fn as_map_string_key_any_value_mut(&mut self) -> Option<&mut std::collections::HashMap<String, serde_json::Value>> {
         match self {
-            Self::MapStringKeyRecursiveUnionValue(v) => Some(v),
+            Self::MapStringKeyAnyValue(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Create a new Union2MapStringKeyRecursiveUnionValueOrString with a MapStringKeyRecursiveUnionValue variant
-    pub fn map_string_key_recursive_union_value(value: std::collections::HashMap<String, crate::types::RecursiveUnion>) -> Self {
-        Self::MapStringKeyRecursiveUnionValue(value)
+    /// Create a new Union2MapStringKeyAnyValueOrString with a MapStringKeyAnyValue variant
+    pub fn map_string_key_any_value(value: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        Self::MapStringKeyAnyValue(value)
     }
 }
 
-/// Pattern matching helper for Union2MapStringKeyRecursiveUnionValueOrString
-impl Union2MapStringKeyRecursiveUnionValueOrString {
+/// Pattern matching helper for Union2MapStringKeyAnyValueOrString
+impl Union2MapStringKeyAnyValueOrString {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
         string: impl FnOnce(&String) -> T,
-        map_string_key_recursive_union_value: impl FnOnce(&std::collections::HashMap<String, crate::types::RecursiveUnion>) -> T,
+        map_string_key_any_value: impl FnOnce(&std::collections::HashMap<String, serde_json::Value>) -> T,
     ) -> T {
         match self {
             Self::String(v) => string(v),
-            Self::MapStringKeyRecursiveUnionValue(v) => map_string_key_recursive_union_value(v),
+            Self::MapStringKeyAnyValue(v) => map_string_key_any_value(v),
         }
     }
     
@@ -15638,66 +15806,74 @@ impl Union2MapStringKeyRecursiveUnionValueOrString {
     pub fn match_variant_owned<T>(
         self,
         string: impl FnOnce(String) -> T,
-        map_string_key_recursive_union_value: impl FnOnce(std::collections::HashMap<String, crate::types::RecursiveUnion>) -> T,
+        map_string_key_any_value: impl FnOnce(std::collections::HashMap<String, serde_json::Value>) -> T,
     ) -> T {
         match self {
             Self::String(v) => string(v),
-            Self::MapStringKeyRecursiveUnionValue(v) => map_string_key_recursive_union_value(v),
+            Self::MapStringKeyAnyValue(v) => map_string_key_any_value(v),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union2MapStringKeyRecursiveUnionValueOrString {
+impl std::fmt::Display for Union2MapStringKeyAnyValueOrString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::String(v) => write!(f, "String({:?})", v),
-            Self::MapStringKeyRecursiveUnionValue(v) => write!(f, "MapStringKeyRecursiveUnionValue({:?})", v),
+            Self::MapStringKeyAnyValue(v) => write!(f, "MapStringKeyAnyValue({:?})", v),
         }
     }
 }
 
-impl Default for Union2MapStringKeyRecursiveUnionValueOrString {
+impl Default for Union2MapStringKeyAnyValueOrString {
     fn default() -> Self {
-                        Self::String(String::default())
+                        Self::String(Default::default())
     }
 }
 
 // BAML trait implementations
-impl baml_client_rust::types::ToBamlValue for Union2MapStringKeyRecursiveUnionValueOrString {
+impl baml_client_rust::types::ToBamlValue for Union2MapStringKeyAnyValueOrString {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
             Self::String(v) => v.to_baml_value(),
-            Self::MapStringKeyRecursiveUnionValue(v) => v.to_baml_value(),
+            Self::MapStringKeyAnyValue(v) => v.to_baml_value(),
         }
     }
 }
 
-impl baml_client_rust::types::FromBamlValue for Union2MapStringKeyRecursiveUnionValueOrString {
+impl baml_client_rust::types::FromBamlValue for Union2MapStringKeyAnyValueOrString {
     fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         
         // Try String variant
         if let Ok(variant_value) = String::from_baml_value(value.clone()) {
             return Ok(Self::String(variant_value));
         }
-        // Try MapStringKeyRecursiveUnionValue variant
-        if let Ok(variant_value) = std::collections::HashMap::<String, crate::types::RecursiveUnion>::from_baml_value(value.clone()) {
-            return Ok(Self::MapStringKeyRecursiveUnionValue(variant_value));
+        // Try MapStringKeyAnyValue variant
+        if let Ok(variant_value) = std::collections::HashMap::<String, serde_json::Value>::from_baml_value(value.clone()) {
+            return Ok(Self::MapStringKeyAnyValue(variant_value));
         }
         
         Err(baml_client_rust::BamlError::deserialization(format!(
-            "Could not convert {:?} to Union2MapStringKeyRecursiveUnionValueOrString",
+            "Could not convert {:?} to Union2MapStringKeyAnyValueOrString",
             value
         )))
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2NestedOrString {
     Nested(crate::types::Nested),
     String(String),
 }
+
+
 
 impl Union2NestedOrString {
     
@@ -15807,7 +15983,7 @@ impl std::fmt::Display for Union2NestedOrString {
 
 impl Default for Union2NestedOrString {
     fn default() -> Self {
-                        Self::Nested(crate::types::Nested::default())
+                        Self::Nested(Default::default())
     }
 }
 
@@ -15840,12 +16016,20 @@ impl baml_client_rust::types::FromBamlValue for Union2NestedOrString {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2OriginalAOrOriginalB {
     OriginalA(crate::types::OriginalA),
     OriginalB(crate::types::OriginalB),
 }
+
+
 
 impl Union2OriginalAOrOriginalB {
     
@@ -15955,7 +16139,7 @@ impl std::fmt::Display for Union2OriginalAOrOriginalB {
 
 impl Default for Union2OriginalAOrOriginalB {
     fn default() -> Self {
-                        Self::OriginalA(crate::types::OriginalA::default())
+                        Self::OriginalA(Default::default())
     }
 }
 
@@ -15988,12 +16172,20 @@ impl baml_client_rust::types::FromBamlValue for Union2OriginalAOrOriginalB {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union2StringOrTag {
     Tag(crate::types::Tag),
     String(String),
 }
+
+
 
 impl Union2StringOrTag {
     
@@ -16103,7 +16295,7 @@ impl std::fmt::Display for Union2StringOrTag {
 
 impl Default for Union2StringOrTag {
     fn default() -> Self {
-                        Self::Tag(crate::types::Tag::default())
+                        Self::Tag(Default::default())
     }
 }
 
@@ -16136,13 +16328,21 @@ impl baml_client_rust::types::FromBamlValue for Union2StringOrTag {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union3AnotherObjectOrComplexMemoryObjectOrMemoryObject {
     MemoryObject(crate::types::MemoryObject),
     ComplexMemoryObject(crate::types::ComplexMemoryObject),
     AnotherObject(crate::types::AnotherObject),
 }
+
+
 
 impl Union3AnotherObjectOrComplexMemoryObjectOrMemoryObject {
     
@@ -16290,7 +16490,7 @@ impl std::fmt::Display for Union3AnotherObjectOrComplexMemoryObjectOrMemoryObjec
 
 impl Default for Union3AnotherObjectOrComplexMemoryObjectOrMemoryObject {
     fn default() -> Self {
-                        Self::MemoryObject(crate::types::MemoryObject::default())
+                        Self::MemoryObject(Default::default())
     }
 }
 
@@ -16328,13 +16528,21 @@ impl baml_client_rust::types::FromBamlValue for Union3AnotherObjectOrComplexMemo
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union3BookOrderOrFlightConfirmationOrGroceryReceipt {
     BookOrder(crate::types::BookOrder),
     FlightConfirmation(crate::types::FlightConfirmation),
     GroceryReceipt(crate::types::GroceryReceipt),
 }
+
+
 
 impl Union3BookOrderOrFlightConfirmationOrGroceryReceipt {
     
@@ -16482,7 +16690,7 @@ impl std::fmt::Display for Union3BookOrderOrFlightConfirmationOrGroceryReceipt {
 
 impl Default for Union3BookOrderOrFlightConfirmationOrGroceryReceipt {
     fn default() -> Self {
-                        Self::BookOrder(crate::types::BookOrder::default())
+                        Self::BookOrder(Default::default())
     }
 }
 
@@ -16520,7 +16728,13 @@ impl baml_client_rust::types::FromBamlValue for Union3BookOrderOrFlightConfirmat
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union3BoolKTrueOrIntK1OrKStringOutput {
     /// Literal value: 1
@@ -16530,6 +16744,8 @@ pub enum Union3BoolKTrueOrIntK1OrKStringOutput {
     /// Literal value: string output
     KStringOutput,
 }
+
+
 
 impl Union3BoolKTrueOrIntK1OrKStringOutput {
     
@@ -16673,13 +16889,21 @@ impl baml_client_rust::types::FromBamlValue for Union3BoolKTrueOrIntK1OrKStringO
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union3FloatOrIntOrString {
     String(String),
     Int(i64),
     Float(f64),
 }
+
+
 
 impl Union3FloatOrIntOrString {
     
@@ -16827,7 +17051,7 @@ impl std::fmt::Display for Union3FloatOrIntOrString {
 
 impl Default for Union3FloatOrIntOrString {
     fn default() -> Self {
-                        Self::String(String::default())
+                        Self::String(Default::default())
     }
 }
 
@@ -16865,7 +17089,13 @@ impl baml_client_rust::types::FromBamlValue for Union3FloatOrIntOrString {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union4AudioOrImageOrPdfOrString {
     Image(crate::types::BamlImage),
@@ -16873,6 +17103,8 @@ pub enum Union4AudioOrImageOrPdfOrString {
     Pdf(crate::types::BamlPdf),
     Audio(crate::types::BamlAudio),
 }
+
+
 
 impl Union4AudioOrImageOrPdfOrString {
     
@@ -17058,7 +17290,7 @@ impl std::fmt::Display for Union4AudioOrImageOrPdfOrString {
 
 impl Default for Union4AudioOrImageOrPdfOrString {
     fn default() -> Self {
-                        Self::Image(crate::types::BamlImage::default())
+                        Self::Image(Default::default())
     }
 }
 
@@ -17101,7 +17333,13 @@ impl baml_client_rust::types::FromBamlValue for Union4AudioOrImageOrPdfOrString 
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union4BoolOrFloatOrIntOrString {
     Int(i64),
@@ -17109,6 +17347,8 @@ pub enum Union4BoolOrFloatOrIntOrString {
     Bool(bool),
     Float(f64),
 }
+
+
 
 impl Union4BoolOrFloatOrIntOrString {
     
@@ -17294,7 +17534,7 @@ impl std::fmt::Display for Union4BoolOrFloatOrIntOrString {
 
 impl Default for Union4BoolOrFloatOrIntOrString {
     fn default() -> Self {
-                        Self::Int(i64::default())
+                        Self::Int(Default::default())
     }
 }
 
@@ -17337,7 +17577,15 @@ impl baml_client_rust::types::FromBamlValue for Union4BoolOrFloatOrIntOrString {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union4KFourOrKOneOrKThreeOrKTwo {
     /// Literal value: one
@@ -17349,6 +17597,22 @@ pub enum Union4KFourOrKOneOrKThreeOrKTwo {
     /// Literal value: four
     KFour,
 }
+
+
+impl std::str::FromStr for Union4KFourOrKOneOrKThreeOrKTwo {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "one" => Ok(Self::KOne),
+            "two" => Ok(Self::KTwo),
+            "three" => Ok(Self::KThree),
+            "four" => Ok(Self::KFour),
+            other => Err(format!("Invalid literal '{}' for Union4KFourOrKOneOrKThreeOrKTwo", other)),
+        }
+    }
+}
+
 
 impl Union4KFourOrKOneOrKThreeOrKTwo {
     
@@ -17514,18 +17778,26 @@ impl baml_client_rust::types::FromBamlValue for Union4KFourOrKOneOrKThreeOrKTwo 
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
-pub enum Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
+pub enum Union6AnyOrAnyOrBoolOrFloatOrIntOrString {
     Int(i64),
     String(String),
     Bool(bool),
     Float(f64),
-    JsonObject(crate::types::JsonObject),
-    JsonArray(crate::types::JsonArray),
+    Any(serde_json::Value),
+    Any5(serde_json::Value),
 }
 
-impl Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
+
+
+impl Union6AnyOrAnyOrBoolOrFloatOrIntOrString {
     
     /// Check if this union is a Int variant
     pub fn is_int(&self) -> bool {
@@ -17555,7 +17827,7 @@ impl Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
         }
     }
     
-    /// Create a new Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString with a Int variant
+    /// Create a new Union6AnyOrAnyOrBoolOrFloatOrIntOrString with a Int variant
     pub fn int(value: i64) -> Self {
         Self::Int(value)
     }
@@ -17588,7 +17860,7 @@ impl Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
         }
     }
     
-    /// Create a new Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString with a String variant
+    /// Create a new Union6AnyOrAnyOrBoolOrFloatOrIntOrString with a String variant
     pub fn string(value: String) -> Self {
         Self::String(value)
     }
@@ -17621,7 +17893,7 @@ impl Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
         }
     }
     
-    /// Create a new Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString with a Bool variant
+    /// Create a new Union6AnyOrAnyOrBoolOrFloatOrIntOrString with a Bool variant
     pub fn bool(value: bool) -> Self {
         Self::Bool(value)
     }
@@ -17654,80 +17926,80 @@ impl Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
         }
     }
     
-    /// Create a new Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString with a Float variant
+    /// Create a new Union6AnyOrAnyOrBoolOrFloatOrIntOrString with a Float variant
     pub fn float(value: f64) -> Self {
         Self::Float(value)
     }
     
-    /// Check if this union is a JsonObject variant
-    pub fn is_json_object(&self) -> bool {
-        matches!(self, Self::JsonObject(_))
+    /// Check if this union is a Any variant
+    pub fn is_any(&self) -> bool {
+        matches!(self, Self::Any(_))
     }
-    /// Get the JsonObject value if this union contains it
-    pub fn as_json_object(&self) -> Option<&crate::types::JsonObject> {
+    /// Get the Any value if this union contains it
+    pub fn as_any(&self) -> Option<&serde_json::Value> {
         match self {
-            Self::JsonObject(v) => Some(v),
+            Self::Any(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Extract the JsonObject value, consuming the union
-    pub fn into_json_object(self) -> Option<crate::types::JsonObject> {
+    /// Extract the Any value, consuming the union
+    pub fn into_any(self) -> Option<serde_json::Value> {
         match self {
-            Self::JsonObject(v) => Some(v),
+            Self::Any(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Get a mutable reference to the JsonObject value if this union contains it
-    pub fn as_json_object_mut(&mut self) -> Option<&mut crate::types::JsonObject> {
+    /// Get a mutable reference to the Any value if this union contains it
+    pub fn as_any_mut(&mut self) -> Option<&mut serde_json::Value> {
         match self {
-            Self::JsonObject(v) => Some(v),
+            Self::Any(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Create a new Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString with a JsonObject variant
-    pub fn json_object(value: crate::types::JsonObject) -> Self {
-        Self::JsonObject(value)
+    /// Create a new Union6AnyOrAnyOrBoolOrFloatOrIntOrString with a Any variant
+    pub fn any(value: serde_json::Value) -> Self {
+        Self::Any(value)
     }
     
-    /// Check if this union is a JsonArray variant
-    pub fn is_json_array(&self) -> bool {
-        matches!(self, Self::JsonArray(_))
+    /// Check if this union is a Any5 variant
+    pub fn is_any5(&self) -> bool {
+        matches!(self, Self::Any5(_))
     }
-    /// Get the JsonArray value if this union contains it
-    pub fn as_json_array(&self) -> Option<&crate::types::JsonArray> {
+    /// Get the Any5 value if this union contains it
+    pub fn as_any5(&self) -> Option<&serde_json::Value> {
         match self {
-            Self::JsonArray(v) => Some(v),
+            Self::Any5(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Extract the JsonArray value, consuming the union
-    pub fn into_json_array(self) -> Option<crate::types::JsonArray> {
+    /// Extract the Any5 value, consuming the union
+    pub fn into_any5(self) -> Option<serde_json::Value> {
         match self {
-            Self::JsonArray(v) => Some(v),
+            Self::Any5(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Get a mutable reference to the JsonArray value if this union contains it
-    pub fn as_json_array_mut(&mut self) -> Option<&mut crate::types::JsonArray> {
+    /// Get a mutable reference to the Any5 value if this union contains it
+    pub fn as_any5_mut(&mut self) -> Option<&mut serde_json::Value> {
         match self {
-            Self::JsonArray(v) => Some(v),
+            Self::Any5(v) => Some(v),
             _ => None,
         }
     }
     
-    /// Create a new Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString with a JsonArray variant
-    pub fn json_array(value: crate::types::JsonArray) -> Self {
-        Self::JsonArray(value)
+    /// Create a new Union6AnyOrAnyOrBoolOrFloatOrIntOrString with a Any5 variant
+    pub fn any5(value: serde_json::Value) -> Self {
+        Self::Any5(value)
     }
 }
 
-/// Pattern matching helper for Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString
-impl Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
+/// Pattern matching helper for Union6AnyOrAnyOrBoolOrFloatOrIntOrString
+impl Union6AnyOrAnyOrBoolOrFloatOrIntOrString {
     /// Match on the union variant and apply the corresponding function
     pub fn match_variant<T>(
         &self,
@@ -17735,16 +18007,16 @@ impl Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
         string: impl FnOnce(&String) -> T,
         bool: impl FnOnce(&bool) -> T,
         float: impl FnOnce(&f64) -> T,
-        json_object: impl FnOnce(&crate::types::JsonObject) -> T,
-        json_array: impl FnOnce(&crate::types::JsonArray) -> T,
+        any: impl FnOnce(&serde_json::Value) -> T,
+        any5: impl FnOnce(&serde_json::Value) -> T,
     ) -> T {
         match self {
             Self::Int(v) => int(v),
             Self::String(v) => string(v),
             Self::Bool(v) => bool(v),
             Self::Float(v) => float(v),
-            Self::JsonObject(v) => json_object(v),
-            Self::JsonArray(v) => json_array(v),
+            Self::Any(v) => any(v),
+            Self::Any5(v) => any5(v),
         }
     }
     
@@ -17755,55 +18027,55 @@ impl Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
         string: impl FnOnce(String) -> T,
         bool: impl FnOnce(bool) -> T,
         float: impl FnOnce(f64) -> T,
-        json_object: impl FnOnce(crate::types::JsonObject) -> T,
-        json_array: impl FnOnce(crate::types::JsonArray) -> T,
+        any: impl FnOnce(serde_json::Value) -> T,
+        any5: impl FnOnce(serde_json::Value) -> T,
     ) -> T {
         match self {
             Self::Int(v) => int(v),
             Self::String(v) => string(v),
             Self::Bool(v) => bool(v),
             Self::Float(v) => float(v),
-            Self::JsonObject(v) => json_object(v),
-            Self::JsonArray(v) => json_array(v),
+            Self::Any(v) => any(v),
+            Self::Any5(v) => any5(v),
         }
     }
 }
 
 /// Display implementation that shows the variant name and value
-impl std::fmt::Display for Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
+impl std::fmt::Display for Union6AnyOrAnyOrBoolOrFloatOrIntOrString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Int(v) => write!(f, "Int({:?})", v),
             Self::String(v) => write!(f, "String({:?})", v),
             Self::Bool(v) => write!(f, "Bool({:?})", v),
             Self::Float(v) => write!(f, "Float({:?})", v),
-            Self::JsonObject(v) => write!(f, "JsonObject({:?})", v),
-            Self::JsonArray(v) => write!(f, "JsonArray({:?})", v),
+            Self::Any(v) => write!(f, "Any({:?})", v),
+            Self::Any5(v) => write!(f, "Any5({:?})", v),
         }
     }
 }
 
-impl Default for Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
+impl Default for Union6AnyOrAnyOrBoolOrFloatOrIntOrString {
     fn default() -> Self {
-                        Self::Int(i64::default())
+                        Self::Int(Default::default())
     }
 }
 
 // BAML trait implementations
-impl baml_client_rust::types::ToBamlValue for Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
+impl baml_client_rust::types::ToBamlValue for Union6AnyOrAnyOrBoolOrFloatOrIntOrString {
     fn to_baml_value(self) -> baml_client_rust::BamlResult<baml_client_rust::types::BamlValue> {
         match self {
             Self::Int(v) => v.to_baml_value(),
             Self::String(v) => v.to_baml_value(),
             Self::Bool(v) => v.to_baml_value(),
             Self::Float(v) => v.to_baml_value(),
-            Self::JsonObject(v) => v.to_baml_value(),
-            Self::JsonArray(v) => v.to_baml_value(),
+            Self::Any(v) => v.to_baml_value(),
+            Self::Any5(v) => v.to_baml_value(),
         }
     }
 }
 
-impl baml_client_rust::types::FromBamlValue for Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString {
+impl baml_client_rust::types::FromBamlValue for Union6AnyOrAnyOrBoolOrFloatOrIntOrString {
     fn from_baml_value(value: baml_client_rust::types::BamlValue) -> baml_client_rust::BamlResult<Self> {
         
         // Try Int variant
@@ -17822,23 +18094,29 @@ impl baml_client_rust::types::FromBamlValue for Union6BoolOrFloatOrIntOrJsonArra
         if let Ok(variant_value) = f64::from_baml_value(value.clone()) {
             return Ok(Self::Float(variant_value));
         }
-        // Try JsonObject variant
-        if let Ok(variant_value) = crate::types::JsonObject::from_baml_value(value.clone()) {
-            return Ok(Self::JsonObject(variant_value));
+        // Try Any variant
+        if let Ok(variant_value) = serde_json::Value::from_baml_value(value.clone()) {
+            return Ok(Self::Any(variant_value));
         }
-        // Try JsonArray variant
-        if let Ok(variant_value) = crate::types::JsonArray::from_baml_value(value.clone()) {
-            return Ok(Self::JsonArray(variant_value));
+        // Try Any5 variant
+        if let Ok(variant_value) = serde_json::Value::from_baml_value(value.clone()) {
+            return Ok(Self::Any5(variant_value));
         }
         
         Err(baml_client_rust::BamlError::deserialization(format!(
-            "Could not convert {:?} to Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString",
+            "Could not convert {:?} to Union6AnyOrAnyOrBoolOrFloatOrIntOrString",
             value
         )))
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Serialize,
+    Deserialize
+)]
 #[serde(untagged)]
 pub enum Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString {
     Int(i64),
@@ -17848,6 +18126,8 @@ pub enum Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString
     ListString(Vec<String>),
     MapStringKeyListStringValue(std::collections::HashMap<String, Vec<String>>),
 }
+
+
 
 impl Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString {
     
@@ -18109,7 +18389,7 @@ impl std::fmt::Display for Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListS
 
 impl Default for Union6BoolOrFloatOrIntOrListStringOrMapStringKeyListStringValueOrString {
     fn default() -> Self {
-                        Self::Int(i64::default())
+                        Self::Int(Default::default())
     }
 }
 
@@ -18171,15 +18451,15 @@ pub type Currency = i64;
 
 pub type Graph = std::collections::HashMap<String, Vec<String>>;
 
-pub type JsonArray = Vec<crate::types::JsonValue>;
+pub type JsonArray = Vec<serde_json::Value>;
 
-pub type JsonEntry = crate::types::Union2JsonTemplateOrSimpleTag;
+pub type JsonEntry = crate::types::Union2AnyOrSimpleTag;
 
-pub type JsonObject = std::collections::HashMap<String, crate::types::JsonValue>;
+pub type JsonObject = std::collections::HashMap<String, serde_json::Value>;
 
-pub type JsonTemplate = std::collections::HashMap<String, crate::types::JsonEntry>;
+pub type JsonTemplate = std::collections::HashMap<String, serde_json::Value>;
 
-pub type JsonValue = crate::types::Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString;
+pub type JsonValue = crate::types::Union6AnyOrAnyOrBoolOrFloatOrIntOrString;
 
 pub type LinkedListAlias = crate::types::LinkedListAliasNode;
 
@@ -18191,17 +18471,17 @@ pub type NodeIndirection = crate::types::NodeWithAliasIndirection;
 
 pub type Primitive = crate::types::Union4BoolOrFloatOrIntOrString;
 
-pub type RecAliasOne = crate::types::RecAliasTwo;
+pub type RecAliasOne = serde_json::Value;
 
-pub type RecAliasThree = Vec<crate::types::RecAliasOne>;
+pub type RecAliasThree = Vec<serde_json::Value>;
 
-pub type RecAliasTwo = crate::types::RecAliasThree;
+pub type RecAliasTwo = serde_json::Value;
 
-pub type RecursiveListAlias = Vec<crate::types::RecursiveListAlias>;
+pub type RecursiveListAlias = Vec<serde_json::Value>;
 
-pub type RecursiveMapAlias = std::collections::HashMap<String, crate::types::RecursiveMapAlias>;
+pub type RecursiveMapAlias = std::collections::HashMap<String, serde_json::Value>;
 
-pub type RecursiveUnion = crate::types::Union2MapStringKeyRecursiveUnionValueOrString;
+pub type RecursiveUnion = crate::types::Union2MapStringKeyAnyValueOrString;
 
 pub type TodoTool = crate::types::Union2AddTodoItemOrTodoMessageToUser;
 

@@ -22,15 +22,15 @@ pub type Currency = Option<i64>;
 
 pub type Graph = std::collections::HashMap<String, Vec<String>>;
 
-pub type JsonArray = Vec<JsonValue>;
+pub type JsonArray = Vec<serde_json::Value>;
 
-pub type JsonEntry = Option<Union2JsonTemplateOrSimpleTag>;
+pub type JsonEntry = Option<crate::types::Union2AnyOrSimpleTag>;
 
-pub type JsonObject = std::collections::HashMap<String, JsonValue>;
+pub type JsonObject = std::collections::HashMap<String, serde_json::Value>;
 
-pub type JsonTemplate = std::collections::HashMap<String, JsonEntry>;
+pub type JsonTemplate = std::collections::HashMap<String, serde_json::Value>;
 
-pub type JsonValue = Option<Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString>;
+pub type JsonValue = Option<crate::types::Union6AnyOrAnyOrBoolOrFloatOrIntOrString>;
 
 pub type LinkedListAlias = Option<crate::types::LinkedListAliasNode>;
 
@@ -42,17 +42,17 @@ pub type NodeIndirection = Option<crate::types::NodeWithAliasIndirection>;
 
 pub type Primitive = Option<crate::types::Union4BoolOrFloatOrIntOrString>;
 
-pub type RecAliasOne = Option<RecAliasTwo>;
+pub type RecAliasOne = Option<serde_json::Value>;
 
-pub type RecAliasThree = Vec<RecAliasOne>;
+pub type RecAliasThree = Vec<serde_json::Value>;
 
-pub type RecAliasTwo = Option<RecAliasThree>;
+pub type RecAliasTwo = Option<serde_json::Value>;
 
-pub type RecursiveListAlias = Vec<RecursiveListAlias>;
+pub type RecursiveListAlias = Vec<serde_json::Value>;
 
-pub type RecursiveMapAlias = std::collections::HashMap<String, RecursiveMapAlias>;
+pub type RecursiveMapAlias = std::collections::HashMap<String, serde_json::Value>;
 
-pub type RecursiveUnion = Option<Union2MapStringKeyRecursiveUnionValueOrString>;
+pub type RecursiveUnion = Option<crate::types::Union2MapStringKeyAnyValueOrString>;
 
-pub type TodoTool = Option<Union2AddTodoItemOrTodoMessageToUser>;
+pub type TodoTool = Option<crate::types::Union2AddTodoItemOrTodoMessageToUser>;
 
