@@ -168,10 +168,8 @@ pub fn parse(root_path: &Path, source: &SourceFile) -> Result<(Ast, Diagnostics)
                         break;
                     }
                     Rule::comment_block => {
-                        let headers = headers_from_comment_block_top_level(
-                            current.clone(),
-                            &mut diagnostics,
-                        );
+                        let headers =
+                            headers_from_comment_block_top_level(current.clone(), &mut diagnostics);
                         if !headers.is_empty() {
                             pending_headers.extend(headers);
                             continue;

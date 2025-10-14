@@ -767,13 +767,35 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
     let mut expr = None;
     let _open_bracket = tokens.next()?;
 
-    // Collect all items first to process headers together
+    // Collect all items first so we can gather every header before we bind them
+    // to statements. We need two passes: the first pass collects and normalizes
+    // the headers (including establishing their relative levels), the second
+    // pass walks the statements in source order and attaches those normalized
+    // headers. If we tried to attach while parsing in a single pass, headers
+    // appearing inside comment blocks would be seen after their statements and
+    // could not participate in markdown hierarchy normalization.
     let mut items: Vec<Pair<'_>> = Vec::new();
     for item in tokens {
         items.push(item);
     }
 
     // Track headers with their hierarchy
+    // NB(sam): I don't entirely understand why we need to wrap Headers in Arc<>,
+    // but here are the notes from codex:
+    // <codex>
+    // Most AST nodes are owned outright—each node sits in exactly one place in
+    // the tree—so ordinary struct fields work fine. Header annotations are the
+    // odd case: the parser needs to attach the same logical header instance to
+    // multiple spots (statements, trailing expressions, top‑level block etc.)
+    // while also normalizing them later. To avoid copying or moving those
+    // structs repeatedly, the parser promotes headers into shared references
+    // (Arc<Header>). That lets the first pass create and normalize a header
+    // once, stash it in the lookup map, and then hand out clones of the pointer
+    // wherever the header appears, without duplication or life‑time juggling.
+    // Functionally, Arc is central here because headers get reused across many
+    // nodes, not because other AST structures require special thread‑safety
+    // treatment.
+    // </codex>
     let mut all_headers_in_block: Vec<std::sync::Arc<Header>> = Vec::new();
 
     // First pass: collect all headers
@@ -786,7 +808,8 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
         }
     }
 
-    // Normalize all headers in the block together
+    // normalize_headers adjusts header levels so the shallowest header in the
+    // scope becomes an h1
     normalize_headers(&mut all_headers_in_block);
 
     // Lookup by span so we can reuse normalized headers later.
@@ -794,12 +817,6 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
     for header in &all_headers_in_block {
         header_lookup.insert((header.span.start, header.span.end), header.clone());
     }
-
-    // Debug: Print normalized headers (disabled)
-    // println!("PARSER: Normalized headers in block:");
-    // for (i, header) in all_headers_in_block.iter().enumerate() {
-    //     println!("  [{}] '{}' (Level: {})", i, header.title, header.level);
-    // }
 
     // Second pass: process statements and expressions with normalized headers
     let mut current_headers: Vec<std::sync::Arc<Header>> = Vec::new();
