@@ -778,20 +778,11 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
 
     // First pass: collect all headers
     for item in &items {
-        match item.as_rule() {
-            Rule::mdx_header => {
-                if let Some(header) = parse_header(item.clone(), diagnostics) {
-                    let header_arc = std::sync::Arc::new(header);
-                    all_headers_in_block.push(header_arc);
-                }
+        if item.as_rule() == Rule::comment_block {
+            let headers = headers_from_comment_block(item.clone(), diagnostics);
+            if !headers.is_empty() {
+                all_headers_in_block.extend(headers);
             }
-            Rule::comment_block => {
-                let headers = headers_from_comment_block(item.clone(), diagnostics);
-                if !headers.is_empty() {
-                    all_headers_in_block.extend(headers);
-                }
-            }
-            _ => {}
         }
     }
 
@@ -840,18 +831,6 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                 if let Some(parsed_expr) = maybe_expr {
                     expr = Some(parsed_expr);
                     continue;
-                }
-            }
-            Rule::mdx_header => {
-                // Headers are already processed, just update current headers
-                if let Some(header) = parse_header(item, diagnostics) {
-                    let header_arc = std::sync::Arc::new(header);
-                    attach_header_if_known(
-                        &header_arc,
-                        &header_lookup,
-                        &mut current_headers,
-                        &mut headers_since_last_stmt,
-                    );
                 }
             }
             Rule::BLOCK_CLOSE => {
@@ -971,7 +950,7 @@ fn headers_from_comment_block(
     let mut headers = Vec::new();
     for current in token.into_inner() {
         if current.as_rule() == Rule::comment {
-            if let Some(header) = parse_header_from_comment(&current, diagnostics) {
+            if let Some(header) = parse_comment_header_pair(&current, diagnostics) {
                 headers.push(std::sync::Arc::new(header));
             }
         }
@@ -979,7 +958,7 @@ fn headers_from_comment_block(
     headers
 }
 
-fn parse_header_from_comment(
+pub(crate) fn parse_comment_header_pair(
     comment: &Pair<'_>,
     diagnostics: &mut Diagnostics,
 ) -> Option<Header> {
@@ -1027,44 +1006,6 @@ fn attach_header_if_known(
         current_headers.push(normalized_header.clone());
         headers_since_last_stmt.push(normalized_header.clone());
     }
-}
-
-/// Parse a single header from an MDX header token
-pub fn parse_header(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<Header> {
-    let full_text = token.as_str();
-    let header_span = diagnostics.span(token.as_span());
-
-    // Find the start of the hash sequence
-    let hash_start = full_text.find('#')?;
-    let after_whitespace = full_text[hash_start..].trim_start();
-
-    // Count consecutive hash characters
-    let hash_count = after_whitespace.chars().take_while(|&c| c == '#').count();
-
-    // Extract the title after the hash sequence and whitespace
-    let after_hashes = &after_whitespace[hash_count..];
-    let title_text = after_hashes.trim().to_string();
-
-    // Remove trailing newline if present
-    let title_text = title_text
-        .trim_end_matches('\n')
-        .trim_end_matches('\r')
-        .to_string();
-
-    let level = hash_count as u8;
-
-    // Print debug information about the header (disabled)
-    // let indent = " ".repeat(level as usize);
-    // println!(
-    //     "{}└ HEADER Level {}: '{}' (hash count: {})",
-    //     indent, level, title_text, level
-    // );
-
-    Some(Header {
-        level,
-        title: title_text,
-        span: header_span,
-    })
 }
 
 /// Filter headers based on hierarchy rules (markdown-style nesting)

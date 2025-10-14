@@ -1,8 +1,15 @@
-error: Statement must end with a semicolon.
+error: Error validating: This line is not a valid field or attribute definition. A valid property may look like: 'myProperty "some value"' for example, with no colons.
   -->  tests/validation_files/headers/invalid.baml:12
    | 
 11 | function MixedOnSameLine() -> string {
 12 |     let x = "hello" ## Inline Header // Should fail
+13 |     x
+   | 
+error: Error validating Function "MixedOnSameLine": This field declaration is invalid. It is either missing a name or a type.
+  -->  tests/validation_files/headers/invalid.baml:13
+   | 
+12 |     let x = "hello" ## Inline Header // Should fail
+13 |     x
    | 
 error: Statement must end with a semicolon.
   -->  tests/validation_files/headers/invalid.baml:18
