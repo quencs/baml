@@ -7,15 +7,18 @@ This directory contains comprehensive integration tests for the BAML Rust client
 ### Prerequisites
 
 - Rust 1.75+ with Cargo
-- BAML CLI (`cargo install baml-cli`)
+- Local checkout of this repository (the CLI binary is built from `engine/`)
 - Environment variables for testing (see below)
 
 ### Setup
 
-1. **Generate BAML client code:**
+1. **Build the BAML CLI and generate client code:**
    ```bash
-   cd ../baml_src
-   baml-cli generate
+   # From repo root
+   cd engine
+   cargo build --bin baml-cli
+   cd ../integ-tests/rust
+   ../../engine/target/debug/baml-cli generate --from ../
    ```
 
 2. **Set up environment variables:**
@@ -75,7 +78,7 @@ The Rust integration tests validate:
 
 ## 📁 Generated Files
 
-After running `baml-cli generate`, you'll see:
+After running the generation command, you'll see:
 
 ```
 rust/
@@ -131,7 +134,8 @@ cargo test --release
    - Check API key validity with provider
 
 3. **Generation Issues**:
-   - Run `baml-cli generate` from `../baml_src` directory
+   - Ensure `cargo build --bin baml-cli` succeeded in `engine/`
+   - Re-run `../../engine/target/debug/baml-cli generate --from ../` from `integ-tests/rust`
    - Ensure BAML source files are valid
 
 ### Debug Mode
