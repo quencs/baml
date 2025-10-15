@@ -100,7 +100,7 @@ fn render_mermaid_graph(
                 c.id,
                 escape_label(c.label)
             ));
-            out.push(format!("{indent_str}  direction LR"));
+            out.push(format!("{indent_str}  direction TB"));
         }
         if let Some(nodes) = nodes_by_cluster.get(&key_opt) {
             for n in nodes {

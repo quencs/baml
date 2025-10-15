@@ -426,13 +426,14 @@ export const MermaidGraphView: React.FC = () => {
       <MermaidHeader />
       <div
         ref={containerRef}
-        className="relative flex-1 min-h-0 overflow-hidden border rounded bg-transparent"
+        className="relative overflow-hidden border rounded bg-transparent"
         style={{
           borderColor: 'var(--vscode-panel-border)',
           backgroundColor: 'transparent',
+          height: '70%',
         }}
       >
-        <div className="absolute inset-0">
+        <div className="h-full w-full">
           <TransformWrapper
             ref={transformRef}
             minScale={0.25}
