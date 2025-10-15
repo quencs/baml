@@ -529,7 +529,7 @@ impl std::fmt::Display for Union2ExampleOrExample2 {
 
 impl Default for Union2ExampleOrExample2 {
     fn default() -> Self {
-        Self::Example(crate::types::Example::default())
+        Self::Example(Default::default())
     }
 }
 

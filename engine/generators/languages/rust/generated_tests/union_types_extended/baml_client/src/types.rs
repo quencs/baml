@@ -3055,7 +3055,7 @@ impl std::fmt::Display for Union2BoolOrString {
 
 impl Default for Union2BoolOrString {
     fn default() -> Self {
-        Self::Bool(bool::default())
+        Self::Bool(Default::default())
     }
 }
 
@@ -3203,7 +3203,7 @@ impl std::fmt::Display for Union2DataResponseOrErrorResponse {
 
 impl Default for Union2DataResponseOrErrorResponse {
     fn default() -> Self {
-        Self::DataResponse(crate::types::DataResponse::default())
+        Self::DataResponse(Default::default())
     }
 }
 
@@ -3390,7 +3390,7 @@ impl std::fmt::Display for Union2FloatOrInt {
 
 impl Default for Union2FloatOrInt {
     fn default() -> Self {
-        Self::Int(i64::default())
+        Self::Int(Default::default())
     }
 }
 
@@ -3538,7 +3538,7 @@ impl std::fmt::Display for Union2FloatOrString {
 
 impl Default for Union2FloatOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -3686,7 +3686,7 @@ impl std::fmt::Display for Union2IntOrString {
 
 impl Default for Union2IntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -3834,7 +3834,7 @@ impl std::fmt::Display for Union2ListIntOrString {
 
 impl Default for Union2ListIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -3982,7 +3982,7 @@ impl std::fmt::Display for Union2ProductOrUser {
 
 impl Default for Union2ProductOrUser {
     fn default() -> Self {
-        Self::User(crate::types::User::default())
+        Self::User(Default::default())
     }
 }
 
@@ -4166,7 +4166,7 @@ impl std::fmt::Display for Union2RecursiveUnionOrString {
 
 impl Default for Union2RecursiveUnionOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -4353,7 +4353,7 @@ impl std::fmt::Display for Union3AdminOrProductOrUser {
 
 impl Default for Union3AdminOrProductOrUser {
     fn default() -> Self {
-        Self::User(crate::types::User::default())
+        Self::User(Default::default())
     }
 }
 
@@ -4595,7 +4595,7 @@ impl std::fmt::Display for Union3ApiErrorOrApiPendingOrApiSuccess {
 
 impl Default for Union3ApiErrorOrApiPendingOrApiSuccess {
     fn default() -> Self {
-        Self::ApiSuccess(crate::types::ApiSuccess::default())
+        Self::ApiSuccess(Default::default())
     }
 }
 
@@ -4844,7 +4844,7 @@ impl std::fmt::Display for Union3BirdOrCatOrDog {
 
 impl Default for Union3BirdOrCatOrDog {
     fn default() -> Self {
-        Self::Dog(crate::types::Dog::default())
+        Self::Dog(Default::default())
     }
 }
 
@@ -5083,7 +5083,7 @@ impl std::fmt::Display for Union3CircleOrRectangleOrTriangle {
 
 impl Default for Union3CircleOrRectangleOrTriangle {
     fn default() -> Self {
-        Self::Circle(crate::types::Circle::default())
+        Self::Circle(Default::default())
     }
 }
 
@@ -5333,7 +5333,7 @@ impl std::fmt::Display for Union3ErrorOrSuccessOrWarning {
 
 impl Default for Union3ErrorOrSuccessOrWarning {
     fn default() -> Self {
-        Self::Success(crate::types::Success::default())
+        Self::Success(Default::default())
     }
 }
 
@@ -5578,7 +5578,7 @@ impl std::fmt::Display for Union3FloatOrIntOrString {
 
 impl Default for Union3FloatOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -5770,7 +5770,7 @@ impl std::fmt::Display for Union3IntOrRecursiveUnionOrString {
 
 impl Default for Union3IntOrRecursiveUnionOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -6001,7 +6001,7 @@ impl std::fmt::Display for Union4BoolOrFloatOrIntOrString {
 
 impl Default for Union4BoolOrFloatOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 

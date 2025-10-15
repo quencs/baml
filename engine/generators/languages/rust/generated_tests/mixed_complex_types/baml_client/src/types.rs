@@ -5106,7 +5106,7 @@ impl std::fmt::Display for Union2ConditionOrSimpleCondition {
 
 impl Default for Union2ConditionOrSimpleCondition {
     fn default() -> Self {
-        Self::Condition(crate::types::Condition::default())
+        Self::Condition(Default::default())
     }
 }
 
@@ -5254,7 +5254,7 @@ impl std::fmt::Display for Union2ErrorOrSuccess {
 
 impl Default for Union2ErrorOrSuccess {
     fn default() -> Self {
-        Self::Success(crate::types::Success::default())
+        Self::Success(Default::default())
     }
 }
 
@@ -5324,13 +5324,28 @@ impl baml_client_rust::types::FromBamlValue for Union2ErrorOrSuccess {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union2KBranchOrKLeaf {
     /// Literal value: leaf
     KLeaf,
     /// Literal value: branch
     KBranch,
+}
+
+impl std::str::FromStr for Union2KBranchOrKLeaf {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "leaf" => Ok(Self::KLeaf),
+            "branch" => Ok(Self::KBranch),
+            other => Err(format!(
+                "Invalid literal '{}' for Union2KBranchOrKLeaf",
+                other
+            )),
+        }
+    }
 }
 
 impl Union2KBranchOrKLeaf {
@@ -5437,13 +5452,28 @@ impl baml_client_rust::types::FromBamlValue for Union2KBranchOrKLeaf {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union2KErrorOrKSuccess {
     /// Literal value: success
     KSuccess,
     /// Literal value: error
     KError,
+}
+
+impl std::str::FromStr for Union2KErrorOrKSuccess {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "success" => Ok(Self::KSuccess),
+            "error" => Ok(Self::KError),
+            other => Err(format!(
+                "Invalid literal '{}' for Union2KErrorOrKSuccess",
+                other
+            )),
+        }
+    }
 }
 
 impl Union2KErrorOrKSuccess {
@@ -5707,7 +5737,7 @@ impl std::fmt::Display for Union3BoolOrIntOrString {
 
 impl Default for Union3BoolOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -5899,7 +5929,7 @@ impl std::fmt::Display for Union3DataObjectOrIntOrString {
 
 impl Default for Union3DataObjectOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -6114,7 +6144,7 @@ impl std::fmt::Display for Union3FloatOrIntOrString {
 
 impl Default for Union3FloatOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -6153,7 +6183,7 @@ impl baml_client_rust::types::FromBamlValue for Union3FloatOrIntOrString {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KAndOrKNotOrKOr {
     /// Literal value: and
@@ -6162,6 +6192,22 @@ pub enum Union3KAndOrKNotOrKOr {
     KOr,
     /// Literal value: not
     KNot,
+}
+
+impl std::str::FromStr for Union3KAndOrKNotOrKOr {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "and" => Ok(Self::KAnd),
+            "or" => Ok(Self::KOr),
+            "not" => Ok(Self::KNot),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KAndOrKNotOrKOr",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KAndOrKNotOrKOr {
@@ -6294,7 +6340,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KAndOrKNotOrKOr {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KArchivedOrKDraftOrKPublished {
     /// Literal value: draft
@@ -6303,6 +6349,22 @@ pub enum Union3KArchivedOrKDraftOrKPublished {
     KPublished,
     /// Literal value: archived
     KArchived,
+}
+
+impl std::str::FromStr for Union3KArchivedOrKDraftOrKPublished {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "draft" => Ok(Self::KDraft),
+            "published" => Ok(Self::KPublished),
+            "archived" => Ok(Self::KArchived),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KArchivedOrKDraftOrKPublished",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KArchivedOrKDraftOrKPublished {
@@ -6437,7 +6499,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KArchivedOrKDraftOrKPublis
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KAudioOrKDocumentOrKImage {
     /// Literal value: image
@@ -6446,6 +6508,22 @@ pub enum Union3KAudioOrKDocumentOrKImage {
     KAudio,
     /// Literal value: document
     KDocument,
+}
+
+impl std::str::FromStr for Union3KAudioOrKDocumentOrKImage {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "image" => Ok(Self::KImage),
+            "audio" => Ok(Self::KAudio),
+            "document" => Ok(Self::KDocument),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KAudioOrKDocumentOrKImage",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KAudioOrKDocumentOrKImage {
@@ -6580,7 +6658,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KAudioOrKDocumentOrKImage 
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KFlexOrKGridOrKStack {
     /// Literal value: flex
@@ -6589,6 +6667,22 @@ pub enum Union3KFlexOrKGridOrKStack {
     KGrid,
     /// Literal value: stack
     KStack,
+}
+
+impl std::str::FromStr for Union3KFlexOrKGridOrKStack {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "flex" => Ok(Self::KFlex),
+            "grid" => Ok(Self::KGrid),
+            "stack" => Ok(Self::KStack),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KFlexOrKGridOrKStack",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KFlexOrKGridOrKStack {
@@ -6723,7 +6817,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KFlexOrKGridOrKStack {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KHtmlOrKMarkdownOrKPlain {
     /// Literal value: plain
@@ -6732,6 +6826,22 @@ pub enum Union3KHtmlOrKMarkdownOrKPlain {
     KMarkdown,
     /// Literal value: html
     KHtml,
+}
+
+impl std::str::FromStr for Union3KHtmlOrKMarkdownOrKPlain {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "plain" => Ok(Self::KPlain),
+            "markdown" => Ok(Self::KMarkdown),
+            "html" => Ok(Self::KHtml),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KHtmlOrKMarkdownOrKPlain",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KHtmlOrKMarkdownOrKPlain {
@@ -7058,7 +7168,7 @@ impl std::fmt::Display for Union4BoolOrFloatOrIntOrString {
 
 impl Default for Union4BoolOrFloatOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -7306,7 +7416,7 @@ impl std::fmt::Display for Union4IntOrListNodeOrMapStringKeyNodeValueOrString {
 
 impl Default for Union4IntOrListNodeOrMapStringKeyNodeValueOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -7352,7 +7462,7 @@ impl baml_client_rust::types::FromBamlValue for Union4IntOrListNodeOrMapStringKe
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union4KButtonOrKContainerOrKImageOrKText {
     /// Literal value: button
@@ -7363,6 +7473,23 @@ pub enum Union4KButtonOrKContainerOrKImageOrKText {
     KImage,
     /// Literal value: container
     KContainer,
+}
+
+impl std::str::FromStr for Union4KButtonOrKContainerOrKImageOrKText {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "button" => Ok(Self::KButton),
+            "text" => Ok(Self::KText),
+            "image" => Ok(Self::KImage),
+            "container" => Ok(Self::KContainer),
+            other => Err(format!(
+                "Invalid literal '{}' for Union4KButtonOrKContainerOrKImageOrKText",
+                other
+            )),
+        }
+    }
 }
 
 impl Union4KButtonOrKContainerOrKImageOrKText {
@@ -7731,7 +7858,7 @@ impl baml_client_rust::types::FromBamlValue for Union5IntK1OrIntK2OrIntK3OrIntK4
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union5KContainsOrKEqOrKGtOrKLtOrKNe {
     /// Literal value: eq
@@ -7744,6 +7871,24 @@ pub enum Union5KContainsOrKEqOrKGtOrKLtOrKNe {
     KLt,
     /// Literal value: contains
     KContains,
+}
+
+impl std::str::FromStr for Union5KContainsOrKEqOrKGtOrKLtOrKNe {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "eq" => Ok(Self::KEq),
+            "ne" => Ok(Self::KNe),
+            "gt" => Ok(Self::KGt),
+            "lt" => Ok(Self::KLt),
+            "contains" => Ok(Self::KContains),
+            other => Err(format!(
+                "Invalid literal '{}' for Union5KContainsOrKEqOrKGtOrKLtOrKNe",
+                other
+            )),
+        }
+    }
 }
 
 impl Union5KContainsOrKEqOrKGtOrKLtOrKNe {

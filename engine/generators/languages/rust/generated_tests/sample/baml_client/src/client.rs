@@ -125,7 +125,7 @@ impl BamlClient {
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<
-                    baml_client_rust::StreamState<crate::stream_state::Union2ExampleOrExample2>,
+                    baml_client_rust::StreamState<crate::types::Union2ExampleOrExample2>,
                 >,
             > + Send
             + Sync,
@@ -158,7 +158,7 @@ impl BamlClient {
     ) -> BamlResult<
         impl futures::Stream<
                 Item = BamlResult<
-                    baml_client_rust::StreamState<crate::stream_state::Union2ExampleOrExample2>,
+                    baml_client_rust::StreamState<crate::types::Union2ExampleOrExample2>,
                 >,
             > + Send
             + Sync,

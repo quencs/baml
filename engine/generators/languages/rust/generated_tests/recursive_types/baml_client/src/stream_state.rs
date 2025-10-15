@@ -14,12 +14,12 @@
 pub use crate::types::*;
 pub use baml_client_rust::StreamState;
 
-pub type JSON = Option<Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString>;
+pub type JSON = Option<crate::types::Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString>;
 
-pub type MyUnion = Option<Union3IntOrRecursive1OrString>;
+pub type MyUnion = Option<crate::types::Union3IntOrRecursive1OrString>;
 
 pub type Nonrecursive1 = Option<i64>;
 
 pub type Nonrecursive2 = Option<String>;
 
-pub type Recursive1 = Option<Union2IntOrListRecursive1>;
+pub type Recursive1 = Option<crate::types::Union2IntOrListRecursive1>;

@@ -1296,7 +1296,7 @@ impl baml_client_rust::types::FromBamlValue for Union3IntK200OrIntK404OrIntK500 
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KActiveOrKInactiveOrKPending {
     /// Literal value: active
@@ -1305,6 +1305,22 @@ pub enum Union3KActiveOrKInactiveOrKPending {
     KInactive,
     /// Literal value: pending
     KPending,
+}
+
+impl std::str::FromStr for Union3KActiveOrKInactiveOrKPending {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "active" => Ok(Self::KActive),
+            "inactive" => Ok(Self::KInactive),
+            "pending" => Ok(Self::KPending),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KActiveOrKInactiveOrKPending",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KActiveOrKInactiveOrKPending {
@@ -1439,7 +1455,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KActiveOrKInactiveOrKPendi
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KAdminOrKGuestOrKUser {
     /// Literal value: user
@@ -1448,6 +1464,22 @@ pub enum Union3KAdminOrKGuestOrKUser {
     KAdmin,
     /// Literal value: guest
     KGuest,
+}
+
+impl std::str::FromStr for Union3KAdminOrKGuestOrKUser {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "user" => Ok(Self::KUser),
+            "admin" => Ok(Self::KAdmin),
+            "guest" => Ok(Self::KGuest),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KAdminOrKGuestOrKUser",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KAdminOrKGuestOrKUser {
@@ -1582,7 +1614,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KAdminOrKGuestOrKUser {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KDevOrKProdOrKStaging {
     /// Literal value: dev
@@ -1591,6 +1623,22 @@ pub enum Union3KDevOrKProdOrKStaging {
     KStaging,
     /// Literal value: prod
     KProd,
+}
+
+impl std::str::FromStr for Union3KDevOrKProdOrKStaging {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "dev" => Ok(Self::KDev),
+            "staging" => Ok(Self::KStaging),
+            "prod" => Ok(Self::KProd),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KDevOrKProdOrKStaging",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KDevOrKProdOrKStaging {
@@ -1725,7 +1773,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KDevOrKProdOrKStaging {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KErrorOrKSuccessOrKTimeout {
     /// Literal value: success
@@ -1734,6 +1782,22 @@ pub enum Union3KErrorOrKSuccessOrKTimeout {
     KError,
     /// Literal value: timeout
     KTimeout,
+}
+
+impl std::str::FromStr for Union3KErrorOrKSuccessOrKTimeout {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "success" => Ok(Self::KSuccess),
+            "error" => Ok(Self::KError),
+            "timeout" => Ok(Self::KTimeout),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KErrorOrKSuccessOrKTimeout",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KErrorOrKSuccessOrKTimeout {
@@ -1868,7 +1932,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KErrorOrKSuccessOrKTimeout
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KV1OrKV2OrKV3 {
     /// Literal value: v1
@@ -1877,6 +1941,22 @@ pub enum Union3KV1OrKV2OrKV3 {
     KV2,
     /// Literal value: v3
     KV3,
+}
+
+impl std::str::FromStr for Union3KV1OrKV2OrKV3 {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "v1" => Ok(Self::KV1),
+            "v2" => Ok(Self::KV2),
+            "v3" => Ok(Self::KV3),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KV1OrKV2OrKV3",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KV1OrKV2OrKV3 {
@@ -2185,7 +2265,7 @@ impl baml_client_rust::types::FromBamlValue for Union4IntK0OrIntK1OrIntK3OrIntK5
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union4KArchivedOrKDeletedOrKDraftOrKPublished {
     /// Literal value: draft
@@ -2196,6 +2276,23 @@ pub enum Union4KArchivedOrKDeletedOrKDraftOrKPublished {
     KArchived,
     /// Literal value: deleted
     KDeleted,
+}
+
+impl std::str::FromStr for Union4KArchivedOrKDeletedOrKDraftOrKPublished {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "draft" => Ok(Self::KDraft),
+            "published" => Ok(Self::KPublished),
+            "archived" => Ok(Self::KArchived),
+            "deleted" => Ok(Self::KDeleted),
+            other => Err(format!(
+                "Invalid literal '{}' for Union4KArchivedOrKDeletedOrKDraftOrKPublished",
+                other
+            )),
+        }
+    }
 }
 
 impl Union4KArchivedOrKDeletedOrKDraftOrKPublished {
@@ -2354,7 +2451,7 @@ impl baml_client_rust::types::FromBamlValue for Union4KArchivedOrKDeletedOrKDraf
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union4KDeleteOrKGetOrKPostOrKPut {
     /// Literal value: GET
@@ -2365,6 +2462,23 @@ pub enum Union4KDeleteOrKGetOrKPostOrKPut {
     KPut,
     /// Literal value: DELETE
     KDelete,
+}
+
+impl std::str::FromStr for Union4KDeleteOrKGetOrKPostOrKPut {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "GET" => Ok(Self::KGet),
+            "POST" => Ok(Self::KPost),
+            "PUT" => Ok(Self::KPut),
+            "DELETE" => Ok(Self::KDelete),
+            other => Err(format!(
+                "Invalid literal '{}' for Union4KDeleteOrKGetOrKPostOrKPut",
+                other
+            )),
+        }
+    }
 }
 
 impl Union4KDeleteOrKGetOrKPostOrKPut {

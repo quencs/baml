@@ -40,11 +40,7 @@ function ConsumeSimpleClass(item: SimpleClass) -> SimpleClass {
 
 test MakeSimpleClassTest {
     functions [MakeSimpleClass]
-    args {
-        class_1:
-            digits: 123
-            words: "hello"
-    }
+    args {}
 }
 "###,
     );

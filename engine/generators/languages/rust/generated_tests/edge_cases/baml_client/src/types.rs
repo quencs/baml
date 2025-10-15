@@ -3628,7 +3628,7 @@ impl std::fmt::Display for Union3BoolOrIntOrString {
 
 impl Default for Union3BoolOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 

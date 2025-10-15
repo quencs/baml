@@ -4424,13 +4424,28 @@ impl baml_client_rust::types::FromBamlValue for UserSettings {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union2KDarkOrKLight {
     /// Literal value: light
     KLight,
     /// Literal value: dark
     KDark,
+}
+
+impl std::str::FromStr for Union2KDarkOrKLight {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "light" => Ok(Self::KLight),
+            "dark" => Ok(Self::KDark),
+            other => Err(format!(
+                "Invalid literal '{}' for Union2KDarkOrKLight",
+                other
+            )),
+        }
+    }
 }
 
 impl Union2KDarkOrKLight {
@@ -4452,6 +4467,13 @@ impl Union2KDarkOrKLight {
     /// Create a new Union2KDarkOrKLight with a KDark variant
     pub fn k_dark() -> Self {
         Self::KDark
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KLight => "light",
+            Self::KDark => "dark",
+        }
     }
 }
 
@@ -4530,13 +4552,28 @@ impl baml_client_rust::types::FromBamlValue for Union2KDarkOrKLight {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union2KGridOrKList {
     /// Literal value: grid
     KGrid,
     /// Literal value: list
     KList,
+}
+
+impl std::str::FromStr for Union2KGridOrKList {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "grid" => Ok(Self::KGrid),
+            "list" => Ok(Self::KList),
+            other => Err(format!(
+                "Invalid literal '{}' for Union2KGridOrKList",
+                other
+            )),
+        }
+    }
 }
 
 impl Union2KGridOrKList {
@@ -4558,6 +4595,13 @@ impl Union2KGridOrKList {
     /// Create a new Union2KGridOrKList with a KList variant
     pub fn k_list() -> Self {
         Self::KList
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KGrid => "grid",
+            Self::KList => "list",
+        }
     }
 }
 
@@ -4789,7 +4833,7 @@ impl std::fmt::Display for Union3BoolOrIntOrString {
 
 impl Default for Union3BoolOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -4828,7 +4872,7 @@ impl baml_client_rust::types::FromBamlValue for Union3BoolOrIntOrString {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KDailyOrKImmediateOrKWeekly {
     /// Literal value: immediate
@@ -4837,6 +4881,22 @@ pub enum Union3KDailyOrKImmediateOrKWeekly {
     KDaily,
     /// Literal value: weekly
     KWeekly,
+}
+
+impl std::str::FromStr for Union3KDailyOrKImmediateOrKWeekly {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "immediate" => Ok(Self::KImmediate),
+            "daily" => Ok(Self::KDaily),
+            "weekly" => Ok(Self::KWeekly),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KDailyOrKImmediateOrKWeekly",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KDailyOrKImmediateOrKWeekly {
@@ -4868,6 +4928,14 @@ impl Union3KDailyOrKImmediateOrKWeekly {
     /// Create a new Union3KDailyOrKImmediateOrKWeekly with a KWeekly variant
     pub fn k_weekly() -> Self {
         Self::KWeekly
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KImmediate => "immediate",
+            Self::KDaily => "daily",
+            Self::KWeekly => "weekly",
+        }
     }
 }
 
@@ -4963,7 +5031,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KDailyOrKImmediateOrKWeekl
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KDoneOrKInProgressOrKTodo {
     /// Literal value: todo
@@ -4972,6 +5040,22 @@ pub enum Union3KDoneOrKInProgressOrKTodo {
     KInProgress,
     /// Literal value: done
     KDone,
+}
+
+impl std::str::FromStr for Union3KDoneOrKInProgressOrKTodo {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "todo" => Ok(Self::KTodo),
+            "in_progress" => Ok(Self::KInProgress),
+            "done" => Ok(Self::KDone),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KDoneOrKInProgressOrKTodo",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KDoneOrKInProgressOrKTodo {
@@ -5003,6 +5087,14 @@ impl Union3KDoneOrKInProgressOrKTodo {
     /// Create a new Union3KDoneOrKInProgressOrKTodo with a KDone variant
     pub fn k_done() -> Self {
         Self::KDone
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KTodo => "todo",
+            Self::KInProgress => "in_progress",
+            Self::KDone => "done",
+        }
     }
 }
 
@@ -5098,7 +5190,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KDoneOrKInProgressOrKTodo 
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KFriendsOrKPrivateOrKPublic {
     /// Literal value: public
@@ -5107,6 +5199,22 @@ pub enum Union3KFriendsOrKPrivateOrKPublic {
     KPrivate,
     /// Literal value: friends
     KFriends,
+}
+
+impl std::str::FromStr for Union3KFriendsOrKPrivateOrKPublic {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "public" => Ok(Self::KPublic),
+            "private" => Ok(Self::KPrivate),
+            "friends" => Ok(Self::KFriends),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KFriendsOrKPrivateOrKPublic",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KFriendsOrKPrivateOrKPublic {
@@ -5138,6 +5246,14 @@ impl Union3KFriendsOrKPrivateOrKPublic {
     /// Create a new Union3KFriendsOrKPrivateOrKPublic with a KFriends variant
     pub fn k_friends() -> Self {
         Self::KFriends
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KPublic => "public",
+            Self::KPrivate => "private",
+            Self::KFriends => "friends",
+        }
     }
 }
 
@@ -5233,7 +5349,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KFriendsOrKPrivateOrKPubli
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union3KHighOrKLowOrKMedium {
     /// Literal value: low
@@ -5242,6 +5358,22 @@ pub enum Union3KHighOrKLowOrKMedium {
     KMedium,
     /// Literal value: high
     KHigh,
+}
+
+impl std::str::FromStr for Union3KHighOrKLowOrKMedium {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "low" => Ok(Self::KLow),
+            "medium" => Ok(Self::KMedium),
+            "high" => Ok(Self::KHigh),
+            other => Err(format!(
+                "Invalid literal '{}' for Union3KHighOrKLowOrKMedium",
+                other
+            )),
+        }
+    }
 }
 
 impl Union3KHighOrKLowOrKMedium {
@@ -5273,6 +5405,14 @@ impl Union3KHighOrKLowOrKMedium {
     /// Create a new Union3KHighOrKLowOrKMedium with a KHigh variant
     pub fn k_high() -> Self {
         Self::KHigh
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KLow => "low",
+            Self::KMedium => "medium",
+            Self::KHigh => "high",
+        }
     }
 }
 
@@ -5368,7 +5508,7 @@ impl baml_client_rust::types::FromBamlValue for Union3KHighOrKLowOrKMedium {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union4KActiveOrKCancelledOrKCompletedOrKPlanning {
     /// Literal value: planning
@@ -5379,6 +5519,23 @@ pub enum Union4KActiveOrKCancelledOrKCompletedOrKPlanning {
     KCompleted,
     /// Literal value: cancelled
     KCancelled,
+}
+
+impl std::str::FromStr for Union4KActiveOrKCancelledOrKCompletedOrKPlanning {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "planning" => Ok(Self::KPlanning),
+            "active" => Ok(Self::KActive),
+            "completed" => Ok(Self::KCompleted),
+            "cancelled" => Ok(Self::KCancelled),
+            other => Err(format!(
+                "Invalid literal '{}' for Union4KActiveOrKCancelledOrKCompletedOrKPlanning",
+                other
+            )),
+        }
+    }
 }
 
 impl Union4KActiveOrKCancelledOrKCompletedOrKPlanning {
@@ -5420,6 +5577,15 @@ impl Union4KActiveOrKCancelledOrKCompletedOrKPlanning {
     /// Create a new Union4KActiveOrKCancelledOrKCompletedOrKPlanning with a KCancelled variant
     pub fn k_cancelled() -> Self {
         Self::KCancelled
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KPlanning => "planning",
+            Self::KActive => "active",
+            Self::KCompleted => "completed",
+            Self::KCancelled => "cancelled",
+        }
     }
 }
 
@@ -5528,7 +5694,7 @@ impl baml_client_rust::types::FromBamlValue for Union4KActiveOrKCancelledOrKComp
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union4KEnterpriseOrKLargeOrKMediumOrKSmall {
     /// Literal value: small
@@ -5539,6 +5705,23 @@ pub enum Union4KEnterpriseOrKLargeOrKMediumOrKSmall {
     KLarge,
     /// Literal value: enterprise
     KEnterprise,
+}
+
+impl std::str::FromStr for Union4KEnterpriseOrKLargeOrKMediumOrKSmall {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "small" => Ok(Self::KSmall),
+            "medium" => Ok(Self::KMedium),
+            "large" => Ok(Self::KLarge),
+            "enterprise" => Ok(Self::KEnterprise),
+            other => Err(format!(
+                "Invalid literal '{}' for Union4KEnterpriseOrKLargeOrKMediumOrKSmall",
+                other
+            )),
+        }
+    }
 }
 
 impl Union4KEnterpriseOrKLargeOrKMediumOrKSmall {
@@ -5580,6 +5763,15 @@ impl Union4KEnterpriseOrKLargeOrKMediumOrKSmall {
     /// Create a new Union4KEnterpriseOrKLargeOrKMediumOrKSmall with a KEnterprise variant
     pub fn k_enterprise() -> Self {
         Self::KEnterprise
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KSmall => "small",
+            Self::KMedium => "medium",
+            Self::KLarge => "large",
+            Self::KEnterprise => "enterprise",
+        }
     }
 }
 

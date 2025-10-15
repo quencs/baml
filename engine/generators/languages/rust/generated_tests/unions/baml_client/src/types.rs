@@ -507,7 +507,7 @@ impl std::fmt::Display for Union2IntOrListRecursive1 {
 
 impl Default for Union2IntOrListRecursive1 {
     fn default() -> Self {
-        Self::Int(i64::default())
+        Self::Int(Default::default())
     }
 }
 
@@ -541,13 +541,28 @@ impl baml_client_rust::types::FromBamlValue for Union2IntOrListRecursive1 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Union2KResourceOrKService {
     /// Literal value: service
     KService,
     /// Literal value: resource
     KResource,
+}
+
+impl std::str::FromStr for Union2KResourceOrKService {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "service" => Ok(Self::KService),
+            "resource" => Ok(Self::KResource),
+            other => Err(format!(
+                "Invalid literal '{}' for Union2KResourceOrKService",
+                other
+            )),
+        }
+    }
 }
 
 impl Union2KResourceOrKService {
@@ -569,6 +584,13 @@ impl Union2KResourceOrKService {
     /// Create a new Union2KResourceOrKService with a KResource variant
     pub fn k_resource() -> Self {
         Self::KResource
+    }
+    /// Return the literal string value represented by this union.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KService => "service",
+            Self::KResource => "resource",
+        }
     }
 }
 
@@ -804,7 +826,7 @@ impl std::fmt::Display for Union3IntOrRecursive1OrString {
 
 impl Default for Union3IntOrRecursive1OrString {
     fn default() -> Self {
-        Self::Recursive1(crate::types::Recursive1::default())
+        Self::Recursive1(Default::default())
     }
 }
 

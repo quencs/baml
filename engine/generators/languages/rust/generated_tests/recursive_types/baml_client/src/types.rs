@@ -339,7 +339,7 @@ impl std::fmt::Display for Union2IntOrListRecursive1 {
 
 impl Default for Union2IntOrListRecursive1 {
     fn default() -> Self {
-        Self::Int(i64::default())
+        Self::Int(Default::default())
     }
 }
 
@@ -526,7 +526,7 @@ impl std::fmt::Display for Union3IntOrRecursive1OrString {
 
 impl Default for Union3IntOrRecursive1OrString {
     fn default() -> Self {
-        Self::Recursive1(crate::types::Recursive1::default())
+        Self::Recursive1(Default::default())
     }
 }
 
@@ -808,7 +808,7 @@ impl std::fmt::Display for Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrSt
 
 impl Default for Union5FloatOrIntOrListJSONOrMapStringKeyJSONValueOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 

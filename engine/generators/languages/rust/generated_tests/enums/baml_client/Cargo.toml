@@ -11,10 +11,9 @@ license = "MIT"
 # BAML version: 0.1.0
 
 [dependencies]
-# Core BAML runtime - using local development path
-# Note: Change to published crate version when baml-client-rust is published to crates.io
-baml-client-rust = { path = "../../../../../../language_client_rust" }
-baml-types = { path = "../../../../../../baml-lib/baml-types" }
+# Core BAML runtime - using Git dependency until crates are published
+baml-client-rust = { git = "https://github.com/BoundaryML/baml", branch = "aomi-labs/rust-client", package = "baml-client-rust" }
+baml-types = { git = "https://github.com/BoundaryML/baml", branch = "aomi-labs/rust-client", package = "baml-types" }
 
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }

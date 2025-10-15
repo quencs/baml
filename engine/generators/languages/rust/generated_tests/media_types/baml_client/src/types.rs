@@ -1028,7 +1028,7 @@ impl std::fmt::Display for Union4AudioOrImageOrPdfOrVideo {
 
 impl Default for Union4AudioOrImageOrPdfOrVideo {
     fn default() -> Self {
-        Self::Image(crate::types::BamlImage::default())
+        Self::Image(Default::default())
     }
 }
 

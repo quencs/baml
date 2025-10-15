@@ -1895,7 +1895,7 @@ impl std::fmt::Display for Union2IntOrString {
 
 impl Default for Union2IntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -2043,7 +2043,7 @@ impl std::fmt::Display for Union2ProductOrUser {
 
 impl Default for Union2ProductOrUser {
     fn default() -> Self {
-        Self::User(crate::types::User::default())
+        Self::User(Default::default())
     }
 }
 

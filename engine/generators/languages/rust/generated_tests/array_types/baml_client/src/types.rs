@@ -1381,7 +1381,7 @@ impl std::fmt::Display for Union3BoolOrIntOrString {
 
 impl Default for Union3BoolOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
@@ -1573,7 +1573,7 @@ impl std::fmt::Display for Union3ProductOrTagOrUser {
 
 impl Default for Union3ProductOrTagOrUser {
     fn default() -> Self {
-        Self::User(crate::types::User::default())
+        Self::User(Default::default())
     }
 }
 
@@ -1804,7 +1804,7 @@ impl std::fmt::Display for Union4BoolOrFloatOrIntOrString {
 
 impl Default for Union4BoolOrFloatOrIntOrString {
     fn default() -> Self {
-        Self::String(String::default())
+        Self::String(Default::default())
     }
 }
 
