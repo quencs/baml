@@ -1835,8 +1835,7 @@ impl InternalRuntimeInterface for BamlRuntime {
 
     fn function_graph(&self, _function_name: &str, _ctx: &RuntimeContext) -> Result<String> {
         let ast = self.db.ast();
-        let graph =
-            internal_baml_core::ast::BamlVisDiagramGenerator::generate_headers_flowchart(ast);
+        let graph = internal_baml_core::ast::diagram_generator::generate_headers_flowchart(ast);
         Ok(graph)
     }
 
