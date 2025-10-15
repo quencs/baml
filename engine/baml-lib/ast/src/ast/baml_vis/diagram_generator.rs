@@ -32,6 +32,13 @@ pub fn generate_headers_flowchart(ast: &Ast) -> String {
 pub fn generate_with_styling(ast: &Ast, use_fancy: bool) -> String {
     let index = HeaderCollector::collect(ast);
     let (graph, span_map) = graph::build(&index, BuilderConfig::default());
+    log::debug!(
+        "[diagram_generator] built graph: nodes={}, edges={}, clusters={}, span_map_entries={}",
+        graph.nodes.len(),
+        graph.edges.len(),
+        graph.clusters.len(),
+        span_map.len()
+    );
     render_mermaid_graph(&graph, Direction::TD, use_fancy, span_map)
 }
 

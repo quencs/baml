@@ -319,6 +319,21 @@ case "$_path" in
     fi
     ;;
 
+  /typescript/apps/fiddle-web-app | /typescript/apps/fiddle-web-app/* )
+    command="(cd ${_repo_root} && turbo run dev --filter=@baml/fiddle-web-app... --force)"
+
+    if [ "$_watch_mode" -eq 1 ]; then
+      npx nodemon \
+        --ext grammar,js,ts,tsx,json \
+        --ignore '**/dist' \
+        --exec "${command}"
+    else
+      eval "${comamnd}"
+      date
+    fi
+    ;;
+    
+
   /typescript/packages/codemirror-lang-baml | /typescript/packages/codemirror-lang-baml/* )
     if [ "$_watch_mode" -eq 1 ]; then
       npx nodemon \
