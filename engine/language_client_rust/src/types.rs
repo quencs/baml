@@ -356,8 +356,7 @@ impl ToBamlValue for serde_json::Value {
 
 impl FromBamlValue for serde_json::Value {
     fn from_baml_value(value: BamlValue) -> crate::BamlResult<Self> {
-        serde_json::to_value(&value)
-            .map_err(|e| crate::BamlError::deserialization(e.to_string()))
+        serde_json::to_value(&value).map_err(|e| crate::BamlError::deserialization(e.to_string()))
     }
 }
 

@@ -15,7 +15,7 @@ pub fn ir_class_to_rust(class: &Class, pkg: &CurrentRenderPackage) -> RustClass 
             let field_type = &field.elem.r#type.elem;
             let mut rust_type = crate::ir_to_rust::type_to_rust(
                 &field_type.to_non_streaming_type(pkg.lookup()),
-                pkg.lookup(),
+                pkg,
             );
             if rust_type.is_class_named(&class.elem.name) {
                 rust_type.make_boxed();

@@ -12,7 +12,7 @@ pub fn ir_type_alias_to_rust<'a>(
         name: alias.elem.name.clone(),
         type_: type_to_rust(
             &alias.elem.r#type.elem.to_non_streaming_type(pkg.lookup()),
-            pkg.lookup(),
+            pkg,
         ),
         docstring: alias
             .elem
@@ -30,7 +30,7 @@ pub fn ir_type_alias_to_rust_stream<'a>(
     let partialized = alias.elem.r#type.elem.to_streaming_type(pkg.lookup());
     TypeAliasRust {
         name: alias.elem.name.clone(),
-        type_: stream_type_to_rust(&partialized, pkg.lookup()),
+        type_: stream_type_to_rust(&partialized, pkg),
         docstring: alias
             .elem
             .docstring

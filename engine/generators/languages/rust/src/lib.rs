@@ -129,7 +129,7 @@ impl LanguageFeatures for RustLanguageFeatures {
                                     field_type.to_non_streaming_type(pkg.lookup());
                                 let mut ty = crate::ir_to_rust::type_to_rust(
                                     &field_type_non_streaming,
-                                    pkg.lookup(),
+                                    &pkg,
                                 );
                                 if union_contains_class(&field_type_non_streaming, class_name) {
                                     ty.meta_mut().make_boxed();
@@ -182,10 +182,10 @@ impl LanguageFeatures for RustLanguageFeatures {
                 .walk_all_non_streaming_unions()
                 .filter_map(|t| {
                     ir_to_rust::unions::ir_union_to_rust(&t, &pkg).map(|union_data| {
-                        let all_variants_are_string_literals = union_data
-                            .variants
-                            .iter()
-                            .all(|variant| matches!(variant.literal_kind, Some(RustLiteralKind::String)));
+                        let all_variants_are_string_literals =
+                            union_data.variants.iter().all(|variant| {
+                                matches!(variant.literal_kind, Some(RustLiteralKind::String))
+                            });
 
                         generated_types::UnionRust {
                             name: union_data.name,

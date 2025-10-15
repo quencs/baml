@@ -11,7 +11,7 @@ pub fn ir_union_to_rust(
     pkg: &CurrentRenderPackage,
 ) -> Option<RustUnion> {
     // Use the new type system to generate proper union types
-    let rust_type = crate::ir_to_rust::type_to_rust(union_type, pkg.lookup());
+    let rust_type = crate::ir_to_rust::type_to_rust(union_type, pkg);
 
     if let TypeRust::Union { name, .. } = rust_type {
         // Extract the union variants based on the union type
@@ -26,7 +26,7 @@ pub fn ir_union_to_rust(
                             .into_iter()
                             .enumerate()
                             .map(|(i, t)| {
-                                let rust_type = crate::ir_to_rust::type_to_rust(t, pkg.lookup());
+                                let rust_type = crate::ir_to_rust::type_to_rust(t, pkg);
                                 build_variant(i, t, rust_type, pkg, &mut seen_names)
                             })
                             .collect::<Vec<_>>();
@@ -47,7 +47,7 @@ pub fn ir_union_to_rust(
                             .into_iter()
                             .enumerate()
                             .map(|(i, t)| {
-                                let rust_type = crate::ir_to_rust::type_to_rust(t, pkg.lookup());
+                                let rust_type = crate::ir_to_rust::type_to_rust(t, pkg);
                                 build_variant(i, t, rust_type, pkg, &mut seen_names)
                             })
                             .collect::<Vec<_>>();

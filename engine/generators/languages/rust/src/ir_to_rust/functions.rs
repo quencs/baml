@@ -14,20 +14,17 @@ pub fn ir_function_to_rust(function: &FunctionNode, pkg: &CurrentRenderPackage) 
             .map(|(name, field_type)| {
                 (
                     name.clone(),
-                    type_to_rust(
-                        &field_type.to_non_streaming_type(pkg.lookup()),
-                        pkg.lookup(),
-                    ),
+                    type_to_rust(&field_type.to_non_streaming_type(pkg.lookup()), pkg),
                 )
             })
             .collect(),
         return_type: type_to_rust(
             &function.elem.output().to_non_streaming_type(pkg.lookup()),
-            pkg.lookup(),
+            pkg,
         ),
         stream_return_type: stream_type_to_rust(
             &function.elem.output().to_streaming_type(pkg.lookup()),
-            pkg.lookup(),
+            pkg,
         ),
     }
 }

@@ -1,12 +1,11 @@
 use baml_types::{
-    baml_value::TypeLookups,
     ir_type::{TypeNonStreaming, TypeStreaming},
     type_meta::{self, stream::TypeMetaStreaming},
     BamlMediaType, ConstraintLevel, TypeValue,
 };
 
 use crate::{
-    package::Package,
+    package::{CurrentRenderPackage, Package},
     r#type::{MediaTypeRust, TypeMetaRust, TypeRust, TypeWrapper},
 };
 
@@ -16,11 +15,10 @@ pub mod functions;
 pub mod type_aliases;
 pub mod unions;
 
-pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLookups) -> TypeRust {
+pub(crate) fn stream_type_to_rust(field: &TypeStreaming, pkg: &CurrentRenderPackage) -> TypeRust {
     use TypeStreaming as T;
-    let recursive_fn = |field| stream_type_to_rust(field, lookup);
+    let recursive_fn = |field| stream_type_to_rust(field, pkg);
     let meta = stream_meta_to_rust(field.meta());
-
     let types_pkg: Package = Package::types();
     let stream_pkg: Package = Package::stream_state();
 
@@ -40,12 +38,7 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
             baml_types::LiteralValue::Int(val) => TypeRust::Int(Some(*val), meta),
             baml_types::LiteralValue::Bool(val) => TypeRust::Bool(Some(*val), meta),
         },
-        T::Class {
-            name,
-            dynamic,
-            meta: cls_meta,
-            ..
-        } => TypeRust::Class {
+        T::Class { name, dynamic, .. } => TypeRust::Class {
             package: types_pkg.clone(), // Use types package for both streaming and non-streaming for now
             name: name.clone(),
             dynamic: *dynamic,
@@ -58,10 +51,32 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
             Box::new(recursive_fn(type_generic1)),
             meta,
         ),
-        T::RecursiveTypeAlias { name, .. } => TypeRust::Any {
-            reason: format!("Recursive type alias {name} is not supported in Rust"),
-            meta,
-        },
+        T::RecursiveTypeAlias {
+            name,
+            meta: alias_meta,
+            ..
+        } => {
+            if pkg.is_recursive_alias(name) {
+                TypeRust::Any {
+                    reason: format!(
+                        "Recursive type alias {name} is lowered to serde_json::Value in Rust"
+                    ),
+                    meta,
+                }
+            } else {
+                let package = if alias_meta.streaming_behavior.done {
+                    types_pkg.clone()
+                } else {
+                    stream_pkg.clone()
+                };
+                TypeRust::TypeAlias {
+                    package,
+                    name: name.clone(),
+                    needs_box: false,
+                    meta,
+                }
+            }
+        }
         T::Tuple(..) => TypeRust::Any {
             reason: "tuples are not supported in Rust".to_string(),
             meta,
@@ -93,16 +108,11 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
                 type_rust
             }
             baml_types::ir_type::UnionTypeViewGeneric::OneOf(type_generics) => {
-                let type_generics_vec: Vec<_> = type_generics.into_iter().collect();
-                let num_options = type_generics_vec.len();
-                let mut name = type_generics_vec
+                let options: Vec<_> = type_generics.into_iter().map(&recursive_fn).collect();
+                let num_options = options.len();
+                let mut name = options
                     .iter()
-                    .map(|t| {
-                        let non_stream =
-                            t.clone().to_ir_type().to_non_streaming_type(lookup);
-                        let rust_type = type_to_rust(&non_stream, lookup);
-                        rust_type.default_name_within_union()
-                    })
+                    .map(|t| t.default_name_within_union())
                     .collect::<Vec<_>>();
                 name.sort();
                 let name = name.join("Or");
@@ -113,16 +123,11 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
                 }
             }
             baml_types::ir_type::UnionTypeViewGeneric::OneOfOptional(type_generics) => {
-                let type_generics_vec: Vec<_> = type_generics.into_iter().collect();
-                let num_options = type_generics_vec.len();
-                let mut name = type_generics_vec
+                let options: Vec<_> = type_generics.into_iter().map(recursive_fn).collect();
+                let num_options = options.len();
+                let mut name = options
                     .iter()
-                    .map(|t| {
-                        let non_stream =
-                            t.clone().to_ir_type().to_non_streaming_type(lookup);
-                        let rust_type = type_to_rust(&non_stream, lookup);
-                        rust_type.default_name_within_union()
-                    })
+                    .map(|t| t.default_name_within_union())
                     .collect::<Vec<_>>();
                 name.sort();
                 let name = name.join("Or");
@@ -145,10 +150,11 @@ pub(crate) fn stream_type_to_rust(field: &TypeStreaming, lookup: &impl TypeLooku
     type_rust
 }
 
-pub(crate) fn type_to_rust(field: &TypeNonStreaming, lookup: &impl TypeLookups) -> TypeRust {
+pub(crate) fn type_to_rust(field: &TypeNonStreaming, pkg: &CurrentRenderPackage) -> TypeRust {
     use TypeNonStreaming as T;
-    let recursive_fn = |field| type_to_rust(field, lookup);
+    let recursive_fn = |field| type_to_rust(field, pkg);
     let meta = meta_to_rust(field.meta());
+    let lookup = pkg.lookup();
 
     let type_pkg = Package::types();
 
@@ -189,10 +195,23 @@ pub(crate) fn type_to_rust(field: &TypeNonStreaming, lookup: &impl TypeLookups) 
             reason: "arrow types are not supported in Rust".to_string(),
             meta,
         },
-        T::RecursiveTypeAlias { name, .. } => TypeRust::Any {
-            reason: format!("Recursive type alias {name} is not supported in Rust"),
-            meta,
-        },
+        T::RecursiveTypeAlias { name, .. } => {
+            if pkg.is_recursive_alias(name) {
+                TypeRust::Any {
+                    reason: format!(
+                        "Recursive type alias {name} is lowered to serde_json::Value in Rust"
+                    ),
+                    meta,
+                }
+            } else {
+                TypeRust::TypeAlias {
+                    package: type_pkg.clone(),
+                    name: name.clone(),
+                    needs_box: false,
+                    meta,
+                }
+            }
+        }
         T::Union(union_type_generic, union_meta) => match union_type_generic.view() {
             baml_types::ir_type::UnionTypeViewGeneric::Null => TypeRust::Null(meta),
             baml_types::ir_type::UnionTypeViewGeneric::Optional(type_generic) => {

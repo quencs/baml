@@ -1,4 +1,6 @@
+use baml_types::{ir_type::TypeGeneric, TypeValue};
 use dir_writer::IntermediateRepr;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -67,15 +69,18 @@ impl Package {
 pub struct CurrentRenderPackage {
     package: Arc<std::sync::Mutex<Arc<Package>>>,
     pub ir: Arc<IntermediateRepr>,
+    recursive_aliases: Arc<HashSet<String>>,
 }
 
 impl CurrentRenderPackage {
     pub fn new(package_name: impl Into<String>, ir: Arc<IntermediateRepr>) -> Self {
         let package_name = package_name.into();
         let full_package = format!("baml_client.{}", package_name);
+        let recursive_aliases = Arc::new(find_recursive_aliases(ir.as_ref()));
         Self {
             package: Arc::new(std::sync::Mutex::new(Arc::new(Package::new(&full_package)))),
             ir,
+            recursive_aliases,
         }
     }
 
@@ -98,6 +103,10 @@ impl CurrentRenderPackage {
         self.ir.as_ref()
     }
 
+    pub fn is_recursive_alias(&self, name: &str) -> bool {
+        self.recursive_aliases.contains(name)
+    }
+
     pub fn name(&self) -> String {
         self.get().current()
     }
@@ -107,4 +116,31 @@ impl CurrentRenderPackage {
         new_pkg.set("baml_client.types");
         new_pkg
     }
+}
+
+fn find_recursive_aliases(ir: &IntermediateRepr) -> HashSet<String> {
+    let mut recursive_aliases = HashSet::new();
+    for cycle in ir.structural_recursive_alias_cycles() {
+        let is_invalid_cycle = cycle.iter().all(|(_, field_type)| {
+            field_type
+                .find_if(
+                    &|t| match t {
+                        TypeGeneric::Class { .. } => true,
+                        TypeGeneric::Enum { .. } => true,
+                        TypeGeneric::Literal(..) => true,
+                        TypeGeneric::Primitive(TypeValue::Null, ..) => false,
+                        TypeGeneric::Primitive(..) => true,
+                        _ => false,
+                    },
+                    true,
+                )
+                .is_empty()
+        });
+
+        if is_invalid_cycle {
+            recursive_aliases.extend(cycle.keys().cloned());
+        }
+    }
+
+    recursive_aliases
 }
